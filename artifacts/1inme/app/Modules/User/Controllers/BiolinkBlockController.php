@@ -439,6 +439,39 @@ class BiolinkBlockController extends Controller
     }
 
     /**
+     * Reset a single block's `_style` payload to STYLE_DEFAULTS, dropping
+     * both any curated variant and any handcrafted overrides. Also clears
+     * `_style_custom_snapshot` so the user gets a truly clean slate. Used
+     * by the "Reset to default" button in the Designs gallery.
+     */
+    public function resetStyle(Request $request, Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        $applyToAll = (bool) $request->boolean('apply_to_all');
+        $defaults = $this->sanitizeBlockStyle(BiolinkBlock::STYLE_DEFAULTS);
+
+        $reset = function (BiolinkBlock $b) use ($defaults) {
+            $settings = $b->settings ?? [];
+            $settings['_style'] = $defaults;
+            unset($settings['_style_custom_snapshot']);
+            $b->update(['settings' => $settings]);
+        };
+
+        if ($applyToAll) {
+            $count = 0;
+            foreach ($link->biolinkBlocks()->where('type', $block->type)->get() as $b) {
+                $reset($b);
+                $count++;
+            }
+            return response()->json(['success' => true, 'updated' => $count]);
+        }
+
+        $reset($block);
+        return response()->json(['success' => true, 'updated' => 1, 'block' => $block->fresh()]);
+    }
+
+    /**
      * Returns rendered HTML thumbnails for every variant offered for a
      * block's type, with the actual block content (label, image, etc.)
      * styled by each variant's payload. Used by the Designs gallery so

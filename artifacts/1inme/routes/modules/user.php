@@ -469,6 +469,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/apply-variant-to-all', [BiolinkBlockController::class, 'applyVariantToAll'])->middleware('workspace.can:links.edit')->name('links.blocks.applyVariantToAll');
         Route::post('links/{link}/blocks/{block}/apply-variant', [BiolinkBlockController::class, 'applyVariant'])->middleware('workspace.can:links.edit')->name('links.blocks.applyVariant');
         Route::post('links/{link}/blocks/{block}/restore-custom-style', [BiolinkBlockController::class, 'restoreCustomStyle'])->middleware('workspace.can:links.edit')->name('links.blocks.restoreCustomStyle');
+        Route::post('links/{link}/blocks/{block}/reset-style', [BiolinkBlockController::class, 'resetStyle'])->middleware('workspace.can:links.edit')->name('links.blocks.resetStyle');
         Route::get('links/{link}/blocks/{block}/variant-previews', [BiolinkBlockController::class, 'variantPreviews'])->middleware('workspace.can:links.view')->name('links.blocks.variantPreviews');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->middleware('workspace.can:links.edit')->name('links.page-settings');
 

@@ -89,15 +89,23 @@
                  customSnapshot: @js($customSnapshot)
              })"
              x-init="$nextTick(() => loadLivePreviews())">
-            <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
                 <p class="text-[10px]" style="color: var(--text-dimmed);">
                     <i class="fas fa-info-circle mr-1"></i>Click a design to apply it instantly
                 </p>
-                <button type="button" @click="surpriseMe()"
-                        class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
-                        style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;">
-                    <i class="fas fa-dice mr-1"></i>Surprise me
-                </button>
+                <div class="flex items-center gap-1">
+                    <button type="button" @click="resetStyle(false)"
+                            class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
+                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
+                            title="Reset this block's styling to the default">
+                        <i class="fas fa-rotate-left mr-1"></i>Reset
+                    </button>
+                    <button type="button" @click="surpriseMe()"
+                            class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
+                            style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;">
+                        <i class="fas fa-dice mr-1"></i>Surprise me
+                    </button>
+                </div>
             </div>
 
             {{-- Filter chips --}}
@@ -270,6 +278,17 @@
                     style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
                 <i class="fas fa-clone text-[9px]"></i>
                 Apply this design to all <span x-text="blockTypeLabel"></span> blocks
+            </button>
+
+            {{-- Reset to default for ALL blocks of this type. Separate from
+                 the per-block Reset button at the top so creators can do
+                 either: zero out just this block, or zero out every block
+                 of this type on the page. --}}
+            <button type="button" @click="resetStyle(true)"
+                    class="w-full text-[10px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1"
+                    style="background: rgba(244,63,94,0.06); border: 1px dashed rgba(244,63,94,0.35); color: #fb7185;">
+                <i class="fas fa-rotate-left text-[9px]"></i>
+                Reset all <span x-text="blockTypeLabel"></span> blocks to default
             </button>
         </div>
 
@@ -675,6 +694,41 @@ window.blockDesignsGallery = function(opts) {
                 })
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to restore', 'error');
+                });
+        },
+
+        resetStyle(applyToAll) {
+            // Wipes _style back to STYLE_DEFAULTS server-side. When
+            // applyToAll is true, every block of the same type on this
+            // page is reset; otherwise just this one block is.
+            var label = applyToAll
+                ? ('Reset every ' + this.blockTypeLabel + ' block to the default styling? This will clear any custom tweaks.')
+                : 'Reset this block to the default styling? This will clear any custom tweaks.';
+            if (typeof confirm === 'function' && !confirm(label)) return;
+            var url = '{{ route('user.links.blocks.resetStyle', [$link, $block]) }}';
+            var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+            var fd = new FormData();
+            if (applyToAll) fd.append('apply_to_all', '1');
+            if (token) fd.append('_token', token);
+            var self = this;
+            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        self.currentVariant = '';
+                        self.hasCustomStyle = false;
+                        self.customSnapshot = null;
+                        if (typeof showToast === 'function') {
+                            showToast(applyToAll ? ('Reset ' + (data.updated || 0) + ' block(s) to default') : 'Block reset to default', 'success');
+                        }
+                        if (typeof refreshBlockEditor === 'function') refreshBlockEditor();
+                        if (typeof refreshPreview === 'function') refreshPreview();
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed to reset', 'error');
+                    }
+                })
+                .catch(function() {
+                    if (typeof showToast === 'function') showToast('Failed to reset', 'error');
                 });
         },
 

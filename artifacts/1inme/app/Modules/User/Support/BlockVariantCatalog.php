@@ -216,6 +216,129 @@ class BlockVariantCatalog
                 ],
                 'preview' => ['bg' => 'linear-gradient(135deg,#ec4899,#8b5cf6)', 'text' => '#fff', 'radius' => 16],
             ],
+
+            // ===== Unique shapes / colors / themes =====
+            // The eight variants below were added to give every block a
+            // wider visual range (ticket cut, ribbon banner, polaroid, hex
+            // sticker, holographic, cyberpunk, terminal, paper craft) so
+            // the gallery actually feels distinctive instead of "20 cards
+            // with different bg colors". Order: shape-driven first, then
+            // color/theme-driven.
+
+            [
+                'key' => 'ticket_stub',
+                'name' => 'Ticket Stub',
+                'tags' => ['playful', 'retro'],
+                'style' => [
+                    'display_mode' => 'card', 'bg_color' => '#fef3c7',
+                    'border_style' => 'dashed', 'border_width' => '2', 'border_color' => '#b45309',
+                    'border_radius' => '4', 'shadow_type' => 'soft',
+                    'shadow_color' => '#b4530933', 'shadow_y' => 6, 'shadow_blur' => 14,
+                    'effect' => 'none', 'text_color' => '#78350f', 'padding' => '16',
+                    'font_weight' => '700', 'font_family' => 'JetBrains Mono',
+                ],
+                'preview' => ['bg' => '#fef3c7', 'text' => '#78350f', 'radius' => 4, 'border' => '#b45309', 'dashed' => true],
+            ],
+            [
+                'key' => 'polaroid',
+                'name' => 'Polaroid',
+                'tags' => ['playful', 'editorial'],
+                'style' => [
+                    'display_mode' => 'card', 'bg_color' => '#ffffff',
+                    'border_style' => 'solid', 'border_width' => '6', 'border_color' => '#ffffff',
+                    'border_radius' => '4', 'shadow_type' => 'hard',
+                    'shadow_color' => '#00000055', 'shadow_x' => 4, 'shadow_y' => 8, 'shadow_blur' => 18,
+                    'effect' => 'none', 'text_color' => '#1f2937', 'padding' => '20',
+                    'font_family' => 'Caveat', 'font_weight' => '600',
+                ],
+                'preview' => ['bg' => '#ffffff', 'text' => '#1f2937', 'radius' => 4, 'border' => '#ffffff', 'shadow' => '4px 8px 18px #00000055'],
+            ],
+            [
+                'key' => 'hex_sticker',
+                'name' => 'Hex Sticker',
+                'tags' => ['playful', 'three_d'],
+                'style' => [
+                    'display_mode' => 'card', 'bg_color' => '#10b981',
+                    'border_style' => 'solid', 'border_width' => '3', 'border_color' => '#ffffff',
+                    'border_radius' => '14', 'shadow_type' => 'hard',
+                    'shadow_color' => '#064e3b', 'shadow_x' => 0, 'shadow_y' => 5, 'shadow_blur' => 0,
+                    'effect' => 'none', 'text_color' => '#ffffff', 'padding' => '16',
+                    'font_weight' => '800',
+                ],
+                'preview' => ['bg' => '#10b981', 'text' => '#ffffff', 'radius' => 14, 'border' => '#ffffff', 'shadow' => '0 5px 0 #064e3b'],
+            ],
+            [
+                'key' => 'ribbon_banner',
+                'name' => 'Ribbon Banner',
+                'tags' => ['bold', 'editorial', 'pro'],
+                'style' => [
+                    'display_mode' => 'card', 'bg_color' => '#dc2626',
+                    'border_style' => 'solid', 'border_width' => '0',
+                    'border_color' => '#7f1d1d', 'border_radius' => '2',
+                    'shadow_type' => 'hard', 'shadow_color' => '#7f1d1d',
+                    'shadow_x' => -4, 'shadow_y' => 4, 'shadow_blur' => 0,
+                    'effect' => 'none', 'text_color' => '#ffffff', 'padding' => '14',
+                    'font_weight' => '800', 'font_family' => 'Playfair Display',
+                ],
+                'preview' => ['bg' => '#dc2626', 'text' => '#ffffff', 'radius' => 2, 'shadow' => '-4px 4px 0 #7f1d1d', 'serif' => true],
+            ],
+            [
+                'key' => 'holographic',
+                'name' => 'Holographic',
+                'tags' => ['y2k', 'maximalist', 'three_d'],
+                'style' => [
+                    'display_mode' => 'card',
+                    'bg_color' => 'linear-gradient(135deg,#fbcfe8,#a5b4fc,#67e8f9,#bef264)',
+                    'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#ffffff80',
+                    'border_radius' => '20', 'shadow_type' => 'glow',
+                    'shadow_color' => '#a78bfa66', 'shadow_blur' => 28,
+                    'effect' => 'none', 'text_color' => '#1e1b4b', 'padding' => '18',
+                    'font_weight' => '800',
+                ],
+                'preview' => ['bg' => 'linear-gradient(135deg,#fbcfe8,#a5b4fc,#67e8f9,#bef264)', 'text' => '#1e1b4b', 'radius' => 20, 'border' => '#ffffff80'],
+            ],
+            [
+                'key' => 'cyberpunk_grid',
+                'name' => 'Cyberpunk',
+                'tags' => ['neon', 'dark', 'maximalist', 'y2k'],
+                'style' => [
+                    'display_mode' => 'card', 'bg_color' => '#0b0420',
+                    'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#f0abfc',
+                    'border_radius' => '6', 'shadow_type' => 'neon',
+                    'shadow_color' => '#f0abfc99', 'shadow_blur' => 24,
+                    'effect' => 'none', 'text_color' => '#5eead4', 'padding' => '16',
+                    'font_weight' => '700', 'font_family' => 'JetBrains Mono',
+                ],
+                'preview' => ['bg' => '#0b0420', 'text' => '#5eead4', 'radius' => 6, 'border' => '#f0abfc'],
+            ],
+            [
+                'key' => 'terminal',
+                'name' => 'Terminal',
+                'tags' => ['minimal', 'dark', 'pro'],
+                'style' => [
+                    'display_mode' => 'card', 'bg_color' => '#020617',
+                    'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#22c55e',
+                    'border_radius' => '4', 'shadow_type' => 'glow',
+                    'shadow_color' => '#22c55e44', 'shadow_blur' => 18,
+                    'effect' => 'none', 'text_color' => '#4ade80', 'padding' => '14',
+                    'font_weight' => '500', 'font_family' => 'JetBrains Mono',
+                ],
+                'preview' => ['bg' => '#020617', 'text' => '#4ade80', 'radius' => 4, 'border' => '#22c55e'],
+            ],
+            [
+                'key' => 'paper_craft',
+                'name' => 'Paper Craft',
+                'tags' => ['minimal', 'editorial', 'handwritten'],
+                'style' => [
+                    'display_mode' => 'card', 'bg_color' => '#fafaf6',
+                    'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e7e5e4',
+                    'border_radius' => '10', 'shadow_type' => 'soft',
+                    'shadow_color' => '#a8a29e55', 'shadow_y' => 2, 'shadow_blur' => 8,
+                    'effect' => 'none', 'text_color' => '#1c1917', 'padding' => '18',
+                    'font_family' => 'Lora',
+                ],
+                'preview' => ['bg' => '#fafaf6', 'text' => '#1c1917', 'radius' => 10, 'border' => '#e7e5e4', 'serif' => true],
+            ],
         ];
     }
 
