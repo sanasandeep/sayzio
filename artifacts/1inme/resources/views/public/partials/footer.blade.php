@@ -47,6 +47,7 @@
                 <li><a href="{{ route('site.about') }}" class="hover:text-white transition-colors">About</a></li>
                 <li><a href="{{ route('site.contact') }}" class="hover:text-white transition-colors">Contact</a></li>
                 <li><a href="{{ route('site.faqs') }}" class="hover:text-white transition-colors">FAQs</a></li>
+                <li><a href="{{ route('site.blogs.index') }}" class="hover:text-white transition-colors">Blog</a></li>
                 <li><a href="{{ route('site.creators-feed') }}" class="hover:text-white transition-colors">Creators feed</a></li>
                 @auth
                     <li><a href="{{ \Illuminate\Support\Facades\Route::has('site.dashboard') ? route('site.dashboard') : '/dashboard' }}" class="hover:text-white transition-colors">Dashboard</a></li>
