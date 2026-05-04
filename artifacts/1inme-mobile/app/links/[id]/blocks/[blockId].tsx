@@ -29,23 +29,24 @@ import { variantsForType, findVariant } from "@/lib/blockVariants";
 // alongside the variant key on each block as `_variant_version`.
 const VARIANT_VERSION = 2;
 
-const VARIANT_TAG_LABELS: Record<string, string> = {
-  minimal: "Minimal",
-  bold: "Bold",
-  playful: "Playful",
-  pro: "Pro",
-  corporate: "Corporate",
-  glass: "Glass",
-  neon: "Neon",
-  retro: "Retro",
+// Special-cased labels for tag keys that don't humanize cleanly (acronyms,
+// numerals, etc). Anything not listed here is title-cased from the tag key
+// itself, so adding a new tag to `lib/blockVariants.ts` automatically gets
+// a sensible chip label without a second code change here. Mirrors the
+// web editor's `$variantTags` overrides + auto-derived chip set.
+const VARIANT_TAG_LABEL_OVERRIDES: Record<string, string> = {
   y2k: "Y2K",
-  brutalist: "Brutalist",
-  editorial: "Editorial",
-  maximalist: "Maximalist",
-  handwritten: "Handwritten",
   three_d: "3D",
-  dark: "Dark",
 };
+
+function variantTagLabel(tag: string): string {
+  if (VARIANT_TAG_LABEL_OVERRIDES[tag]) return VARIANT_TAG_LABEL_OVERRIDES[tag];
+  return tag
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+}
 
 export default function EditBlockScreen() {
   const colors = useColors();
@@ -340,7 +341,7 @@ export default function EditBlockScreen() {
             {(["all", "favorites", ...tagChips] as const).map((f) => {
               const selected = activeFilter === f;
               const label =
-                f === "all" ? "All" : f === "favorites" ? "★ Favorites" : VARIANT_TAG_LABELS[f as string] ?? f;
+                f === "all" ? "All" : f === "favorites" ? "★ Favorites" : variantTagLabel(f as string);
               return (
                 <Pressable
                   key={f}
