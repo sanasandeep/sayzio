@@ -20,7 +20,7 @@ class ResumeCoverLetter extends Model
     protected $fillable = [
         'user_id', 'resume_id', 'resume_revision',
         'title', 'tone', 'jd_text', 'jd_excerpt',
-        'language', 'content', 'model', 'credits_spent',
+        'language', 'ai_persona_id', 'content', 'model', 'credits_spent',
     ];
 
     protected function casts(): array
@@ -29,6 +29,7 @@ class ResumeCoverLetter extends Model
             'content'         => 'array',
             'resume_revision' => 'integer',
             'credits_spent'   => 'integer',
+            'ai_persona_id'   => 'integer',
         ];
     }
 
@@ -40,6 +41,11 @@ class ResumeCoverLetter extends Model
     public function resume(): BelongsTo
     {
         return $this->belongsTo(Resume::class);
+    }
+
+    public function aiPersona(): BelongsTo
+    {
+        return $this->belongsTo(AiPersona::class, 'ai_persona_id');
     }
 
     /**

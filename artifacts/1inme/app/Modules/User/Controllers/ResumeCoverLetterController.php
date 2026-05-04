@@ -41,6 +41,7 @@ class ResumeCoverLetterController extends Controller
         $data = $request->validate([
             'job_description' => ['required', 'string', 'min:30', 'max:20000'],
             'tone'            => ['nullable', 'string', 'in:professional,warm,concise'],
+            'persona_id'      => ['nullable', 'integer'],
         ]);
 
         if (!AiEngineSettings::isEnabled()) {
@@ -55,6 +56,7 @@ class ResumeCoverLetterController extends Controller
                 $resume,
                 $data['job_description'],
                 $data['tone'] ?? 'professional',
+                isset($data['persona_id']) ? (int) $data['persona_id'] : null,
             );
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -71,6 +73,7 @@ class ResumeCoverLetterController extends Controller
         $data = $request->validate([
             'job_description' => ['required', 'string', 'min:30', 'max:20000'],
             'tone'            => ['nullable', 'string', 'in:professional,warm,concise'],
+            'persona_id'      => ['nullable', 'integer'],
         ]);
 
         if (!AiEngineSettings::isEnabled()) {
@@ -86,6 +89,7 @@ class ResumeCoverLetterController extends Controller
                 $resume,
                 $data['job_description'],
                 $data['tone'] ?? 'professional',
+                isset($data['persona_id']) ? (int) $data['persona_id'] : null,
             );
         } catch (InsufficientAiCreditsException $e) {
             return response()->json([
@@ -109,8 +113,9 @@ class ResumeCoverLetterController extends Controller
     {
         $resume = $request->user()->ensureResume();
         return response()->json([
-            'letters' => $this->letters->recentLetters($request->user(), $resume, 50),
-            'balance' => $this->credits->getBalance($request->user()),
+            'letters'  => $this->letters->recentLetters($request->user(), $resume, 50),
+            'balance'  => $this->credits->getBalance($request->user()),
+            'personas' => $this->letters->userPersonas($request->user()),
         ]);
     }
 

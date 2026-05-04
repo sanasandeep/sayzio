@@ -47,6 +47,34 @@
                                      x-text="coverToneHint()"></div>
                             </div>
 
+                            {{-- Voice picker: pick which saved AI persona styles
+                                 the letter, or "None" for resume-only voice. --}}
+                            <div style="margin-top: 12px;">
+                                <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted,#9ca3af); margin-bottom:6px;">Voice</label>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <button type="button" class="resume-icon-btn"
+                                            style="width:auto; padding: 6px 12px; font-size: 11px;"
+                                            :class="!coverPersonaId ? 'pdf-size-active' : ''"
+                                            @click="coverPersonaId = null; refreshCoverEstimate()">
+                                        None
+                                    </button>
+                                    <template x-for="p in coverPersonas" :key="p.id">
+                                        <button type="button" class="resume-icon-btn"
+                                                style="width:auto; padding: 6px 12px; font-size: 11px;"
+                                                :class="coverPersonaId === p.id ? 'pdf-size-active' : ''"
+                                                @click="coverPersonaId = p.id; refreshCoverEstimate()"
+                                                x-text="p.name"></button>
+                                    </template>
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-muted,#9ca3af); margin-top: 6px;"
+                                     x-show="!coverPersonas.length">
+                                    No saved AI personas yet. Create one in <em>AI · Persona</em> to use it as a voice.
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-muted,#9ca3af); margin-top: 6px;"
+                                     x-show="coverPersonas.length"
+                                     x-text="coverPersonaId ? 'Letter will be styled in this saved voice.' : 'No voice — uses your resume and tone only.'"></div>
+                            </div>
+
                             <div class="resume-tailor-cost">
                                 <div>
                                     <i class="fas fa-coins"></i>
@@ -95,6 +123,10 @@
                                 <span class="resume-tailor-summary-bar-bullet">
                                     <i class="fas fa-feather"></i>
                                     <span x-text="'Tone: ' + (coverLetter.tone || 'professional')"></span>
+                                </span>
+                                <span class="resume-tailor-summary-bar-bullet">
+                                    <i class="fas fa-user-pen"></i>
+                                    <span x-text="'Voice: ' + (coverLetter.ai_persona_name || 'None')"></span>
                                 </span>
                             </div>
 
@@ -223,6 +255,9 @@
                                 <span x-text="(h.credits_spent || 0) + ' cr'"></span>
                                 <span>·</span>
                                 <span x-text="h.tone || 'professional'"></span>
+                                <span>·</span>
+                                <span title="Voice used to generate this letter"
+                                      x-text="'Voice: ' + (h.ai_persona_name || 'None')"></span>
                             </div>
                             <button type="button" class="resume-icon-btn"
                                     style="position:absolute; top:6px; right:6px; width:24px; height:24px;"

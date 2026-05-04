@@ -1172,6 +1172,8 @@ function resumeEditor() {
         coverBalance: 0,
         coverLetter: null,           // { id, title, tone, content: { greeting, body[], sign_off }, ... }
         coverHistory: [],
+        coverPersonas: [],           // [{ id, name }] — saved AI personas for the Voice picker
+        coverPersonaId: null,        // null = "None" (no persona styling)
         coverSectionBusy: '',        // '' | 'greeting' | 'body' | 'sign_off'
         coverCopied: false,
         _coverEstimateSeq: 0,
@@ -2610,6 +2612,7 @@ function resumeEditor() {
             this.coverError = '';
             this.coverJd = '';
             this.coverTone = 'professional';
+            this.coverPersonaId = null;
             this.coverEstimate = null;
             this.coverLetter = null;
             this.coverSectionBusy = '';
@@ -2630,7 +2633,15 @@ function resumeEditor() {
             try {
                 const r = await this.http('GET', '{{ route('user.resume.cover-letters.index') }}');
                 this.coverHistory = r.letters || [];
+                this.coverPersonas = r.personas || [];
                 this.coverBalance = r.balance ?? this.coverBalance;
+                // If the previously-picked persona was deleted between
+                // opens, reset the picker to "None" so we don't send a
+                // stale id (the server would drop it anyway).
+                if (this.coverPersonaId &&
+                    !this.coverPersonas.some(p => p.id === this.coverPersonaId)) {
+                    this.coverPersonaId = null;
+                }
             } catch (e) { /* non-fatal */ }
         },
 
@@ -2642,7 +2653,7 @@ function resumeEditor() {
             const seq = ++this._coverEstimateSeq;
             try {
                 const r = await this.http('POST', '{{ route('user.resume.cover-letters.estimate') }}',
-                    { job_description: jd, tone: this.coverTone });
+                    { job_description: jd, tone: this.coverTone, persona_id: this.coverPersonaId });
                 if (seq !== this._coverEstimateSeq) return;
                 this.coverEstimate = r.estimated_credits;
                 this.coverBalance  = r.balance;
@@ -2655,7 +2666,7 @@ function resumeEditor() {
             this.coverBusy = true; this.coverError = '';
             try {
                 const r = await this.http('POST', '{{ route('user.resume.cover-letters.store') }}',
-                    { job_description: jd, tone: this.coverTone });
+                    { job_description: jd, tone: this.coverTone, persona_id: this.coverPersonaId });
                 this.coverLetter  = this.normalizeCoverLetter(r.letter);
                 this.coverBalance = r.balance;
                 this.coverHistory = r.history || this.coverHistory;

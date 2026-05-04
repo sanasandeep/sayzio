@@ -49,10 +49,10 @@ class ResumeCoverLetterService
     public function __construct(protected OpenAiService $openai) {}
 
     /** Worst-case credit cost for the upfront confirmation step. */
-    public function estimateCredits(Resume $resume, string $jd, string $tone): int
+    public function estimateCredits(Resume $resume, string $jd, string $tone, ?int $personaId = null): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
-        $messages = $this->buildMessages($resume, $jd, $tone);
+        $messages = $this->buildMessages($resume, $jd, $tone, $personaId);
         return $this->openai->estimateChatCredits($model, $messages, self::MAX_OUTPUT_TOKENS);
     }
 
@@ -79,10 +79,12 @@ class ResumeCoverLetterService
         Resume $resume,
         string $jobDescription,
         string $tone,
+        ?int $personaId = null,
     ): array {
         $tone = $this->normalizeTone($tone);
         $jd   = $this->normalizeJd($jobDescription);
-        $messages = $this->buildMessages($resume, $jd, $tone);
+        $personaId = $this->resolvePersonaId($user, $personaId);
+        $messages = $this->buildMessages($resume, $jd, $tone, $personaId);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
         $result = $this->openai->chat($user, $model, $messages, [
@@ -97,6 +99,7 @@ class ResumeCoverLetterService
                 'jd_chars'   => mb_strlen($jd),
                 'tone'       => $tone,
                 'kind'       => 'full',
+                'persona_id' => $personaId,
             ],
         ]);
 
@@ -112,6 +115,7 @@ class ResumeCoverLetterService
             'jd_text'         => $jd,
             'jd_excerpt'      => $this->jdExcerpt($jd),
             'language'        => $this->resumeLanguage($resume),
+            'ai_persona_id'   => $personaId,
             'content'         => $content,
             'model'           => (string) ($result['model'] ?? $model),
             'credits_spent'   => (int) ($result['credits_spent'] ?? 0),
@@ -148,10 +152,11 @@ class ResumeCoverLetterService
             'related_id'      => $letter->id,
             'reason'          => "Resume cover letter section regenerated ({$section})",
             'meta'            => [
-                'section'   => $section,
-                'tone'      => $letter->tone,
-                'kind'      => 'section',
-                'letter_id' => $letter->id,
+                'section'    => $section,
+                'tone'       => $letter->tone,
+                'kind'       => 'section',
+                'letter_id'  => $letter->id,
+                'persona_id' => $letter->ai_persona_id,
             ],
         ]);
 
@@ -181,13 +186,13 @@ class ResumeCoverLetterService
      *
      * @return list<array{role:string,content:string}>
      */
-    public function buildMessages(Resume $resume, string $jobDescription, string $tone): array
+    public function buildMessages(Resume $resume, string $jobDescription, string $tone, ?int $personaId = null): array
     {
         $jd   = $this->normalizeJd($jobDescription);
         $tone = $this->normalizeTone($tone);
 
         $payload = $this->resumePayload($resume);
-        $persona = $this->personaSnippet($resume->user);
+        $persona = $this->personaSnippet($resume->user, $personaId);
         $lang    = $this->resumeLanguage($resume);
 
         $toneHint = match ($tone) {
@@ -245,7 +250,7 @@ class ResumeCoverLetterService
     ): array {
         $section = $this->normalizeSection($section);
         $payload = $this->resumePayload($resume);
-        $persona = $this->personaSnippet($resume->user);
+        $persona = $this->personaSnippet($resume->user, $letter->ai_persona_id);
         $lang    = $letter->language ?: $this->resumeLanguage($resume);
 
         $existing = is_array($letter->content) ? $letter->content : [];
@@ -329,11 +334,20 @@ class ResumeCoverLetterService
      */
     public function present(ResumeCoverLetter $letter, bool $includeJd = true): array
     {
+        $personaName = null;
+        if ($letter->ai_persona_id) {
+            $personaName = AiPersona::where('id', $letter->ai_persona_id)
+                ->where('user_id', $letter->user_id)
+                ->value('name');
+        }
+
         $row = [
             'id'              => (int) $letter->id,
             'title'           => (string) $letter->title,
             'tone'            => (string) $letter->tone,
             'language'        => (string) $letter->language,
+            'ai_persona_id'   => $letter->ai_persona_id ? (int) $letter->ai_persona_id : null,
+            'ai_persona_name' => $personaName,
             'jd_excerpt'      => (string) ($letter->jd_excerpt ?? ''),
             'content'         => is_array($letter->content) ? $letter->content : [],
             'credits_spent'   => (int) $letter->credits_spent,
@@ -346,6 +360,27 @@ class ResumeCoverLetterService
             $row['jd_text'] = (string) $letter->jd_text;
         }
         return $row;
+    }
+
+    /**
+     * Light list of the user's saved personas, newest first, for the
+     * Voice picker in the cover-letter modal. We only need id + name
+     * for the dropdown — the full content is only injected server-
+     * side at generation time so it never travels to the browser.
+     *
+     * @return list<array{id:int,name:string}>
+     */
+    public function userPersonas(User $user, int $limit = 50): array
+    {
+        return AiPersona::where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get(['id', 'name'])
+            ->map(fn(AiPersona $p) => [
+                'id'   => (int) $p->id,
+                'name' => (string) $p->name,
+            ])
+            ->all();
     }
 
     public function normalizeTone(string $tone): string
@@ -391,16 +426,20 @@ class ResumeCoverLetterService
     }
 
     /**
-     * Compose a short voice/persona snippet from the creator's saved
-     * AI persona library entries (if any). We surface the most-recent
-     * persona's tone + content so the cover letter reads in the
-     * creator's saved voice without leaking unrelated audience/goals.
+     * Compose a short voice/persona snippet from one of the creator's
+     * saved AI persona library entries. The creator picks which voice
+     * to use from the cover-letter panel; passing `null` (or `0`) means
+     * "None" — the letter is generated using only the resume + tone
+     * preset, with no persona styling injected.
+     *
+     * The id is always re-validated against the user so a leaked /
+     * stale id from the client can't pull in another creator's voice.
      */
-    protected function personaSnippet(?User $user): string
+    protected function personaSnippet(?User $user, ?int $personaId): string
     {
-        if (!$user) return '';
+        if (!$user || !$personaId) return '';
         $row = AiPersona::where('user_id', $user->id)
-            ->orderByDesc('id')
+            ->where('id', $personaId)
             ->first(['tone', 'content']);
         if (!$row) return '';
 
@@ -412,6 +451,21 @@ class ResumeCoverLetterService
         if ($tone !== '')    $snippet .= "Tone: " . mb_substr($tone, 0, 200) . "\n";
         if ($content !== '') $snippet .= "Voice notes: " . mb_substr($content, 0, 1200);
         return trim($snippet);
+    }
+
+    /**
+     * Validate the requested persona id against the user. Unknown or
+     * not-owned ids fall back to `null` ("None") so the creator can
+     * never accidentally pull in someone else's voice and so deleted
+     * personas degrade cleanly instead of throwing mid-generation.
+     */
+    protected function resolvePersonaId(?User $user, ?int $personaId): ?int
+    {
+        if (!$user || !$personaId || $personaId <= 0) return null;
+        $exists = AiPersona::where('user_id', $user->id)
+            ->where('id', $personaId)
+            ->exists();
+        return $exists ? $personaId : null;
     }
 
     /** Trim the resume down to what cover-letter generation needs. */
