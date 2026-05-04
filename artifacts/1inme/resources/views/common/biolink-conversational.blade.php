@@ -8,6 +8,17 @@
     $bubbleUser = $theme['bubble_user'] ?? '#7c3aed';
     $textColor = $theme['text'] ?? '#f8fafc';
     $title = $link->title ?: $link->alias;
+
+    // Honor the same background settings the list-mode renderer uses so
+    // a creator can run conversational mode on top of a slideshow / image
+    // background. Falls back to the flat $bg when no media is configured.
+    $cvBs               = $link->settings['biolink'] ?? [];
+    $cvBgType           = $cvBs['background_type'] ?? null;
+    $cvSlideshowImages  = is_array($cvBs['slideshow_images'] ?? null) ? array_values($cvBs['slideshow_images']) : [];
+    $cvSlideshowInterval = (int) ($cvBs['slideshow_interval'] ?? 5);
+    $cvBgImage          = (string) ($cvBs['background_image'] ?? '');
+    $cvHasSlideshow     = $cvBgType === 'slideshow' && count($cvSlideshowImages) > 0;
+    $cvHasBgImage       = $cvBgType === 'image' && $cvBgImage !== '';
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -20,7 +31,19 @@
 <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    body { background: {{ $bg }}; color: {{ $textColor }}; min-height: 100vh; display: flex; justify-content: center; }
+    body { background: {{ $bg }}; color: {{ $textColor }}; min-height: 100vh; display: flex; justify-content: center; position: relative; }
+    @if($cvHasSlideshow)
+    body { background: #000; }
+    .cv-bg-slideshow { position: fixed; inset: 0; z-index: 0; }
+    .cv-bg-slideshow img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s ease-in-out; }
+    .cv-bg-slideshow img.active { opacity: 1; }
+    .cv-bg-overlay { position: fixed; inset: 0; z-index: 0; background: rgba(0,0,0,0.55); }
+    .cv-shell { position: relative; z-index: 1; }
+    @elseif($cvHasBgImage)
+    body { background: #000 url('{{ $cvBgImage }}') center/cover no-repeat fixed; }
+    .cv-bg-overlay { position: fixed; inset: 0; z-index: 0; background: rgba(0,0,0,0.55); }
+    .cv-shell { position: relative; z-index: 1; }
+    @endif
     .cv-shell { width: 100%; max-width: 460px; display: flex; flex-direction: column; min-height: 100vh; padding: 16px; }
     .cv-header { display: flex; align-items: center; gap: 12px; padding: 8px 4px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
     .cv-avatar { width: 40px; height: 40px; border-radius: 50%; background: {{ $accent }}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; }
@@ -75,6 +98,16 @@
 </style>
 </head>
 <body>
+@if($cvHasSlideshow)
+<div class="cv-bg-slideshow" aria-hidden="true">
+    @foreach($cvSlideshowImages as $si => $sImg)
+    <img src="{{ $sImg }}" alt="" loading="eager" class="{{ $si === 0 ? 'active' : '' }}">
+    @endforeach
+</div>
+<div class="cv-bg-overlay" aria-hidden="true"></div>
+@elseif($cvHasBgImage)
+<div class="cv-bg-overlay" aria-hidden="true"></div>
+@endif
 <div class="cv-shell" role="main">
     <div class="cv-header">
         @if(!empty($link->verified_logo))
@@ -417,5 +450,19 @@
     });
 })();
 </script>
+@if($cvHasSlideshow && count($cvSlideshowImages) > 1)
+<script>
+(function () {
+    var imgs = document.querySelectorAll('.cv-bg-slideshow img');
+    if (imgs.length < 2) return;
+    var i = 0;
+    setInterval(function () {
+        imgs[i].classList.remove('active');
+        i = (i + 1) % imgs.length;
+        imgs[i].classList.add('active');
+    }, {{ $cvSlideshowInterval * 1000 }});
+})();
+</script>
+@endif
 </body>
 </html>

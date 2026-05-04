@@ -8,6 +8,9 @@ use App\Modules\User\Models\FileLink;
 use App\Modules\User\Models\IcsData;
 use App\Modules\User\Models\VcfData;
 use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Models\ConversationAction;
+use App\Modules\User\Models\ConversationFlow;
+use App\Modules\User\Models\ConversationStep;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\FeedEvent;
 use App\Modules\User\Models\Subscriber;
@@ -477,10 +480,10 @@ class DemoContentSeeder extends Seeder
             'visibility' => $page['visibility'] ?? 'public',
             'is_demo'    => true,
             'settings'   => [
-                'biolink' => [
+                'biolink' => array_merge([
                     'biolink_title'       => $page['title'],
                     'biolink_description' => $page['paragraph'],
-                ],
+                ], $page['biolink_settings'] ?? []),
             ],
         ];
         if ($ws) {
@@ -900,6 +903,14 @@ class DemoContentSeeder extends Seeder
             ['rafael',  'Rafael Costa',  'Trainer · MoveStrong',           '💪 Bodyweight programs and recovery tips.'],
             ['hana',    'Hana Park',     'Novelist · Greylight Press',     '✍️ Slow fiction and reading lists.'],
             ['devon',   'Devon Walker',  'Podcaster · Build Notes',        '🎙️ Interviewing the people building the future.'],
+            // Slideshow-background showcase profiles.
+            ['lyric',   'Lyric Moreau',  'Visual Artist · Aurora Studio',  '🎨 Bold prints + behind-the-scenes from the studio.'],
+            ['aurora',  'Aurora Patel',  'Travel Photographer',            '✈️ Slow travel and quiet places — fortnightly drops.'],
+            // Conversational-mode showcase profiles.
+            ['echo',    'Echo Nakamura', 'Coach · Echo Habits',            '🧘 1-1 habit coaching. Tap below for a free intro chat.'],
+            ['pixel',   'Pixel Brooks',  'Brand Designer',                 '✨ Logo + identity work. Quick chat to brief me in.'],
+            // Combined: conversational + slideshow background.
+            ['novabot', 'Nova Lee',      'AI Sommelier · CellarChat',      '🍷 Personalised wine picks via a quick chat.'],
         ];
 
         $creators = [];
@@ -936,8 +947,47 @@ class DemoContentSeeder extends Seeder
     private function seedCreatorBiolinks(array $creators): void
     {
         $tiers = ['public', 'public', 'registered', 'followers', 'subscribers', 'public'];
+
+        // Per-handle overrides for the new mode-showcase profiles. The
+        // shape mirrors what the appearance editor (and ConversationFlow
+        // toggle) writes to `settings.biolink` so the public renderer
+        // picks them up without any code changes.
+        $slideshowAlbums = [
+            // Use existing public hero-role photos so we don't need new
+            // uploads. The renderer just emits whatever string is stored
+            // (see common/biolink.blade.php), so root-relative paths work.
+            'lyric' => [
+                '/images/hero-roles/role_artist.jpg',
+                '/images/hero-roles/thumb_artwork.jpg',
+                '/images/hero-roles/role_creator.jpg',
+            ],
+            'aurora' => [
+                '/images/hero-roles/role_photographer.jpg',
+                '/images/hero-roles/thumb_photo.jpg',
+                '/images/hero-roles/role_influencer.jpg',
+                '/images/hero-roles/role_creator.jpg',
+            ],
+            'novabot' => [
+                '/images/hero-roles/role_business.jpg',
+                '/images/hero-roles/role_coach.jpg',
+                '/images/hero-roles/role_influencer.jpg',
+            ],
+        ];
+        $modeOverrides = [
+            'lyric'   => ['background_type' => 'slideshow', 'slideshow_interval' => 4],
+            'aurora'  => ['background_type' => 'slideshow', 'slideshow_interval' => 6],
+            'echo'    => ['mode' => 'conversational'],
+            'pixel'   => ['mode' => 'conversational'],
+            'novabot' => ['mode' => 'conversational', 'background_type' => 'slideshow', 'slideshow_interval' => 5],
+        ];
+
         foreach ($creators as $i => $c) {
             $vis = $tiers[$i % count($tiers)];
+            $override = $modeOverrides[$c->handle] ?? [];
+            if (isset($slideshowAlbums[$c->handle])) {
+                $override['slideshow_images'] = $slideshowAlbums[$c->handle];
+            }
+
             $page = [
                 'alias'       => "demo-{$c->handle}",
                 'title'       => $c->name,
@@ -949,10 +999,108 @@ class DemoContentSeeder extends Seeder
                     ['Subscribe',            'https://example.com/sub',   'fa-bell'],
                     ['Shop merch',           'https://example.com/shop',  'fa-shopping-bag'],
                 ],
+                'biolink_settings' => $override,
             ];
             $ws = Workspace::where('owner_user_id', $c->id)->where('is_personal', true)->first();
-            $this->createBiolink($c, $page, $ws);
+            $link = $this->createBiolink($c, $page, $ws);
+
+            if (($override['mode'] ?? null) === 'conversational') {
+                $this->seedConversationalFlow($link, $c);
+            }
         }
+    }
+
+    /**
+     * Seed a published ConversationFlow for a demo creator's biolink so
+     * the public conversational renderer (`common.biolink-conversational`)
+     * has something to drive immediately on the first visit.
+     *
+     * Cleanup is automatic: `conversation_flows.link_id` cascades on
+     * delete, so wiping demo links in `wipeAllDemoContent` removes the
+     * flow + steps + choices + actions + sessions in one shot.
+     */
+    private function seedConversationalFlow(Link $link, User $creator): void
+    {
+        $flow = ConversationFlow::create([
+            'link_id'       => $link->id,
+            'workspace_id'  => $link->workspace_id ?? null,
+            'name'          => 'Demo Conversational Flow',
+            'intro_message' => "Hey 👋 I'm {$creator->name}'s assistant — quick chat to point you the right way.",
+            'is_published'  => true,
+            'is_active'     => true,
+            'version'       => 1,
+            'settings'      => ['default_typing_ms' => 600],
+        ]);
+
+        $openShop = $flow->actions()->create([
+            'kind'    => ConversationAction::KIND_OPEN_LINK,
+            'label'   => 'Open shop',
+            'payload' => ['url' => 'https://example.com/shop'],
+        ]);
+        $bookCall = $flow->actions()->create([
+            'kind'    => ConversationAction::KIND_BOOK_CALENDAR,
+            'label'   => 'Book a call',
+            'payload' => ['booking_url' => 'https://cal.com/demo'],
+        ]);
+        $thanksMsg = $flow->actions()->create([
+            'kind'    => ConversationAction::KIND_MESSAGE,
+            'label'   => 'Thanks',
+            'payload' => ['text' => "Thanks — I'll be in touch soon!"],
+        ]);
+
+        // Step 1 — entry: pick intent.
+        $intent = $flow->steps()->create([
+            'key'           => 'intent',
+            'kind'          => ConversationStep::KIND_QUESTION,
+            'message_text'  => "What brings you here today?",
+            'answer_field'  => 'intent',
+            'is_entry'      => true,
+            'sort_order'    => 0,
+            'settings'      => [],
+        ]);
+        $intent->choices()->createMany([
+            ['label' => '🛒 Browse the shop', 'value' => 'shop',    'next_step_key' => 'shop_done', 'sort_order' => 0],
+            ['label' => '📅 Book a session',  'value' => 'book',    'next_step_key' => 'ask_email', 'sort_order' => 1],
+            ['label' => '👋 Just saying hi',  'value' => 'hi',      'next_step_key' => 'goodbye',   'sort_order' => 2],
+        ]);
+
+        // Step 2 — capture email (input) before booking.
+        $flow->steps()->create([
+            'key'           => 'ask_email',
+            'kind'          => ConversationStep::KIND_INPUT,
+            'message_text'  => "Awesome — what's the best email for the booking?",
+            'answer_field'  => 'email',
+            'sort_order'    => 1,
+            'next_step_key' => 'book_done',
+            'settings'      => ['input_kind' => 'email', 'placeholder' => 'you@example.com'],
+        ]);
+
+        // Step 3 — booking ending.
+        $flow->steps()->create([
+            'key'           => 'book_done',
+            'kind'          => ConversationStep::KIND_END,
+            'message_text'  => "Perfect — tap below to pick a time.",
+            'sort_order'    => 2,
+            'action_id'     => $bookCall->id,
+        ]);
+
+        // Step 4 — shop ending.
+        $flow->steps()->create([
+            'key'           => 'shop_done',
+            'kind'          => ConversationStep::KIND_END,
+            'message_text'  => "Here's the latest drop 👇",
+            'sort_order'    => 3,
+            'action_id'     => $openShop->id,
+        ]);
+
+        // Step 5 — friendly goodbye.
+        $flow->steps()->create([
+            'key'           => 'goodbye',
+            'kind'          => ConversationStep::KIND_END,
+            'message_text'  => "Thanks for stopping by ✨",
+            'sort_order'    => 4,
+            'action_id'     => $thanksMsg->id,
+        ]);
     }
 
     /** Create 50+ feed_events per creator across all visibility tiers. */
