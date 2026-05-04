@@ -455,7 +455,16 @@
 
                 </div>
 
-                @include('user.links.partials.settings-footer', ['link' => $link])
+                {{-- Inline save for the appearance/page-settings form. Non-sticky so it
+                     doesn't stack with the link-settings form's sticky save bar below. --}}
+                <div class="mt-6 py-4 flex items-center gap-3 flex-wrap border-t" style="border-color: var(--border-glass);">
+                    <button type="submit" id="saveAppearanceBtn" class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg">
+                        <i class="fas fa-save text-xs"></i> Save Appearance Settings
+                    </button>
+                    <span class="text-[11px]" style="color: var(--text-faint);">
+                        Saves background, template, font and theme choices.
+                    </span>
+                </div>
             </form>
 
             {{-- ==================== LINK SETTINGS FORM (merged from /edit) ==================== --}}
@@ -715,11 +724,14 @@
                 </div>
                 @endif
 
-                <div class="sticky bottom-0 mt-6 py-4 flex items-center gap-3" style="background: var(--bg-body); z-index: 10;">
+                <div class="sticky bottom-0 mt-6 py-4 flex items-center gap-3 flex-wrap" style="background: var(--bg-body); z-index: 10;">
                     <button type="submit" class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg">
                         <i class="fas fa-save text-xs"></i> Save Link Settings
                     </button>
-                    <a href="{{ route('user.links.show', $link) }}" class="text-xs px-4 py-2 rounded-lg" style="color: var(--text-faint);">Cancel</a>
+                    <span class="text-[11px]" style="color: var(--text-faint);">
+                        Saves title, password, expiration, restrictions and trackers.
+                    </span>
+                    <a href="{{ route('user.links.show', $link) }}" class="text-xs px-4 py-2 rounded-lg ml-auto" style="color: var(--text-faint);">Cancel</a>
                 </div>
             </form>
 
