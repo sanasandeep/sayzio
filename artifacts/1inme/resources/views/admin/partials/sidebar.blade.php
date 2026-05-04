@@ -292,6 +292,14 @@
             <span class="sidebar-tooltip">Banned Names</span>
         </a>
 
+        <a href="{{ route('admin.bg-templates.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.bg-templates.*') ? 'active' : '' }}"
+           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
+            <span class="nav-label">Background Templates</span>
+            <span class="sidebar-tooltip">Background Templates</span>
+        </a>
+
         <a href="{{ route('admin.maintenance.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">

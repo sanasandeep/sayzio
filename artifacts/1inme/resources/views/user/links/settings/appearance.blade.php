@@ -323,17 +323,54 @@
                             </div>
 
                             {{-- CSS/JS TEMPLATES --}}
-                            <div x-show="bgType === 'template'" x-transition class="space-y-3">
-                                <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Choose a Template <span class="opacity-60">({{ $bgTemplates->count() }})</span></label>
+                            @php
+                                // Build category list with counts. "All" sits first.
+                                $tplCategories = $bgTemplates->groupBy(fn ($t) => $t->category ?: 'pattern')->map->count();
+                                $tplCategoryLabels = [
+                                    'animated' => 'Animated',
+                                    'gradient' => 'Gradients',
+                                    'mesh'     => 'Mesh',
+                                    'pattern'  => 'Patterns',
+                                    'svg'      => 'SVG',
+                                    'neon'     => 'Neon',
+                                ];
+                            @endphp
+                            <div x-show="bgType === 'template'" x-transition class="space-y-3"
+                                 x-data="{ tplCat: 'all', tplSearch: '', selectedTpl: {{ $bgTemplateId ?? 'null' }} }">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <label class="block text-xs font-medium" style="color: var(--text-muted);">Choose a Template <span class="opacity-60">({{ $bgTemplates->count() }})</span></label>
+                                    <input type="text" x-model="tplSearch" placeholder="Search…"
+                                           class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[160px]"
+                                           style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                </div>
+                                {{-- Category filter chips --}}
+                                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                                    <button type="button" @click="tplCat = 'all'"
+                                            class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
+                                            :style="tplCat === 'all' ? 'background: rgba(124,58,237,0.25); color:#c4b5fd; border:1px solid rgba(124,58,237,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
+                                        All <span class="opacity-60">{{ $bgTemplates->count() }}</span>
+                                    </button>
+                                    @foreach($tplCategoryLabels as $catKey => $catLabel)
+                                        @if(($tplCategories[$catKey] ?? 0) > 0)
+                                        <button type="button" @click="tplCat = '{{ $catKey }}'"
+                                                class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
+                                                :style="tplCat === '{{ $catKey }}' ? 'background: rgba(124,58,237,0.25); color:#c4b5fd; border:1px solid rgba(124,58,237,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
+                                            {{ $catLabel }} <span class="opacity-60">{{ $tplCategories[$catKey] }}</span>
+                                        </button>
+                                        @endif
+                                    @endforeach
+                                </div>
                                 {{-- Render each template's actual CSS, scoped to a `.bg-thumb-{slug}` swatch container so previews are WYSIWYG. --}}
                                 <style>
                                 @foreach($bgTemplates as $tpl)
                                 {!! str_replace(['.bg-template-', 'position:fixed', 'position: fixed', 'z-index:-1', 'z-index: -1'], ['.bg-thumb-', 'position:absolute', 'position:absolute', 'z-index:0', 'z-index:0'], $tpl->css) !!}
                                 @endforeach
                                 </style>
-                                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[640px] overflow-y-auto pr-1" x-data="{ selectedTpl: {{ $bgTemplateId ?? 'null' }} }">
+                                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[640px] overflow-y-auto pr-1">
                                     @foreach($bgTemplates as $tpl)
-                                    <label class="cursor-pointer group">
+                                    @php $tplCat = $tpl->category ?: 'pattern'; @endphp
+                                    <label class="cursor-pointer group"
+                                           x-show="(tplCat === 'all' || tplCat === '{{ $tplCat }}') && (!tplSearch || '{{ strtolower(addslashes($tpl->name)) }}'.includes(tplSearch.toLowerCase()))">
                                         <input type="radio" name="bg_template_id" value="{{ $tpl->id }}" {{ $bgTemplateId == $tpl->id ? 'checked' : '' }} class="hidden peer" @click="selectedTpl = {{ $tpl->id }}">
                                         <div class="p-1.5 rounded-xl transition-all peer-checked:ring-2 peer-checked:ring-violet-500 hover:scale-[1.03]"
                                              style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"

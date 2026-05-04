@@ -496,6 +496,148 @@ class BgPatternTemplatesSeeder extends Seeder
             ];
         }
 
+        // ───────────────── 6e. More animated CSS (50) ─────────────────
+        $palettes = [
+            ['Aurora',     ['#7c3aed','#06b6d4','#ec4899','#7c3aed'], '#0a0612'],
+            ['Sunset',     ['#ff6a00','#ee0979','#ff6a00','#ffb199'], '#1a0a05'],
+            ['Lagoon',     ['#06b6d4','#3b82f6','#10b981','#06b6d4'], '#04141b'],
+            ['Citrus',     ['#fbbf24','#f97316','#ef4444','#fbbf24'], '#160a05'],
+            ['Plum',       ['#a855f7','#ec4899','#7c3aed','#f472b6'], '#150b22'],
+            ['Mint',       ['#34d399','#22d3ee','#10b981','#a3e635'], '#06140e'],
+            ['Rosé',       ['#fb7185','#f472b6','#e879f9','#fda4af'], '#1a0612'],
+            ['Arctic',     ['#93c5fd','#a5b4fc','#67e8f9','#bae6fd'], '#0a1220'],
+            ['Ember',      ['#dc2626','#f59e0b','#9a3412','#fbbf24'], '#180404'],
+            ['Galaxy',     ['#6366f1','#8b5cf6','#ec4899','#06b6d4'], '#04031a'],
+            ['Forest',     ['#16a34a','#65a30d','#0d9488','#84cc16'], '#0a1408'],
+            ['Pastel',     ['#fbc7d4','#9796f0','#a1c4fd','#fbc7d4'], '#1a1a2e'],
+            ['Royal',      ['#4e54c8','#8f94fb','#4e54c8','#a78bfa'], '#0a0a2a'],
+            ['Sand',       ['#fde68a','#fca5a5','#fed7aa','#fbbf24'], '#1a1006'],
+            ['Toxic',      ['#84cc16','#22c55e','#10b981','#65a30d'], '#04060d'],
+        ];
+
+        foreach ($palettes as [$pname, $colors, $base]) {
+            $low = strtolower($pname);
+
+            // (a) Gradient drift
+            $name = "Drift {$pname}";
+            $slug = $this->slug($name);
+            $stops = implode(',', $colors);
+            $css = "@keyframes drift_{$slug}{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}"
+                . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;"
+                . "background:linear-gradient(120deg,{$stops});"
+                . "background-size:300% 300%;animation:drift_{$slug} 16s ease-in-out infinite;}";
+            $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>"linear-gradient(120deg,{$stops})",'category'=>'animated','css'=>$css];
+
+            // (b) Conic spin behind blur
+            $name = "Conic Spin {$pname}";
+            $slug = $this->slug($name);
+            $cstops = implode(',', array_merge($colors, [$colors[0]]));
+            $css = "@keyframes spin_{$slug}{to{transform:rotate(360deg)}}"
+                . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background:{$base};overflow:hidden}"
+                . ".bg-template-{$slug}::before{content:\"\";position:absolute;inset:-50%;"
+                . "background:conic-gradient(from 0deg,{$cstops});filter:blur(50px);opacity:0.55;"
+                . "animation:spin_{$slug} 22s linear infinite;}";
+            $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>"conic-gradient(from 0deg,{$cstops})",'category'=>'animated','css'=>$css];
+
+            // (c) Pulse glow (two orbs breathing)
+            $name = "Pulse {$pname}";
+            $slug = $this->slug($name);
+            $a = $this->hexAlpha($colors[0], 0.85);
+            $b = $this->hexAlpha($colors[1], 0.85);
+            $css = "@keyframes pulse_{$slug}{0%,100%{opacity:0.45;transform:scale(1)}50%{opacity:0.85;transform:scale(1.15)}}"
+                . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background:{$base};overflow:hidden}"
+                . ".bg-template-{$slug}::before{content:\"\";position:absolute;inset:-15%;"
+                . "background:radial-gradient(circle at 30% 30%,{$a},transparent 55%),radial-gradient(circle at 70% 70%,{$b},transparent 55%);"
+                . "filter:blur(40px);animation:pulse_{$slug} 8s ease-in-out infinite;}";
+            $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>"radial-gradient(circle at 30% 30%,{$colors[0]},{$base})",'category'=>'animated','css'=>$css];
+
+            // (d) Hue shift
+            if (in_array($pname, ['Aurora','Sunset','Plum','Galaxy','Rosé','Royal'])) {
+                $name = "Hue Shift {$pname}";
+                $slug = $this->slug($name);
+                $css = "@keyframes hue_{$slug}{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(360deg)}}"
+                    . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;"
+                    . "background:linear-gradient(135deg,{$colors[0]},{$colors[1]},{$colors[2]});"
+                    . "animation:hue_{$slug} 24s linear infinite;}";
+                $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>"linear-gradient(135deg,{$colors[0]},{$colors[1]},{$colors[2]})",'category'=>'animated','css'=>$css];
+            }
+        }
+
+        // (e) Drifting dot/grid sets in palette colors (8)
+        $driftPatterns = [
+            ['Drift Dots Cyan',   '#04060d', 'rgba(34,211,238,0.4)',  'dots'],
+            ['Drift Dots Mauve',  '#150b22', 'rgba(192,132,252,0.4)', 'dots'],
+            ['Drift Dots Coral',  '#1a0a05', 'rgba(251,146,60,0.4)',  'dots'],
+            ['Drift Dots Mint',   '#06140e', 'rgba(52,211,153,0.4)',  'dots'],
+            ['Drift Grid Cyan',   '#04060d', 'rgba(34,211,238,0.25)', 'grid'],
+            ['Drift Grid Mauve',  '#150b22', 'rgba(192,132,252,0.25)','grid'],
+            ['Drift Grid Coral',  '#1a0a05', 'rgba(251,146,60,0.25)', 'grid'],
+            ['Drift Grid Rose',   '#1a0612', 'rgba(244,114,182,0.25)','grid'],
+        ];
+        foreach ($driftPatterns as [$name, $base, $col, $kind]) {
+            $slug = $this->slug($name);
+            if ($kind === 'dots') {
+                $css = "@keyframes pan_{$slug}{from{background-position:0 0}to{background-position:44px 44px}}"
+                    . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background-color:{$base};"
+                    . "background-image:radial-gradient({$col} 2px, transparent 2px);background-size:22px 22px;"
+                    . "animation:pan_{$slug} 14s linear infinite;}";
+            } else {
+                $css = "@keyframes pan_{$slug}{from{background-position:0 0,0 0}to{background-position:40px 40px,40px 40px}}"
+                    . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background-color:{$base};"
+                    . "background-image:linear-gradient({$col} 1px, transparent 1px),linear-gradient(90deg, {$col} 1px, transparent 1px);"
+                    . "background-size:40px 40px;animation:pan_{$slug} 18s linear infinite;}";
+            }
+            $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>$base,'category'=>'animated','css'=>$css];
+        }
+
+        // (f) Scrolling stripes (4)
+        $scrollStripes = [
+            ['Scroll Stripes Cyan',   '#04060d', 'rgba(34,211,238,0.22)'],
+            ['Scroll Stripes Mauve',  '#150b22', 'rgba(192,132,252,0.22)'],
+            ['Scroll Stripes Coral',  '#1a0a05', 'rgba(251,146,60,0.22)'],
+            ['Scroll Stripes Mint',   '#06140e', 'rgba(52,211,153,0.22)'],
+        ];
+        foreach ($scrollStripes as [$name,$base,$col]) {
+            $slug = $this->slug($name);
+            $css = "@keyframes scroll_{$slug}{from{background-position:0 0}to{background-position:200px 0}}"
+                . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background-color:{$base};"
+                . "background-image:repeating-linear-gradient(45deg, {$col} 0 14px, transparent 14px 28px);"
+                . "animation:scroll_{$slug} 8s linear infinite;}";
+            $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>$base,'category'=>'animated','css'=>$css];
+        }
+
+        // (g) Falling rain lines (3)
+        $rains = [
+            ['Rain Cyan',  '#0a0f1f', 'rgba(34,211,238,0.22)'],
+            ['Rain Mauve', '#150b22', 'rgba(192,132,252,0.22)'],
+            ['Rain Mint',  '#06140e', 'rgba(52,211,153,0.22)'],
+        ];
+        foreach ($rains as [$name,$base,$col]) {
+            $slug = $this->slug($name);
+            $css = "@keyframes rain_{$slug}{from{background-position:0 0}to{background-position:0 200px}}"
+                . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background-color:{$base};"
+                . "background-image:repeating-linear-gradient(180deg, {$col} 0 1px, transparent 1px 22px);"
+                . "animation:rain_{$slug} 1.6s linear infinite;}";
+            $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>$base,'category'=>'animated','css'=>$css];
+        }
+
+        // (h) Breathing radial (3)
+        $breaths = [
+            ['Breathe Plum',  '#04031a', '#a855f7'],
+            ['Breathe Cyan',  '#04060d', '#22d3ee'],
+            ['Breathe Coral', '#1a0a05', '#fb7185'],
+        ];
+        foreach ($breaths as [$name,$base,$col]) {
+            $slug = $this->slug($name);
+            $rgba = $this->hexAlpha($col, 0.7);
+            $css = "@keyframes breathe_{$slug}{0%,100%{transform:scale(1);opacity:0.55}50%{transform:scale(1.25);opacity:0.85}}"
+                . ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background:{$base};overflow:hidden}"
+                . ".bg-template-{$slug}::before{content:\"\";position:absolute;inset:0;"
+                . "background:radial-gradient(circle at 50% 50%,{$rgba},transparent 60%);"
+                . "filter:blur(30px);animation:breathe_{$slug} 6s ease-in-out infinite;transform-origin:center;}";
+            $out[] = ['name'=>$name,'slug'=>$slug,'preview_color'=>"radial-gradient(circle at 50% 50%,{$col},{$base})",'category'=>'animated','css'=>$css];
+        }
+
         // ───────────────── 7. Neon / cyberpunk (8) ─────────────────
         $neon = [
             [

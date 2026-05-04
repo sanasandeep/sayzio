@@ -21,6 +21,7 @@ use App\Modules\Admin\Controllers\DomainController as AdminDomainController;
 use App\Modules\Admin\Controllers\SocialOAuthSettingsController;
 use App\Modules\Admin\Controllers\SpamRuleStatsController;
 use App\Modules\Admin\Controllers\BannedNameController;
+use App\Modules\Admin\Controllers\BgTemplateController;
 use App\Modules\Admin\Controllers\TaxController;
 use App\Modules\Admin\Controllers\GatewaySettingsController;
 use App\Modules\Admin\Controllers\PendingPaymentController;
@@ -180,6 +181,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{bannedName}/acknowledge', [BannedNameController::class, 'acknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('acknowledge');
             Route::post('{bannedName}/unacknowledge', [BannedNameController::class, 'unacknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('unacknowledge');
             Route::post('{bannedName}/toggle-force-rename', [BannedNameController::class, 'toggleForceRename'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle-force-rename');
+        });
+
+        Route::prefix('bg-templates')->name('bg-templates.')->group(function () {
+            Route::get   ('/',                 [BgTemplateController::class, 'index'])  ->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get   ('create',            [BgTemplateController::class, 'create']) ->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post  ('/',                 [BgTemplateController::class, 'store'])  ->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get   ('{bgTemplate}/edit', [BgTemplateController::class, 'edit'])   ->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put   ('{bgTemplate}',      [BgTemplateController::class, 'update']) ->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::delete('{bgTemplate}',      [BgTemplateController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+            Route::post  ('{bgTemplate}/toggle', [BgTemplateController::class, 'toggleActive'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
         });
 
         Route::prefix('taxes')->name('taxes.')->group(function () {
