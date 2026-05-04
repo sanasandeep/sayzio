@@ -1065,6 +1065,21 @@ function _injectEditFormHtml(container, html, blockId) {
 
     Alpine.initTree(container);
 
+    // Restore the style-tab selection captured before a refreshBlockEditor()
+    // call, so applying a variant doesn't snap the user back to a default
+    // tab or collapse the expanded Block Styling section.
+    if (window.__pendingStyleTabState) {
+        var pending = window.__pendingStyleTabState;
+        window.__pendingStyleTabState = null;
+        setTimeout(function() {
+            var root = container.querySelector('[data-style-root]');
+            if (root && root._x_dataStack && root._x_dataStack[0]) {
+                root._x_dataStack[0].showStyle = pending.show;
+                root._x_dataStack[0].activeStyleTab = pending.tab;
+            }
+        }, 0);
+    }
+
     var previewUrl = '{{ url("/" . $link->alias) }}' + '?_editBlock=' + blockId + '&_t=' + Date.now();
     var pFrame = document.getElementById('editPreviewFrame');
     if (pFrame) pFrame.src = previewUrl;
@@ -1088,6 +1103,29 @@ function _refreshEditPreview() {
         pFrame.src = base + '?_editBlock=' + (_editingBlockId || '') + '&_t=' + Date.now();
     }
     refreshPreview();
+}
+
+// Re-fetch the entire edit-block form so granular controls (Look / Layout /
+// Text) reflect the latest server-side `_style` payload, e.g. after the
+// Designs gallery applied a variant or restored the custom snapshot. We
+// preserve the user's current style-tab selection (and the expanded state
+// of the Block Styling section) so they don't get snapped back to defaults
+// after every variant click. The freshly-rendered Designs gallery already
+// receives the new `currentVariant` from the server, so the just-selected
+// card stays highlighted automatically.
+function refreshBlockEditor() {
+    if (!_editingBlockId) return;
+    var container = document.getElementById('editDrawerContent');
+    if (!container) return;
+    var styleRoot = container.querySelector('[data-style-root]');
+    var saved = { tab: 'designs', show: true };
+    if (styleRoot && styleRoot._x_dataStack && styleRoot._x_dataStack[0]) {
+        var s = styleRoot._x_dataStack[0];
+        saved.tab = s.activeStyleTab || 'designs';
+        saved.show = (typeof s.showStyle === 'boolean') ? s.showStyle : true;
+    }
+    window.__pendingStyleTabState = saved;
+    openEditDrawer(_editingBlockId);
 }
 
 function _showAutoSaveStatus(text, type) {

@@ -36,7 +36,7 @@
 @endphp
 
 @if($showStyle)
-<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" x-data="{ showStyle: false, activeStyleTab: 'designs' }">
+<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" data-style-root x-data="{ showStyle: false, activeStyleTab: 'designs' }">
     <button type="button" @click="showStyle = !showStyle"
             class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">
         <span><i class="fas fa-wand-magic-sparkles mr-2 text-pink-400"></i>Block Styling</span>
@@ -647,13 +647,19 @@ window.blockDesignsGallery = function(opts) {
                     data.previews.forEach(function(p) {
                         var slot = self.$el.querySelector('[data-variant-preview="' + p.key + '"]');
                         if (!slot) return;
-                        // Replace the shape-sketch placeholder with a
-                        // live-styled mini block. We use inline style
-                        // straight from the server so any future change
-                        // to buildInlineStyle() flows through here.
+                        // Render the live-styled mini block INSIDE a chrome
+                        // wrapper instead of replacing the slot itself —
+                        // otherwise transparent / outline / plain-text
+                        // variants leave the thumbnail with no background
+                        // and the card looks empty. The wrapper keeps a
+                        // subtle frame so every variant is visually
+                        // distinguishable on the dark modal, while the
+                        // inner element shows the variant's real bg /
+                        // border / radius / shadow / colour.
                         var content = blockLabel ? blockLabel.substring(0, 16) : p.name;
-                        slot.setAttribute('style', 'min-height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;' + p.inline_style);
-                        slot.innerHTML = '<span style="font-size:12px;font-weight:600;color:' + (p.text_color || 'inherit') + ';text-align:center;line-height:1.2;padding:0 4px;">' + (content.replace(/[<>&]/g, '') || 'Preview') + '</span>';
+                        var safeContent = (content.replace(/[<>&]/g, '') || 'Preview');
+                        slot.setAttribute('style', 'height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.04) 0 6px,rgba(255,255,255,0.015) 6px 12px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;');
+                        slot.innerHTML = '<div style="max-width:100%;max-height:100%;display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;' + p.inline_style + '"><span style="font-size:11px;font-weight:600;color:' + (p.text_color || 'inherit') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + safeContent + '</span></div>';
                     });
                 })
                 .catch(function() {})
@@ -698,8 +704,15 @@ window.blockDesignsGallery = function(opts) {
         },
 
         applyVariant(key, btn) {
+            // Ignore re-clicks while a previous apply is still in flight —
+            // the dev logs showed creators frantically clicking variants
+            // when the preview/controls didn't refresh, queueing up
+            // duplicate /apply-variant POSTs. With the refresh wired up
+            // a single click is now visibly responsive, so dedupe here.
+            if (this._busy) return;
             var v = this.catalog().find(function(x) { return x.key === key; });
             if (!v) return;
+            this._busy = true;
             // Optimistic UI: swap selection immediately so the gallery
             // feels instant even on slow networks.
             this.currentVariant = key;
@@ -742,22 +755,26 @@ window.blockDesignsGallery = function(opts) {
                 })
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to apply design', 'error');
-                });
+                })
+                .finally(function() { self._busy = false; });
         },
 
         restoreCustom() {
+            if (this._busy) return;
             // Hit the dedicated restore-custom-style endpoint, which
             // does a full `_style` REPLACE from the server-side snapshot
             // (STYLE_DEFAULTS + snapshot, with the variant key cleared).
             // The snapshot itself stays on the block so the user can
             // explore variants again and come back later.
             if (!this.customSnapshot) return;
+            this._busy = true;
             this.currentVariant = '';
             this.hasCustomStyle = true;
             var url = '{{ route('user.links.blocks.restoreCustomStyle', [$link, $block]) }}';
             var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
             var fd = new FormData();
             if (token) fd.append('_token', token);
+            var self = this;
             fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
@@ -771,10 +788,12 @@ window.blockDesignsGallery = function(opts) {
                 })
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to restore', 'error');
-                });
+                })
+                .finally(function() { self._busy = false; });
         },
 
         resetStyle(applyToAll) {
+            if (this._busy) return;
             // Wipes _style back to STYLE_DEFAULTS server-side. When
             // applyToAll is true, every block of the same type on this
             // page is reset; otherwise just this one block is.
@@ -782,6 +801,7 @@ window.blockDesignsGallery = function(opts) {
                 ? ('Reset every ' + this.blockTypeLabel + ' block to the default styling? This will clear any custom tweaks.')
                 : 'Reset this block to the default styling? This will clear any custom tweaks.';
             if (typeof confirm === 'function' && !confirm(label)) return;
+            this._busy = true;
             var url = '{{ route('user.links.blocks.resetStyle', [$link, $block]) }}';
             var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
             var fd = new FormData();
@@ -806,12 +826,16 @@ window.blockDesignsGallery = function(opts) {
                 })
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to reset', 'error');
-                });
+                })
+                .finally(function() { self._busy = false; });
         },
 
         applyToAll() {
+            if (this._busy) return;
             if (!this.currentVariant) return;
             if (typeof confirm === 'function' && !confirm('Apply this design to every ' + this.blockTypeLabel + ' block on this page?')) return;
+            this._busy = true;
+            var self = this;
             var url = '{{ route('user.links.blocks.applyVariantToAll', [$link, $block]) }}';
             var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
             var fd = new FormData();
@@ -829,7 +853,8 @@ window.blockDesignsGallery = function(opts) {
                 })
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to apply to all', 'error');
-                });
+                })
+                .finally(function() { self._busy = false; });
         },
     };
 };
