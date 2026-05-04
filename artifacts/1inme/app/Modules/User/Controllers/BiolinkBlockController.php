@@ -170,21 +170,33 @@ class BiolinkBlockController extends Controller
      */
     private function rgbToHsl(int $r, int $g, int $b): array
     {
+        // Clamp to the legal sRGB range so a malformed `rgb(300, 300, 300)`
+        // captured from CSS can't break the maths downstream.
+        $r = max(0, min(255, $r));
+        $g = max(0, min(255, $g));
+        $b = max(0, min(255, $b));
+
         $rf = $r / 255; $gf = $g / 255; $bf = $b / 255;
         $max = max($rf, $gf, $bf); $min = min($rf, $gf, $bf);
         $l = ($max + $min) / 2;
         $d = $max - $min;
-        if ($d === 0.0) {
-            $h = 0.0; $s = 0.0;
-        } else {
-            $s = $l > 0.5 ? $d / (2 - $max - $min) : $d / ($max + $min);
-            switch ($max) {
-                case $rf: $h = (($gf - $bf) / $d) + ($gf < $bf ? 6 : 0); break;
-                case $gf: $h = (($bf - $rf) / $d) + 2; break;
-                default:  $h = (($rf - $gf) / $d) + 4;
-            }
-            $h *= 60;
+
+        // Pick the saturation denominator first so we can test it for
+        // zero before dividing. Both denominators collapse to 0 for
+        // pure black / pure white (and for any case where $d itself is
+        // zero), so this also subsumes the achromatic guard.
+        $denom = $l > 0.5 ? (2 - $max - $min) : ($max + $min);
+        if ($d <= 0.0 || $denom <= 0.0) {
+            return [0.0, 0.0, $l * 100];
         }
+
+        $s = $d / $denom;
+        switch ($max) {
+            case $rf: $h = (($gf - $bf) / $d) + ($gf < $bf ? 6 : 0); break;
+            case $gf: $h = (($bf - $rf) / $d) + 2; break;
+            default:  $h = (($rf - $gf) / $d) + 4;
+        }
+        $h *= 60;
         return [$h, $s * 100, $l * 100];
     }
 
