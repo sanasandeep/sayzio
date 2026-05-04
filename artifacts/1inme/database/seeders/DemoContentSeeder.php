@@ -911,6 +911,10 @@ class DemoContentSeeder extends Seeder
             ['pixel',   'Pixel Brooks',  'Brand Designer',                 '✨ Logo + identity work. Quick chat to brief me in.'],
             // Combined: conversational + slideshow background.
             ['novabot', 'Nova Lee',      'AI Sommelier · CellarChat',      '🍷 Personalised wine picks via a quick chat.'],
+            // Video-background showcase profile.
+            ['cinema',  'Cinema Holt',   'Filmmaker · Holt Pictures',      '🎥 Short films + behind-the-scenes from set.'],
+            // Animated-template background showcase profile.
+            ['nebula',  'Nebula Reyes',  'DJ · Aurora Nights',             '🌌 Late-night sets and ambient mixes.'],
         ];
 
         $creators = [];
@@ -979,7 +983,36 @@ class DemoContentSeeder extends Seeder
             'echo'    => ['mode' => 'conversational'],
             'pixel'   => ['mode' => 'conversational'],
             'novabot' => ['mode' => 'conversational', 'background_type' => 'slideshow', 'slideshow_interval' => 5],
+            // Video background — uses a small remote-hosted MP4 plus a
+            // poster from the existing hero-role art so the page still
+            // renders something while the video buffers (or if the
+            // remote source is offline). The renderer just emits these
+            // strings into a <video><source>, so any reachable URL works.
+            'cinema'  => [
+                'background_type'   => 'video',
+                'video_url'         => 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+                'bg_fallback_image' => '/images/hero-roles/role_creator.jpg',
+                'bg_fallback_color' => '#0a0612',
+            ],
+            // Animated CSS/JS template background — looked up by slug so
+            // we don't hard-code an ID. Resolved below; falls back to a
+            // gradient if the BgTemplateSeeder hasn't been run yet.
+            'nebula'  => ['background_type' => 'template', 'bg_template_slug' => 'aurora-borealis'],
         ];
+
+        // Resolve the template slug -> id once. If the BgTemplate seeder
+        // hasn't been run (fresh DB), the override is dropped so the
+        // creator still seeds cleanly with the default gradient.
+        if (isset($modeOverrides['nebula']['bg_template_slug'])) {
+            $tplSlug = $modeOverrides['nebula']['bg_template_slug'];
+            $tpl = \App\Modules\Admin\Models\BgTemplate::where('slug', $tplSlug)->first();
+            unset($modeOverrides['nebula']['bg_template_slug']);
+            if ($tpl) {
+                $modeOverrides['nebula']['bg_template_id'] = $tpl->id;
+            } else {
+                unset($modeOverrides['nebula']['background_type']);
+            }
+        }
 
         foreach ($creators as $i => $c) {
             $vis = $tiers[$i % count($tiers)];
