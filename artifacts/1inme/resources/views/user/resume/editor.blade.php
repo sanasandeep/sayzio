@@ -232,6 +232,9 @@
             <button type="button" class="resume-add-btn" @click="openTailor()" title="Paste a job description and let AI tailor your resume">
                 <i class="fas fa-wand-magic-sparkles"></i> Tailor to a job
             </button>
+            <button type="button" class="resume-add-btn" @click="openCoverLetter()" title="Generate a tailored cover letter from a job description">
+                <i class="fas fa-envelope-open-text"></i> Generate cover letter
+            </button>
             <div class="resume-status-bar resume-pane">
                 <span class="resume-save-dot" :class="{ saving: status==='saving', error: status==='error' }"></span>
                 <span class="text-xs" style="color: var(--text-muted,#9ca3af);" x-text="statusLabel"></span>
@@ -314,6 +317,7 @@
 
     @include('user.resume.partials.import-modal')
     @include('user.resume.partials.tailor-modal')
+    @include('user.resume.partials.cover-letter-modal')
 
     {{-- Empty-state coachmark for brand-new resumes (no items + empty header name) --}}
     <template x-if="isFreshResume && !resumeStarted">
@@ -1070,6 +1074,26 @@ function resumeEditor() {
         tailorPicks: { summary: false, experience: [], skills: [] },
         tailorHistory: [],
         _tailorEstimateSeq: 0,
+
+        // ── Cover-letter generator state ──────────────────────
+        coverLetterOpen: false,
+        coverStep: 'pick',           // 'pick' | 'edit'
+        coverBusy: false,
+        coverError: '',
+        coverJd: '',
+        coverTone: 'professional',
+        coverTones: [
+            { value: 'professional', label: 'Professional' },
+            { value: 'warm',         label: 'Warm' },
+            { value: 'concise',      label: 'Concise' },
+        ],
+        coverEstimate: null,
+        coverBalance: 0,
+        coverLetter: null,           // { id, title, tone, content: { greeting, body[], sign_off }, ... }
+        coverHistory: [],
+        coverSectionBusy: '',        // '' | 'greeting' | 'body' | 'sign_off'
+        coverCopied: false,
+        _coverEstimateSeq: 0,
 
         listSections: [
             { key: 'experience',     label: 'Experience',     icon: 'fa-briefcase',     addLabel: 'Add experience' },
@@ -2416,6 +2440,213 @@ function resumeEditor() {
             while (i < n) { if (mode === 'old') out.push('<del>' + esc(a[i]) + '</del>'); i++; }
             while (j < m) { if (mode === 'new') out.push('<ins>' + esc(b[j]) + '</ins>'); j++; }
             return out.join('');
+        },
+
+        // ── COVER LETTER FLOW ─────────────────────────────────
+        // Open the cover-letter modal: reset state, load saved letters
+        // so the creator can revisit any previous draft without paying
+        // for a fresh generation.
+        openCoverLetter() {
+            this.coverLetterOpen = true;
+            this.coverStep = 'pick';
+            this.coverBusy = false;
+            this.coverError = '';
+            this.coverJd = '';
+            this.coverTone = 'professional';
+            this.coverEstimate = null;
+            this.coverLetter = null;
+            this.coverSectionBusy = '';
+            this.coverCopied = false;
+            this.loadCoverHistory();
+        },
+        closeCoverLetter() { this.coverLetterOpen = false; this.coverBusy = false; this.coverSectionBusy = ''; },
+
+        coverToneHint() {
+            switch (this.coverTone) {
+                case 'warm':    return 'Personable and slightly conversational. Shows enthusiasm without being overfamiliar.';
+                case 'concise': return 'No-fluff voice with short sentences. Body is kept to two paragraphs maximum.';
+                default:        return 'Professional and confident. Focused paragraphs, free of clichés.';
+            }
+        },
+
+        async loadCoverHistory() {
+            try {
+                const r = await this.http('GET', '{{ route('user.resume.cover-letters.index') }}');
+                this.coverHistory = r.letters || [];
+                this.coverBalance = r.balance ?? this.coverBalance;
+            } catch (e) { /* non-fatal */ }
+        },
+
+        // Debounced upfront cost lookup. Tagged with a sequence so a
+        // slower earlier response can't overwrite a fresher later one.
+        async refreshCoverEstimate() {
+            const jd = (this.coverJd || '').trim();
+            if (jd.length < 30) { this.coverEstimate = null; return; }
+            const seq = ++this._coverEstimateSeq;
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.cover-letters.estimate') }}',
+                    { job_description: jd, tone: this.coverTone });
+                if (seq !== this._coverEstimateSeq) return;
+                this.coverEstimate = r.estimated_credits;
+                this.coverBalance  = r.balance;
+            } catch (e) { /* leave estimate as-is */ }
+        },
+
+        async runCoverLetter() {
+            const jd = (this.coverJd || '').trim();
+            if (jd.length < 30 || this.coverBusy) return;
+            this.coverBusy = true; this.coverError = '';
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.cover-letters.store') }}',
+                    { job_description: jd, tone: this.coverTone });
+                this.coverLetter  = this.normalizeCoverLetter(r.letter);
+                this.coverBalance = r.balance;
+                this.coverHistory = r.history || this.coverHistory;
+                this.coverStep    = 'edit';
+            } catch (e) {
+                this.coverError = e.message;
+            } finally {
+                this.coverBusy = false;
+            }
+        },
+
+        async loadCoverLetter(id) {
+            if (!id) return;
+            this.coverError = '';
+            try {
+                const r = await this.http('GET', '{{ url('/user/resume/cover-letters') }}/' + id);
+                this.coverLetter = this.normalizeCoverLetter(r.letter);
+                this.coverStep   = 'edit';
+                this.coverCopied = false;
+            } catch (e) {
+                this.coverError = e.message;
+            }
+        },
+
+        normalizeCoverLetter(l) {
+            if (!l) return null;
+            const c = l.content || {};
+            return Object.assign({}, l, {
+                content: {
+                    greeting: String(c.greeting || ''),
+                    body:     Array.isArray(c.body) ? c.body.map(p => String(p || '')) : [],
+                    sign_off: String(c.sign_off || ''),
+                },
+            });
+        },
+
+        async saveCoverEdits() {
+            if (!this.coverLetter || this.coverSectionBusy) return;
+            // Strip empty trailing paragraphs so the saved doc is tidy.
+            const body = (this.coverLetter.content.body || [])
+                .map(p => String(p || '').trim())
+                .filter(p => p.length);
+            try {
+                const r = await this.http('PATCH',
+                    '{{ url('/user/resume/cover-letters') }}/' + this.coverLetter.id,
+                    {
+                        title: this.coverLetter.title,
+                        content: {
+                            greeting: this.coverLetter.content.greeting || '',
+                            body:     body,
+                            sign_off: this.coverLetter.content.sign_off || '',
+                        },
+                    });
+                // Sync any history-row title / updated_at without
+                // clobbering the in-progress edit buffer.
+                const idx = this.coverHistory.findIndex(h => h.id === r.letter.id);
+                if (idx >= 0) {
+                    this.coverHistory[idx] = Object.assign({}, this.coverHistory[idx], {
+                        title:      r.letter.title,
+                        updated_at: r.letter.updated_at,
+                    });
+                }
+            } catch (e) {
+                this.coverError = e.message;
+            }
+        },
+
+        async regenCoverSection(section) {
+            if (!this.coverLetter || this.coverSectionBusy) return;
+            this.coverSectionBusy = section;
+            this.coverError = '';
+            try {
+                const r = await this.http('POST',
+                    '{{ url('/user/resume/cover-letters') }}/' + this.coverLetter.id + '/regenerate',
+                    { section: section });
+                this.coverLetter  = this.normalizeCoverLetter(r.letter);
+                this.coverBalance = r.balance;
+                // Refresh history row so the new credits_spent total shows.
+                const idx = this.coverHistory.findIndex(h => h.id === r.letter.id);
+                if (idx >= 0) {
+                    this.coverHistory[idx] = Object.assign({}, this.coverHistory[idx], {
+                        credits_spent: r.letter.credits_spent,
+                        updated_at:    r.letter.updated_at,
+                    });
+                }
+            } catch (e) {
+                this.coverError = e.message;
+            } finally {
+                this.coverSectionBusy = '';
+            }
+        },
+
+        addCoverParagraph() {
+            if (!this.coverLetter) return;
+            const body = this.coverLetter.content.body || [];
+            if (body.length >= 5) return;
+            body.push('');
+            this.coverLetter.content.body = body;
+        },
+        removeCoverParagraph(idx) {
+            if (!this.coverLetter) return;
+            const body = (this.coverLetter.content.body || []).slice();
+            body.splice(idx, 1);
+            this.coverLetter.content.body = body;
+            this.saveCoverEdits();
+        },
+
+        async copyCoverLetter() {
+            if (!this.coverLetter) return;
+            const c = this.coverLetter.content || {};
+            const body = (c.body || []).map(p => String(p || '').trim()).filter(p => p.length);
+            const parts = [];
+            if (c.greeting) parts.push(c.greeting);
+            if (body.length) parts.push(body.join('\n\n'));
+            if (c.sign_off) parts.push(c.sign_off);
+            const text = parts.join('\n\n');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    // execCommand fallback for older browsers.
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed'; ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select(); document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                this.coverCopied = true;
+                setTimeout(() => { this.coverCopied = false; }, 1800);
+            } catch (e) {
+                this.coverError = 'Could not copy to clipboard.';
+            }
+        },
+
+        async deleteCoverLetter(id) {
+            if (!id) return;
+            if (!confirm('Delete this cover letter? This cannot be undone.')) return;
+            try {
+                const r = await this.http('DELETE', '{{ url('/user/resume/cover-letters') }}/' + id);
+                this.coverHistory = r.history || [];
+                if (this.coverLetter && this.coverLetter.id === id) {
+                    this.coverLetter = null;
+                    this.coverStep = 'pick';
+                }
+            } catch (e) {
+                this.coverError = e.message;
+            }
         },
 
         async applyMerge() {

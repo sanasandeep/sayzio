@@ -343,6 +343,22 @@ Route::prefix('user')->name('user.')->group(function () {
                 Route::get ('history',  [\App\Modules\User\Controllers\ResumeTailorController::class, 'history'])->name('history');
             });
 
+            // Cover-letter generator: paste a JD, pick a tone, and the
+            // AI returns a structured letter (greeting + body + sign-off).
+            // `store` is the chargeable AI call; `regenerate` is a smaller
+            // per-section AI call. Inline edits / list / show / delete /
+            // PDF download are free reads of already-generated content.
+            Route::prefix('cover-letters')->name('cover-letters.')->group(function () {
+                Route::post('estimate', [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'estimate'])->middleware('throttle:30,1')->name('estimate');
+                Route::get ('/',        [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'index'])->name('index');
+                Route::post('/',        [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'store'])->middleware('throttle:10,1')->name('store');
+                Route::get ('{letter}',            [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'show'])->whereNumber('letter')->name('show');
+                Route::patch('{letter}',           [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'update'])->whereNumber('letter')->name('update');
+                Route::post('{letter}/regenerate', [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'regenerate'])->whereNumber('letter')->middleware('throttle:20,1')->name('regenerate');
+                Route::delete('{letter}',          [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'destroy'])->whereNumber('letter')->name('destroy');
+                Route::get('{letter}/download',    [\App\Modules\User\Controllers\ResumeCoverLetterController::class, 'download'])->whereNumber('letter')->middleware('throttle:30,1')->name('download');
+            });
+
             // Publish & sharing — toggles the public /{handle}/resume URL,
             // visibility tier (public/registered/followers/subscribers/
             // password), the per-user noindex flag, and (when password
