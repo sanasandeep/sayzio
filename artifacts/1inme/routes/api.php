@@ -212,6 +212,10 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/links/{id}/analytics/blocks/{blockId}', [LinkController::class, 'blockAnalytics'])->whereNumber('id')->whereNumber('blockId');
         Route::post  ('/links/{id}/reset',     [LinkController::class, 'reset'])->whereNumber('id');
 
+        // Per-biolink visitor rate-limit override (used by VisitorRateLimiter).
+        Route::get   ('/links/{id}/rate-limit', [LinkController::class, 'rateLimit'])->whereNumber('id');
+        Route::patch ('/links/{id}/rate-limit', [LinkController::class, 'rateLimit'])->whereNumber('id');
+
         // Smart links — geo / device / language / time / AB routing.
         // POST /links/smart creates a new short link with rules attached.
         // GET / PUT /links/{id}/rules manage rules on any owned link.

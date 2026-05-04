@@ -187,6 +187,46 @@ class LinkController extends Controller
         return $this->ok(['link' => LinkResource::toArray($link->fresh())]);
     }
 
+    /**
+     * Read or update the per-biolink rate-limit override that
+     * {@see \App\Modules\Common\Services\VisitorRateLimiter} consults
+     * on every visit. PATCH-merges into `link.settings.rate_limit` so
+     * partial updates (just toggling `enabled`, just bumping the IP
+     * cap) don't clobber the other keys.
+     */
+    public function rateLimit(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        if ($request->isMethod('GET')) {
+            return $this->ok([
+                'rate_limit' => app(\App\Modules\Common\Services\VisitorRateLimiter::class)
+                    ->configFor($link),
+            ]);
+        }
+
+        $data = $request->validate([
+            'enabled'    => ['sometimes', 'boolean'],
+            'ip_per_min' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            'fp_per_min' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+        ]);
+
+        $settings = (array) ($link->settings ?? []);
+        $current  = (array) ($settings['rate_limit'] ?? []);
+        foreach ($data as $k => $v) {
+            $current[$k] = $v;
+        }
+        $settings['rate_limit'] = $current;
+        $link->settings = $settings;
+        $link->save();
+
+        return $this->ok([
+            'rate_limit' => app(\App\Modules\Common\Services\VisitorRateLimiter::class)
+                ->configFor($link->fresh()),
+        ]);
+    }
+
     /** True when the given workspace has any tracking pixel ID configured. */
     protected function workspaceHasPixels(?int $workspaceId): bool
     {
@@ -270,14 +310,50 @@ class LinkController extends Controller
         // Mobile-app vs web split — pulled directly from `link_clicks` since
         // that's where the LinkTrackingService records the source tag. Works
         // independently of the optional `click_events` rollup table.
-        $payload['by_source'] = \DB::table('link_clicks')
+        // Exclude bot + throttled rows so the source split mirrors the
+        // human-only totals shown elsewhere on the dashboard. Schema may
+        // pre-date `is_throttled` on older installs — guard the column.
+        $bySourceQuery = \DB::table('link_clicks')
             ->where('link_id', $link->id)
             ->whereBetween('clicked_at', [$from, $to])
+            ->where('is_bot', false);
+        if (Schema::hasColumn('link_clicks', 'is_throttled')) {
+            $bySourceQuery->where('is_throttled', false);
+        }
+        $payload['by_source'] = $bySourceQuery
             ->selectRaw("COALESCE(source, 'unknown') as source, count(*) as clicks")
             ->groupBy('source')
             ->orderByDesc('clicks')
             ->get()
             ->all();
+
+        // Bot + throttled traffic the global LinkClick scope hides from
+        // the human-only stats above. We surface it here so the mobile
+        // dashboard can render the "Blocked X bot attempts this week"
+        // badge alongside a small per-day series matching the chart
+        // window. Schema may pre-date `is_throttled` on older installs;
+        // fall back to bot-only counting in that case.
+        $blockedQuery = \DB::table('link_clicks')
+            ->where('link_id', $link->id);
+        if (Schema::hasColumn('link_clicks', 'is_throttled')) {
+            $blockedQuery->where(function ($w) {
+                $w->where('is_bot', true)->orWhere('is_throttled', true);
+            });
+        } else {
+            $blockedQuery->where('is_bot', true);
+        }
+
+        $weekFrom = now()->subDays(7);
+        $payload['blocked_total']      = (int) (clone $blockedQuery)
+            ->whereBetween('clicked_at', [$from, $to])->count();
+        $payload['blocked_this_week']  = (int) (clone $blockedQuery)
+            ->where('clicked_at', '>=', $weekFrom)->count();
+        $payload['blocked_by_day']     = (clone $blockedQuery)
+            ->whereBetween('clicked_at', [$from, $to])
+            ->selectRaw("to_char(clicked_at, 'YYYY-MM-DD') as day, count(*) as clicks")
+            ->groupBy('day')->orderBy('day')->get()->all();
+        $payload['rate_limit']         = app(\App\Modules\Common\Services\VisitorRateLimiter::class)
+            ->configFor($link);
 
         // Per-rule breakdown for smart links — counts clicks attributed
         // to each rule id stamped by RedirectController. Joined with the

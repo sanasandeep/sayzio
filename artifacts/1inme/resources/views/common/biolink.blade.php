@@ -208,6 +208,11 @@
     @if(!empty($bs['custom_js_head']))
     <script>{!! $bs['custom_js_head'] !!}</script>
     @endif
+    {{-- JS challenge cookie used by VisitorRateLimiter to give visitors
+         that actually executed JS a much higher rate-limit budget than
+         scripts that ignore JS. Set as early as possible so even a fast
+         second-hit reload sees it. --}}
+    <script>(function(){try{if(!document.cookie.match(/(?:^|; )1inme_human=1/)){document.cookie='1inme_human=1; path=/; max-age=2592000; SameSite=Lax';}}catch(e){}})();</script>
     <style>
         html {
             scroll-behavior: smooth;

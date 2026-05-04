@@ -9,6 +9,12 @@ export type BlockSummary = {
   unique_clicks: number;
 };
 
+export type RateLimitConfig = {
+  enabled: boolean;
+  ip_per_min: number;
+  fp_per_min: number;
+};
+
 export type Analytics = {
   link_id: number;
   alias: string;
@@ -21,7 +27,29 @@ export type Analytics = {
   by_device: { device_type: string | null; clicks: number }[];
   by_source: { source: string | null; clicks: number }[];
   by_block?: BlockSummary[];
+  blocked_total?: number;
+  blocked_this_week?: number;
+  blocked_by_day?: { day: string; clicks: number }[];
+  rate_limit?: RateLimitConfig;
 };
+
+export async function getRateLimit(linkId: number): Promise<RateLimitConfig> {
+  const res = await apiFetch<{ data: { rate_limit: RateLimitConfig } }>(
+    `/links/${linkId}/rate-limit`,
+  );
+  return res.data.rate_limit;
+}
+
+export async function updateRateLimit(
+  linkId: number,
+  patch: Partial<RateLimitConfig>,
+): Promise<RateLimitConfig> {
+  const res = await apiFetch<{ data: { rate_limit: RateLimitConfig } }>(
+    `/links/${linkId}/rate-limit`,
+    { method: "PATCH", body: JSON.stringify(patch) },
+  );
+  return res.data.rate_limit;
+}
 
 export type VisitorType = "anonymous" | "registered" | "follower" | "subscriber";
 

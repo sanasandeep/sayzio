@@ -14,17 +14,19 @@ class LinkClick extends Model
         'link_id', 'alias', 'viewer_user_id', 'block_id', 'block_type', 'destination_url',
         'ip_address', 'country_code', 'city', 'latitude', 'longitude',
         'browser', 'os', 'device_type', 'referrer', 'source', 'user_agent', 'channel', 'is_bot',
+        'is_throttled',
         'language', 'utm_params', 'matched_rule_id', 'clicked_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'utm_params' => 'array',
-            'clicked_at' => 'datetime',
-            'latitude'   => 'float',
-            'longitude'  => 'float',
-            'is_bot'     => 'bool',
+            'utm_params'    => 'array',
+            'clicked_at'    => 'datetime',
+            'latitude'      => 'float',
+            'longitude'     => 'float',
+            'is_bot'        => 'bool',
+            'is_throttled'  => 'bool',
         ];
     }
 
@@ -43,6 +45,18 @@ class LinkClick extends Model
             public function apply(Builder $builder, Model $model): void
             {
                 $builder->where($model->qualifyColumn('is_bot'), false);
+                // Throttled rows (per-biolink rate limits, JS-challenge
+                // failures) are also kept out of every default analytics
+                // surface so creator totals stay human-only. Schema may
+                // pre-date the column on older installs; fall back to
+                // the bot-only filter in that case.
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn($model->getTable(), 'is_throttled')) {
+                        $builder->where($model->qualifyColumn('is_throttled'), false);
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore — keep the bot-only filter active.
+                }
             }
         });
     }

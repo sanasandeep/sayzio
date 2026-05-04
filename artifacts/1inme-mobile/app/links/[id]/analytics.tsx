@@ -1,13 +1,15 @@
 import { Feather } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
@@ -15,10 +17,13 @@ import { StatTile } from "@/components/StatTile";
 import { useColors } from "@/hooks/useColors";
 import {
   type BlockAnalytics,
+  type RateLimitConfig,
   type VisitorType,
   getAnalytics,
   getBlockAnalytics,
   getNfcCount,
+  getRateLimit,
+  updateRateLimit,
 } from "@/lib/api/analytics";
 
 const VISITOR_LABEL: Record<VisitorType, string> = {
@@ -84,7 +89,24 @@ export default function LinkAnalyticsScreen() {
             icon="wifi"
             hint="Tag programmings"
           />
+          <StatTile
+            label="Bots blocked / wk"
+            value={data.blocked_this_week ?? 0}
+            icon="shield"
+            hint="Excluded from totals"
+          />
         </View>
+
+        {data.blocked_by_day && data.blocked_by_day.length > 0 ? (
+          <Section
+            title="Blocked attempts"
+            subtitle="Bot + throttled hits the rate limiter dropped over time"
+          >
+            <BlockedChart rows={data.blocked_by_day} />
+          </Section>
+        ) : null}
+
+        <RateLimitSection linkId={id} initial={data.rate_limit} />
 
         <Section title="Clicks by day">
           {data.by_day.length === 0 ? (
@@ -178,6 +200,39 @@ export default function LinkAnalyticsScreen() {
           />
         </Section>
       </ScrollView>
+    </View>
+  );
+}
+
+function BlockedChart({ rows }: { rows: { day: string; clicks: number }[] }) {
+  const colors = useColors();
+  const max = Math.max(1, ...rows.map((r) => r.clicks));
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-end",
+        gap: 2,
+        height: 60,
+      }}
+    >
+      {rows.map((d) => {
+        const h = Math.max(2, (d.clicks / max) * 100);
+        return (
+          <View
+            key={d.day}
+            style={{
+              flex: 1,
+              height: `${h}%`,
+              backgroundColor: colors.destructive,
+              opacity: 0.7,
+              borderTopLeftRadius: 2,
+              borderTopRightRadius: 2,
+              minHeight: 2,
+            }}
+          />
+        );
+      })}
     </View>
   );
 }
@@ -390,6 +445,179 @@ function BlockDrill({ data }: { data: BlockAnalytics }) {
   );
 }
 
+function RateLimitSection({
+  linkId,
+  initial,
+}: {
+  linkId: number;
+  initial?: RateLimitConfig;
+}) {
+  const colors = useColors();
+  const qc = useQueryClient();
+  const cfg = useQuery({
+    queryKey: ["rate-limit", linkId],
+    queryFn: () => getRateLimit(linkId),
+    initialData: initial,
+    enabled: Number.isFinite(linkId),
+  });
+
+  const [enabled, setEnabled] = useState<boolean>(initial?.enabled ?? true);
+  const [ip, setIp] = useState<string>(String(initial?.ip_per_min ?? 30));
+  const [fp, setFp] = useState<string>(String(initial?.fp_per_min ?? 60));
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (cfg.data) {
+      setEnabled(cfg.data.enabled);
+      setIp(String(cfg.data.ip_per_min));
+      setFp(String(cfg.data.fp_per_min));
+    }
+  }, [cfg.data]);
+
+  const save = useMutation({
+    mutationFn: (patch: Partial<RateLimitConfig>) =>
+      updateRateLimit(linkId, patch),
+    onSuccess: (next) => {
+      qc.setQueryData(["rate-limit", linkId], next);
+      qc.invalidateQueries({ queryKey: ["analytics", linkId] });
+      setSavedMsg("Saved");
+      setTimeout(() => setSavedMsg(null), 1800);
+    },
+  });
+
+  const onSave = () => {
+    const ipN = Math.max(1, Math.min(10000, parseInt(ip, 10) || 30));
+    const fpN = Math.max(1, Math.min(10000, parseInt(fp, 10) || 60));
+    setIp(String(ipN));
+    setFp(String(fpN));
+    save.mutate({ enabled, ip_per_min: ipN, fp_per_min: fpN });
+  };
+
+  return (
+    <Section
+      title="Visitor protection"
+      subtitle="Throttle floods and bot traffic on this link"
+    >
+      <View style={{ gap: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={{ color: colors.foreground, fontSize: 13 }}>
+              Rate limiting enabled
+            </Text>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 11,
+                marginTop: 2,
+              }}
+            >
+              When off, every visitor is recorded — even obvious bots.
+            </Text>
+          </View>
+          <Switch value={enabled} onValueChange={setEnabled} />
+        </View>
+
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 11,
+                marginBottom: 4,
+              }}
+            >
+              IP hits / minute
+            </Text>
+            <TextInput
+              value={ip}
+              onChangeText={setIp}
+              keyboardType="number-pad"
+              editable={enabled}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  color: colors.foreground,
+                  opacity: enabled ? 1 : 0.5,
+                },
+              ]}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 11,
+                marginBottom: 4,
+              }}
+            >
+              Fingerprint hits / minute
+            </Text>
+            <TextInput
+              value={fp}
+              onChangeText={setFp}
+              keyboardType="number-pad"
+              editable={enabled}
+              style={[
+                styles.input,
+                {
+                  borderColor: colors.border,
+                  color: colors.foreground,
+                  opacity: enabled ? 1 : 0.5,
+                },
+              ]}
+            />
+          </View>
+        </View>
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          {savedMsg ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+              {savedMsg}
+            </Text>
+          ) : null}
+          <Pressable
+            onPress={onSave}
+            disabled={save.isPending}
+            style={({ pressed }) => [
+              {
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 10,
+                backgroundColor: colors.primary,
+                opacity: pressed || save.isPending ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: colors.primaryForeground,
+                fontFamily: "SpaceGrotesk_600SemiBold",
+                fontSize: 13,
+              }}
+            >
+              {save.isPending ? "Saving…" : "Save limits"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </Section>
+  );
+}
+
 function Section({
   title,
   subtitle,
@@ -520,5 +748,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
     borderWidth: 1,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
   },
 });

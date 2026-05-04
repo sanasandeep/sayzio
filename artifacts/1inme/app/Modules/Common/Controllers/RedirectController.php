@@ -111,6 +111,28 @@ class RedirectController extends Controller
             }
         }
 
+        // Per-biolink visitor rate limiting & bot-flood throttling.
+        // Aborts the public render with HTTP 429 when the visitor's
+        // per-IP or per-fingerprint counter has exceeded the per-link
+        // override (defaults: 30 IP / 60 fingerprint hits per minute).
+        // The decision is memoized on the request so the downstream
+        // tracking service tags the click row consistently without
+        // bumping the counters a second time. Scoped to biolink renders
+        // — short-link / file / url redirects keep their existing
+        // throughput unchanged.
+        $rateLimiter = app(\App\Modules\Common\Services\VisitorRateLimiter::class);
+        $rlUa = $request->userAgent() ?: $request->header('X-1INME-Client');
+        if ($link->type === 'biolink' && $rateLimiter->shouldThrottle($link, $request, $rlUa)) {
+            // Still record the throttled hit so creators see it in the
+            // "Blocked attempts this week" stat. The tracking service
+            // reads the same memoized decision and tags is_throttled=true
+            // / is_bot=true so the row is excluded from default analytics.
+            try { $this->trackingService->track($link, $request, $alias, 'web'); }
+            catch (\Throwable $e) { /* analytics row is best-effort */ }
+            return response()->view('common.rate-limited', [], 429)
+                ->header('Retry-After', '60');
+        }
+
         if ($link->is_password_protected && !session("link_unlocked_{$link->id}")) {
             if (!$request->has('password')) {
                 return view('common.link-password', compact('link'));

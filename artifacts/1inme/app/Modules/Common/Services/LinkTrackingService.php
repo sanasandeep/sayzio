@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Services;
 
 use App\Modules\Common\Services\BotDetector;
+use App\Modules\Common\Services\VisitorRateLimiter;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
@@ -33,6 +34,19 @@ class LinkTrackingService
             }
         }
 
+        // Per-biolink rate limiting (per-IP and per-fingerprint sliding
+        // windows). Throttled rows are still recorded with both is_bot
+        // and is_throttled set so they appear in the "Blocked X bot
+        // attempts this week" badge but never in human totals.
+        $isThrottled = false;
+        if (!$isBot) {
+            $isThrottled = app(VisitorRateLimiter::class)
+                ->shouldThrottle($link, $request, $userAgent);
+            if ($isThrottled) {
+                $isBot = true;
+            }
+        }
+
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
 
@@ -49,6 +63,7 @@ class LinkTrackingService
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'channel' => ChannelClassifier::classify($userAgent),
             'is_bot' => $isBot,
+            'is_throttled' => $isThrottled,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
@@ -160,6 +175,17 @@ class LinkTrackingService
             }
         }
 
+        // Per-biolink rate limiting also applies to in-page block taps
+        // so a flood-clicker can't mass-tap a single CTA either.
+        $isThrottled = false;
+        if (!$isBot) {
+            $isThrottled = app(VisitorRateLimiter::class)
+                ->shouldThrottle($link, $request, $userAgent);
+            if ($isThrottled) {
+                $isBot = true;
+            }
+        }
+
         // Task #1094 — enforce per-block scarcity *atomically* before we
         // create any analytics record or commit ourselves to a redirect.
         // Bots are exempt (they never count toward the cap, so they
@@ -211,6 +237,7 @@ class LinkTrackingService
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'channel' => ChannelClassifier::classify($userAgent),
             'is_bot' => $isBot,
+            'is_throttled' => $isThrottled,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
