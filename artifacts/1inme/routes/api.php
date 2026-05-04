@@ -199,6 +199,10 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/links/{id}/rules',     [LinkController::class, 'getRules'])->whereNumber('id');
         Route::put   ('/links/{id}/rules',     [LinkController::class, 'putRules'])->whereNumber('id');
 
+        // Card templates (mobile parity for the web card-template gallery).
+        Route::get ('/links/{id}/card-templates',         [\App\Modules\Api\Controllers\CardTemplateController::class, 'index'])->whereNumber('id');
+        Route::post('/links/{id}/card-templates/apply',   [\App\Modules\Api\Controllers\CardTemplateController::class, 'apply'])->whereNumber('id');
+
         // Biolink blocks (authoring)
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');
         Route::post  ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'store'])->whereNumber('id');
