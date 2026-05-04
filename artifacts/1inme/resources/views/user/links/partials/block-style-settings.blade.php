@@ -292,13 +292,43 @@
                          :style="selectedTemplate === '{{ $tKey }}' ? 'background: #8b5cf6; opacity: 1;' : 'opacity: 0;'">
                         <i class="fas fa-check text-white text-[8px]"></i>
                     </div>
-                    <div class="flex items-center gap-2 mb-1.5">
+                    <div class="flex items-center gap-2 mb-2">
                         <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: {{ $tpl['preview_bg'] }}; border: 1px solid {{ $tpl['preview_bg'] }}30;">
                             <i class="fas {{ $tpl['icon'] }} text-[9px]" style="color: {{ $tpl['preview_text'] }};"></i>
                         </div>
                         <span class="text-[11px] font-semibold" style="color: var(--text-primary);">{{ $tpl['label'] }}</span>
                     </div>
-                    <div class="h-5 rounded-md" style="background: {{ $tpl['preview_bg'] }}; border: 1px solid {{ $tpl['preview_text'] }}20; opacity: 0.6;"></div>
+                    {{-- WYSIWYG swatch: rendered with the preset's actual style values
+                         (bg, border, radius, shadow effect) so the user previews exactly
+                         what the block will look like, not a generic flat bar. --}}
+                    @php
+                        $ts = $tpl['style'] ?? [];
+                        $swBg = $ts['bg_color'] ?? 'transparent';
+                        $swBs = $ts['border_style'] ?? 'none';
+                        $swBw = $ts['border_width'] ?? '1';
+                        $swBc = $ts['border_color'] ?? '#ffffff20';
+                        $swBr = isset($ts['border_radius']) ? min((int)$ts['border_radius'], 22) : 8;
+                        $swShadow = 'none';
+                        switch ($ts['shadow_type'] ?? 'none') {
+                            case 'soft':       $swShadow = '0 2px 8px ' . ($ts['shadow_color'] ?? '#0000001f'); break;
+                            case 'hard':       $swShadow = '0 4px 0 ' . ($ts['shadow_color'] ?? '#00000040'); break;
+                            case 'neon':       $swShadow = '0 0 12px ' . ($ts['shadow_color'] ?? '#8b5cf660') . ', 0 0 24px ' . ($ts['shadow_color'] ?? '#8b5cf660'); break;
+                            case 'glow':       $swShadow = '0 0 16px ' . ($ts['shadow_color'] ?? '#8b5cf620'); break;
+                            case 'neumorphic': $swShadow = 'inset 2px 2px 4px #00000040, inset -2px -2px 4px #ffffff10'; break;
+                            case 'inset':      $swShadow = 'inset 0 2px 6px ' . ($ts['shadow_color'] ?? '#00000033'); break;
+                        }
+                        $swEffect = $ts['effect'] ?? 'none';
+                        $swExtra = '';
+                        if ($swEffect === 'gradient_border') {
+                            $swExtra = 'background: linear-gradient(' . ($ts['bg_color'] ?? '#111') . ',' . ($ts['bg_color'] ?? '#111') . ') padding-box, linear-gradient(135deg,#8b5cf6,#ec4899,#06b6d4) border-box; border-color: transparent;';
+                        } elseif ($swEffect === 'glass') {
+                            $swExtra = 'backdrop-filter: blur(' . ($ts['glass_blur'] ?? 12) . 'px);';
+                        }
+                    @endphp
+                    <div class="h-9 flex items-center justify-center"
+                         style="background: {{ $swBg }}; border: {{ $swBw }}px {{ $swBs }} {{ $swBc }}; border-radius: {{ $swBr }}px; box-shadow: {{ $swShadow }}; {{ $swExtra }}">
+                        <span class="text-[9px] font-bold" style="color: {{ $tpl['preview_text'] }}; opacity: 0.85;">Sample Block</span>
+                    </div>
                 </button>
                 @endforeach
             </div>
