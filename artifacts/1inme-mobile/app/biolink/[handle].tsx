@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -1411,8 +1412,9 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
 // Resolve the slide's flat background color. For image backgrounds the
 // caller separately renders an <ImageBackground>, so we just return a
 // safe solid color (used when the image is loading or fails to fetch).
-// For gradients we currently fall back to the start color until we add
-// expo-linear-gradient (tracked as a follow-up).
+// For gradients we return the start color as a fallback so the FlatList
+// item still has a sensible solid backdrop while the gradient layer
+// composites on top.
 function slideBgColor(bg: Slide["background"], fallback: string): string {
   const t = bg?.type ?? "color";
   if (t === "image")    return bg?.color ?? fallback;
@@ -1607,6 +1609,12 @@ function SlidesViewer({
         renderItem={({ item, index }) => {
           const bgColor = slideBgColor(item.background, themeBg);
           const isImage = item.background?.type === "image" && !!item.background?.image_url;
+          const isGradient = item.background?.type === "gradient";
+          // Mirror the web viewer's `linear-gradient(135deg, from, to)`:
+          // 135deg in CSS goes top-left → bottom-right, which maps to
+          // expo-linear-gradient start={0,0} end={1,1}.
+          const gradFrom = item.background?.from_color ?? "#1e293b";
+          const gradTo = item.background?.to_color ?? item.background?.color ?? "#0f172a";
           // Render strictly from the published snapshot so mobile and
           // web show the same frozen content for a published deck.
           // Owner blocks are only consulted to fill optional fields
@@ -1667,6 +1675,19 @@ function SlidesViewer({
                 <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" }} />
                 {slideBody}
               </ImageBackground>
+            );
+          }
+
+          if (isGradient) {
+            return (
+              <LinearGradient
+                colors={[gradFrom, gradTo]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ width: "100%", height: slideHeight }}
+              >
+                {slideBody}
+              </LinearGradient>
             );
           }
 
