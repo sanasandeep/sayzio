@@ -777,7 +777,12 @@
             </div>
         </div>
 
-            <div class="card-premium p-6" x-data="{ banner: {{ $privacyBanner ? 'true' : 'false' }} }">
+            <div class="card-premium p-6" x-data="{
+                banner: {{ $privacyBanner ? 'true' : 'false' }},
+                bannerText: @js($privacyText),
+                acceptLabel: @js($privacyAccept),
+                declineLabel: @js($privacyDecline),
+            }">
                 <div class="flex items-center gap-3 mb-1">
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(34,197,94,0.1);"><i class="fas fa-shield-halved text-emerald-400 text-xs"></i></div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Privacy</h3>
@@ -815,16 +820,32 @@
                     <div x-show="banner" x-transition class="space-y-3 pl-7">
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Banner copy</label>
-                            <textarea name="privacy[consent_banner_text]" rows="2" maxlength="500" class="theme-input w-full text-xs" placeholder="This page uses cookies…">{{ $privacyText }}</textarea>
+                            <textarea name="privacy[consent_banner_text]" rows="2" maxlength="500" x-model="bannerText" class="theme-input w-full text-xs" placeholder="This page uses cookies…">{{ $privacyText }}</textarea>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Accept button</label>
-                                <input type="text" name="privacy[consent_accept_label]" value="{{ $privacyAccept }}" maxlength="40" class="theme-input w-full text-xs">
+                                <input type="text" name="privacy[consent_accept_label]" value="{{ $privacyAccept }}" maxlength="40" x-model="acceptLabel" class="theme-input w-full text-xs">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Decline button</label>
-                                <input type="text" name="privacy[consent_decline_label]" value="{{ $privacyDecline }}" maxlength="40" class="theme-input w-full text-xs">
+                                <input type="text" name="privacy[consent_decline_label]" value="{{ $privacyDecline }}" maxlength="40" x-model="declineLabel" class="theme-input w-full text-xs">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-medium" style="color: var(--text-muted);">Live preview</label>
+                                <span class="text-[10px]" style="color: var(--text-dimmed);">How visitors will see it</span>
+                            </div>
+                            <div class="rounded-xl p-3" style="background: #0f172a; border: 1px solid var(--border-glass);">
+                                <div class="rounded-lg p-3 flex flex-wrap items-center gap-3" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(124,58,237,0.45); box-shadow: 0 12px 32px rgba(2,6,23,0.55);">
+                                    <div class="flex-1 min-w-[180px] text-[12px] leading-snug" style="color: #f9fafb;" x-text="bannerText || 'This page uses essential cookies to work. With your consent we also load analytics and marketing pixels.'"></div>
+                                    <div class="flex gap-2 flex-wrap">
+                                        <button type="button" disabled class="px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-default" style="background: rgba(255,255,255,0.12); color: #f9fafb;" x-text="declineLabel || 'Decline'"></button>
+                                        <button type="button" disabled class="px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-default" style="background: #7c3aed; color: #fff;" x-text="acceptLabel || 'Accept'"></button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
