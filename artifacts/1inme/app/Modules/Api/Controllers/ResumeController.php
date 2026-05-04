@@ -59,13 +59,18 @@ class ResumeController extends Controller
             'website'  => ['nullable', 'string', 'url', 'max:255'],
         ]);
 
-        $resume   = $request->user()->ensureResume();
+        $user     = $request->user();
+        $resume   = $user->ensureResume();
         $sections = $resume->getMergedSections();
         $sections['header'] = array_replace($sections['header'], array_map(
             fn ($v) => is_string($v) ? trim($v) : $v,
             $data
         ));
         $resume->update(['sections' => $sections]);
+
+        // Lazily shrink any header photo that was uploaded before the
+        // upload-time compression existed. No-op when already small.
+        $this->reoptimizeHeaderPhoto($resume, $user);
 
         return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
     }
@@ -89,7 +94,11 @@ class ResumeController extends Controller
 
         try {
             $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
-                'max_size_mb' => 5,
+                'max_size_mb'    => 5,
+                'compress_image' => true,
+                'max_width'      => 800,
+                'max_height'     => 800,
+                'quality'        => 85,
             ]);
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage(), 422, 'upload_failed');
@@ -323,6 +332,27 @@ class ResumeController extends Controller
     }
 
     // ── Internals ──────────────────────────────────────────────────
+
+    /**
+     * If the resume's current header photo is a raster image larger
+     * than the upload-time cap, shrink it in place. Best-effort and
+     * silent — failure here must never break a header save.
+     */
+    private function reoptimizeHeaderPhoto(\App\Modules\User\Models\Resume $resume, \App\Modules\User\Models\User $user): void
+    {
+        $sections = $resume->getMergedSections();
+        $photoId  = $sections['header']['photo_user_file_id'] ?? null;
+        if (!$photoId) return;
+
+        $photo = UserFile::where('id', $photoId)->where('user_id', $user->id)->first();
+        if (!$photo) return;
+
+        try {
+            $photo->reoptimizeImageInPlace(800, 800, 85);
+        } catch (\Throwable $e) {
+            // best-effort, ignore
+        }
+    }
 
     private function authorizeItem(Request $request, ResumeSectionItem $item): void
     {

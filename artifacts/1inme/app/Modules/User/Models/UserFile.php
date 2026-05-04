@@ -168,7 +168,33 @@ protected $fillable = [
         $folder   = "{$user->id}/{$fileType}s";
         $filename = (string) Str::uuid() . ($ext ? '.' . $ext : '');
 
-        $storedPath = $file->storeAs($folder, $filename, $disk);
+        // Optionally downscale + re-encode raster images before storing
+        // so the vault doesn't carry full-resolution camera dumps. Only
+        // kicks in when the caller opts in, and is silently skipped on
+        // any failure — the original is then stored as-is.
+        $compressedTmp = null;
+        if (!empty($options['compress_image'])) {
+            $compressedTmp = self::compressUploadedImage($file, $mime, [
+                'max_width'  => (int) ($options['max_width']  ?? 800),
+                'max_height' => (int) ($options['max_height'] ?? 800),
+                'quality'    => (int) ($options['quality']    ?? 85),
+            ]);
+        }
+
+        if ($compressedTmp !== null) {
+            $storedPath = $folder . '/' . $filename;
+            $stream = @fopen($compressedTmp, 'rb');
+            if ($stream !== false) {
+                Storage::disk($disk)->put($storedPath, $stream);
+                @fclose($stream);
+            } else {
+                Storage::disk($disk)->put($storedPath, (string) @file_get_contents($compressedTmp));
+            }
+            $size = (int) (@filesize($compressedTmp) ?: $size);
+            @unlink($compressedTmp);
+        } else {
+            $storedPath = $file->storeAs($folder, $filename, $disk);
+        }
 
         return self::create([
             'user_id'       => $user->id,
@@ -180,6 +206,215 @@ protected $fillable = [
             'disk'          => $disk,
             'path'          => $storedPath,
         ]);
+    }
+
+    /**
+     * Re-optimize an already-stored raster image in place. Reads the
+     * current bytes, downscales/re-encodes them, and only overwrites
+     * (and updates `size_bytes`) if the new bytes are actually smaller.
+     * Used to lazily shrink header photos that were uploaded before
+     * the upload-time compression existed.
+     *
+     * Returns true when the stored bytes were replaced.
+     */
+    public function reoptimizeImageInPlace(int $maxWidth = 800, int $maxHeight = 800, int $quality = 85): bool
+    {
+        if ($this->type !== 'image') return false;
+
+        $mime = strtolower((string) $this->mime_type);
+        if (!in_array($mime, ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'], true)) {
+            return false;
+        }
+
+        $storageDisk = $this->disk === 'public' ? 'public' : ($this->disk === 's3' ? 's3' : 'user_files');
+        $disk = Storage::disk($storageDisk);
+
+        try {
+            if (!$disk->exists($this->path)) return false;
+            $bytes = $disk->get($this->path);
+            if (!is_string($bytes) || $bytes === '') return false;
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        $originalSize = strlen($bytes);
+
+        // Stage the bytes to a real file so compressImageBytes can read
+        // EXIF orientation off it — re-encoding strips EXIF, so legacy
+        // phone photos with non-default orientation tags would otherwise
+        // come out rotated after a lazy reoptimization.
+        $exifSource = null;
+        if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+            $exifSource = tempnam(sys_get_temp_dir(), 'ufexif_');
+            if ($exifSource !== false) {
+                if (@file_put_contents($exifSource, $bytes) === false) {
+                    @unlink($exifSource);
+                    $exifSource = null;
+                }
+            } else {
+                $exifSource = null;
+            }
+        }
+
+        $newBytes = self::compressImageBytes($bytes, $mime, [
+            'max_width'  => $maxWidth,
+            'max_height' => $maxHeight,
+            'quality'    => $quality,
+        ], $exifSource);
+
+        if ($exifSource !== null) @unlink($exifSource);
+
+        if ($newBytes === null) return false;
+        $newSize = strlen($newBytes);
+        if ($newSize <= 0 || $newSize >= $originalSize) return false;
+
+        try {
+            $disk->put($this->path, $newBytes);
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        $this->size_bytes = $newSize;
+        $this->save();
+        return true;
+    }
+
+    /**
+     * Compress an UploadedFile's raster image to fit within max dimensions.
+     * Returns a temp file path with the processed bytes, or null when
+     * compression isn't applicable or fails (caller stores the original).
+     */
+    protected static function compressUploadedImage(UploadedFile $file, string $mime, array $options): ?string
+    {
+        if (!function_exists('imagecreatefromstring')) return null;
+        $mime = strtolower($mime);
+        if (!in_array($mime, ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'], true)) {
+            return null;
+        }
+
+        $sourcePath = $file->getRealPath();
+        if (!$sourcePath || !is_readable($sourcePath)) return null;
+        $bytes = @file_get_contents($sourcePath);
+        if ($bytes === false || $bytes === '') return null;
+
+        $newBytes = self::compressImageBytes($bytes, $mime, $options, $sourcePath);
+        if ($newBytes === null) return null;
+
+        // Only keep the processed bytes if they're smaller than the
+        // original — re-encoding a perfectly-sized small JPEG can
+        // sometimes grow it, and we'd rather store the original.
+        if (strlen($newBytes) >= strlen($bytes)) return null;
+
+        $tmp = tempnam(sys_get_temp_dir(), 'ufimg_');
+        if ($tmp === false) return null;
+        if (@file_put_contents($tmp, $newBytes) === false) {
+            @unlink($tmp);
+            return null;
+        }
+        return $tmp;
+    }
+
+    /**
+     * Core GD-based resize+re-encode. Returns the processed bytes or
+     * null on any failure / unsupported mime. Honors EXIF orientation
+     * for JPEGs so phone photos don't end up sideways. When a source
+     * file path is provided and the image is already within bounds,
+     * the bytes are still re-encoded so quality settings apply.
+     */
+    protected static function compressImageBytes(string $bytes, string $mime, array $options, ?string $exifSourcePath = null): ?string
+    {
+        if (!function_exists('imagecreatefromstring')) return null;
+
+        $maxWidth  = (int) ($options['max_width']  ?? 800);
+        $maxHeight = (int) ($options['max_height'] ?? 800);
+        $quality   = (int) max(1, min(100, $options['quality'] ?? 85));
+        if ($maxWidth <= 0 || $maxHeight <= 0) return null;
+
+        $img = @imagecreatefromstring($bytes);
+        if ($img === false) return null;
+
+        try {
+            if (($mime === 'image/jpeg' || $mime === 'image/jpg')
+                && $exifSourcePath !== null
+                && function_exists('exif_read_data')) {
+                $exif = @exif_read_data($exifSourcePath);
+                $orientation = is_array($exif) ? (int) ($exif['Orientation'] ?? 0) : 0;
+                if ($orientation > 1 && $orientation <= 8) {
+                    switch ($orientation) {
+                        case 2: imageflip($img, IMG_FLIP_HORIZONTAL); break;
+                        case 3: $img = imagerotate($img, 180, 0); break;
+                        case 4: imageflip($img, IMG_FLIP_VERTICAL); break;
+                        case 5: imageflip($img, IMG_FLIP_VERTICAL); $img = imagerotate($img, -90, 0); break;
+                        case 6: $img = imagerotate($img, -90, 0); break;
+                        case 7: imageflip($img, IMG_FLIP_HORIZONTAL); $img = imagerotate($img, -90, 0); break;
+                        case 8: $img = imagerotate($img, 90, 0); break;
+                    }
+                }
+            }
+
+            $w = imagesx($img);
+            $h = imagesy($img);
+            if ($w <= 0 || $h <= 0) {
+                imagedestroy($img);
+                return null;
+            }
+
+            $scale = min(1.0, $maxWidth / $w, $maxHeight / $h);
+            $newW = max(1, (int) floor($w * $scale));
+            $newH = max(1, (int) floor($h * $scale));
+
+            if ($scale < 1.0) {
+                $resized = imagecreatetruecolor($newW, $newH);
+                if ($mime === 'image/png' || $mime === 'image/webp') {
+                    imagealphablending($resized, false);
+                    imagesavealpha($resized, true);
+                    $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+                    imagefilledrectangle($resized, 0, 0, $newW, $newH, $transparent);
+                }
+                imagecopyresampled($resized, $img, 0, 0, 0, 0, $newW, $newH, $w, $h);
+                imagedestroy($img);
+                $img = $resized;
+            }
+
+            $tmp = tempnam(sys_get_temp_dir(), 'ufenc_');
+            if ($tmp === false) {
+                imagedestroy($img);
+                return null;
+            }
+            $ok = false;
+            switch ($mime) {
+                case 'image/jpeg':
+                case 'image/jpg':
+                    $ok = imagejpeg($img, $tmp, $quality);
+                    break;
+                case 'image/png':
+                    imagealphablending($img, false);
+                    imagesavealpha($img, true);
+                    $pngLevel = (int) max(0, min(9, round((100 - $quality) / 11)));
+                    $ok = imagepng($img, $tmp, $pngLevel);
+                    break;
+                case 'image/webp':
+                    if (function_exists('imagewebp')) {
+                        $ok = imagewebp($img, $tmp, $quality);
+                    }
+                    break;
+            }
+            imagedestroy($img);
+
+            if (!$ok) {
+                @unlink($tmp);
+                return null;
+            }
+            $out = @file_get_contents($tmp);
+            @unlink($tmp);
+            if (!is_string($out) || $out === '') return null;
+            return $out;
+        } catch (\Throwable $e) {
+            if (is_resource($img) || $img instanceof \GdImage) {
+                @imagedestroy($img);
+            }
+            return null;
+        }
     }
 
     /**
