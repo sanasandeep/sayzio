@@ -845,11 +845,12 @@ $catColors = [
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="!cardTemplatesLoading">
                             <template x-for="t in visibleCardTemplates()" :key="t.id">
-                                <div class="rounded-xl border overflow-hidden transition cursor-pointer" style="border-color: var(--border-glass); background: rgba(124,58,237,0.02);"
+                                <div class="relative rounded-xl border overflow-visible transition cursor-pointer group" style="border-color: var(--border-glass); background: rgba(124,58,237,0.02);"
+                                     x-data="{ expanded: false }"
                                      @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
                                      :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-violet-500/50'"
                                      :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : (t.description || t.name)">
-                                    <div class="aspect-[4/2] flex items-center justify-center relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
+                                    <div class="aspect-[4/2] flex items-center justify-center relative overflow-hidden rounded-t-xl" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                                         <template x-if="t.thumbnail_url">
                                             <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
                                         </template>
@@ -859,8 +860,67 @@ $catColors = [
                                         <div x-show="t.locked" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i><span x-text="t.plan_tier"></span></div>
                                     </div>
                                     <div class="p-3">
-                                        <div class="text-xs font-semibold mb-0.5" style="color: var(--text-primary);" x-text="t.name"></div>
-                                        <div class="text-[10px]" style="color: var(--text-faint);"><span x-text="t.children_count"></span> blocks · <span x-text="t.category_label || t.category"></span></div>
+                                        <div class="text-xs font-semibold mb-1" style="color: var(--text-primary);" x-text="t.name"></div>
+                                        {{-- Compact block list (first ~3 friendly labels + "+N more"). Keeps card heights consistent. --}}
+                                        <div class="text-[10px] leading-snug min-h-[14px]" style="color: var(--text-muted);">
+                                            <template x-if="(t.children || []).length">
+                                                <span>
+                                                    <span x-text="(t.children || []).slice(0, 3).map(c => c.label).join(' · ')"></span>
+                                                    <template x-if="(t.children || []).length > 3">
+                                                        <span class="text-violet-400/80" x-text="' +' + ((t.children.length) - 3) + ' more'"></span>
+                                                    </template>
+                                                </span>
+                                            </template>
+                                            <template x-if="!(t.children || []).length">
+                                                <span x-text="(t.children_count || 0) + ' blocks'"></span>
+                                            </template>
+                                        </div>
+                                        <div class="text-[10px] mt-0.5" style="color: var(--text-faint);"><span x-text="t.category_label || t.category"></span></div>
+                                        {{-- Mobile-only "what's inside" toggle. Desktop uses the hover popover below. --}}
+                                        <button type="button"
+                                                class="sm:hidden mt-2 text-[10px] text-violet-400 hover:text-violet-300"
+                                                x-show="(t.children || []).length"
+                                                @click.stop="expanded = !expanded"
+                                                x-text="expanded ? 'Hide details' : 'See what\'s inside'"></button>
+                                    </div>
+
+                                    {{-- Hover popover (desktop) — full ordered block list with key field previews. --}}
+                                    <div class="hidden sm:block absolute left-0 right-0 top-full mt-1 z-30 opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:opacity-100 hover:visible transition rounded-lg border shadow-xl p-2.5"
+                                         @click.stop
+                                         style="background: rgba(20,16,32,0.97); border-color: var(--border-glass); backdrop-filter: blur(8px);"
+                                         x-show="(t.children || []).length"
+                                         x-cloak>
+                                        <div class="text-[10px] uppercase tracking-wide mb-1.5" style="color: var(--text-faint);">What's inside</div>
+                                        <ul class="space-y-1 max-h-56 overflow-y-auto">
+                                            <template x-for="(c, i) in (t.children || [])" :key="i">
+                                                <li class="flex items-start gap-2 text-[11px]" style="color: var(--text-primary);">
+                                                    <i :class="'fas ' + (c.icon || 'fa-cube')" class="text-violet-400 mt-0.5 w-3 text-center"></i>
+                                                    <span class="flex-1 min-w-0">
+                                                        <span class="font-semibold" x-text="c.label"></span>
+                                                        <template x-if="c.preview">
+                                                            <span style="color: var(--text-muted);" x-text="' — ' + c.preview"></span>
+                                                        </template>
+                                                    </span>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+
+                                    {{-- Mobile expanded list — same content, inline (tap-to-toggle). --}}
+                                    <div class="sm:hidden px-3 pb-3 -mt-1" x-show="expanded" x-cloak @click.stop>
+                                        <ul class="space-y-1 pt-2 border-t" style="border-color: var(--border-glass);">
+                                            <template x-for="(c, i) in (t.children || [])" :key="i">
+                                                <li class="flex items-start gap-2 text-[11px]" style="color: var(--text-primary);">
+                                                    <i :class="'fas ' + (c.icon || 'fa-cube')" class="text-violet-400 mt-0.5 w-3 text-center"></i>
+                                                    <span class="flex-1 min-w-0">
+                                                        <span class="font-semibold" x-text="c.label"></span>
+                                                        <template x-if="c.preview">
+                                                            <span style="color: var(--text-muted);" x-text="' — ' + c.preview"></span>
+                                                        </template>
+                                                    </span>
+                                                </li>
+                                            </template>
+                                        </ul>
                                     </div>
                                 </div>
                             </template>
