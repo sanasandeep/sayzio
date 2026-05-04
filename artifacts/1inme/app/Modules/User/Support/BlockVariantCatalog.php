@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 3;
+    public const VERSION = 4;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -912,6 +912,631 @@ class BlockVariantCatalog
                     'preview' => ['bg' => 'rgba(255,255,255,0.04)', 'text' => '#f1f5f9', 'radius' => 10, 'border' => '#ffffff30'],
                 ],
             ],
+
+            // ─── Task #1041: expanded link-in-bio shape library ──────────
+            //
+            // The bundles below are additive to `link_actions`,
+            // `headings`, `gallery`, and `socials`, and introduce a new
+            // `cover_profile` bundle for `profile_card_v2`. They reuse
+            // existing style keys (incl. `link_layout=image_cover`) so
+            // no renderer changes are required — the public Blade and
+            // mobile renderers already merge `_style` from the variant
+            // into the block container. New variant keys MUST stay in
+            // sync with the mobile mirror in `lib/blockVariants.ts`.
+
+            // More shaped link buttons (link, link_big, cta_button,
+            // featured_pin, external_item). Mixes pure shape variations
+            // (split, arch, ribbon, tab) with full-image cover modes
+            // that opt into `link_layout=image_cover` so the renderer
+            // promotes the block's thumbnail to the background.
+            'link_shapes' => [
+                [
+                    'key' => 'pill_gradient',
+                    'name' => 'Gradient Pill',
+                    'tags' => ['bold', 'playful'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ec4899',
+                        'border_style' => 'none', 'border_radius' => '999',
+                        'shadow_type' => 'glow', 'shadow_color' => '#ec489966', 'shadow_blur' => 28,
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '700',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(90deg,#ec4899,#7c3aed)', 'text' => '#ffffff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'pill_dotted',
+                    'name' => 'Dotted Pill',
+                    'tags' => ['playful', 'handwritten'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'dotted', 'border_width' => '2', 'border_color' => '#ffffffaa',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '12', 'font_weight' => '500',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 999, 'border' => '#ffffffaa'],
+                ],
+                [
+                    'key' => 'square_double',
+                    'name' => 'Double Border',
+                    'tags' => ['editorial', 'pro'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'double', 'border_width' => '6', 'border_color' => '#1f2937',
+                        'border_radius' => '4', 'shadow_preset' => 'none',
+                        'text_color' => '#111827', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 4, 'border' => '#1f2937'],
+                ],
+                [
+                    'key' => 'tab_underline',
+                    'name' => 'Tab Underline',
+                    'tags' => ['minimal', 'editorial'],
+                    'shape' => 'plain_text',
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '0', 'border_color' => '#a78bfa',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '6', 'font_weight' => '600',
+                        'link_layout' => 'plain_text',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'border' => '#a78bfa'],
+                ],
+                [
+                    'key' => 'card_lifted',
+                    'name' => 'Lifted Card',
+                    'tags' => ['three_d', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '14',
+                        'shadow_type' => 'soft', 'shadow_color' => '#0000003d',
+                        'shadow_x' => 0, 'shadow_y' => 14, 'shadow_blur' => 32,
+                        'text_color' => '#111827', 'padding' => '18', 'font_weight' => '600',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14, 'shadow' => '0 14px 32px #0000003d'],
+                ],
+                [
+                    'key' => 'card_arch',
+                    'name' => 'Arch Card',
+                    'tags' => ['playful', 'editorial'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fafaf9',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e7e5e4',
+                        'border_radius' => '32', 'shadow_preset' => 'soft',
+                        'text_color' => '#1c1917', 'padding' => '20', 'font_weight' => '600',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#fafaf9', 'text' => '#1c1917', 'radius' => 32, 'border' => '#e7e5e4'],
+                ],
+                [
+                    'key' => 'square_neumorphic',
+                    'name' => 'Soft Neumorphic',
+                    'tags' => ['minimal', 'three_d'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1a1a2e',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_type' => 'neumorphic',
+                        'text_color' => '#cbd5e1', 'padding' => '18', 'font_weight' => '500',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#1a1a2e', 'text' => '#cbd5e1', 'radius' => 20],
+                ],
+                [
+                    'key' => 'pill_glass_dark',
+                    'name' => 'Dark Glass Pill',
+                    'tags' => ['glass', 'dark', 'pro'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a0a55',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff22',
+                        'border_radius' => '999', 'shadow_preset' => 'soft',
+                        'glass_preset' => 'heavy', 'effect' => 'glass',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '500',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => 'rgba(0,0,0,0.4)', 'text' => '#ffffff', 'radius' => 999, 'border' => '#ffffff22'],
+                ],
+                // ── Image-mode buttons ────────────────────────────────────
+                // Each opts into `link_layout=image_cover` so the renderer
+                // promotes the block's thumbnail to a full-bleed cover.
+                [
+                    'key' => 'image_cover_dark',
+                    'name' => 'Cover · Dark Overlay',
+                    'tags' => ['dark', 'editorial', 'maximalist'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0612',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_preset' => 'medium',
+                        'text_color' => '#ffffff', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'image_cover',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(180deg,#1a1a2e,#0a0612)', 'text' => '#ffffff', 'radius' => 20],
+                ],
+                [
+                    'key' => 'image_cover_polaroid',
+                    'name' => 'Cover · Polaroid',
+                    'tags' => ['retro', 'playful', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '6', 'border_color' => '#ffffff',
+                        'border_radius' => '6', 'shadow_type' => 'hard',
+                        'shadow_color' => '#00000055', 'shadow_x' => 4, 'shadow_y' => 8, 'shadow_blur' => 18,
+                        'text_color' => '#1f2937', 'padding' => '0', 'font_weight' => '700',
+                        'font_family' => 'Caveat',
+                        'link_layout' => 'image_cover',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1f2937', 'radius' => 6, 'border' => '#ffffff', 'shadow' => '4px 8px 18px #00000055'],
+                ],
+                [
+                    'key' => 'image_cover_neon',
+                    'name' => 'Cover · Neon Frame',
+                    'tags' => ['neon', 'bold', 'maximalist'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0b0420',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#22d3ee',
+                        'border_radius' => '14', 'shadow_type' => 'neon',
+                        'shadow_color' => '#22d3eeaa', 'shadow_blur' => 30,
+                        'text_color' => '#a5f3fc', 'padding' => '0', 'font_weight' => '800',
+                        'link_layout' => 'image_cover',
+                    ],
+                    'preview' => ['bg' => '#0b0420', 'text' => '#a5f3fc', 'radius' => 14, 'border' => '#22d3ee'],
+                ],
+                [
+                    'key' => 'image_cover_arch',
+                    'name' => 'Cover · Arch',
+                    'tags' => ['editorial', 'pro', 'minimal'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1a1a2e',
+                        'border_style' => 'none', 'border_radius' => '40',
+                        'shadow_preset' => 'medium',
+                        'text_color' => '#ffffff', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'image_cover',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#1a1a2e,#7c3aed)', 'text' => '#ffffff', 'radius' => 40],
+                ],
+            ],
+
+            // Heading variants. Style keys only — animation cues live
+            // in `_animation` which is added to STYLE_DEFAULTS so the
+            // sanitizer accepts it; the public renderer reads it as a
+            // CSS class hook (no-op until styled in biolink.blade.php).
+            'heading_styles' => [
+                [
+                    'key' => 'oversize_serif',
+                    'name' => 'Oversize Serif',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        'text_color' => '#ffffff', 'font_family' => 'Playfair Display',
+                        'font_weight' => '900', 'font_size' => '48',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'gradient_swipe',
+                    'name' => 'Gradient Swipe',
+                    'tags' => ['bold', 'playful'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '6',
+                        'text_color' => '#ec4899', 'font_weight' => '800',
+                        '_animation' => 'gradient_swipe',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(90deg,#ec4899,#7c3aed,#22d3ee)', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'neon_glitch',
+                    'name' => 'Neon Glitch',
+                    'tags' => ['neon', 'y2k', 'bold'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_type' => 'neon', 'shadow_color' => '#f0abfcaa', 'shadow_blur' => 18,
+                        'padding' => '4', 'text_color' => '#5eead4', 'font_weight' => '900',
+                        'font_family' => 'JetBrains Mono',
+                        '_animation' => 'neon_glitch',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#5eead4', 'radius' => 0],
+                ],
+                [
+                    'key' => 'typewriter',
+                    'name' => 'Typewriter',
+                    'tags' => ['minimal', 'retro'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        'text_color' => '#ffffff', 'font_family' => 'JetBrains Mono',
+                        'font_weight' => '500',
+                        '_animation' => 'typewriter',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'wave_letters',
+                    'name' => 'Wave Letters',
+                    'tags' => ['playful', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        'text_color' => '#fbbf24', 'font_weight' => '800',
+                        '_animation' => 'wave_letters',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fbbf24', 'radius' => 0],
+                ],
+                [
+                    'key' => 'extrude_3d',
+                    'name' => '3D Extrude',
+                    'tags' => ['three_d', 'bold'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_type' => 'hard', 'shadow_color' => '#7c3aed',
+                        'shadow_x' => 4, 'shadow_y' => 4, 'shadow_blur' => 0,
+                        'padding' => '6', 'text_color' => '#ffffff', 'font_weight' => '900',
+                        '_animation' => 'extrude_3d',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'shadow' => '4px 4px 0 #7c3aed'],
+                ],
+                [
+                    'key' => 'ticker_marquee',
+                    'name' => 'Ticker Marquee',
+                    'tags' => ['retro', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#1e293b',
+                        'border_radius' => '4', 'shadow_preset' => 'none',
+                        'text_color' => '#fbbf24', 'padding' => '10', 'font_weight' => '700',
+                        'font_family' => 'JetBrains Mono',
+                        '_animation' => 'ticker_marquee',
+                    ],
+                    'preview' => ['bg' => '#0f172a', 'text' => '#fbbf24', 'radius' => 4, 'border' => '#1e293b'],
+                ],
+                [
+                    'key' => 'fade_in_up',
+                    'name' => 'Fade In',
+                    'tags' => ['minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        'text_color' => '#ffffff', 'font_weight' => '600',
+                        '_animation' => 'fade_in',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+            ],
+
+            // Gallery layouts (image_grid, image_slider, image_slider_v2).
+            // The visual differences come from container chrome; the
+            // `_gallery_layout` hint travels with the variant for the
+            // renderer to consume in a future iteration.
+            'gallery_layouts' => [
+                [
+                    'key' => 'grid_two',
+                    'name' => 'Grid · 2 Up',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        '_gallery_layout' => 'grid_2',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 8],
+                ],
+                [
+                    'key' => 'grid_three',
+                    'name' => 'Grid · 3 Up',
+                    'tags' => ['minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '6',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        '_gallery_layout' => 'grid_3',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 6],
+                ],
+                [
+                    'key' => 'grid_four',
+                    'name' => 'Grid · 4 Up',
+                    'tags' => ['minimal', 'corporate'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '4',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        '_gallery_layout' => 'grid_4',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 4],
+                ],
+                [
+                    'key' => 'masonry',
+                    'name' => 'Masonry',
+                    'tags' => ['editorial', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_preset' => 'soft', 'padding' => '4',
+                        '_gallery_layout' => 'masonry',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 8],
+                ],
+                [
+                    'key' => 'carousel_peek',
+                    'name' => 'Carousel · Peek',
+                    'tags' => ['playful', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '14',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                        '_gallery_layout' => 'carousel_peek',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 14],
+                ],
+                [
+                    'key' => 'stacked_polaroids',
+                    'name' => 'Stacked Polaroids',
+                    'tags' => ['retro', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '6', 'border_color' => '#ffffff',
+                        'border_radius' => '6', 'shadow_type' => 'hard',
+                        'shadow_color' => '#00000055', 'shadow_x' => 4, 'shadow_y' => 8, 'shadow_blur' => 18,
+                        'padding' => '10',
+                        '_gallery_layout' => 'stacked_polaroids',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1f2937', 'radius' => 6, 'border' => '#ffffff'],
+                ],
+                [
+                    'key' => 'marquee_strip',
+                    'name' => 'Marquee Strip',
+                    'tags' => ['bold', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a14',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        '_gallery_layout' => 'marquee_strip',
+                    ],
+                    'preview' => ['bg' => '#0a0a14', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'lightbox_grid',
+                    'name' => 'Lightbox Grid',
+                    'tags' => ['pro', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a14',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff15',
+                        'border_radius' => '10', 'shadow_preset' => 'medium', 'padding' => '6',
+                        '_gallery_layout' => 'lightbox_grid',
+                    ],
+                    'preview' => ['bg' => '#0a0a14', 'text' => '#ffffff', 'radius' => 10, 'border' => '#ffffff15'],
+                ],
+            ],
+
+            // Many icon style sets for socials / socials_multi / socials_custom.
+            // Sets describe the chrome around the row; the renderer
+            // honours `_social_set` to pick the icon treatment, with a
+            // safe no-op fallback (= today's brand-coloured icons).
+            'social_sets' => [
+                [
+                    'key' => 'mono_line',
+                    'name' => 'Mono · Line',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '6',
+                        'text_color' => '#ffffff',
+                        '_social_set' => 'mono_line',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'mono_solid',
+                    'name' => 'Mono · Solid',
+                    'tags' => ['minimal', 'corporate'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff10',
+                        'border_style' => 'none', 'border_radius' => '12',
+                        'shadow_preset' => 'none', 'padding' => '10',
+                        'text_color' => '#ffffff',
+                        '_social_set' => 'mono_solid',
+                    ],
+                    'preview' => ['bg' => 'rgba(255,255,255,0.1)', 'text' => '#ffffff', 'radius' => 12],
+                ],
+                [
+                    'key' => 'sketch',
+                    'name' => 'Sketch',
+                    'tags' => ['handwritten', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fffaf0',
+                        'border_style' => 'dashed', 'border_width' => '2', 'border_color' => '#1f2937',
+                        'border_radius' => '14', 'shadow_preset' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '12', 'font_family' => 'Caveat',
+                        '_social_set' => 'sketch',
+                    ],
+                    'preview' => ['bg' => '#fffaf0', 'text' => '#1f2937', 'radius' => 14, 'border' => '#1f2937', 'dashed' => true],
+                ],
+                [
+                    'key' => 'brand_color',
+                    'name' => 'Brand Color',
+                    'tags' => ['playful', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '12',
+                        'shadow_preset' => 'none', 'padding' => '8',
+                        '_social_set' => 'brand_color',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(90deg,#E4405F,#1877F2,#1DB954)', 'text' => '#ffffff', 'radius' => 12],
+                ],
+                [
+                    'key' => 'tile_brand',
+                    'name' => 'Brand Tiles',
+                    'tags' => ['bold', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a14',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff15',
+                        'border_radius' => '14', 'shadow_preset' => 'soft', 'padding' => '10',
+                        '_social_set' => 'brand_tiles',
+                    ],
+                    'preview' => ['bg' => '#0a0a14', 'text' => '#ffffff', 'radius' => 14, 'border' => '#ffffff15'],
+                ],
+                [
+                    'key' => 'wordmark',
+                    'name' => 'Wordmark',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '6',
+                        'text_color' => '#ffffff', 'font_family' => 'Playfair Display',
+                        'font_weight' => '700',
+                        '_social_set' => 'wordmark',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'glassy',
+                    'name' => 'Glassy',
+                    'tags' => ['glass', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff14',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff30',
+                        'border_radius' => '20', 'shadow_preset' => 'soft',
+                        'glass_preset' => 'heavy', 'effect' => 'glass', 'padding' => '14',
+                        'text_color' => '#ffffff',
+                        '_social_set' => 'glassy',
+                    ],
+                    'preview' => ['bg' => 'rgba(255,255,255,0.08)', 'text' => '#ffffff', 'radius' => 20, 'border' => '#ffffff40'],
+                ],
+                [
+                    'key' => 'neon_pop',
+                    'name' => 'Neon Pop',
+                    'tags' => ['neon', 'dark', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a0a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#a78bfa',
+                        'border_radius' => '14', 'shadow_type' => 'neon',
+                        'shadow_color' => '#a78bfaaa', 'shadow_blur' => 24,
+                        'text_color' => '#a78bfa', 'padding' => '12',
+                        '_social_set' => 'neon_pop',
+                    ],
+                    'preview' => ['bg' => '#0a0a0a', 'text' => '#a78bfa', 'radius' => 14, 'border' => '#a78bfa'],
+                ],
+                [
+                    'key' => 'animated_pulse',
+                    'name' => 'Animated Pulse',
+                    'tags' => ['playful', 'three_d'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ec489922',
+                        'border_style' => 'none', 'border_radius' => '999',
+                        'shadow_type' => 'glow', 'shadow_color' => '#ec489966', 'shadow_blur' => 24,
+                        'padding' => '12',
+                        '_social_set' => 'animated_pulse',
+                    ],
+                    'preview' => ['bg' => 'rgba(236,72,153,0.13)', 'text' => '#ec4899', 'radius' => 999],
+                ],
+            ],
+
+            // Cover + profile combo block (profile_card_v2). Variants
+            // colour the cover band and profile chrome; the renderer
+            // already supports cover/avatar/name/title content.
+            'cover_profile' => [
+                [
+                    'key' => 'cover_aurora',
+                    'name' => 'Aurora Cover',
+                    'tags' => ['bold', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card',
+                        'bg_color' => 'linear-gradient(135deg,#7c3aed,#ec4899,#22d3ee)',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_preset' => 'medium',
+                        'text_color' => '#ffffff', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#7c3aed,#ec4899,#22d3ee)', 'text' => '#ffffff', 'radius' => 20],
+                ],
+                [
+                    'key' => 'cover_editorial',
+                    'name' => 'Editorial Cover',
+                    'tags' => ['editorial', 'pro', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fafaf9',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e7e5e4',
+                        'border_radius' => '12', 'shadow_preset' => 'soft',
+                        'text_color' => '#1c1917', 'padding' => '0',
+                        'font_family' => 'Playfair Display',
+                    ],
+                    'preview' => ['bg' => '#fafaf9', 'text' => '#1c1917', 'radius' => 12, 'border' => '#e7e5e4', 'serif' => true],
+                ],
+                [
+                    'key' => 'cover_dark_neon',
+                    'name' => 'Dark Neon Cover',
+                    'tags' => ['neon', 'dark', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#05010f',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#a78bfa',
+                        'border_radius' => '20', 'shadow_type' => 'neon',
+                        'shadow_color' => '#a78bfa66', 'shadow_blur' => 30,
+                        'text_color' => '#a78bfa', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => '#05010f', 'text' => '#a78bfa', 'radius' => 20, 'border' => '#a78bfa'],
+                ],
+                [
+                    'key' => 'cover_glass',
+                    'name' => 'Glass Cover',
+                    'tags' => ['glass', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff10',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff30',
+                        'border_radius' => '24', 'shadow_preset' => 'medium',
+                        'glass_preset' => 'heavy', 'effect' => 'glass',
+                        'text_color' => '#ffffff', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'rgba(255,255,255,0.08)', 'text' => '#ffffff', 'radius' => 24, 'border' => '#ffffff40'],
+                ],
+                [
+                    'key' => 'cover_brutalist',
+                    'name' => 'Brutalist Cover',
+                    'tags' => ['brutalist', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '3', 'border_color' => '#000000',
+                        'border_radius' => '0', 'shadow_type' => 'hard',
+                        'shadow_color' => '#000000', 'shadow_x' => 8, 'shadow_y' => 8, 'shadow_blur' => 0,
+                        'text_color' => '#000000', 'padding' => '0', 'font_weight' => '900',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#000000', 'radius' => 0, 'border' => '#000000', 'shadow' => '8px 8px 0 #000'],
+                ],
+                [
+                    'key' => 'cover_y2k',
+                    'name' => 'Y2K Cover',
+                    'tags' => ['y2k', 'retro', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card',
+                        'bg_color' => 'linear-gradient(180deg,#a5f3fc,#fbcfe8)',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#7c3aed',
+                        'border_radius' => '24', 'shadow_type' => 'hard',
+                        'shadow_color' => '#7c3aed', 'shadow_x' => 4, 'shadow_y' => 4, 'shadow_blur' => 0,
+                        'text_color' => '#1e1b4b', 'padding' => '0', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(180deg,#a5f3fc,#fbcfe8)', 'text' => '#1e1b4b', 'radius' => 24, 'border' => '#7c3aed'],
+                ],
+            ],
         ];
     }
 
@@ -925,16 +1550,16 @@ class BlockVariantCatalog
     {
         return [
             // Links / CTAs.
-            'link'             => ['link_actions'],
-            'link_big'         => ['link_actions', 'headings'],
-            'featured_pin'     => ['link_actions'],
-            'cta_button'       => ['link_actions'],
-            'external_item'    => ['link_actions'],
+            'link'             => ['link_actions', 'link_shapes'],
+            'link_big'         => ['link_actions', 'link_shapes', 'headings', 'heading_styles'],
+            'featured_pin'     => ['link_actions', 'link_shapes'],
+            'cta_button'       => ['link_actions', 'link_shapes'],
+            'external_item'    => ['link_actions', 'link_shapes'],
 
             // Headings.
-            'heading'          => ['headings'],
-            'heading_logo'     => ['headings'],
-            'verified_heading' => ['headings'],
+            'heading'          => ['headings', 'heading_styles'],
+            'heading_logo'     => ['headings', 'heading_styles'],
+            'verified_heading' => ['headings', 'heading_styles'],
 
             // Body text / lists / markdown.
             'paragraph'        => ['body_text'],
@@ -945,15 +1570,15 @@ class BlockVariantCatalog
             'list_pricing'     => ['body_text', 'commerce'],
 
             // Social rows / embeds.
-            'socials'          => ['socials'],
-            'socials_multi'    => ['socials'],
-            'socials_custom'   => ['socials'],
-            'instagram_media'  => ['embed', 'socials'],
-            'latest_instagram' => ['embed', 'socials'],
-            'tiktok_profile'   => ['embed', 'socials'],
-            'twitter_profile'  => ['embed', 'socials'],
-            'pinterest_profile'=> ['embed', 'socials'],
-            'snapchat'         => ['embed', 'socials'],
+            'socials'          => ['socials', 'social_sets'],
+            'socials_multi'    => ['socials', 'social_sets'],
+            'socials_custom'   => ['socials', 'social_sets'],
+            'instagram_media'  => ['embed', 'socials', 'social_sets'],
+            'latest_instagram' => ['embed', 'socials', 'social_sets'],
+            'tiktok_profile'   => ['embed', 'socials', 'social_sets'],
+            'twitter_profile'  => ['embed', 'socials', 'social_sets'],
+            'pinterest_profile'=> ['embed', 'socials', 'social_sets'],
+            'snapchat'         => ['embed', 'socials', 'social_sets'],
             'twitter_tweet'    => ['embed'],
 
             // Video.
@@ -991,9 +1616,16 @@ class BlockVariantCatalog
             'typeform'                   => ['form', 'embed'],
 
             // Galleries.
-            'image_grid'       => ['gallery'],
+            'image_grid'       => ['gallery', 'gallery_layouts'],
+            // image_slider* uses absolute-positioned <img> markup, not a
+            // CSS grid container, so the [data-gallery-layout] selectors
+            // would be no-ops there. Sliders keep the base `gallery`
+            // bundle (transitions, dot variants) only.
             'image_slider'     => ['gallery'],
             'image_slider_v2'  => ['gallery'],
+
+            // Profile / cover combo (cover band + avatar + name + title + bio).
+            'profile_card_v2'  => ['cover_profile'],
 
             // Music / audio.
             'spotify'          => ['music'],
@@ -1065,6 +1697,116 @@ class BlockVariantCatalog
                         'padding' => '6',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#000', 'radius' => 0, 'border' => '#facc15', 'shadow' => '6px 6px 0 #000'],
+                ],
+                // ── Mask presets (Task #1041). The mask itself is applied
+                //    by `BiolinkBlock::buildImageInlineStyle()` via
+                //    `_image_style.mask_shape` (already supports circle,
+                //    diamond, hexagon, octagon, star, blob, arch). The
+                //    variant only colours the surrounding chrome — the
+                //    creator picks the mask separately in the image form
+                //    so the variant stays content-agnostic.
+                [
+                    'key' => 'mask_circle',
+                    'name' => 'Mask · Circle',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '999',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'mask_arch',
+                    'name' => 'Mask · Arch',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '40',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 40],
+                ],
+                [
+                    'key' => 'mask_blob',
+                    'name' => 'Mask · Blob',
+                    'tags' => ['playful', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '60',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 60],
+                ],
+                [
+                    'key' => 'mask_hexagon',
+                    'name' => 'Mask · Hexagon',
+                    'tags' => ['three_d', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '12',
+                        'shadow_preset' => 'medium', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 12],
+                ],
+                [
+                    'key' => 'mask_diamond',
+                    'name' => 'Mask · Diamond',
+                    'tags' => ['editorial', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 8],
+                ],
+                [
+                    'key' => 'mask_star',
+                    'name' => 'Mask · Star',
+                    'tags' => ['playful', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_type' => 'glow', 'shadow_color' => '#fbbf2466', 'shadow_blur' => 22,
+                        'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fbbf24', 'radius' => 8],
+                ],
+                [
+                    'key' => 'mask_heart',
+                    'name' => 'Mask · Heart',
+                    'tags' => ['playful', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_type' => 'glow', 'shadow_color' => '#ec489966', 'shadow_blur' => 18,
+                        'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ec4899', 'radius' => 0],
+                ],
+                [
+                    'key' => 'mask_torn',
+                    'name' => 'Mask · Torn Edge',
+                    'tags' => ['editorial', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_type' => 'soft', 'shadow_color' => '#00000040', 'shadow_y' => 6, 'shadow_blur' => 14,
+                        'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'film_strip',
+                    'name' => 'Film Strip',
+                    'tags' => ['retro', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a0a',
+                        'border_style' => 'solid', 'border_width' => '12', 'border_color' => '#0a0a0a',
+                        'border_radius' => '4', 'shadow_preset' => 'medium',
+                        'padding' => '4',
+                    ],
+                    'preview' => ['bg' => '#0a0a0a', 'text' => '#fafaf9', 'radius' => 4, 'border' => '#0a0a0a'],
                 ],
             ],
             'avatar' => [

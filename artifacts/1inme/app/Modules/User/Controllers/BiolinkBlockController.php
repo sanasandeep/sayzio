@@ -1655,6 +1655,14 @@ class BiolinkBlockController extends Controller
             } elseif (in_array($key, $colorKeys, true)) {
                 if (preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|transparent)$/', $val)) {
                     $result[$key] = $val;
+                } elseif ($key === 'bg_color' && is_string($val) && strlen($val) <= 240
+                    && preg_match('/^(linear|radial|conic)-gradient\([^;{}<>"\'`]+\)$/i', $val)
+                ) {
+                    // Task #1041: allow CSS gradients on `bg_color` so curated
+                    // cover/profile variants (e.g. cover_aurora) round-trip.
+                    // We forbid `;{}<>"\'\`` so the value can never break out
+                    // of the inline style attribute it ends up in.
+                    $result[$key] = $val;
                 }
             } elseif (in_array($key, $fontWeightKeys, true)) {
                 if (preg_match('/^(300|400|500|600|700|800|900)$/', (string) $val)) {
@@ -1686,6 +1694,13 @@ class BiolinkBlockController extends Controller
             } elseif ($key === '_variant_version') {
                 $n = (int) $val;
                 if ($n >= 0 && $n < 100000) $result[$key] = $n;
+            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set'], true)) {
+                // Opaque slug-shaped variant metadata hooks (Task #1041).
+                // The renderer is free to ignore unknown values; we only
+                // bound the character set + length so they're safe to
+                // emit as CSS class suffixes / data attributes later.
+                $safe = preg_replace('/[^a-z0-9_\-]/i', '', substr((string) $val, 0, 40));
+                if ($safe !== '') $result[$key] = $safe;
             }
         }
         return $result;
@@ -1694,7 +1709,7 @@ class BiolinkBlockController extends Controller
     private function sanitizeImageStyle(array $input): array
     {
         $enums = [
-            'mask_shape' => ['none', 'rounded', 'circle', 'square', 'diamond', 'hexagon', 'octagon', 'star', 'blob', 'arch'],
+            'mask_shape' => ['none', 'rounded', 'circle', 'square', 'diamond', 'hexagon', 'octagon', 'star', 'blob', 'arch', 'heart', 'torn'],
             'object_fit' => ['cover', 'contain', 'fill', 'none'],
             'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double'],
             'shadow_type' => ['none', 'soft', 'hard', 'glow', 'neon', 'drop'],

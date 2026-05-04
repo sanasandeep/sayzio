@@ -100,18 +100,77 @@ const BUNDLES: Record<string, MobileVariant[]> = {
   timeline: [
     { key: "milestone_rail", name: "Milestone Rail", tags: ["corporate", "minimal"], preview: { bg: "rgba(255,255,255,0.04)", text: "#f1f5f9", radius: 10, border: "#ffffff30" } },
   ],
+
+  // ─── Task #1041: expanded link-in-bio shape library ────────────────
+  // Mirror of the PHP `link_shapes`, `heading_styles`, `gallery_layouts`,
+  // `social_sets`, and `cover_profile` bundles. Mobile only needs the
+  // preview hint per variant — the web catalog still owns the full
+  // style payload. Variant keys MUST match `BlockVariantCatalog.php`.
+  link_shapes: [
+    { key: "pill_gradient",        name: "Gradient Pill",       tags: ["bold", "playful"],            preview: { bg: "#ec4899", text: "#fff", radius: 999 } },
+    { key: "pill_dotted",          name: "Dotted Pill",         tags: ["playful", "handwritten"],     preview: { bg: "transparent", text: "#fff", radius: 999, border: "#ffffffaa" } },
+    { key: "square_double",        name: "Double Border",       tags: ["editorial", "pro"],           preview: { bg: "#ffffff", text: "#111827", radius: 4, border: "#1f2937" } },
+    { key: "tab_underline",        name: "Tab Underline",       tags: ["minimal", "editorial"],       preview: { bg: "transparent", text: "#fff", radius: 0, border: "#a78bfa" } },
+    { key: "card_lifted",          name: "Lifted Card",         tags: ["three_d", "pro"],             preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
+    { key: "card_arch",            name: "Arch Card",           tags: ["playful", "editorial"],       preview: { bg: "#fafaf9", text: "#1c1917", radius: 32, border: "#e7e5e4" } },
+    { key: "square_neumorphic",    name: "Soft Neumorphic",     tags: ["minimal", "three_d"],         preview: { bg: "#1a1a2e", text: "#cbd5e1", radius: 20 } },
+    { key: "pill_glass_dark",      name: "Dark Glass Pill",     tags: ["glass", "dark", "pro"],       preview: { bg: "rgba(0,0,0,0.4)", text: "#fff", radius: 999, border: "#ffffff22" } },
+    { key: "image_cover_dark",     name: "Cover · Dark Overlay",tags: ["dark", "editorial", "maximalist"], preview: { bg: "#0a0612", text: "#fff", radius: 20 } },
+    { key: "image_cover_polaroid", name: "Cover · Polaroid",    tags: ["retro", "playful", "editorial"],   preview: { bg: "#ffffff", text: "#1f2937", radius: 6, border: "#ffffff" } },
+    { key: "image_cover_neon",     name: "Cover · Neon Frame",  tags: ["neon", "bold", "maximalist"], preview: { bg: "#0b0420", text: "#a5f3fc", radius: 14, border: "#22d3ee" } },
+    { key: "image_cover_arch",     name: "Cover · Arch",        tags: ["editorial", "pro", "minimal"],preview: { bg: "#1a1a2e", text: "#fff", radius: 40 } },
+  ],
+  heading_styles: [
+    { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "gradient_swipe", name: "Gradient Swipe", tags: ["bold", "playful"],      preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "neon_glitch",    name: "Neon Glitch",    tags: ["neon", "y2k", "bold"],  preview: { bg: "transparent", text: "#5eead4", radius: 0 } },
+    { key: "typewriter",     name: "Typewriter",     tags: ["minimal", "retro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "wave_letters",   name: "Wave Letters",   tags: ["playful", "maximalist"],preview: { bg: "transparent", text: "#fbbf24", radius: 0 } },
+    { key: "extrude_3d",     name: "3D Extrude",     tags: ["three_d", "bold"],      preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "ticker_marquee", name: "Ticker Marquee", tags: ["retro", "bold"],        preview: { bg: "#0f172a", text: "#fbbf24", radius: 4, border: "#1e293b" } },
+    { key: "fade_in_up",     name: "Fade In",        tags: ["minimal", "pro"],       preview: { bg: "transparent", text: "#fff", radius: 0 } },
+  ],
+  gallery_layouts: [
+    { key: "grid_two",          name: "Grid · 2 Up",        tags: ["minimal", "editorial"],   preview: { bg: "transparent", text: "#fff", radius: 8 } },
+    { key: "grid_three",        name: "Grid · 3 Up",        tags: ["minimal"],                preview: { bg: "transparent", text: "#fff", radius: 6 } },
+    { key: "grid_four",         name: "Grid · 4 Up",        tags: ["minimal", "corporate"],   preview: { bg: "transparent", text: "#fff", radius: 4 } },
+    { key: "masonry",           name: "Masonry",            tags: ["editorial", "maximalist"],preview: { bg: "transparent", text: "#fff", radius: 8 } },
+    { key: "carousel_peek",     name: "Carousel · Peek",    tags: ["playful", "pro"],         preview: { bg: "transparent", text: "#fff", radius: 14 } },
+    { key: "stacked_polaroids", name: "Stacked Polaroids",  tags: ["retro", "playful"],       preview: { bg: "#ffffff", text: "#1f2937", radius: 6, border: "#ffffff" } },
+    { key: "marquee_strip",     name: "Marquee Strip",      tags: ["bold", "maximalist"],     preview: { bg: "#0a0a14", text: "#fff", radius: 0 } },
+    { key: "lightbox_grid",     name: "Lightbox Grid",      tags: ["pro", "minimal"],         preview: { bg: "#0a0a14", text: "#fff", radius: 10, border: "#ffffff15" } },
+  ],
+  social_sets: [
+    { key: "mono_line",       name: "Mono · Line",      tags: ["minimal", "editorial"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "mono_solid",      name: "Mono · Solid",     tags: ["minimal", "corporate"],     preview: { bg: "rgba(255,255,255,0.1)", text: "#fff", radius: 12 } },
+    { key: "sketch",          name: "Sketch",           tags: ["handwritten", "playful"],   preview: { bg: "#fffaf0", text: "#1f2937", radius: 14, border: "#1f2937", dashed: true } },
+    { key: "brand_color",     name: "Brand Color",      tags: ["playful", "bold"],          preview: { bg: "transparent", text: "#fff", radius: 12 } },
+    { key: "tile_brand",      name: "Brand Tiles",      tags: ["bold", "maximalist"],       preview: { bg: "#0a0a14", text: "#fff", radius: 14, border: "#ffffff15" } },
+    { key: "wordmark",        name: "Wordmark",         tags: ["editorial", "pro"],         preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "glassy",          name: "Glassy",           tags: ["glass", "pro"],             preview: { bg: "rgba(255,255,255,0.08)", text: "#fff", radius: 20, border: "#ffffff40" } },
+    { key: "neon_pop",        name: "Neon Pop",         tags: ["neon", "dark", "bold"],     preview: { bg: "#0a0a0a", text: "#a78bfa", radius: 14, border: "#a78bfa" } },
+    { key: "animated_pulse",  name: "Animated Pulse",   tags: ["playful", "three_d"],       preview: { bg: "rgba(236,72,153,0.13)", text: "#ec4899", radius: 999 } },
+  ],
+  cover_profile: [
+    { key: "cover_aurora",     name: "Aurora Cover",     tags: ["bold", "playful"],            preview: { bg: "#7c3aed", text: "#fff", radius: 20 } },
+    { key: "cover_editorial",  name: "Editorial Cover",  tags: ["editorial", "pro", "minimal"],preview: { bg: "#fafaf9", text: "#1c1917", radius: 12, border: "#e7e5e4" } },
+    { key: "cover_dark_neon",  name: "Dark Neon Cover",  tags: ["neon", "dark", "bold"],       preview: { bg: "#05010f", text: "#a78bfa", radius: 20, border: "#a78bfa" } },
+    { key: "cover_glass",      name: "Glass Cover",      tags: ["glass", "pro"],               preview: { bg: "rgba(255,255,255,0.08)", text: "#fff", radius: 24, border: "#ffffff40" } },
+    { key: "cover_brutalist",  name: "Brutalist Cover",  tags: ["brutalist", "bold"],          preview: { bg: "#ffffff", text: "#000", radius: 0, border: "#000" } },
+    { key: "cover_y2k",        name: "Y2K Cover",        tags: ["y2k", "retro", "playful"],    preview: { bg: "#a5f3fc", text: "#1e1b4b", radius: 24, border: "#7c3aed" } },
+  ],
 };
 
 const TYPE_BUNDLES: Record<string, string[]> = {
-  link: ["link_actions"],
-  link_big: ["link_actions", "headings"],
-  featured_pin: ["link_actions"],
-  cta_button: ["link_actions"],
-  external_item: ["link_actions"],
+  link: ["link_actions", "link_shapes"],
+  link_big: ["link_actions", "link_shapes", "headings", "heading_styles"],
+  featured_pin: ["link_actions", "link_shapes"],
+  cta_button: ["link_actions", "link_shapes"],
+  external_item: ["link_actions", "link_shapes"],
 
-  heading: ["headings"],
-  heading_logo: ["headings"],
-  verified_heading: ["headings"],
+  heading: ["headings", "heading_styles"],
+  heading_logo: ["headings", "heading_styles"],
+  verified_heading: ["headings", "heading_styles"],
 
   paragraph: ["body_text"],
   paragraph_rich: ["body_text"],
@@ -120,15 +179,15 @@ const TYPE_BUNDLES: Record<string, string[]> = {
   list_numbered: ["body_text"],
   list_pricing: ["body_text", "commerce"],
 
-  socials: ["socials"],
-  socials_multi: ["socials"],
-  socials_custom: ["socials"],
-  instagram_media: ["embed", "socials"],
-  latest_instagram: ["embed", "socials"],
-  tiktok_profile: ["embed", "socials"],
-  twitter_profile: ["embed", "socials"],
-  pinterest_profile: ["embed", "socials"],
-  snapchat: ["embed", "socials"],
+  socials: ["socials", "social_sets"],
+  socials_multi: ["socials", "social_sets"],
+  socials_custom: ["socials", "social_sets"],
+  instagram_media: ["embed", "socials", "social_sets"],
+  latest_instagram: ["embed", "socials", "social_sets"],
+  tiktok_profile: ["embed", "socials", "social_sets"],
+  twitter_profile: ["embed", "socials", "social_sets"],
+  pinterest_profile: ["embed", "socials", "social_sets"],
+  snapchat: ["embed", "socials", "social_sets"],
   twitter_tweet: ["embed"],
 
   video: ["video"],
@@ -162,9 +221,11 @@ const TYPE_BUNDLES: Record<string, string[]> = {
   whatsapp_number_subscribe: ["form"],
   typeform: ["form", "embed"],
 
-  image_grid: ["gallery"],
+  image_grid: ["gallery", "gallery_layouts"],
   image_slider: ["gallery"],
   image_slider_v2: ["gallery"],
+
+  profile_card_v2: ["cover_profile"],
 
   spotify: ["music"],
   apple_music: ["music"],
@@ -204,6 +265,17 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
   image: [
     { key: "polaroid",         name: "Polaroid",         tags: ["retro", "playful"],              preview: { bg: "#fff", text: "#000", radius: 6 } },
     { key: "magazine_cutout",  name: "Magazine Cutout",  tags: ["maximalist", "editorial", "playful"], preview: { bg: "#ffffff", text: "#000", radius: 0, border: "#facc15" } },
+    // Task #1041: mask presets — chrome-only variants. Actual mask
+    // shape is applied via `_image_style.mask_shape` on the block.
+    { key: "mask_circle",      name: "Mask · Circle",    tags: ["minimal", "editorial"],          preview: { bg: "transparent", text: "#fff", radius: 999 } },
+    { key: "mask_arch",        name: "Mask · Arch",      tags: ["editorial", "pro"],              preview: { bg: "transparent", text: "#fff", radius: 40 } },
+    { key: "mask_blob",        name: "Mask · Blob",      tags: ["playful", "maximalist"],         preview: { bg: "transparent", text: "#fff", radius: 60 } },
+    { key: "mask_hexagon",     name: "Mask · Hexagon",   tags: ["three_d", "bold"],               preview: { bg: "transparent", text: "#fff", radius: 12 } },
+    { key: "mask_diamond",     name: "Mask · Diamond",   tags: ["editorial", "minimal"],          preview: { bg: "transparent", text: "#fff", radius: 8 } },
+    { key: "mask_star",        name: "Mask · Star",      tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#fbbf24", radius: 8 } },
+    { key: "mask_heart",       name: "Mask · Heart",     tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#ec4899", radius: 0 } },
+    { key: "mask_torn",        name: "Mask · Torn Edge", tags: ["editorial", "maximalist"],       preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "film_strip",       name: "Film Strip",       tags: ["retro", "editorial"],            preview: { bg: "#0a0a0a", text: "#fafaf9", radius: 4, border: "#0a0a0a" } },
   ],
   avatar: [
     { key: "ring_glow",  name: "Ring Glow",  tags: ["neon", "bold"],         preview: { bg: "transparent", text: "#a78bfa", radius: 999, border: "#a78bfa" } },

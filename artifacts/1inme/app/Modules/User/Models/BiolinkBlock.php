@@ -331,6 +331,14 @@ class BiolinkBlock extends Model
         // Lives in _style so it travels with curated variants and resets
         // back to '' on Reset.
         'link_layout' => '',
+        // Optional curated-variant metadata hooks (Task #1041). All three
+        // are opaque slug-shaped strings the renderer is free to ignore;
+        // they exist so heading animations, gallery layouts, and social
+        // icon sets can be carried by a variant without re-shaping the
+        // editor schema. Empty string = no override.
+        '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
+        '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
+        '_social_set' => '',       // social icon style set (mono_line, glassy, ...)
     ];
 
     public const BLOCK_TEMPLATES = [
@@ -559,7 +567,11 @@ class BiolinkBlock extends Model
         if (($style['display_mode'] ?? 'card') === 'card') {
             $bgOpacity = ($style['bg_opacity'] ?? 100) / 100;
             if (!empty($style['bg_color']) && $style['bg_color'] !== 'transparent') {
-                if ($bgOpacity < 1 && preg_match('/^#([0-9a-fA-F]{6})$/', $style['bg_color'], $m)) {
+                // Task #1041: gradient values use the `background` shorthand;
+                // sanitizer already restricts the syntax to a safe subset.
+                if (is_string($style['bg_color']) && preg_match('/^(linear|radial|conic)-gradient\(/i', $style['bg_color'])) {
+                    $css[] = "background:{$style['bg_color']}";
+                } elseif ($bgOpacity < 1 && preg_match('/^#([0-9a-fA-F]{6})$/', $style['bg_color'], $m)) {
                     $r = hexdec(substr($m[1], 0, 2));
                     $g = hexdec(substr($m[1], 2, 2));
                     $b = hexdec(substr($m[1], 4, 2));
@@ -643,6 +655,12 @@ class BiolinkBlock extends Model
         'star' => 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
         'blob' => 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
         'arch' => 'polygon(0% 100%, 0% 30%, 5% 15%, 15% 5%, 30% 0%, 70% 0%, 85% 5%, 95% 15%, 100% 30%, 100% 100%)',
+        // Task #1041: extra mask presets. `heart` uses a polygon
+        // approximation (not `path()`) so it works in every browser
+        // that supports `clip-path` at all (no Chrome 88+/Safari 14.5+
+        // gate). Visually close enough to a stylised heart silhouette.
+        'heart' => 'polygon(50% 100%, 8% 60%, 0% 35%, 5% 18%, 18% 8%, 32% 8%, 42% 18%, 50% 28%, 58% 18%, 68% 8%, 82% 8%, 95% 18%, 100% 35%, 92% 60%)',
+        'torn' => 'polygon(0% 4%, 5% 0%, 12% 5%, 20% 1%, 28% 6%, 38% 0%, 48% 4%, 58% 0%, 68% 5%, 78% 1%, 88% 5%, 95% 0%, 100% 4%, 100% 96%, 95% 100%, 88% 95%, 78% 99%, 68% 95%, 58% 100%, 48% 96%, 38% 100%, 28% 94%, 20% 99%, 12% 95%, 5% 100%, 0% 96%)',
     ];
 
     public static function buildImageInlineStyle(array $imgStyle): string

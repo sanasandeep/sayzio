@@ -689,6 +689,115 @@
             grid-column: span 12;
             min-width: 0;
         }
+        /* Task #1041: heading animation hooks driven by data-anim. Each
+           variant in BlockVariantCatalog::heading_styles emits one of
+           these slugs; renderers stay generic. Reduced-motion users opt
+           out of the moving variants and just get the static look. */
+        [data-anim] h2, [data-anim] h1, [data-anim] h3 { display: inline-block; }
+        [data-anim="gradient_swipe"] h1, [data-anim="gradient_swipe"] h2, [data-anim="gradient_swipe"] h3 {
+            background: linear-gradient(110deg, #8b5cf6, #ec4899, #f59e0b, #8b5cf6);
+            background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+            animation: anim-gradient-swipe 6s linear infinite;
+        }
+        @keyframes anim-gradient-swipe { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+        [data-anim="neon_glitch"] h1, [data-anim="neon_glitch"] h2, [data-anim="neon_glitch"] h3 {
+            color: #fff; text-shadow: 0 0 6px #a855f7, 0 0 14px #a855f7, 0 0 28px #ec4899;
+            animation: anim-neon-glitch 2.4s steps(20, end) infinite;
+        }
+        @keyframes anim-neon-glitch { 0%,90%,100% { transform: translateX(0); } 92% { transform: translateX(-2px) skewX(-3deg); } 94% { transform: translateX(2px) skewX(2deg); } 96% { transform: translateX(-1px); } }
+        [data-anim="typewriter"] h1, [data-anim="typewriter"] h2, [data-anim="typewriter"] h3 {
+            font-family: ui-monospace, "SF Mono", Menlo, monospace; overflow: hidden; white-space: nowrap;
+            border-right: 2px solid currentColor; animation: anim-typewriter 3.6s steps(40, end) 1 both, anim-blink 0.9s step-end infinite;
+        }
+        @keyframes anim-typewriter { from { max-width: 0; } to { max-width: 100%; } }
+        @keyframes anim-blink { 50% { border-color: transparent; } }
+        [data-anim="wave_letters"] h1, [data-anim="wave_letters"] h2, [data-anim="wave_letters"] h3 {
+            animation: anim-wave 2.4s ease-in-out infinite;
+        }
+        @keyframes anim-wave { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        [data-anim="extrude_3d"] h1, [data-anim="extrude_3d"] h2, [data-anim="extrude_3d"] h3 {
+            color: #fff; text-shadow: 1px 1px 0 #6366f1, 2px 2px 0 #6366f1, 3px 3px 0 #4338ca, 4px 4px 0 #4338ca, 5px 5px 8px rgba(0,0,0,0.35);
+        }
+        [data-anim="ticker_marquee"] { overflow: hidden; }
+        [data-anim="ticker_marquee"] h1, [data-anim="ticker_marquee"] h2, [data-anim="ticker_marquee"] h3 {
+            white-space: nowrap; animation: anim-marquee 14s linear infinite;
+        }
+        @keyframes anim-marquee { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+        [data-anim="fade_in"] h1, [data-anim="fade_in"] h2, [data-anim="fade_in"] h3 { animation: anim-fadein 1.2s ease-out 1 both; }
+        @keyframes anim-fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) {
+            [data-anim="gradient_swipe"] h1, [data-anim="gradient_swipe"] h2, [data-anim="gradient_swipe"] h3,
+            [data-anim="neon_glitch"] h1, [data-anim="neon_glitch"] h2, [data-anim="neon_glitch"] h3,
+            [data-anim="wave_letters"] h1, [data-anim="wave_letters"] h2, [data-anim="wave_letters"] h3,
+            [data-anim="ticker_marquee"] h1, [data-anim="ticker_marquee"] h2, [data-anim="ticker_marquee"] h3,
+            [data-anim="typewriter"] h1, [data-anim="typewriter"] h2, [data-anim="typewriter"] h3,
+            [data-anim="fade_in"] h1, [data-anim="fade_in"] h2, [data-anim="fade_in"] h3 {
+                animation: none !important; max-width: none !important; border-right: 0 !important; white-space: normal !important;
+            }
+        }
+        /* Gallery layout hooks for image_grid. Selectors use descendant
+           combinators so an optional anchor wrapper (`<a class="contents">`
+           when the gallery has a click-through) doesn't break the rules. */
+        [data-gallery-layout="grid_2"] .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        [data-gallery-layout="grid_3"] .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        [data-gallery-layout="grid_4"] .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        [data-gallery-layout="masonry"] .grid {
+            display: block; column-count: 2; column-gap: 0.5rem;
+        }
+        [data-gallery-layout="masonry"] .grid img { width: 100%; height: auto !important; aspect-ratio: auto !important; margin-bottom: 0.5rem; display: block; break-inside: avoid; }
+        [data-gallery-layout="carousel_peek"] .grid {
+            display: flex; gap: 0.5rem; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px;
+        }
+        [data-gallery-layout="carousel_peek"] .grid img { flex: 0 0 70%; scroll-snap-align: center; }
+        [data-gallery-layout="stacked_polaroids"] .grid {
+            display: flex; justify-content: center; gap: 0; padding: 1rem 0;
+        }
+        [data-gallery-layout="stacked_polaroids"] .grid img {
+            background: #fff; padding: 8px 8px 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            width: 55%; aspect-ratio: 1 / 1;
+        }
+        [data-gallery-layout="stacked_polaroids"] .grid img:nth-child(odd) { transform: rotate(-4deg) translateX(8%); }
+        [data-gallery-layout="stacked_polaroids"] .grid img:nth-child(even) { transform: rotate(5deg) translateX(-8%); }
+        [data-gallery-layout="marquee_strip"] { overflow: hidden; }
+        [data-gallery-layout="marquee_strip"] .grid {
+            display: flex; gap: 0.5rem; width: max-content; animation: anim-marquee-strip 18s linear infinite;
+        }
+        [data-gallery-layout="marquee_strip"] .grid img { width: 140px; height: 140px; flex: 0 0 auto; }
+        @keyframes anim-marquee-strip { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        [data-gallery-layout="lightbox_grid"] .grid img { cursor: zoom-in; transition: transform 0.2s ease; }
+        [data-gallery-layout="lightbox_grid"] .grid img:hover { transform: scale(1.04); z-index: 1; position: relative; }
+        @media (prefers-reduced-motion: reduce) {
+            [data-gallery-layout="marquee_strip"] .grid { animation: none !important; }
+        }
+        /* Social icon style-set hooks. The renderer emits the brand color
+           via inline style; these selectors override or augment it. */
+        [data-social-set="mono_line"] a > i { color: currentColor !important; opacity: 0.85; font-weight: 100; }
+        [data-social-set="mono_solid"] a { background: rgba(255,255,255,0.06); }
+        [data-social-set="mono_solid"] a > i { color: #fff !important; }
+        [data-social-set="sketch"] a {
+            border: 1.5px dashed rgba(255,255,255,0.6); background: transparent !important; box-shadow: 2px 2px 0 rgba(255,255,255,0.25) !important;
+        }
+        [data-social-set="brand_color"] a > i { filter: drop-shadow(0 0 6px currentColor); }
+        [data-social-set="brand_tiles"] a {
+            border-radius: 0.5rem !important; background: currentColor; min-width: 2.75rem;
+        }
+        [data-social-set="brand_tiles"] a > i { color: #fff !important; mix-blend-mode: normal; }
+        [data-social-set="wordmark"] a::after {
+            content: attr(aria-label); font-size: 10px; font-weight: 600; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        [data-social-set="wordmark"] a { padding: 0 0.6rem; width: auto !important; border-radius: 999px !important; }
+        [data-social-set="glassy"] a {
+            background: rgba(255,255,255,0.10) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+        [data-social-set="neon_pop"] a {
+            box-shadow: 0 0 0 1px currentColor, 0 0 12px currentColor, 0 0 28px currentColor !important;
+        }
+        [data-social-set="animated_pulse"] a { animation: anim-social-pulse 2.4s ease-in-out infinite; }
+        @keyframes anim-social-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        @media (prefers-reduced-motion: reduce) {
+            [data-social-set="animated_pulse"] a { animation: none !important; }
+        }
         @if($defaultBlockPadding)
         .biolink-block-wrap > :first-child {
             padding: {{ $defaultBlockPadding }}px;
@@ -820,8 +929,21 @@
                 $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
             @endphp
 
-            @php $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12; @endphp
-            <div data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" data-tab="{{ $s['_tab_id'] ?? '' }}" class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
+            @php
+                $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12;
+                // Task #1041: forward variant metadata hooks as data-attrs
+                // so CSS in <style> can drive heading animations, gallery
+                // layouts, and social icon style sets without per-block
+                // PHP branching. Sanitizer guarantees these are slug-safe.
+                $_animAttr = $s['_style']['_animation'] ?? '';
+                $_galAttr = $s['_style']['_gallery_layout'] ?? '';
+                $_socAttr = $s['_style']['_social_set'] ?? '';
+            @endphp
+            <div data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" data-tab="{{ $s['_tab_id'] ?? '' }}"
+                 @if($_animAttr) data-anim="{{ $_animAttr }}" @endif
+                 @if($_galAttr) data-gallery-layout="{{ $_galAttr }}" @endif
+                 @if($_socAttr) data-social-set="{{ $_socAttr }}" @endif
+                 class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
             @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
 
             {{-- BASIC CONTENT --}}
