@@ -14,6 +14,9 @@ class Resume extends Model
         'expires_at', 'share_revision',
         'allow_indexing', 'view_count', 'meta_description',
         'is_public_pdf',
+        // Multi-version support — each row is a named version. Exactly
+        // one row per user has is_default=true.
+        'name', 'slug', 'is_default',
     ];
 
     protected $hidden = ['password'];
@@ -28,8 +31,16 @@ class Resume extends Model
             'is_public_pdf'   => 'boolean',
             'expires_at'      => 'datetime',
             'share_revision'  => 'integer',
+            'is_default'      => 'boolean',
         ];
     }
+
+    /**
+     * Reserved slug used as a stable fallback when a row hasn't been
+     * given an explicit slug yet. Also the slug applied to the default
+     * version migrated from the pre-versioning era.
+     */
+    public const DEFAULT_SLUG = 'default';
 
     /**
      * Allowed visibility tiers — mirrors Link.visibility so the public
@@ -71,12 +82,42 @@ class Resume extends Model
         return sprintf('resume_unlocked_%d_v%d', $this->id, (int) $this->share_revision);
     }
 
-    /** Public-page URL for this resume, or null when the user has no handle. */
+    /**
+     * Public-page URL for this resume, or null when the user has no handle.
+     *
+     * The default version always resolves at `/{handle}/resume` so old
+     * shared links keep working; non-default versions get a stable
+     * `/v/{slug}` suffix so each can be sent on its own.
+     */
     public function publicUrl(): ?string
     {
         $u = $this->user ?? $this->user()->first();
         if (!$u) return null;
-        return url('/' . $u->publicHandle() . '/resume');
+        $base = '/' . $u->publicHandle() . '/resume';
+        if (!$this->is_default) {
+            $slug = $this->slug ?: self::DEFAULT_SLUG;
+            $base .= '/v/' . $slug;
+        }
+        return url($base);
+    }
+
+    /**
+     * Effective slug — falls back to the reserved DEFAULT_SLUG when a
+     * row was created before slugs existed. Always safe for URL use.
+     */
+    public function effectiveSlug(): string
+    {
+        return $this->slug ?: self::DEFAULT_SLUG;
+    }
+
+    /**
+     * Friendly display label — falls back to a generic placeholder so
+     * the version switcher never renders an empty pill.
+     */
+    public function displayName(): string
+    {
+        $name = trim((string) $this->name);
+        return $name !== '' ? $name : 'Untitled version';
     }
 
     /**

@@ -94,7 +94,7 @@ class ResumeImportController extends Controller
             'sections.*' => ['string', Rule::in(['summary', 'experience', 'skills', 'projects'])],
         ]);
 
-        $resume = $request->user()->ensureResume();
+        $resume = $request->user()->resolveResume($request);
         $context = [
             'header'  => $resume->getMergedSections()['header'] ?? [],
             'summary' => $resume->getMergedSections()['summary'] ?? '',

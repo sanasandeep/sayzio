@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\RateLimiter;
  */
 class PublicResumeController extends Controller
 {
-    public function show(Request $request, string $handle)
+    public function show(Request $request, string $handle, ?string $slug = null)
     {
         $user = User::where('handle', $handle)->first();
         if (!$user) {
@@ -38,7 +38,11 @@ class PublicResumeController extends Controller
         }
         abort_unless($user, 404);
 
-        $resume = $user->resume()->first();
+        // Resolve which version is being requested. Bare /{handle}/resume
+        // continues to serve the user's default version (back-compat
+        // with every link shared before multi-version landed). The
+        // /v/{slug} suffix asks for a specific named version.
+        $resume = $this->resolveVersion($user, $slug);
         abort_unless($resume, 404);
 
         // Owner sees their resume regardless of publish state so they can
@@ -89,11 +93,11 @@ class PublicResumeController extends Controller
      * Wrong attempts are rate-limited per (resume, IP) so guessing the
      * password against a leaked URL is not feasible.
      */
-    public function unlock(Request $request, string $handle)
+    public function unlock(Request $request, string $handle, ?string $slug = null)
     {
         $user = User::where('handle', $handle)->first();
         abort_unless($user, 404);
-        $resume = $user->resume()->first();
+        $resume = $this->resolveVersion($user, $slug);
         abort_unless($resume && $resume->is_public, 404);
 
         if ($resume->isShareExpired()) {
@@ -204,6 +208,39 @@ class PublicResumeController extends Controller
             'lockedError'  => null,
             'shareExpired' => true,
         ], 410);
+    }
+
+    /**
+     * Resolve which version of `$user`'s resume the public URL is
+     * targeting. A null/empty/'default' slug returns the user's
+     * default version (so /{handle}/resume keeps serving it). Any
+     * other slug looks up that named version, falling back to the
+     * default if the slug doesn't match anything — keeps stale
+     * shared URLs from 404'ing after a rename, while still honoring
+     * the explicit slug when it does match.
+     */
+    protected function resolveVersion(User $user, ?string $slug): ?Resume
+    {
+        if ($slug === null || $slug === '' || $slug === Resume::DEFAULT_SLUG) {
+            return $user->resumes()->where('is_default', true)->first()
+                ?? $user->resumes()->first();
+        }
+        $exact = $user->resumes()->where('slug', $slug)->first();
+        if ($exact) return $exact;
+        // Slug was specified but didn't match — let the page 404
+        // rather than silently swap to the default, so the visitor
+        // knows the link they were given is dead.
+        return null;
+    }
+
+    /**
+     * Owner-side resolver used by the redirect helper used in
+     * `/{handle}/resume/v/{slug}.pdf` — same lookup as resolveVersion()
+     * but exposed under a public name so other controllers can reuse it.
+     */
+    public function resolvePublicVersion(User $user, ?string $slug): ?Resume
+    {
+        return $this->resolveVersion($user, $slug);
     }
 
     protected function looksLikeBot(string $ua): bool

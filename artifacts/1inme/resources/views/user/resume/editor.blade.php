@@ -331,6 +331,81 @@
         </div>
     </template>
 
+    {{-- ────────── VERSION SWITCHER ────────── --}}
+    {{-- Lists every named resume version on the account; tapping one
+         reloads the editor with `?resume_id=N` so the controller's
+         resolveResume() honours the selection. The default version
+         is marked with a star and powers the bare /{handle}/resume URL.
+         --}}
+    <div class="resume-pane mb-3 p-3 flex flex-wrap items-center gap-2" x-show="versions.length">
+        <span class="text-[10px] uppercase font-semibold tracking-wide" style="color: var(--text-muted,#9ca3af);">Version</span>
+        <div class="flex flex-wrap items-center gap-2 grow">
+            <template x-for="v in versions" :key="v.id">
+                <button type="button"
+                        class="resume-add-btn"
+                        :class="v.id === resume.id ? '' : 'opacity-70'"
+                        :title="v.is_default ? 'Default version (powers your public link)' : ''"
+                        @click="switchVersion(v)">
+                    <i class="fas" :class="v.is_default ? 'fa-star' : 'fa-file-lines'"></i>
+                    <span x-text="v.name"></span>
+                </button>
+            </template>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" class="resume-add-btn" @click="versionDialogOpen = true" title="Manage versions">
+                <i class="fas fa-layer-group"></i> Manage
+            </button>
+            <button type="button" class="resume-add-btn" @click="createVersion()" :disabled="versionsBusy">
+                <i class="fas fa-plus"></i> New version
+            </button>
+        </div>
+    </div>
+
+    {{-- Manage versions modal --}}
+    <div class="resume-modal-backdrop" x-show="versionDialogOpen" x-cloak @click.self="versionDialogOpen = false">
+        <div class="resume-modal" style="max-width: 540px;">
+            <div class="resume-modal-head">
+                <h3><i class="fas fa-layer-group"></i> Resume versions</h3>
+                <button type="button" @click="versionDialogOpen = false"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="resume-modal-body">
+                <p class="text-xs mb-3" style="color: var(--text-muted,#9ca3af);">
+                    Keep tailored variants for different roles. The default version powers your public
+                    <code>/{{ '{handle}' }}/resume</code> link; other versions live at <code>/v/&lt;slug&gt;</code>.
+                </p>
+                <ul class="flex flex-col gap-2">
+                    <template x-for="v in versions" :key="v.id">
+                        <li class="flex items-center gap-2 p-2 rounded" style="background: var(--surface-2,rgba(255,255,255,0.04));">
+                            <i class="fas" :class="v.is_default ? 'fa-star text-yellow-400' : 'fa-file-lines'"></i>
+                            <div class="grow min-w-0">
+                                <div class="text-sm font-medium truncate" x-text="v.name"></div>
+                                <div class="text-[10px] truncate" style="color: var(--text-muted,#9ca3af);" x-text="v.public_url || ''"></div>
+                            </div>
+                            <button type="button" class="resume-add-btn" @click="switchVersion(v)" x-show="v.id !== resume.id" title="Open">
+                                <i class="fas fa-arrow-right-to-bracket"></i>
+                            </button>
+                            <button type="button" class="resume-add-btn" @click="renameVersion(v)" title="Rename">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button type="button" class="resume-add-btn" @click="duplicateVersion(v)" title="Duplicate" :disabled="versionsBusy">
+                                <i class="fas fa-clone"></i>
+                            </button>
+                            <button type="button" class="resume-add-btn" @click="setDefaultVersion(v)" title="Make default" x-show="!v.is_default" :disabled="versionsBusy">
+                                <i class="fas fa-star"></i>
+                            </button>
+                            <button type="button" class="resume-add-btn" @click="deleteVersion(v)" title="Delete" x-show="!v.is_default && versions.length > 1" :disabled="versionsBusy">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </li>
+                    </template>
+                </ul>
+                <button type="button" class="resume-add-btn mt-3" @click="createVersion()" :disabled="versionsBusy">
+                    <i class="fas fa-plus"></i> Create new version
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="resume-mobile-tabs">
         <button :class="{ active: mobilePane==='editor' }" @click="mobilePane='editor'"><i class="fas fa-pen-to-square"></i> Editor</button>
         <button :class="{ active: mobilePane==='preview' }" @click="mobilePane='preview'"><i class="fas fa-eye"></i> Preview</button>
@@ -969,6 +1044,12 @@ function resumeEditor() {
         // ── core state ────────────────────────────────────────
         resume: window.__resumeBootstrap.resume,
         registries: window.__resumeBootstrap.registries,
+        // List of every named version on the account; the active one
+        // is whichever id matches `resume.id`. Reloading with
+        // `?resume_id=N` lets the controller resolve the selection.
+        versions: window.__resumeBootstrap.versions || [],
+        versionDialogOpen: false,
+        versionsBusy: false,
         items: {},
         open: { design: true, publishing: false, sharing: false, header: true, summary: true,
             experience: true, education: true, skills: true, projects: true,
@@ -1351,6 +1432,82 @@ function resumeEditor() {
             this.toast = { visible: true, message: msg, type };
             clearTimeout(this._toastT);
             this._toastT = setTimeout(() => { this.toast.visible = false; }, 3500);
+        },
+
+        // ── Version management ────────────────────────────────
+        // Reload the editor pointed at the chosen version. We could
+        // hot-swap state in place, but a hard navigation guarantees
+        // every nested computed (preview HTML, sortable handles,
+        // bootstrap-only fields) gets a clean re-init.
+        switchVersion(v) {
+            if (!v || v.id === this.resume.id) { this.versionDialogOpen = false; return; }
+            const u = new URL(window.location.href);
+            u.searchParams.set('resume_id', String(v.id));
+            window.location.assign(u.toString());
+        },
+        async createVersion() {
+            const name = window.prompt('Name this resume version', 'New version');
+            if (!name) return;
+            this.versionsBusy = true;
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.versions.store') }}', { name });
+                this.versions = r.versions || this.versions;
+                this.showToast('Version created.');
+                if (r.version && r.version.id) this.switchVersion(r.version);
+            } catch (e) { this.showToast(e.message || 'Could not create version.', 'error'); }
+            finally { this.versionsBusy = false; }
+        },
+        async renameVersion(v) {
+            const name = window.prompt('Rename version', v.name);
+            if (!name || name === v.name) return;
+            this.versionsBusy = true;
+            try {
+                const r = await this.http('PUT', '/user/resume/versions/' + v.id, { name });
+                this.versions = r.versions || this.versions;
+                if (v.id === this.resume.id && r.version) {
+                    this.resume.name = r.version.name;
+                    this.resume.slug = r.version.slug;
+                    this.resume.public_url = r.version.public_url;
+                }
+                this.showToast('Renamed.');
+            } catch (e) { this.showToast(e.message || 'Could not rename.', 'error'); }
+            finally { this.versionsBusy = false; }
+        },
+        async duplicateVersion(v) {
+            this.versionsBusy = true;
+            try {
+                const r = await this.http('POST', '/user/resume/versions/' + v.id + '/duplicate', {});
+                this.versions = r.versions || this.versions;
+                this.showToast('Duplicated.');
+                if (r.version && r.version.id) this.switchVersion(r.version);
+            } catch (e) { this.showToast(e.message || 'Could not duplicate.', 'error'); }
+            finally { this.versionsBusy = false; }
+        },
+        async setDefaultVersion(v) {
+            this.versionsBusy = true;
+            try {
+                const r = await this.http('POST', '/user/resume/versions/' + v.id + '/default', {});
+                this.versions = r.versions || this.versions;
+                this.showToast('Default version updated.');
+            } catch (e) { this.showToast(e.message || 'Could not set default.', 'error'); }
+            finally { this.versionsBusy = false; }
+        },
+        async deleteVersion(v) {
+            if (!window.confirm('Delete version "' + v.name + '"? Items inside will be removed.')) return;
+            this.versionsBusy = true;
+            try {
+                const r = await this.http('DELETE', '/user/resume/versions/' + v.id);
+                this.versions = r.versions || this.versions;
+                this.showToast('Version deleted.');
+                // If we just deleted the active one, jump to the
+                // (new) default so the editor isn't pointing at a
+                // dangling id after the next reload.
+                if (v.id === this.resume.id) {
+                    const def = (this.versions || []).find(x => x.is_default) || this.versions[0];
+                    if (def) this.switchVersion(def);
+                }
+            } catch (e) { this.showToast(e.message || 'Could not delete.', 'error'); }
+            finally { this.versionsBusy = false; }
         },
 
         // ── HTTP ──────────────────────────────────────────────

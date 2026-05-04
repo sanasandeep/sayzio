@@ -286,26 +286,80 @@ class User extends Authenticatable
         return $this->hasMany(Project::class);
     }
 
+    /**
+     * Single-resume accessor kept for back-compat with callers that
+     * predate the multi-version era. Resolves to the user's default
+     * version (the row marked is_default=true), or — failing that — the
+     * oldest row so we never silently dereference null.
+     */
     public function resume()
     {
-        return $this->hasOne(Resume::class);
+        return $this->hasOne(Resume::class)
+            ->orderByDesc('is_default')
+            ->orderBy('id');
+    }
+
+    /** Hasmany over all of the user's named resume versions. */
+    public function resumes()
+    {
+        return $this->hasMany(Resume::class)
+            ->orderByDesc('is_default')
+            ->orderBy('id');
     }
 
     /**
-     * Lazily fetch (or create) the signed-in user's single Resume row.
-     * Resumes are personal, so the row is provisioned on first access
-     * with default template + color theme rather than at registration.
+     * Lazily fetch (or create) the user's *default* Resume row. A user
+     * has no resume rows until they open the editor; at that point we
+     * create the first row and mark it default so it powers the public
+     * /{handle}/resume URL.
      */
     public function ensureResume(): Resume
     {
-        $resume = $this->resume()->first();
-        if ($resume) return $resume;
+        $resume = $this->resumes()->where('is_default', true)->first()
+              ?? $this->resumes()->first();
+        if ($resume) {
+            // Heal pre-versioning rows that never received a default
+            // flag — promote the oldest to default so /{handle}/resume
+            // keeps resolving even after a partial backfill.
+            if (!$resume->is_default) {
+                $resume->forceFill([
+                    'is_default' => true,
+                    'name'       => $resume->name ?: 'Default',
+                    'slug'       => $resume->slug ?: Resume::DEFAULT_SLUG,
+                ])->save();
+            }
+            return $resume;
+        }
 
-        return $this->resume()->create([
+        return $this->resumes()->create([
             'template_id'    => \App\Modules\User\Services\ResumeTemplateRegistry::defaultId(),
             'color_theme_id' => \App\Modules\User\Services\ResumeColorThemeRegistry::defaultId(),
             'sections'       => Resume::defaultSections(),
+            'name'           => 'Default',
+            'slug'           => Resume::DEFAULT_SLUG,
+            'is_default'     => true,
         ]);
+    }
+
+    /**
+     * Resolve which version the current request is targeting. Defaults
+     * to the user's default version; can be overridden by the request
+     * via `?resume_id=N` (or body / header). Foreign ids are rejected
+     * with 403 so the editor can't reach across users.
+     */
+    public function resolveResume(\Illuminate\Http\Request $request): Resume
+    {
+        $default = $this->ensureResume();
+        $rid = $request->input('resume_id', $request->query('resume_id'));
+        if (!$rid && $request->hasHeader('X-Resume-Id')) {
+            $rid = $request->header('X-Resume-Id');
+        }
+        $rid = is_numeric($rid) ? (int) $rid : null;
+        if (!$rid || $rid === (int) $default->id) return $default;
+
+        $resume = $this->resumes()->whereKey($rid)->first();
+        abort_if(!$resume, 403);
+        return $resume;
     }
 
     public function links()

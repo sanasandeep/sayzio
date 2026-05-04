@@ -9,6 +9,7 @@ use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePresenter;
 use App\Modules\User\Services\ResumeTemplateRegistry;
+use App\Modules\User\Services\ResumeVersionService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -35,15 +36,88 @@ class ResumeController extends Controller
     public function show(Request $request)
     {
         $user   = $request->user();
-        $resume = $user->ensureResume();
+        $resume = $user->resolveResume($request);
         $resume->load('items');
 
         return $this->ok([
             'resume'     => ResumePresenter::present($resume),
+            'versions'   => ResumePresenter::presentVersions($user->resumes()->get()),
             'registries' => [
                 'templates'    => ResumeTemplateRegistry::availableFor($user),
                 'color_themes' => ResumeColorThemeRegistry::all(),
             ],
+        ]);
+    }
+
+    // ── Version management ─────────────────────────────────────────
+
+    /** GET /resume/versions — list every version on the user's account. */
+    public function versionsIndex(Request $request)
+    {
+        $user = $request->user();
+        $user->ensureResume();
+        return $this->ok([
+            'versions' => ResumePresenter::presentVersions($user->resumes()->get()),
+        ]);
+    }
+
+    /** POST /resume/versions — create a new empty version. */
+    public function versionStore(Request $request, ResumeVersionService $svc)
+    {
+        $data = $request->validate([
+            'name'           => ['required', 'string', 'max:80'],
+            'template_id'    => ['nullable', 'string', Rule::in(ResumeTemplateRegistry::ids())],
+            'color_theme_id' => ['nullable', 'string', Rule::in(ResumeColorThemeRegistry::ids())],
+        ]);
+        $user    = $request->user();
+        $version = $svc->create($user, $data['name'], [
+            'template_id'    => $data['template_id']    ?? null,
+            'color_theme_id' => $data['color_theme_id'] ?? null,
+        ]);
+
+        return $this->created([
+            'version'  => ResumePresenter::present($version->fresh('items')),
+            'versions' => ResumePresenter::presentVersions($user->resumes()->get()),
+        ]);
+    }
+
+    /** PUT /resume/versions/{version} — rename a version. */
+    public function versionRename(Request $request, Resume $version, ResumeVersionService $svc)
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:80']]);
+        $svc->rename($request->user(), $version, $data['name']);
+        return $this->ok([
+            'version'  => ResumePresenter::present($version->fresh('items')),
+            'versions' => ResumePresenter::presentVersions($request->user()->resumes()->get()),
+        ]);
+    }
+
+    /** POST /resume/versions/{version}/duplicate — deep-copy a version. */
+    public function versionDuplicate(Request $request, Resume $version, ResumeVersionService $svc)
+    {
+        $data = $request->validate(['name' => ['nullable', 'string', 'max:80']]);
+        $copy = $svc->duplicate($request->user(), $version, $data['name'] ?? null);
+        return $this->created([
+            'version'  => ResumePresenter::present($copy->fresh('items')),
+            'versions' => ResumePresenter::presentVersions($request->user()->resumes()->get()),
+        ]);
+    }
+
+    /** POST /resume/versions/{version}/default — promote a version to default. */
+    public function versionSetDefault(Request $request, Resume $version, ResumeVersionService $svc)
+    {
+        $svc->setDefault($request->user(), $version);
+        return $this->ok([
+            'versions' => ResumePresenter::presentVersions($request->user()->resumes()->get()),
+        ]);
+    }
+
+    /** DELETE /resume/versions/{version} — remove a non-default version. */
+    public function versionDestroy(Request $request, Resume $version, ResumeVersionService $svc)
+    {
+        $svc->delete($request->user(), $version);
+        return $this->ok([
+            'versions' => ResumePresenter::presentVersions($request->user()->resumes()->get()),
         ]);
     }
 
@@ -60,7 +134,7 @@ class ResumeController extends Controller
         ]);
 
         $user     = $request->user();
-        $resume   = $user->ensureResume();
+        $resume   = $user->resolveResume($request);
         $sections = $resume->getMergedSections();
         $sections['header'] = array_replace($sections['header'], array_map(
             fn ($v) => is_string($v) ? trim($v) : $v,
@@ -90,7 +164,7 @@ class ResumeController extends Controller
         ]);
 
         $user   = $request->user();
-        $resume = $user->ensureResume();
+        $resume = $user->resolveResume($request);
 
         try {
             $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
@@ -124,7 +198,7 @@ class ResumeController extends Controller
     public function removeHeaderPhoto(Request $request)
     {
         $user     = $request->user();
-        $resume   = $user->ensureResume();
+        $resume   = $user->resolveResume($request);
         $sections = $resume->getMergedSections();
         $oldId    = $sections['header']['photo_user_file_id'] ?? null;
 
@@ -146,7 +220,7 @@ class ResumeController extends Controller
             'summary' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $resume   = $request->user()->ensureResume();
+        $resume   = $request->user()->resolveResume($request);
         $sections = $resume->getMergedSections();
         $sections['summary'] = (string) ($data['summary'] ?? '');
         $resume->update(['sections' => $sections]);
@@ -166,7 +240,7 @@ class ResumeController extends Controller
             return $this->fail('This template is not available on your current plan.', 403, 'plan_required');
         }
 
-        $resume = $user->ensureResume();
+        $resume = $user->resolveResume($request);
         $resume->update(['template_id' => $data['template_id']]);
 
         return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
@@ -179,7 +253,7 @@ class ResumeController extends Controller
             'color_theme_id' => ['required', 'string', Rule::in(ResumeColorThemeRegistry::ids())],
         ]);
 
-        $resume = $request->user()->ensureResume();
+        $resume = $request->user()->resolveResume($request);
         $resume->update(['color_theme_id' => $data['color_theme_id']]);
 
         return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
@@ -193,7 +267,7 @@ class ResumeController extends Controller
             'data'         => ['required', 'array'],
         ]);
 
-        $resume  = $request->user()->ensureResume();
+        $resume  = $request->user()->resolveResume($request);
         $payload = $this->validateItemData($base['section_type'], $base['data']);
 
         $maxPos = (int) $resume->itemsOfType($base['section_type'])->max('position');
@@ -240,7 +314,7 @@ class ResumeController extends Controller
             'item_ids.*'   => ['integer'],
         ]);
 
-        $resume = $request->user()->ensureResume();
+        $resume = $request->user()->resolveResume($request);
 
         DB::transaction(function () use ($resume, $data) {
             $allIds = $resume->itemsOfType($data['section_type'])
@@ -289,7 +363,7 @@ class ResumeController extends Controller
         ]);
 
         $user   = $request->user();
-        $resume = $user->ensureResume();
+        $resume = $user->resolveResume($request);
         $update = [
             'is_public'        => (bool) $data['is_public'],
             'visibility'       => $data['visibility'],
@@ -338,7 +412,7 @@ class ResumeController extends Controller
             'clear_password' => ['nullable', 'boolean'],
         ]);
 
-        $resume = $request->user()->ensureResume();
+        $resume = $request->user()->resolveResume($request);
         $update = ['share_revision' => (int) ($resume->share_revision ?? 0) + 1];
         if (!empty($data['clear_password'])) {
             $update['password'] = null;
@@ -361,7 +435,7 @@ class ResumeController extends Controller
         $perPage = (int) $request->query('per_page', 25);
         $perPage = max(5, min(100, $perPage));
 
-        $resume = $request->user()->ensureResume();
+        $resume = $request->user()->resolveResume($request);
         $page   = $resume->views()->paginate($perPage);
 
         return $this->ok([
@@ -395,7 +469,7 @@ class ResumeController extends Controller
             'is_public_pdf' => ['required', 'boolean'],
         ]);
 
-        $resume = $request->user()->ensureResume();
+        $resume = $request->user()->resolveResume($request);
         $resume->update(['is_public_pdf' => (bool) $data['is_public_pdf']]);
 
         return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);

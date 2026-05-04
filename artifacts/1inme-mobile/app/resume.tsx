@@ -32,10 +32,15 @@ import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import {
   createResumeItem,
+  createResumeVersion,
   deleteResumeItem,
+  deleteResumeVersion,
+  duplicateResumeVersion,
   getResume,
   removeResumeHeaderPhoto,
+  renameResumeVersion,
   reorderResumeItems,
+  setDefaultResumeVersion,
   updateResumeColorTheme,
   updateResumeHeader,
   updateResumeItem,
@@ -51,6 +56,7 @@ import {
   type ResumeBundle,
   type ResumeItem,
   type ResumeSectionType,
+  type ResumeVersion,
   type ResumeVisibility,
   type ResumeViewLogEntry,
 } from "@/lib/api/resume";
@@ -76,7 +82,14 @@ export default function ResumeScreen() {
   const colors = useColors();
   const qc = useQueryClient();
 
-  const q = useQuery({ queryKey: ["resume"], queryFn: getResume });
+  // Active version id; null = whatever the server reports as default.
+  // Switching pushes a new query key so React Query refetches the
+  // bundle and the editor re-mounts against the new resume row.
+  const [versionId, setVersionId] = useState<number | null>(null);
+  const q = useQuery({
+    queryKey: ["resume", versionId],
+    queryFn: () => getResume(versionId ? { resume_id: versionId } : {}),
+  });
   const resume = q.data?.resume;
 
   return (
@@ -87,7 +100,14 @@ export default function ResumeScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
-        <ResumeEditor resume={resume} bundle={q.data!} qc={qc} />
+        <ResumeEditor
+          key={resume.id}
+          resume={resume}
+          bundle={q.data!}
+          qc={qc}
+          versionId={versionId}
+          onSwitchVersion={(id) => setVersionId(id)}
+        />
       )}
     </View>
   );
@@ -97,12 +117,17 @@ function ResumeEditor({
   resume,
   bundle,
   qc,
+  versionId,
+  onSwitchVersion,
 }: {
   resume: Resume;
   bundle: ResumeBundle;
   qc: ReturnType<typeof useQueryClient>;
+  versionId: number | null;
+  onSwitchVersion: (id: number | null) => void;
 }) {
   const colors = useColors();
+  const [showVersions, setShowVersions] = useState(false);
 
   // ── Header autosave ────────────────────────────────────────────
   const [header, setHeader] = useState(resume.sections.header);
@@ -373,6 +398,45 @@ function ResumeEditor({
           </Text>
         </Pressable>
       </View>
+
+      {/* Version switcher row — tap to open the manage sheet. */}
+      <Pressable
+        onPress={() => setShowVersions(true)}
+        style={({ pressed }) => [
+          styles.versionRow,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            opacity: pressed ? 0.85 : 1,
+          },
+        ]}
+      >
+        <Feather
+          name={resume.is_default ? "star" : "file-text"}
+          size={14}
+          color={resume.is_default ? "#f59e0b" : colors.mutedForeground}
+        />
+        <Text style={[styles.versionRowName, { color: colors.foreground }]} numberOfLines={1}>
+          {resume.name}
+        </Text>
+        <Text style={[styles.versionRowMeta, { color: colors.mutedForeground }]}>
+          {(bundle.versions?.length ?? 1)} version{(bundle.versions?.length ?? 1) === 1 ? "" : "s"}
+        </Text>
+        <Feather name="chevron-down" size={16} color={colors.mutedForeground} />
+      </Pressable>
+
+      <VersionSheet
+        visible={showVersions}
+        onClose={() => setShowVersions(false)}
+        versions={bundle.versions ?? []}
+        activeId={resume.id}
+        qc={qc}
+        onSwitch={(id) => {
+          setShowVersions(false);
+          onSwitchVersion(id);
+        }}
+      />
+      
 
       {/* Publishing summary card */}
       <PublishingSummaryCard
@@ -915,6 +979,214 @@ function PublishSheet({
       </View>
 
       <ViewLogModal visible={showViewLog} onClose={() => setShowViewLog(false)} />
+    </Modal>
+  );
+}
+
+/**
+ * Bottom sheet that lists every named resume version on the account
+ * and exposes the CRUD surface area: create, switch, rename,
+ * duplicate, set-default, and delete. The active row is highlighted;
+ * the default version is decorated with a star and cannot be deleted
+ * unless it's first demoted.
+ */
+function VersionSheet({
+  visible,
+  onClose,
+  versions,
+  activeId,
+  qc,
+  onSwitch,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  versions: ResumeVersion[];
+  activeId: number;
+  qc: ReturnType<typeof useQueryClient>;
+  onSwitch: (id: number) => void;
+}) {
+  const colors = useColors();
+  const [busy, setBusy] = useState(false);
+
+  // Refresh the resume bundle so the editor's `bundle.versions`
+  // stays in sync with whatever the server now reports. We can't
+  // patch in place because the active version's slug may have
+  // shifted (e.g. after a rename).
+  const refresh = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["resume"] });
+  }, [qc]);
+
+  const handle = useCallback(
+    async (label: string, fn: () => Promise<unknown>) => {
+      setBusy(true);
+      try {
+        await fn();
+        refresh();
+      } catch (e: unknown) {
+        const msg =
+          (typeof e === "object" && e && "message" in e
+            ? String((e as { message?: unknown }).message ?? "")
+            : "") || `Could not ${label}.`;
+        Alert.alert(`Couldn't ${label}`, msg);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [refresh],
+  );
+
+  const promptName = (initial: string) =>
+    new Promise<string | null>((resolve) => {
+      // Alert.prompt is iOS-only; fall back to a simple confirm flow on
+      // Android by appending a numeric suffix to the initial name. The
+      // dedicated rename/duplicate sheets cover the more polished case.
+      const AlertAny = Alert as unknown as {
+        prompt?: (
+          title: string,
+          msg: string | undefined,
+          cb: (text?: string) => void,
+          type?: string,
+          defaultValue?: string,
+        ) => void;
+      };
+      if (typeof AlertAny.prompt === "function") {
+        AlertAny.prompt(
+          "Version name",
+          undefined,
+          (text?: string) => resolve(text && text.trim() ? text.trim() : null),
+          "plain-text",
+          initial,
+        );
+      } else {
+        resolve(`${initial} ${Math.floor(Math.random() * 90 + 10)}`);
+      }
+    });
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose}>
+        <Pressable
+          style={[styles.sheet, { backgroundColor: colors.card }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_700Bold", fontSize: 16 }}>
+              Resume versions
+            </Text>
+            <Pressable onPress={onClose} hitSlop={8}>
+              <Feather name="x" size={20} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            <Text style={{ color: colors.mutedForeground, fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, marginBottom: 12 }}>
+              Keep tailored variants for different roles. The default version powers your public link;
+              other versions live at /v/&lt;slug&gt;.
+            </Text>
+            {versions.map((v) => {
+              const isActive = v.id === activeId;
+              return (
+                <View
+                  key={v.id}
+                  style={[
+                    styles.versionItem,
+                    {
+                      borderColor: isActive ? colors.primary : colors.border,
+                      backgroundColor: isActive ? colors.primary + "11" : colors.background,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={v.is_default ? "star" : "file-text"}
+                    size={16}
+                    color={v.is_default ? "#f59e0b" : colors.mutedForeground}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.versionItemName, { color: colors.foreground }]} numberOfLines={1}>
+                      {v.name}
+                    </Text>
+                    {v.public_url ? (
+                      <Text
+                        style={{ color: colors.mutedForeground, fontFamily: "SpaceGrotesk_400Regular", fontSize: 10 }}
+                        numberOfLines={1}
+                      >
+                        {v.public_url}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {!isActive ? (
+                    <Pressable
+                      style={[styles.versionAction, { borderColor: colors.border }]}
+                      onPress={() => onSwitch(v.id)}
+                      disabled={busy}
+                    >
+                      <Feather name="log-in" size={14} color={colors.foreground} />
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    style={[styles.versionAction, { borderColor: colors.border }]}
+                    onPress={async () => {
+                      const name = await promptName(v.name);
+                      if (!name || name === v.name) return;
+                      handle("rename version", () => renameResumeVersion(v.id, name));
+                    }}
+                    disabled={busy}
+                  >
+                    <Feather name="edit-2" size={14} color={colors.foreground} />
+                  </Pressable>
+                  <Pressable
+                    style={[styles.versionAction, { borderColor: colors.border }]}
+                    onPress={() => handle("duplicate version", () => duplicateResumeVersion(v.id))}
+                    disabled={busy}
+                  >
+                    <Feather name="copy" size={14} color={colors.foreground} />
+                  </Pressable>
+                  {!v.is_default ? (
+                    <Pressable
+                      style={[styles.versionAction, { borderColor: colors.border }]}
+                      onPress={() => handle("set default", () => setDefaultResumeVersion(v.id))}
+                      disabled={busy}
+                    >
+                      <Feather name="star" size={14} color={colors.foreground} />
+                    </Pressable>
+                  ) : null}
+                  {!v.is_default && versions.length > 1 ? (
+                    <Pressable
+                      style={[styles.versionAction, { borderColor: colors.border }]}
+                      onPress={() =>
+                        Alert.alert(
+                          `Delete "${v.name}"?`,
+                          "Items inside this version will be removed. This cannot be undone.",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                              text: "Delete",
+                              style: "destructive",
+                              onPress: () => handle("delete version", () => deleteResumeVersion(v.id)),
+                            },
+                          ],
+                        )
+                      }
+                      disabled={busy}
+                    >
+                      <Feather name="trash-2" size={14} color="#ef4444" />
+                    </Pressable>
+                  ) : null}
+                </View>
+              );
+            })}
+            <Button
+              label={busy ? "Working…" : "Create new version"}
+              onPress={async () => {
+                const name = await promptName("New version");
+                if (!name) return;
+                handle("create version", () => createResumeVersion(name));
+              }}
+              disabled={busy}
+            />
+          </ScrollView>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -2003,5 +2275,45 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1.2,
     gap: 8,
+  },
+  versionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  versionRowName: {
+    flex: 1,
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 14,
+  },
+  versionRowMeta: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 11,
+  },
+  versionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  versionItemName: {
+    flex: 1,
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 14,
+  },
+  versionAction: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
   },
 });

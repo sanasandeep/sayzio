@@ -56,8 +56,30 @@ export type ResumeVisibility =
   | "subscribers"
   | "password";
 
+/**
+ * One row in the user's named-version list. Lightweight summary used
+ * by the version switcher; the full resume payload is fetched via
+ * getResume({ resume_id }) once the user picks one.
+ */
+export type ResumeVersion = {
+  id: number;
+  name: string;
+  slug: string;
+  is_default: boolean;
+  public_url: string | null;
+  updated_at: string | null;
+};
+
 export type Resume = {
   id: number;
+  /** Display name of this version (defaults to "Default"). */
+  name: string;
+  /** URL slug for the version (defaults to "default"). */
+  slug: string;
+  /** True for the version that backs the bare /{handle}/resume URL. */
+  is_default: boolean;
+  /** Public-facing URL for this specific version, if shareable. */
+  public_url: string | null;
   template_id: string;
   template: ResumeTemplate;
   color_theme_id: string;
@@ -105,15 +127,78 @@ export type ResumeViewLogEntry = {
 
 export type ResumeBundle = {
   resume: Resume;
+  /** Lightweight summary of every named version on the account. */
+  versions: ResumeVersion[];
   registries: {
     templates: ResumeTemplate[];
     color_themes: ResumeColorTheme[];
   };
 };
 
-export async function getResume(): Promise<ResumeBundle> {
-  const res = await apiFetch<{ data: ResumeBundle }>("/resume");
+/**
+ * Fetch the full resume bundle. Pass `resume_id` to target a specific
+ * named version; omitting it returns the user's default version.
+ */
+export async function getResume(opts: { resume_id?: number } = {}): Promise<ResumeBundle> {
+  const qs = opts.resume_id ? `?resume_id=${opts.resume_id}` : "";
+  const res = await apiFetch<{ data: ResumeBundle }>(`/resume${qs}`);
   return res.data;
+}
+
+// ── Version management ──────────────────────────────────────────
+
+export async function listResumeVersions(): Promise<ResumeVersion[]> {
+  const res = await apiFetch<{ data: { versions: ResumeVersion[] } }>("/resume/versions");
+  return res.data.versions;
+}
+
+export async function createResumeVersion(name: string): Promise<{
+  version: Resume;
+  versions: ResumeVersion[];
+}> {
+  const res = await apiFetch<{ data: { version: Resume; versions: ResumeVersion[] } }>(
+    "/resume/versions",
+    { method: "POST", body: JSON.stringify({ name }) },
+  );
+  return res.data;
+}
+
+export async function renameResumeVersion(id: number, name: string): Promise<{
+  version: Resume;
+  versions: ResumeVersion[];
+}> {
+  const res = await apiFetch<{ data: { version: Resume; versions: ResumeVersion[] } }>(
+    `/resume/versions/${id}`,
+    { method: "PUT", body: JSON.stringify({ name }) },
+  );
+  return res.data;
+}
+
+export async function duplicateResumeVersion(id: number, name?: string): Promise<{
+  version: Resume;
+  versions: ResumeVersion[];
+}> {
+  const res = await apiFetch<{ data: { version: Resume; versions: ResumeVersion[] } }>(
+    `/resume/versions/${id}/duplicate`,
+    { method: "POST", body: JSON.stringify(name ? { name } : {}) },
+  );
+  return res.data;
+}
+
+export async function setDefaultResumeVersion(id: number): Promise<ResumeVersion[]> {
+  const res = await apiFetch<{ data: { versions: ResumeVersion[] } }>(
+    `/resume/versions/${id}/default`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+  return res.data.versions;
+}
+
+export async function deleteResumeVersion(id: number): Promise<ResumeVersion[]> {
+  const res = await apiFetch<{ data: { versions: ResumeVersion[] } }>(
+    `/resume/versions/${id}`,
+    { method: "DELETE" },
+  );
+  return res.data.versions;
 }
 
 export async function updateResumeHeader(

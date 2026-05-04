@@ -286,6 +286,14 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/resume/share/revoke',    [\App\Modules\Api\Controllers\ResumeController::class, 'revokeShare']);
         Route::get   ('/resume/views',           [\App\Modules\Api\Controllers\ResumeController::class, 'views']);
 
+        // Version management — see web routes for the full surface area.
+        Route::get   ('/resume/versions',                       [\App\Modules\Api\Controllers\ResumeController::class, 'versionsIndex']);
+        Route::post  ('/resume/versions',                       [\App\Modules\Api\Controllers\ResumeController::class, 'versionStore']);
+        Route::put   ('/resume/versions/{version}',             [\App\Modules\Api\Controllers\ResumeController::class, 'versionRename'])->whereNumber('version');
+        Route::delete('/resume/versions/{version}',             [\App\Modules\Api\Controllers\ResumeController::class, 'versionDestroy'])->whereNumber('version');
+        Route::post  ('/resume/versions/{version}/duplicate',   [\App\Modules\Api\Controllers\ResumeController::class, 'versionDuplicate'])->whereNumber('version');
+        Route::post  ('/resume/versions/{version}/default',     [\App\Modules\Api\Controllers\ResumeController::class, 'versionSetDefault'])->whereNumber('version');
+
         // Posts (creator feed)
         Route::get   ('/posts',            [CreatorPostController::class, 'index']);
         Route::post  ('/posts',            [CreatorPostController::class, 'store']);

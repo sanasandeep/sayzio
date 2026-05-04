@@ -46,12 +46,31 @@ class ResumePresenter
 
         $owner  = $resume->user;
         $handle = $owner?->handle;
+        // Default versions stay at /{handle}/resume.pdf so old shared
+        // links keep working; non-default versions get a stable
+        // /v/{slug}.pdf suffix that names the version.
+        $pdfPath = $resume->is_default
+            ? '/resume.pdf'
+            : '/resume/v/' . $resume->effectiveSlug() . '.pdf';
         $publicUrl = ($handle && $resume->is_public_pdf)
-            ? url('/' . $handle . '/resume.pdf')
+            ? url('/' . $handle . $pdfPath)
+            : null;
+        // Same shape for the HTML page link surfaced to the editor.
+        $publicPagePath = $resume->is_default
+            ? '/resume'
+            : '/resume/v/' . $resume->effectiveSlug();
+        $publicPageUrl = $handle
+            ? url('/' . $handle . $publicPagePath)
             : null;
 
         return [
             'id'             => $resume->id,
+            // Multi-version metadata. Defaults still resolve at the
+            // bare /{handle}/resume URL; non-default versions get a
+            // /v/{slug} suffix so each can be shared on its own.
+            'name'           => $resume->displayName(),
+            'slug'           => $resume->effectiveSlug(),
+            'is_default'     => (bool) $resume->is_default,
             'template_id'    => $resume->template_id,
             'template'       => $resume->templateMeta(),
             'color_theme_id' => $resume->color_theme_id,
@@ -60,6 +79,7 @@ class ResumePresenter
             'items'          => $items,
             'is_public_pdf'  => (bool) $resume->is_public_pdf,
             'public_pdf_url' => $publicUrl,
+            'public_url'     => $publicPageUrl,
             'handle'         => $handle,
             'is_public'        => (bool) $resume->is_public,
             'visibility'       => $resume->visibility ?: 'public',
@@ -72,6 +92,32 @@ class ResumePresenter
             'meta_description' => $resume->meta_description,
             'updated_at'     => optional($resume->updated_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * Lightweight summary of every version on the user's account, used
+     * by the version switcher in the editor. Intentionally compact — no
+     * items, no sections — so the bootstrap payload stays small even
+     * when the user keeps the maximum number of versions.
+     *
+     * @param  iterable<int,Resume> $versions
+     * @return array<int,array<string,mixed>>
+     */
+    public static function presentVersions(iterable $versions): array
+    {
+        $out = [];
+        foreach ($versions as $v) {
+            $out[] = [
+                'id'         => (int) $v->id,
+                'name'       => $v->displayName(),
+                'slug'       => $v->effectiveSlug(),
+                'is_default' => (bool) $v->is_default,
+                'is_public'  => (bool) $v->is_public,
+                'updated_at' => optional($v->updated_at)->toIso8601String(),
+                'view_count' => (int) ($v->view_count ?? 0),
+            ];
+        }
+        return $out;
     }
 
     /** @return array<string,mixed> */

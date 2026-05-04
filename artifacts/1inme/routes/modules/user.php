@@ -382,6 +382,17 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('share/revoke', [\App\Modules\User\Controllers\ResumeController::class, 'revokeShare'])->name('share.revoke');
             // Paginated audit log (timestamp / country / referrer / handle).
             Route::get('views', [\App\Modules\User\Controllers\ResumeController::class, 'views'])->name('views');
+
+            // ---- Version management ----
+            // CRUD over named resume versions. The {version} binding is
+            // numeric (a Resume row id); the controller/service verify
+            // ownership before mutating so a foreign id 403s.
+            Route::get   ('versions',                                [\App\Modules\User\Controllers\ResumeController::class, 'versionsIndex'])->name('versions.index');
+            Route::post  ('versions',                                [\App\Modules\User\Controllers\ResumeController::class, 'versionStore'])->name('versions.store');
+            Route::put   ('versions/{version}',                      [\App\Modules\User\Controllers\ResumeController::class, 'versionRename'])->whereNumber('version')->name('versions.rename');
+            Route::delete('versions/{version}',                      [\App\Modules\User\Controllers\ResumeController::class, 'versionDestroy'])->whereNumber('version')->name('versions.destroy');
+            Route::post  ('versions/{version}/duplicate',            [\App\Modules\User\Controllers\ResumeController::class, 'versionDuplicate'])->whereNumber('version')->name('versions.duplicate');
+            Route::post  ('versions/{version}/default',              [\App\Modules\User\Controllers\ResumeController::class, 'versionSetDefault'])->whereNumber('version')->name('versions.default');
         });
 
         // ---- Forms ----

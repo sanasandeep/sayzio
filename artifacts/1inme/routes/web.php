@@ -225,6 +225,14 @@ Route::get('/{handle}/resume.pdf',
     ->where('handle', '[A-Za-z0-9_.-]{2,40}')
     ->name('resume.public.pdf');
 
+// Versioned PDF download — same controller, slug captured into $slug.
+Route::get('/{handle}/resume/v/{slug}.pdf',
+    [\App\Modules\User\Controllers\ResumeController::class, 'downloadByHandle'])
+    ->middleware(['web', 'throttle:60,1'])
+    ->where('handle', '[A-Za-z0-9_.-]{2,40}')
+    ->where('slug', '[a-z0-9\-]{1,60}')
+    ->name('resume.public.pdf.version');
+
 // Public Resume page at /{handle}/resume. Registered BEFORE the
 // `/{alias}` catch-alls so the literal `/resume` second segment routes
 // here (the alias regex only covers single-segment paths and a small
@@ -236,6 +244,18 @@ Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeCon
     ->name('resume.public.unlock')
     ->middleware('throttle:10,1')
     ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
+
+// Versioned public page — /{handle}/resume/v/{slug}. The default
+// version stays at /{handle}/resume so old shared URLs keep working.
+Route::get ('/{handle}/resume/v/{slug}', [\App\Modules\Common\Controllers\PublicResumeController::class, 'show'])
+    ->name('resume.public.show.version')
+    ->where('handle', '[A-Za-z0-9_.-]{2,40}')
+    ->where('slug', '[a-z0-9\-]{1,60}');
+Route::post('/{handle}/resume/v/{slug}', [\App\Modules\Common\Controllers\PublicResumeController::class, 'unlock'])
+    ->name('resume.public.unlock.version')
+    ->middleware('throttle:10,1')
+    ->where('handle', '[A-Za-z0-9_.-]{2,40}')
+    ->where('slug', '[a-z0-9\-]{1,60}');
 
 // ---- AR Business Card (public) ---------------------------------------
 // Reserved /ar/* prefix — must be declared BEFORE the catch-all /{alias}
