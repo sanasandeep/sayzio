@@ -1137,7 +1137,7 @@ class SiteAssistantRuntime
             // revoked after the value was saved.
             $u = User::query()
                 ->where('id', $configuredId)
-                ->whereHas('roles.permissions', fn ($q) => $q->where('key', 'settings.manage'))
+                ->where('role', 'super_admin')
                 ->first();
             if ($u) return $u;
         }
@@ -1145,7 +1145,7 @@ class SiteAssistantRuntime
         // to manage settings. Avoids picking a random regular account.
         try {
             return User::query()
-                ->whereHas('roles.permissions', fn ($q) => $q->where('key', 'settings.manage'))
+                ->where('role', 'super_admin')
                 ->orderBy('id')->first();
         } catch (\Throwable $e) {
             return null;
