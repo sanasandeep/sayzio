@@ -78,6 +78,28 @@ export const BLOCK_KINDS: BlockKind[] = [
     blurb: "A horizontal line between sections.",
     fields: [],
   },
+  // The list/pricing kinds use a bespoke editor UI in the block edit
+  // screen (style picker + repeating items), so their `fields` array is
+  // intentionally empty — the generic field renderer would only see
+  // primitives and skip the items array entirely.
+  {
+    type: "list",
+    label: "Bulleted list",
+    blurb: "A list of bulleted items with an icon.",
+    fields: [],
+  },
+  {
+    type: "list_numbered",
+    label: "Numbered list",
+    blurb: "A list of numbered items.",
+    fields: [],
+  },
+  {
+    type: "list_pricing",
+    label: "Pricing list",
+    blurb: "A list of priced items, plans, or menu rows.",
+    fields: [],
+  },
 ];
 
 export function blockKind(type: string): BlockKind | null {

@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -12,6 +13,109 @@ import {
   Text,
   View,
 } from "react-native";
+
+// Style catalogs mirror the web editor's `block-settings-form.blade.php`
+// list/list_numbered/list_pricing blocks so saved blocks roam between
+// the two surfaces with identical option keys.
+type StyleOption = { key: string; label: string; desc?: string };
+const LIST_STYLES: StyleOption[] = [
+  { key: "clean", label: "Clean" },
+  { key: "boxed", label: "Boxed" },
+  { key: "divided", label: "Divided" },
+  { key: "checklist", label: "Checklist" },
+  { key: "timeline", label: "Timeline" },
+];
+const LIST_NUMBERED_STYLES: StyleOption[] = [
+  { key: "clean", label: "Plain" },
+  { key: "boxed", label: "Boxed" },
+  { key: "divided", label: "Divided" },
+  { key: "pill", label: "Pill Badge" },
+  { key: "badge_square", label: "Square Badge" },
+  { key: "outlined", label: "Outlined Big" },
+];
+const PRICING_STYLES: StyleOption[] = [
+  { key: "classic", label: "Classic", desc: "Name + price with leader dots" },
+  { key: "menu", label: "Menu", desc: "Name, description, price" },
+  { key: "cards", label: "Card Grid", desc: "Stacked pricing cards" },
+  { key: "comparison", label: "Comparison", desc: "Included / not included" },
+  { key: "featured", label: "Featured", desc: "Highlight one plan" },
+];
+
+// Per-item bullet icon options for list blocks. Mirrors the web editor's
+// quick-pick dropdown; the "" key means "use the block default icon".
+const BULLET_ICON_OPTIONS: { key: string; label: string }[] = [
+  { key: "", label: "Default" },
+  { key: "fa-check", label: "✓ Check" },
+  { key: "fa-circle", label: "• Dot" },
+  { key: "fa-star", label: "★ Star" },
+  { key: "fa-arrow-right", label: "→ Arrow" },
+  { key: "fa-heart", label: "♥ Heart" },
+  { key: "fa-bolt", label: "⚡ Bolt" },
+  { key: "fa-fire", label: "🔥 Fire" },
+  { key: "fa-gem", label: "💎 Gem" },
+  { key: "fa-times", label: "✗ Times" },
+];
+
+type ListItem = { text: string; icon: string };
+type PricingItem = {
+  name: string;
+  description: string;
+  price: string;
+  period: string;
+  included: boolean;
+  featured: boolean;
+  thumbnail: string;
+  icon: string;
+};
+
+function normalizeListItems(raw: unknown): ListItem[] {
+  if (!Array.isArray(raw)) return [{ text: "", icon: "" }];
+  const out: ListItem[] = raw.map((i) => {
+    if (typeof i === "string") return { text: i, icon: "" };
+    if (i && typeof i === "object") {
+      const o = i as Record<string, unknown>;
+      return {
+        text: typeof o.text === "string" ? o.text : "",
+        icon: typeof o.icon === "string" ? o.icon : "",
+      };
+    }
+    return { text: "", icon: "" };
+  });
+  return out.length > 0 ? out : [{ text: "", icon: "" }];
+}
+
+function normalizePricingItems(raw: unknown): PricingItem[] {
+  if (!Array.isArray(raw)) return [emptyPricingItem()];
+  const out: PricingItem[] = raw.map((i) => {
+    const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+    return {
+      name: typeof o.name === "string" ? o.name : "",
+      description: typeof o.description === "string" ? o.description : "",
+      price: typeof o.price === "string" ? o.price : "",
+      period: typeof o.period === "string" ? o.period : "",
+      // Default to true to match the web editor — most items are included
+      // by default; a missing key means "no opinion captured yet".
+      included: o.included === undefined ? true : !!o.included,
+      featured: !!o.featured,
+      thumbnail: typeof o.thumbnail === "string" ? o.thumbnail : "",
+      icon: typeof o.icon === "string" ? o.icon : "",
+    };
+  });
+  return out.length > 0 ? out : [emptyPricingItem()];
+}
+
+function emptyPricingItem(): PricingItem {
+  return {
+    name: "",
+    description: "",
+    price: "",
+    period: "",
+    included: true,
+    featured: false,
+    thumbnail: "",
+    icon: "",
+  };
+}
 
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
@@ -71,6 +175,17 @@ export default function EditBlockScreen() {
 
   const [active, setActive] = useState(true);
   const [values, setValues] = useState<Record<string, string>>({});
+  // List/pricing block state. These block types persist a `style` string,
+  // an `items` array, and (for `list`) a default bullet `icon`. They are
+  // edited via a bespoke UI rather than the generic field renderer.
+  const [listStyle, setListStyle] = useState<string>("");
+  const [defaultBulletIcon, setDefaultBulletIcon] = useState<string>("fa-check");
+  const [listItems, setListItems] = useState<ListItem[]>([]);
+  const [pricingItems, setPricingItems] = useState<PricingItem[]>([]);
+  const isList = block?.type === "list";
+  const isListNumbered = block?.type === "list_numbered";
+  const isPricing = block?.type === "list_pricing";
+  const isAnyList = isList || isListNumbered || isPricing;
   // Selected design variant for this block. Mirrors `_style._variant` from
   // the web editor — empty string means "no variant chosen" (treated as
   // Custom in the gallery).
@@ -91,6 +206,20 @@ export default function EditBlockScreen() {
     setValues(init);
     const style = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
     setVariantKey(typeof style._variant === "string" ? style._variant : "");
+    // Hydrate list/pricing-specific state from the saved settings. We
+    // keep these in their own state buckets so the generic `values`
+    // map (string-only) doesn't trip over the array/boolean fields.
+    if (block.type === "list" || block.type === "list_numbered") {
+      const savedStyle = block.settings?.style;
+      setListStyle(typeof savedStyle === "string" && savedStyle ? savedStyle : "clean");
+      setListItems(normalizeListItems(block.settings?.items));
+      const di = block.settings?.icon;
+      setDefaultBulletIcon(typeof di === "string" && di ? di : "fa-check");
+    } else if (block.type === "list_pricing") {
+      const savedStyle = block.settings?.style;
+      setListStyle(typeof savedStyle === "string" && savedStyle ? savedStyle : "classic");
+      setPricingItems(normalizePricingItems(block.settings?.items));
+    }
   }, [block]);
 
   // Hydrate favorites from AsyncStorage once we know the block's type
@@ -267,6 +396,46 @@ export default function EditBlockScreen() {
       // backend keeps whatever variant/snapshot is currently persisted.
       const nextSettings: Record<string, unknown> = { ...values };
       delete nextSettings._style;
+      // For list/pricing blocks, replace the primitive `style`/`icon`
+      // strings copied into `values` with the structured editor state
+      // (style + items + per-item icons). Empty trailing rows are
+      // dropped so a tap-and-leave doesn't persist blank entries.
+      if (isList || isListNumbered) {
+        nextSettings.style = listStyle;
+        if (isList) nextSettings.icon = defaultBulletIcon;
+        nextSettings.items = listItems
+          .filter((it) => it.text.trim() !== "" || it.icon)
+          .map((it) => (isList ? { text: it.text, icon: it.icon } : { text: it.text }));
+      } else if (isPricing) {
+        nextSettings.style = listStyle;
+        // Keep any row that has *anything* meaningful filled in. Earlier
+        // we only kept rows with name/price/description, but that dropped
+        // rows where a creator only set, say, a thumbnail + featured
+        // flag and hadn't typed a name yet. We treat the row as empty
+        // only if every textual field is blank AND no flag is set.
+        nextSettings.items = pricingItems
+          .filter(
+            (it) =>
+              it.name.trim() !== "" ||
+              it.price.trim() !== "" ||
+              it.period.trim() !== "" ||
+              it.description.trim() !== "" ||
+              it.thumbnail.trim() !== "" ||
+              it.icon.trim() !== "" ||
+              it.featured ||
+              !it.included,
+          )
+          .map((it) => ({
+            name: it.name,
+            description: it.description,
+            price: it.price,
+            period: it.period,
+            included: it.included,
+            featured: it.featured,
+            thumbnail: it.thumbnail,
+            icon: it.icon,
+          }));
+      }
       return updateBlock(id, blockId, {
         is_active: active,
         settings: nextSettings,
@@ -474,6 +643,354 @@ export default function EditBlockScreen() {
             </Pressable>
           ) : null}
         </View>
+
+        {isAnyList ? (
+          <View style={{ gap: 12 }}>
+            {/* Style picker — radio cards mirroring the web editor's
+                style grid. We render labels (and a one-line description
+                for pricing) rather than icons because the mobile bundle
+                doesn't ship Font Awesome glyphs. */}
+            <View style={{ gap: 8 }}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>Style</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {(isList
+                  ? LIST_STYLES
+                  : isListNumbered
+                    ? LIST_NUMBERED_STYLES
+                    : PRICING_STYLES
+                ).map((s) => {
+                  const selected = listStyle === s.key;
+                  return (
+                    <Pressable
+                      key={s.key}
+                      onPress={() => setListStyle(s.key)}
+                      style={{
+                        flexBasis: isPricing ? "48%" : "31%",
+                        flexGrow: 1,
+                        padding: 10,
+                        borderRadius: 12,
+                        backgroundColor: selected ? colors.primary + "22" : colors.card,
+                        borderWidth: selected ? 2 : 1,
+                        borderColor: selected ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontWeight: "700",
+                          fontSize: 12,
+                        }}
+                      >
+                        {s.label}
+                      </Text>
+                      {s.desc ? (
+                        <Text
+                          style={{
+                            color: colors.mutedForeground,
+                            fontSize: 10,
+                            marginTop: 2,
+                          }}
+                        >
+                          {s.desc}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {isList ? (
+              <TextField
+                label="Default bullet icon"
+                hint="Used when an item below has no icon picked. e.g. fa-check"
+                value={defaultBulletIcon}
+                onChangeText={setDefaultBulletIcon}
+                autoCapitalize="none"
+              />
+            ) : null}
+
+            <View style={{ gap: 8 }}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>Items</Text>
+
+              {(isList || isListNumbered) &&
+                listItems.map((it, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      padding: 10,
+                      borderRadius: 12,
+                      backgroundColor: colors.card,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      gap: 8,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 12, width: 22 }}>
+                        {isListNumbered ? `${idx + 1}.` : "•"}
+                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          value={it.text}
+                          placeholder="Item text"
+                          onChangeText={(t) =>
+                            setListItems((prev) =>
+                              prev.map((p, i) => (i === idx ? { ...p, text: t } : p)),
+                            )
+                          }
+                        />
+                      </View>
+                      <Pressable
+                        onPress={() =>
+                          setListItems((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        hitSlop={8}
+                        style={{ padding: 4 }}
+                      >
+                        <Feather name="trash-2" size={16} color={colors.destructive} />
+                      </Pressable>
+                    </View>
+
+                    {isList ? (
+                      <View style={{ gap: 6 }}>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={{ gap: 6 }}
+                        >
+                          {BULLET_ICON_OPTIONS.map((opt) => {
+                            const selected = it.icon === opt.key;
+                            return (
+                              <Pressable
+                                key={opt.key || "default"}
+                                onPress={() =>
+                                  setListItems((prev) =>
+                                    prev.map((p, i) =>
+                                      i === idx ? { ...p, icon: opt.key } : p,
+                                    ),
+                                  )
+                                }
+                                style={{
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 5,
+                                  borderRadius: 999,
+                                  backgroundColor: selected ? colors.primary : colors.background,
+                                  borderWidth: 1,
+                                  borderColor: selected ? colors.primary : colors.border,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    color: selected ? "#fff" : colors.foreground,
+                                    fontSize: 11,
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  {opt.label}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </ScrollView>
+                        <TextField
+                          value={it.icon}
+                          placeholder="Or custom Font Awesome class (fa-rocket)"
+                          autoCapitalize="none"
+                          onChangeText={(t) =>
+                            setListItems((prev) =>
+                              prev.map((p, i) => (i === idx ? { ...p, icon: t } : p)),
+                            )
+                          }
+                          style={{ minHeight: 40, fontSize: 13 }}
+                        />
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
+
+              {isPricing &&
+                pricingItems.map((it, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      padding: 10,
+                      borderRadius: 12,
+                      backgroundColor: colors.card,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      gap: 8,
+                    }}
+                  >
+                    <TextField
+                      label="Name"
+                      value={it.name}
+                      placeholder="Plan / item name"
+                      onChangeText={(t) =>
+                        setPricingItems((prev) =>
+                          prev.map((p, i) => (i === idx ? { ...p, name: t } : p)),
+                        )
+                      }
+                    />
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Price"
+                          value={it.price}
+                          placeholder="$29"
+                          onChangeText={(t) =>
+                            setPricingItems((prev) =>
+                              prev.map((p, i) => (i === idx ? { ...p, price: t } : p)),
+                            )
+                          }
+                        />
+                      </View>
+                      <View style={{ width: 110 }}>
+                        <TextField
+                          label="Period"
+                          value={it.period}
+                          placeholder="/mo"
+                          onChangeText={(t) =>
+                            setPricingItems((prev) =>
+                              prev.map((p, i) => (i === idx ? { ...p, period: t } : p)),
+                            )
+                          }
+                        />
+                      </View>
+                    </View>
+                    <TextField
+                      label="Description"
+                      hint="Used by Menu, Cards, Featured styles"
+                      value={it.description}
+                      multiline
+                      numberOfLines={2}
+                      onChangeText={(t) =>
+                        setPricingItems((prev) =>
+                          prev.map((p, i) => (i === idx ? { ...p, description: t } : p)),
+                        )
+                      }
+                      style={{ minHeight: 60, paddingTop: 12, textAlignVertical: "top" }}
+                    />
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Thumbnail URL"
+                          value={it.thumbnail}
+                          autoCapitalize="none"
+                          keyboardType="url"
+                          onChangeText={(t) =>
+                            setPricingItems((prev) =>
+                              prev.map((p, i) => (i === idx ? { ...p, thumbnail: t } : p)),
+                            )
+                          }
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Icon"
+                          placeholder="fa-coffee"
+                          value={it.icon}
+                          autoCapitalize="none"
+                          onChangeText={(t) =>
+                            setPricingItems((prev) =>
+                              prev.map((p, i) => (i === idx ? { ...p, icon: t } : p)),
+                            )
+                          }
+                        />
+                      </View>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                        Included
+                      </Text>
+                      <Switch
+                        value={it.included}
+                        onValueChange={(v) =>
+                          setPricingItems((prev) =>
+                            prev.map((p, i) => (i === idx ? { ...p, included: v } : p)),
+                          )
+                        }
+                        trackColor={{ true: colors.primary, false: colors.border }}
+                      />
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                        ★ Featured
+                      </Text>
+                      <Switch
+                        value={it.featured}
+                        onValueChange={(v) =>
+                          setPricingItems((prev) =>
+                            prev.map((p, i) => (i === idx ? { ...p, featured: v } : p)),
+                          )
+                        }
+                        trackColor={{ true: colors.primary, false: colors.border }}
+                      />
+                    </View>
+                    <Pressable
+                      onPress={() =>
+                        setPricingItems((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      style={{
+                        alignSelf: "flex-end",
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 8,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <Feather name="trash-2" size={14} color={colors.destructive} />
+                      <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "600" }}>
+                        Remove
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))}
+
+              <Pressable
+                onPress={() => {
+                  if (isPricing) {
+                    setPricingItems((prev) => [...prev, emptyPricingItem()]);
+                  } else {
+                    setListItems((prev) => [...prev, { text: "", icon: "" }]);
+                  }
+                }}
+                style={{
+                  padding: 10,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.primary,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <Feather name="plus" size={14} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                  Add item
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         {(meta?.fields ?? []).map((f) => (
           <TextField
