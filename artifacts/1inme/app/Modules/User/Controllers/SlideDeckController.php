@@ -7,11 +7,13 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkSlide;
 use App\Modules\User\Models\LinkSlideDeck;
 use App\Modules\User\Models\LinkSlideViewEvent;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SlideDeckController extends Controller
 {
@@ -253,8 +255,8 @@ class SlideDeckController extends Controller
                 $from = $request->query('from');
                 $to   = $request->query('to');
                 try {
-                    if ($from) $start = \Carbon\Carbon::parse($from)->startOfDay();
-                    if ($to)   $end   = \Carbon\Carbon::parse($to)->endOfDay();
+                    if ($from) $start = Carbon::parse($from)->startOfDay();
+                    if ($to)   $end   = Carbon::parse($to)->endOfDay();
                 } catch (\Throwable $e) {
                     $start = $today->copy()->subDays(29);
                     $end   = now()->endOfDay();
@@ -375,7 +377,7 @@ class SlideDeckController extends Controller
         if (!$seriesStart) {
             $firstAt = (clone $events)->min('occurred_at');
             $seriesStart = $firstAt
-                ? \Carbon\Carbon::parse($firstAt)->startOfDay()
+                ? Carbon::parse($firstAt)->startOfDay()
                 : $seriesEnd->copy();
         }
         $dayCount = $seriesStart->diffInDays($seriesEnd) + 1;
@@ -415,8 +417,112 @@ class SlideDeckController extends Controller
         ]);
     }
 
+    /**
+     * Stream the per-slide analytics as a CSV download. Honors the same
+     * period/from/to filters as the JSON analytics endpoint so the export
+     * matches what's on screen.
+     */
+    public function exportCsv(Request $request, Link $link): StreamedResponse
+    {
+        $this->authorizeLink($link);
+        $deck = $this->ensureDeck($link);
+        $slides = $deck->slides()->orderBy('sort_order')->get(['id', 'sort_order', 'title']);
+
+        $range = $this->resolveAnalyticsRange($request);
+        $start = $range['start'];
+        $end   = $range['end'];
+
+        $events = LinkSlideViewEvent::where('deck_id', $deck->id);
+        if ($start) $events->where('occurred_at', '>=', $start);
+        if ($end)   $events->where('occurred_at', '<=', $end);
+        $totalImpressions = (clone $events)->count();
+        $uniqueSessions   = (clone $events)
+            ->whereNotNull('page_session_id')
+            ->distinct('page_session_id')
+            ->count('page_session_id');
+        $completedCount   = (clone $events)
+            ->where('completed', true)
+            ->whereNotNull('page_session_id')
+            ->distinct('page_session_id')
+            ->count('page_session_id');
+        $completionPct = $uniqueSessions > 0
+            ? round(($completedCount / $uniqueSessions) * 100, 1)
+            : 0;
+
+        $perIndexCounts = (clone $events)
+            ->select('slide_index', DB::raw('COUNT(*) as c'))
+            ->groupBy('slide_index')
+            ->pluck('c', 'slide_index')
+            ->all();
+        $perIndexUnique = (clone $events)
+            ->whereNotNull('page_session_id')
+            ->select('slide_index', DB::raw('COUNT(DISTINCT page_session_id) as c'))
+            ->groupBy('slide_index')
+            ->pluck('c', 'slide_index')
+            ->all();
+        $firstImpressions = (int) ($perIndexCounts[$slides->first()->sort_order ?? 0] ?? 0);
+
+        $fromLabel = $start ? $start->toDateString() : 'all';
+        $toLabel   = $end   ? $end->toDateString()   : 'all';
+        $rangeLabel = ($start || $end)
+            ? ($fromLabel . ' to ' . $toLabel)
+            : 'All time';
+
+        $filename = sprintf(
+            'slides-analytics-%s-%s-to-%s.csv',
+            Str::slug($link->alias ?: ('link-' . $link->id)) ?: 'link',
+            $fromLabel,
+            $toLabel,
+        );
+
+        return new StreamedResponse(function () use (
+            $link, $deck, $range, $rangeLabel, $totalImpressions, $uniqueSessions,
+            $completedCount, $completionPct, $slides, $perIndexCounts,
+            $perIndexUnique, $firstImpressions
+        ) {
+            $out = fopen('php://output', 'w');
+            // UTF-8 BOM so Excel opens accents/emoji correctly.
+            fwrite($out, "\xEF\xBB\xBF");
+
+            fputcsv($out, ['Slides analytics export']);
+            fputcsv($out, ['Link', ($link->title ?: $link->alias) . ' (/' . $link->alias . ')']);
+            fputcsv($out, ['Deck version', (int) $deck->version]);
+            fputcsv($out, ['Period', $range['period']]);
+            fputcsv($out, ['Date range', $rangeLabel]);
+            fputcsv($out, ['Generated at', now()->toDateTimeString()]);
+            fputcsv($out, ['Total impressions', $totalImpressions]);
+            fputcsv($out, ['Unique sessions', $uniqueSessions]);
+            fputcsv($out, ['Completed decks', $completedCount]);
+            fputcsv($out, ['Completion rate %', $completionPct]);
+            fputcsv($out, []);
+
+            fputcsv($out, ['Index', 'Title', 'Views', 'Unique sessions', 'Drop-off %']);
+            foreach ($slides as $s) {
+                $idx   = (int) $s->sort_order;
+                $views = (int) ($perIndexCounts[$idx] ?? 0);
+                $uniq  = (int) ($perIndexUnique[$idx] ?? 0);
+                $drop  = $firstImpressions > 0
+                    ? round((($firstImpressions - $views) / $firstImpressions) * 100, 1)
+                    : 0;
+                fputcsv($out, [
+                    $idx + 1,
+                    $s->title ?: ('Slide ' . ($idx + 1)),
+                    $views,
+                    $uniq,
+                    $drop,
+                ]);
+            }
+
+            fclose($out);
+        }, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-store, max-age=0',
+        ]);
+    }
+
     /** Render the analytics page (HTML wrapper). */
-    public function analyticsPage(Link $link)
+    public function analyticsPage(Request $request, Link $link)
     {
         $this->authorizeLink($link);
         $deck = $this->ensureDeck($link);

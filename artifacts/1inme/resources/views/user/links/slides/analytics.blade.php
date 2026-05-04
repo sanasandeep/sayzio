@@ -2,7 +2,7 @@
 @section('title', 'Slides Analytics - ' . ($link->title ?: $link->alias))
 @section('content')
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
             <h2 class="mb-1">Slides analytics</h2>
             <div class="text-muted small">{{ $link->title ?: $link->alias }} · /{{ $link->alias }}</div>
@@ -18,6 +18,11 @@
         $period = request('period', '30d');
         $fromQ  = request('from', '');
         $toQ    = request('to', '');
+        $csvQuery = http_build_query(array_filter([
+            'period' => $period,
+            'from'   => $fromQ ?: null,
+            'to'     => $toQ ?: null,
+        ], fn ($v) => $v !== null && $v !== ''));
     @endphp
     <div class="period-bar mb-4">
         <div class="flex flex-wrap items-center gap-2">
@@ -30,13 +35,18 @@
                    class="pill {{ $period === $k ? 'pill-active' : '' }}">{{ $lbl }}</a>
             @endforeach
             <span class="mx-3 h-5 w-px hidden md:inline-block" style="background: var(--border-glass);"></span>
-            <form method="GET" class="flex items-center gap-2 ml-auto">
+            <form method="GET" class="flex items-center gap-2">
                 <input type="hidden" name="period" value="custom">
                 <input type="date" name="from" value="{{ $fromQ }}" class="theme-input text-xs py-1.5 px-2">
                 <span class="text-xs" style="color:var(--text-faint);">to</span>
                 <input type="date" name="to" value="{{ $toQ }}" class="theme-input text-xs py-1.5 px-2">
                 <button class="pill {{ $period === 'custom' ? 'pill-active' : '' }}"><i class="fas fa-check text-[9px]"></i> Apply</button>
             </form>
+            <a id="sl-csv-btn"
+               href="{{ route('user.links.slides.analytics.csv', $link) }}{{ $csvQuery ? '?' . $csvQuery : '' }}"
+               class="pill ml-auto">
+                <i class="fas fa-download text-[9px]"></i> Download CSV
+            </a>
         </div>
     </div>
 
