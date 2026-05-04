@@ -27,18 +27,24 @@ import { variantsForType, findVariant } from "@/lib/blockVariants";
 // Mirrors the catalog-version constant on the PHP side. Bumped whenever a
 // variant payload changes in a way clients should re-apply. Stored
 // alongside the variant key on each block as `_variant_version`.
-const VARIANT_VERSION = 1;
+const VARIANT_VERSION = 2;
 
 const VARIANT_TAG_LABELS: Record<string, string> = {
   minimal: "Minimal",
   bold: "Bold",
   playful: "Playful",
   pro: "Pro",
+  corporate: "Corporate",
   glass: "Glass",
   neon: "Neon",
   retro: "Retro",
+  y2k: "Y2K",
   brutalist: "Brutalist",
   editorial: "Editorial",
+  maximalist: "Maximalist",
+  handwritten: "Handwritten",
+  three_d: "3D",
+  dark: "Dark",
 };
 
 export default function EditBlockScreen() {

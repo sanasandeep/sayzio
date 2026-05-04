@@ -33,21 +33,24 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 1;
+    public const VERSION = 2;
 
     public const TAGS = [
         'minimal'      => 'Minimal',
         'bold'         => 'Bold',
         'playful'      => 'Playful',
         'pro'          => 'Pro',
+        'corporate'    => 'Corporate',
         'dark'         => 'Dark',
         'retro'        => 'Retro',
+        'y2k'          => 'Y2K',
         'glass'        => 'Glass',
         'three_d'      => '3D',
         'neon'         => 'Neon',
         'handwritten'  => 'Handwritten',
         'brutalist'    => 'Brutalist',
         'editorial'    => 'Editorial',
+        'maximalist'   => 'Maximalist',
     ];
 
     /**
@@ -217,10 +220,577 @@ class BlockVariantCatalog
     }
 
     /**
-     * Per-type extras. Keys are block types; values are extra variants that
-     * make sense only for that type (e.g. polaroid for image/avatar).
+     * Reusable variant bundles that apply to a whole family of block
+     * types (e.g. every video platform shares the cinema-strip and
+     * CRT looks). Defining them once keeps the per-type map below a
+     * pure routing table — no copy-pasted style payloads to drift.
      */
-    private static function typeExtras(): array
+    private static function bundles(): array
+    {
+        return [
+            // Link-style buttons (link, link_big, cta_button, featured_pin).
+            'link_actions' => [
+                [
+                    'key' => 'corporate_row',
+                    'name' => 'Corporate Row',
+                    'tags' => ['corporate', 'minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#111827', 'padding' => '14', 'font_weight' => '600',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 6, 'border' => '#e5e7eb'],
+                ],
+                [
+                    'key' => 'cta_glow',
+                    'name' => 'CTA Glow',
+                    'tags' => ['neon', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#22d3ee',
+                        'border_radius' => '14', 'shadow_type' => 'glow',
+                        'shadow_color' => '#22d3eeaa', 'shadow_blur' => 28,
+                        'text_color' => '#67e8f9', 'padding' => '18', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => '#0f172a', 'text' => '#67e8f9', 'radius' => 14, 'border' => '#22d3ee'],
+                ],
+                [
+                    'key' => 'y2k_chrome',
+                    'name' => 'Y2K Chrome',
+                    'tags' => ['y2k', 'retro', 'three_d'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#c0c0d8',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#7280a8',
+                        'border_radius' => '999', 'shadow_type' => 'soft',
+                        'shadow_color' => '#3b82f680', 'shadow_y' => 6, 'shadow_blur' => 14,
+                        'text_color' => '#1e1b4b', 'padding' => '14', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(180deg,#e0e7ff,#94a3b8)', 'text' => '#1e1b4b', 'radius' => 999, 'border' => '#7280a8'],
+                ],
+            ],
+
+            // Heading / title looks (heading, heading_logo).
+            'headings' => [
+                [
+                    'key' => 'magazine_title',
+                    'name' => 'Magazine Title',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '4',
+                        'text_color' => '#ffffff', 'font_family' => 'Playfair Display',
+                        'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'underline_band',
+                    'name' => 'Underline Band',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '0',
+                        'border_color' => '#a78bfa', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '6',
+                        'text_color' => '#ffffff',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0, 'border' => '#a78bfa'],
+                ],
+                [
+                    'key' => 'spotlight_band',
+                    'name' => 'Spotlight Band',
+                    'tags' => ['bold', 'three_d'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1e1b4b',
+                        'border_style' => 'none', 'border_radius' => '4',
+                        'shadow_type' => 'glow', 'shadow_color' => '#a78bfa66',
+                        'shadow_blur' => 30, 'text_color' => '#ffffff',
+                        'padding' => '14', 'font_weight' => '800',
+                    ],
+                    'preview' => ['bg' => '#1e1b4b', 'text' => '#fff', 'radius' => 4],
+                ],
+            ],
+
+            // Body text styles (paragraph, paragraph_rich, markdown, list).
+            'body_text' => [
+                [
+                    'key' => 'manuscript',
+                    'name' => 'Manuscript',
+                    'tags' => ['editorial', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '6',
+                        'text_color' => '#e5e7eb', 'font_family' => 'Lora',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#e5e7eb', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'sticky_note',
+                    'name' => 'Sticky Note',
+                    'tags' => ['playful', 'handwritten'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fef08a',
+                        'border_style' => 'none', 'border_radius' => '4',
+                        'shadow_type' => 'soft', 'shadow_color' => '#92400e55',
+                        'shadow_y' => 6, 'shadow_blur' => 18,
+                        'text_color' => '#422006', 'padding' => '16',
+                        'font_family' => 'Caveat',
+                    ],
+                    'preview' => ['bg' => '#fef08a', 'text' => '#422006', 'radius' => 4],
+                ],
+            ],
+
+            // Social rows / icons (socials, socials_multi, socials_custom).
+            'socials' => [
+                [
+                    'key' => 'icon_pills',
+                    'name' => 'Icon Pills',
+                    'tags' => ['playful', 'glass'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff10',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff22',
+                        'border_radius' => '999', 'shadow_preset' => 'soft',
+                        'glass_preset' => 'light', 'effect' => 'glass', 'padding' => '12',
+                    ],
+                    'preview' => ['bg' => 'rgba(255,255,255,0.08)', 'text' => '#fff', 'radius' => 999, 'border' => '#ffffff30'],
+                ],
+                [
+                    'key' => 'mono_chrome',
+                    'name' => 'Mono Chrome',
+                    'tags' => ['minimal', 'corporate'],
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '8',
+                        'text_color' => '#ffffff',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'rainbow_row',
+                    'name' => 'Rainbow Row',
+                    'tags' => ['maximalist', 'playful', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ec4899',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_type' => 'glow', 'shadow_color' => '#f472b699', 'shadow_blur' => 30,
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(90deg,#f59e0b,#ec4899,#8b5cf6,#22d3ee)', 'text' => '#fff', 'radius' => 20],
+                ],
+            ],
+
+            // Video / streaming embeds (video, header_video, youtube, latest_youtube,
+            // youtube_feed, vimeo, twitch, kick, rumble_video, vk_video, tiktok_video,
+            // twitter_video).
+            'video' => [
+                [
+                    'key' => 'cinema_strip',
+                    'name' => 'Cinema Strip',
+                    'tags' => ['dark', 'editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#000000',
+                        'border_style' => 'solid', 'border_width' => '8', 'border_color' => '#000000',
+                        'border_radius' => '4', 'shadow_preset' => 'medium',
+                        'text_color' => '#fafaf9', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => '#000', 'text' => '#fafaf9', 'radius' => 4, 'border' => '#000'],
+                ],
+                [
+                    'key' => 'crt_screen',
+                    'name' => 'CRT Screen',
+                    'tags' => ['retro', 'y2k', 'dark'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a14',
+                        'border_style' => 'solid', 'border_width' => '6', 'border_color' => '#1f2937',
+                        'border_radius' => '24', 'shadow_type' => 'neon',
+                        'shadow_color' => '#22d3ee66', 'shadow_blur' => 28,
+                        'text_color' => '#86efac', 'padding' => '6',
+                        'font_family' => 'JetBrains Mono',
+                    ],
+                    'preview' => ['bg' => '#0a0a14', 'text' => '#86efac', 'radius' => 24, 'border' => '#1f2937'],
+                ],
+                [
+                    'key' => 'broadcast_card',
+                    'name' => 'Broadcast Card',
+                    'tags' => ['corporate', 'pro', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#1e293b',
+                        'border_radius' => '10', 'shadow_preset' => 'soft',
+                        'text_color' => '#f1f5f9', 'padding' => '12',
+                    ],
+                    'preview' => ['bg' => '#0f172a', 'text' => '#f1f5f9', 'radius' => 10, 'border' => '#1e293b'],
+                ],
+            ],
+
+            // Embeds (iframe_embed, custom_html, facebook_post, reddit_post,
+            // telegram_post, discord_server, instagram_media, latest_instagram,
+            // twitter_tweet, twitter_profile, pinterest_profile, snapchat,
+            // tiktok_profile).
+            'embed' => [
+                [
+                    'key' => 'window_chrome',
+                    'name' => 'Window Chrome',
+                    'tags' => ['corporate', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#d1d5db',
+                        'border_radius' => '10', 'shadow_preset' => 'medium',
+                        'text_color' => '#111827', 'padding' => '12',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 10, 'border' => '#d1d5db'],
+                ],
+                [
+                    'key' => 'terminal',
+                    'name' => 'Terminal',
+                    'tags' => ['dark', 'brutalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#020617',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#22c55e',
+                        'border_radius' => '6', 'shadow_type' => 'neon',
+                        'shadow_color' => '#22c55e55', 'shadow_blur' => 18,
+                        'text_color' => '#86efac', 'padding' => '14',
+                        'font_family' => 'JetBrains Mono',
+                    ],
+                    'preview' => ['bg' => '#020617', 'text' => '#86efac', 'radius' => 6, 'border' => '#22c55e'],
+                ],
+            ],
+
+            // Form-style blocks (form, contact_form, email_collector,
+            // email_subscribe, phone_collector, direct_message).
+            'form' => [
+                [
+                    'key' => 'paper_form',
+                    'name' => 'Paper Form',
+                    'tags' => ['minimal', 'corporate', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '8', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '20',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 8, 'border' => '#e5e7eb'],
+                ],
+                [
+                    'key' => 'pop_form',
+                    'name' => 'Pop Form',
+                    'tags' => ['bold', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fef3c7',
+                        'border_style' => 'solid', 'border_width' => '3', 'border_color' => '#7c2d12',
+                        'border_radius' => '18', 'shadow_type' => 'hard',
+                        'shadow_color' => '#7c2d12', 'shadow_x' => 5, 'shadow_y' => 5, 'shadow_blur' => 0,
+                        'text_color' => '#7c2d12', 'padding' => '20', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => '#fef3c7', 'text' => '#7c2d12', 'radius' => 18, 'border' => '#7c2d12', 'shadow' => '5px 5px 0 #7c2d12'],
+                ],
+                [
+                    'key' => 'glass_inbox',
+                    'name' => 'Glass Inbox',
+                    'tags' => ['glass', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff14',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff30',
+                        'border_radius' => '20', 'shadow_preset' => 'medium',
+                        'glass_preset' => 'heavy', 'effect' => 'glass', 'padding' => '22',
+                    ],
+                    'preview' => ['bg' => 'rgba(255,255,255,0.08)', 'text' => '#fff', 'radius' => 20, 'border' => '#ffffff40'],
+                ],
+            ],
+
+            // Galleries (image_grid, image_slider, image_slider_v2).
+            'gallery' => [
+                [
+                    'key' => 'contact_sheet',
+                    'name' => 'Contact Sheet',
+                    'tags' => ['editorial', 'retro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1c1917',
+                        'border_style' => 'solid', 'border_width' => '6', 'border_color' => '#1c1917',
+                        'border_radius' => '4', 'shadow_preset' => 'medium',
+                        'text_color' => '#fafaf9', 'padding' => '6',
+                    ],
+                    'preview' => ['bg' => '#1c1917', 'text' => '#fafaf9', 'radius' => 4, 'border' => '#1c1917'],
+                ],
+                [
+                    'key' => 'maximalist_collage',
+                    'name' => 'Maximalist Collage',
+                    'tags' => ['maximalist', 'bold', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fb7185',
+                        'border_style' => 'solid', 'border_width' => '4', 'border_color' => '#facc15',
+                        'border_radius' => '20', 'shadow_type' => 'hard',
+                        'shadow_color' => '#7c3aed', 'shadow_x' => 6, 'shadow_y' => 6, 'shadow_blur' => 0,
+                        'text_color' => '#1e1b4b', 'padding' => '14', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#fb7185,#facc15,#22d3ee)', 'text' => '#1e1b4b', 'radius' => 20, 'border' => '#facc15'],
+                ],
+            ],
+
+            // Music players (spotify, apple_music, soundcloud, tidal,
+            // mixcloud, anchor_fm, audio).
+            'music' => [
+                [
+                    'key' => 'vinyl',
+                    'name' => 'Vinyl',
+                    'tags' => ['retro', 'three_d'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a0a',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#27272a',
+                        'border_radius' => '999', 'shadow_type' => 'soft',
+                        'shadow_color' => '#00000099', 'shadow_y' => 10, 'shadow_blur' => 24,
+                        'text_color' => '#fafaf9', 'padding' => '16',
+                    ],
+                    'preview' => ['bg' => '#0a0a0a', 'text' => '#fafaf9', 'radius' => 999, 'border' => '#27272a'],
+                ],
+                [
+                    'key' => 'cassette',
+                    'name' => 'Cassette',
+                    'tags' => ['y2k', 'retro', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fbbf24',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#7c2d12',
+                        'border_radius' => '6', 'shadow_type' => 'hard',
+                        'shadow_color' => '#7c2d12', 'shadow_x' => 4, 'shadow_y' => 4, 'shadow_blur' => 0,
+                        'text_color' => '#7c2d12', 'padding' => '14', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => '#fbbf24', 'text' => '#7c2d12', 'radius' => 6, 'border' => '#7c2d12', 'shadow' => '4px 4px 0 #7c2d12'],
+                ],
+                [
+                    'key' => 'studio_dark',
+                    'name' => 'Studio Dark',
+                    'tags' => ['dark', 'pro', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#1e293b',
+                        'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#cbd5e1', 'padding' => '14',
+                    ],
+                    'preview' => ['bg' => '#0f172a', 'text' => '#cbd5e1', 'radius' => 14, 'border' => '#1e293b'],
+                ],
+            ],
+
+            // Calendar / booking (calendly, calendly_embed).
+            'calendar' => [
+                [
+                    'key' => 'agenda_card',
+                    'name' => 'Agenda Card',
+                    'tags' => ['corporate', 'minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '10', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '18',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 10, 'border' => '#e5e7eb'],
+                ],
+                [
+                    'key' => 'studio_booking',
+                    'name' => 'Studio Booking',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0c0a09',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#292524',
+                        'border_radius' => '6', 'shadow_preset' => 'medium',
+                        'text_color' => '#fafaf9', 'padding' => '20',
+                        'font_family' => 'Playfair Display',
+                    ],
+                    'preview' => ['bg' => '#0c0a09', 'text' => '#fafaf9', 'radius' => 6, 'border' => '#292524', 'serif' => true],
+                ],
+            ],
+
+            // Tip jar / fan support (donation, buy_me_coffee, patreon, ko_fi,
+            // paypal).
+            'tip' => [
+                [
+                    'key' => 'tip_jar',
+                    'name' => 'Tip Jar',
+                    'tags' => ['playful', 'retro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fef3c7',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#b45309',
+                        'border_radius' => '18', 'shadow_type' => 'soft',
+                        'shadow_color' => '#b4530933', 'shadow_y' => 6, 'shadow_blur' => 16,
+                        'text_color' => '#7c2d12', 'padding' => '16', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => '#fef3c7', 'text' => '#7c2d12', 'radius' => 18, 'border' => '#b45309'],
+                ],
+            ],
+
+            // Storefront / catalog (product, service, catalog, market, price).
+            'commerce' => [
+                [
+                    'key' => 'boutique_tag',
+                    'name' => 'Boutique Tag',
+                    'tags' => ['editorial', 'pro', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fafaf9',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#d6d3d1',
+                        'border_radius' => '4', 'shadow_preset' => 'soft',
+                        'text_color' => '#1c1917', 'padding' => '16',
+                        'font_family' => 'Playfair Display',
+                    ],
+                    'preview' => ['bg' => '#fafaf9', 'text' => '#1c1917', 'radius' => 4, 'border' => '#d6d3d1', 'serif' => true],
+                ],
+                [
+                    'key' => 'maximalist_card',
+                    'name' => 'Maximalist Card',
+                    'tags' => ['maximalist', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#7c3aed',
+                        'border_style' => 'solid', 'border_width' => '3', 'border_color' => '#facc15',
+                        'border_radius' => '22', 'shadow_type' => 'hard',
+                        'shadow_color' => '#ec4899', 'shadow_x' => 6, 'shadow_y' => 6, 'shadow_blur' => 0,
+                        'text_color' => '#fef3c7', 'padding' => '18', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#7c3aed,#ec4899)', 'text' => '#fef3c7', 'radius' => 22, 'border' => '#facc15'],
+                ],
+            ],
+
+            // Timeline / roadmap (timeline, timeline_staged, roadmap).
+            'timeline' => [
+                [
+                    'key' => 'milestone_rail',
+                    'name' => 'Milestone Rail',
+                    'tags' => ['corporate', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff08',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff20',
+                        'border_radius' => '10', 'shadow_preset' => 'soft',
+                        'text_color' => '#f1f5f9', 'padding' => '18',
+                    ],
+                    'preview' => ['bg' => 'rgba(255,255,255,0.04)', 'text' => '#f1f5f9', 'radius' => 10, 'border' => '#ffffff30'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Per-type extras. Keys are block types; values are the bundle ids
+     * (resolved via bundles() above) plus optional inline one-offs that
+     * are truly type-specific (polaroid for image, neon ticket for
+     * coupon). One block type can pull from several bundles.
+     */
+    private static function typeBundleMap(): array
+    {
+        return [
+            // Links / CTAs.
+            'link'             => ['link_actions'],
+            'link_big'         => ['link_actions', 'headings'],
+            'featured_pin'     => ['link_actions'],
+            'cta_button'       => ['link_actions'],
+            'external_item'    => ['link_actions'],
+
+            // Headings.
+            'heading'          => ['headings'],
+            'heading_logo'     => ['headings'],
+            'verified_heading' => ['headings'],
+
+            // Body text / lists / markdown.
+            'paragraph'        => ['body_text'],
+            'paragraph_rich'   => ['body_text'],
+            'markdown'         => ['body_text'],
+            'list'             => ['body_text'],
+            'list_numbered'    => ['body_text'],
+            'list_pricing'     => ['body_text', 'commerce'],
+
+            // Social rows / embeds.
+            'socials'          => ['socials'],
+            'socials_multi'    => ['socials'],
+            'socials_custom'   => ['socials'],
+            'instagram_media'  => ['embed', 'socials'],
+            'latest_instagram' => ['embed', 'socials'],
+            'tiktok_profile'   => ['embed', 'socials'],
+            'twitter_profile'  => ['embed', 'socials'],
+            'pinterest_profile'=> ['embed', 'socials'],
+            'snapchat'         => ['embed', 'socials'],
+            'twitter_tweet'    => ['embed'],
+
+            // Video.
+            'video'            => ['video'],
+            'header_video'     => ['video'],
+            'youtube'          => ['video'],
+            'youtube_feed'     => ['video'],
+            'latest_youtube'   => ['video'],
+            'vimeo'            => ['video'],
+            'twitch'           => ['video'],
+            'kick'             => ['video'],
+            'rumble_video'     => ['video'],
+            'vk_video'         => ['video'],
+            'tiktok_video'     => ['video'],
+            'twitter_video'    => ['video'],
+
+            // Embeds / integrations / iframes.
+            'iframe_embed'     => ['embed'],
+            'custom_html'      => ['embed'],
+            'facebook_post'    => ['embed'],
+            'reddit_post'      => ['embed'],
+            'telegram_post'    => ['embed'],
+            'discord_server'   => ['embed'],
+
+            // Forms / lead capture.
+            'form'                       => ['form'],
+            'contact_form'               => ['form'],
+            'email_collector'            => ['form'],
+            'email_subscribe'            => ['form'],
+            'phone_collector'            => ['form'],
+            'direct_message'             => ['form'],
+            'whatsapp_widget'            => ['form'],
+            'whatsapp_channel_subscribe' => ['form'],
+            'whatsapp_number_subscribe'  => ['form'],
+            'typeform'                   => ['form', 'embed'],
+
+            // Galleries.
+            'image_grid'       => ['gallery'],
+            'image_slider'     => ['gallery'],
+            'image_slider_v2'  => ['gallery'],
+
+            // Music / audio.
+            'spotify'          => ['music'],
+            'apple_music'      => ['music'],
+            'soundcloud'       => ['music'],
+            'tidal'            => ['music'],
+            'mixcloud'         => ['music'],
+            'anchor_fm'        => ['music'],
+            'audio'            => ['music'],
+
+            // Calendar / booking.
+            'calendly'         => ['calendar'],
+            'calendly_embed'   => ['calendar'],
+
+            // Tip / support.
+            'donation'         => ['tip'],
+            'buy_me_coffee'    => ['tip'],
+            'patreon'          => ['tip'],
+            'ko_fi'            => ['tip'],
+            'paypal'           => ['tip', 'form'],
+
+            // Commerce / catalog.
+            'product'          => ['commerce'],
+            'service'          => ['commerce'],
+            'catalog'          => ['commerce'],
+            'market'           => ['commerce'],
+            'price'            => ['commerce'],
+
+            // Timeline / roadmap.
+            'timeline'         => ['timeline'],
+            'timeline_staged'  => ['timeline'],
+            'roadmap'          => ['timeline'],
+        ];
+    }
+
+    /**
+     * Per-type one-off extras kept for backwards compatibility with
+     * already-saved blocks that picked these keys before bundles
+     * existed. Renaming or removing any of these keys would orphan
+     * those blocks (they'd silently fall back to "Custom"), so prefer
+     * adding new looks via bundles() instead.
+     */
+    private static function typeOneOffs(): array
     {
         return [
             'image' => [
@@ -237,6 +807,19 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => '#fff', 'text' => '#000', 'radius' => 6, 'shadow' => '0 8px 22px #00000044'],
                 ],
+                [
+                    'key' => 'magazine_cutout',
+                    'name' => 'Magazine Cutout',
+                    'tags' => ['maximalist', 'editorial', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '4', 'border_color' => '#facc15',
+                        'border_radius' => '0', 'shadow_type' => 'hard',
+                        'shadow_color' => '#000000', 'shadow_x' => 6, 'shadow_y' => 6, 'shadow_blur' => 0,
+                        'padding' => '6',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#000', 'radius' => 0, 'border' => '#facc15', 'shadow' => '6px 6px 0 #000'],
+                ],
             ],
             'avatar' => [
                 [
@@ -250,6 +833,17 @@ class BlockVariantCatalog
                         'shadow_color' => '#a78bfa80', 'shadow_blur' => 30,
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#a78bfa', 'radius' => 999, 'border' => '#a78bfa'],
+                ],
+                [
+                    'key' => 'mono_frame',
+                    'name' => 'Mono Frame',
+                    'tags' => ['corporate', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#e5e7eb',
+                        'border_radius' => '999', 'shadow_preset' => 'soft',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 999, 'border' => '#e5e7eb'],
                 ],
             ],
             'product' => [
@@ -281,6 +875,19 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => '#0a0a14', 'text' => '#67e8f9', 'radius' => 12, 'border' => '#22d3ee', 'dashed' => true],
                 ],
+                [
+                    'key' => 'y2k_voucher',
+                    'name' => 'Y2K Voucher',
+                    'tags' => ['y2k', 'retro', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#a5f3fc',
+                        'border_style' => 'dashed', 'border_width' => '2', 'border_color' => '#7c3aed',
+                        'border_radius' => '14', 'shadow_type' => 'hard',
+                        'shadow_color' => '#ec4899', 'shadow_x' => 4, 'shadow_y' => 4, 'shadow_blur' => 0,
+                        'text_color' => '#581c87', 'padding' => '14', 'font_weight' => '700',
+                    ],
+                    'preview' => ['bg' => '#a5f3fc', 'text' => '#581c87', 'radius' => 14, 'border' => '#7c3aed', 'dashed' => true],
+                ],
             ],
             'testimonials' => [
                 [
@@ -296,6 +903,19 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => '#1e1b4b', 'text' => '#e0e7ff', 'radius' => 20, 'serif' => true],
                 ],
+                [
+                    'key' => 'sticky_quote',
+                    'name' => 'Sticky Quote',
+                    'tags' => ['handwritten', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fef08a',
+                        'border_style' => 'none', 'border_radius' => '4',
+                        'shadow_type' => 'soft', 'shadow_color' => '#92400e55',
+                        'shadow_y' => 6, 'shadow_blur' => 14,
+                        'text_color' => '#422006', 'padding' => '18', 'font_family' => 'Caveat',
+                    ],
+                    'preview' => ['bg' => '#fef08a', 'text' => '#422006', 'radius' => 4],
+                ],
             ],
             'faq' => [
                 [
@@ -309,6 +929,32 @@ class BlockVariantCatalog
                         'text_color' => '#1c1917', 'padding' => '18',
                     ],
                     'preview' => ['bg' => '#fafaf9', 'text' => '#1c1917', 'radius' => 12, 'border' => '#e7e5e4'],
+                ],
+                [
+                    'key' => 'corporate_qa',
+                    'name' => 'Corporate Q&A',
+                    'tags' => ['corporate', 'minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#d1d5db',
+                        'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#111827', 'padding' => '16',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 6, 'border' => '#d1d5db'],
+                ],
+            ],
+            'faq_v2' => [
+                [
+                    'key' => 'corporate_qa',
+                    'name' => 'Corporate Q&A',
+                    'tags' => ['corporate', 'minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#d1d5db',
+                        'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#111827', 'padding' => '16',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 6, 'border' => '#d1d5db'],
                 ],
             ],
             'countdown' => [
@@ -324,6 +970,19 @@ class BlockVariantCatalog
                         'text_color' => '#fbbf24', 'padding' => '16', 'font_family' => 'JetBrains Mono',
                     ],
                     'preview' => ['bg' => '#0a0a0a', 'text' => '#fbbf24', 'radius' => 8, 'border' => '#27272a'],
+                ],
+                [
+                    'key' => 'pixel_clock',
+                    'name' => 'Pixel Clock',
+                    'tags' => ['y2k', 'retro', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#22d3ee',
+                        'border_radius' => '4', 'shadow_type' => 'neon',
+                        'shadow_color' => '#22d3ee99', 'shadow_blur' => 18,
+                        'text_color' => '#a5f3fc', 'padding' => '14', 'font_family' => 'JetBrains Mono',
+                    ],
+                    'preview' => ['bg' => '#0f172a', 'text' => '#a5f3fc', 'radius' => 4, 'border' => '#22d3ee'],
                 ],
             ],
             'cta_button' => [
@@ -347,13 +1006,35 @@ class BlockVariantCatalog
     /**
      * Returns the variants that should be offered for the given block type.
      * Common variants always come first, followed by any type-specific
-     * extras. Order is stable so the gallery doesn't shuffle on save.
+     * extras (bundles + one-offs). Order is stable so the gallery doesn't
+     * shuffle on save. Variant keys are de-duplicated by first occurrence
+     * so a variant a block has already saved can never be hidden by a
+     * later bundle that happens to ship the same key.
      */
     public static function forType(string $type): array
     {
         $variants = self::commonVariants();
-        $extras = self::typeExtras()[$type] ?? [];
-        return array_merge($variants, $extras);
+
+        $bundles = self::bundles();
+        $bundleIds = self::typeBundleMap()[$type] ?? [];
+        foreach ($bundleIds as $bundleId) {
+            foreach (($bundles[$bundleId] ?? []) as $v) {
+                $variants[] = $v;
+            }
+        }
+
+        foreach ((self::typeOneOffs()[$type] ?? []) as $v) {
+            $variants[] = $v;
+        }
+
+        $seen = [];
+        $unique = [];
+        foreach ($variants as $v) {
+            if (isset($seen[$v['key']])) continue;
+            $seen[$v['key']] = true;
+            $unique[] = $v;
+        }
+        return $unique;
     }
 
     public static function find(string $type, string $key): ?array
