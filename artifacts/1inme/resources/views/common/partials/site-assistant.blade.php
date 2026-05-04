@@ -3,11 +3,13 @@
     Surface is auto-detected by the controller based on auth state.
     Renders nothing if the assistant is disabled for this surface.
 --}}
-@php($__sa_surface = $surface ?? (auth()->check() ? 'app' : 'marketing'))
-@php($__sa_cfg = \App\Services\AI\SiteAssistantSettings::get())
-@php($__sa_route_name = optional(\Illuminate\Support\Facades\Route::current())->getName())
-@php($__sa_path = '/' . ltrim(request()->path() === '/' ? '' : request()->path(), '/'))
-@php($__sa_route_hint = \App\Modules\Common\Models\SiteAssistantPageHint::resolve($__sa_route_name, $__sa_path, $__sa_surface))
+@php
+    $__sa_surface = $surface ?? (auth()->check() ? 'app' : 'marketing');
+    $__sa_cfg = \App\Services\AI\SiteAssistantSettings::get();
+    $__sa_route_name = optional(\Illuminate\Support\Facades\Route::current())->getName();
+    $__sa_path = '/' . ltrim(request()->path() === '/' ? '' : request()->path(), '/');
+    $__sa_route_hint = \App\Modules\Common\Models\SiteAssistantPageHint::resolve($__sa_route_name, $__sa_path, $__sa_surface);
+@endphp
 @if(\App\Services\AI\SiteAssistantSettings::isEnabledFor($__sa_surface) && !($__sa_route_hint && $__sa_route_hint->disable_widget))
 <div id="site-assistant-root"
      data-surface="{{ $__sa_surface }}"
