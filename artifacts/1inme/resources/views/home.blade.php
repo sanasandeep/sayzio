@@ -2450,1289 +2450,63 @@
 @include('public.partials.auth-modal')
 </div>
 
-{{-- ============================ HERO ============================ --}}
-@php
-    // Shared category-tagged thumbnail pool, reused across roles.
-    $galleryPool = [
-        ['src' => '/images/hero-roles/thumb_youtube.jpg', 'category' => 'Video',   'alt' => 'Latest video'],
-        ['src' => '/images/hero-roles/thumb_artwork.jpg', 'category' => 'Art',     'alt' => 'Artwork'],
-        ['src' => '/images/hero-roles/thumb_album.jpg',   'category' => 'Music',   'alt' => 'Album cover'],
-        ['src' => '/images/hero-roles/thumb_merch.jpg',   'category' => 'Merch',   'alt' => 'Merch drop'],
-        ['src' => '/images/hero-roles/thumb_photo.jpg',   'category' => 'Photo',   'alt' => 'Photo print'],
-        ['src' => '/images/hero-roles/thumb_podcast.jpg', 'category' => 'Podcast', 'alt' => 'Podcast cover'],
-        ['src' => '/images/hero-roles/thumb_writing.jpg', 'category' => 'Writing', 'alt' => 'Latest essay'],
-        ['src' => '/images/hero-roles/thumb_food.jpg',    'category' => 'Food',    'alt' => 'Recipe of the week'],
-        ['src' => '/images/hero-roles/thumb_fitness.jpg', 'category' => 'Fitness', 'alt' => 'Workout plan'],
-        ['src' => '/images/hero-roles/thumb_design.jpg',  'category' => 'Design',  'alt' => 'Design case study'],
-        ['src' => '/images/hero-roles/thumb_code.jpg',    'category' => 'Code',    'alt' => 'Open source project'],
-        ['src' => '/images/hero-roles/thumb_stream.jpg',  'category' => 'Stream',  'alt' => 'Live stream'],
-        ['src' => '/images/hero-roles/thumb_course.jpg',  'category' => 'Course',  'alt' => 'Online course'],
-        ['src' => '/images/hero-roles/thumb_book.jpg',    'category' => 'Book',    'alt' => 'Latest book'],
-        ['src' => '/images/hero-roles/thumb_travel.jpg',  'category' => 'Travel',  'alt' => 'Travel guide'],
-    ];
-
-    $heroRoles = [
-        [
-            'word' => 'Creator',
-            'theme' => 'creator',
-            'wallpaper' => 'linear-gradient(140deg,#7c3aed 0%,#e94e8c 60%,#ff8a3c 100%)',
-            'tint' => '#7c3aed',
-            'categories' => ['Video','Merch','Photo','Music','Art','Podcast'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_creator.jpg', 'handle' => '@jamie.creates', 'tag' => 'Storyteller · 24.1k followers', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-x-twitter']],
-            'blocks' => [
-                ['icon' => 'fas fa-video',             'color' => '#ff5252', 'title' => 'Latest video',       'sub' => 'New drop · 2 days ago',   'thumb' => '/images/hero-roles/thumb_youtube.jpg'],
-                ['icon' => 'fas fa-envelope-open-text','color' => '#7c3aed', 'title' => 'Join the newsletter','sub' => 'Weekly · 12k subs'],
-                ['icon' => 'fas fa-store',             'color' => '#ff8a3c', 'title' => 'Shop merch',         'sub' => 'New tees in stock',       'thumb' => '/images/hero-roles/thumb_merch.jpg'],
-            ],
-        ],
-        [
-            'word' => 'Artist',
-            'theme' => 'gallery',
-            'wallpaper' => 'linear-gradient(140deg,#e94e8c 0%,#ff8a3c 55%,#ffc845 100%)',
-            'tint' => '#e94e8c',
-            'categories' => ['Art','Photo','Merch','Music','Video','Podcast'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_artist.jpg', 'handle' => '@aria.studio', 'tag' => 'Mixed-media artist · Berlin', 'socials' => ['fa-instagram','fa-pinterest','fa-behance','fa-tiktok']],
-            'blocks' => [
-                ['icon' => 'fas fa-images',             'color' => '#e94e8c', 'title' => 'Latest collection', 'sub' => 'Petals & Concrete · 12 pcs', 'thumb' => '/images/hero-roles/thumb_artwork.jpg'],
-                ['icon' => 'fab fa-spotify',            'color' => '#1ed760', 'title' => 'Studio playlist',   'sub' => '4hr ambient mix'],
-                ['icon' => 'fas fa-hand-holding-heart', 'color' => '#ff8a3c', 'title' => 'Tip jar',           'sub' => 'Buy me a coffee'],
-            ],
-        ],
-        [
-            'word' => 'Businessman',
-            'theme' => 'business',
-            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#7c3aed 100%)',
-            'tint' => '#1bd4d9',
-            'categories' => ['Photo','Video','Podcast','Merch','Art','Music'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_business.jpg', 'handle' => '@marcus.solutions', 'tag' => 'Founder · B2B Consulting', 'socials' => ['fa-linkedin','fa-x-twitter','fa-medium','fa-youtube']],
-            'blocks' => [
-                ['icon' => 'fas fa-concierge-bell', 'color' => '#7c3aed', 'title' => 'Services & pricing', 'sub' => 'Strategy · Audits · Retainers'],
-                ['icon' => 'fas fa-calendar-check', 'color' => '#1bd4d9', 'title' => 'Book a call',        'sub' => '30 min · Calendly'],
-                ['icon' => 'fas fa-paper-plane',    'color' => '#ff8a3c', 'title' => 'Get a quote',        'sub' => 'Reply within 24h'],
-            ],
-        ],
-        [
-            'word' => 'Musician',
-            'theme' => 'music',
-            'wallpaper' => 'linear-gradient(140deg,#0f3a2a 0%,#1ed760 55%,#1bd4d9 100%)',
-            'tint' => '#1ed760',
-            'categories' => ['Music','Merch','Video','Podcast','Art','Photo'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_musician.jpg', 'handle' => '@luna.live', 'tag' => 'Indie pop · New EP out now', 'socials' => ['fa-spotify','fa-apple','fa-youtube','fa-instagram']],
-            'blocks' => [
-                ['icon' => 'fab fa-spotify',     'color' => '#1ed760', 'title' => 'New EP — Saltwater', 'sub' => '5 tracks · Listen now', 'thumb' => '/images/hero-roles/thumb_album.jpg'],
-                ['icon' => 'fas fa-ticket-alt',  'color' => '#e94e8c', 'title' => 'Tour 2026',          'sub' => '12 cities · Tickets live'],
-                ['icon' => 'fas fa-store',       'color' => '#ffc845', 'title' => 'Vinyl & tees',       'sub' => 'Limited drop',          'thumb' => '/images/hero-roles/thumb_merch.jpg'],
-            ],
-        ],
-        [
-            'word' => 'Coach',
-            'theme' => 'coach',
-            'wallpaper' => 'linear-gradient(140deg,#1bd4d9 0%,#7c3aed 60%,#ffc845 100%)',
-            'tint' => '#1bd4d9',
-            'categories' => ['Video','Photo','Podcast','Music','Merch','Art'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_coach.jpg', 'handle' => '@coach.kai', 'tag' => 'Strength coach · 1:1 + group', 'socials' => ['fa-instagram','fa-tiktok','fa-youtube','fa-spotify']],
-            'blocks' => [
-                ['icon' => 'fas fa-calendar-check',  'color' => '#1bd4d9', 'title' => 'Book a session',     'sub' => '45 min consult'],
-                ['icon' => 'fas fa-quote-right',     'color' => '#7c3aed', 'title' => 'Wins from clients',  'sub' => '140+ five-star reviews'],
-                ['icon' => 'fas fa-clipboard-list',  'color' => '#ff8a3c', 'title' => 'Free intake form',   'sub' => '2 minutes · No fluff'],
-            ],
-        ],
-        [
-            'word' => 'Photographer',
-            'theme' => 'portfolio',
-            'wallpaper' => 'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#7c3aed 100%)',
-            'tint' => '#1bd4d9',
-            'categories' => ['Photo','Art','Merch','Video','Music','Podcast'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_photographer.jpg', 'handle' => '@iris.frames', 'tag' => 'Travel & landscape · Iceland', 'socials' => ['fa-instagram','fa-pinterest','fa-flickr','fa-x-twitter']],
-            'blocks' => [
-                ['icon' => 'fas fa-th',            'color' => '#1bd4d9', 'title' => 'Portfolio · 2026', 'sub' => '48 photos',         'thumb' => '/images/hero-roles/thumb_photo.jpg'],
-                ['icon' => 'fas fa-shopping-bag',  'color' => '#ff8a3c', 'title' => 'Print shop',       'sub' => 'A2 / A3 / canvas'],
-                ['icon' => 'fas fa-paper-plane',   'color' => '#e94e8c', 'title' => 'Hire me',          'sub' => 'Weddings · Brand'],
-            ],
-        ],
-        [
-            'word' => 'Influencer',
-            'theme' => 'social',
-            'wallpaper' => 'linear-gradient(140deg,#e94e8c 0%,#7c3aed 50%,#ffc845 100%)',
-            'tint' => '#e94e8c',
-            'categories' => ['Video','Photo','Merch','Music','Art','Podcast'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_influencer.jpg', 'handle' => '@maya.daily', 'tag' => 'Lifestyle · 480k across socials', 'socials' => ['fa-instagram','fa-tiktok','fa-youtube','fa-snapchat']],
-            'blocks' => [
-                ['icon' => 'fab fa-instagram', 'color' => '#e94e8c', 'title' => 'Latest reel',     'sub' => 'Spring haul'],
-                ['icon' => 'fab fa-tiktok',    'color' => '#1bd4d9', 'title' => 'Trending today',  'sub' => '2.1M views'],
-                ['icon' => 'fas fa-handshake', 'color' => '#ffc845', 'title' => 'Brand deals',     'sub' => 'Press kit · Rates'],
-            ],
-        ],
-        [
-            'word' => 'Podcaster',
-            'theme' => 'podcast',
-            'wallpaper' => 'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#7c3aed 100%)',
-            'tint' => '#ff8a3c',
-            'categories' => ['Podcast','Music','Video','Art','Merch','Photo'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_podcaster.jpg', 'handle' => '@theo.talks', 'tag' => 'Weekly tech & culture', 'socials' => ['fa-spotify','fa-apple','fa-youtube','fa-x-twitter']],
-            'blocks' => [
-                ['icon' => 'fab fa-apple',              'color' => '#ffffff', 'title' => 'Apple Podcasts',  'sub' => 'Ep. 87 · 42 min',     'thumb' => '/images/hero-roles/thumb_podcast.jpg'],
-                ['icon' => 'fab fa-spotify',            'color' => '#1ed760', 'title' => 'Spotify',         'sub' => 'Subscribe · 18k listeners'],
-                ['icon' => 'fas fa-envelope-open-text', 'color' => '#ff8a3c', 'title' => 'Show notes',      'sub' => 'Newsletter every Friday'],
-            ],
-        ],
-        [
-            'word' => 'Writer',
-            'theme' => 'creator',
-            'wallpaper' => 'linear-gradient(140deg,#1e1b4b 0%,#7c3aed 55%,#ec4899 100%)',
-            'tint' => '#a855f7',
-            'categories' => ['Writing','Book','Podcast','Video','Art','Photo'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_writer.jpg', 'handle' => '@nora.writes', 'tag' => 'Essayist · Substack 18k', 'socials' => ['fa-substack','fa-medium','fa-x-twitter','fa-instagram']],
-            'blocks' => [
-                ['icon' => 'fas fa-feather',            'color' => '#a855f7', 'title' => 'New essay',         'sub' => 'On slow internet · 12 min', 'thumb' => '/images/hero-roles/thumb_writing.jpg'],
-                ['icon' => 'fas fa-envelope-open-text', 'color' => '#7c3aed', 'title' => 'Subscribe free',    'sub' => 'Weekly long reads'],
-                ['icon' => 'fas fa-book-open',          'color' => '#ffc845', 'title' => 'Buy the book',      'sub' => 'Quiet Signals · paperback', 'thumb' => '/images/hero-roles/thumb_book.jpg'],
-            ],
-        ],
-        [
-            'word' => 'Chef',
-            'theme' => 'creator',
-            'wallpaper' => 'linear-gradient(140deg,#7c2d12 0%,#fb923c 55%,#fde047 100%)',
-            'tint' => '#fb923c',
-            'categories' => ['Food','Video','Photo','Course','Merch','Podcast'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_chef.jpg', 'handle' => '@chef.remi', 'tag' => 'Recipes · Pop-ups · Cookbook', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-pinterest']],
-            'blocks' => [
-                ['icon' => 'fas fa-utensils',           'color' => '#fb923c', 'title' => 'Recipe of the week', 'sub' => '20-min weeknight pasta',  'thumb' => '/images/hero-roles/thumb_food.jpg'],
-                ['icon' => 'fas fa-graduation-cap',     'color' => '#7c3aed', 'title' => 'Knife skills course','sub' => '6 lessons · self-paced',  'thumb' => '/images/hero-roles/thumb_course.jpg'],
-                ['icon' => 'fas fa-store',              'color' => '#ff8a3c', 'title' => 'Shop the spice kit', 'sub' => 'Limited drop',           'thumb' => '/images/hero-roles/thumb_merch.jpg'],
-            ],
-        ],
-        [
-            'word' => 'Yogi',
-            'theme' => 'coach',
-            'wallpaper' => 'linear-gradient(140deg,#064e3b 0%,#10b981 55%,#fde047 100%)',
-            'tint' => '#10b981',
-            'categories' => ['Fitness','Video','Course','Podcast','Photo','Music'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_fitness.jpg', 'handle' => '@yoga.with.sage', 'tag' => 'Yoga & breathwork · Online + Bali', 'socials' => ['fa-youtube','fa-instagram','fa-spotify','fa-tiktok']],
-            'blocks' => [
-                ['icon' => 'fas fa-dumbbell',           'color' => '#10b981', 'title' => '30-day flow',        'sub' => 'Daily 20-min sessions',   'thumb' => '/images/hero-roles/thumb_fitness.jpg'],
-                ['icon' => 'fas fa-calendar-check',     'color' => '#1bd4d9', 'title' => 'Book a 1:1',         'sub' => '60 min · Zoom or Bali'],
-                ['icon' => 'fas fa-graduation-cap',     'color' => '#7c3aed', 'title' => 'Teacher training',   'sub' => '200hr · Cohort 6 open',   'thumb' => '/images/hero-roles/thumb_course.jpg'],
-            ],
-        ],
-        [
-            'word' => 'Designer',
-            'theme' => 'gallery',
-            'wallpaper' => 'linear-gradient(140deg,#312e81 0%,#ec4899 55%,#fbbf24 100%)',
-            'tint' => '#ec4899',
-            'categories' => ['Design','Art','Photo','Merch','Video','Course'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_designer.jpg', 'handle' => '@studio.kova', 'tag' => 'Brand & product designer · Lisbon', 'socials' => ['fa-dribbble','fa-behance','fa-instagram','fa-linkedin']],
-            'blocks' => [
-                ['icon' => 'fas fa-pen-ruler',          'color' => '#ec4899', 'title' => 'Selected work',     'sub' => '14 case studies',         'thumb' => '/images/hero-roles/thumb_design.jpg'],
-                ['icon' => 'fas fa-paper-plane',        'color' => '#7c3aed', 'title' => 'Hire the studio',   'sub' => 'Brand · Web · Product'],
-                ['icon' => 'fas fa-store',              'color' => '#ffc845', 'title' => 'Template shop',     'sub' => 'Figma kits · ready to ship'],
-            ],
-        ],
-        [
-            'word' => 'Developer',
-            'theme' => 'creator',
-            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 55%,#7c3aed 100%)',
-            'tint' => '#1bd4d9',
-            'categories' => ['Code','Video','Course','Podcast','Writing','Design'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_developer.jpg', 'handle' => '@dev.with.kai', 'tag' => 'Open source · Indie hacker', 'socials' => ['fa-github','fa-x-twitter','fa-youtube','fa-linkedin']],
-            'blocks' => [
-                ['icon' => 'fas fa-code',               'color' => '#ffffff', 'title' => 'Open source',       'sub' => '8.4k ★ · TypeScript',     'thumb' => '/images/hero-roles/thumb_code.jpg'],
-                ['icon' => 'fas fa-graduation-cap',     'color' => '#1bd4d9', 'title' => 'Build with me',     'sub' => 'Course · 24 lessons',     'thumb' => '/images/hero-roles/thumb_course.jpg'],
-                ['icon' => 'fas fa-feather',            'color' => '#7c3aed', 'title' => 'Engineering blog',  'sub' => 'Weekly deep dives',       'thumb' => '/images/hero-roles/thumb_writing.jpg'],
-            ],
-        ],
-        [
-            'word' => 'Streamer',
-            'theme' => 'social',
-            'wallpaper' => 'linear-gradient(140deg,#3b0764 0%,#a855f7 55%,#ec4899 100%)',
-            'tint' => '#a855f7',
-            'categories' => ['Stream','Video','Merch','Music','Podcast','Photo'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_streamer.jpg', 'handle' => '@nyx.plays', 'tag' => 'Variety streamer · 92k Twitch', 'socials' => ['fa-twitch','fa-youtube','fa-discord','fa-x-twitter']],
-            'blocks' => [
-                ['icon' => 'fab fa-twitch',             'color' => '#a855f7', 'title' => 'Live now',          'sub' => 'Speedrun night · 1.2k watching', 'thumb' => '/images/hero-roles/thumb_stream.jpg'],
-                ['icon' => 'fab fa-discord',            'color' => '#5865f2', 'title' => 'Join the Discord',  'sub' => '14k members'],
-                ['icon' => 'fas fa-store',              'color' => '#ffc845', 'title' => 'Merch · Hoodies',   'sub' => 'New season drop',         'thumb' => '/images/hero-roles/thumb_merch.jpg'],
-            ],
-        ],
-        [
-            'word' => 'Educator',
-            'theme' => 'coach',
-            'wallpaper' => 'linear-gradient(140deg,#0c4a6e 0%,#38bdf8 55%,#7c3aed 100%)',
-            'tint' => '#38bdf8',
-            'categories' => ['Course','Video','Writing','Podcast','Book','Photo'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_educator.jpg', 'handle' => '@ms.alvarez', 'tag' => 'Tutor · SAT · Calculus · 1:1', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-linkedin']],
-            'blocks' => [
-                ['icon' => 'fas fa-graduation-cap',     'color' => '#38bdf8', 'title' => 'Live cohort',       'sub' => 'Spring intake open',      'thumb' => '/images/hero-roles/thumb_course.jpg'],
-                ['icon' => 'fas fa-calendar-check',     'color' => '#7c3aed', 'title' => 'Book a session',    'sub' => '50 min · Zoom'],
-                ['icon' => 'fas fa-clipboard-list',     'color' => '#ff8a3c', 'title' => 'Free practice pack','sub' => 'PDFs · Drills · Keys'],
-            ],
-        ],
-        [
-            'word' => 'Author',
-            'theme' => 'gallery',
-            'wallpaper' => 'linear-gradient(140deg,#451a03 0%,#f59e0b 55%,#ec4899 100%)',
-            'tint' => '#f59e0b',
-            'categories' => ['Book','Writing','Podcast','Video','Photo','Art'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_author.jpg', 'handle' => '@iain.morrow', 'tag' => 'Novelist · Quiet Signals out now', 'socials' => ['fa-goodreads','fa-instagram','fa-x-twitter','fa-medium']],
-            'blocks' => [
-                ['icon' => 'fas fa-book-open',          'color' => '#f59e0b', 'title' => 'Buy Quiet Signals', 'sub' => 'Hardcover · audiobook',   'thumb' => '/images/hero-roles/thumb_book.jpg'],
-                ['icon' => 'fas fa-feather',            'color' => '#7c3aed', 'title' => 'Read a chapter',    'sub' => 'Free preview'],
-                ['icon' => 'fas fa-calendar-check',     'color' => '#1bd4d9', 'title' => 'Tour & signings',   'sub' => '8 cities · Spring'],
-            ],
-        ],
-        [
-            'word' => 'Nonprofit',
-            'theme' => 'business',
-            'wallpaper' => 'linear-gradient(140deg,#064e3b 0%,#22c55e 55%,#1bd4d9 100%)',
-            'tint' => '#22c55e',
-            'categories' => ['Video','Photo','Writing','Podcast','Merch','Music'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_nonprofit.jpg', 'handle' => '@cleanwave.org', 'tag' => 'Ocean cleanup · 501(c)(3)', 'socials' => ['fa-instagram','fa-youtube','fa-linkedin','fa-x-twitter']],
-            'blocks' => [
-                ['icon' => 'fas fa-hand-holding-heart', 'color' => '#22c55e', 'title' => 'Donate today',      'sub' => 'Every $5 = 20 lbs cleaned'],
-                ['icon' => 'fas fa-people-group',       'color' => '#1bd4d9', 'title' => 'Volunteer',         'sub' => 'Beach cleanups · monthly'],
-                ['icon' => 'fas fa-chart-line',         'color' => '#7c3aed', 'title' => 'Impact report',     'sub' => '2025 · 8.4M lbs removed'],
-            ],
-        ],
-        [
-            'word' => 'Realtor',
-            'theme' => 'business',
-            'wallpaper' => 'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#ffc845 100%)',
-            'tint' => '#1bd4d9',
-            'categories' => ['Photo','Video','Writing','Podcast','Art','Merch'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_realtor.jpg', 'handle' => '@home.with.eli', 'tag' => 'Realtor® · Austin TX · 9 yrs', 'socials' => ['fa-instagram','fa-youtube','fa-linkedin','fa-tiktok']],
-            'blocks' => [
-                ['icon' => 'fas fa-house',              'color' => '#1bd4d9', 'title' => 'Featured listings', 'sub' => '12 active · Austin metro', 'thumb' => '/images/hero-roles/thumb_photo.jpg'],
-                ['icon' => 'fas fa-calendar-check',     'color' => '#7c3aed', 'title' => 'Book a tour',       'sub' => 'In-person or virtual'],
-                ['icon' => 'fas fa-calculator',         'color' => '#ff8a3c', 'title' => 'Free home valuation','sub' => '60-second estimate'],
-            ],
-        ],
-        [
-            'word' => 'Traveler',
-            'theme' => 'social',
-            'wallpaper' => 'linear-gradient(140deg,#0c4a6e 0%,#06b6d4 55%,#fde047 100%)',
-            'tint' => '#06b6d4',
-            'categories' => ['Travel','Photo','Video','Writing','Podcast','Course'],
-            'gallery' => $galleryPool,
-            'profile' => ['avatar' => '/images/hero-roles/role_travel.jpg', 'handle' => '@wander.with.io', 'tag' => 'Travel · 38 countries · Maps & guides', 'socials' => ['fa-instagram','fa-youtube','fa-tiktok','fa-pinterest']],
-            'blocks' => [
-                ['icon' => 'fas fa-plane',              'color' => '#06b6d4', 'title' => 'City guides',       'sub' => '12 cities · live maps',   'thumb' => '/images/hero-roles/thumb_travel.jpg'],
-                ['icon' => 'fas fa-camera',             'color' => '#ec4899', 'title' => 'Lightroom presets', 'sub' => 'Sun-soaked · Misty pack'],
-                ['icon' => 'fas fa-envelope-open-text', 'color' => '#ffc845', 'title' => 'Trip newsletter',   'sub' => 'Monthly · 24k readers'],
-            ],
-        ],
-    ];
-
-    // Visible block-type icons cluster shown in the hero.
-    $heroBlockIcons = [
-        ['i' => 'fas fa-store',              'c' => '#ff8a3c', 'l' => 'Merch'],
-        ['i' => 'fas fa-link',               'c' => '#1bd4d9', 'l' => 'Link'],
-        ['i' => 'fas fa-qrcode',             'c' => '#7c3aed', 'l' => 'QR'],
-        ['i' => 'fas fa-music',              'c' => '#e94e8c', 'l' => 'Music'],
-        ['i' => 'fas fa-video',              'c' => '#ffc845', 'l' => 'Video'],
-        ['i' => 'fas fa-image',              'c' => '#1bd4d9', 'l' => 'Image'],
-        ['i' => 'fas fa-microphone',         'c' => '#ff8a3c', 'l' => 'Podcast'],
-        ['i' => 'fas fa-calendar-check',     'c' => '#7c3aed', 'l' => 'Calendar'],
-        ['i' => 'fas fa-book-open',          'c' => '#f59e0b', 'l' => 'Book'],
-        ['i' => 'fas fa-graduation-cap',     'c' => '#38bdf8', 'l' => 'Course'],
-        ['i' => 'fas fa-utensils',           'c' => '#fb923c', 'l' => 'Recipe'],
-        ['i' => 'fas fa-feather',            'c' => '#a855f7', 'l' => 'Writing'],
-        ['i' => 'fas fa-code',               'c' => '#ffffff', 'l' => 'Code'],
-        ['i' => 'fas fa-dumbbell',           'c' => '#10b981', 'l' => 'Fitness'],
-        ['i' => 'fas fa-plane',              'c' => '#06b6d4', 'l' => 'Travel'],
-        ['i' => 'fas fa-house',              'c' => '#1bd4d9', 'l' => 'Listing'],
-        ['i' => 'fas fa-hand-holding-heart', 'c' => '#22c55e', 'l' => 'Donate'],
-    ];
-@endphp
-
-<section class="relative pt-28 pb-20 lg:pt-44 lg:pb-32 xl:pt-52 xl:pb-40 overflow-hidden" aria-labelledby="hero-h">
-    {{-- Drifting confetti --}}
-    <div class="confetti drift-a" style="left:8%;  bottom:-20vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c1)"></div></div>
-    <div class="confetti drift-b" style="left:18%; bottom:-30vh; animation-delay:-3s"><div class="w-2 h-6 rounded-full" style="background:var(--c3)"></div></div>
-    <div class="confetti drift-a" style="left:78%; bottom:-25vh; animation-delay:-6s"><div class="w-4 h-4 rounded-full" style="background:var(--c4)"></div></div>
-    <div class="confetti drift-b" style="left:88%; bottom:-15vh; animation-delay:-9s"><div class="w-3 h-3 rotate-45" style="background:var(--c5)"></div></div>
-
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div class="hero-grid grid grid-cols-1 gap-y-12 lg:grid-cols-[1.05fr_1fr] lg:gap-x-12 xl:gap-x-16 lg:items-center">
-            <div class="text-center lg:text-left lg:max-w-[600px]">
-                <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
-                    <span class="relative flex h-2 w-2">
-                        <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c1)"></span>
-                        <span class="ring-pulse" style="inset:0;background:var(--c1);"></span>
-                    </span>
-                    <span class="grad-text">All-in-one growth stack · Free Forever · Native mobile app</span>
-                </div>
-
-                <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-8">
-                    <span class="block">I am a</span>
-                    <span class="relative inline-block min-h-[1.1em]">
-                        <span id="hero-role-word" class="grad-text role-word">Creator</span>
-                        <svg class="absolute -bottom-3 left-0 w-full" height="14" viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true">
-                            <path class="draw-line" d="M2 9 Q 60 2, 110 8 T 218 6" stroke="url(#g)" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <defs><linearGradient id="g"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="50%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#ffc845"/></linearGradient></defs>
-                        </svg>
-                    </span>
-                    <span class="sr-only" aria-live="polite" aria-atomic="true" id="hero-role-sr">Creator</span>
-                </h1>
-
-                <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed">
-                    Whoever you are, 1INME is the <strong class="text-white">all-in-one</strong> link, monetization &amp; growth stack: drag-and-drop biolink pages, branded short links, dynamic QR codes, NFC tags, built-in DMs, an AI Performance Coach and a native mobile app — <strong class="text-white">free forever</strong>, no card required.
-                </p>
-
-                <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 justify-center lg:justify-start">
-                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
-                        Make mine free <i class="fas fa-arrow-right text-sm"></i>
-                    </button>
-                    <a href="#features" class="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-300 hover:text-white">
-                        See it live <i class="fas fa-arrow-right text-[11px]"></i>
-                    </a>
-                </div>
-
-                @php
-                    $__trustStripRaw = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_trust_strip', []);
-                    $__trustStrip = \App\Modules\Common\Support\SitePagesContent::normalizeTrustStrip($__trustStripRaw);
-                    if (empty($__trustStrip)) {
-                        $__trustStrip = \App\Modules\Common\Support\SitePagesContent::trustStripDefault();
-                    }
-                    $__trustColors = ['var(--c1)', 'var(--c3)', 'var(--c5)', 'var(--c2)', 'var(--c4)'];
-                @endphp
-                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
-                    @foreach($__trustStrip as $i => $__t)
-                        <span class="flex items-center gap-2 text-gray-400">
-                            <i class="fas {{ $__t['icon'] ?? 'fa-check' }} text-[13px]" style="color: {{ $__trustColors[$i % count($__trustColors)] }}"></i>
-                            <span class="font-bold text-white">{{ $__t['value'] ?? '' }}</span>
-                            <span class="text-gray-500">{{ $__t['label'] ?? '' }}</span>
-                        </span>
-                    @endforeach
-                </div>
-            </div>
-
-            {{-- Hero phone mockup + gallery + block icons --}}
-            <div class="reveal rd-2 relative stack-scene lg:justify-self-end w-full max-w-[560px] mx-auto" id="hero-phone-scene">
-                {{-- Decorative stickers (kept inside the phone column on lg+ so they don't float into the headline area) --}}
-                <div class="sticker hidden lg:block top-4 right-6 w-10 h-10 rounded-full wiggle shake-hover opacity-80" style="background:var(--c4)"></div>
-                <div class="sticker top-12 right-2 w-8 h-8 rounded-lg spin-slow opacity-70" style="background:var(--c5)"></div>
-                <div class="sticker hidden lg:block bottom-32 right-0 w-9 h-9 rounded-2xl wiggle opacity-80" style="background:var(--c1); animation-delay:-1s"></div>
-                <div class="sticker top-1/3 -right-3 w-6 h-6 rounded-full wiggle opacity-80" style="background:var(--c3); animation-delay:-2s"></div>
-
-                {{-- Phone mockup --}}
-                <div class="relative flex items-center justify-center hero-phone-stage">
-                    <div class="hero-phone-frame">
-                    <div id="hero-phone-wrap" class="hero-phone-wrap float-c">
-                        <div class="hero-phone">
-                            <div id="hero-phone-screen" class="hero-phone-screen">
-                                <div class="hero-notch"></div>
-                                <div id="hero-stack" class="hero-phone-content" aria-hidden="true"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Floating info cards (desktop only) --}}
-                    <div class="float-b float-card float-card--visitors hidden lg:block" aria-hidden="true">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="float-card-label">Live visitors</span>
-                            <span class="flex items-center gap-1 text-[9px] font-bold" style="color:var(--c1)"><span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c1)"></span>NOW</span>
-                        </div>
-                        <div class="text-xl font-bold" id="hero-tick-visitors" data-tick-visitors>247</div>
-                        <svg class="w-full h-6" viewBox="0 0 100 30" preserveAspectRatio="none">
-                            <polyline class="spark-line" fill="none" stroke="url(#sl)" stroke-width="2.5" stroke-linecap="round" points="0,22 12,18 24,20 36,12 48,15 60,8 72,11 84,5 100,7"/>
-                            <defs><linearGradient id="sl"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="100%" stop-color="#e94e8c"/></linearGradient></defs>
-                        </svg>
-                    </div>
-
-                    <div class="float-c float-card float-card--coach hidden lg:block" style="animation-delay:-2s" aria-hidden="true">
-                        <div class="flex items-center gap-2 mb-1.5">
-                            <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-bolt text-white text-xs"></i></div>
-                            <div>
-                                <span class="float-card-label">Performance Coach</span>
-                                <div class="text-xs font-bold">Health score 87</div>
-                            </div>
-                        </div>
-                        <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div class="h-full grad-bar rounded-full" style="width:87%"></div>
-                        </div>
-                    </div>
-
-                    <div class="float-a float-card float-card--toplink hidden lg:block" style="animation-delay:-1s" aria-hidden="true">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="float-card-label">Top link</span>
-                            <span class="text-[9px] font-bold" style="color:#1ed760">+18%</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(124,58,237,.2);color:#a78bfa"><i class="fas fa-link text-xs"></i></div>
-                            <div class="min-w-0">
-                                <div class="text-[11px] font-bold truncate">Latest drop</div>
-                                <div class="text-[9px] text-gray-400">1,284 clicks</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="float-b float-card float-card--conv hidden lg:block" style="animation-delay:-3.5s" aria-hidden="true">
-                        <span class="float-card-label">Conversions today</span>
-                        <div class="flex items-baseline gap-2 mt-0.5">
-                            <div class="text-xl font-bold">38</div>
-                            <span class="text-[10px] font-bold" style="color:#1ed760">+12%</span>
-                        </div>
-                        <div class="flex items-end gap-0.5 h-5 mt-1">
-                            @foreach([6,9,5,11,8,14,10,16,13,18] as $h)
-                                <span class="flex-1 rounded-sm" style="height:{{ $h * 5 }}%;background:linear-gradient(180deg,#1bd4d9,#7c3aed)"></span>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <div class="float-c float-card float-card--qr hidden lg:block" style="animation-delay:-1.5s" aria-hidden="true">
-                        <div class="flex items-center gap-2">
-                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(124,58,237,.2);color:#a78bfa"><i class="fas fa-qrcode text-base"></i></div>
-                            <div>
-                                <span class="float-card-label">QR scans</span>
-                                <div class="text-sm font-bold leading-tight">1,420 <span class="text-[10px] text-gray-400 font-normal">/ 7d</span></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="float-a float-card float-card--follower hidden lg:block" style="animation-delay:-2.5s" aria-hidden="true">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold" style="background:linear-gradient(135deg,#ec4899,#7c3aed)">M</div>
-                            <div class="min-w-0">
-                                <span class="float-card-label">New follower</span>
-                                <div class="text-[11px] font-bold truncate">@maya.daily</div>
-                                <div class="text-[9px] text-gray-400">just now</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="float-b float-card float-card--revenue hidden lg:block" style="animation-delay:-4s" aria-hidden="true">
-                        <span class="float-card-label">Revenue today</span>
-                        <div class="flex items-baseline gap-2 mt-0.5">
-                            <div class="text-xl font-bold" id="hero-tick-revenue" data-tick-revenue>$ 412</div>
-                            <span class="text-[10px] font-bold" style="color:#1ed760">▲ 9%</span>
-                        </div>
-                        <div class="flex items-center gap-1 mt-1 text-[9px] text-gray-400">
-                            <i class="fas fa-store" style="color:#ff8a3c"></i> 6 orders · 2 tips
-                        </div>
-                    </div>
-                    </div>{{-- /hero-phone-frame --}}
-                </div>
-
-                {{-- Compact horizontal interactive tile strip (all breakpoints) --}}
-                <div class="mt-6">
-                    <div class="hero-rail-label text-[10px] font-bold uppercase tracking-[.18em] text-gray-400 text-center lg:text-left mb-2 px-1">
-                        Looks like a <span id="hero-rail-role-label" class="grad-text">creator</span> page
-                    </div>
-                    <div id="hero-tile-rail" class="hero-tile-rail" role="group" aria-label="Choose a profile preview"></div>
-                </div>
-
-                {{-- Mobile-only stacked stats row (replaces floating cards on small screens) --}}
-                <div class="hero-mobile-stats lg:hidden mt-5" aria-hidden="true">
-                    <div class="hero-mstat">
-                        <span class="lbl"><span class="w-1.5 h-1.5 rounded-full pulse-dot inline-block mr-1" style="background:var(--c1)"></span>Live</span>
-                        <span class="val">247</span>
-                        <span class="sub">visitors</span>
-                    </div>
-                    <div class="hero-mstat">
-                        <span class="lbl"><i class="fas fa-bolt" style="color:#ffc845"></i> Coach</span>
-                        <span class="val">87</span>
-                        <span class="sub">health</span>
-                    </div>
-                    <div class="hero-mstat">
-                        <span class="lbl"><i class="fas fa-qrcode" style="color:#a78bfa"></i> QR</span>
-                        <span class="val">1.4k</span>
-                        <span class="sub">scans</span>
-                    </div>
-                    <div class="hero-mstat">
-                        <span class="lbl"><i class="fas fa-store" style="color:#ff8a3c"></i> Today</span>
-                        <span class="val">$412</span>
-                        <span class="sub">revenue</span>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+{{-- ============================ SCROLL-SPY STRIP ============================ --}}
+<div x-data="homeScrollSpy()" x-init="init()"
+     class="hidden md:block sticky top-16 z-40 bg-[#0a0a14]/85 backdrop-blur-xl border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="flex items-center gap-1 overflow-x-auto py-2 text-xs font-semibold [scrollbar-width:none] [-ms-overflow-style:none] [&amp;::-webkit-scrollbar]:hidden"
+             aria-label="Page sections">
+            @foreach([
+                ['audience',  'Built for you'],
+                ['how-it-works', 'How it works'],
+                ['pricing-teaser', 'Pricing'],
+                ['features',  'Build'],
+                ['share',     'Share'],
+                ['everything','All features'],
+                ['ai-suite',  'AI'],
+                ['workspace-team', 'Team'],
+                ['proof',     'Loved by'],
+                ['faq',       'FAQ'],
+            ] as [$id,$lbl])
+                <a href="#{{ $id }}"
+                   data-spy="{{ $id }}"
+                   :class="active === '{{ $id }}' ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white'"
+                   class="shrink-0 px-3 py-1.5 rounded-full transition-colors whitespace-nowrap">{{ $lbl }}</a>
+            @endforeach
+        </nav>
     </div>
-
-    <script>
-        // Floating-card metric tickers: gently increment Live visitors and
-        // Revenue today so the hero feels alive. Pauses when off-screen,
-        // when the tab is hidden, and respects prefers-reduced-motion.
-        (function () {
-            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (reduce) return;
-            const visEl = document.getElementById('hero-tick-visitors');
-            const revEl = document.getElementById('hero-tick-revenue');
-            if (!visEl && !revEl) return;
-
-            const parseNum = (el, fallback) => {
-                if (!el) return fallback;
-                const n = parseInt((el.textContent || '').replace(/[^0-9]/g, ''), 10);
-                return Number.isFinite(n) ? n : fallback;
-            };
-            let visitors = parseNum(visEl, 247);
-            let revenue  = parseNum(revEl, 412);
-            let inView = false;
-            let timer = null;
-
-            function flash(el) {
-                if (!el) return;
-                el.style.transition = 'color .25s ease';
-                const prev = el.style.color;
-                el.style.color = '#1ed760';
-                setTimeout(() => { el.style.color = prev; }, 280);
-            }
-
-            function tick() {
-                if (document.hidden || !inView) return;
-                if (visEl && Math.random() < 0.85) {
-                    visitors += Math.random() < 0.15 ? -1 : (Math.random() < 0.4 ? 2 : 1);
-                    if (visitors < 180) visitors = 180;
-                    if (visitors > 320) visitors = 320;
-                    visEl.textContent = visitors.toLocaleString();
-                    flash(visEl);
-                }
-                if (revEl && Math.random() < 0.5) {
-                    revenue += 1 + Math.floor(Math.random() * 6);
-                    revEl.textContent = '$ ' + revenue.toLocaleString();
-                    flash(revEl);
-                }
-            }
-
-            function start() {
-                if (timer) return;
-                timer = setInterval(tick, 2200);
-            }
-            function stop() {
-                if (!timer) return;
-                clearInterval(timer);
-                timer = null;
-            }
-
-            const target = (visEl || revEl).closest('.hero-phone-stage') || (visEl || revEl);
-            if ('IntersectionObserver' in window) {
-                const io = new IntersectionObserver((entries) => {
-                    entries.forEach(e => {
-                        inView = e.isIntersecting;
-                        if (inView) start(); else stop();
+</div>
+<script>
+    function homeScrollSpy(){
+        return {
+            active: '',
+            init(){
+                const els = Array.from(document.querySelectorAll('[data-spy]'))
+                    .map(a => ({ id: a.dataset.spy, target: document.getElementById(a.dataset.spy) }))
+                    .filter(e => e.target);
+                if (!els.length) return;
+                // Seed `active` from the URL hash if it points at one of our spy targets,
+                // otherwise from whichever target is closest to the top of the viewport.
+                const hashId = (location.hash || '').slice(1);
+                const seed = els.find(e => e.id === hashId) || els
+                    .map(e => ({ id: e.id, top: e.target.getBoundingClientRect().top }))
+                    .sort((a, b) => Math.abs(a.top) - Math.abs(b.top))[0];
+                if (seed) this.active = seed.id;
+                if (!('IntersectionObserver' in window)) return;
+                const obs = new IntersectionObserver((entries) => {
+                    entries.forEach(en => {
+                        if (en.isIntersecting) this.active = en.target.id;
                     });
-                }, { threshold: 0.15 });
-                io.observe(target);
-            } else {
-                inView = true;
-                start();
+                }, { rootMargin: '-30% 0px -55% 0px', threshold: 0 });
+                els.forEach(e => obs.observe(e.target));
             }
+        };
+    }
+</script>
 
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) stop(); else if (inView) start();
-            });
-        })();
-
-        (function () {
-            const ROLES   = @json($heroRoles);
-            const word    = document.getElementById('hero-role-word');
-            const sr      = document.getElementById('hero-role-sr');
-            const stack   = document.getElementById('hero-stack');
-            const screen  = document.getElementById('hero-phone-screen');
-            const gallery = document.getElementById('hero-gallery');
-            const galLbl  = document.getElementById('hero-gallery-label');
-            const railLbl = document.getElementById('hero-rail-role-label');
-            const phoneWrap = document.getElementById('hero-phone-wrap');
-            const phoneScene = document.getElementById('hero-phone-scene');
-            const tileRail = document.getElementById('hero-tile-rail');
-            if (!word || !stack) return;
-
-            const AUTO_ROTATE_MS = 3000;
-            const SWAP_MS        = 220;
-            const USER_PAUSE_MS  = 6000;
-            let pauseUntil = 0;
-
-            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const isDesktop = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
-            const escapeHTML = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-            function orderedGallery(role) {
-                const items = (role.gallery || []).slice();
-                const order = role.categories || [];
-                const rank = (cat) => {
-                    const i = order.indexOf(cat);
-                    return i === -1 ? 999 : i;
-                };
-                items.sort((a,b) => rank(a.category) - rank(b.category));
-                return items;
-            }
-
-            function buildGalleryHTML(role) {
-                return orderedGallery(role).map((g, i) => `
-                    <div class="hero-gallery-item gallery-shimmer" style="--gd:${i * 60}ms">
-                        ${pictureThumb(g.src, '', 120, 120, '(max-width: 1023px) 110px, 120px', g.alt || '')}
-                        <span class="gallery-cat">${escapeHTML(g.category)}</span>
-                    </div>`).join('');
-            }
-
-            // A pool of distinct wallpapers. Every role swap picks a
-            // fresh one at random (never repeats the previous one) so
-            // the phone feels alive — not locked to a single gradient
-            // per role. Role's own wallpaper is kept as the seed.
-            const WALLPAPERS = [
-                'linear-gradient(140deg,#7c3aed 0%,#e94e8c 60%,#ff8a3c 100%)',
-                'linear-gradient(140deg,#e94e8c 0%,#ff8a3c 55%,#ffc845 100%)',
-                'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#7c3aed 100%)',
-                'linear-gradient(140deg,#0f3a2a 0%,#1ed760 55%,#1bd4d9 100%)',
-                'linear-gradient(140deg,#1bd4d9 0%,#7c3aed 60%,#ffc845 100%)',
-                'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#7c3aed 100%)',
-                'linear-gradient(140deg,#e94e8c 0%,#7c3aed 50%,#ffc845 100%)',
-                'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#7c3aed 100%)',
-                'linear-gradient(160deg,#0b132b 0%,#3a0ca3 45%,#f72585 100%)',
-                'linear-gradient(135deg,#06b6d4 0%,#3b82f6 55%,#9333ea 100%)',
-                'linear-gradient(150deg,#fde047 0%,#fb923c 45%,#ef4444 100%)',
-                'linear-gradient(135deg,#064e3b 0%,#10b981 50%,#fde047 100%)',
-                'linear-gradient(140deg,#312e81 0%,#ec4899 55%,#fbbf24 100%)',
-                'linear-gradient(160deg,#1e1b4b 0%,#7c3aed 45%,#22d3ee 100%)',
-            ];
-            let lastWallpaper = null;
-            function applyWallpaper(role) {
-                if (!screen) return;
-                // Different wallpaper each call. Include the role's
-                // own wallpaper as an option but never pick the same
-                // value as the previous render. Dedupe by value so a
-                // role gradient that also appears in WALLPAPERS can't
-                // be re-selected under a different index.
-                const pool = Array.from(new Set([role.wallpaper, ...WALLPAPERS].filter(Boolean)));
-                let pick;
-                do { pick = pool[Math.floor(Math.random() * pool.length)]; }
-                while (pool.length > 1 && pick === lastWallpaper);
-                lastWallpaper = pick;
-                screen.style.background = pick;
-            }
-
-            function pickFromGallery(role, category, fallbackIndex) {
-                const g = role.gallery || [];
-                const hit = g.find(x => x.category === category);
-                if (hit) return hit.src;
-                return (g[fallbackIndex] || g[0] || {}).src || '';
-            }
-
-            // ---- Responsive image helpers (WebP + JPEG fallback) ----
-            function heroImgBase(src) {
-                // strip leading slash-safe extension; works for /images/hero-roles/foo.jpg
-                return (src || '').replace(/\.jpe?g$/i, '');
-            }
-            // Avatar / role headshot — only ever displayed up to ~120px wide.
-            function pictureAvatar(src, cls, w, h) {
-                const base = heroImgBase(src);
-                const webp = `${base}-200.webp`;
-                const jpg  = `${base}-200.jpg`;
-                return `<picture>`
-                    + `<source type="image/webp" srcset="${escapeHTML(webp)}">`
-                    + `<img class="${escapeHTML(cls)}" src="${escapeHTML(jpg)}" alt="" loading="lazy" decoding="async" width="${w}" height="${h}">`
-                    + `</picture>`;
-            }
-            // Thumb / cover / gallery image — displayed anywhere from ~50px to ~280px.
-            // opts: { eager: bool } — when true, marks above-the-fold image as eager + high priority.
-            function pictureThumb(src, cls, w, h, sizes, alt, opts) {
-                const base = heroImgBase(src);
-                const altA = escapeHTML(alt || '');
-                const sz   = escapeHTML(sizes || '(max-width: 640px) 50vw, 320px');
-                const eager = !!(opts && opts.eager);
-                const loadAttr = eager ? 'eager' : 'lazy';
-                const fpAttr   = eager ? ' fetchpriority="high"' : '';
-                return `<picture>`
-                    + `<source type="image/webp" srcset="${escapeHTML(base)}-320.webp 320w, ${escapeHTML(base)}-640.webp 640w" sizes="${sz}">`
-                    + `<source type="image/jpeg" srcset="${escapeHTML(base)}-320.jpg 320w, ${escapeHTML(base)}-640.jpg 640w" sizes="${sz}">`
-                    + `<img class="${escapeHTML(cls)}" src="${escapeHTML(base)}-320.jpg" alt="${altA}" loading="${loadAttr}"${fpAttr} decoding="async" width="${w}" height="${h}">`
-                    + `</picture>`;
-            }
-
-            // Map category -> Font Awesome icon for tile fallback covers.
-            const CAT_ICONS = {
-                Video:'fas fa-video', Art:'fas fa-palette', Music:'fas fa-music',
-                Merch:'fas fa-store', Photo:'fas fa-camera', Podcast:'fas fa-microphone',
-                Writing:'fas fa-feather', Food:'fas fa-utensils', Fitness:'fas fa-dumbbell',
-                Design:'fas fa-pen-ruler', Code:'fab fa-github', Stream:'fab fa-twitch',
-                Course:'fas fa-graduation-cap', Book:'fas fa-book-open', Travel:'fas fa-plane',
-            };
-            function fallbackTileCover(role) {
-                const cat = (role.categories || [])[0] || '';
-                const ico = CAT_ICONS[cat] || 'fas fa-shapes';
-                const bg  = role.wallpaper || 'linear-gradient(140deg,#7c3aed,#1bd4d9)';
-                return `<span class="hero-tile-fallback" style="background:${bg}">`
-                     + `<i class="${ico}" aria-hidden="true"></i>`
-                     + `<span class="ftl">${escapeHTML(cat || role.word)}</span>`
-                     + `</span>`;
-            }
-
-            // Each theme supplies its own bespoke profile block so the
-            // profile never looks the same between role swaps. The shared
-            // .hp-prof skeleton supplies the glass card frame; per-theme
-            // `var-*` classes layer on the unique treatment.
-            function profFor(role) {
-                const p = role.profile;
-                const h = escapeHTML(p.handle);
-                const t = escapeHTML(p.tag);
-                const av = p.avatar;
-                const verified = '<i class="fas fa-circle-check pvd"></i>';
-                const avatarImg = pictureAvatar(av, 'pav', 56, 56);
-
-                switch (role.theme) {
-                    case 'creator':
-                        return `<div class="hp-prof var-creator theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                              </div>
-                              <i class="fas fa-video" style="color:#ff5252;font-size:17px"></i>
-                            </div>
-                            <div class="pstats">
-                              <div class="ps"><span class="sv">24.1k</span><span class="sl">Subscribers</span></div>
-                              <div class="ps"><span class="sv">486</span><span class="sl">Videos</span></div>
-                              <div class="ps"><span class="sv">1.2M</span><span class="sl">Views</span></div>
-                            </div>
-                          </div>`;
-                    case 'gallery': // Artist
-                        return `<div class="hp-prof var-artist theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                                <div class="swatch" aria-hidden="true">
-                                  <i style="background:#e94e8c"></i>
-                                  <i style="background:#ff8a3c"></i>
-                                  <i style="background:#ffc845"></i>
-                                  <i style="background:#1bd4d9"></i>
-                                  <i style="background:#7c3aed"></i>
-                                </div>
-                              </div>
-                              <i class="fas fa-palette" style="color:#ffc845;font-size:17px"></i>
-                            </div>
-                          </div>`;
-                    case 'music':
-                        return `<div class="hp-prof var-music theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                                <span class="npill"><i class="fas fa-music"></i>Now on tour · EP out</span>
-                              </div>
-                              <i class="fas fa-music" style="color:#1ed760;font-size:17px"></i>
-                            </div>
-                          </div>`;
-                    case 'business':
-                        return `<div class="hp-prof var-business theme-block" style="--d:0ms">
-                            <div class="prow">
-                              <div class="avwrap">${avatarImg}<span class="online" aria-hidden="true"></span></div>
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t} · Accepting briefs</div>
-                                <div class="bbadges">
-                                  <span class="bbadge">Strategy</span>
-                                  <span class="bbadge">B2B</span>
-                                  <span class="bbadge">SaaS</span>
-                                </div>
-                              </div>
-                              <i class="fas fa-briefcase" style="color:#0ea5e9;font-size:17px"></i>
-                            </div>
-                          </div>`;
-                    case 'coach':
-                        return `<div class="hp-prof var-coach theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                                <div class="chips">
-                                  <span class="chip"><i class="fas fa-bolt"></i>NASM-CPT</span>
-                                  <span class="chip"><i class="fas fa-star"></i>4.9 · 140+</span>
-                                </div>
-                              </div>
-                              <i class="fas fa-dumbbell" style="color:#ffc845;font-size:17px"></i>
-                            </div>
-                          </div>`;
-                    case 'portfolio': // Photographer
-                        return `<div class="hp-prof var-photo theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                                <div class="loc"><i class="fas fa-location-dot"></i>Reykjavík · Available Jun</div>
-                                <div class="gear">
-                                  <span class="gr">Sony A7R V</span>
-                                  <span class="gr">24-70 GM</span>
-                                  <span class="gr">RAW</span>
-                                </div>
-                              </div>
-                              <i class="fas fa-camera-retro" style="color:#22d3ee;font-size:17px"></i>
-                            </div>
-                          </div>`;
-                    case 'social': // Influencer
-                        return `<div class="hp-prof var-social theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                              </div>
-                              <i class="fas fa-fire" style="color:#ef4444;font-size:17px"></i>
-                            </div>
-                            <div class="fgrid">
-                              <div class="fg"><div class="fv">312k</div><div class="fl"><i class="fas fa-users"></i> Followers</div></div>
-                              <div class="fg"><div class="fv">180k</div><div class="fl"><i class="fas fa-eye"></i> Reach</div></div>
-                              <div class="fg"><div class="fv">94k</div><div class="fl"><i class="fas fa-heart"></i> Likes</div></div>
-                            </div>
-                          </div>`;
-                    case 'podcast':
-                        return `<div class="hp-prof var-podcast theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                                <span class="air"><i aria-hidden="true"></i>On air · Ep 87 live</span>
-                              </div>
-                              <i class="fas fa-microphone-lines" style="color:#ff8a3c;font-size:17px"></i>
-                            </div>
-                          </div>`;
-                    default:
-                        return `<div class="hp-prof theme-block" style="--d:0ms">
-                            <div class="prow">
-                              ${avatarImg}
-                              <div class="min-w-0 flex-1">
-                                <div class="ph">${h}${verified}</div>
-                                <div class="pt">${t}</div>
-                              </div>
-                            </div>
-                          </div>`;
-                }
-            }
-
-            // Creator — full biolink list; blocks are bigger and there
-            // are more of them so the stack fills the phone screen.
-            function renderCreator(role) {
-                const blocks = (role.blocks || []).map((b, i) => {
-                    const delay = (i + 1) * 110;
-                    const thumb = b.thumb
-                        ? pictureThumb(b.thumb, 'card-thumb', 50, 50, '50px', '')
-                        : `<div class="card-icon" style="background:${escapeHTML(b.color)}33;color:${escapeHTML(b.color)}"><i class="${escapeHTML(b.icon)}"></i></div>`;
-                    return `
-                        <div class="stack-card theme-block" style="--d:${delay}ms">
-                            ${thumb}
-                            <div class="card-body">
-                                <div class="card-title">${escapeHTML(b.title)}</div>
-                                <div class="card-sub">${escapeHTML(b.sub || '')}</div>
-                            </div>
-                            <i class="fas fa-arrow-right card-cta"></i>
-                        </div>`;
-                }).join('');
-                const last = (role.blocks || []).length * 110 + 120;
-                return profFor(role) + blocks
-                    + `<div class="hp-cta theme-block" style="--d:${last}ms"><i class="fas fa-hand-holding-heart"></i>Tip · Join members</div>`;
-            }
-
-            function renderMusic(role) {
-                const cover  = pickFromGallery(role, 'Music', 0);
-                const merch  = pickFromGallery(role, 'Merch', 1);
-                const b0     = (role.blocks || [])[0] || {};
-                return profFor(role)
-                    + `<div class="hp-music-card theme-block" style="--d:110ms">
-                            ${pictureThumb(cover, 'hp-music-cover', 280, 110, '(max-width: 1023px) 260px, 320px', '')}
-                            <div class="hp-music-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-                            <div class="hp-music-meta">
-                                <div class="mt"><div class="mt-t">${escapeHTML(b0.title || 'New EP')}</div><div class="mt-s">${escapeHTML(b0.sub || 'Listen now')}</div></div>
-                                <div class="hp-music-play"><i class="fas fa-play" style="font-size:11px"></i></div>
-                            </div>
-                       </div>`
-                    + `<div class="theme-block" style="--d:200ms">
-                            <div class="hp-track"><span class="num">1</span><span class="nm">Saltwater</span><span class="du">3:42</span></div>
-                       </div>`
-                    + `<div class="theme-block" style="--d:250ms">
-                            <div class="hp-track"><span class="num">2</span><span class="nm">Drift</span><span class="du">4:15</span></div>
-                       </div>`
-                    + `<div class="theme-block" style="--d:300ms">
-                            <div class="hp-track"><span class="num">3</span><span class="nm">Afterglow</span><span class="du">3:28</span></div>
-                       </div>`
-                    + `<div class="hp-biz-cta theme-block" style="--d:360ms">
-                            <div class="ic" style="background:#e94e8c22;color:#fff"><i class="fas fa-ticket-alt"></i></div>
-                            <div class="bd"><div class="bt">Tour 2026 · Tickets live</div><div class="bs">12 cities · Starts Jun 4</div></div>
-                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
-                       </div>`
-                    + `<div class="hp-merch theme-block" style="--d:420ms">
-                            ${pictureThumb(merch, '', 80, 80, '80px', '')}
-                            <div class="mi"><div class="mt">Vinyl + tee bundle</div><div class="ms">Limited · Ships worldwide</div></div>
-                            <span class="mp">$ 38</span>
-                       </div>`
-                    + `<div class="hp-cta theme-block" style="--d:480ms"><i class="fas fa-headphones"></i>Stream · Save · Share</div>`;
-            }
-
-            function renderGallery(role) {
-                const g = role.gallery || [];
-                const cells = g.slice(0, 6).map((x) => `
-                    <div class="gi">${pictureThumb(x.src, '', 100, 100, '100px', x.alt || '')}
-                        <span class="badge">${escapeHTML(x.category)}</span>
-                    </div>`).join('');
-                const more = g.slice(6, 9).map((x) => `
-                    <div class="gi">${pictureThumb(x.src, '', 100, 100, '100px', x.alt || '')}</div>`).join('');
-                return profFor(role)
-                    + `<div class="hp-grid-3 theme-block" style="--d:110ms">${cells}</div>`
-                    + (more ? `<div class="hp-grid-3 theme-block" style="--d:200ms">${more}</div>` : '')
-                    + `<div class="hp-stat-row theme-block" style="--d:260ms">
-                            <div class="hp-stat"><div class="sv">86</div><div class="sl">Works</div></div>
-                            <div class="hp-stat"><div class="sv">12</div><div class="sl">Shows</div></div>
-                            <div class="hp-stat"><div class="sv">4.9</div><div class="sl">Rating</div></div>
-                       </div>`
-                    + `<div class="hp-cta theme-block" style="--d:320ms"><i class="fas fa-shopping-bag"></i>Shop the collection</div>`
-                    + `<div class="hp-cta dark theme-block" style="--d:380ms"><i class="fas fa-hand-holding-heart"></i>Tip jar</div>`;
-            }
-
-            function renderPortfolio(role) {
-                const g = role.gallery || [];
-                const feature = pickFromGallery(role, 'Photo', 0);
-                const rest = g.filter(x => x.src !== feature);
-                const grid4 = rest.slice(0, 4).map(x => `
-                    <div class="gi">${pictureThumb(x.src, '', 140, 140, '140px', x.alt || '')}</div>`).join('');
-                const grid2 = rest.slice(4, 6).map(x => `
-                    <div class="gi">${pictureThumb(x.src, '', 140, 140, '140px', x.alt || '')}</div>`).join('');
-                return profFor(role)
-                    + `<div class="hp-feature theme-block" style="--d:110ms">
-                            ${pictureThumb(feature, '', 280, 180, '(max-width: 1023px) 260px, 320px', '')}
-                            <div class="lbl"><span>Iceland · 2026</span><span><i class="fas fa-camera"></i> 48</span></div>
-                       </div>`
-                    + `<div class="hp-grid-2 theme-block" style="--d:200ms">${grid4}</div>`
-                    + (grid2 ? `<div class="hp-grid-2 theme-block" style="--d:260ms">${grid2}</div>` : '')
-                    + `<div class="hp-biz-cta theme-block" style="--d:320ms">
-                            <div class="ic"><i class="fas fa-print"></i></div>
-                            <div class="bd"><div class="bt">Fine-art print shop</div><div class="bs">A2 / A3 / canvas · Worldwide</div></div>
-                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
-                       </div>`
-                    + `<div class="hp-cta theme-block" style="--d:380ms"><i class="fas fa-paper-plane"></i>Hire me · Weddings · Brand</div>`;
-            }
-
-            function renderBusiness(role) {
-                return profFor(role)
-                    + `<div class="hp-biz-cta theme-block" style="--d:110ms">
-                            <div class="ic"><i class="fas fa-calendar-check"></i></div>
-                            <div class="bd"><div class="bt">Book a strategy call</div><div class="bs">30 min · Calendly · Free intro</div></div>
-                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
-                       </div>`
-                    + `<div class="hp-svc-list theme-block" style="--d:200ms">
-                            <div class="hp-svc"><div class="st">Audit</div><div class="sp">$ 1.2k</div></div>
-                            <div class="hp-svc"><div class="st">Retainer</div><div class="sp">$ 4.5k/mo</div></div>
-                       </div>`
-                    + `<div class="hp-svc-list theme-block" style="--d:250ms">
-                            <div class="hp-svc"><div class="st">Sprint</div><div class="sp">$ 2.5k</div></div>
-                            <div class="hp-svc"><div class="st">Advisory</div><div class="sp">$ 600/hr</div></div>
-                       </div>`
-                    + `<div class="hp-stat-row theme-block" style="--d:320ms">
-                            <div class="hp-stat"><div class="sv">120+</div><div class="sl">Clients</div></div>
-                            <div class="hp-stat"><div class="sv">4.9</div><div class="sl">Rating</div></div>
-                            <div class="hp-stat"><div class="sv">8 yr</div><div class="sl">Exp</div></div>
-                       </div>`
-                    + `<div class="hp-quote theme-block" style="--d:380ms">
-                            Cut our CAC 38% in one quarter — Marcus is our unfair advantage.
-                            <div class="qa"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><span>· Priya, CEO</span></div>
-                       </div>`
-                    + `<div class="hp-cta theme-block" style="--d:440ms"><i class="fas fa-paper-plane"></i>Get a proposal</div>`;
-            }
-
-            function renderCoach(role) {
-                const reel = pickFromGallery(role, 'Video', 0);
-                return profFor(role)
-                    + `<div class="hp-stat-row theme-block" style="--d:110ms">
-                            <div class="hp-stat"><div class="sv">140+</div><div class="sl">Clients</div></div>
-                            <div class="hp-stat"><div class="sv">4.9★</div><div class="sl">Rating</div></div>
-                            <div class="hp-stat"><div class="sv">12wk</div><div class="sl">Programs</div></div>
-                       </div>`
-                    + `<div class="hp-reel theme-block" style="--d:180ms">
-                            ${pictureThumb(reel, '', 280, 360, '(max-width: 1023px) 260px, 320px', '')}
-                            <div class="ov"></div>
-                            <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
-                            <div class="lb"><span><i class="fas fa-fire"></i> Form check</span><span><i class="fas fa-heart"></i> 12k</span></div>
-                       </div>`
-                    + `<div class="hp-quote theme-block" style="--d:260ms">
-                            Lost 9 kg, deadlift up 40 kg in 12 weeks — Kai's plan just works.
-                            <div class="qa"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><span>· Sara, client</span></div>
-                       </div>`
-                    + `<div class="hp-svc-list theme-block" style="--d:320ms">
-                            <div class="hp-svc"><div class="st">1:1 Coach</div><div class="sp">$ 180/mo</div></div>
-                            <div class="hp-svc"><div class="st">Group</div><div class="sp">$ 65/mo</div></div>
-                       </div>`
-                    + `<div class="hp-biz-cta theme-block" style="--d:380ms">
-                            <div class="ic"><i class="fas fa-calendar-check"></i></div>
-                            <div class="bd"><div class="bt">Book a free consult</div><div class="bs">45 min · Zoom · Slots open</div></div>
-                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
-                       </div>`
-                    + `<div class="hp-cta dark theme-block" style="--d:440ms"><i class="fas fa-clipboard-list"></i>Free intake form</div>`;
-            }
-
-            function renderPodcast(role) {
-                const cover = pickFromGallery(role, 'Podcast', 0);
-                return profFor(role)
-                    + `<div class="hp-pod-card theme-block" style="--d:110ms">
-                            ${pictureThumb(cover, '', 280, 160, '(max-width: 1023px) 260px, 320px', '')}
-                            <div class="pm">
-                                <div class="pe">Ep. 87 · New</div>
-                                <div class="pt">Building in public</div>
-                                <div class="pd">42 min · Tech &amp; culture</div>
-                            </div>
-                            <div class="pp"><i class="fas fa-play" style="font-size:11px"></i></div>
-                       </div>`
-                    + `<div class="hp-wave theme-block" style="--d:200ms">
-                            <span style="font-weight:800">2:14</span>
-                            <svg viewBox="0 0 100 14" preserveAspectRatio="none"><polyline fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" points="0,8 8,4 14,11 22,3 30,9 38,5 46,12 54,2 62,9 70,6 78,11 86,4 94,9 100,7"/></svg>
-                            <span style="opacity:.75">42:00</span>
-                       </div>`
-                    + `<div class="hp-ep theme-block" style="--d:260ms">
-                            <span class="epn">#86</span><span class="ept">Shipping vs polishing</span><span class="epd">38m</span>
-                       </div>`
-                    + `<div class="hp-ep theme-block" style="--d:310ms">
-                            <span class="epn">#85</span><span class="ept">Pricing your side project</span><span class="epd">45m</span>
-                       </div>`
-                    + `<div class="hp-stat-row theme-block" style="--d:360ms">
-                            <div class="hp-stat"><div class="sv">87</div><div class="sl">Episodes</div></div>
-                            <div class="hp-stat"><div class="sv">18k</div><div class="sl">Listeners</div></div>
-                            <div class="hp-stat"><div class="sv">4.8</div><div class="sl">Rating</div></div>
-                       </div>`
-                    + `<div class="hp-cta dark theme-block" style="--d:420ms"><i class="fas fa-envelope-open-text"></i>Show notes &amp; newsletter</div>`;
-            }
-
-            function renderSocial(role) {
-                const g = role.gallery || [];
-                const reel = pickFromGallery(role, 'Video', 0);
-                const stories = ['Reels','Hauls','Travel','Q&amp;A','BTS'];
-                const storyHTML = stories.map((nm, i) => {
-                    const src = (g[i] || g[0] || {}).src || '';
-                    return `<div class="hp-story"><div class="ring">${pictureThumb(src, '', 56, 56, '56px', '')}</div><div class="nm">${nm}</div></div>`;
-                }).join('');
-                const posts = g.slice(0, 4).map(x => `
-                    <div class="gi">${pictureThumb(x.src, '', 140, 140, '140px', x.alt || '')}
-                        <span class="hrt"><i class="fas fa-heart"></i>${Math.floor(Math.random()*80)+20}k</span>
-                    </div>`).join('');
-                return profFor(role)
-                    + `<div class="hp-stories theme-block" style="--d:110ms">${storyHTML}</div>`
-                    + `<div class="hp-reel theme-block" style="--d:180ms">
-                            ${pictureThumb(reel, '', 280, 360, '(max-width: 1023px) 260px, 320px', '')}
-                            <div class="ov"></div>
-                            <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
-                            <div class="lb"><span><i class="fas fa-eye"></i> 312k</span><span><i class="fas fa-heart"></i> 28k</span></div>
-                       </div>`
-                    + `<div class="hp-grid-4 theme-block" style="--d:250ms">${posts}</div>`
-                    + `<div class="hp-biz-cta theme-block" style="--d:320ms">
-                            <div class="ic" style="background:#ffc84522;color:#fff"><i class="fas fa-handshake"></i></div>
-                            <div class="bd"><div class="bt">Brand deals · Press kit</div><div class="bs">Rates · Past campaigns · Reach</div></div>
-                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
-                       </div>`;
-            }
-
-            const THEMES = {
-                creator: renderCreator,
-                gallery: renderGallery,
-                portfolio: renderPortfolio,
-                business: renderBusiness,
-                coach: renderCoach,
-                music: renderMusic,
-                podcast: renderPodcast,
-                social: renderSocial,
-            };
-
-            function buildStackHTML(role) {
-                const fn = THEMES[role.theme] || renderCreator;
-                return fn(role);
-            }
-
-            // ---- Compact horizontal interactive tile strip (all breakpoints) ----
-            function buildTileRailHTML() {
-                if (!tileRail) return;
-                const html = ROLES.map((role, i) => {
-                    const cat = (role.categories || [])[0];
-                    const src = pickFromGallery(role, cat, 0);
-                    const eager = i < 6;
-                    const cover = src
-                        ? pictureThumb(src, 'hero-tile-img', 80, 60, '80px', role.word + ' preview', { eager })
-                        : fallbackTileCover(role);
-                    return `<button type="button" class="hero-tile${i===0?' is-active':''}" `
-                         + `data-role-i="${i}" aria-pressed="${i===0?'true':'false'}" `
-                         + `aria-label="Show ${escapeHTML(role.word)} preview" tabindex="0">`
-                         + `<span class="hero-tile-thumb">${cover}</span>`
-                         + `<span class="hero-tile-label">${escapeHTML(role.word)}</span>`
-                         + `</button>`;
-                }).join('');
-                tileRail.innerHTML = html;
-            }
-
-            function syncActiveTile(role) {
-                if (!tileRail) return;
-                const idx = ROLES.indexOf(role);
-                const tiles = tileRail.querySelectorAll('.hero-tile');
-                tiles.forEach((el, i) => {
-                    const active = i === idx;
-                    el.classList.toggle('is-active', active);
-                    el.setAttribute('aria-pressed', active ? 'true' : 'false');
-                });
-                if (idx >= 0 && tiles[idx]) {
-                    // Centre the active tile *within the rail's own horizontal
-                    // scroll* — never use scrollIntoView, because on mobile the
-                    // tile rail sits below the fold and scrollIntoView would
-                    // also scroll the page vertically, pushing the hero
-                    // headline / CTAs off-screen. We compute scrollLeft
-                    // manually so only the rail moves.
-                    try {
-                        const tile = tiles[idx];
-                        const target = tile.offsetLeft - (tileRail.clientWidth / 2) + (tile.offsetWidth / 2);
-                        const max = Math.max(0, tileRail.scrollWidth - tileRail.clientWidth);
-                        const left = Math.max(0, Math.min(max, target));
-                        if (typeof tileRail.scrollTo === 'function') {
-                            tileRail.scrollTo({ left, behavior: reduce ? 'auto' : 'smooth' });
-                        } else {
-                            tileRail.scrollLeft = left;
-                        }
-                    } catch (_) { /* no-op */ }
-                }
-            }
-
-            function paintRoleVisuals(role) {
-                applyWallpaper(role);
-                if (gallery) gallery.innerHTML = buildGalleryHTML(role);
-                if (galLbl) galLbl.textContent = role.word.toLowerCase();
-                if (railLbl) railLbl.textContent = role.word.toLowerCase();
-                syncActiveTile(role);
-            }
-
-            function setRole(role, opts) {
-                opts = opts || {};
-                if (opts.fromUser) pauseUntil = Date.now() + USER_PAUSE_MS;
-                if (sr) sr.textContent = role.word;
-                if (reduce) {
-                    // Simple opacity crossfade fallback (no shimmer / animation)
-                    word.classList.add('rm-out');
-                    stack.classList.add('rm-out');
-                    setTimeout(() => {
-                        word.textContent = role.word;
-                        stack.innerHTML = buildStackHTML(role);
-                        paintRoleVisuals(role);
-                        word.classList.remove('rm-out');
-                        stack.classList.remove('rm-out');
-                    }, 0);
-                    return;
-                }
-                // Animate word out, swap text, animate in
-                word.classList.remove('word-in');
-                word.classList.add('word-out');
-                // Animate stack out
-                stack.classList.add('stack-out');
-                setTimeout(() => {
-                    word.textContent = role.word;
-                    word.classList.remove('word-out');
-                    // force reflow then play in
-                    void word.offsetWidth;
-                    word.classList.add('word-in');
-                    stack.classList.remove('stack-out');
-                    stack.innerHTML = buildStackHTML(role);
-                    paintRoleVisuals(role);
-                }, SWAP_MS);
-            }
-
-            let i = 0;
-            // Build interactive rail before initial paint so syncActiveTile finds tiles.
-            buildTileRailHTML();
-            // Initial paint (no out animation)
-            stack.innerHTML = buildStackHTML(ROLES[0]);
-            word.textContent = ROLES[0].word;
-            paintRoleVisuals(ROLES[0]);
-            if (!reduce) word.classList.add('word-in');
-
-            // Tile interactions: click pins (pauses auto-rotate), hover previews
-            // without pinning (auto-rotate keeps running underneath).
-            if (tileRail) {
-                let hoverTimer = 0;
-                const previewByIndex = (idx) => {
-                    if (idx < 0 || idx >= ROLES.length) return;
-                    i = idx; // keep auto-rotate counter in sync after preview
-                    setRole(ROLES[idx]); // no fromUser → no pause
-                };
-                const pinByIndex = (idx) => {
-                    if (idx < 0 || idx >= ROLES.length) return;
-                    i = idx;
-                    setRole(ROLES[idx], { fromUser: true }); // pauses rotate
-                };
-                tileRail.addEventListener('click', (e) => {
-                    const tile = e.target.closest('.hero-tile');
-                    if (!tile) return;
-                    clearTimeout(hoverTimer);
-                    pinByIndex(parseInt(tile.dataset.roleI, 10));
-                });
-                tileRail.addEventListener('mouseover', (e) => {
-                    const tile = e.target.closest('.hero-tile');
-                    if (!tile) return;
-                    clearTimeout(hoverTimer);
-                    const idx = parseInt(tile.dataset.roleI, 10);
-                    hoverTimer = setTimeout(() => previewByIndex(idx), 140);
-                });
-                tileRail.addEventListener('mouseleave', () => {
-                    clearTimeout(hoverTimer);
-                });
-                // Keyboard: arrow keys to move focus along the rail; Enter/Space activate via native button.
-                tileRail.addEventListener('keydown', (e) => {
-                    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' &&
-                        e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-                    const tile = e.target.closest('.hero-tile');
-                    if (!tile) return;
-                    e.preventDefault();
-                    const idx = parseInt(tile.dataset.roleI, 10);
-                    const fwd = (e.key === 'ArrowRight' || e.key === 'ArrowDown');
-                    const next = fwd
-                        ? Math.min(ROLES.length - 1, idx + 1)
-                        : Math.max(0, idx - 1);
-                    const tiles = tileRail.querySelectorAll('.hero-tile');
-                    if (tiles[next]) tiles[next].focus();
-                });
-            }
-
-            setInterval(() => {
-                if (Date.now() < pauseUntil) return;
-                i = (i + 1) % ROLES.length;
-                setRole(ROLES[i]);
-            }, AUTO_ROTATE_MS);
-
-            // Cursor parallax tilt on the phone (desktop only, no reduced motion).
-            if (phoneWrap && phoneScene && isDesktop && !reduce) {
-                let raf = 0, tx = 0, ty = 0;
-                phoneScene.addEventListener('mousemove', (e) => {
-                    const r = phoneScene.getBoundingClientRect();
-                    const cx = (e.clientX - r.left) / r.width  - 0.5;
-                    const cy = (e.clientY - r.top)  / r.height - 0.5;
-                    tx = -cy * 8; // rotateX
-                    ty =  cx * 10; // rotateY
-                    if (!raf) raf = requestAnimationFrame(() => {
-                        phoneWrap.style.transform = `perspective(900px) rotateX(${tx}deg) rotateY(${ty}deg)`;
-                        raf = 0;
-                    });
-                });
-                phoneScene.addEventListener('mouseleave', () => {
-                    phoneWrap.style.transform = '';
-                });
-            }
-        })();
-    </script>
-</section>
-
+@include('home.partials.hero')
 {{-- ============================ MARQUEE STRIP ============================ --}}
+@php $__skipMarquee = false; @endphp
 <div class="grad-bar py-4 overflow-hidden border-y border-white/10" aria-hidden="true">
     <div class="flex whitespace-nowrap marquee">
         @for($i = 0; $i < 2; $i++)
@@ -3757,11 +2531,212 @@
     </div>
 </div>
 
+{{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
+@php
+    $__audiences = [
+        [
+            'eyebrow' => 'Creators',
+            'title'   => 'Turn followers into fans &mdash; and income.',
+            'desc'    => 'One link for every drop, with tips, products, DMs, scheduled posts and an AI coach to keep you growing.',
+            'icon'    => 'fa-microphone-lines',
+            'color'   => '#e94e8c',
+            'cta'     => 'Build my creator page',
+        ],
+        [
+            'eyebrow' => 'Businesses',
+            'title'   => 'A landing page, storefront &amp; CRM in one.',
+            'desc'    => 'Branded short links, QR codes for packaging &amp; print, custom domains, forms and team workspaces.',
+            'icon'    => 'fa-store',
+            'color'   => '#1bd4d9',
+            'cta'     => 'Start my business page',
+        ],
+        [
+            'eyebrow' => 'Networking pros',
+            'title'   => 'Your digital business card &mdash; and then some.',
+            'desc'    => 'Tap-to-share NFC tags, dynamic QR codes, instant DMs and a live visitor map of who&rsquo;s engaging.',
+            'icon'    => 'fa-id-badge',
+            'color'   => '#ff8a3c',
+            'cta'     => 'Make my smart card',
+        ],
+    ];
+@endphp
+<section id="audience" class="py-20 lg:py-28 relative overflow-hidden" aria-labelledby="audience-h">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 max-w-2xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Built for you</div>
+            <h2 id="audience-h" class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
+                Built for <span class="grad-text">creators, brands &amp; networking pros.</span>
+            </h2>
+            <p class="reveal rd-2 text-gray-400">Pick the one that fits you &mdash; the same all-in-one toolkit powers all three.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-5">
+            @foreach($__audiences as $i => $a)
+                <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
+                    <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:radial-gradient(circle, {{ $a['color'] }}, transparent 70%);animation-delay:{{ $i * 1.2 }}s;"></div>
+                    <div class="aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $a['color'] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
+                        <i class="fas {{ $a['icon'] }} text-xl text-white" style="animation-delay:{{ $i * 0.5 }}s;"></i>
+                    </div>
+                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
+                    <h3 class="relative text-xl font-bold mb-3 leading-snug">{!! $a['title'] !!}</h3>
+                    <p class="relative text-sm text-gray-400 leading-relaxed mb-6 flex-1">{!! $a['desc'] !!}</p>
+                    <button type="button" @click="authTab='register'; authOpen=true" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
+                        {{ $a['cta'] }} <i class="aud-arrow fas fa-arrow-right text-[10px]" style="animation-delay:{{ $i * 0.3 }}s;"></i>
+                    </button>
+                </article>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ============================ HOW IT WORKS (upgraded) ============================ --}}
+<style>
+    .hiw-track { position: relative; }
+    @media (min-width: 1024px) {
+        .hiw-track::before {
+            content: ""; position: absolute; left: 8%; right: 8%; top: 56px; height: 2px;
+            background: linear-gradient(90deg, rgba(124,58,237,0), #1bd4d9 18%, #7c3aed 50%, #e94e8c 82%, rgba(233,78,140,0));
+            opacity: .55; pointer-events: none;
+        }
+    }
+    .hiw-step { position: relative; transition: transform .35s ease, box-shadow .35s ease; }
+    .hiw-step:hover { transform: translateY(-6px); box-shadow: 0 30px 60px -30px rgba(124,58,237,.55); }
+    .hiw-icon-wrap { position: relative; width: 64px; height: 64px; border-radius: 22px; display:flex; align-items:center; justify-content:center; margin: 0 auto 1rem; box-shadow: 0 14px 30px -12px var(--hiw-color, #7c3aed); }
+    .hiw-icon-wrap::after {
+        content: ""; position: absolute; inset: -6px; border-radius: 26px;
+        border: 2px solid color-mix(in srgb, var(--hiw-color, #7c3aed) 50%, transparent);
+        opacity: .35; animation: hiwPulse 2.4s ease-in-out infinite;
+    }
+    .hiw-step:hover .hiw-icon-wrap::after { opacity: .8; }
+    @keyframes hiwPulse { 0%,100% { transform: scale(1); opacity: .25; } 50% { transform: scale(1.08); opacity: .65; } }
+    .hiw-num { position: absolute; top: 14px; right: 18px; font-size: 3.25rem; font-weight: 800; line-height: 1;
+        background: linear-gradient(135deg, var(--hiw-color, #7c3aed), #ec4899);
+        -webkit-background-clip: text; background-clip: text; color: transparent; opacity: .14;
+    }
+    .hiw-time {
+        display:inline-flex; align-items:center; gap:6px;
+        padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700;
+        background: rgba(34,197,94,.12); color: #4ade80; border: 1px solid rgba(34,197,94,.25);
+        margin-bottom: 10px; letter-spacing: .04em;
+    }
+    .hiw-time i { font-size: 9px; }
+    .hiw-cta-wrap {
+        position: relative; padding: 1.75rem; border-radius: 1.75rem; overflow: hidden;
+        background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(236,72,153,.14), rgba(34,211,238,.12));
+        border: 1px solid rgba(255,255,255,.08);
+    }
+    .hiw-cta-wrap::before {
+        content:""; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
+        background: conic-gradient(from 180deg at 50% 50%, #7c3aed, #ec4899, #22d3ee, #7c3aed);
+        opacity:.18; filter: blur(20px);
+    }
+</style>
+<section id="how-it-works" class="py-20 lg:py-28 relative overflow-hidden">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">How it works</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+                Live in <span class="grad-text">under 2 minutes.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">Four tiny steps from "I have an idea" to "share my link". No card, no setup call, no fuss.</p>
+        </div>
+
+        <div class="hiw-track grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            @foreach([
+                ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus','#1bd4d9'],
+                ['02','0:45','Build your page','Drag-and-drop blocks for socials, music, shop, video, forms.','fa-grip-vertical','#7c3aed'],
+                ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes','#e94e8c'],
+                ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line','#ff8a3c'],
+            ] as $i => $s)
+                <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: {{ $s[5] }}">
+                    <span class="hiw-num">{{ $s[0] }}</span>
+                    <div class="hiw-icon-wrap" style="background: linear-gradient(135deg, {{ $s[5] }}, var(--c2));"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
+                    <span class="hiw-time"><i class="fas fa-stopwatch"></i>{{ $s[1] }}</span>
+                    <h3 class="text-lg font-bold mb-1.5">{!! $s[2] !!}</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">{!! $s[3] !!}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="reveal rd-4 mt-12 max-w-3xl mx-auto">
+            <div class="hiw-cta-wrap relative flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="relative text-center sm:text-left">
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-1" style="color:var(--c1)">Ready when you are</div>
+                    <div class="text-lg sm:text-xl font-bold text-white">Start free — no card needed.</div>
+                    <div class="text-xs text-gray-400 mt-0.5">Free Forever plan · Upgrade only when you outgrow it.</div>
+                </div>
+                <div class="relative flex flex-wrap items-center gap-3 shrink-0">
+                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
+                        Start free — no card <i class="fas fa-arrow-right text-xs"></i>
+                    </button>
+                    <a href="{{ route('site.how-it-works') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
+                        Walk me through it <i class="fas fa-route text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================ PRICING TEASER ============================ --}}
+@if(!empty($plans))
+@php
+    $__teaserFree    = collect($plans)->first(fn($p) => !empty($p['is_free']));
+    $__teaserPaid    = collect($plans)->reject(fn($p) => !empty($p['is_free']))
+        ->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
+@endphp
+<section id="pricing-teaser" class="py-14 lg:py-20 relative overflow-hidden" aria-label="Pricing at a glance">
+    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10 max-w-2xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Pricing at a glance</div>
+            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3">Free forever. <span class="grad-text">Upgrade when you grow.</span></h2>
+            <p class="reveal rd-2 text-gray-400">Two plans, zero surprises. See the full breakdown below.</p>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
+            @if($__teaserFree)
+                <a href="#pricing" class="reveal rd-1 group glass rounded-2xl p-6 lift block border border-white/10 hover:border-white/20 transition">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">{{ $__teaserFree['name'] ?? 'Free' }}</div>
+                    <div class="flex items-baseline gap-2 mb-3">
+                        <span class="text-3xl font-extrabold grad-text">FREE</span>
+                        <span class="text-xs text-gray-500">forever</span>
+                    </div>
+                    <ul class="space-y-1.5 text-sm text-gray-300 mb-4">
+                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c1)"></i>Unlimited links &amp; biolink page</li>
+                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c1)"></i>Built-in DMs &amp; AI Coach</li>
+                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c1)"></i>Native mobile app</li>
+                    </ul>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 group-hover:text-violet-200">See full plan <i class="fas fa-arrow-right text-[10px]"></i></span>
+                </a>
+            @endif
+            @if($__teaserPaid)
+                @php
+                    $__paidAmount = $__teaserPaid['monthly']['amount_display'] ?? null;
+                @endphp
+                <a href="#pricing" class="reveal rd-2 group rounded-2xl p-6 lift block relative overflow-hidden grad-border">
+                    <div class="absolute inset-0 -z-10 opacity-20" style="background:radial-gradient(circle at 80% 0%, var(--c2), transparent 60%);"></div>
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-2" style="color:var(--c2)">{{ $__teaserPaid['name'] ?? 'Pro' }} · most popular</div>
+                    <div class="flex items-baseline gap-2 mb-3">
+                        <span class="text-3xl font-extrabold text-white">{{ $__paidAmount ?: 'Pro' }}</span>
+                        <span class="text-xs text-gray-400">/ mo</span>
+                    </div>
+                    <ul class="space-y-1.5 text-sm text-gray-300 mb-4">
+                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c2)"></i>Custom domains &amp; A/B tests</li>
+                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c2)"></i>Team seats &amp; roles</li>
+                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c2)"></i>Priority support &amp; advanced AI</li>
+                    </ul>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-white">Compare all plans <i class="fas fa-arrow-right text-[10px]"></i></span>
+                </a>
+            @endif
+        </div>
+    </div>
+</section>
+@endif
+
 {{-- ============================ 1 · BUILD ============================ --}}
 <section id="features" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">01 · Build</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Build</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 A whole website,<br><span class="grad-text">drag-and-drop simple.</span>
             </h2>
@@ -4026,7 +3001,7 @@
 <section id="share" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">02 · Share</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Share</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Share your 1INME<br><span class="grad-text">anywhere you like.</span>
             </h2>
@@ -4193,7 +3168,7 @@
 <section class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">03 · Grow</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Grow</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Live analytics with<br><span class="grad-text">a built-in coach.</span>
             </h2>
@@ -4440,7 +3415,7 @@
 <section id="everything" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="everything-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">04 · Everything you get</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Everything you get</div>
             <h2 id="everything-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 One platform.<br><span class="grad-text">The whole growth stack.</span>
             </h2>
@@ -4574,849 +3549,13 @@
     </div>
 </section>
 
-{{-- ============================ AI SUITE ============================ --}}
-@php
-    $__aiProducts = [
-        [
-            'eyebrow' => 'AI Chatbot',
-            'title'   => 'A 24/7 chatbot trained on your biolink.',
-            'desc'    => 'Greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.',
-            'icon'    => 'fa-comments',
-            'color'   => '#7c3aed',
-            'route'   => 'site.ai-chatbot',
-        ],
-        [
-            'eyebrow' => 'AI Agent',
-            'title'   => 'A teammate that runs multi-step tasks.',
-            'desc'    => 'Qualifies leads, drafts outreach, updates your contacts and follows up — across your inbox, calendar and CRM.',
-            'icon'    => 'fa-robot',
-            'color'   => '#1bd4d9',
-            'route'   => 'site.ai-agent',
-        ],
-        [
-            'eyebrow' => 'AI Widget',
-            'title'   => 'Embed an AI assistant on any website.',
-            'desc'    => 'One snippet on WordPress, Shopify, Webflow or your custom site — answers questions and routes hot leads to your inbox.',
-            'icon'    => 'fa-window-restore',
-            'color'   => '#e94e8c',
-            'route'   => 'site.ai-widget',
-        ],
-        [
-            'eyebrow' => 'AI Voice Assistant',
-            'title'   => 'Picks up calls in your voice.',
-            'desc'    => 'AI receptionist that answers your number, qualifies callers, books real meetings and warm-transfers when it matters.',
-            'icon'    => 'fa-headset',
-            'color'   => '#ff8a3c',
-            'route'   => 'site.ai-voice-assistant',
-        ],
-    ];
-@endphp
-@php
-    $__aiKey = function ($eyebrow) {
-        return [
-            'AI Chatbot'         => 'chatbot',
-            'AI Agent'           => 'agent',
-            'AI Widget'          => 'widget',
-            'AI Voice Assistant' => 'voice',
-        ][$eyebrow] ?? 'chatbot';
-    };
-@endphp
-<style>
-    /* ===== AI Suite v2 — animated illustrations ===== */
-    .ai-suite-v2 { isolation: isolate; }
-    .ai-suite-v2 .ai-bg-grid {
-        position: absolute; inset: 0; pointer-events: none; opacity: .35;
-        background-image:
-            linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
-        background-size: 44px 44px;
-        mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 80%);
-        -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 80%);
-    }
-    .ai-suite-v2 .ai-bg-blob {
-        position: absolute; width: 460px; height: 460px;
-        border-radius: 9999px; filter: blur(80px);
-        opacity: .35; pointer-events: none;
-        animation: aiBlobFloat 18s ease-in-out infinite;
-    }
-    .ai-suite-v2 .ai-bg-blob-a { top: -120px; left: -100px; background: radial-gradient(circle, #7c3aed, transparent 65%); }
-    .ai-suite-v2 .ai-bg-blob-b { bottom: -180px; right: -120px; background: radial-gradient(circle, #ec4899, transparent 65%); animation-delay: -6s; }
-    .ai-suite-v2 .ai-bg-blob-c { top: 30%; right: 25%; width: 320px; height: 320px; background: radial-gradient(circle, #22d3ee, transparent 65%); animation-delay: -12s; opacity: .22; }
-    @keyframes aiBlobFloat {
-        0%,100% { transform: translate3d(0,0,0) scale(1); }
-        50%     { transform: translate3d(40px,-30px,0) scale(1.08); }
-    }
-    html.light-mode .ai-suite-v2 .ai-bg-blob { opacity: .18; }
-    html.light-mode .ai-suite-v2 .ai-bg-grid { opacity: .35;
-        background-image:
-            linear-gradient(rgba(15,23,42,.06) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(15,23,42,.06) 1px, transparent 1px);
-    }
-
-    /* Headline shimmer sweep */
-    .ai-shimmer {
-        background: linear-gradient(90deg, #a78bfa 0%, #ec4899 25%, #22d3ee 50%, #ec4899 75%, #a78bfa 100%);
-        background-size: 200% 100%;
-        -webkit-background-clip: text; background-clip: text;
-        color: transparent;
-        animation: aiShimmer 6s linear infinite;
-    }
-    @keyframes aiShimmer { 0%{ background-position: 0% 50%; } 100%{ background-position: 200% 50%; } }
-
-    /* Card */
-    .ai-card {
-        position: relative; display: block; overflow: hidden;
-        border-radius: 1.5rem;
-        background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
-        border: 1px solid rgba(255,255,255,.08);
-        padding: 1.25rem 1.25rem 1.4rem;
-        transition: transform .4s cubic-bezier(.2,.7,.2,1), border-color .35s ease, box-shadow .4s ease;
-    }
-    .ai-card:hover, .ai-card:focus-visible {
-        transform: translateY(-6px);
-        border-color: color-mix(in srgb, var(--ai-accent, #7c3aed) 55%, transparent);
-        box-shadow: 0 30px 70px -28px color-mix(in srgb, var(--ai-accent, #7c3aed) 70%, transparent);
-    }
-    html.light-mode .ai-card {
-        background: #ffffff;
-        border-color: rgba(15,23,42,.08);
-        box-shadow: 0 4px 14px -8px rgba(15,23,42,.10);
-    }
-    .ai-card-glow {
-        position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
-        background: radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--ai-accent, #7c3aed) 35%, transparent), transparent 70%);
-        opacity: .35; transition: opacity .4s ease;
-    }
-    .ai-card:hover .ai-card-glow { opacity: 1; }
-    .ai-card-corner {
-        position: absolute; top: -50px; right: -50px; width: 160px; height: 160px;
-        border-radius: 9999px; opacity: .22;
-        background: radial-gradient(circle, var(--ai-accent, #7c3aed), transparent 70%);
-    }
-
-    /* Illustration frame */
-    .ai-illus {
-        position: relative; height: 132px; border-radius: 1rem; overflow: hidden;
-        margin-bottom: 1rem;
-        background:
-            radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--ai-accent, #7c3aed) 22%, transparent), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
-        border: 1px solid rgba(255,255,255,.08);
-    }
-    html.light-mode .ai-illus {
-        background:
-            radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--ai-accent, #7c3aed) 14%, transparent), transparent 60%),
-            linear-gradient(180deg, #f8fafc, #ffffff);
-        border-color: rgba(15,23,42,.08);
-    }
-
-    /* ---- Chatbot illustration ---- */
-    .ai-chat-bubble {
-        position: absolute; padding: .42rem .65rem; border-radius: .9rem;
-        font-size: .68rem; font-weight: 600; line-height: 1.1;
-        max-width: 70%;
-        animation: aiChatPop .5s ease both;
-    }
-    .ai-chat-b1 { top: 14px; left: 12px; background: rgba(255,255,255,.10); color: #e5e7eb; border-bottom-left-radius: .3rem; animation-delay: .1s; }
-    .ai-chat-b2 { top: 50px; right: 12px; background: linear-gradient(135deg, var(--ai-accent), #6366f1); color: #fff; border-bottom-right-radius: .3rem; animation-delay: .8s; }
-    .ai-chat-b3 { bottom: 16px; left: 12px; background: rgba(255,255,255,.10); color: #e5e7eb; border-bottom-left-radius: .3rem; padding: .55rem .75rem; animation-delay: 1.6s; }
-    html.light-mode .ai-chat-b1, html.light-mode .ai-chat-b3 { background: rgba(15,23,42,.06); color: #1e293b; }
-    @keyframes aiChatPop { 0%{ opacity:0; transform: translateY(8px) scale(.9);} 100%{ opacity:1; transform: translateY(0) scale(1);} }
-    .ai-typing { display: inline-flex; gap: 3px; vertical-align: middle; }
-    .ai-typing i {
-        width: 5px; height: 5px; border-radius: 9999px; background: currentColor;
-        animation: aiTyping 1.2s ease-in-out infinite;
-    }
-    .ai-typing i:nth-child(2) { animation-delay: .15s; }
-    .ai-typing i:nth-child(3) { animation-delay: .3s; }
-    @keyframes aiTyping { 0%,100% { opacity: .3; transform: translateY(0);} 50% { opacity: 1; transform: translateY(-3px);} }
-    .ai-card:hover .ai-chat-bubble { animation-duration: .35s; }
-
-    /* ---- Agent illustration ---- */
-    .ai-tasklist {
-        position: absolute; inset: 14px; display: flex; flex-direction: column; gap: 7px;
-        padding: 10px; border-radius: .75rem;
-        background: rgba(0,0,0,.25);
-        border: 1px solid rgba(255,255,255,.06);
-    }
-    html.light-mode .ai-tasklist { background: #fff; border-color: rgba(15,23,42,.06); box-shadow: inset 0 0 0 1px rgba(15,23,42,.02); }
-    .ai-task {
-        display: flex; align-items: center; gap: 8px;
-        font-size: .68rem; font-weight: 600; color: #e5e7eb;
-    }
-    html.light-mode .ai-task { color: #334155; }
-    .ai-task-check {
-        flex: 0 0 auto; width: 14px; height: 14px; border-radius: 4px;
-        border: 1.5px solid color-mix(in srgb, var(--ai-accent) 60%, #94a3b8);
-        position: relative; overflow: hidden;
-    }
-    .ai-task-check::after {
-        content: ""; position: absolute; left: 2px; top: 4px; width: 7px; height: 4px;
-        border-left: 2px solid #fff; border-bottom: 2px solid #fff;
-        transform: rotate(-45deg) scale(0); transform-origin: left top;
-        transition: transform .25s ease;
-    }
-    .ai-task.done .ai-task-check { background: var(--ai-accent); border-color: var(--ai-accent); }
-    .ai-task.done .ai-task-check::after { transform: rotate(-45deg) scale(1); }
-    .ai-task-bar { flex: 1; height: 6px; border-radius: 9999px; background: rgba(255,255,255,.10); overflow: hidden; }
-    html.light-mode .ai-task-bar { background: rgba(15,23,42,.08); }
-    .ai-task-bar i {
-        display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ai-accent), #22d3ee);
-        animation: aiTaskFill 4s ease-in-out infinite;
-    }
-    .ai-task:nth-child(1) { animation: aiTaskRow 4s ease-in-out infinite; }
-    .ai-task:nth-child(2) { animation: aiTaskRow 4s ease-in-out infinite 1.2s; }
-    .ai-task:nth-child(3) { animation: aiTaskRow 4s ease-in-out infinite 2.4s; }
-    @keyframes aiTaskRow {
-        0%, 8%   { opacity: .55; }
-        10%, 35% { opacity: 1; }
-        40%      { opacity: 1; }
-    }
-    .ai-task:nth-child(1) .ai-task-bar i { animation-delay: 0s; }
-    .ai-task:nth-child(2) .ai-task-bar i { animation-delay: 1.2s; }
-    .ai-task:nth-child(3) .ai-task-bar i { animation-delay: 2.4s; }
-    @keyframes aiTaskFill { 0%{ width: 0; } 60%, 100%{ width: 100%; } }
-    .ai-card:hover .ai-task .ai-task-check { background: var(--ai-accent); border-color: var(--ai-accent); }
-    .ai-card:hover .ai-task .ai-task-check::after { transform: rotate(-45deg) scale(1); }
-
-    /* ---- Widget illustration (browser frame) ---- */
-    .ai-browser {
-        position: absolute; inset: 14px; border-radius: .75rem; overflow: hidden;
-        background: rgba(0,0,0,.30);
-        border: 1px solid rgba(255,255,255,.08);
-        display: flex; flex-direction: column;
-    }
-    html.light-mode .ai-browser { background: #fff; border-color: rgba(15,23,42,.08); }
-    .ai-browser-bar {
-        display: flex; align-items: center; gap: 4px;
-        padding: 5px 7px; background: rgba(255,255,255,.04);
-        border-bottom: 1px solid rgba(255,255,255,.06);
-    }
-    html.light-mode .ai-browser-bar { background: #f1f5f9; border-bottom-color: rgba(15,23,42,.06); }
-    .ai-browser-bar span { width: 6px; height: 6px; border-radius: 9999px; background: rgba(255,255,255,.20); }
-    html.light-mode .ai-browser-bar span { background: rgba(15,23,42,.18); }
-    .ai-browser-body { position: relative; flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
-    .ai-browser-line { height: 5px; border-radius: 9999px; background: rgba(255,255,255,.08); }
-    html.light-mode .ai-browser-line { background: rgba(15,23,42,.08); }
-    .ai-browser-line.l1 { width: 70%; }
-    .ai-browser-line.l2 { width: 90%; }
-    .ai-browser-line.l3 { width: 55%; }
-    .ai-widget-pop {
-        position: absolute; right: 8px; bottom: 8px;
-        width: 64px; padding: 6px 8px; border-radius: .55rem;
-        background: linear-gradient(135deg, var(--ai-accent), #f97316);
-        color: #fff; font-size: .58rem; font-weight: 700;
-        box-shadow: 0 8px 22px -8px var(--ai-accent);
-        display: flex; align-items: center; gap: 5px;
-        transform-origin: bottom right;
-        animation: aiWidgetPop 4s ease-in-out infinite;
-    }
-    .ai-widget-pop::before {
-        content: ""; width: 7px; height: 7px; border-radius: 9999px; background: #fff;
-        box-shadow: 0 0 0 0 rgba(255,255,255,.6);
-        animation: aiWidgetDot 1.6s ease-out infinite;
-    }
-    @keyframes aiWidgetPop {
-        0%, 20%, 100% { transform: scale(0) rotate(-12deg); opacity: 0; }
-        30%, 75%      { transform: scale(1) rotate(0); opacity: 1; }
-        85%           { transform: scale(.9) rotate(-4deg); opacity: .6; }
-    }
-    @keyframes aiWidgetDot {
-        0% { box-shadow: 0 0 0 0 rgba(255,255,255,.55); }
-        80%, 100% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
-    }
-    .ai-card:hover .ai-widget-pop { animation-duration: 2.4s; }
-
-    /* ---- Voice illustration ---- */
-    .ai-voice {
-        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 14px;
-    }
-    .ai-phone {
-        width: 46px; height: 70px; border-radius: 10px;
-        background: linear-gradient(160deg, #1f2937, #0f172a);
-        border: 1px solid rgba(255,255,255,.10);
-        box-shadow: 0 14px 34px -16px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
-        position: relative; overflow: hidden;
-        animation: aiPhoneRing 2.4s ease-in-out infinite;
-    }
-    .ai-phone::before {
-        content: ""; position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
-        width: 14px; height: 3px; border-radius: 9999px; background: rgba(255,255,255,.18);
-    }
-    .ai-phone::after {
-        content: "\f095"; /* fa phone */
-        font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome";
-        font-weight: 900; font-size: 18px;
-        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-        color: var(--ai-accent);
-        text-shadow: 0 0 14px color-mix(in srgb, var(--ai-accent) 70%, transparent);
-    }
-    @keyframes aiPhoneRing {
-        0%, 100% { transform: rotate(-3deg); }
-        50%      { transform: rotate(3deg); }
-    }
-    .ai-wave { display: flex; align-items: center; gap: 4px; height: 56px; }
-    .ai-wave i {
-        display: block; width: 4px; border-radius: 9999px;
-        background: linear-gradient(180deg, var(--ai-accent), #ec4899);
-        animation: aiWaveBar 1.2s ease-in-out infinite;
-    }
-    .ai-wave i:nth-child(1){ height: 18px; animation-delay: 0s; }
-    .ai-wave i:nth-child(2){ height: 30px; animation-delay: .12s; }
-    .ai-wave i:nth-child(3){ height: 44px; animation-delay: .24s; }
-    .ai-wave i:nth-child(4){ height: 26px; animation-delay: .36s; }
-    .ai-wave i:nth-child(5){ height: 38px; animation-delay: .48s; }
-    .ai-wave i:nth-child(6){ height: 22px; animation-delay: .60s; }
-    .ai-wave i:nth-child(7){ height: 14px; animation-delay: .72s; }
-    @keyframes aiWaveBar {
-        0%,100% { transform: scaleY(.35); }
-        50%     { transform: scaleY(1); }
-    }
-    .ai-card:hover .ai-wave i { animation-duration: .7s; }
-    .ai-card:hover .ai-phone { animation-duration: 1.2s; }
-
-    /* Reveal stagger — uses existing `.reveal` mechanism */
-    .ai-suite-v2 .ai-card { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
-    .ai-suite-v2 .ai-card.in-view, .ai-suite-v2 .reveal.in-view .ai-card { opacity: 1; transform: translateY(0); }
-    .ai-suite-v2 .ai-card.d1 { transition-delay: .05s; }
-    .ai-suite-v2 .ai-card.d2 { transition-delay: .15s; }
-    .ai-suite-v2 .ai-card.d3 { transition-delay: .25s; }
-    .ai-suite-v2 .ai-card.d4 { transition-delay: .35s; }
-
-    @media (prefers-reduced-motion: reduce) {
-        .ai-suite-v2 .ai-bg-blob,
-        .ai-shimmer,
-        .ai-chat-bubble,
-        .ai-typing i,
-        .ai-task,
-        .ai-task-bar i,
-        .ai-widget-pop,
-        .ai-widget-pop::before,
-        .ai-phone,
-        .ai-wave i { animation: none !important; }
-        .ai-shimmer { background: linear-gradient(90deg, #a78bfa, #ec4899, #22d3ee); -webkit-background-clip: text; background-clip: text; }
-        .ai-chat-bubble { opacity: 1; transform: none; }
-        .ai-widget-pop { transform: none; opacity: 1; }
-        .ai-suite-v2 .ai-card { opacity: 1; transform: none; }
-    }
-</style>
-<section id="ai-suite" class="ai-suite-v2 py-24 lg:py-32 relative overflow-hidden" aria-labelledby="ai-suite-h">
-    <div class="ai-bg-grid" aria-hidden="true"></div>
-    <div class="ai-bg-blob ai-bg-blob-a" aria-hidden="true"></div>
-    <div class="ai-bg-blob ai-bg-blob-b" aria-hidden="true"></div>
-    <div class="ai-bg-blob ai-bg-blob-c" aria-hidden="true"></div>
-
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#7c3aed">05 · AI suite</div>
-            <h2 id="ai-suite-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Built-in AI that <span class="ai-shimmer">works the room</span> for you.
-            </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">
-                A chatbot for your biolink, an agent that runs playbooks, an embeddable widget for any site, and a voice assistant that picks up your calls — all under one login.
-            </p>
-        </div>
-
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            @foreach($__aiProducts as $i => $a)
-                @php $key = $__aiKey($a['eyebrow']); @endphp
-                <a href="{{ route($a['route']) }}"
-                   class="ai-card reveal rd-{{ ($i % 4) + 1 }} d{{ $i + 1 }} group"
-                   style="--ai-accent: {{ $a['color'] }};"
-                   aria-label="{{ $a['eyebrow'] }} — learn more">
-                    <span class="ai-card-glow" aria-hidden="true"></span>
-                    <span class="ai-card-corner" aria-hidden="true"></span>
-
-                    <div class="ai-illus" aria-hidden="true">
-                        @if($key === 'chatbot')
-                            <div class="ai-chat-bubble ai-chat-b1">Hey! 👋</div>
-                            <div class="ai-chat-bubble ai-chat-b2">Got it — booking a slot for you.</div>
-                            <div class="ai-chat-bubble ai-chat-b3">
-                                <span class="ai-typing" style="color: {{ $a['color'] }};">
-                                    <i></i><i></i><i></i>
-                                </span>
-                            </div>
-                        @elseif($key === 'agent')
-                            <div class="ai-tasklist">
-                                <div class="ai-task done">
-                                    <span class="ai-task-check"></span>
-                                    <span>Qualify lead</span>
-                                    <span class="ai-task-bar"><i></i></span>
-                                </div>
-                                <div class="ai-task done">
-                                    <span class="ai-task-check"></span>
-                                    <span>Draft email</span>
-                                    <span class="ai-task-bar"><i></i></span>
-                                </div>
-                                <div class="ai-task">
-                                    <span class="ai-task-check"></span>
-                                    <span>Schedule follow-up</span>
-                                    <span class="ai-task-bar"><i></i></span>
-                                </div>
-                            </div>
-                        @elseif($key === 'widget')
-                            <div class="ai-browser">
-                                <div class="ai-browser-bar">
-                                    <span></span><span></span><span></span>
-                                </div>
-                                <div class="ai-browser-body">
-                                    <div class="ai-browser-line l1"></div>
-                                    <div class="ai-browser-line l2"></div>
-                                    <div class="ai-browser-line l3"></div>
-                                    <div class="ai-browser-line l2"></div>
-                                    <div class="ai-widget-pop">
-                                        <span>Ask AI</span>
-                                    </div>
-                                </div>
-                            </div>
-                        @else
-                            <div class="ai-voice">
-                                <div class="ai-phone"></div>
-                                <div class="ai-wave">
-                                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-
-                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-1" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
-                    <h3 class="relative text-lg font-bold mb-2 leading-snug">{{ $a['title'] }}</h3>
-                    <p class="relative text-sm text-gray-400 leading-relaxed mb-4">{{ $a['desc'] }}</p>
-                    <span class="relative inline-flex items-center gap-1.5 text-xs font-semibold" style="color: {{ $a['color'] }};">
-                        Learn more <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition"></i>
-                    </span>
-                </a>
-            @endforeach
-        </div>
-    </div>
-</section>
-
-{{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
-@php
-    $__audiences = [
-        [
-            'eyebrow' => 'Creators',
-            'title'   => 'Turn followers into fans &mdash; and income.',
-            'desc'    => 'One link for every drop, with tips, products, DMs, scheduled posts and an AI coach to keep you growing.',
-            'icon'    => 'fa-microphone-lines',
-            'color'   => '#e94e8c',
-            'cta'     => 'Build my creator page',
-        ],
-        [
-            'eyebrow' => 'Businesses',
-            'title'   => 'A landing page, storefront &amp; CRM in one.',
-            'desc'    => 'Branded short links, QR codes for packaging &amp; print, custom domains, forms and team workspaces.',
-            'icon'    => 'fa-store',
-            'color'   => '#1bd4d9',
-            'cta'     => 'Start my business page',
-        ],
-        [
-            'eyebrow' => 'Networking pros',
-            'title'   => 'Your digital business card &mdash; and then some.',
-            'desc'    => 'Tap-to-share NFC tags, dynamic QR codes, instant DMs and a live visitor map of who&rsquo;s engaging.',
-            'icon'    => 'fa-id-badge',
-            'color'   => '#ff8a3c',
-            'cta'     => 'Make my smart card',
-        ],
-    ];
-@endphp
-<section id="audience" class="py-20 lg:py-28 relative overflow-hidden" aria-labelledby="audience-h">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12 max-w-2xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">06 · Built for you</div>
-            <h2 id="audience-h" class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-                Built for <span class="grad-text">creators, brands &amp; networking pros.</span>
-            </h2>
-            <p class="reveal rd-2 text-gray-400">Pick the one that fits you &mdash; the same all-in-one toolkit powers all three.</p>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-5">
-            @foreach($__audiences as $i => $a)
-                <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
-                    <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:radial-gradient(circle, {{ $a['color'] }}, transparent 70%);animation-delay:{{ $i * 1.2 }}s;"></div>
-                    <div class="aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $a['color'] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
-                        <i class="fas {{ $a['icon'] }} text-xl text-white" style="animation-delay:{{ $i * 0.5 }}s;"></i>
-                    </div>
-                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
-                    <h3 class="relative text-xl font-bold mb-3 leading-snug">{!! $a['title'] !!}</h3>
-                    <p class="relative text-sm text-gray-400 leading-relaxed mb-6 flex-1">{!! $a['desc'] !!}</p>
-                    <button type="button" @click="authTab='register'; authOpen=true" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
-                        {{ $a['cta'] }} <i class="aud-arrow fas fa-arrow-right text-[10px]" style="animation-delay:{{ $i * 0.3 }}s;"></i>
-                    </button>
-                </article>
-            @endforeach
-        </div>
-    </div>
-</section>
-
-{{-- ============================ RESUME / PORTFOLIO BUILDER ============================ --}}
-<style>
-    /* Resume / Portfolio section animations */
-    .rb-wrap { position: relative; }
-    .rb-mesh::before {
-        content:""; position:absolute; inset:-20%;
-        background:
-            radial-gradient(40% 40% at 18% 22%, rgba(124,58,237,.18), transparent 60%),
-            radial-gradient(38% 38% at 82% 28%, rgba(27,212,217,.16), transparent 60%),
-            radial-gradient(45% 45% at 50% 90%, rgba(233,78,140,.16), transparent 60%);
-        filter: blur(40px); pointer-events:none; z-index:0;
-        animation: rbMesh 14s ease-in-out infinite alternate;
-    }
-    @keyframes rbMesh { 0% { transform: translate3d(0,0,0) scale(1); } 100% { transform: translate3d(2%,-2%,0) scale(1.06); } }
-
-    /* Resume preview card — looks like an actual A4 résumé */
-    .rb-paper {
-        position: relative; aspect-ratio: 1 / 1.32; max-width: 380px; margin: 0 auto;
-        border-radius: 22px; overflow: hidden;
-        background: linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
-        color: #0f172a;
-        box-shadow:
-            0 30px 80px -30px rgba(124,58,237,.55),
-            0 12px 30px -10px rgba(0,0,0,.55),
-            inset 0 0 0 1px rgba(255,255,255,.6);
-        transform: rotate(-3.5deg);
-        animation: rbFloat 6s ease-in-out infinite;
-    }
-    @keyframes rbFloat {
-        0%,100% { transform: rotate(-3.5deg) translateY(0); }
-        50%     { transform: rotate(-3.5deg) translateY(-10px); }
-    }
-    .rb-paper::after {
-        content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
-        background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%);
-        background-size: 250% 250%;
-        animation: rbShine 4.5s ease-in-out infinite;
-    }
-    @keyframes rbShine {
-        0%   { background-position: 200% 50%; }
-        100% { background-position: -100% 50%; }
-    }
-    .rb-paper-head {
-        padding: 22px 22px 16px; color: #fff;
-        background: linear-gradient(135deg, #7c3aed 0%, #e94e8c 60%, #ff8a3c 100%);
-        position: relative; overflow: hidden;
-    }
-    .rb-paper-head::before {
-        content:""; position:absolute; inset:0;
-        background: radial-gradient(60% 80% at 80% 30%, rgba(255,255,255,.25), transparent 60%);
-    }
-    .rb-avatar {
-        width: 52px; height: 52px; border-radius: 50%;
-        background: linear-gradient(135deg, #1bd4d9, #7c3aed);
-        display:flex; align-items:center; justify-content:center;
-        color:#fff; font-weight:800; font-size: 20px;
-        box-shadow: 0 6px 18px -4px rgba(0,0,0,.45);
-    }
-    .rb-bar { height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; position: relative; }
-    .rb-bar > span {
-        position:absolute; left:0; top:0; bottom:0; border-radius: inherit;
-        background: linear-gradient(90deg, #7c3aed, #1bd4d9);
-        animation: rbFill 2.6s ease-out forwards;
-        transform-origin: left center;
-        width: var(--rb-w, 70%);
-        transform: scaleX(0);
-    }
-    @keyframes rbFill { to { transform: scaleX(1); } }
-    .rb-chip {
-        display:inline-flex; align-items:center; gap:4px;
-        font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 999px;
-        background: rgba(124,58,237,.10); color: #6d28d9; border: 1px solid rgba(124,58,237,.25);
-    }
-    .rb-tap {
-        position: absolute; width: 22px; height: 22px; border-radius: 50%;
-        background: rgba(255,255,255,.92); box-shadow: 0 0 0 0 rgba(124,58,237,.6);
-        animation: rbTap 3.6s ease-in-out infinite;
-        pointer-events: none;
-    }
-    @keyframes rbTap {
-        0%, 80%, 100% { transform: scale(.8); opacity: 0; box-shadow: 0 0 0 0 rgba(124,58,237,.55); }
-        15%           { transform: scale(1);  opacity: 1; }
-        25%           { transform: scale(1);  opacity: 1; box-shadow: 0 0 0 14px rgba(124,58,237,0); }
-    }
-
-    /* Floating template thumbs that spin around the paper */
-    .rb-thumb {
-        position: absolute; width: 92px; height: 124px; border-radius: 14px;
-        background: linear-gradient(180deg, #ffffff, #eef0f7);
-        box-shadow: 0 18px 36px -16px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
-        overflow:hidden;
-        animation: rbFloat2 7s ease-in-out infinite;
-    }
-    .rb-thumb::before {
-        content:""; position:absolute; left:0; right:0; top:0; height: 30px;
-    }
-    .rb-thumb i { position:absolute; bottom:8px; right:10px; font-size: 12px; color: rgba(15,23,42,.35); }
-    .rb-thumb .rb-thumb-lines { position:absolute; left:10px; right:10px; top:42px; display:flex; flex-direction:column; gap:5px; }
-    .rb-thumb .rb-thumb-lines span { height:4px; border-radius:3px; background: rgba(15,23,42,.10); }
-    .rb-thumb .rb-thumb-lines span:nth-child(1){ width: 70%; background: rgba(15,23,42,.20); }
-    .rb-thumb .rb-thumb-lines span:nth-child(2){ width: 90%; }
-    .rb-thumb .rb-thumb-lines span:nth-child(3){ width: 60%; }
-    .rb-thumb .rb-thumb-lines span:nth-child(4){ width: 80%; }
-    .rb-thumb-1 { top: -28px; left: -36px; transform: rotate(-12deg); animation-delay: .0s; }
-    .rb-thumb-1::before { background: linear-gradient(135deg,#1bd4d9,#7c3aed); }
-    .rb-thumb-2 { bottom: -22px; right: -28px; transform: rotate(8deg); animation-delay: 1.2s; }
-    .rb-thumb-2::before { background: linear-gradient(135deg,#e94e8c,#ff8a3c); }
-    .rb-thumb-3 { top: 40%; right: -52px; transform: rotate(14deg); animation-delay: 2.4s; }
-    .rb-thumb-3::before { background: linear-gradient(135deg,#22d3ee,#16a34a); }
-    @keyframes rbFloat2 {
-        0%,100% { transform: translateY(0) rotate(var(--rot,0deg)); }
-        50%     { transform: translateY(-12px) rotate(var(--rot,0deg)); }
-    }
-
-    /* Feature pills column */
-    .rb-feat { transition: transform .35s ease, background .35s ease, border-color .35s ease; }
-    .rb-feat:hover { transform: translateX(6px); border-color: rgba(124,58,237,.45); background: rgba(124,58,237,.08); }
-    .rb-feat-icon {
-        width: 44px; height: 44px; border-radius: 14px;
-        display:flex; align-items:center; justify-content:center; flex-shrink:0;
-        color: #fff; box-shadow: 0 12px 28px -10px var(--rb-c, #7c3aed);
-        background: linear-gradient(135deg, var(--rb-c, #7c3aed), #1bd4d9);
-        position: relative;
-    }
-    .rb-feat-icon::after {
-        content:""; position:absolute; inset:-5px; border-radius:18px;
-        border: 2px solid color-mix(in srgb, var(--rb-c, #7c3aed) 50%, transparent);
-        opacity:.35; animation: rbPulse 2.4s ease-in-out infinite;
-    }
-    @keyframes rbPulse { 0%,100% { transform: scale(1); opacity:.25; } 50% { transform: scale(1.08); opacity:.65; } }
-
-    .rb-stat-bubble {
-        position: absolute; padding: 8px 12px; border-radius: 14px;
-        background: rgba(15,18,28,.85); backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,.08); color:#fff;
-        font-size: 11px; font-weight: 700; display:flex; align-items:center; gap:8px;
-        box-shadow: 0 18px 40px -16px rgba(0,0,0,.7);
-        animation: rbBubble 6s ease-in-out infinite;
-    }
-    .rb-stat-bubble i { color: #1bd4d9; }
-    .rb-stat-1 { top: 8%; right: -18px; animation-delay: .3s; }
-    .rb-stat-2 { bottom: 18%; left: -22px; animation-delay: 1.6s; }
-    @keyframes rbBubble {
-        0%,100% { transform: translateY(0); }
-        50%     { transform: translateY(-8px); }
-    }
-</style>
-<section id="resume-portfolio" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="rb-h">
-    <div class="rb-mesh absolute inset-0 pointer-events-none" aria-hidden="true"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">07 · Resume &amp; Portfolio</div>
-            <h2 id="rb-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Build a résumé and portfolio<br><span class="grad-text">that lands the interview.</span>
-            </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">
-                Drag-and-drop sections, AI-polished copy, and a public portfolio link that lives at <span class="font-semibold text-white">1inme.com/you/cv</span>. Export to PDF in one click — no Word, no fiddling, no recruiter rejection.
-            </p>
-        </div>
-
-        <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {{-- LEFT: animated résumé preview --}}
-            <div class="reveal rd-3 rb-wrap relative h-[520px] sm:h-[560px]">
-                <div class="rb-thumb rb-thumb-1" style="--rot:-12deg;" aria-hidden="true">
-                    <div class="rb-thumb-lines"><span></span><span></span><span></span><span></span></div>
-                    <i class="fas fa-palette"></i>
-                </div>
-                <div class="rb-thumb rb-thumb-2" style="--rot:8deg;" aria-hidden="true">
-                    <div class="rb-thumb-lines"><span></span><span></span><span></span><span></span></div>
-                    <i class="fas fa-briefcase"></i>
-                </div>
-                <div class="rb-thumb rb-thumb-3" style="--rot:14deg;" aria-hidden="true">
-                    <div class="rb-thumb-lines"><span></span><span></span><span></span><span></span></div>
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-
-                <div class="rb-paper" role="img" aria-label="Résumé preview">
-                    <div class="rb-paper-head">
-                        <div class="relative flex items-center gap-3">
-                            <div class="rb-avatar">MA</div>
-                            <div>
-                                <div class="text-base font-bold leading-tight">Maya Anders</div>
-                                <div class="text-[11px] opacity-90">Senior Product Designer · Berlin</div>
-                            </div>
-                            <span class="ml-auto text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur px-2 py-1 rounded-full">CV</span>
-                        </div>
-                        <div class="relative mt-3 flex flex-wrap gap-1.5">
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">Figma</span>
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">Design Systems</span>
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">Prototyping</span>
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">UX Research</span>
-                        </div>
-                    </div>
-                    <div class="px-5 py-4 space-y-4">
-                        <div>
-                            <div class="flex items-center justify-between mb-1.5">
-                                <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700">Experience</div>
-                                <span class="rb-chip"><i class="fas fa-sparkles text-[8px]"></i> AI polished</span>
-                            </div>
-                            <div class="text-[12px] font-bold text-slate-900 leading-tight">Senior Product Designer</div>
-                            <div class="text-[10px] text-slate-500">Linear · 2023 — Now</div>
-                            <div class="text-[10px] text-slate-600 mt-1 leading-snug">Shipped onboarding redesign, +28% activation. Led design system across 4 squads.</div>
-                        </div>
-                        <div>
-                            <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-2">Skills</div>
-                            <div class="space-y-2">
-                                <div>
-                                    <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Product design</span><span class="text-slate-500">95%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:95%"></span></div>
-                                </div>
-                                <div>
-                                    <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Design systems</span><span class="text-slate-500">88%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:88%; animation-delay:.25s;"></span></div>
-                                </div>
-                                <div>
-                                    <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Front-end (React)</span><span class="text-slate-500">72%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:72%; animation-delay:.5s;"></span></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-1.5">Portfolio</div>
-                            <div class="grid grid-cols-3 gap-1.5">
-                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#7c3aed,#1bd4d9);"></div>
-                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#e94e8c,#ff8a3c);"></div>
-                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#22d3ee,#16a34a);"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Animated tap pointer --}}
-                    <span class="rb-tap" style="top: 28%; right: 24%;" aria-hidden="true"></span>
-                </div>
-
-                <div class="rb-stat-bubble rb-stat-1" aria-hidden="true">
-                    <i class="fas fa-eye"></i> 412 portfolio views
-                </div>
-                <div class="rb-stat-bubble rb-stat-2" aria-hidden="true">
-                    <i class="fas fa-file-pdf" style="color:#ff8a3c;"></i> Exported to PDF · 2.1s
-                </div>
-            </div>
-
-            {{-- RIGHT: features --}}
-            <div class="space-y-4">
-                @foreach([
-                    ['fa-wand-magic-sparkles', '#7c3aed', 'AI writes the boring parts',  'Paste your past role &mdash; we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
-                    ['fa-grip-vertical',       '#1bd4d9', 'Drag-and-drop sections',       'Reorder Experience, Education, Projects, Skills and custom blocks. Live preview, no save button.'],
-                    ['fa-palette',             '#e94e8c', '20+ recruiter-tested templates','Minimalist, design-led, classic ATS &mdash; all responsive, all printable, all yours to recolor.'],
-                    ['fa-link',                '#ff8a3c', 'Public portfolio link',        'Share <span class="text-white font-semibold">1inme.com/you/cv</span> instantly. Embed projects, GitHub repos, Behance shots and case studies.'],
-                    ['fa-file-pdf',            '#22c55e', 'One-click PDF export',         'Pixel-perfect A4 / Letter export with selectable text and embedded fonts. ATS systems read it cleanly.'],
-                    ['fa-shield-halved',       '#22d3ee', 'Privacy-first',                'Toggle between public, unlisted (link-only) and private. Hide email/phone from public view in one tap.'],
-                ] as $i => $f)
-                    <div class="reveal rd-{{ ($i % 4) + 1 }} rb-feat glass rounded-2xl p-4 flex items-start gap-4">
-                        <div class="rb-feat-icon" style="--rb-c: {{ $f[1] }};"><i class="fas {{ $f[0] }}"></i></div>
-                        <div class="min-w-0">
-                            <div class="text-base font-bold mb-1">{!! $f[2] !!}</div>
-                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[3] !!}</div>
-                        </div>
-                    </div>
-                @endforeach
-
-                <div class="reveal rd-4 pt-3 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('site.resume-builder') }}" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
-                        Build my résumé free <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                    <a href="{{ route('site.resume-builder') }}#templates" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
-                        See templates <i class="fas fa-images text-[10px]"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- ============================ HOW IT WORKS (upgraded) ============================ --}}
-<style>
-    .hiw-track { position: relative; }
-    @media (min-width: 1024px) {
-        .hiw-track::before {
-            content: ""; position: absolute; left: 8%; right: 8%; top: 56px; height: 2px;
-            background: linear-gradient(90deg, rgba(124,58,237,0), #1bd4d9 18%, #7c3aed 50%, #e94e8c 82%, rgba(233,78,140,0));
-            opacity: .55; pointer-events: none;
-        }
-    }
-    .hiw-step { position: relative; transition: transform .35s ease, box-shadow .35s ease; }
-    .hiw-step:hover { transform: translateY(-6px); box-shadow: 0 30px 60px -30px rgba(124,58,237,.55); }
-    .hiw-icon-wrap { position: relative; width: 64px; height: 64px; border-radius: 22px; display:flex; align-items:center; justify-content:center; margin: 0 auto 1rem; box-shadow: 0 14px 30px -12px var(--hiw-color, #7c3aed); }
-    .hiw-icon-wrap::after {
-        content: ""; position: absolute; inset: -6px; border-radius: 26px;
-        border: 2px solid color-mix(in srgb, var(--hiw-color, #7c3aed) 50%, transparent);
-        opacity: .35; animation: hiwPulse 2.4s ease-in-out infinite;
-    }
-    .hiw-step:hover .hiw-icon-wrap::after { opacity: .8; }
-    @keyframes hiwPulse { 0%,100% { transform: scale(1); opacity: .25; } 50% { transform: scale(1.08); opacity: .65; } }
-    .hiw-num { position: absolute; top: 14px; right: 18px; font-size: 3.25rem; font-weight: 800; line-height: 1;
-        background: linear-gradient(135deg, var(--hiw-color, #7c3aed), #ec4899);
-        -webkit-background-clip: text; background-clip: text; color: transparent; opacity: .14;
-    }
-    .hiw-time {
-        display:inline-flex; align-items:center; gap:6px;
-        padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700;
-        background: rgba(34,197,94,.12); color: #4ade80; border: 1px solid rgba(34,197,94,.25);
-        margin-bottom: 10px; letter-spacing: .04em;
-    }
-    .hiw-time i { font-size: 9px; }
-    .hiw-cta-wrap {
-        position: relative; padding: 1.75rem; border-radius: 1.75rem; overflow: hidden;
-        background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(236,72,153,.14), rgba(34,211,238,.12));
-        border: 1px solid rgba(255,255,255,.08);
-    }
-    .hiw-cta-wrap::before {
-        content:""; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
-        background: conic-gradient(from 180deg at 50% 50%, #7c3aed, #ec4899, #22d3ee, #7c3aed);
-        opacity:.18; filter: blur(20px);
-    }
-</style>
-<section id="how-it-works" class="py-20 lg:py-28 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">08 · How it works</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
-                Live in <span class="grad-text">under 2 minutes.</span>
-            </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Four tiny steps from "I have an idea" to "share my link". No card, no setup call, no fuss.</p>
-        </div>
-
-        <div class="hiw-track grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
-            @foreach([
-                ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus','#1bd4d9'],
-                ['02','0:45','Build your page','Drag-and-drop blocks for socials, music, shop, video, forms.','fa-grip-vertical','#7c3aed'],
-                ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes','#e94e8c'],
-                ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line','#ff8a3c'],
-            ] as $i => $s)
-                <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: {{ $s[5] }}">
-                    <span class="hiw-num">{{ $s[0] }}</span>
-                    <div class="hiw-icon-wrap" style="background: linear-gradient(135deg, {{ $s[5] }}, var(--c2));"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
-                    <span class="hiw-time"><i class="fas fa-stopwatch"></i>{{ $s[1] }}</span>
-                    <h3 class="text-lg font-bold mb-1.5">{!! $s[2] !!}</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">{!! $s[3] !!}</p>
-                </div>
-            @endforeach
-        </div>
-
-        <div class="reveal rd-4 mt-12 max-w-3xl mx-auto">
-            <div class="hiw-cta-wrap relative flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="relative text-center sm:text-left">
-                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-1" style="color:var(--c1)">Ready when you are</div>
-                    <div class="text-lg sm:text-xl font-bold text-white">Start free — no card needed.</div>
-                    <div class="text-xs text-gray-400 mt-0.5">Free Forever plan · Upgrade only when you outgrow it.</div>
-                </div>
-                <div class="relative flex flex-wrap items-center gap-3 shrink-0">
-                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
-                        Start free — no card <i class="fas fa-arrow-right text-xs"></i>
-                    </button>
-                    <a href="{{ route('site.how-it-works') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
-                        Walk me through it <i class="fas fa-route text-[10px]"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
+@include('home.partials.ai-suite')
+@include('home.partials.resume')
 {{-- ============================ WORKSPACE & TEAM ============================ --}}
 <section id="workspace-team" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">09 · Workspace &amp; Team</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Workspace &amp; Team</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Run 1INME with <span class="grad-text">your whole team.</span>
             </h2>
@@ -5600,7 +3739,7 @@
     <div class="absolute inset-0 -z-10" style="background:radial-gradient(60% 50% at 80% 30%, rgba(233,78,140,.15), transparent 70%);"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">10 · Buzz</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Show visitors <span class="grad-text">real momentum.</span>
             </h2>
@@ -5627,7 +3766,7 @@
                                 <span class="fresh-tag">✨ Just now</span>
                                 <div class="bz-follow">
                                     <div class="bz-avatar">
-                                        <img src="/images/hero-roles/role_designer-200.jpg" alt="Sara">
+                                        <img src="/images/hero-roles/role_designer-200.jpg" alt="Sara" loading="lazy" decoding="async" width="40" height="40">
                                         <span class="on" aria-hidden="true"></span>
                                     </div>
                                     <div class="min-w-0">
@@ -5642,7 +3781,7 @@
                             <div class="buzz-card">
                                 <div class="bz-buy">
                                     <div class="bz-thumb">
-                                        <img src="/images/hero-roles/thumb_design-320.jpg" alt="Lightroom Pack">
+                                        <img src="/images/hero-roles/thumb_design-320.jpg" alt="Lightroom Pack" loading="lazy" decoding="async" width="64" height="64">
                                         <span class="tag">Preset</span>
                                     </div>
                                     <div class="min-w-0">
@@ -5751,11 +3890,18 @@
     </div>
 </section>
 
+{{-- ============================ BY THE NUMBERS (stats strip) ============================ --}}
+<section id="stats" class="py-12 lg:py-16 relative overflow-hidden" aria-label="By the numbers">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        @include('public.partials.marketing-stats')
+    </div>
+</section>
+
 {{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
-<section class="py-20 lg:py-24 relative overflow-hidden">
+<section id="proof" class="py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">11 · Social proof</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Loved by people who <span class="grad-text">do the most.</span></h2>
         </div>
     </div>
@@ -5843,7 +3989,7 @@
 <section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">12 · FAQ</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
             <p class="reveal rd-2 text-sm text-gray-400">A quick highlight reel — the full searchable library lives on the FAQ page.</p>
         </div>
@@ -5870,16 +4016,9 @@
     </div>
 </section>
 
-{{-- ============================ BY THE NUMBERS (stats strip) ============================ --}}
-<section id="stats" class="py-12 lg:py-16 relative overflow-hidden" aria-label="By the numbers">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        @include('public.partials.marketing-stats')
-    </div>
-</section>
-
 {{-- ============================ FEATURED POSTS CAROUSEL ============================ --}}
 @if(!empty($featuredBlogPosts) && $featuredBlogPosts->count())
-<section class="pt-14 pb-12 lg:pt-16 lg:pb-14 relative overflow-hidden">
+<section id="blog-featured" class="pt-14 pb-12 lg:pt-16 lg:pb-14 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-10 gap-6 flex-wrap">
             <div>
@@ -5933,37 +4072,8 @@
 </section>
 @endif
 
-{{-- ============================ FREE HERE / PAID THERE (lead-in to compare) ============================ --}}
-<section class="pt-4 pb-2 lg:pt-8 lg:pb-4 relative overflow-hidden" aria-label="Free here, paid elsewhere">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="reveal glass rounded-3xl px-6 py-6 sm:px-8 sm:py-7 flex flex-col lg:flex-row items-center gap-5 lg:gap-7">
-            <div class="flex items-center gap-3 shrink-0">
-                <span class="w-11 h-11 rounded-2xl flex items-center justify-center grad-bar shadow-lg shadow-violet-500/30">
-                    <i class="fas fa-gift text-white"></i>
-                </span>
-                <div class="text-left">
-                    <div class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--c5)">Free here, paid there</div>
-                    <div class="text-base sm:text-lg font-bold leading-tight">What costs extra elsewhere is on the <span class="grad-text">Free Forever</span> plan.</div>
-                </div>
-            </div>
-            <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:ml-auto">
-                @foreach([
-                    ['fa-infinity',  'Unlimited links'],
-                    ['fa-message',   'Built-in DMs'],
-                    ['fa-bolt',      'AI Coach'],
-                    ['fa-mobile-screen', 'Native mobile app'],
-                ] as [$ic, $lbl])
-                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[.06] border border-white/10 text-xs sm:text-sm font-semibold text-white">
-                        <i class="fas {{ $ic }} text-[11px]" style="color:var(--c1)"></i> {{ $lbl }}
-                    </span>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-
 {{-- ============================ TRUST BAND (security & reliability) ============================ --}}
-<section class="py-12 lg:py-14 relative overflow-hidden" aria-label="Trust signals">
+<section id="trust" class="py-12 lg:py-14 relative overflow-hidden" aria-label="Trust signals">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-3xl p-6 sm:p-8">
             <div class="grid md:grid-cols-2 gap-6 items-center">
@@ -5994,7 +4104,7 @@
 </section>
 
 {{-- ============================ HOW WE COMPARE ============================ --}}
-@include('public.partials._compare', ['compact' => true, 'eyebrowOverride' => '12 · How we compare'])
+@include('public.partials._compare', ['compact' => true, 'eyebrowOverride' => 'How we compare'])
 @php
     // Legacy inline arrays kept commented out — replaced by shared partial above.
     /*
@@ -6145,287 +4255,12 @@
 </section>
 @endif
 
-{{-- ============================ PRICING ============================ --}}
-<section id="pricing" class="py-20 lg:py-24 relative overflow-hidden"
-    x-data="{
-        billing: 'monthly',
-        trackMarketingEvent(target){
-            const url = '{{ route('marketing-events.track') }}';
-            const data = new FormData();
-            data.append('source', 'landing_pricing_teaser');
-            data.append('target', target);
-            try {
-                if (navigator.sendBeacon) {
-                    navigator.sendBeacon(url, data);
-                } else {
-                    fetch(url, { method: 'POST', body: data, keepalive: true, credentials: 'same-origin' });
-                }
-            } catch (e) { /* fire-and-forget */ }
-        }
-    }">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12 max-w-3xl mx-auto">
-            <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(124,58,237,0.10);">
-                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
-                13 · Pricing
-            </div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">Simple, <span class="grad-text">transparent pricing.</span></h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Start free. Upgrade only when you outgrow it.</p>
-        </div>
-
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-            @include('public.pricing._currency_badge', [
-                'currency'       => $currency ?? 'USD',
-                'currencySource' => $currencySource ?? \App\Services\PricingResolver::SOURCE_GEO,
-                'user'           => $user ?? auth()->user(),
-                'switchRoute'    => 'upgrade.public.switch-currency',
-                'compact'        => true,
-            ])
-
-            {{-- Monthly / Annual billing toggle --}}
-            <div class="inline-flex items-center gap-1 p-1 rounded-full glass border border-white/10" role="tablist" aria-label="Billing cadence">
-                <button type="button" role="tab" :aria-selected="billing === 'monthly'" @click="billing = 'monthly'"
-                        :class="billing === 'monthly' ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all">
-                    Monthly
-                </button>
-                <button type="button" role="tab" :aria-selected="billing === 'annual'" @click="billing = 'annual'"
-                        :class="billing === 'annual' ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5">
-                    Annual
-                    <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-400/20 text-emerald-300 border border-emerald-400/40">Save 2 months</span>
-                </button>
-            </div>
-        </div>
-
-        @php
-            $freePlans = collect($plans)->filter(fn($p) => !empty($p['is_free']))->values();
-            $paidPlans = collect($plans)->reject(fn($p) => !empty($p['is_free']))->values();
-            $cheapestPaid = $paidPlans->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
-            $premiumHighlights = [
-                ['fa-infinity',          'Unlimited links & bio pages'],
-                ['fa-chart-line',        'Advanced analytics & A/B tests'],
-                ['fa-users',             'Team seats & roles'],
-                ['fa-globe',             'Custom domains'],
-                ['fa-robot',             'AI Coach + AI replies'],
-                ['fa-shield-halved',     'Priority support'],
-            ];
-        @endphp
-        <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            @foreach($freePlans as $i => $plan)
-                @php $featured = false; $f = $plan['features']; @endphp
-                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#7c3aed]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
-                    {{-- Animated background blobs --}}
-                    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: radial-gradient(circle, var(--c2), transparent 70%); animation: floatA 9s ease-in-out infinite;"></div>
-                    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: radial-gradient(circle, var(--c4), transparent 70%); animation: floatB 11s ease-in-out infinite;"></div>
-                    {{-- Sparkles --}}
-                    <span class="free-spark" style="top:14%;left:82%; animation-delay:0s"></span>
-                    <span class="free-spark" style="top:46%;left:6%;  animation-delay:1.4s"></span>
-                    <span class="free-spark" style="top:70%;left:88%; animation-delay:.7s"></span>
-
-                    <div class="relative">
-                    <div class="text-xs font-bold uppercase tracking-wider mb-3 text-gray-400 flex items-center gap-2">
-                        <span class="inline-flex w-5 h-5 rounded-full grad-bar items-center justify-center"><i class="fas fa-gift text-[8px] text-white"></i></span>
-                        {{ $plan['name'] }}
-                    </div>
-
-                    @if($plan['is_free'])
-                        <div class="mb-4 flex items-center gap-4 flex-wrap">
-                            <div class="free-pill-wrap relative inline-flex">
-                                {{-- Pulsing glow halo --}}
-                                <span class="absolute -inset-2 rounded-3xl opacity-40 blur-xl pointer-events-none" style="background: linear-gradient(135deg, var(--c1), var(--c2), var(--c3), var(--c4)); animation: pulseDot 2.4s ease-in-out infinite;"></span>
-                                {{-- The actual pill --}}
-                                <span class="relative inline-flex items-center px-5 py-2 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: linear-gradient(135deg, var(--c2), var(--c3) 50%, var(--c4)); letter-spacing: 0.05em;">
-                                    FREE
-                                    <i class="fas fa-sparkles ml-1.5 text-xs" style="animation: wiggle 2s ease-in-out infinite;"></i>
-                                </span>
-                            </div>
-                            <div class="leading-tight">
-                                <div class="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5" style="color:#4ade80">
-                                    <span class="relative flex w-2 h-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
-                                    Forever
-                                </div>
-                                <div class="text-[11px] text-gray-400 mt-0.5">No card. No expiry.</div>
-                            </div>
-                        </div>
-                    @else
-                        @php
-                            // Annual = 10× monthly (i.e. 2 months free) per the
-                            // FAQ promise. Pure UI estimate; checkout still
-                            // controls the actual cadence.
-                            $monthlyMinor = (int) ($plan['monthly']['amount_minor'] ?? 0);
-                            $currencyCode = (string) ($plan['monthly']['currency'] ?? 'USD');
-                            $annualEquivMonthlyMinor = (int) round($monthlyMinor * 10 / 12);
-                            $annualTotalMinor = $monthlyMinor * 10;
-                            $annualEquivPretty = \App\Services\PricingResolver::money($annualEquivMonthlyMinor, $currencyCode);
-                            $annualTotalPretty = \App\Services\PricingResolver::money($annualTotalMinor, $currencyCode);
-                        @endphp
-                        <div class="text-[11px] uppercase tracking-wider font-semibold {{ $featured ? 'text-white/70' : 'text-gray-400' }} mb-1">Starts at</div>
-                        <div x-show="billing === 'monthly'" class="text-5xl font-bold mb-1 text-white leading-none">
-                            {{ $plan['monthly']['formatted'] }}<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>
-                        </div>
-                        <div x-show="billing === 'annual'" x-cloak class="mb-1 leading-none">
-                            <div class="text-5xl font-bold text-white flex items-baseline gap-2">
-                                {{ $annualEquivPretty }}<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>
-                            </div>
-                            <div class="mt-1.5 flex items-center gap-2 text-[11px] {{ $featured ? 'text-white/80' : 'text-gray-400' }}">
-                                <span class="line-through opacity-70">{{ $plan['monthly']['formatted'] }}/mo</span>
-                                <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-400/25 text-emerald-200 border border-emerald-400/40">2 months free</span>
-                            </div>
-                            <div class="text-[11px] mt-1 {{ $featured ? 'text-white/70' : 'text-gray-500' }}">Billed yearly · {{ $annualTotalPretty }}/yr</div>
-                        </div>
-                        @if(!empty($plan['tax']))
-                            @foreach($plan['tax']['tax_breakdown'] as $line)
-                                <div class="text-[11px] {{ $featured ? 'text-white/70' : 'text-gray-500' }}">+ {{ $line['label'] }} {{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $plan['monthly']['currency']) }}</div>
-                            @endforeach
-                            <div class="text-[11px] font-semibold {{ $featured ? 'text-white' : 'text-gray-300' }} mb-1">Total {{ \App\Services\PricingResolver::money((int) $plan['tax']['grand_total_minor'], $plan['monthly']['currency']) }}/mo</div>
-                            @if(!empty($plan['tax']['reverse_charge_note']))
-                                <div class="text-[10px] italic {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">{{ $plan['tax']['reverse_charge_note'] }}</div>
-                            @endif
-                        @else
-                            <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (shown at checkout)</div>
-                        @endif
-                    @endif
-                    @if(!$plan['is_free'] && !empty($plan['description']))
-                        <div class="text-sm mb-5 text-gray-400">{{ $plan['description'] }}</div>
-                    @endif
-
-                    {{-- Feature blocks (richer than plain bullets) --}}
-                    <div class="space-y-2 mb-5">
-                        @foreach(['max_links' => ['fa-link', 'links'], 'max_biolinks' => ['fa-id-card', 'bio pages'], 'storage_limit_mb' => ['fa-database', 'MB storage'], 'contacts_max' => ['fa-address-book', 'contacts']] as $key => $meta)
-                            @if(isset($f[$key]))
-                                <div class="free-row flex items-center gap-3 p-2.5 rounded-xl bg-white/[.04] border border-white/5 hover:border-white/15 hover:bg-white/[.06] transition group/row">
-                                    <span class="w-9 h-9 rounded-lg flex items-center justify-center grad-bar shrink-0 group-hover/row:scale-110 transition" style="box-shadow: 0 8px 20px -8px rgba(124,58,237,.6);">
-                                        <i class="fas {{ $meta[0] }} text-white text-[12px]"></i>
-                                    </span>
-                                    <div class="min-w-0 flex-1">
-                                        <div class="text-sm font-bold text-white leading-tight">{{ (int) $f[$key] === -1 ? 'Unlimited' : number_format((int) $f[$key]) }} {{ $meta[1] }}</div>
-                                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">Included on Free</div>
-                                    </div>
-                                    <i class="fas fa-check text-xs" style="color:var(--c1)"></i>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-
-                    {{-- 0% reassurance strip --}}
-                    <div class="grid grid-cols-3 gap-2 mb-6 px-3 py-3 rounded-xl bg-emerald-500/[.06] border border-emerald-500/15">
-                        @foreach([['0%', 'Card'], ['0%', 'Trial'], ['100%', 'Yours']] as $z)
-                            <div class="text-center">
-                                <div class="text-base font-extrabold text-emerald-300 leading-none">{{ $z[0] }}</div>
-                                <div class="text-[9px] uppercase tracking-wider text-emerald-200/70 mt-0.5">{{ $z[1] }}</div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <button type="button" @click="trackMarketingEvent('plan_free'); authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] grad-bar text-white">
-                        Get started free <i class="fas fa-arrow-right text-xs ml-1"></i>
-                    </button>
-                    </div>{{-- /.relative --}}
-                </div>
-            @endforeach
-
-            {{-- Premium promo card. Outer wrapper isolates the badge so the inner
-                 link can use overflow-hidden for blob effects without clipping it. --}}
-            <div class="relative reveal rd-2 md:scale-[1.03]">
-                {{-- Floating badge --}}
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                    <div class="px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5" style="box-shadow: 0 8px 24px -8px rgba(124,58,237,.6), 0 0 0 4px rgba(255,255,255,.08);">
-                        <i class="fas fa-crown text-[10px]" style="animation: wiggle 2.4s ease-in-out infinite; transform-origin: 50% 80%;"></i>
-                        Premium
-                    </div>
-                </div>
-
-                <a href="{{ route('site.pricing') }}"
-                   @click="trackMarketingEvent('plan_paid')"
-                   class="lift group relative block rounded-3xl p-8 pt-9 text-white shadow-2xl shadow-[#7c3aed]/40 hover:shadow-[#7c3aed]/60 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                   style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));">
-                    {{-- Ambient blobs --}}
-                    <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none" style="animation: floatA 10s ease-in-out infinite;"></div>
-                    <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" style="animation: floatB 12s ease-in-out infinite;"></div>
-                    {{-- Diagonal shimmer sweep --}}
-                    <div class="absolute inset-0 prem-shimmer pointer-events-none"></div>
-                    {{-- Sparkles --}}
-                    <span class="prem-spark" style="top:18%;left:88%; animation-delay:0s"></span>
-                    <span class="prem-spark" style="top:50%;left:6%;  animation-delay:1.1s"></span>
-                    <span class="prem-spark" style="top:78%;left:84%; animation-delay:.6s"></span>
-
-                    <div class="relative">
-                        <div class="text-xs font-bold uppercase tracking-wider text-white/80 mb-3">Premium features</div>
-                        <h3 class="text-2xl sm:text-3xl font-extrabold leading-tight mb-2">
-                            Built for serious <span class="relative inline-block">creators &amp; teams.<span class="absolute left-0 right-0 -bottom-1 h-[3px] rounded-full bg-white/40"></span></span>
-                        </h3>
-                        <p class="text-sm text-white/80 mb-6">Everything in Free, plus the tools you grow into.</p>
-
-                        {{-- Each feature is its own animated block --}}
-                        <div class="grid grid-cols-2 gap-2 mb-6">
-                            @foreach($premiumHighlights as $hi => $h)
-                                <div class="prem-feat relative rounded-xl p-3 bg-white/[.12] backdrop-blur-sm border border-white/15 hover:bg-white/[.22] hover:-translate-y-0.5 transition-all duration-200" style="animation-delay: {{ $hi * 90 }}ms">
-                                    <span class="absolute top-1.5 right-2 text-[8px] font-bold text-white/45 tracking-wider">0{{ $hi + 1 }}</span>
-                                    <div class="flex items-start gap-2">
-                                        <span class="prem-feat-ico w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0 transition">
-                                            <i class="fas {{ $h[0] }} text-[13px]"></i>
-                                        </span>
-                                        <span class="text-[12px] font-semibold leading-snug pt-1">{{ $h[1] }}</span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        @if($cheapestPaid)
-                            <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20">
-                                <div class="leading-tight">
-                                    <div class="text-[10px] uppercase tracking-wider font-bold text-white/70">Plans starting from</div>
-                                    <div class="flex items-baseline gap-1">
-                                        <span class="text-2xl font-extrabold">{{ $cheapestPaid['monthly']['formatted'] }}</span>
-                                        <span class="text-xs text-white/70">/mo</span>
-                                    </div>
-                                </div>
-                                <span class="text-[10px] px-2 py-1 rounded-full bg-emerald-300/30 text-emerald-50 font-bold uppercase tracking-wider whitespace-nowrap">Cancel anytime</span>
-                            </div>
-                        @endif
-
-                        <span class="btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#7c3aed] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
-                            Explore premium plans <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
-                        </span>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        {{-- Pricing trust strip — sits directly under the cards as a slim reassurance row --}}
-        <div class="reveal mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-gray-300">
-            @foreach([
-                ['fa-shield-halved', 'Cancel any time'],
-                ['fa-receipt', 'Tax-inclusive invoices'],
-            ] as $t)
-                <span class="inline-flex items-center gap-2"><i class="fas {{ $t[0] }} text-[11px]" style="color:var(--c1)"></i>{{ $t[1] }}</span>
-            @endforeach
-        </div>
-
-        {{-- Slim "more pricing details" link row — replaces the previous oversized drill-down card. --}}
-        <div class="reveal mt-6 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400">
-            <span class="text-gray-500">More pricing details:</span>
-            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
-                <i class="fas fa-tags text-[11px]"></i> Compare all plans
-            </a>
-            <span class="text-gray-700">·</span>
-            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
-                <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
-            </a>
-            <span class="text-gray-700">·</span>
-            <a href="{{ route('site.premium-features') }}" @click="trackMarketingEvent('premium_features')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
-                <i class="fas fa-star text-[11px] text-amber-300"></i> Premium features
-            </a>
-        </div>
-    </div>
-</section>
-
+@include('home.partials.pricing')
 {{-- ============================ FINAL CTA ============================ --}}
 {{-- Visually distinct from the gradient hero blocks above: a single asymmetric
      glass card with a left-aligned headline + right-aligned action, so the
      closing run reads as "cards → trust strip → links → one final CTA". --}}
-<section class="py-16 lg:py-20 relative overflow-hidden">
+<section id="cta-final" class="py-16 lg:py-20 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-[2rem] p-8 sm:p-12 relative overflow-hidden border border-white/10">
             <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>
@@ -6453,13 +4288,6 @@
         </div>
     </div>
 </section>
-
-{{-- ============================ SUBSCRIBE BLOCK ============================ --}}
-@include('public.partials.subscribe-block', [
-    'heading' => 'Get the 1INME drop, your way.',
-    'subtext' => 'Pick the channel that fits — email, WhatsApp Channel, or DM. Product updates, growth playbooks for creators, and the occasional template — once a month.',
-    'source'  => 'home',
-])
 
 {{-- ============================ FOOTER ============================ --}}
 <footer class="bg-[#08020f] text-white pt-16 pb-8 border-t border-white/5">
@@ -6600,18 +4428,9 @@
             });
         });
 
-        // Mouse-parallax for hero phone
-        const hero = document.querySelector('section[aria-labelledby="hero-h"]');
-        const phone = hero?.querySelector('.phone');
-        if (hero && phone && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
-            hero.addEventListener('mousemove', (e) => {
-                const rect = hero.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width - 0.5;
-                const y = (e.clientY - rect.top) / rect.height - 0.5;
-                phone.style.transform = `translate(${x * 18}px, ${y * 14}px) rotate(${x * 4}deg)`;
-            });
-            hero.addEventListener('mouseleave', () => { phone.style.transform = ''; });
-        }
+        // (Hero phone parallax is gated by IntersectionObserver in
+        // resources/views/home/partials/hero.blade.php so it only runs while
+        // the hero is on screen.)
     });
 </script>
 @include('common.partials.cookie-consent', ['surface' => 'site'])
