@@ -115,7 +115,9 @@ function RootLayoutNav() {
       <Stack.Screen name="carbon" options={{ title: "Carbon" }} />
       <Stack.Screen name="team" options={{ title: "Team" }} />
       <Stack.Screen name="client-portals" options={{ title: "Client portals" }} />
+      <Stack.Screen name="client-portals/[id]" options={{ title: "Portal" }} />
       <Stack.Screen name="invoices" options={{ title: "Invoices" }} />
+      <Stack.Screen name="invoices/[id]" options={{ title: "Invoice" }} />
       <Stack.Screen name="insider" options={{ title: "Insider" }} />
       <Stack.Screen name="leaderboard" options={{ title: "Leaderboard" }} />
       <Stack.Screen name="vault-audit" options={{ title: "Vault audit" }} />

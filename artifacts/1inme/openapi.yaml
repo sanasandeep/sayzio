@@ -1266,6 +1266,131 @@ paths:
     get: { summary: Current subscription summary, responses: { '200': { description: ok } } }
   /billing/invoices:
     get: { summary: List invoices, responses: { '200': { description: ok } } }
+    post:
+      summary: Create a draft client invoice in the active workspace
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currency:        { type: string, minLength: 3, maxLength: 3, nullable: true }
+                recipient_email: { type: string, format: email, nullable: true }
+                vault_client_id: { type: integer, nullable: true }
+                notes_md:        { type: string, nullable: true }
+                due_date:        { type: string, format: date, nullable: true }
+      responses: { '201': { description: created }, '422': { description: invalid } }
+  /billing/invoices/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:    { summary: Show invoice (with line items and PDF link), responses: { '200': { description: ok }, '404': { description: not found } } }
+    patch:
+      summary: Update a draft client invoice (line items, totals, recipient)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                line_items:
+                  type: array
+                  items:
+                    type: object
+                    required: [label, amount_minor]
+                    properties:
+                      label:        { type: string }
+                      amount_minor: { type: integer, minimum: 0 }
+                      quantity:     { type: integer, minimum: 1, maximum: 9999, nullable: true }
+                discount_minor:  { type: integer, minimum: 0, nullable: true }
+                tax_total_minor: { type: integer, minimum: 0, nullable: true }
+                notes_md:        { type: string, nullable: true }
+                due_date:        { type: string, format: date, nullable: true }
+                vault_client_id: { type: integer, nullable: true }
+                recipient_email: { type: string, format: email, nullable: true }
+      responses: { '200': { description: ok }, '404': { description: not found }, '422': { description: invalid } }
+    delete: { summary: Delete a draft client invoice, responses: { '204': { description: deleted }, '422': { description: paid invoices cannot be deleted } } }
+  /billing/invoices/{id}/send:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: Email the hosted pay link for a client invoice
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipient_email: { type: string, format: email, nullable: true }
+      responses: { '200': { description: sent }, '422': { description: missing recipient or already paid } }
+
+  /client-portals:
+    get:  { summary: List client portals in the active workspace, responses: { '200': { description: ok } } }
+    post:
+      summary: Create a client portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:             { type: string }
+                vault_client_id:  { type: integer, nullable: true }
+                brand_name:       { type: string, nullable: true }
+                brand_color:      { type: string, nullable: true }
+                welcome_message:  { type: string, nullable: true }
+      responses: { '201': { description: created } }
+  /client-portals/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:    { summary: Show a client portal with its shares and links, responses: { '200': { description: ok }, '404': { description: not found } } }
+    patch:  { summary: Update a client portal, responses: { '200': { description: ok } } }
+    delete: { summary: Delete a client portal, responses: { '204': { description: deleted } } }
+  /client-portals/{id}/links:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: Issue a magic link for a client portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:      { type: string, format: email }
+                expires_in: { type: integer, minimum: 1, maximum: 365, nullable: true }
+      responses: { '201': { description: created } }
+
+  /team:
+    get: { summary: Members + pending invites for the active workspace, responses: { '200': { description: ok } } }
+  /team/invite:
+    post:
+      summary: Invite a teammate to the active workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email: { type: string, format: email }
+                role:  { type: string, enum: [admin, editor, replier, analyst, viewer] }
+      responses: { '201': { description: created }, '422': { description: seat limit / already member } }
+  /team/invites/{invite}:
+    parameters:
+      - { in: path, name: invite, required: true, schema: { type: integer } }
+    delete: { summary: Revoke a pending invite, responses: { '204': { description: revoked } } }
+  /team/members/{member}:
+    parameters:
+      - { in: path, name: member, required: true, schema: { type: integer } }
+    delete: { summary: Remove a workspace member, responses: { '204': { description: removed } } }
 
   /dialer/lookup:
     post:

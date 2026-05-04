@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -61,6 +62,7 @@ function formatAmount(inv: Invoice): string {
 
 export default function InvoicesScreen() {
   const colors = useColors();
+  const router = useRouter();
 
   const q = useQuery({
     queryKey: ["billing-invoices"],
@@ -91,13 +93,15 @@ export default function InvoicesScreen() {
           renderItem={({ item }) => {
             const tint = STATUS_TINT[String(item.status ?? "").toLowerCase()] ?? colors.primary;
             return (
-              <View
-                style={[
+              <Pressable
+                onPress={() => router.push(`/invoices/${item.id}` as never)}
+                style={({ pressed }) => [
                   styles.row,
                   {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
                     borderRadius: colors.radius,
+                    opacity: pressed ? 0.7 : 1,
                   },
                 ]}
               >
@@ -116,7 +120,8 @@ export default function InvoicesScreen() {
                 <Text style={[styles.amount, { color: colors.foreground }]} numberOfLines={1}>
                   {formatAmount(item)}
                 </Text>
-              </View>
+                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+              </Pressable>
             );
           }}
           ListEmptyComponent={

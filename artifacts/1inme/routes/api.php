@@ -360,8 +360,27 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/verifications',     [VerificationController::class, 'store']);
 
         // Billing
-        Route::get   ('/billing/subscription', [BillingController::class, 'subscription']);
-        Route::get   ('/billing/invoices',     [BillingController::class, 'invoices']);
+        Route::get   ('/billing/subscription',     [BillingController::class, 'subscription']);
+        Route::get   ('/billing/invoices',         [BillingController::class, 'invoices']);
+        Route::get   ('/billing/invoices/{id}',    [BillingController::class, 'showInvoice'])->whereNumber('id');
+        Route::post  ('/billing/invoices',         [BillingController::class, 'storeInvoice']);
+        Route::patch ('/billing/invoices/{id}',    [BillingController::class, 'updateInvoice'])->whereNumber('id');
+        Route::delete('/billing/invoices/{id}',    [BillingController::class, 'destroyInvoice'])->whereNumber('id');
+        Route::post  ('/billing/invoices/{id}/send', [BillingController::class, 'sendInvoice'])->whereNumber('id')->middleware('throttle:30,1');
+
+        // Client portals
+        Route::get   ('/client-portals',           [\App\Modules\Api\Controllers\ClientPortalController::class, 'index']);
+        Route::post  ('/client-portals',           [\App\Modules\Api\Controllers\ClientPortalController::class, 'store']);
+        Route::get   ('/client-portals/{id}',      [\App\Modules\Api\Controllers\ClientPortalController::class, 'show'])->whereNumber('id');
+        Route::patch ('/client-portals/{id}',      [\App\Modules\Api\Controllers\ClientPortalController::class, 'update'])->whereNumber('id');
+        Route::delete('/client-portals/{id}',      [\App\Modules\Api\Controllers\ClientPortalController::class, 'destroy'])->whereNumber('id');
+        Route::post  ('/client-portals/{id}/links', [\App\Modules\Api\Controllers\ClientPortalController::class, 'sendLink'])->whereNumber('id')->middleware('throttle:30,1');
+
+        // Team / staff (active workspace)
+        Route::get   ('/team',                     [\App\Modules\Api\Controllers\TeamController::class, 'index']);
+        Route::post  ('/team/invite',              [\App\Modules\Api\Controllers\TeamController::class, 'invite'])->middleware('throttle:30,1');
+        Route::delete('/team/invites/{invite}',    [\App\Modules\Api\Controllers\TeamController::class, 'revokeInvite'])->whereNumber('invite');
+        Route::delete('/team/members/{member}',    [\App\Modules\Api\Controllers\TeamController::class, 'removeMember'])->whereNumber('member');
 
         // Plan + addon catalogue priced for the signed-in user, plus
         // the RevenueCat receipt-verification hook used by the mobile
