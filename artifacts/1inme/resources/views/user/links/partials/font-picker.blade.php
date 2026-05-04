@@ -156,16 +156,20 @@ window.fontPickerComponent_{{ $pickerId }} = window.fontPickerComponent_{{ $pick
         uploading: false,
         uploadError: '',
         // Static catalogs (rendered once into the page).
-        googleFonts: @json(array_map(fn ($e) => ['family' => $e['family'], 'category' => $e['category']], $fontEntries)),
+        @php
+            $__googleFontsPayload = array_map(fn ($e) => ['family' => $e['family'], 'category' => $e['category']], $fontEntries);
+            $__customFontsPayload = $customFonts->map(fn ($f) => [
+                'id'     => $f->id,
+                'family' => $f->family,
+                'token'  => $f->settingsToken(),
+                'url'    => $f->url,
+                'format' => $f->format,
+            ])->values();
+        @endphp
+        googleFonts: {!! json_encode($__googleFontsPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!},
         // Mutable: starts from server, mutates on upload/delete so the picker
         // updates without a reload.
-        customFonts: @json($customFonts->map(fn ($f) => [
-            'id' => $f->id,
-            'family' => $f->family,
-            'token' => $f->settingsToken(),
-            'url' => $f->url,
-            'format' => $f->format,
-        ])->values()),
+        customFonts: {!! json_encode($__customFontsPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) !!},
         init() {
             // Inject @font-face for every existing custom font once per page
             // (idempotent across multiple pickers — we keyed by family in
