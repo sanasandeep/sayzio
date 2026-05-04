@@ -28,25 +28,50 @@
      data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}">
 </div>
 <style>
-/* Brand-gradient launcher: chat-tag silhouette with aura, breath, sheen, sparkle, and tooltip. */
-.sa-launcher-wrap{position:fixed;bottom:24px;z-index:99999;width:68px;height:68px;}
+/* Brand-gradient launcher: chat-tag silhouette with aura, breath, sheen, sparkle, and tooltip.
+   IDLE = small + subtle (40px, ~55% opacity). HOVER = grows to full size (68px) with
+   100% opacity, sheen, and a satisfying spring-bounce. */
+.sa-launcher-wrap{
+  position:fixed;bottom:24px;z-index:99999;width:68px;height:68px;
+  /* Idle state: shrink the whole widget + fade aura/ring/sparkles together */
+  transform:scale(.6);transform-origin:bottom right;opacity:.65;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;
+}
 .sa-launcher-wrap.sa-pos-right{right:24px}
-.sa-launcher-wrap.sa-pos-left{left:24px}
-/* Soft outer aura — slow color drift, blob-shaped to feel organic */
+.sa-launcher-wrap.sa-pos-left{left:24px;transform-origin:bottom left}
+/* Hover/focus: spring up to full size + full opacity */
+.sa-launcher-wrap:hover,
+.sa-launcher-wrap:focus-within{
+  transform:scale(1);opacity:1;
+  animation:sa-launcher-pop .55s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes sa-launcher-pop{
+  0%  {transform:scale(.6)}
+  55% {transform:scale(1.12)}
+  100%{transform:scale(1)}
+}
+/* Soft outer aura — slow color drift, blob-shaped to feel organic. Hidden until hover. */
 .sa-launcher-wrap::before{
   content:"";position:absolute;inset:-16px;
   border-radius:38% 62% 55% 45% / 50% 45% 55% 50%;
   background:conic-gradient(from 0deg,#22d3ee,#6366f1,#ec4899,#f59e0b,#22d3ee);
-  filter:blur(16px);opacity:.55;z-index:0;
+  filter:blur(16px);opacity:0;z-index:0;
   animation:sa-aura-spin 9s linear infinite, sa-blob-morph 7s ease-in-out infinite;
+  transition:opacity .35s ease;
 }
-/* Pulsing ring follows the chat-tag silhouette */
+.sa-launcher-wrap:hover::before,
+.sa-launcher-wrap:focus-within::before{opacity:.6}
+/* Pulsing ring follows the chat-tag silhouette — only on hover */
 .sa-launcher-wrap::after{
   content:"";position:absolute;inset:0;
   border-radius:30px 30px 8px 30px;
   border:2px solid rgba(167,139,250,.55);z-index:0;
+  opacity:0;
   animation:sa-pulse-ring 2.6s cubic-bezier(.22,.61,.36,1) infinite;
+  transition:opacity .25s ease;
 }
+.sa-launcher-wrap:hover::after,
+.sa-launcher-wrap:focus-within::after{opacity:1}
 .sa-launcher-wrap.sa-pos-left::after{border-radius:30px 30px 30px 8px}
 #sa-launcher{
   position:absolute;inset:0;width:68px;height:68px;
@@ -57,33 +82,37 @@
     radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 45%),
     conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#a855f7 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg);
   box-shadow:
-    0 18px 40px -10px rgba(99,102,241,.55),
-    0 8px 20px -8px rgba(236,72,153,.45),
-    inset 0 0 0 1.5px rgba(255,255,255,.35),
-    inset 0 -8px 18px rgba(0,0,0,.18);
-  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, border-radius .35s ease;
+    0 8px 18px -6px rgba(99,102,241,.45),
+    inset 0 0 0 1.5px rgba(255,255,255,.35);
+  transition:box-shadow .35s ease, border-radius .35s ease;
+  /* Breath only runs while hovered so an idle widget is calm */
   animation:sa-breath 3.6s ease-in-out infinite;
+  animation-play-state:paused;
 }
 #sa-launcher.sa-pos-left{border-radius:30px 30px 30px 8px}
-/* Animated gradient sheen sweeping across the launcher face */
-#sa-launcher::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;
-  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
-  transform:translateX(-130%);
-  animation:sa-sheen 4.5s ease-in-out infinite;
-  pointer-events:none;
-}
-#sa-launcher:hover{
-  transform:scale(1.08) rotate(-4deg);
+.sa-launcher-wrap:hover #sa-launcher,
+.sa-launcher-wrap:focus-within #sa-launcher{
   border-radius:34px 34px 12px 34px;
   box-shadow:
     0 22px 48px -10px rgba(99,102,241,.7),
     0 10px 24px -8px rgba(236,72,153,.55),
     inset 0 0 0 1.5px rgba(255,255,255,.45),
     inset 0 -8px 18px rgba(0,0,0,.18);
-  animation-play-state:paused;
+  animation-play-state:running;
 }
-#sa-launcher.sa-pos-left:hover{border-radius:34px 34px 34px 12px}
+.sa-launcher-wrap.sa-pos-left:hover #sa-launcher,
+.sa-launcher-wrap.sa-pos-left:focus-within #sa-launcher{border-radius:34px 34px 34px 12px}
+/* Animated gradient sheen sweeping across the launcher face — only on hover */
+#sa-launcher::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
+  transform:translateX(-130%);
+  animation:sa-sheen 4.5s ease-in-out infinite;
+  animation-play-state:paused;
+  pointer-events:none;
+}
+.sa-launcher-wrap:hover #sa-launcher::before,
+.sa-launcher-wrap:focus-within #sa-launcher::before{animation-play-state:running}
 #sa-launcher:active{transform:scale(.96)}
 #sa-launcher:focus-visible{outline:2px solid #fff;outline-offset:3px}
 #sa-launcher .sa-icon-bubble{position:relative;z-index:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
