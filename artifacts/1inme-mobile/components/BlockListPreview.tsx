@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 import { AppIcon } from "@/components/AppIcon";
 import { useColors } from "@/hooks/useColors";
@@ -231,24 +231,136 @@ export function PricingBlockView({
   const isComparison = styleKey === "comparison";
   const isFeatured = styleKey === "featured";
 
+  // Web's "featured" variant pulls one featured row out as a hero card and
+  // stacks the rest in a compact list below. Mirror that here so the
+  // public mobile page (and the editor preview that shares this view)
+  // matches the web treatment instead of just colour-tinting an inline row.
+  if (isFeatured) {
+    const heroIndex = rows.findIndex((r) => r.featured);
+    const hero = heroIndex >= 0 ? rows[heroIndex] : rows[0];
+    const others = rows.filter((_, i) => i !== (heroIndex >= 0 ? heroIndex : 0));
+    return (
+      <View style={{ gap: 8 }}>
+        {hero ? (
+          <View
+            style={{
+              padding: 14,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: primary,
+              backgroundColor: primary + "22",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <Text style={{ color: primary, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 }}>
+              ★ FEATURED
+            </Text>
+            <Text style={{ color: fg, fontWeight: "800", fontSize: 16 }} numberOfLines={1}>
+              {hero.name || "Item"}
+            </Text>
+            {hero.description ? (
+              <Text style={{ color: muted, fontSize: 12, textAlign: "center" }}>
+                {hero.description}
+              </Text>
+            ) : null}
+            <Text style={{ color: primary, fontWeight: "800", fontSize: 22, marginTop: 4 }}>
+              {hero.price}
+              {hero.period ? (
+                <Text style={{ color: muted, fontSize: 12, fontWeight: "400" }}>
+                  {" "}{hero.period}
+                </Text>
+              ) : null}
+            </Text>
+          </View>
+        ) : null}
+        {others.length > 0 ? (
+          <View style={{ borderRadius: 10, borderWidth: 1, borderColor: border, overflow: "hidden" }}>
+            {others.map((it, i) => (
+              <View
+                key={i}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "baseline",
+                  gap: 6,
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                  borderTopColor: border,
+                }}
+              >
+                <Text style={{ color: fg, fontWeight: "600", fontSize: 13 }} numberOfLines={1}>
+                  {it.name || "Item"}
+                </Text>
+                {it.description ? (
+                  <Text style={{ color: muted, fontSize: 11, flexShrink: 1 }} numberOfLines={1}>
+                    — {it.description}
+                  </Text>
+                ) : null}
+                <Text
+                  style={{ color: muted, fontSize: 11, flex: 1, overflow: "hidden" }}
+                  numberOfLines={1}
+                >
+                  {" "}··················································
+                </Text>
+                <Text style={{ color: primary, fontWeight: "700", fontSize: 13 }}>
+                  {it.price}
+                  {it.period ? (
+                    <Text style={{ color: muted, fontSize: 11 }}>{it.period}</Text>
+                  ) : null}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: isCards ? 8 : 4 }}>
       {rows.map((it, i) => {
-        const featuredHighlight = isFeatured && it.featured;
         const containerStyle = {
-          padding: isCards || featuredHighlight ? 10 : 6,
+          padding: isCards ? 10 : 6,
           borderRadius: 10,
-          borderWidth: isCards || featuredHighlight ? 1 : 0,
-          borderColor: featuredHighlight ? primary : border,
-          backgroundColor: featuredHighlight
-            ? primary + "11"
-            : isCards
-              ? colors.card
-              : "transparent",
+          borderWidth: isCards ? 1 : 0,
+          borderColor: border,
+          backgroundColor: isCards ? colors.card : "transparent",
           gap: 4,
         };
         const iconNode = it.icon ? (
           <AppIcon name={it.icon} size={14} color={primary} />
+        ) : null;
+        // For menu/cards, the web shows a thumbnail badge (and falls back
+        // to an icon-in-tinted-square when the row only has an icon).
+        // We mirror that so creators get the same chrome on mobile.
+        const showThumbBadge = (isMenu || isCards) && (!!it.thumbnail || !!it.icon);
+        const thumbSize = 36;
+        const thumbBadge = showThumbBadge ? (
+          it.thumbnail ? (
+            <Image
+              source={{ uri: it.thumbnail }}
+              style={{
+                width: thumbSize,
+                height: thumbSize,
+                borderRadius: 8,
+                backgroundColor: colors.muted,
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                width: thumbSize,
+                height: thumbSize,
+                borderRadius: 8,
+                backgroundColor: primary + "22",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppIcon name={it.icon} size={16} color={primary} />
+            </View>
+          )
         ) : null;
         const includedNode = isComparison ? (
           <AppIcon
@@ -263,7 +375,7 @@ export function PricingBlockView({
           return (
             <View key={i} style={containerStyle}>
               <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-                {iconNode ? <View style={{ marginTop: 2 }}>{iconNode}</View> : null}
+                {thumbBadge}
                 <View style={{ flex: 1 }}>
                   <View
                     style={{
@@ -300,7 +412,7 @@ export function PricingBlockView({
           return (
             <View key={i} style={containerStyle}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                {iconNode}
+                {thumbBadge}
                 <Text
                   style={{ color: fg, fontWeight: "700", fontSize: 13, flex: 1 }}
                   numberOfLines={1}
@@ -363,7 +475,7 @@ export function PricingBlockView({
           );
         }
 
-        // Classic (and Featured for non-highlighted rows): name ······ price
+        // Classic: name ······ price (with optional icon dot on the left).
         return (
           <View
             key={i}
@@ -372,11 +484,17 @@ export function PricingBlockView({
               flexDirection: "row",
               alignItems: "center",
               gap: 8,
+              opacity: it.included ? 1 : 0.5,
             }}
           >
             {iconNode}
             <Text
-              style={{ color: fg, fontWeight: "600", fontSize: 13 }}
+              style={{
+                color: fg,
+                fontWeight: "600",
+                fontSize: 13,
+                textDecorationLine: it.included ? "none" : "line-through",
+              }}
               numberOfLines={1}
             >
               {name}
@@ -398,9 +516,6 @@ export function PricingBlockView({
                 <Text style={{ color: muted, fontSize: 11 }}>{it.period}</Text>
               ) : null}
             </Text>
-            {featuredHighlight ? (
-              <Text style={{ color: primary, fontSize: 11 }}>★</Text>
-            ) : null}
           </View>
         );
       })}
