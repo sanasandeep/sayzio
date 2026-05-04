@@ -192,27 +192,80 @@
                 <span class="resume-save-dot" :class="{ saving: status==='saving', error: status==='error' }"></span>
                 <span class="text-xs" style="color: var(--text-muted,#9ca3af);" x-text="statusLabel"></span>
             </div>
+            {{-- ATS-readiness check. Opens a results panel that lists pass/
+                 warn/fail items and deep-links each warning back to the
+                 offending section in the editor. --}}
+            <button type="button" class="resume-add-btn" @click="openAtsCheck()"
+                    title="Scan for things that commonly trip up Applicant Tracking Systems">
+                <i class="fas" :class="atsBusy ? 'fa-spinner fa-spin' : 'fa-shield-halved'"></i>
+                <span>Check ATS readiness</span>
+                <template x-if="atsReport && atsReport.has_unresolved">
+                    <span class="ats-badge"
+                          :class="atsReport.fail_count > 0 ? 'fail' : 'warn'"
+                          x-text="atsReport.fail_count + atsReport.warn_count"></span>
+                </template>
+            </button>
             {{-- Paper size toggle + Download PDF. Disabled while a save is
                  in flight so the PDF never reflects an unpersisted edit. --}}
-            <div class="resume-pane flex items-center gap-1 p-1" style="border-radius: 12px;">
+            <div class="resume-pane flex items-center gap-1 p-1" style="border-radius: 12px; position: relative;">
                 <button type="button" class="resume-icon-btn" style="width:auto; padding: 4px 9px; font-size: 10px; font-weight: 700;"
                         :class="{ 'pdf-size-active': pdfSize === 'a4' }"
                         @click="pdfSize = 'a4'" title="A4 paper size">A4</button>
                 <button type="button" class="resume-icon-btn" style="width:auto; padding: 4px 9px; font-size: 10px; font-weight: 700;"
                         :class="{ 'pdf-size-active': pdfSize === 'letter' }"
                         @click="pdfSize = 'letter'" title="US Letter paper size">Letter</button>
-                <button type="button" class="resume-add-btn" style="margin-left: 4px;"
+                <button type="button" class="resume-add-btn" style="margin-left: 4px; position: relative;"
                         :disabled="downloading || status === 'saving' || unsavedFields > 0"
                         :style="(downloading || status === 'saving' || unsavedFields > 0) ? 'opacity:0.6; cursor: not-allowed;' : ''"
                         @click="downloadPdf()">
                     <i class="fas" :class="downloading ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
                     <span x-text="downloading ? 'Preparing…' : 'Download PDF'"></span>
+                    <template x-if="atsReport && atsReport.has_unresolved">
+                        <span class="ats-badge ats-badge-corner"
+                              :class="atsReport.fail_count > 0 ? 'fail' : 'warn'"
+                              :title="(atsReport.fail_count + atsReport.warn_count) + ' unresolved ATS warning(s) — open Check ATS readiness for details.'"
+                              x-text="atsReport.fail_count + atsReport.warn_count"></span>
+                    </template>
                 </button>
             </div>
         </div>
     </div>
     <style>
         .pdf-size-active { background: rgba(124,58,237,0.18); color:#fff; }
+        .ats-badge { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; font-size:10px; font-weight:700; margin-left:6px; }
+        .ats-badge.warn { background:#f59e0b; color:#1f2937; }
+        .ats-badge.fail { background:#ef4444; color:#fff; }
+        .ats-badge-corner { position:absolute; top:-6px; right:-6px; margin-left:0; box-shadow:0 0 0 2px var(--bg-card,#1a1a1f); }
+
+        .ats-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 300; display:flex; align-items:flex-start; justify-content:center; padding: 4vh 16px; overflow-y:auto; }
+        .ats-modal { width: 100%; max-width: 640px; background: var(--bg-card,#1a1a1f); border: 1px solid var(--border-strong,#2a2a32); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display:flex; flex-direction:column; max-height: 92vh; }
+        .ats-head { display:flex; align-items:center; justify-content:space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-glass,#2a2a32); }
+        .ats-head h3 { display:flex; align-items:center; gap:10px; margin:0; font-size: 14px; font-weight:700; color: var(--text-primary,#fff); }
+        .ats-head h3 i { color:#7c3aed; }
+        .ats-close { background:transparent; border:none; color: var(--text-muted,#9ca3af); cursor:pointer; font-size: 16px; padding: 4px 8px; border-radius:8px; }
+        .ats-close:hover { background: rgba(124,58,237,0.1); color:#fff; }
+        .ats-body { padding: 14px 18px 18px; overflow-y:auto; }
+        .ats-summary { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+        .ats-pill { display:inline-flex; align-items:center; gap:6px; padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .ats-pill.pass { background: rgba(16,185,129,0.15); color:#a7f3d0; border:1px solid rgba(16,185,129,0.3); }
+        .ats-pill.warn { background: rgba(245,158,11,0.15); color:#fcd34d; border:1px solid rgba(245,158,11,0.3); }
+        .ats-pill.fail { background: rgba(239,68,68,0.15); color:#fecaca; border:1px solid rgba(239,68,68,0.3); }
+        .ats-check-row { display:flex; gap:10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-glass,#2a2a32); margin-bottom: 8px; background: rgba(255,255,255,0.015); }
+        .ats-check-row .ats-icon { font-size: 14px; padding-top: 2px; }
+        .ats-check-row.pass .ats-icon { color:#10b981; }
+        .ats-check-row.warn .ats-icon { color:#f59e0b; }
+        .ats-check-row.fail .ats-icon { color:#ef4444; }
+        .ats-check-row .ats-label { font-size: 12px; font-weight:700; color: var(--text-primary,#fff); margin-bottom: 2px; }
+        .ats-check-row .ats-msg { font-size: 11.5px; color: var(--text-muted,#cbd5e1); line-height: 1.5; }
+        .ats-check-row .ats-fix { display:inline-flex; align-items:center; gap:4px; margin-top:6px; font-size: 11px; font-weight:600; color:#a78bfa; background: transparent; border: 1px solid rgba(124,58,237,0.3); padding: 3px 9px; border-radius: 999px; cursor: pointer; }
+        .ats-check-row .ats-fix:hover { background: rgba(124,58,237,0.12); color:#fff; }
+        .ats-jd { width:100%; min-height: 80px; padding: 10px 12px; background: var(--bg-glass-input, rgba(255,255,255,0.03)); border: 1px solid var(--border-glass, #2a2a32); border-radius: 10px; color: var(--text-primary,#fff); font-size: 12px; font-family: inherit; resize: vertical; }
+        .ats-jd-row { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-glass,#2a2a32); }
+        .ats-jd-row label { display:block; font-size: 10px; font-weight: 700; color: var(--text-muted,#9ca3af); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .ats-kw-pills { display:flex; flex-wrap:wrap; gap: 5px; margin-top: 8px; }
+        .ats-kw-pills .kw { display:inline-flex; align-items:center; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; }
+        .ats-kw-pills .kw.matched { background: rgba(16,185,129,0.12); color:#a7f3d0; border: 1px solid rgba(16,185,129,0.3); }
+        .ats-kw-pills .kw.missing { background: rgba(239,68,68,0.10); color:#fecaca; border: 1px solid rgba(239,68,68,0.25); }
     </style>
 
     @include('user.resume.partials.import-modal')
@@ -636,6 +689,107 @@
         </div>
     </div>
 
+    {{-- ATS-readiness modal ---------------------------------------- --}}
+    <template x-if="atsOpen">
+        <div class="ats-overlay" @click.self="atsOpen = false">
+            <div class="ats-modal">
+                <div class="ats-head">
+                    <h3><i class="fas fa-shield-halved"></i> ATS readiness</h3>
+                    <button class="ats-close" type="button" @click="atsOpen = false" title="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="ats-body">
+                    <template x-if="atsBusy && !atsReport">
+                        <div class="text-center py-6" style="color: var(--text-muted,#9ca3af); font-size: 12px;">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Scanning your resume…
+                        </div>
+                    </template>
+
+                    <template x-if="atsReport">
+                        <div>
+                            <div class="ats-summary">
+                                <span class="ats-pill pass"><i class="fas fa-circle-check"></i> <span x-text="atsReport.pass_count + ' pass'"></span></span>
+                                <span class="ats-pill warn" x-show="atsReport.warn_count > 0"><i class="fas fa-triangle-exclamation"></i> <span x-text="atsReport.warn_count + ' warn'"></span></span>
+                                <span class="ats-pill fail" x-show="atsReport.fail_count > 0"><i class="fas fa-circle-xmark"></i> <span x-text="atsReport.fail_count + ' fail'"></span></span>
+                                <button type="button" class="resume-add-btn" style="margin-left:auto;"
+                                        :disabled="atsBusy"
+                                        @click="runAtsCheck()">
+                                    <i class="fas" :class="atsBusy ? 'fa-spinner fa-spin' : 'fa-rotate'"></i>
+                                    <span>Re-run</span>
+                                </button>
+                            </div>
+
+                            <template x-for="check in atsReport.checks" :key="check.id">
+                                <div class="ats-check-row" :class="check.status">
+                                    <div class="ats-icon">
+                                        <i class="fas"
+                                           :class="check.status === 'pass' ? 'fa-circle-check'
+                                                 : check.status === 'fail' ? 'fa-circle-xmark'
+                                                 : 'fa-triangle-exclamation'"></i>
+                                    </div>
+                                    <div style="flex:1; min-width:0;">
+                                        <div class="ats-label" x-text="check.label"></div>
+                                        <div class="ats-msg" x-text="check.message"></div>
+                                        <button type="button" class="ats-fix"
+                                                x-show="check.status !== 'pass' && check.link"
+                                                @click="jumpToAts(check.link)">
+                                            <i class="fas fa-arrow-right"></i>
+                                            <span>Fix in editor</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="atsReport.keywords">
+                                <div style="margin-top: 10px;">
+                                    <div class="ats-jd-row" style="border-top: none; padding-top: 0; margin-top: 0;">
+                                        <label>Matched keywords (<span x-text="atsReport.keywords.matched.length"></span> / <span x-text="atsReport.keywords.total"></span>)</label>
+                                        <div class="ats-kw-pills">
+                                            <template x-for="kw in atsReport.keywords.matched" :key="'m-'+kw">
+                                                <span class="kw matched" x-text="kw"></span>
+                                            </template>
+                                            <template x-if="!atsReport.keywords.matched.length">
+                                                <span class="text-xs" style="color: var(--text-muted,#9ca3af);">No keywords matched yet.</span>
+                                            </template>
+                                        </div>
+                                        <template x-if="atsReport.keywords.missing.length">
+                                            <div style="margin-top: 12px;">
+                                                <label>Missing keywords</label>
+                                                <div class="ats-kw-pills">
+                                                    <template x-for="kw in atsReport.keywords.missing" :key="'x-'+kw">
+                                                        <span class="kw missing" x-text="kw"></span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div class="ats-jd-row">
+                                <label>Optional: paste a target role / job description</label>
+                                <textarea class="ats-jd" placeholder="Paste a job description or role keywords here, then click Check to see how well your resume covers them."
+                                          x-model="atsJd"></textarea>
+                                <div style="display:flex; gap:8px; margin-top: 10px; justify-content: flex-end;">
+                                    <button type="button" class="resume-icon-btn" style="width:auto; padding: 6px 11px; font-size: 11px;"
+                                            x-show="atsJd"
+                                            @click="atsJd = ''; runAtsCheck()">Clear</button>
+                                    <button type="button" class="resume-add-btn"
+                                            :disabled="atsBusy"
+                                            @click="runAtsCheck()">
+                                        <i class="fas" :class="atsBusy ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'"></i>
+                                        <span x-text="atsReport.keywords ? 'Re-check coverage' : 'Check coverage'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- Toast --}}
     <template x-if="toast.visible">
         <div class="resume-toast" :class="toast.type">
@@ -688,6 +842,12 @@ function resumeEditor() {
         pdfSize: (window.localStorage && localStorage.getItem('resume_pdf_size')) === 'letter' ? 'letter' : 'a4',
         downloading: false,
         photoUploading: false,
+
+        // ── ATS readiness ─────────────────────────────────────
+        atsOpen: false,
+        atsBusy: false,
+        atsReport: null,
+        atsJd: '',
 
         // ── Template picker UI ────────────────────────────────
         tplSearch: '',
@@ -843,6 +1003,60 @@ function resumeEditor() {
             this.open.summary = true;
         },
 
+        // ── ATS readiness ─────────────────────────────────────
+        async openAtsCheck() {
+            this.atsOpen = true;
+            // Re-scan every time the panel opens — the resume might have
+            // changed since the last run, and the badge needs fresh data.
+            await this.runAtsCheck();
+        },
+        async runAtsCheck() {
+            if (this.atsBusy) return;
+            this.atsBusy = true;
+            try {
+                const payload = {};
+                const jd = (this.atsJd || '').trim();
+                if (jd) payload.target_role = jd;
+                const r = await this.http('POST', '{{ route('user.resume.ats-check') }}', payload);
+                this.atsReport = r.report;
+            } catch (e) {
+                this.showToast(e.message || 'Could not run ATS check.', 'error');
+            } finally {
+                this.atsBusy = false;
+            }
+        },
+        jumpToAts(linkKey) {
+            // Map check.link → editor `open` key, expand the section,
+            // close the modal, and scroll the section into view so the
+            // user lands on the offending field.
+            if (!linkKey) return;
+            // Anchor keys in the report match `open` keys directly. We
+            // also force-open the design panel for layout/font fixes.
+            if (linkKey in this.open) this.open[linkKey] = true;
+            this.atsOpen = false;
+            this.$nextTick(() => {
+                // Find the section heading whose @click toggles this key.
+                // Each `resume-section-head` renders the toggle — match by
+                // text content to keep it lightweight (no extra ids).
+                const heads = document.querySelectorAll('.resume-section-head');
+                const labelMap = {
+                    header: 'Header', summary: 'Summary', design: 'Template',
+                    experience: 'Experience', education: 'Education',
+                    skills: 'Skills', projects: 'Projects',
+                    certifications: 'Certifications', awards: 'Awards',
+                    languages: 'Languages', links: 'Links',
+                };
+                const want = labelMap[linkKey];
+                if (!want) return;
+                for (const el of heads) {
+                    if ((el.textContent || '').trim().startsWith(want)) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        break;
+                    }
+                }
+            });
+        },
+
         // ── status / toast ────────────────────────────────────
         // ── publishing ────────────────────────────────────────
         async savePublishing() {
@@ -918,6 +1132,10 @@ function resumeEditor() {
             this.unsavedFields++;
             clearTimeout(this.debouncers[key]);
             this.markSaving();
+            // Any edit invalidates the cached ATS report — drop it so
+            // the warning badge doesn't show a stale count until the
+            // user re-runs the scan.
+            this.atsReport = null;
             this.debouncers[key] = setTimeout(async () => {
                 try {
                     await fn();

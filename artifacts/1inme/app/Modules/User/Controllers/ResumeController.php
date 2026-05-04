@@ -7,6 +7,7 @@ use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Services\ResumeAtsChecker;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePdfRenderer;
 use App\Modules\User\Services\ResumePresenter;
@@ -541,6 +542,29 @@ class ResumeController extends Controller
             'resume'     => $this->present($resume->fresh('items')),
             'public_url' => url('/' . $request->user()->publicHandle() . '/resume'),
         ]);
+    }
+
+    /**
+     * POST — run the ATS-readiness checks against the owner's resume.
+     *
+     * Side-effect free: the checker only reads the resume + items + the
+     * template style metadata, so the editor can poll this endpoint
+     * (e.g. before exporting a PDF) without churning the row. An
+     * optional `target_role` body lets the caller paste a JD/role blurb
+     * to get keyword coverage as part of the report.
+     */
+    public function atsCheck(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'target_role' => ['nullable', 'string', 'max:8000'],
+        ]);
+
+        $resume = $request->user()->ensureResume();
+        $report = ResumeAtsChecker::check($resume, [
+            'target_role' => $data['target_role'] ?? null,
+        ]);
+
+        return response()->json(['report' => $report]);
     }
 
     // ── Internals ──────────────────────────────────────────────────

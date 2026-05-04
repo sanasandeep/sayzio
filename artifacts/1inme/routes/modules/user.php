@@ -315,6 +315,12 @@ Route::prefix('user')->name('user.')->group(function () {
                 ->middleware('throttle:20,1')
                 ->name('download');
 
+            // ATS-friendliness scan. Read-only and lightweight, but
+            // throttled so a flapping client can't loop on it.
+            Route::post('ats-check',          [\App\Modules\User\Controllers\ResumeController::class, 'atsCheck'])
+                ->middleware('throttle:30,1')
+                ->name('ats-check');
+
             // Importers: file/PDF/DOCX, LinkedIn (URL + export PDF), bio link
             // pull-in, AI-assisted draft, and the merge endpoint that commits
             // the user's curated picks back into the resume.
