@@ -2,13 +2,18 @@
 
 namespace App\Console\Commands;
 
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\SplashPage;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Models\UserNotification;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Lazily shrink legacy raster UserFile rows that were uploaded before the
@@ -37,7 +42,8 @@ class BackfillImageReoptimization extends Command
         {--chunk=200 : Owner rows scanned per batch}
         {--limit=0 : Cap on UserFile rows processed (0 = no cap)}
         {--dry-run : Report what would shrink without writing}
-        {--only= : Comma-separated subset of contexts to run (biolink_bg,biolink_fallback,biolink_slide,biolink_og,splash_og,form_cover,form_card,link_seo)}';
+        {--only= : Comma-separated subset of contexts to run (biolink_bg,biolink_fallback,biolink_slide,biolink_og,splash_og,form_cover,form_card,link_seo)}
+        {--no-alert : Suppress the operator alert for this run (use for the expected one-off post-deploy backfill)}';
 
     protected $description = 'Backfill server-side downscale + re-encode for legacy raster vault images referenced by biolinks, splash pages, forms, and link SEO/share images.';
 
@@ -52,6 +58,45 @@ class BackfillImageReoptimization extends Command
         'form_card'        => [1200, 1200, 85],
         'link_seo'         => [1200, 1200, 85],
     ];
+
+    /**
+     * AppSetting key holding the operator-alert config / runtime state for
+     * this command. See {@see alertDefaults()} for the shape.
+     */
+    public const ALERT_SETTING_KEY = 'images.reoptimize_alert';
+
+    /**
+     * Defaults for the alert config block. The state-tracking keys
+     * (`last_sent_at`, `suppress_next`) are stored alongside the
+     * operator-tunable knobs so a single AppSetting row owns everything.
+     */
+    public static function alertDefaults(): array
+    {
+        return [
+            // Master switch — when false, the command never alerts even
+            // if a nightly run shrinks above the threshold.
+            'enabled'        => true,
+            // Fire when a single run shrinks more than this many files.
+            'threshold'      => 25,
+            // Don't re-alert until this many hours have elapsed since the
+            // last alert. The nightly tick is 24h, so 48h means at most
+            // one alert per two consecutive bad runs by default.
+            'cooldown_hours' => 48,
+            // Optional explicit recipients; comma/space/semicolon separated.
+            // When empty, every super_admin with a verified email is mailed.
+            'emails'         => '',
+            // Set by an admin via the AppSetting store right before they
+            // opt a brand-new context into the upload-time pipeline (or
+            // bump the per-context max dimensions). The next nightly run
+            // is then expected to legitimately shrink lots of files; this
+            // flag suppresses that one-off alert and is auto-cleared
+            // after the run that consumed it.
+            'suppress_next'  => false,
+            // ISO-8601 timestamp of the most recent alert dispatch.
+            // Used to enforce `cooldown_hours`.
+            'last_sent_at'   => null,
+        ];
+    }
 
     public function handle(): int
     {
@@ -89,6 +134,10 @@ class BackfillImageReoptimization extends Command
             // survive concurrent runs / re-runs without double-counting,
             // because $seen dedupes the UserFile rows themselves).
             'per_user'   => [],
+            // Per-context shrink counts, used so the operator alert can
+            // pinpoint which upload surface regressed (e.g. "27 form_cover
+            // shrinks" → check the form-cover upload path).
+            'per_context_shrunk' => [],
         ];
         $seen = [];
 
@@ -115,6 +164,10 @@ class BackfillImageReoptimization extends Command
             $stats['skipped']
         ));
 
+        if (!$dry) {
+            $this->maybeDispatchAlert($stats);
+        }
+
         return self::SUCCESS;
     }
 
@@ -129,29 +182,30 @@ class BackfillImageReoptimization extends Command
 
         switch ($ctx) {
             case 'biolink_bg':
-                $this->walkLinkSettings($chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
+                $this->walkLinkSettings($ctx, $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     fn(array $bio) => isset($bio['background_image']) ? [$bio['background_image']] : []);
                 break;
 
             case 'biolink_fallback':
-                $this->walkLinkSettings($chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
+                $this->walkLinkSettings($ctx, $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     fn(array $bio) => isset($bio['bg_fallback_image']) ? [$bio['bg_fallback_image']] : []);
                 break;
 
             case 'biolink_slide':
-                $this->walkLinkSettings($chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
+                $this->walkLinkSettings($ctx, $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     fn(array $bio) => isset($bio['slideshow_images']) && is_array($bio['slideshow_images'])
                         ? array_values($bio['slideshow_images'])
                         : []);
                 break;
 
             case 'biolink_og':
-                $this->walkLinkSettings($chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
+                $this->walkLinkSettings($ctx, $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     fn(array $bio) => isset($bio['og']['image_url']) ? [$bio['og']['image_url']] : []);
                 break;
 
             case 'splash_og':
                 $this->walkOwners(
+                    $ctx,
                     SplashPage::query()->whereNotNull('og_image')->orderBy('id'),
                     $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     fn(SplashPage $sp) => [$sp->og_image]
@@ -160,6 +214,7 @@ class BackfillImageReoptimization extends Command
 
             case 'form_cover':
                 $this->walkOwners(
+                    $ctx,
                     Form::query()->whereNotNull('design')->orderBy('id'),
                     $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     function (Form $f) {
@@ -171,6 +226,7 @@ class BackfillImageReoptimization extends Command
 
             case 'form_card':
                 $this->walkOwners(
+                    $ctx,
                     Form::query()->whereNotNull('design')->orderBy('id'),
                     $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     function (Form $f) {
@@ -182,6 +238,7 @@ class BackfillImageReoptimization extends Command
 
             case 'link_seo':
                 $this->walkOwners(
+                    $ctx,
                     Link::query()->whereNotNull('seo_image')->orderBy('id'),
                     $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
                     fn(Link $l) => [$l->seo_image]
@@ -194,14 +251,14 @@ class BackfillImageReoptimization extends Command
      * Convenience walker for the four biolink-settings contexts: only Links
      * of type=biolink with a non-null `settings` blob need to be considered.
      */
-    private function walkLinkSettings(int $chunk, int $limit, bool $dry, array &$stats, array &$seen, int $maxW, int $maxH, int $quality, \Closure $extract): void
+    private function walkLinkSettings(string $ctx, int $chunk, int $limit, bool $dry, array &$stats, array &$seen, int $maxW, int $maxH, int $quality, \Closure $extract): void
     {
         $q = Link::query()
             ->where('type', 'biolink')
             ->whereNotNull('settings')
             ->orderBy('id');
 
-        $this->walkOwners($q, $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
+        $this->walkOwners($ctx, $q, $chunk, $limit, $dry, $stats, $seen, $maxW, $maxH, $quality,
             function (Link $link) use ($extract) {
                 $bio = data_get($link->settings, 'biolink');
                 if (!is_array($bio)) return [];
@@ -213,11 +270,13 @@ class BackfillImageReoptimization extends Command
     /**
      * Generic owner walker: chunk through `$query`, run `$extract` to get a
      * list of `/f/{id}/...` URLs per row, resolve to UserFile rows, and
-     * reoptimize each one (deduped via `$seen`).
+     * reoptimize each one (deduped via `$seen`). The `$ctx` label is
+     * threaded through so per-context shrink counts can be attributed
+     * back to the correct upload surface in the operator alert.
      */
-    private function walkOwners($query, int $chunk, int $limit, bool $dry, array &$stats, array &$seen, int $maxW, int $maxH, int $quality, \Closure $extract): void
+    private function walkOwners(string $ctx, $query, int $chunk, int $limit, bool $dry, array &$stats, array &$seen, int $maxW, int $maxH, int $quality, \Closure $extract): void
     {
-        $query->chunkById($chunk, function ($rows) use (&$stats, &$seen, $limit, $dry, $maxW, $maxH, $quality, $extract) {
+        $query->chunkById($chunk, function ($rows) use ($ctx, &$stats, &$seen, $limit, $dry, $maxW, $maxH, $quality, $extract) {
             foreach ($rows as $row) {
                 if ($limit > 0 && $stats['scanned'] >= $limit) return false;
 
@@ -229,7 +288,7 @@ class BackfillImageReoptimization extends Command
                     $seen[$id] = true;
 
                     $stats['scanned']++;
-                    $this->processUserFile($id, $maxW, $maxH, $quality, $dry, $stats);
+                    $this->processUserFile($ctx, $id, $maxW, $maxH, $quality, $dry, $stats);
                 }
             }
             return true;
@@ -249,7 +308,7 @@ class BackfillImageReoptimization extends Command
         return (int) $m[1];
     }
 
-    private function processUserFile(int $id, int $maxW, int $maxH, int $quality, bool $dry, array &$stats): void
+    private function processUserFile(string $ctx, int $id, int $maxW, int $maxH, int $quality, bool $dry, array &$stats): void
     {
         $file = UserFile::query()->withoutGlobalScope('workspace')->find($id);
         if (!$file || $file->type !== 'image') {
@@ -273,6 +332,7 @@ class BackfillImageReoptimization extends Command
 
         if ($changed) {
             $stats['shrunk']++;
+            $stats['per_context_shrunk'][$ctx] = ($stats['per_context_shrunk'][$ctx] ?? 0) + 1;
             $delta = $beforeBytes - (int) $file->size_bytes;
             if ($delta > 0) {
                 $stats['bytes_freed'] += $delta;
@@ -312,5 +372,161 @@ class BackfillImageReoptimization extends Command
                     'image_reoptimize_notice_dismissed_at' => null,
                 ]);
         }
+    }
+
+    /**
+     * Operator alert: once the legacy vault is clean every nightly run
+     * should be a no-op. So if a run shrinks more than the configured
+     * threshold of files, that's a signal the upload-time `compress_image`
+     * pipeline regressed (or a new image surface was added without
+     * opting in). Notify super_admins (in-app + email) and include the
+     * per-context breakdown so the offending upload path is obvious.
+     *
+     * Suppressed by, in order:
+     *   - the `--no-alert` CLI flag (used for the expected one-off
+     *     post-deploy backfill that's run by hand)
+     *   - the `suppress_next` AppSetting flag, which an admin sets right
+     *     before opting a new context in / bumping max dimensions; it's
+     *     auto-cleared by the next run that exceeds the threshold so a
+     *     genuine regression after that still alerts
+     *   - the `cooldown_hours` window since the previous alert
+     *   - the `enabled` master switch
+     */
+    private function maybeDispatchAlert(array $stats): void
+    {
+        $cfg = array_replace(self::alertDefaults(), (array) AppSetting::get(self::ALERT_SETTING_KEY, []));
+
+        $shrunk     = (int) ($stats['shrunk'] ?? 0);
+        $perContext = (array) ($stats['per_context_shrunk'] ?? []);
+        $threshold  = max(1, (int) ($cfg['threshold'] ?? 25));
+
+        if ($shrunk <= $threshold) {
+            return;
+        }
+
+        if (!($cfg['enabled'] ?? true)) {
+            $this->info("Shrunk {$shrunk} > threshold {$threshold}, but alerts are disabled — skipping.");
+            return;
+        }
+
+        if ($this->option('no-alert')) {
+            // Manual one-off run (e.g. opted a new context in). Also
+            // consume the suppress_next flag so a subsequent nightly run
+            // doesn't double-suppress.
+            if (!empty($cfg['suppress_next'])) {
+                AppSetting::put(self::ALERT_SETTING_KEY, array_replace($cfg, ['suppress_next' => false]));
+            }
+            $this->info("Shrunk {$shrunk} > threshold {$threshold}, alert suppressed via --no-alert.");
+            return;
+        }
+
+        if (!empty($cfg['suppress_next'])) {
+            // Expected post-deploy / opt-in backfill — eat the alert
+            // exactly once and re-arm for the next run.
+            AppSetting::put(self::ALERT_SETTING_KEY, array_replace($cfg, ['suppress_next' => false]));
+            $this->info("Shrunk {$shrunk} > threshold {$threshold}, alert suppressed via suppress_next flag (one-off).");
+            return;
+        }
+
+        $cooldownHours = max(1, (int) ($cfg['cooldown_hours'] ?? 48));
+        $lastSent = $cfg['last_sent_at'] ?? null;
+        if ($lastSent) {
+            try {
+                $lastSentAt = Carbon::parse($lastSent);
+                if ($lastSentAt->greaterThan(now()->subHours($cooldownHours))) {
+                    $this->info("Shrunk {$shrunk} > threshold {$threshold}, but inside cooldown (last sent {$lastSentAt->diffForHumans()}) — skipping.");
+                    return;
+                }
+            } catch (\Throwable $e) {
+                // Malformed timestamp — fall through and re-alert; the
+                // write below will heal the value.
+            }
+        }
+
+        // Sort the per-context breakdown by count desc so the worst
+        // offender leads the email body.
+        arsort($perContext);
+        $contextLines = [];
+        foreach ($perContext as $ctx => $n) {
+            $contextLines[] = "  · {$ctx}: {$n}";
+        }
+        $contextSummary = $contextLines
+            ? implode("\n", $contextLines)
+            : '  · (no per-context attribution)';
+
+        $contextList = !empty($perContext) ? implode(', ', array_keys($perContext)) : '(unknown)';
+
+        $subject = "Image reoptimize: {$shrunk} files shrunk last night (threshold {$threshold})";
+        $body    = "The nightly images:backfill-reoptimize job shrunk {$shrunk} files in its last run, exceeding the configured threshold of {$threshold}.\n\n"
+                 . "Once the legacy vault is clean, runs should be no-ops, so a sustained shrink count usually means the upload-time compress_image pipeline regressed for one of these surfaces, or a new image surface was added without opting in.\n\n"
+                 . "Per-context breakdown:\n" . $contextSummary . "\n\n"
+                 . "Suspect upload paths: {$contextList}.";
+        $url     = route('admin.dashboard');
+
+        $admins = User::query()->where('role', 'super_admin')->get();
+
+        $inAppDelivered = 0;
+        foreach ($admins as $u) {
+            try {
+                UserNotification::create([
+                    'user_id' => $u->id,
+                    'type'    => 'image_reoptimize_alert',
+                    'data'    => [
+                        'subject'      => $subject,
+                        'body'         => $body,
+                        'message'      => $body, // legacy field rendered by the user_notifications view
+                        'url'          => $url,  // canonical key consumed by the in-app notification list
+                        'target_url'   => $url,  // legacy alias for older renderers
+                        'shrunk'       => $shrunk,
+                        'threshold'    => $threshold,
+                        'per_context'  => $perContext,
+                    ],
+                    'created_at' => now(),
+                ]);
+                $inAppDelivered++;
+            } catch (\Throwable $e) {
+                Log::warning("image-reoptimize alert in-app failed for user {$u->id}: " . $e->getMessage());
+            }
+        }
+
+        // Email fan-out: explicit list if the admin configured one,
+        // otherwise every super_admin with a verified email. Re-validate
+        // each address defensively in case the setting was hand-edited.
+        $explicit = [];
+        foreach (preg_split('/[\s,;]+/', (string) ($cfg['emails'] ?? '')) ?: [] as $p) {
+            $p = strtolower(trim((string) $p));
+            if ($p !== '' && filter_var($p, FILTER_VALIDATE_EMAIL)) {
+                $explicit[$p] = true;
+            }
+        }
+        $explicit = array_keys($explicit);
+        if (!empty($explicit)) {
+            $emails = $explicit;
+        } else {
+            $emails = $admins
+                ->filter(fn ($u) => $u->email && $u->email_verified_at)
+                ->pluck('email')
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        $emailsSent = 0;
+        foreach ($emails as $email) {
+            try {
+                Mail::raw($body . "\n\n" . $url, function ($m) use ($email, $subject) {
+                    $m->to($email)->subject($subject);
+                });
+                $emailsSent++;
+            } catch (\Throwable $e) {
+                Log::warning("image-reoptimize alert email to {$email} failed: " . $e->getMessage());
+            }
+        }
+
+        AppSetting::put(self::ALERT_SETTING_KEY, array_replace($cfg, [
+            'last_sent_at' => now()->toIso8601String(),
+        ]));
+
+        $this->info("Alert dispatched — in-app: {$inAppDelivered}, email: {$emailsSent}.");
     }
 }

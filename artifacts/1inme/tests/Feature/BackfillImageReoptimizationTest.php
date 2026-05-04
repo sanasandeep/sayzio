@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\BackfillImageReoptimization;
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\SplashPage;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -181,6 +184,154 @@ class BackfillImageReoptimizationTest extends TestCase
         $after = UserFile::find($file->id)->size_bytes;
 
         $this->assertSame($before, $after);
+    }
+
+    /**
+     * Helper: seed N oversized images referenced as biolink backgrounds so a
+     * single run will shrink them all and trip whatever threshold the test
+     * configures. Returns the owner User.
+     */
+    private function seedShrinkable(int $n, string $context = 'biolink_bg'): User
+    {
+        $user = $this->makeUser();
+        for ($i = 0; $i < $n; $i++) {
+            $file = $this->seedOversizedFile($user);
+            if ($context === 'biolink_bg') {
+                Link::create([
+                    'user_id'  => $user->id,
+                    'type'     => 'biolink',
+                    'alias'    => 'bl' . Str::random(6),
+                    'long_url' => 'https://example.test',
+                    'settings' => ['biolink' => ['background_image' => $file->url]],
+                ]);
+            } elseif ($context === 'link_seo') {
+                Link::create([
+                    'user_id'   => $user->id,
+                    'type'      => 'url',
+                    'alias'     => 'ur' . Str::random(6),
+                    'long_url'  => 'https://example.test',
+                    'seo_image' => $file->url,
+                ]);
+            }
+        }
+        return $user;
+    }
+
+    private function makeAdmin(): User
+    {
+        $u = User::create([
+            'name'              => 'A ' . Str::random(4),
+            'email'             => 'a' . Str::random(8) . '@ex.com',
+            'password'          => Hash::make('x'),
+            'status'            => 'active',
+            'handle'            => 'h' . Str::random(6),
+            'role'              => 'super_admin',
+            'email_verified_at' => now(),
+        ]);
+        return $u;
+    }
+
+    public function test_alert_fires_when_shrunk_count_exceeds_threshold(): void
+    {
+        $admin = $this->makeAdmin();
+
+        // Tight threshold so the seeded fixtures trip the alert without
+        // having to fabricate dozens of oversized files.
+        AppSetting::put(BackfillImageReoptimization::ALERT_SETTING_KEY, ['threshold' => 2]);
+
+        $this->seedShrinkable(3, 'biolink_bg');
+
+        $this->artisan('images:backfill-reoptimize')->assertSuccessful();
+
+        $note = UserNotification::where('user_id', $admin->id)
+            ->where('type', 'image_reoptimize_alert')
+            ->first();
+        $this->assertNotNull($note, 'Expected an in-app alert for the admin.');
+        $data = $note->data ?? [];
+        $this->assertGreaterThan(2, (int) ($data['shrunk'] ?? 0));
+        $perCtx = (array) ($data['per_context'] ?? []);
+        $this->assertArrayHasKey('biolink_bg', $perCtx, 'Per-context breakdown must name the offending upload surface.');
+        $this->assertGreaterThan(0, (int) $perCtx['biolink_bg']);
+        $this->assertStringContainsString('biolink_bg', (string) ($data['body'] ?? ''));
+
+        // last_sent_at should now be persisted so the cooldown engages.
+        $cfg = AppSetting::get(BackfillImageReoptimization::ALERT_SETTING_KEY, []);
+        $this->assertNotNull($cfg['last_sent_at'] ?? null);
+    }
+
+    public function test_alert_does_not_fire_below_threshold(): void
+    {
+        $this->makeAdmin();
+
+        AppSetting::put(BackfillImageReoptimization::ALERT_SETTING_KEY, ['threshold' => 50]);
+
+        $this->seedShrinkable(2, 'biolink_bg');
+
+        $this->artisan('images:backfill-reoptimize')->assertSuccessful();
+
+        $this->assertSame(0, UserNotification::where('type', 'image_reoptimize_alert')->count());
+        $cfg = AppSetting::get(BackfillImageReoptimization::ALERT_SETTING_KEY, []);
+        $this->assertNull($cfg['last_sent_at'] ?? null);
+    }
+
+    public function test_suppress_next_eats_one_alert_then_re_arms(): void
+    {
+        $this->makeAdmin();
+
+        AppSetting::put(BackfillImageReoptimization::ALERT_SETTING_KEY, [
+            'threshold'      => 2,
+            'suppress_next'  => true,
+            'cooldown_hours' => 1,
+        ]);
+
+        // First run trips the threshold but should be eaten by suppress_next.
+        $this->seedShrinkable(3, 'biolink_bg');
+        $this->artisan('images:backfill-reoptimize')->assertSuccessful();
+
+        $this->assertSame(0, UserNotification::where('type', 'image_reoptimize_alert')->count(),
+            'suppress_next must eat the first over-threshold alert.');
+        $cfg = AppSetting::get(BackfillImageReoptimization::ALERT_SETTING_KEY, []);
+        $this->assertFalse((bool) ($cfg['suppress_next'] ?? true), 'suppress_next must auto-clear after consumption.');
+
+        // Second run with new shrinkable files now actually fires.
+        $this->seedShrinkable(3, 'link_seo');
+        $this->artisan('images:backfill-reoptimize')->assertSuccessful();
+
+        $this->assertSame(1, UserNotification::where('type', 'image_reoptimize_alert')->count(),
+            'Second over-threshold run after suppress_next clears must alert.');
+    }
+
+    public function test_no_alert_flag_suppresses_dispatch(): void
+    {
+        $this->makeAdmin();
+
+        AppSetting::put(BackfillImageReoptimization::ALERT_SETTING_KEY, ['threshold' => 2]);
+
+        $this->seedShrinkable(3, 'biolink_bg');
+
+        $this->artisan('images:backfill-reoptimize', ['--no-alert' => true])->assertSuccessful();
+
+        $this->assertSame(0, UserNotification::where('type', 'image_reoptimize_alert')->count());
+    }
+
+    public function test_cooldown_suppresses_back_to_back_alerts(): void
+    {
+        $this->makeAdmin();
+
+        AppSetting::put(BackfillImageReoptimization::ALERT_SETTING_KEY, [
+            'threshold'      => 2,
+            'cooldown_hours' => 24,
+        ]);
+
+        $this->seedShrinkable(3, 'biolink_bg');
+        $this->artisan('images:backfill-reoptimize')->assertSuccessful();
+        $this->assertSame(1, UserNotification::where('type', 'image_reoptimize_alert')->count());
+
+        // Second run inside cooldown window — must not double-alert even
+        // though the threshold is exceeded again.
+        $this->seedShrinkable(3, 'link_seo');
+        $this->artisan('images:backfill-reoptimize')->assertSuccessful();
+        $this->assertSame(1, UserNotification::where('type', 'image_reoptimize_alert')->count());
     }
 
     public function test_only_filter_limits_contexts(): void
