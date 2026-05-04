@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Workspace;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceRoleMatrix;
 use Illuminate\Http\Request;
 
@@ -62,6 +63,8 @@ class WorkspaceRolesController extends Controller
             return back()->with('error', $e->getMessage())->withInput();
         }
 
+        WorkspaceActivityRecorder::record($ws, 'role.update', 'role', null, 'Role permissions updated', route('user.team.roles.index'));
+
         return redirect()->route('user.team.roles.index')
             ->with('success', 'Role permissions updated.');
     }
@@ -70,6 +73,7 @@ class WorkspaceRolesController extends Controller
     {
         $ws = $this->workspace($request);
         WorkspaceRoleMatrix::reset($ws, $request->user());
+        WorkspaceActivityRecorder::record($ws, 'role.update', 'role', null, 'Role permissions reset to defaults', route('user.team.roles.index'));
         return redirect()->route('user.team.roles.index')
             ->with('success', 'Role permissions reset to defaults.');
     }

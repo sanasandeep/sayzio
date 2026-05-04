@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Support\BlockVariantCatalog;
 use App\Modules\User\Support\FontCatalog;
 use Illuminate\Http\Request;
@@ -288,6 +289,8 @@ class BiolinkBlockController extends Controller
         // Notify followers about new biolink content (daily debounce per creator).
         $this->emitBlockAddedFeedEvent($link, $block);
 
+        $this->recordBlockActivity('biolink.block.create', $link, $block);
+
         if ($request->ajax()) {
             return response()->json(['success' => true, 'block' => $block]);
         }
@@ -345,6 +348,17 @@ class BiolinkBlockController extends Controller
         } catch (\Throwable $e) {
             \Log::warning('block_added feed event failed: ' . $e->getMessage());
         }
+    }
+
+    protected function recordBlockActivity(string $action, Link $link, BiolinkBlock $block): void
+    {
+        $label = (string) ($block->settings['title'] ?? $block->settings['heading'] ?? $block->settings['label'] ?? $block->type);
+        WorkspaceActivityRecorder::record(
+            null, $action, 'biolink', $block->id,
+            ($link->title ?: $link->alias) . ' — ' . $label,
+            route('user.links.blocks.editor', $link),
+            ['link_id' => $link->id, 'block_type' => $block->type],
+        );
     }
 
     public function update(Request $request, Link $link, BiolinkBlock $block)
@@ -414,6 +428,8 @@ class BiolinkBlockController extends Controller
             'start_date' => $validated['start_date'] ?? $block->start_date,
             'end_date' => $validated['end_date'] ?? $block->end_date,
         ], $maxClicksUpdate));
+
+        $this->recordBlockActivity('biolink.block.update', $link, $block);
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['success' => true, 'block' => $block->fresh()]);
@@ -640,6 +656,7 @@ class BiolinkBlockController extends Controller
             }
             return redirect()->back()->with('error', 'Verified blocks cannot be deleted.');
         }
+        $this->recordBlockActivity('biolink.block.delete', $link, $block);
         $block->delete();
 
         if (request()->ajax() || request()->wantsJson()) {

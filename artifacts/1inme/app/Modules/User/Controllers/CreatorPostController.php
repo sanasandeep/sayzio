@@ -13,6 +13,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use Illuminate\Http\Request;
 
 class CreatorPostController extends Controller
@@ -135,6 +136,13 @@ class CreatorPostController extends Controller
         $msg = $isFuture
             ? 'Post scheduled for ' . $scheduledAt->format('M j, Y g:i A') . '.'
             : 'Post published to your followers.';
+
+        WorkspaceActivityRecorder::record(
+            null, 'post.publish', 'post', $post->id,
+            $post->title ?: mb_substr($post->body, 0, 60),
+            route('user.posts.index'),
+            ['scheduled' => $isFuture],
+        );
 
         return redirect()->route('user.posts.index')->with('success', $msg);
     }
@@ -342,6 +350,7 @@ class CreatorPostController extends Controller
             ->update(['pinned_at' => null]);
         $post->pinned_at = now();
         $post->save();
+        WorkspaceActivityRecorder::record(null, 'post.pin', 'post', $post->id, $post->title ?: mb_substr($post->body, 0, 60), route('user.posts.index'));
         return back()->with('success', 'Post pinned.');
     }
 
@@ -350,14 +359,18 @@ class CreatorPostController extends Controller
         // Auth handled by route middleware + global workspace scope.
         $post->pinned_at = null;
         $post->save();
+        WorkspaceActivityRecorder::record(null, 'post.unpin', 'post', $post->id, $post->title ?: mb_substr($post->body, 0, 60), route('user.posts.index'));
         return back()->with('success', 'Post unpinned.');
     }
 
     public function destroy(CreatorPost $post)
     {
         // Auth handled by route middleware + global workspace scope.
+        $label = $post->title ?: mb_substr($post->body, 0, 60);
+        $postId = $post->id;
         $post->approvalComments()->delete();
         $post->delete();
+        WorkspaceActivityRecorder::record(null, 'post.delete', 'post', $postId, $label, route('user.posts.index'));
         return back()->with('success', 'Post deleted.');
     }
 

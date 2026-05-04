@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Workspace;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -55,7 +56,11 @@ class WorkspaceController extends Controller
         $user = $request->user();
         abort_unless((int) $workspace->owner_user_id === $user->id, 403);
         $data = $request->validate(['name' => 'required|string|max:120']);
+        $previousName = $workspace->name;
         $workspace->update(['name' => $data['name']]);
+        WorkspaceActivityRecorder::record($workspace, 'workspace.update', 'workspace', $workspace->id, $workspace->name, route('user.team.index'), [
+            'from_name' => $previousName, 'to_name' => $data['name'],
+        ]);
         return back()->with('success', 'Workspace renamed.');
     }
 

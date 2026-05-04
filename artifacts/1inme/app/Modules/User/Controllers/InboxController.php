@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\InboxReply;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Services\InboxAggregator;
@@ -165,6 +166,12 @@ class InboxController
         if ($status === 'failed') {
             return back()->withInput()->with('error', 'Reply failed: ' . $error);
         }
+        WorkspaceActivityRecorder::record(
+            null, 'inbox.reply', 'inbox_thread', $reply->id,
+            'Reply to ' . $toEmail . ' — ' . $validated['subject'],
+            route('user.inbox.index'),
+            ['item_type' => $reply->item_type, 'item_id' => $reply->item_id, 'to' => $toEmail],
+        );
         return back()->with('success', 'Reply sent to ' . $toEmail . '.');
     }
 

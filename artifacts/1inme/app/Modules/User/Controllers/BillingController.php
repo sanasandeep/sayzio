@@ -9,6 +9,7 @@ use App\Modules\User\Models\CreditNote;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\Refund;
 use App\Modules\User\Models\Subscription;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Services\Billing\CreditNoteService;
 use App\Services\Billing\GatewayManager;
 use App\Services\Billing\NotImplementedException;
@@ -163,8 +164,18 @@ class BillingController extends Controller
             return redirect()->route('user.billing.show')
                 ->with('error', 'That gateway is not available yet.');
         }
-        if (($result['kind'] ?? null) === 'redirect') return redirect()->away((string) $result['url']);
-        if (($result['kind'] ?? null) === 'view') return view($result['view'], $result['data']);
+        if (($result['kind'] ?? null) === 'redirect') {
+            WorkspaceActivityRecorder::record(null, 'billing.upgrade', 'billing', $invoice->id, 'Upgrade to ' . $target->name, route('user.billing.show'), [
+                'target_plan_id' => $target->id, 'gateway' => $data['gateway'], 'invoice_id' => $invoice->id,
+            ]);
+            return redirect()->away((string) $result['url']);
+        }
+        if (($result['kind'] ?? null) === 'view') {
+            WorkspaceActivityRecorder::record(null, 'billing.upgrade', 'billing', $invoice->id, 'Upgrade to ' . $target->name, route('user.billing.show'), [
+                'target_plan_id' => $target->id, 'gateway' => $data['gateway'], 'invoice_id' => $invoice->id,
+            ]);
+            return view($result['view'], $result['data']);
+        }
         return redirect()->route('user.billing.show');
     }
 
@@ -173,6 +184,7 @@ class BillingController extends Controller
         $sub = $this->activeSubscription($request->user());
         abort_unless($sub, 404);
         $lc->cancelAtPeriodEnd($sub);
+        WorkspaceActivityRecorder::record(null, 'billing.cancel', 'billing', $sub->id, 'Cancel subscription #' . $sub->id, route('user.billing.show'));
         return back()->with('status', 'Your plan will stop renewing at the end of the current billing period.');
     }
 
@@ -181,6 +193,7 @@ class BillingController extends Controller
         $sub = $this->activeSubscription($request->user());
         abort_unless($sub, 404);
         $lc->undoCancel($sub);
+        WorkspaceActivityRecorder::record(null, 'billing.resume', 'billing', $sub->id, 'Resume subscription #' . $sub->id, route('user.billing.show'));
         return back()->with('status', 'Your plan will continue renewing.');
     }
 
@@ -204,6 +217,9 @@ class BillingController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', 'Refund could not be issued: ' . $e->getMessage());
         }
+        WorkspaceActivityRecorder::record(null, 'billing.refund', 'billing', $invoice->id, 'Refund invoice #' . $invoice->id, route('user.billing.show'), [
+            'amount_minor' => (int) $invoice->grand_total_minor, 'currency' => $invoice->currency ?? null,
+        ]);
         // Distinguish the offline "pending admin confirmation" case
         // from a gateway-completed refund — the user must not be told
         // they're back on Free when the refund hasn't actually been

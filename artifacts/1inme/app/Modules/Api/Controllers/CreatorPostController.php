@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\CreatorPost;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -61,6 +62,13 @@ class CreatorPostController extends Controller
             $p->forceFill(['pinned_at' => now()])->save();
         }
 
+        WorkspaceActivityRecorder::record(
+            null, 'post.publish', 'post', $p->id,
+            $p->title ?: mb_substr((string) $p->body, 0, 60),
+            route('user.posts.index'),
+            ['scheduled' => $isFuture],
+        );
+
         return $this->created(['post' => $this->transform($p->fresh())]);
     }
 
@@ -74,6 +82,12 @@ class CreatorPostController extends Controller
             'image' => ['sometimes', 'nullable', 'string', 'max:1024'],
         ]);
         $p->fill($data)->save();
+        WorkspaceActivityRecorder::record(
+            null, 'post.update', 'post', $p->id,
+            $p->title ?: mb_substr((string) $p->body, 0, 60),
+            route('user.posts.index'),
+            ['fields' => array_keys($data)],
+        );
         return $this->ok(['post' => $this->transform($p->fresh())]);
     }
 
@@ -81,7 +95,10 @@ class CreatorPostController extends Controller
     {
         $p = CreatorPost::where('user_id', $request->user()->id)->find($id);
         if (!$p) return $this->notFound('Post not found');
+        $label = $p->title ?: mb_substr((string) $p->body, 0, 60);
+        $postId = $p->id;
         $p->delete();
+        WorkspaceActivityRecorder::record(null, 'post.delete', 'post', $postId, $label, route('user.posts.index'));
         return $this->noContent();
     }
 
@@ -96,6 +113,8 @@ class CreatorPostController extends Controller
             ->where('id', '!=', $p->id)
             ->update(['pinned_at' => null]);
         $p->forceFill(['pinned_at' => now()])->save();
+        WorkspaceActivityRecorder::record(null, 'post.pin', 'post', $p->id,
+            $p->title ?: mb_substr((string) $p->body, 0, 60), route('user.posts.index'));
         return $this->ok(['post' => $this->transform($p->fresh())]);
     }
 
@@ -104,6 +123,8 @@ class CreatorPostController extends Controller
         $p = CreatorPost::where('user_id', $request->user()->id)->find($id);
         if (!$p) return $this->notFound('Post not found');
         $p->forceFill(['pinned_at' => null])->save();
+        WorkspaceActivityRecorder::record(null, 'post.unpin', 'post', $p->id,
+            $p->title ?: mb_substr((string) $p->body, 0, 60), route('user.posts.index'));
         return $this->ok(['post' => $this->transform($p->fresh())]);
     }
 

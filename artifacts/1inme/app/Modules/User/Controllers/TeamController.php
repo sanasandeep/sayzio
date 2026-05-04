@@ -8,6 +8,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceInvite;
 use App\Modules\User\Models\WorkspaceMember;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspacePermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -106,6 +107,7 @@ class TeamController extends Controller
         ]);
 
         $this->sendInviteEmail($invite);
+        WorkspaceActivityRecorder::record($ws, 'member.invite', 'invite', $invite->id, $invite->email, route('user.team.index'), ['role' => $invite->role]);
         return back()->with('success', "Invite sent to {$invite->email}.");
     }
 
@@ -116,6 +118,7 @@ class TeamController extends Controller
         abort_unless($invite->isPending(), 422, 'Invite is no longer pending.');
         $invite->update(['expires_at' => now()->addDays(14)]);
         $this->sendInviteEmail($invite);
+        WorkspaceActivityRecorder::record($ws, 'member.invite', 'invite', $invite->id, $invite->email, route('user.team.index'), ['resend' => true, 'role' => $invite->role]);
         return back()->with('success', "Invite resent to {$invite->email}.");
     }
 
@@ -124,6 +127,7 @@ class TeamController extends Controller
         $ws = $this->workspace($request);
         abort_unless($invite->workspace_id === $ws->id, 404);
         $invite->update(['revoked_at' => now()]);
+        WorkspaceActivityRecorder::record($ws, 'member.invite.revoke', 'invite', $invite->id, $invite->email, route('user.team.index'));
         return back()->with('success', "Invite to {$invite->email} revoked.");
     }
 
@@ -136,10 +140,17 @@ class TeamController extends Controller
             'role' => 'required|in:admin,editor,replier,analyst,viewer',
         ]);
 
+        $previousRole = $member->role;
         $member->update([
             'role'        => $data['role'],
             'permissions' => WorkspacePermissions::roleActions()[$data['role']] ?? [],
         ]);
+        WorkspaceActivityRecorder::record(
+            $ws, 'member.update', 'member', $member->id,
+            optional($member->user)->email ?: ('user#' . $member->user_id),
+            route('user.team.index'),
+            ['from_role' => $previousRole, 'to_role' => $data['role']],
+        );
         return back()->with('success', 'Member role updated.');
     }
 
@@ -148,7 +159,16 @@ class TeamController extends Controller
         $ws = $this->workspace($request);
         abort_unless($member->workspace_id === $ws->id, 404);
         $email = optional($member->user)->email;
+        $memberId = $member->id;
+        $userId = $member->user_id;
+        $role = $member->role;
         $member->delete();
+        WorkspaceActivityRecorder::record(
+            $ws, 'member.remove', 'member', $memberId,
+            $email ?: ('user#' . $userId),
+            route('user.team.index'),
+            ['user_id' => $userId, 'role' => $role],
+        );
 
         try {
             if ($email) {

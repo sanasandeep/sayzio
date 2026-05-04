@@ -19,6 +19,11 @@
                    style="border-color: var(--border-strong); color: var(--text-primary);">
                     <i class="fas fa-sliders-h mr-1"></i> Roles &amp; permissions
                 </a>
+                <a href="{{ route('user.workspaces.activity.index') }}"
+                   class="px-3 py-2 rounded-lg text-sm font-semibold border hover:bg-gray-50"
+                   style="border-color: var(--border-strong); color: var(--text-primary);">
+                    <i class="fas fa-clipboard-list mr-1"></i> Activity log
+                </a>
             @endif
             <button type="button" @click="openInvite()"
                     class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">

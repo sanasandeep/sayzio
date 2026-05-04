@@ -22,6 +22,7 @@ use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\Inbox\InboxClassifier;
 use App\Modules\User\Services\Inbox\InboxReplySuggester;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\Inbox\InboxThreadSync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -495,7 +496,7 @@ class InboxUnifiedController
             return ['via' => 'email', 'error' => $e->getMessage()];
         }
 
-        InboxReply::create([
+        $reply = InboxReply::create([
             'user_id'    => $thread->user_id,
             'item_type'  => $thread->source_type === 'form_submission' ? 'form_submission' : 'subscriber',
             'item_id'    => $thread->source_id,
@@ -507,6 +508,13 @@ class InboxUnifiedController
             'status'     => 'sent',
             'sent_at'    => now(),
         ]);
+
+        WorkspaceActivityRecorder::record(
+            null, 'inbox.reply', 'inbox_thread', $reply->id,
+            'Reply to ' . $to . ' — ' . ($thread->subject ?: 'Your message'),
+            route('user.inbox.unified.index'),
+            ['thread_id' => $thread->id, 'to' => $to],
+        );
 
         return ['via' => 'email', 'error' => null];
     }

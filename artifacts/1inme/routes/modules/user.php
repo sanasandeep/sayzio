@@ -163,6 +163,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'update'])->name('team.roles.update');
         Route::post  ('team/roles/reset',                      [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'reset']) ->name('team.roles.reset');
 
+        // ---- Activity log (Owner + Admin) ----
+        Route::get   ('workspaces/activity',                   [\App\Modules\User\Controllers\WorkspaceActivityController::class, 'index'])->name('workspaces.activity.index');
+        Route::get   ('workspaces/activity/export',            [\App\Modules\User\Controllers\WorkspaceActivityController::class, 'export'])->name('workspaces.activity.export');
+
         // First-run onboarding — single page with personas (left) +
         // matching templates (right) + a live mini-preview drawer.
         Route::prefix('onboarding')->name('onboarding.')->group(function () {

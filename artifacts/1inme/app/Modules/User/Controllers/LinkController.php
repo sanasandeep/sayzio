@@ -2163,6 +2163,11 @@ class LinkController extends Controller
         $link->update($validated);
         $link->pixels()->sync($pixelIds);
 
+        \App\Modules\User\Services\WorkspaceActivityRecorder::record(
+            null, 'link.update', 'link', $link->id,
+            $link->title ?: $link->alias ?: $link->long_url,
+            route('user.links.show', $link),
+        );
         return redirect()->route('user.links.show', $link)
             ->with('success', 'Link updated successfully.');
     }
@@ -2202,7 +2207,14 @@ class LinkController extends Controller
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
+        $linkLabel = $link->title ?: $link->alias ?: $link->long_url;
+        $linkId = $link->id;
         $link->delete();
+
+        \App\Modules\User\Services\WorkspaceActivityRecorder::record(
+            null, 'link.delete', 'link', $linkId, $linkLabel,
+            route('user.links.index'),
+        );
 
         return redirect()->route('user.links.index')
             ->with('success', 'Link deleted successfully.');
