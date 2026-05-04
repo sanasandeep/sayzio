@@ -50,12 +50,51 @@
         @forelse($myDomains as $d)
             <div class="flex items-center justify-between gap-3 py-3 border-t border-white/5 first:border-t-0">
                 <div class="min-w-0 flex-1">
-                    <div class="text-sm font-mono text-white">{{ $d->domain }}</div>
-                    <div class="text-[11px] text-white/40 mt-0.5 space-y-0.5">
-                        @if($d->is_verified)
-                            <div><span class="text-emerald-400">verified</span> · serving short links</div>
+                    <div class="text-sm font-mono text-white flex items-center gap-2 flex-wrap">
+                        <span>{{ $d->domain }}</span>
+                        @php
+                            $__expectedCname = $d->cname_target ?: parse_url(config('app.url'), PHP_URL_HOST);
+                            $__status = $d->dns_status;
+                            if (!$d->is_verified && $__status === \App\Modules\User\Models\Domain::DNS_STATUS_UNVERIFIED) {
+                                // Auto-unverified after grace — distinct from a brand-new
+                                // domain that has never been verified.
+                                $__badge = ['label' => 'auto-unverified', 'cls' => 'bg-red-500/15 text-red-300 border-red-400/30'];
+                            } elseif (!$d->is_verified) {
+                                $__badge = ['label' => 'unverified', 'cls' => 'bg-white/10 text-white/60 border-white/15'];
+                            } elseif ($__status === \App\Modules\User\Models\Domain::DNS_STATUS_DRIFTING) {
+                                $__badge = ['label' => 'drifting', 'cls' => 'bg-amber-500/15 text-amber-300 border-amber-400/30'];
+                            } else {
+                                $__badge = ['label' => 'healthy', 'cls' => 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'];
+                            }
+                        @endphp
+                        <span class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border {{ $__badge['cls'] }}">{{ $__badge['label'] }}</span>
+                    </div>
+                    <div class="text-[11px] text-white/40 mt-1 space-y-0.5">
+                        @if($d->is_verified && $__status !== \App\Modules\User\Models\Domain::DNS_STATUS_DRIFTING)
+                            <div><span class="text-emerald-400">verified</span> · serving short links
+                                @if($d->dns_last_checked_at) · <span class="text-white/30">DNS checked {{ $d->dns_last_checked_at->diffForHumans() }}</span>@endif
+                            </div>
+                        @elseif($d->is_verified && $__status === \App\Modules\User\Models\Domain::DNS_STATUS_DRIFTING)
+                            <div class="text-amber-300">
+                                DNS for this domain stopped pointing at 1INME
+                                @if($d->dns_drift_started_at) ({{ $d->dns_drift_started_at->diffForHumans() }})@endif.
+                                Restore the CNAME below or this domain will be auto-unverified after {{ \App\Modules\Common\Services\DomainHealthChecker::graceHours() }}h.
+                            </div>
+                            <div class="font-mono text-white/60">
+                                Type: <span class="text-violet-300">CNAME</span> ·
+                                Name: <span class="text-violet-300">{{ $d->domain }}</span> ·
+                                Target: <span class="text-violet-300">{{ $__expectedCname }}</span> ·
+                                TTL: <span class="text-violet-300">300</span>
+                            </div>
+                            @if($d->dns_last_target)
+                                <div class="text-white/30">Currently resolving to: <span class="font-mono">{{ $d->dns_last_target }}</span></div>
+                            @endif
                         @else
-                            <div><span class="text-amber-400">unverified</span> — add this DNS record at your registrar:</div>
+                            @if($__status === \App\Modules\User\Models\Domain::DNS_STATUS_UNVERIFIED)
+                                <div class="text-red-300">Auto-unverified after the grace window — fix DNS, then re-verify. The host is still locked to your account so no one else can claim it.</div>
+                            @else
+                                <div><span class="text-amber-400">unverified</span> — add this DNS record at your registrar:</div>
+                            @endif
                             <div class="font-mono text-white/60">
                                 Type: <span class="text-violet-300">CNAME</span> ·
                                 Name: <span class="text-violet-300">{{ $d->domain }}</span> ·

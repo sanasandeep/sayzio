@@ -73,7 +73,16 @@ class DomainController extends Controller
             return back()->with('error', "CNAME for {$domain->domain} does not point at {$expected} yet. DNS changes can take up to 24 hours to propagate.");
         }
 
-        $domain->update(['is_verified' => true, 'verified_at' => now()]);
+        $domain->update([
+            'is_verified'                    => true,
+            'verified_at'                    => now(),
+            'dns_status'                     => Domain::DNS_STATUS_HEALTHY,
+            'dns_last_checked_at'            => now(),
+            'dns_last_target'                => strtolower($expected),
+            'dns_drift_started_at'           => null,
+            'dns_drift_notified_at'          => null,
+            'dns_unverified_warning_sent_at' => null,
+        ]);
         WorkspaceActivityRecorder::record(null, 'domain.verify', 'domain', $domain->id, $domain->domain, route('user.domains.index'));
         $this->recordAudit(SensitiveActionLogger::ACTION_DOMAIN_VERIFIED, $domain);
         return back()->with('success', "Domain {$domain->domain} verified — short links can now use it.");

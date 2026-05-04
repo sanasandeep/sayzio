@@ -77,6 +77,19 @@ Schedule::command('backlinks:send-weekly-digest')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: probe verified user-owned custom domains for DNS drift and run
+// the takeover-protection state machine. Healthy → drifting transitions
+// alert the creator (in-app + email) with the exact CNAME records to fix;
+// after the configured grace window (default 7 days) without resolution
+// the domain is auto-unverified with a final warning email so the creator
+// can recover it later. The domain row is preserved either way so the
+// unique-domain claim lock stops anyone else from grabbing the host
+// while the original creator sorts DNS out.
+Schedule::command('domains:check-health')
+    ->hourlyAt(20)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every minute: drain queued background jobs (currently used by the contact
 // importer for files over a few hundred rows). --stop-when-empty makes the
 // command short-lived so the scheduler can keep using --withoutOverlapping

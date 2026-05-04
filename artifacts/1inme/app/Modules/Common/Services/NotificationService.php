@@ -147,6 +147,20 @@ class NotificationService
                 'default_email'  => false,
                 'default_push'   => false,
             ],
+            'custom_domain_drift' => [
+                'label'          => 'Custom domain DNS drift',
+                'description'    => 'When a verified custom domain stops pointing at 1INME (so traffic may break and someone else could try to claim it).',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
+            'custom_domain_unverified' => [
+                'label'          => 'Custom domain auto-unverified',
+                'description'    => 'Final warning when a drifting custom domain is automatically unverified after the grace window.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             'backlink_digest' => [
                 'label'          => 'Weekly backlink digest',
                 'description'    => 'Weekly email summarising new backlinks the browser-extension radar has found pointing at your short links, biolink and custom domains.',

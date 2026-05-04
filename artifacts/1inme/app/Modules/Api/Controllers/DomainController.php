@@ -25,6 +25,17 @@ class DomainController extends Controller
             'domain' => ['required', 'string', 'max:253', 'regex:/^[a-z0-9.-]+\.[a-z]{2,}$/i'],
             'type'   => ['nullable', Rule::in(['custom', 'subdomain'])],
         ]);
+
+        // Claim lock: refuse if any other account already owns a row for
+        // this hostname — even if it's currently drifting/unverified.
+        // The original creator keeps the row through the drift+grace
+        // window so they can recover after fixing DNS, and we don't
+        // want a competing account to swoop in mid-window.
+        $existing = Domain::where('domain', strtolower($data['domain']))->first();
+        if ($existing) {
+            return $this->fail('This domain is already claimed on 1INME.', 409, 'domain_taken');
+        }
+
         $d = Domain::create([
             'user_id'            => $request->user()->id,
             'domain'             => strtolower($data['domain']),

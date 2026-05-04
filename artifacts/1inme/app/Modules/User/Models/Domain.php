@@ -14,14 +14,25 @@ class Domain extends Model
 protected $fillable = [
         'user_id', 'domain', 'type', 'is_verified', 'is_active',
         'verification_token', 'cname_target', 'verified_at',
+        'dns_status', 'dns_last_checked_at', 'dns_last_target',
+        'dns_drift_started_at', 'dns_drift_notified_at',
+        'dns_unverified_warning_sent_at',
     ];
+
+    public const DNS_STATUS_HEALTHY    = 'healthy';
+    public const DNS_STATUS_DRIFTING   = 'drifting';
+    public const DNS_STATUS_UNVERIFIED = 'unverified';
 
     protected function casts(): array
     {
         return [
-            'is_verified' => 'boolean',
-            'is_active'   => 'boolean',
-            'verified_at' => 'datetime',
+            'is_verified'                    => 'boolean',
+            'is_active'                      => 'boolean',
+            'verified_at'                    => 'datetime',
+            'dns_last_checked_at'            => 'datetime',
+            'dns_drift_started_at'           => 'datetime',
+            'dns_drift_notified_at'          => 'datetime',
+            'dns_unverified_warning_sent_at' => 'datetime',
         ];
     }
 
