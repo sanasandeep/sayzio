@@ -787,6 +787,20 @@ class RedirectController extends Controller
             $block = $abService->findSnapshotBlock($abExp, $blockId, $abVariant);
         }
         if (!$block) abort(404);
+
+        // Task #1094 — refuse the click-through once the block has hit its
+        // time-based expiry or click-count cap. Without this, late-arriving
+        // taps from stale tabs (or anyone holding the redirect URL) would
+        // continue to consume + offload clicks beyond the cap. We honor
+        // expired_action so a "show" configuration still lands on a
+        // friendly explainer page instead of a hard 410.
+        if ($block->isExpired()) {
+            if ($redirect = $link->getExpiryRedirectUrl()) {
+                return redirect()->away($redirect, 302);
+            }
+            return response()->view('common.link-expired', ['link' => $link], 410);
+        }
+
         $s = $block->settings ?? [];
         $linkData = $s['_link'] ?? [];
 
@@ -814,7 +828,18 @@ class RedirectController extends Controller
         $rawSource = (string) $request->query('source', '');
         $sourceTag = preg_match('/^[a-z0-9_-]{1,32}$/', $rawSource) ? $rawSource : 'web';
 
-        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, $sourceTag);
+        // trackBlockClick now returns null when the block has hit its
+        // cap or end_date — that's the authoritative concurrent gate
+        // (a single conditional UPDATE inside the service). The
+        // pre-check above is just a fast path; this covers the race
+        // between two simultaneous clicks at click_count = cap - 1.
+        $tracked = $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, $sourceTag);
+        if ($tracked === null && !app(\App\Modules\Common\Services\BotDetector::class)->isBot($request->userAgent() ?? '')) {
+            if ($redirect = $link->getExpiryRedirectUrl()) {
+                return redirect()->away($redirect, 302);
+            }
+            return response()->view('common.link-expired', ['link' => $link], 410);
+        }
 
         if ($abExp && $abVariant) {
             $abService->recordClick($abExp, $abVariant);

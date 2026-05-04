@@ -223,7 +223,6 @@ export default function EditBlockScreen() {
   const [visDevicesExclude, setVisDevicesExclude] = useState<Set<string>>(new Set());
   const [visCountries, setVisCountries] = useState<string>("");
   const [visCountriesExclude, setVisCountriesExclude] = useState<string>("");
-
   // Per-block trackable-link settings live under `block.settings._link`. We
   // hold them in a dedicated state bucket because `values` is string-only
   // and the auto-UTM payload includes nested overrides + an enum toggle.
@@ -241,6 +240,21 @@ export default function EditBlockScreen() {
     queryFn: () => getLink(id),
     enabled: Number.isFinite(id),
   });
+
+  // Task #1094 — per-block scarcity. `maxClicks` 0/empty = unlimited.
+  // `endDate` is a `YYYY-MM-DDTHH:mm` string (locale-naive, just like
+  // the web editor's <input type="datetime-local">). The presentation
+  // toggles, near-percent slider and expired-action settings live
+  // under `settings._limits` to mirror the Blade form's name shape.
+  const [maxClicks, setMaxClicks] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [showCountdown, setShowCountdown] = useState<boolean>(false);
+  const [showRemaining, setShowRemaining] = useState<boolean>(false);
+  const [nearPercent, setNearPercent] = useState<number>(20);
+  const [expiredAction, setExpiredAction] = useState<"hide" | "show">("hide");
+  const [expiredLabel, setExpiredLabel] = useState<string>("Sold out");
+  const [expiredEmoji, setExpiredEmoji] = useState<string>("");
+  const [previewState, setPreviewState] = useState<"active" | "near" | "expired">("active");
   // List/pricing block state. These block types persist a `style` string,
   // an `items` array, and (for `list`) a default bullet `icon`. They are
   // edited via a bespoke UI rather than the generic field renderer.
@@ -303,6 +317,28 @@ export default function EditBlockScreen() {
     });
     setAutoUtmOverrides(ov);
 
+    // Hydrate scarcity controls. We feed the <TextField> for max_clicks
+    // a string ("" when unlimited) so empty input round-trips cleanly.
+    setMaxClicks(
+      typeof block.max_clicks === "number" && block.max_clicks > 0
+        ? String(block.max_clicks)
+        : "",
+    );
+    setEndDate(
+      typeof block.end_date === "string" && block.end_date
+        ? // Trim seconds + tz for the YYYY-MM-DDTHH:mm shape the web
+          // editor uses; the backend accepts either form via Carbon.
+          block.end_date.slice(0, 16)
+        : "",
+    );
+    const lim = (block.settings?._limits as Record<string, unknown> | undefined) ?? {};
+    setShowCountdown(!!lim.show_countdown);
+    setShowRemaining(!!lim.show_remaining);
+    const npRaw = Number(lim.near_threshold_percent);
+    setNearPercent(Number.isFinite(npRaw) ? Math.max(0, Math.min(100, npRaw)) : 20);
+    setExpiredAction(lim.expired_action === "show" ? "show" : "hide");
+    setExpiredLabel(typeof lim.expired_label === "string" ? lim.expired_label : "Sold out");
+    setExpiredEmoji(typeof lim.expired_emoji === "string" ? lim.expired_emoji : "");
     const style = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
     setVariantKey(typeof style._variant === "string" ? style._variant : "");
     // Hydrate visibility/targeting from `_visibility` (everything missing
@@ -594,9 +630,29 @@ export default function EditBlockScreen() {
             icon: it.icon,
           }));
       }
+      // Stamp the limits config alongside any existing settings — this
+      // is a merge by the time the backend sanitizer sees it (the web
+      // controller preserves _style etc. via $request->validate +
+      // sanitizeSettings), but we send the structured _limits sub-array
+      // so the editor preview and the public renderer agree on shape.
+      nextSettings._limits = {
+        show_countdown: showCountdown,
+        show_remaining: showRemaining,
+        near_threshold_percent: nearPercent,
+        expired_action: expiredAction,
+        expired_label: expiredLabel.slice(0, 40),
+        expired_emoji: expiredEmoji.slice(0, 4),
+      };
+      // Trim the local datetime string to ISO for the API. Empty string
+      // → null clears the expiry; the backend treats null as "no expiry".
+      const endDateIso = endDate ? endDate : null;
+      const mcParsed = parseInt((maxClicks || "").trim(), 10);
+      const maxClicksOut = Number.isFinite(mcParsed) && mcParsed > 0 ? mcParsed : null;
       return updateBlock(id, blockId, {
         is_active: active,
         settings: nextSettings,
+        end_date: endDateIso,
+        max_clicks: maxClicksOut,
       });
     },
     onSuccess: () => {
@@ -1537,6 +1593,198 @@ export default function EditBlockScreen() {
             onValueChange={setActive}
             trackColor={{ true: colors.primary, false: colors.border }}
           />
+        </View>
+
+        {/* Task #1094 — Limits & Scarcity card. Editing the cap or
+            expiry from mobile mirrors the web editor exactly: empty
+            max_clicks = unlimited, blank end_date = no time-based
+            expiry. The preview row below lets the creator eyeball
+            active / near / expired states without burning real clicks
+            or waiting for the real expiry to land. */}
+        <View
+          style={{
+            padding: 14,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+            gap: 10,
+          }}
+        >
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+            Limits &amp; Scarcity
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+            Set a click cap or expiry, then choose how the block reacts
+            once the limit is reached. Bots never count toward the cap.
+          </Text>
+
+          <TextField
+            label="Max clicks (blank = unlimited)"
+            value={maxClicks}
+            placeholder="0"
+            keyboardType="number-pad"
+            onChangeText={(t) => setMaxClicks(t.replace(/[^\d]/g, ""))}
+          />
+          {typeof block.click_count === "number" && block.click_count > 0 ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Already counted: {block.click_count}
+            </Text>
+          ) : null}
+
+          <TextField
+            label="Expires (YYYY-MM-DDTHH:mm, blank = never)"
+            value={endDate}
+            placeholder="2026-12-31T23:59"
+            autoCapitalize="none"
+            onChangeText={setEndDate}
+          />
+
+          <View style={[styles.row, { borderColor: colors.border, borderRadius: 10, padding: 10 }]}>
+            <Text style={{ color: colors.foreground, fontSize: 13 }}>
+              Show live countdown
+            </Text>
+            <Switch
+              value={showCountdown}
+              onValueChange={setShowCountdown}
+              trackColor={{ true: colors.primary, false: colors.border }}
+            />
+          </View>
+          <View style={[styles.row, { borderColor: colors.border, borderRadius: 10, padding: 10 }]}>
+            <Text style={{ color: colors.foreground, fontSize: 13 }}>
+              Show remaining count
+            </Text>
+            <Switch
+              value={showRemaining}
+              onValueChange={setShowRemaining}
+              trackColor={{ true: colors.primary, false: colors.border }}
+            />
+          </View>
+
+          {/* "Almost gone" threshold — mobile uses a simple ±5 stepper
+              instead of a slider since RN core doesn't ship one and we
+              don't want a new dependency just for this one control. */}
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600", marginBottom: 4 }}>
+              "Almost gone" threshold: {nearPercent}%
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable
+                onPress={() => setNearPercent((p) => Math.max(0, p - 5))}
+                style={{
+                  paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+                  backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "700" }}>−5%</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setNearPercent((p) => Math.min(100, p + 5))}
+                style={{
+                  paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+                  backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "700" }}>+5%</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Expired behavior */}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {(["hide", "show"] as const).map((opt) => {
+              const sel = expiredAction === opt;
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => setExpiredAction(opt)}
+                  style={{
+                    flex: 1, padding: 10, borderRadius: 10,
+                    backgroundColor: sel ? colors.primary + "22" : colors.muted,
+                    borderWidth: sel ? 2 : 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                    {opt === "hide" ? "Hide when expired" : "Keep showing it"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {expiredAction === "show" ? (
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 2 }}>
+                <TextField
+                  label="Expired label"
+                  value={expiredLabel}
+                  onChangeText={(t) => setExpiredLabel(t.slice(0, 40))}
+                  placeholder="Sold out"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextField
+                  label="Emoji"
+                  value={expiredEmoji}
+                  onChangeText={(t) => setExpiredEmoji(t.slice(0, 4))}
+                  placeholder="🔒"
+                />
+              </View>
+            </View>
+          ) : null}
+
+          {/* Editor preview switcher — pure local state, never persisted. */}
+          <View
+            style={{
+              padding: 10, borderRadius: 10, borderWidth: 1, borderStyle: "dashed",
+              borderColor: colors.border, backgroundColor: colors.muted, gap: 6,
+            }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                Preview state
+              </Text>
+              <View style={{ flexDirection: "row", gap: 4 }}>
+                {(["active", "near", "expired"] as const).map((s) => {
+                  const sel = previewState === s;
+                  return (
+                    <Pressable
+                      key={s}
+                      onPress={() => setPreviewState(s)}
+                      style={{
+                        paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+                        backgroundColor: sel ? colors.primary : "transparent",
+                        borderWidth: 1, borderColor: sel ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Text style={{ color: sel ? "#fff" : colors.foreground, fontSize: 11, fontWeight: "700" }}>
+                        {s}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <View
+              style={{
+                alignSelf: "flex-start",
+                paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
+                backgroundColor:
+                  previewState === "expired" ? "rgba(120,113,108,0.25)"
+                  : previewState === "near"  ? "rgba(245,158,11,0.22)"
+                                              : "rgba(16,185,129,0.18)",
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: "700" }}>
+                {previewState === "expired"
+                  ? `${expiredEmoji ? expiredEmoji + " " : ""}${expiredLabel || "Sold out"}`
+                  : previewState === "near"
+                    ? "🔥 Only 3 left"
+                    : "⏳ Ends in 02:14:33"}
+              </Text>
+            </View>
+          </View>
         </View>
 
         <Button

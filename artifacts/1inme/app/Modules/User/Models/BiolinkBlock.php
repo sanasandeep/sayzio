@@ -10,6 +10,10 @@ class BiolinkBlock extends Model
     protected $fillable = [
         'link_id', 'type', 'settings', 'sort_order', 'is_active',
         'start_date', 'end_date', 'parent_id',
+        // Task #1094 — per-block scarcity. `max_clicks` is the global cap
+        // (nullable = unlimited); `click_count` is the running tally
+        // bumped atomically in LinkTrackingService::trackBlockClick.
+        'max_clicks', 'click_count',
     ];
 
     protected function casts(): array
@@ -19,6 +23,8 @@ class BiolinkBlock extends Model
             'is_active' => 'boolean',
             'start_date' => 'datetime',
             'end_date' => 'datetime',
+            'max_clicks' => 'integer',
+            'click_count' => 'integer',
         ];
     }
 
@@ -787,11 +793,123 @@ class BiolinkBlock extends Model
         return $this->belongsTo(self::class, 'parent_id');
     }
 
+    /**
+     * Settings bag for Task #1094 (per-block scarcity). Lives under
+     * `_limits` so it stays alongside `_visibility` / `_style`.
+     *
+     *   _limits: {
+     *     show_countdown: bool,           // render time countdown badge
+     *     show_remaining: bool,           // render remaining-clicks badge
+     *     near_threshold_percent: int,    // when to flip to "near limit" styling (0..100)
+     *     expired_action: 'hide'|'show',  // what to do when limit trips
+     *     expired_label: string,          // shown in place of CTA when 'show'
+     *     expired_emoji: string,          // optional decorative glyph
+     *   }
+     */
+    public function limits(): array
+    {
+        $l = $this->settings['_limits'] ?? [];
+        return is_array($l) ? $l : [];
+    }
+
+    public function expiredAction(): string
+    {
+        $a = (string) ($this->limits()['expired_action'] ?? 'hide');
+        return $a === 'show' ? 'show' : 'hide';
+    }
+
+    /**
+     * True if this block has any limit configured (time, clicks, or both).
+     * Used by renderers to decide whether to mount the live-update widget.
+     */
+    public function hasLimits(): bool
+    {
+        return $this->end_date !== null || ($this->max_clicks !== null && $this->max_clicks > 0);
+    }
+
+    /**
+     * Remaining clicks (null = unlimited / not configured). Clamped at 0
+     * so renderers don't accidentally show negatives if the counter
+     * over-shoots the cap under bursty concurrent traffic.
+     */
+    public function remainingClicks(): ?int
+    {
+        if ($this->max_clicks === null || $this->max_clicks <= 0) return null;
+        $left = (int) $this->max_clicks - (int) ($this->click_count ?? 0);
+        return max(0, $left);
+    }
+
+    public function secondsToExpiry(): ?int
+    {
+        if (!$this->end_date) return null;
+        return max(0, $this->end_date->getTimestamp() - now()->getTimestamp());
+    }
+
+    public function isExpired(): bool
+    {
+        if ($this->end_date && $this->end_date->isPast()) return true;
+        if ($this->max_clicks !== null && $this->max_clicks > 0
+            && (int) ($this->click_count ?? 0) >= (int) $this->max_clicks) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Live-state payload for the polling endpoint and editor preview. Same
+     * shape consumed by the public-page JS in biolink.blade.php and the
+     * mobile editor preview in artifacts/1inme-mobile.
+     */
+    public function limitsState(): array
+    {
+        $l = $this->limits();
+        $expired = $this->isExpired();
+        // Derive a single canonical "state" string consumed by both the
+        // public-page badge ticker (data-limit-state attribute) and the
+        // editor preview switcher. We pick the most-severe state first so
+        // an expired-and-also-near-zero block reads as expired.
+        $state = 'active';
+        if ($expired) {
+            $state = 'expired';
+        } else {
+            $remaining = $this->remainingClicks();
+            $cap = (int) ($this->max_clicks ?? 0);
+            $nearPct = max(0, min(100, (int) ($l['near_threshold_percent'] ?? 20)));
+            if ($cap > 0 && $remaining !== null && $remaining > 0
+                && (($remaining / $cap) * 100) <= $nearPct) {
+                $state = 'near';
+            }
+        }
+        return [
+            // `id` is the canonical key the polling JS keys off; `block_id`
+            // is kept as an alias for any older client that already shipped.
+            'id'              => (int) $this->id,
+            'block_id'        => (int) $this->id,
+            'state'           => $state,
+            'expires_at'      => $this->end_date?->toIso8601String(),
+            'seconds_left'    => $this->secondsToExpiry(),
+            'max_clicks'      => $this->max_clicks,
+            'click_count'     => (int) ($this->click_count ?? 0),
+            'remaining'       => $this->remainingClicks(),
+            'expired'         => $expired,
+            'show_countdown'  => !empty($l['show_countdown']),
+            'show_remaining'  => !empty($l['show_remaining']),
+            'near_percent'    => max(0, min(100, (int) ($l['near_threshold_percent'] ?? 20))),
+            'expired_action'  => $this->expiredAction(),
+            'expired_label'   => (string) ($l['expired_label'] ?? 'Sold out'),
+            'expired_emoji'   => (string) ($l['expired_emoji'] ?? ''),
+        ];
+    }
+
     public function isVisible(): bool
     {
         if (!$this->is_active) return false;
         if ($this->start_date && $this->start_date->isFuture()) return false;
-        if ($this->end_date && $this->end_date->isPast()) return false;
+        // Task #1094 — when a block has tripped its time-based or
+        // click-count limit we either hide it outright (default) or keep
+        // it on the page in a "sold out / expired" state the creator
+        // configured. The renderer reads isExpired() to swap the UI.
+        if ($this->isExpired() && $this->expiredAction() === 'hide') return false;
 
         $v = $this->settings['_visibility'] ?? [];
         if (empty($v)) return true;

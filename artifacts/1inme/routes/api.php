@@ -93,6 +93,15 @@ Route::prefix('v1')->group(function () {
         ->post('/biolinks/{alias}/blocks/{blockId}/tap', [BiolinkController::class, 'tap'])
         ->whereNumber('blockId');
 
+    // Task #1094 — live "limits" snapshot (countdowns + remaining counts)
+    // for every block on a biolink. Polled by the public-page JS and the
+    // mobile editor preview so badges stay current without a page reload.
+    // optional_auth so the visibility gate inside publicLimits can
+    // identify followers/subscribers/owner viewers; anonymous requests
+    // still work for fully-public biolinks.
+    Route::middleware(['api.optional_auth', 'throttle:120,1'])
+        ->get('/biolinks/{alias}/blocks/limits', [BiolinkBlockController::class, 'publicLimits']);
+
     // Native poll vote — mirrors the in-page poll UI but persists the vote
     // server-side so the mobile app no longer has to bounce out to the web
     // form to record it. Optional auth lets logged-in viewers be deduped by

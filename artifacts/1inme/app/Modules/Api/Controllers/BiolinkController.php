@@ -307,6 +307,14 @@ class BiolinkController extends Controller
         }
         if (!$block) return $this->notFound('Block not found');
 
+        // Task #1094 — enforce the cap server-side. The mobile UI hides
+        // expired blocks before users can tap them, but a stale viewer
+        // could still send a tap; without this gate it would consume
+        // and offload a click past the cap.
+        if ($block->isExpired()) {
+            return $this->fail('This block is no longer available.', 410, 'block_expired');
+        }
+
         $data = $request->validate([
             'destination_url' => ['nullable', 'string', 'max:2048'],
         ]);
@@ -322,7 +330,13 @@ class BiolinkController extends Controller
             $destination = (string) ($linkData['url'] ?? $s['link'] ?? $s['url'] ?? '');
         }
 
-        $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias, 'mobile_app');
+        // Race-safe gate: trackBlockClick returns null when the
+        // atomic cap-reservation UPDATE didn't fire (cap reached) or
+        // the schedule expired between our pre-check and the call.
+        $tracked = $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias, 'mobile_app');
+        if ($tracked === null) {
+            return $this->fail('This block is no longer available.', 410, 'block_expired');
+        }
 
         if ($abExp && $abVariant) {
             $abService->recordClick($abExp, $abVariant);

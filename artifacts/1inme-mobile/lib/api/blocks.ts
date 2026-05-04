@@ -10,6 +10,15 @@ export type Block = {
   settings: Record<string, unknown> | null;
   created_at: string | null;
   updated_at: string | null;
+  // Task #1094 — per-block scarcity. `end_date` reuses the existing
+  // schedule expiry datetime, `max_clicks` (null/0 = unlimited) is the
+  // overall cap, and `click_count` is the running tally maintained by
+  // the tracking service. All three are read-only from the editor's
+  // perspective except for `end_date` and `max_clicks`.
+  start_date?: string | null;
+  end_date?: string | null;
+  max_clicks?: number | null;
+  click_count?: number;
 };
 
 export type BlockKind = {
@@ -134,6 +143,9 @@ export async function updateBlock(
     type: string;
     is_active: boolean;
     settings: Record<string, unknown>;
+    start_date: string | null;
+    end_date: string | null;
+    max_clicks: number | null;
   }>,
 ): Promise<Block> {
   const res = await apiFetch<{ data: { block: Block } }>(

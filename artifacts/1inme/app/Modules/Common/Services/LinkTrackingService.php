@@ -160,6 +160,38 @@ class LinkTrackingService
             }
         }
 
+        // Task #1094 — enforce per-block scarcity *atomically* before we
+        // create any analytics record or commit ourselves to a redirect.
+        // Bots are exempt (they never count toward the cap, so they
+        // shouldn't be able to exhaust it either) but real visitors must
+        // win a single conditional UPDATE before we proceed.
+        if (!$isBot) {
+            // Time-based expiry: cheap, deterministic, non-racy once past.
+            if ($block->end_date && $block->end_date->isPast()) {
+                return null;
+            }
+
+            // Click-cap reservation: a single SQL statement that only
+            // succeeds when click_count is still below max_clicks. If
+            // two requests race at click_count = max_clicks - 1, exactly
+            // one UPDATE will affect a row; the other gets 0 and is
+            // refused, so the cap can never be overshot regardless of
+            // isolation level or worker concurrency.
+            if ($block->max_clicks !== null && $block->max_clicks > 0) {
+                $affected = BiolinkBlock::where('id', $block->id)
+                    ->whereColumn('click_count', '<', 'max_clicks')
+                    ->update(['click_count' => DB::raw('click_count + 1')]);
+                if ($affected === 0) {
+                    return null;
+                }
+                $reserved = true;
+            } else {
+                $reserved = false;
+            }
+        } else {
+            $reserved = false;
+        }
+
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
 
@@ -206,6 +238,16 @@ class LinkTrackingService
 
         if ($isUnique) {
             $link->increment('unique_clicks');
+        }
+
+        // Per-block counter was already bumped above as part of the
+        // atomic cap-reservation step (or skipped entirely for capped
+        // blocks that lost the race). For uncapped blocks we still need
+        // a counter bump so the dashboard "remaining/clicks" badge
+        // reflects reality. `$reserved` is true only when the
+        // conditional cap update fired.
+        if (!$reserved) {
+            BiolinkBlock::where('id', $block->id)->increment('click_count');
         }
 
         // Broadcast to downstream listeners. Reaching this line guarantees

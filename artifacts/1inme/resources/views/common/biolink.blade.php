@@ -946,11 +946,41 @@
                 $_galAttr = $s['_style']['_gallery_layout'] ?? '';
                 $_socAttr = $s['_style']['_social_set'] ?? '';
             @endphp
+            @php
+                // Task #1094 — surface enough metadata on the wrap that the
+                // public-page JS can render countdown / remaining-count
+                // badges and react to expiry without a per-render server
+                // call. We only emit attrs when the block actually has
+                // something to display; for "naked" blocks the JS is a no-op.
+                $_lim = $block->hasLimits() ? $block->limitsState() : null;
+                $_limCfg = is_array($s['_limits'] ?? null) ? $s['_limits'] : [];
+            @endphp
             <div data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" data-tab="{{ $s['_tab_id'] ?? '' }}"
                  @if($_animAttr) data-anim="{{ $_animAttr }}" @endif
                  @if($_galAttr) data-gallery-layout="{{ $_galAttr }}" @endif
                  @if($_socAttr) data-social-set="{{ $_socAttr }}" @endif
+                 @if($_lim)
+                     data-limits="1"
+                     data-limit-state="{{ $_lim['state'] }}"
+                     @if(!is_null($_lim['expires_at'])) data-expires-at="{{ $_lim['expires_at'] }}" @endif
+                     @if(!is_null($_lim['max_clicks'])) data-max-clicks="{{ $_lim['max_clicks'] }}" @endif
+                     @if(!is_null($_lim['remaining'])) data-remaining="{{ $_lim['remaining'] }}" @endif
+                     data-near-percent="{{ (int) ($_limCfg['near_threshold_percent'] ?? 20) }}"
+                     data-show-countdown="{{ !empty($_limCfg['show_countdown']) ? '1' : '0' }}"
+                     data-show-remaining="{{ !empty($_limCfg['show_remaining']) ? '1' : '0' }}"
+                     data-expired-action="{{ ($_limCfg['expired_action'] ?? 'hide') === 'show' ? 'show' : 'hide' }}"
+                     data-expired-label="{{ $_limCfg['expired_label'] ?? 'Sold out' }}"
+                     data-expired-emoji="{{ $_limCfg['expired_emoji'] ?? '' }}"
+                 @endif
                  class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
+            @if($_lim && (!empty($_limCfg['show_countdown']) || !empty($_limCfg['show_remaining'])))
+                {{-- Badge container — populated/updated by the limits ticker
+                     in JS below. Rendered server-side as well so the first
+                     paint is correct without a JS round-trip. --}}
+                <div class="biolink-limit-badge mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md"
+                     style="background: rgba(244,63,94,0.14); color: rgba(254,205,211,0.95); border: 1px solid rgba(244,63,94,0.25);"
+                     data-badge-for="{{ $block->id }}"></div>
+            @endif
             @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
 
             {{-- BASIC CONTENT --}}
@@ -3031,6 +3061,155 @@
                 }
             } catch (e) {}
         })();
+    </script>
+    {{-- Task #1094 — limits ticker. Renders countdowns + remaining-count
+         badges for every block with a cap or expiry, and reacts to expiry
+         either by hiding the wrap or by replacing the primary CTA with a
+         "sold out" label. Polls the public limits endpoint every 15s so a
+         viewer parked on the page sees the count tick down as others click.
+    --}}
+    <script>
+    (function () {
+        var ALIAS = @json($link->alias);
+        // Endpoint is rate-limited at 120/min per IP; with our 15s poll
+        // interval we use ~4 requests/min, well under the cap even if
+        // multiple tabs are open.
+        var LIMITS_URL = '/api/v1/biolinks/' + encodeURIComponent(ALIAS) + '/blocks/limits';
+
+        function fmtDuration(secs) {
+            secs = Math.max(0, Math.floor(secs));
+            var d = Math.floor(secs / 86400); secs -= d * 86400;
+            var h = Math.floor(secs / 3600);  secs -= h * 3600;
+            var m = Math.floor(secs / 60);    secs -= m * 60;
+            var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+            if (d > 0) return d + 'd ' + pad(h) + ':' + pad(m) + ':' + pad(secs);
+            return pad(h) + ':' + pad(m) + ':' + pad(secs);
+        }
+
+        function applyExpired(wrap) {
+            if (wrap.getAttribute('data-expired-applied') === '1') return;
+            wrap.setAttribute('data-expired-applied', '1');
+            var action = wrap.getAttribute('data-expired-action') || 'hide';
+            if (action === 'hide') {
+                wrap.style.display = 'none';
+                return;
+            }
+            // "Show" mode — keep the block visible but neutralise CTAs and
+            // overlay an unmistakable label so visitors don't try to click.
+            var label = wrap.getAttribute('data-expired-label') || 'Sold out';
+            var emoji = wrap.getAttribute('data-expired-emoji') || '';
+            wrap.style.opacity = '0.55';
+            wrap.style.pointerEvents = 'none';
+            wrap.style.filter = 'grayscale(0.6)';
+            var stamp = document.createElement('div');
+            stamp.className = 'biolink-limit-expired-stamp';
+            stamp.style.cssText = 'margin-top:6px;display:inline-flex;align-items:center;gap:6px;'
+                + 'padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;'
+                + 'background:rgba(120,113,108,0.28);color:#f5f5f4;'
+                + 'border:1px solid rgba(255,255,255,0.18);';
+            stamp.textContent = (emoji ? emoji + ' ' : '') + label;
+            wrap.appendChild(stamp);
+        }
+
+        function renderBadge(wrap, opts) {
+            var badge = wrap.querySelector('.biolink-limit-badge[data-badge-for]');
+            if (!badge) return;
+            var showCountdown = wrap.getAttribute('data-show-countdown') === '1';
+            var showRemaining = wrap.getAttribute('data-show-remaining') === '1';
+            var pieces = [];
+            if (showCountdown && opts.expiresAt) {
+                var secs = Math.floor((opts.expiresAt.getTime() - Date.now()) / 1000);
+                if (secs > 0) pieces.push('⏳ ' + fmtDuration(secs));
+            }
+            if (showRemaining && opts.maxClicks > 0 && opts.remaining !== null) {
+                var nearPct = parseInt(wrap.getAttribute('data-near-percent') || '20', 10);
+                var pct = (opts.remaining / opts.maxClicks) * 100;
+                var hot = pct <= nearPct;
+                pieces.push((hot ? '🔥 Only ' : '') + opts.remaining + ' left');
+                if (hot) {
+                    badge.style.background = 'rgba(245,158,11,0.22)';
+                    badge.style.color = 'rgba(254,243,199,0.98)';
+                    badge.style.borderColor = 'rgba(245,158,11,0.35)';
+                }
+            }
+            if (pieces.length === 0) {
+                badge.style.display = 'none';
+            } else {
+                badge.style.display = '';
+                badge.textContent = pieces.join(' · ');
+            }
+        }
+
+        function readWrapState(wrap) {
+            var expRaw = wrap.getAttribute('data-expires-at');
+            var maxRaw = wrap.getAttribute('data-max-clicks');
+            var remRaw = wrap.getAttribute('data-remaining');
+            return {
+                expiresAt: expRaw ? new Date(expRaw) : null,
+                maxClicks: maxRaw ? parseInt(maxRaw, 10) : 0,
+                remaining: remRaw === null || remRaw === '' ? null : parseInt(remRaw, 10),
+                state: wrap.getAttribute('data-limit-state') || 'active',
+            };
+        }
+
+        function tick() {
+            document.querySelectorAll('[data-limits="1"]').forEach(function (wrap) {
+                var st = readWrapState(wrap);
+                // Expiry by time wins immediately on the client even before
+                // the next poll lands — this avoids a "1 second after
+                // midnight" flicker where the badge claims time remains.
+                if (st.expiresAt && st.expiresAt.getTime() <= Date.now()) {
+                    wrap.setAttribute('data-limit-state', 'expired');
+                    applyExpired(wrap);
+                    return;
+                }
+                if (st.maxClicks > 0 && st.remaining !== null && st.remaining <= 0) {
+                    wrap.setAttribute('data-limit-state', 'expired');
+                    applyExpired(wrap);
+                    return;
+                }
+                renderBadge(wrap, st);
+            });
+        }
+
+        function refresh() {
+            // Skip polling when there's nothing on the page that needs it,
+            // and skip while the tab is hidden — the next visibilitychange
+            // handler does the catch-up fetch instead.
+            if (document.hidden) return;
+            if (!document.querySelector('[data-limits="1"]')) return;
+            fetch(LIMITS_URL, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (j) {
+                    // ApiResponses::ok wraps payloads as { data: {...} } —
+                    // fall back to the bare object too, in case middleware
+                    // ever decides to short-circuit the wrapper.
+                    var payload = (j && j.data) ? j.data : j;
+                    if (!payload || !Array.isArray(payload.items)) return;
+                    payload.items.forEach(function (item) {
+                        var wrap = document.querySelector('[data-block-id="' + item.id + '"][data-limits="1"]');
+                        if (!wrap) return;
+                        if (item.expires_at) wrap.setAttribute('data-expires-at', item.expires_at);
+                        if (item.max_clicks !== null && item.max_clicks !== undefined) wrap.setAttribute('data-max-clicks', String(item.max_clicks));
+                        if (item.remaining !== null && item.remaining !== undefined) wrap.setAttribute('data-remaining', String(item.remaining));
+                        if (item.state) wrap.setAttribute('data-limit-state', item.state);
+                    });
+                    tick();
+                })
+                .catch(function () { /* network blip — next interval will retry */ });
+        }
+
+        function start() {
+            tick();
+            setInterval(tick, 1000);
+            setInterval(refresh, 15000);
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) refresh();
+            });
+        }
+        if (document.readyState === 'complete' || document.readyState === 'interactive') start();
+        else document.addEventListener('DOMContentLoaded', start);
+    })();
     </script>
     @include('common.blocks._carbon_badge', ['link' => $link])
 </body>

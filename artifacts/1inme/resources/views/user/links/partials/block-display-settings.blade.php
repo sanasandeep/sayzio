@@ -24,6 +24,15 @@
             'end'   => preg_match('/^\d{2}:\d{2}$/', $s['end']   ?? '') ? $s['end']   : '17:00',
         ];
     }
+
+    // Task #1094 — per-block scarcity (countdowns + remaining-count badges).
+    $limitsCfg = is_array($block->settings['_limits'] ?? null) ? $block->settings['_limits'] : [];
+    $limShowCountdown = !empty($limitsCfg['show_countdown']);
+    $limShowRemaining = !empty($limitsCfg['show_remaining']);
+    $limNearPercent   = max(0, min(100, (int) ($limitsCfg['near_threshold_percent'] ?? 20)));
+    $limExpiredAction = ($limitsCfg['expired_action'] ?? 'hide') === 'show' ? 'show' : 'hide';
+    $limExpiredLabel  = (string) ($limitsCfg['expired_label'] ?? 'Sold out');
+    $limExpiredEmoji  = (string) ($limitsCfg['expired_emoji'] ?? '');
 @endphp
 
 <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" x-data="{ showDisplay: false, openCard: 'schedule' }">
@@ -151,6 +160,135 @@
                         <i class="fas fa-info-circle text-violet-400/50 mr-1"></i>
                         Block is visible only when the visitor's local time is inside any one of the slots. Across-midnight ranges (e.g. 22:00 → 02:00) are supported.
                     </p>
+                </div>
+            </div>
+        </div>
+
+        {{-- =============== LIMITS / SCARCITY CARD (Task #1094) ===============
+             Click cap + presentation toggles for the live countdown and the
+             remaining-count badge. Time-based expiry is intentionally NOT
+             duplicated here — it reuses the Schedule card's "Expires" field
+             so we have a single source of truth for the expiry datetime. --}}
+        @php
+            $hasLim = ($block->max_clicks ?? 0) > 0 || $limShowCountdown || $limShowRemaining || $limExpiredAction === 'show';
+            $limSummary = !$hasLim
+                ? 'Off'
+                : trim(
+                    (($block->max_clicks ?? 0) > 0 ? ('Cap ' . (int)$block->max_clicks) : '')
+                    . (($limShowCountdown && $block->end_date) ? ' · Countdown' : '')
+                    . ($limShowRemaining && ($block->max_clicks ?? 0) > 0 ? ' · Remaining' : '')
+                  );
+        @endphp
+        <div class="rounded-xl overflow-hidden"
+             style="background: linear-gradient(180deg, rgba(244,63,94,0.06), rgba(255,255,255,0.01)); border: 1px solid rgba(244,63,94,0.18);"
+             x-data="limitsField_{{ $block->id }}()">
+            <button type="button" @click="$root.openCard = $root.openCard === 'limits' ? '' : 'limits'"
+                    class="w-full flex items-center justify-between px-3 py-2.5">
+                <span class="flex items-center gap-2 text-xs font-medium" style="color: var(--text-secondary, #d4d4d8);">
+                    <i class="fas fa-hourglass-half text-rose-400 text-[11px]"></i>
+                    Limits &amp; Scarcity
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-md ml-1" style="background: rgba(244,63,94,0.14); color: rgba(254,205,211,0.85);">{{ $limSummary }}</span>
+                </span>
+                <i :class="$root.openCard === 'limits' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40"></i>
+            </button>
+            <div x-show="$root.openCard === 'limits'" x-cloak x-transition class="px-3 pb-3 space-y-3">
+
+                {{-- Cap --}}
+                <div>
+                    <label class="{{ $labelClass }} flex items-center gap-1.5"><i class="fas fa-stopwatch text-rose-400/80 text-[10px]"></i>Max clicks (0 = unlimited)</label>
+                    <input type="number" min="0" max="10000000" step="1"
+                           name="max_clicks" x-model.number="maxClicks"
+                           value="{{ (int) ($block->max_clicks ?? 0) }}"
+                           class="{{ $inputClass }} text-xs">
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
+                        Counts only real (non-bot) clicks. Already counted: <span class="font-semibold text-white/70">{{ (int) ($block->click_count ?? 0) }}</span>.
+                    </p>
+                </div>
+
+                {{-- Display toggles --}}
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center gap-2 text-[11px] cursor-pointer px-2.5 py-1.5 rounded-md" style="color: var(--text-muted); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                        <input type="hidden" name="settings[_limits][show_countdown]" value="0">
+                        <input type="checkbox" name="settings[_limits][show_countdown]" value="1"
+                               x-model="showCountdown"
+                               class="rounded border-white/20 bg-white/5 text-rose-500 focus:ring-rose-500/30 w-3 h-3">
+                        Show live countdown
+                    </label>
+                    <label class="flex items-center gap-2 text-[11px] cursor-pointer px-2.5 py-1.5 rounded-md" style="color: var(--text-muted); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                        <input type="hidden" name="settings[_limits][show_remaining]" value="0">
+                        <input type="checkbox" name="settings[_limits][show_remaining]" value="1"
+                               x-model="showRemaining"
+                               class="rounded border-white/20 bg-white/5 text-rose-500 focus:ring-rose-500/30 w-3 h-3">
+                        Show remaining count
+                    </label>
+                </div>
+
+                {{-- Near threshold --}}
+                <div>
+                    <label class="{{ $labelClass }} flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fas fa-fire text-amber-400/80 text-[10px]"></i>"Almost gone" threshold</span>
+                        <span class="text-[10px] text-white/50" x-text="nearPercent + '%'"></span>
+                    </label>
+                    <input type="range" min="0" max="100" step="5"
+                           name="settings[_limits][near_threshold_percent]"
+                           x-model.number="nearPercent"
+                           class="w-full accent-rose-500">
+                    <p class="text-[10px]" style="color: var(--text-dimmed);">Highlight the badge once remaining drops below this share of the cap.</p>
+                </div>
+
+                {{-- Expired behavior --}}
+                <div>
+                    <label class="{{ $labelClass }} flex items-center gap-1.5"><i class="fas fa-eye-slash text-rose-400/80 text-[10px]"></i>When expired or sold out</label>
+                    <select name="settings[_limits][expired_action]" x-model="expiredAction" class="{{ $inputClass }} text-xs">
+                        <option value="hide">Hide the block entirely</option>
+                        <option value="show">Keep showing it (disabled, with a label)</option>
+                    </select>
+                </div>
+
+                <div x-show="expiredAction === 'show'" x-cloak class="grid grid-cols-3 gap-2">
+                    <div class="col-span-2">
+                        <label class="{{ $labelClass }}">Expired label</label>
+                        <input type="text" maxlength="40" name="settings[_limits][expired_label]"
+                               value="{{ $limExpiredLabel }}"
+                               class="{{ $inputClass }} text-xs">
+                    </div>
+                    <div>
+                        <label class="{{ $labelClass }}">Emoji</label>
+                        <input type="text" maxlength="4" name="settings[_limits][expired_emoji]"
+                               value="{{ $limExpiredEmoji }}"
+                               placeholder="🔒"
+                               class="{{ $inputClass }} text-xs text-center">
+                    </div>
+                </div>
+
+                {{-- Editor preview switcher: lets the creator eyeball the
+                     active / near-limit / expired states without having to
+                     burn real clicks or wait for the real expiry. --}}
+                <div class="rounded-lg p-2.5" style="background: rgba(0,0,0,0.18); border: 1px dashed rgba(244,63,94,0.22);">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-medium" style="color: var(--text-secondary, #d4d4d8);">Preview state</span>
+                        <div class="flex gap-1">
+                            <template x-for="s in ['active','near','expired']" :key="s">
+                                <button type="button" @click="previewState = s"
+                                        :class="previewState === s ? 'ring-1 ring-rose-400/60 text-rose-200' : 'text-white/45'"
+                                        :style="previewState === s ? 'background: rgba(244,63,94,0.22);' : 'background: rgba(255,255,255,0.04);'"
+                                        class="text-[10px] font-semibold px-2 h-6 rounded-md capitalize" x-text="s"></button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] px-2 py-1 rounded-md font-medium"
+                              :style="previewState === 'expired'
+                                  ? 'background: rgba(120,113,108,0.25); color: rgba(231,229,228,0.9);'
+                                  : (previewState === 'near'
+                                      ? 'background: rgba(245,158,11,0.22); color: rgba(254,243,199,0.95);'
+                                      : 'background: rgba(16,185,129,0.18); color: rgba(187,247,208,0.95);')">
+                            <span x-text="previewState === 'expired'
+                                ? ((expiredEmoji ? expiredEmoji + ' ' : '') + (expiredLabel || 'Sold out'))
+                                : (previewState === 'near' ? '🔥 Only 3 left' : '⏳ Ends in 02:14:33')"></span>
+                        </span>
+                        <span class="text-[10px]" style="color: var(--text-dimmed);">Live preview only — does not change the saved state.</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -319,6 +457,22 @@
 </div>
 
 <script>
+function limitsField_{{ $block->id }}() {
+    return {
+        // Mirror server state so the live preview switcher and the
+        // collapse-card summary update without having to re-read the
+        // form. Numbers come from PHP as ints / strings — keep them
+        // consistent here.
+        maxClicks:      {{ (int) ($block->max_clicks ?? 0) }},
+        showCountdown:  {{ $limShowCountdown ? 'true' : 'false' }},
+        showRemaining:  {{ $limShowRemaining ? 'true' : 'false' }},
+        nearPercent:    {{ (int) $limNearPercent }},
+        expiredAction:  @js($limExpiredAction),
+        expiredLabel:   @js($limExpiredLabel),
+        expiredEmoji:   @js($limExpiredEmoji),
+        previewState:   'active',
+    };
+}
 function timeSlotsField_{{ $tsId }}() {
     return {
         slots: @js($timeSlots),

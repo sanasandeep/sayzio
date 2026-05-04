@@ -358,6 +358,10 @@ class BiolinkBlockController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'visibility' => 'nullable|array',
+            // Task #1094 — global click cap (null/0 = unlimited). The
+            // running tally lives in `click_count` and is bumped by the
+            // tracking service; the editor never writes to it.
+            'max_clicks' => 'nullable|integer|min:0|max:10000000',
         ]);
 
         $settings = $validated['settings'] ?? $block->settings;
@@ -394,12 +398,22 @@ class BiolinkBlockController extends Controller
         }
         $settings['_style'] = $sanitized;
 
-        $block->update([
+        // Task #1094 — extracting `max_clicks` here so the field is only
+        // touched when the editor actually sent it (avoids zeroing out
+        // the cap on partial saves from older form versions). 0/null
+        // both collapse to "unlimited".
+        $maxClicksUpdate = [];
+        if (array_key_exists('max_clicks', $validated)) {
+            $mc = $validated['max_clicks'];
+            $maxClicksUpdate['max_clicks'] = ($mc === null || (int) $mc <= 0) ? null : (int) $mc;
+        }
+
+        $block->update(array_merge([
             'settings' => $settings,
             'is_active' => $validated['is_active'] ?? $block->is_active,
             'start_date' => $validated['start_date'] ?? $block->start_date,
             'end_date' => $validated['end_date'] ?? $block->end_date,
-        ]);
+        ], $maxClicksUpdate));
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['success' => true, 'block' => $block->fresh()]);
