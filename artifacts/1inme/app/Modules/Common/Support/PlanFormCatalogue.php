@@ -222,7 +222,7 @@ class PlanFormCatalogue
         foreach (BiolinkBlock::CATEGORIES as $catKey => $catLabel) {
             $out[$catKey] = ['label' => $catLabel, 'types' => []];
         }
-        foreach (BiolinkBlock::TYPES as $slug => $meta) {
+        foreach (BiolinkBlock::pickerTypes() as $slug => $meta) {
             if (!empty($meta['system'])) continue;
             $cat = $meta['category'] ?? 'basic';
             if (!isset($out[$cat])) {

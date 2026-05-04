@@ -1,0 +1,1 @@
+    <div class="mb-4 rounded-xl overflow-hidden"><iframe src="{{ $s['url'] ?? '' }}" class="w-full rounded-xl" style="height:{{ $s['height'] ?? 400 }}px;" frameborder="0" loading="lazy"></iframe></div>

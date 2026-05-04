@@ -1573,6 +1573,7 @@ class BlockVariantCatalog
             'socials'          => ['socials', 'social_sets'],
             'socials_multi'    => ['socials', 'social_sets'],
             'socials_custom'   => ['socials', 'social_sets'],
+            'instagram'        => ['embed', 'socials', 'social_sets'],
             'instagram_media'  => ['embed', 'socials', 'social_sets'],
             'latest_instagram' => ['embed', 'socials', 'social_sets'],
             'tiktok_profile'   => ['embed', 'socials', 'social_sets'],

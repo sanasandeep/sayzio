@@ -146,10 +146,10 @@ class BiolinkBlock extends Model
     public const TYPES = [
         // ── Essentials ────────────────────────────────────────────────
         'link'             => ['label' => 'Link Button',         'icon' => 'fa-link',                       'category' => 'basic'],
-        'link_big'         => ['label' => 'Featured Link',       'icon' => 'fa-external-link-square-alt',   'category' => 'basic'],
+        'link_big'         => ['label' => 'Featured Link',       'icon' => 'fa-external-link-square-alt',   'category' => 'basic', '_alias' => true],
         'heading'          => ['label' => 'Heading',             'icon' => 'fa-heading',                    'category' => 'basic'],
         'heading_logo'     => ['label' => 'Logo Heading',        'icon' => 'fa-image',                      'category' => 'basic'],
-        'paragraph'        => ['label' => 'Text',                'icon' => 'fa-paragraph',                  'category' => 'basic'],
+        'paragraph'        => ['label' => 'Text',                'icon' => 'fa-paragraph',                  'category' => 'basic', '_alias' => true],
         'paragraph_rich'   => ['label' => 'Rich Text',           'icon' => 'fa-align-left',                 'category' => 'basic'],
         'markdown'         => ['label' => 'Markdown',            'icon' => 'fa-file-alt',                   'category' => 'basic'],
         'list'             => ['label' => 'Bulleted List',       'icon' => 'fa-list-ul',                    'category' => 'basic'],
@@ -227,10 +227,11 @@ class BiolinkBlock extends Model
 
         // ── Social Profiles ───────────────────────────────────────────
         'socials'          => ['label' => 'Social Icons',        'icon' => 'fa-share-alt',                  'category' => 'social'],
-        'socials_multi'    => ['label' => 'Social Hub',          'icon' => 'fa-users',                      'category' => 'social'],
-        'socials_custom'   => ['label' => 'Custom Social Icons', 'icon' => 'fa-paint-brush',                'category' => 'social'],
-        'instagram_media'  => ['label' => 'Instagram Post',      'icon' => 'fa-camera-retro',               'category' => 'social'],
-        'latest_instagram' => ['label' => 'Latest Instagram Post','icon' => 'fa-instagram',                 'category' => 'social'],
+        'socials_multi'    => ['label' => 'Social Hub',          'icon' => 'fa-users',                      'category' => 'social', '_alias' => true],
+        'socials_custom'   => ['label' => 'Custom Social Icons', 'icon' => 'fa-paint-brush',                'category' => 'social', '_alias' => true],
+        'instagram'        => ['label' => 'Instagram',           'icon' => 'fa-instagram',                  'category' => 'social'],
+        'instagram_media'  => ['label' => 'Instagram Post',      'icon' => 'fa-camera-retro',               'category' => 'social', '_alias' => true],
+        'latest_instagram' => ['label' => 'Latest Instagram Post','icon' => 'fa-instagram',                 'category' => 'social', '_alias' => true],
         'tiktok_video'     => ['label' => 'TikTok Video',        'icon' => 'fa-music',                      'category' => 'social'],
         'tiktok_profile'   => ['label' => 'TikTok Profile',      'icon' => 'fa-user',                       'category' => 'social'],
         'twitter_profile'  => ['label' => 'X / Twitter Profile', 'icon' => 'fa-user-circle',                'category' => 'social'],
@@ -285,7 +286,7 @@ class BiolinkBlock extends Model
         'telegram_post'    => ['label' => 'Telegram Post',       'icon' => 'fa-paper-plane',                'category' => 'integrations'],
         'iframe_embed'     => ['label' => 'Embed (iframe)',      'icon' => 'fa-window-maximize',            'category' => 'integrations'],
         'custom_html'      => ['label' => 'Custom HTML',         'icon' => 'fa-code',                       'category' => 'integrations'],
-        'external_item'    => ['label' => 'External Link Card',  'icon' => 'fa-external-link-alt',          'category' => 'integrations'],
+        'external_item'    => ['label' => 'External Link Card',  'icon' => 'fa-external-link-alt',          'category' => 'integrations', '_alias' => true],
 
         // ── Identity ──────────────────────────────────────────────────
         'vcard'            => ['label' => 'Contact (vCard)',     'icon' => 'fa-address-book',               'category' => 'identity'],
@@ -295,7 +296,32 @@ class BiolinkBlock extends Model
         // ── System / Verified (hidden from gallery) ───────────────────
         'verified_heading' => ['label' => 'Verified Heading',    'icon' => 'fa-check-circle',               'category' => 'verified', 'system' => true],
         'verified_avatar'  => ['label' => 'Verified Avatar',     'icon' => 'fa-user-check',                 'category' => 'verified', 'system' => true],
+
+        // ── Task #1090: new canonical block types ──────────────────────
+        'file_list'              => ['label' => 'File List',             'icon' => 'fa-folder-open',     'category' => 'media'],
+        'audio_list'             => ['label' => 'Audio Playlist',        'icon' => 'fa-headphones',      'category' => 'music'],
+        'link_tree_group'        => ['label' => 'Link Group',            'icon' => 'fa-list',            'category' => 'basic'],
+        'tabs'                   => ['label' => 'Tabs',                  'icon' => 'fa-folder',          'category' => 'layout'],
+        'accordion'              => ['label' => 'Accordion',             'icon' => 'fa-bars',            'category' => 'interactive'],
+        'event_list'             => ['label' => 'Event List',            'icon' => 'fa-calendar-day',    'category' => 'utility'],
+        'menu'                   => ['label' => 'Menu',                  'icon' => 'fa-utensils',        'category' => 'business'],
+        'menu_section'           => ['label' => 'Menu Section',          'icon' => 'fa-list-ul',         'category' => 'business'],
+        'testimonial_carousel'   => ['label' => 'Testimonial Carousel',  'icon' => 'fa-comments',        'category' => 'interactive'],
+        'stats'                  => ['label' => 'Stats',                 'icon' => 'fa-chart-bar',       'category' => 'utility'],
+        'affiliate_links'        => ['label' => 'Affiliate Links',       'icon' => 'fa-tags',            'category' => 'business'],
+        'booking_slots'          => ['label' => 'Booking Slots',         'icon' => 'fa-calendar-check',  'category' => 'integrations'],
     ];
+
+    /**
+     * Picker-visible types: TYPES filtered to drop entries flagged
+     * `_alias => true` (legacy/duplicate slugs collapsed under a canonical
+     * type). Saved blocks of an alias slug still load and render — alias
+     * resolution lives in {@see \App\Modules\User\Support\BlockTypeRegistry}.
+     */
+    public static function pickerTypes(): array
+    {
+        return array_filter(self::TYPES, fn ($meta) => empty($meta['_alias']));
+    }
 
     public const STYLE_DEFAULTS = [
         'font_family' => '',

@@ -223,7 +223,11 @@ class BiolinkBlockController extends Controller
         abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
 
         $validated = $request->validate([
-            'type' => 'required|string|in:' . implode(',', array_keys(BiolinkBlock::TYPES)),
+            'type' => 'required|string|in:' . implode(',',
+                array_unique(array_merge(
+                    array_keys(BiolinkBlock::TYPES),
+                    array_keys(\App\Modules\User\Support\BlockTypeRegistry::aliases())
+                ))),
             'settings' => 'nullable|array',
             'is_active' => 'boolean',
             'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
@@ -1533,6 +1537,53 @@ class BiolinkBlockController extends Controller
                 'blocked_emails'       => [],
                 'blocked_fingerprints' => [],
             ],
+
+            'menu_section' => ['name' => 'Section', 'layout' => 'plain', 'accent_color' => '#7c3aed', 'items' => [
+                ['name' => 'Item', 'price' => '$0', 'description' => ''],
+            ]],
+            'instagram' => ['mode' => 'post', 'handle' => '', 'post_url' => '', 'thumbnail' => '', 'caption' => ''],
+
+
+            'file_list' => ['title' => 'Files', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'items' => [
+                ['name' => 'Document.pdf', 'url' => '', 'ext' => 'pdf', 'size' => 0, 'description' => ''],
+            ]],
+            'audio_list' => ['title' => 'Playlist', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'tracks' => [
+                ['title' => 'Track 1', 'artist' => '', 'url' => '', 'cover' => '', 'duration' => ''],
+            ]],
+            'link_tree_group' => ['title' => 'My Links', 'layout' => 'list', 'accent_color' => '#7c3aed', 'items' => [
+                ['text' => 'Link 1', 'url' => '', 'icon' => '', 'description' => ''],
+                ['text' => 'Link 2', 'url' => '', 'icon' => '', 'description' => ''],
+            ]],
+            'tabs' => ['layout' => 'tabs', 'accent_color' => '#7c3aed', 'tabs' => [
+                ['label' => 'Tab 1', 'text' => 'Content for tab one.'],
+                ['label' => 'Tab 2', 'text' => 'Content for tab two.'],
+            ]],
+            'accordion' => ['layout' => 'plain', 'accent_color' => '#7c3aed', 'items' => [
+                ['title' => 'Question 1?', 'body' => 'Answer one goes here.'],
+                ['title' => 'Question 2?', 'body' => 'Answer two goes here.'],
+            ]],
+            'event_list' => ['title' => 'Upcoming Events', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'events' => [
+                ['title' => 'Event title', 'date' => '', 'location' => '', 'url' => '', 'description' => ''],
+            ]],
+            'menu' => ['title' => 'Menu', 'layout' => 'classic', 'accent_color' => '#7c3aed', 'sections' => [
+                ['name' => 'Mains', 'items' => [
+                    ['name' => 'Item name', 'price' => '$0', 'description' => '', 'thumbnail' => ''],
+                ]],
+            ]],
+            'testimonial_carousel' => ['layout' => 'carousel', 'accent_color' => '#7c3aed', 'items' => [
+                ['quote' => 'Add a glowing quote here.', 'name' => 'Happy Customer', 'title' => '', 'avatar' => ''],
+            ]],
+            'stats' => ['title' => '', 'layout' => 'row', 'accent_color' => '#7c3aed', 'items' => [
+                ['value' => '10k', 'label' => 'Followers', 'caption' => ''],
+                ['value' => '4.9', 'label' => 'Rating', 'caption' => ''],
+                ['value' => '120', 'label' => 'Projects', 'caption' => ''],
+            ]],
+            'affiliate_links' => ['title' => 'My Picks', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'disclaimer' => 'Some links may earn a commission.', 'items' => [
+                ['name' => 'Product', 'url' => '', 'price' => '', 'merchant' => '', 'thumbnail' => ''],
+            ]],
+            'booking_slots' => ['title' => 'Book a slot', 'layout' => 'list', 'cta_text' => 'Book', 'accent_color' => '#7c3aed', 'slots' => [
+                ['start' => '', 'duration' => '30 min', 'url' => '', 'taken' => false],
+            ]],
 
             default => [],
         };

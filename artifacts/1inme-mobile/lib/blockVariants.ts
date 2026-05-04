@@ -9,6 +9,8 @@
  * picks "Glass Card" in the web editor sees the same key marked as
  * selected on mobile.
  */
+import { canonicalBlockType } from "./blockTypeRegistry";
+
 export type MobileVariant = {
   key: string;
   name: string;
@@ -161,29 +163,22 @@ const BUNDLES: Record<string, MobileVariant[]> = {
   ],
 };
 
+/**
+ * Bundle assignments are keyed by the **canonical** block type. The
+ * `variantsForType` helper canonicalizes the lookup key first, so legacy
+ * aliases (paragraph, markdown, latest_instagram, link_big, ...) inherit
+ * their canonical's bundles without duplicate entries here.
+ */
 const TYPE_BUNDLES: Record<string, string[]> = {
   link: ["link_actions", "link_shapes"],
-  link_big: ["link_actions", "link_shapes", "headings", "heading_styles"],
-  featured_pin: ["link_actions", "link_shapes"],
-  cta_button: ["link_actions", "link_shapes"],
-  external_item: ["link_actions", "link_shapes"],
 
   heading: ["headings", "heading_styles"],
-  heading_logo: ["headings", "heading_styles"],
-  verified_heading: ["headings", "heading_styles"],
 
-  paragraph: ["body_text"],
   paragraph_rich: ["body_text"],
-  markdown: ["body_text"],
   list: ["body_text"],
-  list_numbered: ["body_text"],
-  list_pricing: ["body_text", "commerce"],
 
   socials: ["socials", "social_sets"],
-  socials_multi: ["socials", "social_sets"],
-  socials_custom: ["socials", "social_sets"],
-  instagram_media: ["embed", "socials", "social_sets"],
-  latest_instagram: ["embed", "socials", "social_sets"],
+  instagram: ["embed", "socials", "social_sets"],
   tiktok_profile: ["embed", "socials", "social_sets"],
   twitter_profile: ["embed", "socials", "social_sets"],
   pinterest_profile: ["embed", "socials", "social_sets"],
@@ -193,8 +188,6 @@ const TYPE_BUNDLES: Record<string, string[]> = {
   video: ["video"],
   header_video: ["video"],
   youtube: ["video"],
-  youtube_feed: ["video"],
-  latest_youtube: ["video"],
   vimeo: ["video"],
   twitch: ["video"],
   kick: ["video"],
@@ -223,9 +216,8 @@ const TYPE_BUNDLES: Record<string, string[]> = {
 
   image_grid: ["gallery", "gallery_layouts"],
   image_slider: ["gallery"],
-  image_slider_v2: ["gallery"],
 
-  profile_card_v2: ["cover_profile"],
+  profile_card: ["cover_profile"],
 
   spotify: ["music"],
   apple_music: ["music"],
@@ -236,7 +228,6 @@ const TYPE_BUNDLES: Record<string, string[]> = {
   audio: ["music"],
 
   calendly: ["calendar"],
-  calendly_embed: ["calendar"],
 
   donation: ["tip"],
   buy_me_coffee: ["tip"],
@@ -253,6 +244,21 @@ const TYPE_BUNDLES: Record<string, string[]> = {
   timeline: ["timeline"],
   timeline_staged: ["timeline"],
   roadmap: ["timeline"],
+
+  // ── Task #1090: new canonical block types ────────────────────────
+  // Mirrors `BlockTypeRegistry::bundlesForCanonical()` on the PHP side.
+  // Bundle keys must match entries in BUNDLES above.
+  file_list: ["link_actions", "link_shapes"],
+  audio_list: ["music"],
+  link_tree_group: ["link_actions", "link_shapes"],
+  tabs: ["headings"],
+  accordion: ["body_text"],
+  event_list: ["calendar"],
+  menu: ["commerce", "body_text"],
+  testimonial_carousel: ["body_text"],
+  stats: ["headings", "body_text"],
+  affiliate_links: ["link_actions", "link_shapes", "commerce"],
+  booking_slots: ["calendar"],
 };
 
 /**
@@ -313,11 +319,14 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
  *  bundle entries, then one-offs; later duplicates of the same key are
  *  dropped so a saved variant key is always resolvable. */
 export function variantsForType(type: string): MobileVariant[] {
+  const canonical = canonicalBlockType(type);
   const out: MobileVariant[] = [...COMMON];
-  for (const bundleId of TYPE_BUNDLES[type] ?? []) {
+  for (const bundleId of TYPE_BUNDLES[canonical] ?? []) {
     for (const v of BUNDLES[bundleId] ?? []) out.push(v);
   }
-  for (const v of TYPE_ONE_OFFS[type] ?? []) out.push(v);
+  // One-offs key off the raw stored type so legacy entries (cta_button,
+  // faq_v2) still resolve their own special variants.
+  for (const v of TYPE_ONE_OFFS[type] ?? TYPE_ONE_OFFS[canonical] ?? []) out.push(v);
 
   const seen = new Set<string>();
   return out.filter((v) => {
