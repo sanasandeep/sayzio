@@ -26,10 +26,67 @@
      data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}">
 </div>
 <style>
-#sa-launcher{position:fixed;bottom:20px;width:56px;height:56px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:99999;border:0;transition:transform .2s}
-#sa-launcher:hover{transform:scale(1.06)}
-#sa-launcher.sa-pos-right{right:20px}
-#sa-launcher.sa-pos-left{left:20px}
+/* Brand-gradient launcher with animated aura, pulse ring, and orbiting sparkle. */
+.sa-launcher-wrap{position:fixed;bottom:24px;z-index:99999;width:64px;height:64px;}
+.sa-launcher-wrap.sa-pos-right{right:24px}
+.sa-launcher-wrap.sa-pos-left{left:24px}
+/* Soft outer aura — slow color drift */
+.sa-launcher-wrap::before{
+  content:"";position:absolute;inset:-14px;border-radius:50%;
+  background:conic-gradient(from 0deg,#22d3ee,#6366f1,#ec4899,#f59e0b,#22d3ee);
+  filter:blur(14px);opacity:.55;z-index:0;
+  animation:sa-aura-spin 8s linear infinite;
+}
+/* Pulsing ring that radiates outward */
+.sa-launcher-wrap::after{
+  content:"";position:absolute;inset:0;border-radius:50%;
+  border:2px solid rgba(139,92,246,.55);z-index:0;
+  animation:sa-pulse-ring 2.4s cubic-bezier(.22,.61,.36,1) infinite;
+}
+#sa-launcher{
+  position:absolute;inset:0;width:64px;height:64px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:0;color:#fff;z-index:2;
+  background:
+    radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 45%),
+    conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#a855f7 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg);
+  box-shadow:
+    0 18px 40px -10px rgba(99,102,241,.55),
+    0 8px 20px -8px rgba(236,72,153,.45),
+    inset 0 0 0 1.5px rgba(255,255,255,.35),
+    inset 0 -8px 18px rgba(0,0,0,.18);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
+}
+#sa-launcher:hover{
+  transform:scale(1.08) rotate(-6deg);
+  box-shadow:
+    0 22px 48px -10px rgba(99,102,241,.7),
+    0 10px 24px -8px rgba(236,72,153,.55),
+    inset 0 0 0 1.5px rgba(255,255,255,.45),
+    inset 0 -8px 18px rgba(0,0,0,.18);
+}
+#sa-launcher:active{transform:scale(.96)}
+#sa-launcher .sa-icon-bubble{filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
+#sa-launcher .sa-spark{
+  position:absolute;color:#fff;filter:drop-shadow(0 0 6px rgba(255,255,255,.85));
+  animation:sa-spark-twinkle 1.8s ease-in-out infinite;
+}
+#sa-launcher .sa-spark.s1{top:6px;right:9px;animation-delay:0s}
+#sa-launcher .sa-spark.s2{bottom:9px;left:8px;animation-delay:.6s;transform:scale(.7)}
+#sa-launcher .sa-spark.s3{top:14px;left:6px;animation-delay:1.1s;transform:scale(.55)}
+@keyframes sa-aura-spin{to{transform:rotate(360deg)}}
+@keyframes sa-pulse-ring{
+  0%{transform:scale(1);opacity:.7;border-width:2px}
+  80%{transform:scale(1.55);opacity:0;border-width:1px}
+  100%{transform:scale(1.55);opacity:0}
+}
+@keyframes sa-spark-twinkle{
+  0%,100%{opacity:.25;transform:scale(.7) rotate(0)}
+  50%{opacity:1;transform:scale(1) rotate(20deg)}
+}
+@media (prefers-reduced-motion:reduce){
+  .sa-launcher-wrap::before,.sa-launcher-wrap::after,#sa-launcher .sa-spark{animation:none}
+}
 #sa-panel{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 120px);background:#0f172a;color:#e2e8f0;border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;z-index:99999;border:1px solid rgba(255,255,255,.08);font-family:'Space Grotesk','system-ui',sans-serif}
 #sa-panel.sa-pos-right{right:20px}
 #sa-panel.sa-pos-left{left:20px}
@@ -76,9 +133,7 @@
 .sa-input-row button:disabled{opacity:.5;cursor:not-allowed}
 .sa-typing{align-self:flex-start;font-size:11px;color:#94a3b8;padding:0 4px}
 .sa-badge{position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a}
-.sa-launcher-wrap{position:fixed;bottom:20px;z-index:99999}
-.sa-launcher-wrap.sa-pos-right{right:20px}
-.sa-launcher-wrap.sa-pos-left{left:20px}
+/* (.sa-launcher-wrap rules consolidated above with the new launcher styles.) */
 </style>
 <script>
 // Server-resolved localized chrome strings, exposed up front so the
@@ -178,8 +233,16 @@ window.__SA_CHROME = {
   var pos=ds.position==='bottom-left'?'sa-pos-left':'sa-pos-right';
   var launcherWrap=el('div',{class:'sa-launcher-wrap '+pos});
   var launcher=el('button',{id:'sa-launcher',class:pos,type:'button','aria-label':'Open assistant',
-    style:{background:ds.accent||'#7c3aed','--sa-accent':ds.accent||'#7c3aed'}}, '');
-  launcher.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>';
+    style:{'--sa-accent':ds.accent||'#7c3aed'}}, '');
+  // Custom icon: chat bubble + sparkle (the brand gradient is on the button itself).
+  launcher.innerHTML=''
+    +'<svg class="sa-icon-bubble" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    +  '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H12l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8z"/>'
+    +  '<path d="M12 6.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="currentColor" stroke="none"/>'
+    +'</svg>'
+    +'<svg class="sa-spark s1" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>'
+    +'<svg class="sa-spark s2" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>'
+    +'<svg class="sa-spark s3" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>';
   var badge=el('span',{class:'sa-badge',style:{display:'none'}}, '0');
   launcher.appendChild(badge);
   launcherWrap.appendChild(launcher);
