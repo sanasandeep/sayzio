@@ -1020,6 +1020,13 @@ class DemoContentSeeder extends Seeder
             if (isset($slideshowAlbums[$c->handle])) {
                 $override['slideshow_images'] = $slideshowAlbums[$c->handle];
             }
+            // Mode-showcase profiles (slideshow background and/or
+            // conversational mode) are forced to `public` visibility so
+            // anonymous visitors can actually see the showcase render
+            // without hitting the registered/followers/subscribers gate.
+            if (isset($modeOverrides[$c->handle]) || isset($slideshowAlbums[$c->handle])) {
+                $vis = 'public';
+            }
 
             $page = [
                 'alias'       => "demo-{$c->handle}",
