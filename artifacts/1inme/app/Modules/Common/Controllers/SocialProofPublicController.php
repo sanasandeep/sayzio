@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\Link;
 use App\Modules\User\Models\SocialProof;
 use App\Modules\User\Models\SocialProofEvent;
 use Illuminate\Http\Request;
@@ -69,16 +70,53 @@ class SocialProofPublicController extends Controller
         $notifications = array_values(array_filter($notifications, fn($n) => !empty($n['is_active'])));
         usort($notifications, fn($a, $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
 
+        // Per-biolink visitor-count gating (task #1180): when the campaign
+        // owner's primary biolink has `biolink.privacy.hide_public_visitor_counts`
+        // enabled (or unset — the privacy-first default), strip live-visitor
+        // signals from the public config payload AND drop visitor_count
+        // notifications from the widget so externally-embedded copies of
+        // the widget still honour the toggle. Mirrors the data_get path
+        // used in resources/views/common/blocks/social-proof.blade.php.
+        $hideLive = $this->ownerHidesPublicVisitorCounts((int) $proof->user_id);
+        if ($hideLive) {
+            // Mirror the directory-side gating: strip every notification
+            // type that surfaces a live visitor / click / conversion count.
+            $liveCounterTypes = ['visitor_count', 'conversion_count'];
+            $notifications = array_values(array_filter(
+                $notifications,
+                fn($n) => !in_array($n['type'] ?? '', $liveCounterTypes, true)
+            ));
+        }
+
         $payload = [
             'uuid'          => $proof->uuid,
             'name'          => $proof->name,
             'design'        => $proof->design   ?? SocialProof::defaultDesign(),
             'targeting'     => $proof->targeting?? SocialProof::defaultTargeting(),
             'notifications' => $notifications,
-            'live_visitors' => $this->liveVisitorCountFor($notifications),
+            'live_visitors' => $hideLive ? 0 : $this->liveVisitorCountFor($notifications),
         ];
 
         return response()->json($payload, 200, $this->corsHeaders());
+    }
+
+    /**
+     * Returns true when the owner's primary (most-clicked active) biolink
+     * has `biolink.privacy.hide_public_visitor_counts` enabled. Treats an
+     * unset flag as "hidden" to match the privacy-first default already
+     * used in social-proof.blade.php. Also returns true when the owner
+     * has no active biolink (defensive).
+     */
+    private function ownerHidesPublicVisitorCounts(int $userId): bool
+    {
+        $bio = Link::where('user_id', $userId)
+            ->where('type', 'biolink')
+            ->where('is_active', true)
+            ->orderByDesc('total_clicks')
+            ->first(['settings']);
+        if (!$bio) return true;
+        $explicit = data_get($bio->settings, 'biolink.privacy.hide_public_visitor_counts', null);
+        return $explicit === null ? true : (bool) $explicit;
     }
 
     public function track(Request $request, string $uuid)

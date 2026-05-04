@@ -129,6 +129,23 @@ class CreatorsController extends Controller
 
         $allowedTypes = SocialProof::DIRECTORY_BADGE_TYPES;
 
+        // Per-creator visitor-count gating (task #1180): the public Creators
+        // directory surfaces buzz snippets — including live "X people are
+        // viewing this page" badges — for every creator, bypassing the
+        // per-biolink `hide_public_visitor_counts` privacy toggle. Batch-load
+        // each creator's primary biolink privacy flag and, when hidden,
+        // strip the live-counter notification types from their allowed list
+        // so the auto-picker falls through to a non-leaky badge (or none).
+        // Mirrors the same data_get path used in social-proof.blade.php.
+        $hiddenCreatorIds = $this->creatorsHidingVisitorCounts($creatorIds);
+        $liveCounterTypes = ['visitor_count', 'conversion_count'];
+        $allowedTypesPerCreator = [];
+        foreach ($creatorIds as $cid) {
+            $allowedTypesPerCreator[(int) $cid] = in_array((int) $cid, $hiddenCreatorIds, true)
+                ? array_values(array_diff($allowedTypes, $liveCounterTypes))
+                : $allowedTypes;
+        }
+
         // Single batched query — pull every active campaign for the visible page
         // of creators. We filter to lightweight notification types in PHP since
         // each campaign holds its notifications in a JSON column.
@@ -145,7 +162,8 @@ class CreatorsController extends Controller
         foreach ($proofs as $p) {
             if (isset($byUser[$p->user_id])) continue;
             if (empty($p->directory_badge_notification_id)) continue;
-            $snippet = $this->snippetFromProof($p, $allowedTypes, $p->directory_badge_notification_id);
+            $allowed = $allowedTypesPerCreator[(int) $p->user_id] ?? $allowedTypes;
+            $snippet = $this->snippetFromProof($p, $allowed, $p->directory_badge_notification_id);
             if ($snippet) $byUser[$p->user_id] = $snippet;
         }
 
@@ -153,10 +171,48 @@ class CreatorsController extends Controller
         // first eligible notification) for any creator without an explicit pick.
         foreach ($proofs as $p) {
             if (isset($byUser[$p->user_id])) continue;
-            $snippet = $this->snippetFromProof($p, $allowedTypes);
+            $allowed = $allowedTypesPerCreator[(int) $p->user_id] ?? $allowedTypes;
+            $snippet = $this->snippetFromProof($p, $allowed);
             if ($snippet) $byUser[$p->user_id] = $snippet;
         }
         return $byUser;
+    }
+
+    /**
+     * Return the subset of $creatorIds whose primary biolink has the
+     * `biolink.privacy.hide_public_visitor_counts` flag enabled (or is
+     * unset, since the privacy-first default is "hide"). Used to gate
+     * live-visitor signals on public surfaces. Mirrors the data_get
+     * path used in resources/views/common/blocks/social-proof.blade.php.
+     */
+    private function creatorsHidingVisitorCounts(array $creatorIds): array
+    {
+        if (empty($creatorIds)) return [];
+
+        // Pick the same "primary biolink" each creator's directory snippet
+        // is implicitly tied to: their most-clicked active biolink.
+        $primary = Link::where('type', 'biolink')
+            ->where('is_active', true)
+            ->whereIn('user_id', $creatorIds)
+            ->orderByDesc('total_clicks')
+            ->get(['user_id', 'settings'])
+            ->groupBy('user_id');
+
+        $hidden = [];
+        foreach ($creatorIds as $cid) {
+            $cid = (int) $cid;
+            $bios = $primary->get($cid);
+            if (!$bios || $bios->isEmpty()) {
+                // No active biolink → privacy-first default: hide.
+                $hidden[] = $cid;
+                continue;
+            }
+            $bio = $bios->first();
+            $explicit = data_get($bio->settings, 'biolink.privacy.hide_public_visitor_counts', null);
+            $isHidden = $explicit === null ? true : (bool) $explicit;
+            if ($isHidden) $hidden[] = $cid;
+        }
+        return $hidden;
     }
 
     private function snippetFromProof(SocialProof $proof, array $allowedTypes, ?string $preferredId = null): ?array
