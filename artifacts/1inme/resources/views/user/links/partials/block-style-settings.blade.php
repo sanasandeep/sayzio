@@ -105,15 +105,30 @@
             </div>
 
             <div class="flex items-center justify-end gap-1">
+                {{-- "Saving design…" pill — visible whenever any of the
+                     gallery's apply / restore / reset / apply-to-all
+                     requests is in flight. Closes the loop between the
+                     optimistic selection swap and the eventual toast so
+                     creators on slow connections don't think the click
+                     was ignored. Cleared automatically when _busy flips
+                     back to false in each action's `finally`. --}}
+                <span x-show="_busy" x-cloak
+                      class="mr-auto inline-flex items-center gap-1 text-[10px] font-bold py-1 px-2 rounded-md"
+                      style="background: rgba(124,58,237,0.14); border: 1px solid rgba(124,58,237,0.35); color: #c4b5fd;">
+                    <i class="fas fa-circle-notch fa-spin text-[10px]"></i>
+                    <span>Saving design…</span>
+                </span>
                 <button type="button" @click="resetStyle(false)"
+                        :disabled="_busy"
+                        :style="_busy ? 'opacity:0.5;cursor:not-allowed;background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'"
                         class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
-                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
                         title="Reset this block's styling to the default">
                     <i class="fas fa-rotate-left mr-1"></i>Reset
                 </button>
                 <button type="button" @click="surpriseMe()"
-                        class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
-                        style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;">
+                        :disabled="_busy"
+                        :style="_busy ? 'opacity:0.6;cursor:not-allowed;background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;' : 'background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;'"
+                        class="text-[10px] font-bold py-1 px-2 rounded-md transition-all">
                     <i class="fas fa-dice mr-1"></i>Surprise me
                 </button>
             </div>
@@ -206,8 +221,9 @@
                  lose work by exploring designs. --}}
             @if(!empty($customSnapshot))
             <button type="button" @click="restoreCustom()"
-                    class="w-full p-2 rounded-xl text-left transition-all flex items-center gap-2 hover:scale-[1.01]"
-                    style="background: rgba(236,72,153,0.08); border: 1px dashed rgba(236,72,153,0.4);">
+                    :disabled="_busy"
+                    class="w-full p-2 rounded-xl text-left transition-all flex items-center gap-2 hover:scale-[1.01] relative"
+                    :style="_busy ? 'opacity:0.6;cursor:not-allowed;background: rgba(236,72,153,0.08); border: 1px dashed rgba(236,72,153,0.4);' : 'background: rgba(236,72,153,0.08); border: 1px dashed rgba(236,72,153,0.4);'">
                 <div class="w-9 h-9 rounded-md flex items-center justify-center" style="background: rgba(236,72,153,0.18); color: #f472b6;">
                     <i class="fas fa-paint-brush text-[12px]"></i>
                 </div>
@@ -215,7 +231,8 @@
                     <div class="text-[11px] font-bold" style="color: var(--text-primary);">Custom (your tweaks)</div>
                     <div class="text-[9px]" style="color: var(--text-dimmed);">Restore your handcrafted styling.</div>
                 </div>
-                <i class="fas fa-undo text-[10px]" style="color: #f472b6;"></i>
+                <i x-show="_busyKey !== '__custom'" class="fas fa-undo text-[10px]" style="color: #f472b6;"></i>
+                <i x-show="_busyKey === '__custom'" x-cloak class="fas fa-circle-notch fa-spin text-[10px]" style="color: #f472b6;"></i>
             </button>
             @endif
 
@@ -236,8 +253,19 @@
                         data-variant-key="{{ $v['key'] }}"
                         x-show="matchesFilter(@js($v['tags'] ?? []), '{{ $v['key'] }}', @js($v['shape'] ?? ''))"
                         @click="applyVariant('{{ $v['key'] }}', $el)"
+                        :disabled="_busy"
                         class="group p-2 rounded-xl text-left transition-all hover:scale-[1.03] relative"
-                        :style="currentVariant === '{{ $v['key'] }}' ? 'background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.6); box-shadow: 0 0 12px rgba(124,58,237,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);'">
+                        :style="(currentVariant === '{{ $v['key'] }}' ? 'background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.6); box-shadow: 0 0 12px rgba(124,58,237,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);') + (_busy && _busyKey !== '{{ $v['key'] }}' ? ' opacity:0.5;cursor:not-allowed;' : '') + (_busy && _busyKey === '{{ $v['key'] }}' ? ' cursor:wait;' : '')">
+                    {{-- Per-card "Saving…" overlay — shown only on the
+                         exact variant card that was just clicked, so the
+                         creator can see which design is being applied
+                         while the request is in flight. --}}
+                    <div x-show="_busyKey === '{{ $v['key'] }}'" x-cloak
+                         class="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1 z-10"
+                         style="background: rgba(15,15,25,0.72); backdrop-filter: blur(2px);">
+                        <i class="fas fa-circle-notch fa-spin text-[16px]" style="color: #c4b5fd;"></i>
+                        <span class="text-[9px] font-bold" style="color: #c4b5fd;">Saving…</span>
+                    </div>
                     {{-- Selected check --}}
                     <div class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all"
                          :style="currentVariant === '{{ $v['key'] }}' ? 'background: #8b5cf6; opacity: 1;' : 'opacity: 0;'">
@@ -344,10 +372,13 @@
             {{-- Apply to all --}}
             <button type="button" @click="applyToAll()"
                     x-show="currentVariant !== ''"
+                    :disabled="_busy"
                     class="w-full text-[10px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1"
-                    style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
-                <i class="fas fa-clone text-[9px]"></i>
-                Apply this design to all <span x-text="blockTypeLabel"></span> blocks
+                    :style="(_busy ? 'opacity:0.6;cursor:not-allowed;' : '') + 'background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);'">
+                <i x-show="_busyKey !== '__all'" class="fas fa-clone text-[9px]"></i>
+                <i x-show="_busyKey === '__all'" x-cloak class="fas fa-circle-notch fa-spin text-[9px]"></i>
+                <span x-show="_busyKey !== '__all'">Apply this design to all <span x-text="blockTypeLabel"></span> blocks</span>
+                <span x-show="_busyKey === '__all'" x-cloak>Saving design…</span>
             </button>
 
             {{-- Reset to default for ALL blocks of this type. Separate from
@@ -355,10 +386,13 @@
                  either: zero out just this block, or zero out every block
                  of this type on the page. --}}
             <button type="button" @click="resetStyle(true)"
+                    :disabled="_busy"
                     class="w-full text-[10px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1"
-                    style="background: rgba(244,63,94,0.06); border: 1px dashed rgba(244,63,94,0.35); color: #fb7185;">
-                <i class="fas fa-rotate-left text-[9px]"></i>
-                Reset all <span x-text="blockTypeLabel"></span> blocks to default
+                    :style="(_busy ? 'opacity:0.6;cursor:not-allowed;' : '') + 'background: rgba(244,63,94,0.06); border: 1px dashed rgba(244,63,94,0.35); color: #fb7185;'">
+                <i x-show="_busyKey !== '__reset'" class="fas fa-rotate-left text-[9px]"></i>
+                <i x-show="_busyKey === '__reset'" x-cloak class="fas fa-circle-notch fa-spin text-[9px]"></i>
+                <span x-show="_busyKey !== '__reset'">Reset all <span x-text="blockTypeLabel"></span> blocks to default</span>
+                <span x-show="_busyKey === '__reset'" x-cloak>Saving design…</span>
             </button>
         </div>
 
@@ -604,6 +638,14 @@ window.blockDesignsGallery = function(opts) {
         blockType: opts.blockType,
         currentVariant: opts.currentVariant || '',
         customSnapshot: opts.customSnapshot || null,
+        // Reactive busy flags so the gallery can render a "Saving design…"
+        // pill and a spinner overlay on the just-clicked card while an
+        // apply / restore / reset / apply-to-all request is in flight.
+        // _busyKey is the variant key being applied (or one of the
+        // sentinel values '__custom' / '__reset' / '__all') so we can
+        // pinpoint exactly which control to overlay the spinner on.
+        _busy: false,
+        _busyKey: '',
         activeFilter: 'all',
         // Independent shape filter (Pill / Square / Outline / Text Link /
         // Image / Card). Orthogonal to activeFilter — a variant must
@@ -713,6 +755,7 @@ window.blockDesignsGallery = function(opts) {
             var v = this.catalog().find(function(x) { return x.key === key; });
             if (!v) return;
             this._busy = true;
+            this._busyKey = key;
             // Optimistic UI: swap selection immediately so the gallery
             // feels instant even on slow networks.
             this.currentVariant = key;
@@ -756,7 +799,7 @@ window.blockDesignsGallery = function(opts) {
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to apply design', 'error');
                 })
-                .finally(function() { self._busy = false; });
+                .finally(function() { self._busy = false; self._busyKey = ''; });
         },
 
         restoreCustom() {
@@ -768,6 +811,7 @@ window.blockDesignsGallery = function(opts) {
             // explore variants again and come back later.
             if (!this.customSnapshot) return;
             this._busy = true;
+            this._busyKey = '__custom';
             this.currentVariant = '';
             this.hasCustomStyle = true;
             var url = '{{ route('user.links.blocks.restoreCustomStyle', [$link, $block]) }}';
@@ -789,7 +833,7 @@ window.blockDesignsGallery = function(opts) {
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to restore', 'error');
                 })
-                .finally(function() { self._busy = false; });
+                .finally(function() { self._busy = false; self._busyKey = ''; });
         },
 
         resetStyle(applyToAll) {
@@ -802,6 +846,7 @@ window.blockDesignsGallery = function(opts) {
                 : 'Reset this block to the default styling? This will clear any custom tweaks.';
             if (typeof confirm === 'function' && !confirm(label)) return;
             this._busy = true;
+            this._busyKey = applyToAll ? '__reset' : '__reset_one';
             var url = '{{ route('user.links.blocks.resetStyle', [$link, $block]) }}';
             var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
             var fd = new FormData();
@@ -827,7 +872,7 @@ window.blockDesignsGallery = function(opts) {
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to reset', 'error');
                 })
-                .finally(function() { self._busy = false; });
+                .finally(function() { self._busy = false; self._busyKey = ''; });
         },
 
         applyToAll() {
@@ -835,6 +880,7 @@ window.blockDesignsGallery = function(opts) {
             if (!this.currentVariant) return;
             if (typeof confirm === 'function' && !confirm('Apply this design to every ' + this.blockTypeLabel + ' block on this page?')) return;
             this._busy = true;
+            this._busyKey = '__all';
             var self = this;
             var url = '{{ route('user.links.blocks.applyVariantToAll', [$link, $block]) }}';
             var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
@@ -854,7 +900,7 @@ window.blockDesignsGallery = function(opts) {
                 .catch(function() {
                     if (typeof showToast === 'function') showToast('Failed to apply to all', 'error');
                 })
-                .finally(function() { self._busy = false; });
+                .finally(function() { self._busy = false; self._busyKey = ''; });
         },
     };
 };
