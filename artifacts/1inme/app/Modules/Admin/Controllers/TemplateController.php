@@ -209,6 +209,64 @@ class TemplateController extends Controller
         return back()->with('success', 'Template ' . ($tpl->is_active ? 'activated' : 'deactivated') . '.');
     }
 
+    /**
+     * Show the diff between an outdated persona-seeded page template and
+     * the current blueprint design. Admins land here from the "Outdated
+     * design" badge on the templates index and can either keep their
+     * customized row or one-click reset to the current blueprint.
+     */
+    public function blueprintDiff(int $id)
+    {
+        $tpl = PageTemplate::findOrFail($id);
+        $blueprint = $tpl->currentBlueprint();
+        if (!$blueprint) {
+            return redirect()->route('admin.templates.index', ['tab' => 'page'])
+                ->with('error', 'This template is not managed by the persona seeder, so there is no blueprint to diff against.');
+        }
+
+        $current = [
+            'name'        => (string) $tpl->name,
+            'description' => (string) $tpl->description,
+            'snapshot'    => (array) ($tpl->snapshot ?? []),
+        ];
+        $latest = [
+            'name'        => (string) $blueprint['name'],
+            'description' => (string) $blueprint['description'],
+            'snapshot'    => (array) $blueprint['snapshot'],
+        ];
+
+        return view('admin.templates.blueprint_diff', [
+            'tpl'             => $tpl,
+            'current'         => $current,
+            'latest'          => $latest,
+            'storedVersion'   => $tpl->seedVersion(),
+            'currentVersion'  => \Database\Seeders\ExpandedPageTemplateLibrarySeeder::SEED_VERSION,
+        ]);
+    }
+
+    /**
+     * Replace this template's stored snapshot, name, and description
+     * with the current blueprint values, stamping the latest
+     * SEED_VERSION so the row is no longer flagged as outdated.
+     */
+    public function resetBlueprint(int $id)
+    {
+        $tpl = PageTemplate::findOrFail($id);
+        $blueprint = $tpl->currentBlueprint();
+        if (!$blueprint) {
+            return redirect()->route('admin.templates.index', ['tab' => 'page'])
+                ->with('error', 'No current blueprint found for this template; nothing to reset to.');
+        }
+
+        $tpl->name        = $blueprint['name'];
+        $tpl->description = $blueprint['description'];
+        $tpl->snapshot    = $blueprint['snapshot'];
+        $tpl->save();
+
+        return redirect()->route('admin.templates.index', ['tab' => 'page'])
+            ->with('success', 'Reset "' . $tpl->slug . '" to the current blueprint design.');
+    }
+
     public function searchLinks(Request $request)
     {
         $kind = $request->get('kind') === 'card' ? 'card' : 'page';

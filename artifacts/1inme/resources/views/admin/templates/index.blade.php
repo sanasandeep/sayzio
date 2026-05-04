@@ -3,7 +3,7 @@
 @section('page-title', 'Page & Card Templates')
 
 @section('content')
-<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all' }">
+<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all' }">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
     <div class="flex items-center gap-2">
@@ -55,25 +55,43 @@
     @php
         $customizedCount = $rows->filter(fn($t) => $t->wasCustomized())->count();
         $untouchedCount = $rows->count() - $customizedCount;
+        $outdatedCount = $rows->filter(fn($t) => $t->isOutdatedBlueprint())->count();
+        $currentSeedVersion = \Database\Seeders\ExpandedPageTemplateLibrarySeeder::SEED_VERSION;
     @endphp
-    <div class="flex items-center gap-1 mb-4 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
-        <button type="button" @click="customized = 'all'"
-                :class="customized === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
-            All ({{ $rows->count() }})
-        </button>
-        <button type="button" @click="customized = 'yes'"
-                :class="customized === 'yes' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
-                title="Templates an admin has saved at least once since they were created">
-            <i class="fas fa-pen-nib mr-1 text-[10px]"></i>Customized ({{ $customizedCount }})
-        </button>
-        <button type="button" @click="customized = 'no'"
-                :class="customized === 'no' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
-                title="Untouched seed defaults — never edited in the admin panel">
-            <i class="fas fa-seedling mr-1 text-[10px]"></i>Untouched ({{ $untouchedCount }})
-        </button>
+    <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
+            <button type="button" @click="customized = 'all'"
+                    :class="customized === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
+                All ({{ $rows->count() }})
+            </button>
+            <button type="button" @click="customized = 'yes'"
+                    :class="customized === 'yes' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                    title="Templates an admin has saved at least once since they were created">
+                <i class="fas fa-pen-nib mr-1 text-[10px]"></i>Customized ({{ $customizedCount }})
+            </button>
+            <button type="button" @click="customized = 'no'"
+                    :class="customized === 'no' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                    title="Untouched seed defaults — never edited in the admin panel">
+                <i class="fas fa-seedling mr-1 text-[10px]"></i>Untouched ({{ $untouchedCount }})
+            </button>
+        </div>
+        <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
+            <button type="button" @click="outdated = 'all'"
+                    :class="outdated === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                    title="Show templates regardless of blueprint version">
+                Any blueprint
+            </button>
+            <button type="button" @click="outdated = 'yes'"
+                    :class="outdated === 'yes' ? 'bg-amber-500 text-white' : 'text-white/50 hover:text-white'"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                    title="Persona templates whose stored blueprint is older than the seeder's current SEED_VERSION ({{ $currentSeedVersion }}). Untouched ones get auto-refreshed on the next deploy; admin-edited ones stay until you reset them.">
+                <i class="fas fa-triangle-exclamation mr-1 text-[10px]"></i>Outdated design ({{ $outdatedCount }})
+            </button>
+        </div>
     </div>
 @endif
 
@@ -92,10 +110,12 @@
         @php
             $tplPersonas = $tab === 'page' ? (array) ($tpl->recommended_personas ?? []) : [];
             $tplCustomized = $tab === 'page' ? $tpl->wasCustomized() : false;
+            $tplOutdated = $tab === 'page' ? $tpl->isOutdatedBlueprint() : false;
         @endphp
         <div x-show="(category === 'all' || category === '{{ $tpl->category }}')
                   && (persona === 'all' || @json($tplPersonas).includes(persona))
                   && (customized === 'all' || (customized === 'yes') === {{ $tplCustomized ? 'true' : 'false' }})
+                  && (outdated === 'all' || (outdated === 'yes') === {{ $tplOutdated ? 'true' : 'false' }})
                   && (search === '' || '{{ strtolower(addslashes($tpl->name . ' ' . $tpl->description)) }}'.includes(search.toLowerCase()))"
              x-cloak
              class="glass rounded-2xl border border-white/10 p-4">
@@ -145,6 +165,13 @@
             <div class="flex items-start justify-between gap-2 mb-1">
                 <h3 class="text-sm font-semibold text-white truncate">{{ $tpl->name }}</h3>
                 <div class="flex items-center gap-1 shrink-0">
+                    @if($tab === 'page' && $tplOutdated)
+                        <a href="{{ route('admin.templates.blueprint.diff', ['id' => $tpl->id]) }}"
+                           class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                           title="Stored blueprint v{{ $tpl->seedVersion() }} — current design is v{{ $currentSeedVersion }}. Click to compare and optionally reset.">
+                            <i class="fas fa-triangle-exclamation mr-1 text-[9px]"></i>Outdated v{{ $tpl->seedVersion() }}
+                        </a>
+                    @endif
                     @if($tab === 'page' && $tplCustomized)
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-300"
                               title="Edited in admin on {{ optional($tpl->updated_at)->format('M j, Y') }} (vs created {{ optional($tpl->created_at)->format('M j, Y') }})">
