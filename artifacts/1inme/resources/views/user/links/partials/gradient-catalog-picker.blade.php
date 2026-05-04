@@ -15,7 +15,7 @@
 @endphp
 
 <div class="rounded-xl p-3" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-     x-data="{ presetCat: 'featured', presetSearch: '', presetId: @json($selectedPresetId) }">
+     x-data="{ presetCat: 'featured', presetSearch: '', presetId: '{{ addslashes($selectedPresetId) }}' }">
     <div class="flex items-center justify-between mb-2">
         <p class="text-[11px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">
             <i class="fas fa-th text-[10px] mr-1"></i>Preset Gradients ({{ count($gradientPresets) }})
