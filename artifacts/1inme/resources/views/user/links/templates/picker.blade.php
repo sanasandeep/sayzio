@@ -51,9 +51,16 @@
     @else
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($pageTemplates as $tpl)
-                @php $locked = $lockedFn($tpl->plan_tier); @endphp
+                @php
+                    $locked = $lockedFn($tpl->plan_tier);
+                    $summary = $tpl->content_summary ?? [];
+                    $topCount = count($summary);
+                    $blockCount = $topCount;
+                    foreach ($summary as $s) { $blockCount += count($s['children'] ?? []); }
+                @endphp
                 <div x-show="(category === 'all' || category === '{{ $tpl->category }}') && (search === '' || '{{ strtolower($tpl->name . ' ' . $tpl->description) }}'.includes(search.toLowerCase()))"
                      x-cloak
+                     x-data="{ expanded: false }"
                      class="glass rounded-2xl border border-white/10 overflow-hidden hover:border-violet-500/40 transition group">
                     <div class="aspect-[4/3] flex items-center justify-center overflow-hidden relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                         @if($tpl->thumbnail_url)
@@ -67,9 +74,61 @@
                     </div>
                     <div class="p-4">
                         <h3 class="text-sm font-semibold text-white mb-1">{{ $tpl->name }}</h3>
-                        <p class="text-xs text-white/40 mb-1">{{ ucfirst($tpl->category) }} · {{ count($tpl->snapshot['blocks'] ?? []) }} blocks</p>
+                        <p class="text-xs text-white/40 mb-1">{{ ucfirst($tpl->category) }} · {{ $blockCount }} {{ \Illuminate\Support\Str::plural('block', $blockCount) }}</p>
                         @if($tpl->description)
                             <p class="text-xs text-white/50 mb-3 line-clamp-2">{{ $tpl->description }}</p>
+                        @endif
+
+                        @if($topCount)
+                            {{-- Compact "what's inside" peek: first ~3 top-level cards/blocks
+                                 with friendly type labels. Full breakdown lives in the
+                                 expand panel below so card heights stay consistent. --}}
+                            <div class="text-[11px] leading-snug text-white/55 mb-2">
+                                @php $peek = array_slice($summary, 0, 3); @endphp
+                                <span>{{ implode(' · ', array_map(fn($s) => $s['label'], $peek)) }}</span>
+                                @if($topCount > 3)
+                                    <span class="text-violet-300/80"> +{{ $topCount - 3 }} more</span>
+                                @endif
+                            </div>
+                            <button type="button"
+                                    @click="expanded = !expanded"
+                                    class="text-[11px] text-violet-400 hover:text-violet-300 mb-3 inline-flex items-center gap-1">
+                                <i class="fas" :class="expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                <span x-text="expanded ? 'Hide what\'s inside' : 'See what\'s inside'"></span>
+                            </button>
+                            <div x-show="expanded" x-cloak class="mb-3 -mt-1 rounded-lg border border-white/10 bg-white/5 p-2.5 max-h-64 overflow-y-auto">
+                                <div class="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">What's inside</div>
+                                <ul class="space-y-1.5">
+                                    @foreach($summary as $entry)
+                                        <li class="text-[11px] text-white/85">
+                                            <div class="flex items-start gap-2">
+                                                <i class="fas {{ $entry['icon'] ?: 'fa-cube' }} text-violet-400 mt-0.5 w-3 text-center"></i>
+                                                <span class="flex-1 min-w-0">
+                                                    <span class="font-semibold">{{ $entry['label'] }}</span>
+                                                    @if(!empty($entry['preview']))
+                                                        <span class="text-white/50"> — {{ $entry['preview'] }}</span>
+                                                    @endif
+                                                </span>
+                                            </div>
+                                            @if(!empty($entry['children']))
+                                                <ul class="mt-1 ml-5 pl-2 border-l border-white/10 space-y-1">
+                                                    @foreach($entry['children'] as $child)
+                                                        <li class="flex items-start gap-2 text-[10.5px] text-white/70">
+                                                            <i class="fas {{ $child['icon'] ?: 'fa-cube' }} text-violet-400/80 mt-0.5 w-3 text-center"></i>
+                                                            <span class="flex-1 min-w-0">
+                                                                <span class="font-medium">{{ $child['label'] }}</span>
+                                                                @if(!empty($child['preview']))
+                                                                    <span class="text-white/45"> — {{ $child['preview'] }}</span>
+                                                                @endif
+                                                            </span>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
                         @endif
                         @if($locked)
                             <a href="{{ route('user.upgrade') }}" class="block text-center w-full py-2 text-xs font-semibold rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition">

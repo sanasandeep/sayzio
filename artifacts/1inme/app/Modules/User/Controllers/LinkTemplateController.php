@@ -5,14 +5,17 @@ namespace App\Modules\User\Controllers;
 use App\Modules\Admin\Models\CardTemplate;
 use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\Admin\Services\TemplateService;
-use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Services\TemplateContentSummarizer;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class LinkTemplateController extends Controller
 {
-    public function __construct(private TemplateService $templates) {}
+    public function __construct(
+        private TemplateService $templates,
+        private TemplateContentSummarizer $summarizer,
+    ) {}
 
     public function picker(Request $request, Link $link)
     {
@@ -22,6 +25,13 @@ class LinkTemplateController extends Controller
         // Show all active templates so users can see what they could unlock,
         // but lock the ones above their tier (badge + upgrade CTA).
         $pageTemplates = PageTemplate::active()->get();
+        // Attach a UI-friendly "what's inside" summary to each template so
+        // the picker can show top-level cards/blocks (and the children
+        // inside each card) before the user applies and overwrites the link.
+        $pageTemplates->each(function ($t) {
+            $blocks = is_array($t->snapshot['blocks'] ?? null) ? $t->snapshot['blocks'] : [];
+            $t->setAttribute('content_summary', $this->summarizer->summarizePageBlocks($blocks));
+        });
         // Persona for ordering: explicit ?persona= override (validated) wins
         // over the user's saved persona so admins/links/share-flows can preview
         // the "best for X" set without changing the user's stored preference.
@@ -67,7 +77,9 @@ class LinkTemplateController extends Controller
         }
 
         $cards = $query->get()->map(function ($t) use ($userPlanSlug, $categories) {
-            $children = $this->summarizeChildren($t->snapshot['children'] ?? []);
+            $children = $this->summarizer->summarizeChildren(
+                is_array($t->snapshot['children'] ?? null) ? $t->snapshot['children'] : []
+            );
             return [
                 'id' => $t->id,
                 'name' => $t->name,
@@ -137,80 +149,6 @@ class LinkTemplateController extends Controller
             return response()->json(['success' => true, 'block_id' => $block->id]);
         }
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Card template added.');
-    }
-
-    /**
-     * Build a UI-friendly summary of a card snapshot's children. Each entry
-     * carries the friendly type label, an icon, and a short preview of the
-     * block's main field (heading text, button label, etc.) when one is
-     * available — used by the Card Templates gallery to show what a
-     * template will actually insert before the user applies it.
-     *
-     * @param  array<int, array<string, mixed>>  $children
-     * @return array<int, array{type:string,label:string,icon:string,preview:string}>
-     */
-    private function summarizeChildren(array $children): array
-    {
-        $types = BiolinkBlock::TYPES;
-        $out = [];
-        foreach ($children as $child) {
-            if (!is_array($child)) continue;
-            $type = (string) ($child['type'] ?? '');
-            if ($type === '') continue;
-            $info = $types[$type] ?? null;
-            $label = is_array($info) && isset($info['label'])
-                ? (string) $info['label']
-                : ucwords(str_replace('_', ' ', $type));
-            $icon = is_array($info) && isset($info['icon'])
-                ? (string) $info['icon']
-                : 'fa-cube';
-            $settings = is_array($child['settings'] ?? null) ? $child['settings'] : [];
-            $out[] = [
-                'type'    => $type,
-                'label'   => $label,
-                'icon'    => $icon,
-                'preview' => $this->previewFromSettings($type, $settings),
-            ];
-        }
-        return $out;
-    }
-
-    /**
-     * Pick the most "headline-ish" string out of a block's settings so the
-     * gallery can render something like 'Heading — "Hello there"' on hover.
-     * Returns '' when nothing useful is found; the UI falls back to the
-     * type label alone in that case.
-     *
-     * @param  array<string, mixed>  $settings
-     */
-    private function previewFromSettings(string $type, array $settings): string
-    {
-        // Order matters: try the most identifying field first.
-        $candidates = ['text', 'heading', 'title', 'name', 'label', 'button_text',
-            'placeholder', 'message', 'phone', 'url'];
-        foreach ($candidates as $key) {
-            $v = $settings[$key] ?? null;
-            if (is_string($v) && trim($v) !== '') {
-                $clean = trim(preg_replace('/\s+/', ' ', strip_tags($v)) ?? '');
-                if ($clean === '') continue;
-                return mb_strimwidth($clean, 0, 60, '…');
-            }
-        }
-        // Fallback: list-style blocks expose an items array.
-        if (isset($settings['items']) && is_array($settings['items'])) {
-            $first = $settings['items'][0] ?? null;
-            if (is_string($first) && trim($first) !== '') {
-                return mb_strimwidth(trim($first), 0, 60, '…');
-            }
-            if (is_array($first)) {
-                foreach (['text', 'title', 'label', 'name'] as $k) {
-                    if (isset($first[$k]) && is_string($first[$k]) && trim($first[$k]) !== '') {
-                        return mb_strimwidth(trim($first[$k]), 0, 60, '…');
-                    }
-                }
-            }
-        }
-        return '';
     }
 
     /**
