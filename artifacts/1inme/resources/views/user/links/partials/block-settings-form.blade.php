@@ -87,29 +87,174 @@ $labelClass = 'block text-xs mb-1';
 <div><label class="{{ $labelClass }}">Height (px)</label><input type="number" name="settings[height]" value="{{ $s['height'] ?? 20 }}" min="4" max="200" class="{{ $inputClass }}"></div>
 
 @elseif(in_array($block->type, ['list', 'list_numbered']))
-<div x-data="{ items: {{ json_encode($s['items'] ?? ['Item 1']) }} }">
-    <label class="{{ $labelClass }}">Items</label>
-    <template x-for="(item, i) in items" :key="i">
-        <div class="flex gap-2 mb-2"><input type="text" x-model="items[i]" :name="'settings[items][' + i + ']'" class="{{ $inputClass }}"><button type="button" @click="items.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
-    </template>
-    <button type="button" @click="items.push('')" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
-    @if($block->type === 'list')<div class="mt-3">@include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? 'fa-check', 'labelText' => 'List Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])</div>@endif
+@php
+    // Normalize items to always be {text, icon} objects so the editor can
+    // safely bind a per-item icon field even on legacy string-only blocks.
+    $rawItems = $s['items'] ?? [];
+    $normItems = array_map(function ($i) {
+        if (is_array($i)) {
+            return ['text' => (string)($i['text'] ?? ''), 'icon' => (string)($i['icon'] ?? '')];
+        }
+        return ['text' => (string)$i, 'icon' => ''];
+    }, $rawItems);
+    if (empty($normItems)) $normItems = [['text' => '', 'icon' => '']];
+
+    if ($block->type === 'list') {
+        $listStyles = [
+            'clean'     => ['label' => 'Clean',      'icon' => 'fa-list-ul'],
+            'boxed'     => ['label' => 'Boxed',      'icon' => 'fa-square'],
+            'divided'   => ['label' => 'Divided',    'icon' => 'fa-grip-lines'],
+            'checklist' => ['label' => 'Checklist',  'icon' => 'fa-check-square'],
+            'timeline'  => ['label' => 'Timeline',   'icon' => 'fa-stream'],
+        ];
+        $defaultStyle = 'clean';
+    } else {
+        $listStyles = [
+            'clean'        => ['label' => 'Plain',         'icon' => 'fa-list-ol'],
+            'boxed'        => ['label' => 'Boxed',         'icon' => 'fa-square'],
+            'divided'      => ['label' => 'Divided',       'icon' => 'fa-grip-lines'],
+            'pill'         => ['label' => 'Pill Badge',    'icon' => 'fa-circle'],
+            'badge_square' => ['label' => 'Square Badge',  'icon' => 'fa-stop'],
+            'outlined'     => ['label' => 'Outlined Big',  'icon' => 'fa-1'],
+        ];
+        $defaultStyle = 'clean';
+    }
+    $curListStyle = $s['style'] ?? $defaultStyle;
+@endphp
+<div x-data='{ items: @json($normItems), style: @json($curListStyle) }' class="space-y-3">
+    <div>
+        <label class="{{ $labelClass }}">Style</label>
+        <div class="grid grid-cols-3 gap-2">
+            @foreach($listStyles as $key => $meta)
+                <label class="cursor-pointer">
+                    <input type="radio" name="settings[style]" value="{{ $key }}" x-model="style" class="sr-only peer">
+                    <div class="rounded-lg p-2 text-center text-[11px] flex flex-col items-center gap-1 transition-all peer-checked:ring-2 peer-checked:ring-violet-500 peer-checked:bg-violet-500/15"
+                         style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                        <i class="fas {{ $meta['icon'] }} text-sm"></i>
+                        <span>{{ $meta['label'] }}</span>
+                    </div>
+                </label>
+            @endforeach
+        </div>
+    </div>
+
+    @if($block->type === 'list')
+        <div>@include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? 'fa-check', 'labelText' => 'Default Bullet Icon (used when an item has no icon)', 'inputClass' => $inputClass, 'labelClass' => $labelClass])</div>
+    @endif
+
+    <div>
+        <label class="{{ $labelClass }}">Items</label>
+        <template x-for="(item, i) in items" :key="i">
+            <div class="mb-2 rounded-lg p-2" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                <div class="flex gap-2">
+                    <input type="text" x-model="items[i].text" :name="'settings[items]['+i+'][text]'" placeholder="Item text" class="{{ $inputClass }} flex-1">
+                    @if($block->type === 'list')
+                    <select x-model="items[i].icon" :name="'settings[items]['+i+'][icon]'" class="{{ $selectClass }}" style="width: 130px;">
+                        <option value="" style="background: var(--bg-body); color: var(--text-primary);">Default</option>
+                        <option value="fa-check" style="background: var(--bg-body); color: var(--text-primary);">✓ Check</option>
+                        <option value="fa-circle" style="background: var(--bg-body); color: var(--text-primary);">• Dot</option>
+                        <option value="fa-star" style="background: var(--bg-body); color: var(--text-primary);">★ Star</option>
+                        <option value="fa-arrow-right" style="background: var(--bg-body); color: var(--text-primary);">→ Arrow</option>
+                        <option value="fa-heart" style="background: var(--bg-body); color: var(--text-primary);">♥ Heart</option>
+                        <option value="fa-bolt" style="background: var(--bg-body); color: var(--text-primary);">⚡ Bolt</option>
+                        <option value="fa-fire" style="background: var(--bg-body); color: var(--text-primary);">🔥 Fire</option>
+                        <option value="fa-gem" style="background: var(--bg-body); color: var(--text-primary);">💎 Gem</option>
+                        <option value="fa-times" style="background: var(--bg-body); color: var(--text-primary);">✗ Times</option>
+                        <option :value="items[i].icon" x-show="items[i].icon && !['','fa-check','fa-circle','fa-star','fa-arrow-right','fa-heart','fa-bolt','fa-fire','fa-gem','fa-times'].includes(items[i].icon)" style="background: var(--bg-body); color: var(--text-primary);" x-text="items[i].icon"></option>
+                    </select>
+                    @endif
+                    <button type="button" @click="items.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button>
+                </div>
+                @if($block->type === 'list')
+                <div class="mt-1.5 flex items-center gap-2">
+                    <span class="text-[10px]" style="color: var(--text-faint);">Or custom Font Awesome class:</span>
+                    <input type="text" x-model="items[i].icon" placeholder="fa-rocket" class="{{ $inputClass }} flex-1" style="font-size: 11px; padding: 4px 8px;">
+                </div>
+                @endif
+            </div>
+        </template>
+        <button type="button" @click="items.push({{ $block->type === 'list' ? '{text:\'\',icon:\'\'}' : '{text:\'\'}' }})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    </div>
 </div>
 
 @elseif($block->type === 'list_pricing')
-<div x-data="{ items: {{ json_encode($s['items'] ?? [['name'=>'Feature','price'=>'$10','included'=>true]]) }} }">
-    <label class="{{ $labelClass }}">Pricing Items</label>
-    <template x-for="(item, i) in items" :key="i">
-        <div class="glass rounded-lg p-3 mb-2">
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <input type="text" x-model="items[i].name" :name="'settings[items]['+i+'][name]'" placeholder="Feature" class="{{ $inputClass }}">
-                <input type="text" x-model="items[i].price" :name="'settings[items]['+i+'][price]'" placeholder="$10" class="{{ $inputClass }}">
-            </div>
-            <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" value="1" class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Included</label>
-            <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400 mt-1"><i class="fas fa-times mr-1"></i>Remove</button>
+@php
+    $pricingStyles = [
+        'classic'    => ['label' => 'Classic List', 'icon' => 'fa-list',         'desc' => 'Name + price with leader dots'],
+        'menu'       => ['label' => 'Menu',         'icon' => 'fa-utensils',     'desc' => 'Name, description, price'],
+        'cards'      => ['label' => 'Card Grid',    'icon' => 'fa-th-large',     'desc' => 'Stacked pricing cards'],
+        'comparison' => ['label' => 'Comparison',   'icon' => 'fa-table',        'desc' => 'Included / not included'],
+        'featured'   => ['label' => 'Featured',     'icon' => 'fa-star',         'desc' => 'Highlight one plan'],
+    ];
+    $rawP = $s['items'] ?? [];
+    $pItems = array_map(fn($i) => [
+        'name'        => (string)($i['name'] ?? ''),
+        'description' => (string)($i['description'] ?? ''),
+        'price'       => (string)($i['price'] ?? ''),
+        'period'      => (string)($i['period'] ?? ''),
+        'included'    => (bool)($i['included'] ?? true),
+        'featured'    => (bool)($i['featured'] ?? false),
+        'thumbnail'   => (string)($i['thumbnail'] ?? ''),
+        'icon'        => (string)($i['icon'] ?? ''),
+    ], $rawP);
+    if (empty($pItems)) {
+        $pItems = [['name' => '', 'description' => '', 'price' => '', 'period' => '', 'included' => true, 'featured' => false, 'thumbnail' => '', 'icon' => '']];
+    }
+    $curPStyle = $s['style'] ?? 'classic';
+@endphp
+<div x-data='{ items: @json($pItems), style: @json($curPStyle) }' class="space-y-3">
+    <div>
+        <label class="{{ $labelClass }}">Style</label>
+        <div class="grid grid-cols-2 gap-2">
+            @foreach($pricingStyles as $key => $meta)
+                <label class="cursor-pointer">
+                    <input type="radio" name="settings[style]" value="{{ $key }}" x-model="style" class="sr-only peer">
+                    <div class="rounded-lg p-2.5 text-left flex items-start gap-2 transition-all peer-checked:ring-2 peer-checked:ring-violet-500 peer-checked:bg-violet-500/15"
+                         style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                        <i class="fas {{ $meta['icon'] }} text-sm mt-0.5" style="color: var(--text-muted);"></i>
+                        <div>
+                            <div class="text-xs font-semibold" style="color: var(--text-primary);">{{ $meta['label'] }}</div>
+                            <div class="text-[10px]" style="color: var(--text-faint);">{{ $meta['desc'] }}</div>
+                        </div>
+                    </div>
+                </label>
+            @endforeach
         </div>
-    </template>
-    <button type="button" @click="items.push({name:'',price:'',included:true})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    </div>
+
+    <div>
+        <label class="{{ $labelClass }}">Items</label>
+        <template x-for="(item, i) in items" :key="i">
+            <div class="rounded-lg p-3 mb-2" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <input type="text" x-model="items[i].name" :name="'settings[items]['+i+'][name]'" placeholder="Plan / Item name" class="{{ $inputClass }}">
+                    <div class="flex gap-1">
+                        <input type="text" x-model="items[i].price" :name="'settings[items]['+i+'][price]'" placeholder="$29" class="{{ $inputClass }} flex-1">
+                        <input type="text" x-model="items[i].period" :name="'settings[items]['+i+'][period]'" placeholder="/mo" class="{{ $inputClass }}" style="width: 70px;">
+                    </div>
+                </div>
+                <textarea x-model="items[i].description" :name="'settings[items]['+i+'][description]'" placeholder="Short description (used by Menu, Cards, Featured styles)" rows="2" class="{{ $inputClass }} mb-2"></textarea>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <input type="text" x-model="items[i].thumbnail" :name="'settings[items]['+i+'][thumbnail]'" placeholder="Thumbnail URL (optional)" class="{{ $inputClass }}" style="font-size: 11px;">
+                    <input type="text" x-model="items[i].icon" :name="'settings[items]['+i+'][icon]'" placeholder="Icon e.g. fa-coffee" class="{{ $inputClass }}" style="font-size: 11px;">
+                </div>
+                <div class="flex items-center gap-4 flex-wrap">
+                    <label class="flex items-center gap-1.5 text-xs" style="color: var(--text-muted);">
+                        <input type="hidden" :name="'settings[items]['+i+'][included]'" value="0">
+                        <input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" :value="'1'" class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <i class="fas fa-check text-green-400 text-[10px]"></i> Included
+                    </label>
+                    <label class="flex items-center gap-1.5 text-xs" style="color: var(--text-muted);">
+                        <input type="hidden" :name="'settings[items]['+i+'][featured]'" value="0">
+                        <input type="checkbox" x-model="items[i].featured" :name="'settings[items]['+i+'][featured]'" :value="'1'" class="rounded text-amber-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <i class="fas fa-star text-amber-400 text-[10px]"></i> Featured
+                    </label>
+                    <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400 ml-auto"><i class="fas fa-times mr-1"></i>Remove</button>
+                </div>
+            </div>
+        </template>
+        <button type="button" @click="items.push({name:'',description:'',price:'',period:'',included:true,featured:false,thumbnail:'',icon:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    </div>
 </div>
 
 @elseif($block->type === 'alert')

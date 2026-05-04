@@ -1304,10 +1304,13 @@ class BiolinkBlockController extends Controller
 
         if (isset($settings['items']) && is_array($settings['items'])) {
             foreach ($settings['items'] as &$item) {
+                if (!is_array($item)) continue;
                 if (isset($item['url'])) $item['url'] = $this->sanitizeUrl($item['url']);
                 if (isset($item['image'])) $item['image'] = $this->sanitizeUrl($item['image']);
                 if (isset($item['avatar'])) $item['avatar'] = $this->sanitizeUrl($item['avatar']);
+                if (isset($item['thumbnail'])) $item['thumbnail'] = $this->sanitizeUrl($item['thumbnail']);
             }
+            unset($item);
         }
 
         if (isset($settings['cards']) && is_array($settings['cards'])) {
@@ -1363,9 +1366,21 @@ class BiolinkBlockController extends Controller
             'paragraph' => ['text' => 'Your text here...', 'align' => 'center'],
             'paragraph_rich' => ['html' => '<p>Your rich text content here...</p>'],
             'divider' => ['style' => 'solid', 'color' => 'rgba(255,255,255,0.1)'],
-            'list' => ['items' => ['Item 1', 'Item 2', 'Item 3'], 'icon' => 'fa-check'],
-            'list_numbered' => ['items' => ['First item', 'Second item', 'Third item']],
-            'list_pricing' => ['items' => [['name' => 'Feature', 'price' => '$10', 'included' => true]]],
+            'list' => ['style' => 'clean', 'icon' => 'fa-check', 'items' => [
+                ['text' => 'First item', 'icon' => ''],
+                ['text' => 'Second item', 'icon' => ''],
+                ['text' => 'Third item', 'icon' => ''],
+            ]],
+            'list_numbered' => ['style' => 'clean', 'items' => [
+                ['text' => 'First item'],
+                ['text' => 'Second item'],
+                ['text' => 'Third item'],
+            ]],
+            'list_pricing' => ['style' => 'classic', 'items' => [
+                ['name' => 'Starter',   'description' => 'Perfect for trying things out', 'price' => '$9',  'period' => '/mo', 'included' => true,  'featured' => false],
+                ['name' => 'Pro',       'description' => 'Everything you need to grow',   'price' => '$29', 'period' => '/mo', 'included' => true,  'featured' => true],
+                ['name' => 'Enterprise','description' => 'Custom limits + priority support','price' => '$99','period' => '/mo', 'included' => false, 'featured' => false],
+            ]],
             'alert' => ['text' => 'Important notice!', 'type' => 'info', 'icon' => 'fa-info-circle'],
             'badge' => ['text' => 'New', 'color' => '#7c3aed', 'text_color' => '#ffffff'],
 
