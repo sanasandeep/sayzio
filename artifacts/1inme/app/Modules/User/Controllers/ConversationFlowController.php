@@ -44,9 +44,37 @@ class ConversationFlowController extends Controller
             false
         );
 
+        $flowPayload = [
+            'actions' => $flow->actions->map(fn ($a) => [
+                'client_id' => 'a' . $a->id,
+                'kind'      => $a->kind,
+                'label'     => $a->label,
+                'payload'   => $a->payload,
+            ])->values(),
+            'steps'   => $flow->steps->map(fn ($s) => [
+                'key'              => $s->key,
+                'kind'             => $s->kind,
+                'message_text'     => $s->message_text,
+                'answer_field'     => $s->answer_field,
+                'is_entry'         => (bool) $s->is_entry,
+                'skip_if_known'    => (bool) $s->skip_if_known,
+                'next_step_key'    => $s->next_step_key,
+                'action_client_id' => $s->action_id ? 'a' . $s->action_id : null,
+                'input_kind'       => $s->settings['input_kind']  ?? 'text',
+                'placeholder'      => $s->settings['placeholder'] ?? null,
+                'choices'          => $s->choices->map(fn ($c) => [
+                    'label'            => $c->label,
+                    'value'            => $c->value,
+                    'next_step_key'    => $c->next_step_key,
+                    'action_client_id' => $c->action_id ? 'a' . $c->action_id : null,
+                ])->values(),
+            ])->values(),
+        ];
+
         return view('user.links.conversational.editor', [
             'link'         => $link,
             'flow'         => $flow,
+            'flowPayload'  => $flowPayload,
             'stepKinds'    => ConversationStep::KINDS,
             'actionKinds'  => ConversationAction::KINDS,
             'blockOptions' => $blockOptions,
