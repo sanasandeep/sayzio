@@ -401,6 +401,101 @@ class BgPatternTemplatesSeeder extends Seeder
             ];
         }
 
+        // ───────────────── 6b. More gradients (24) ─────────────────
+        $extraLinear = [
+            ['Coral Reef',     '#ff9966, #ff5e62',                 135],
+            ['Indigo Wash',    '#6a11cb, #2575fc',                 135],
+            ['Mango Tango',    '#ffb347, #ffcc33',                 135],
+            ['Glacier',        '#83a4d4, #b6fbff',                 135],
+            ['Twilight Hue',   '#2c3e50, #fd746c',                 135],
+            ['Lemon Lime',     '#a8e063, #56ab2f',                 135],
+            ['Bubblegum',      '#fc5c7d, #6a82fb',                 135],
+            ['Spring Bud',     '#a8ff78, #78ffd6',                 135],
+            ['Plum Wine',      '#3a1c71, #d76d77, #ffaf7b',        135],
+            ['Royal Pink',     '#ff007f, #800080',                 135],
+            ['Saffron',        '#f7971e, #ffd200',                 135],
+            ['Mojito',         '#1d976c, #93f9b9',                 135],
+            ['Fjord',          '#005c97, #363795',                 135],
+            ['Hot Pink',       '#ff5f6d, #ffc371',                 135],
+            ['Slate Blue',     '#283c86, #45a247',                 135],
+            ['Magenta Burn',   '#ee0979, #ff6a00',                 135],
+            ['Iron',           '#232526, #414345',                 135],
+            ['Powder Blue',    '#74ebd5, #acb6e5',                 135],
+            ['Velvet',         '#41295a, #2f0743',                 135],
+            ['Soft Sand',      '#fdfcfb, #e2d1c3',                 135],
+            ['Storm',          '#373b44, #4286f4',                 135],
+            ['Persimmon',      '#ee9617, #ed213a',                 135],
+            ['Avocado',        '#dad299, #b0dab9',                 135],
+            ['Marine',         '#43cea2, #185a9d',                 135],
+        ];
+        foreach ($extraLinear as [$name, $stops, $deg]) {
+            $slug = $this->slug($name);
+            $bg   = "linear-gradient({$deg}deg, {$stops})";
+            $out[] = [
+                'name'          => $name,
+                'slug'          => $slug,
+                'preview_color' => $bg,
+                'category'      => 'gradient',
+                'css'           => ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background:{$bg};}",
+            ];
+        }
+
+        // ───────────────── 6c. More patterns (16) ─────────────────
+        $morePatterns = [
+            ['Dots Tiny',      '#0f172a', 'background-image:radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1px);background-size:14px 14px;'],
+            ['Dots Mint',      '#06140e', 'background-image:radial-gradient(rgba(52,211,153,0.4) 2px, transparent 2px);background-size:24px 24px;'],
+            ['Dots Sun',       '#1a0a05', 'background-image:radial-gradient(rgba(251,191,36,0.4) 2px, transparent 2px);background-size:24px 24px;'],
+            ['Dots Rosé',      '#1a0612', 'background-image:radial-gradient(rgba(244,114,182,0.4) 2px, transparent 2px);background-size:24px 24px;'],
+            ['Grid Coral',     '#1a0a05', 'background-image:linear-gradient(rgba(251,146,60,0.25) 1px, transparent 1px),linear-gradient(90deg, rgba(251,146,60,0.25) 1px, transparent 1px);background-size:36px 36px;'],
+            ['Grid Rose',      '#1a0612', 'background-image:linear-gradient(rgba(244,114,182,0.25) 1px, transparent 1px),linear-gradient(90deg, rgba(244,114,182,0.25) 1px, transparent 1px);background-size:36px 36px;'],
+            ['Grid Wide',      '#0a0f1f', 'background-image:linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px);background-size:64px 64px;'],
+            ['Stripes Cool',   '#04060d', 'background-image:repeating-linear-gradient(45deg, rgba(34,211,238,0.18) 0 14px, rgba(99,102,241,0.12) 14px 28px);'],
+            ['Stripes Warm',   '#1a0a05', 'background-image:repeating-linear-gradient(135deg, rgba(251,146,60,0.22) 0 14px, rgba(244,63,94,0.18) 14px 28px);'],
+            ['Stripes Mint',   '#06140e', 'background-image:repeating-linear-gradient(60deg, rgba(52,211,153,0.22) 0 14px, rgba(16,185,129,0.18) 14px 28px);'],
+            ['Stripes Pastel', '#0a0f1f', 'background-image:repeating-linear-gradient(45deg, rgba(251,207,232,0.22) 0 18px, rgba(165,180,252,0.18) 18px 36px);'],
+            ['Lines Diag',     '#0a0f1f', 'background-image:repeating-linear-gradient(135deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 18px);'],
+            ['Diamonds Mauve', '#150b22', 'background-image:linear-gradient(45deg, rgba(192,132,252,0.15) 25%, transparent 25%),linear-gradient(-45deg, rgba(192,132,252,0.15) 25%, transparent 25%),linear-gradient(45deg, transparent 75%, rgba(192,132,252,0.15) 75%),linear-gradient(-45deg, transparent 75%, rgba(192,132,252,0.15) 75%);background-size:32px 32px;background-position:0 0, 0 16px, 16px -16px, -16px 0px;'],
+            ['Polka Cyan',     '#06141b', 'background-image:radial-gradient(rgba(34,211,238,0.45) 3px, transparent 3px),radial-gradient(rgba(99,102,241,0.35) 3px, transparent 3px);background-size:36px 36px;background-position:0 0, 18px 18px;'],
+            ['Wave Bands Hot', '#1a0a05', 'background-image:repeating-linear-gradient(180deg, rgba(244,63,94,0.2) 0 30px, transparent 30px 60px);'],
+            ['Crosshatch Hot', '#1a0a05', 'background-image:repeating-linear-gradient(45deg, rgba(251,146,60,0.18) 0 1px, transparent 1px 12px),repeating-linear-gradient(135deg, rgba(251,146,60,0.18) 0 1px, transparent 1px 12px);'],
+        ];
+        foreach ($morePatterns as [$name, $base, $patternCss]) {
+            $slug = $this->slug($name);
+            $css  = ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background-color:{$base};{$patternCss}}";
+            $out[] = [
+                'name'          => $name,
+                'slug'          => $slug,
+                'preview_color' => $base,
+                'category'      => 'pattern',
+                'css'           => $css,
+            ];
+        }
+
+        // ───────────────── 6d. More SVG patterns (10) ─────────────────
+        $moreSvg = [
+            ['Hex Grid Coral',  '#1a0a05', $this->svgHex('rgba(251,146,60,0.32)', 1, 28)],
+            ['Hex Grid Mint',   '#06140e', $this->svgHex('rgba(52,211,153,0.32)', 1, 28)],
+            ['Triangles Mauve', '#150b22', $this->svgTriangles('rgba(192,132,252,0.3)', 30)],
+            ['Triangles Mint',  '#06140e', $this->svgTriangles('rgba(52,211,153,0.3)', 30)],
+            ['Plus Mauve',      '#150b22', $this->svgPlus('rgba(192,132,252,0.32)', 26)],
+            ['Plus Sun',        '#1a0a05', $this->svgPlus('rgba(251,191,36,0.32)', 26)],
+            ['Wave SVG Mauve',  '#150b22', $this->svgWaves('rgba(192,132,252,0.32)', 80, 18)],
+            ['Wave SVG Cyan',   '#06141b', $this->svgWaves('rgba(34,211,238,0.32)', 80, 18)],
+            ['Topography Rose', '#1a0612', $this->svgTopo('rgba(244,114,182,0.22)')],
+            ['Crosses Cyan',    '#06141b', $this->svgCrosses('rgba(34,211,238,0.32)', 28)],
+        ];
+        foreach ($moreSvg as [$name, $base, $svgUrl]) {
+            $slug = $this->slug($name);
+            $css  = ".bg-template-{$slug}{position:fixed;inset:0;z-index:-1;background-color:{$base};background-image:url(\"{$svgUrl}\");}";
+            $out[] = [
+                'name'          => $name,
+                'slug'          => $slug,
+                'preview_color' => $base,
+                'category'      => 'svg',
+                'css'           => $css,
+            ];
+        }
+
         // ───────────────── 7. Neon / cyberpunk (8) ─────────────────
         $neon = [
             [

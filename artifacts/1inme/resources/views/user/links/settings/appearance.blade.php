@@ -324,16 +324,24 @@
 
                             {{-- CSS/JS TEMPLATES --}}
                             <div x-show="bgType === 'template'" x-transition class="space-y-3">
-                                <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Choose a Template</label>
-                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" x-data="{ selectedTpl: {{ $bgTemplateId ?? 'null' }} }">
+                                <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Choose a Template <span class="opacity-60">({{ $bgTemplates->count() }})</span></label>
+                                {{-- Render each template's actual CSS, scoped to a `.bg-thumb-{slug}` swatch container so previews are WYSIWYG. --}}
+                                <style>
+                                @foreach($bgTemplates as $tpl)
+                                {!! str_replace(['.bg-template-', 'position:fixed', 'position: fixed', 'z-index:-1', 'z-index: -1'], ['.bg-thumb-', 'position:absolute', 'position:absolute', 'z-index:0', 'z-index:0'], $tpl->css) !!}
+                                @endforeach
+                                </style>
+                                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[640px] overflow-y-auto pr-1" x-data="{ selectedTpl: {{ $bgTemplateId ?? 'null' }} }">
                                     @foreach($bgTemplates as $tpl)
                                     <label class="cursor-pointer group">
                                         <input type="radio" name="bg_template_id" value="{{ $tpl->id }}" {{ $bgTemplateId == $tpl->id ? 'checked' : '' }} class="hidden peer" @click="selectedTpl = {{ $tpl->id }}">
-                                        <div class="p-2 rounded-xl transition-all peer-checked:ring-2 peer-checked:ring-violet-500 hover:scale-[1.02]"
+                                        <div class="p-1.5 rounded-xl transition-all peer-checked:ring-2 peer-checked:ring-violet-500 hover:scale-[1.03]"
                                              style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
                                              :style="selectedTpl === {{ $tpl->id }} ? 'border-color: rgba(124,58,237,0.5); background: rgba(124,58,237,0.08);' : ''">
-                                            <div class="h-16 rounded-lg mb-2 overflow-hidden" style="background: {{ $tpl->preview_color }};"></div>
-                                            <p class="text-[10px] font-semibold text-center" style="color: var(--text-muted);">{{ $tpl->name }}</p>
+                                            <div class="rounded-lg mb-1.5 overflow-hidden relative" style="aspect-ratio: 9/16; background: {{ $tpl->preview_color }};">
+                                                <div class="bg-thumb-{{ $tpl->slug }}" style="position:absolute;inset:0;"></div>
+                                            </div>
+                                            <p class="text-[9px] font-semibold text-center leading-tight truncate" style="color: var(--text-muted);" title="{{ $tpl->name }}">{{ $tpl->name }}</p>
                                         </div>
                                     </label>
                                     @endforeach
