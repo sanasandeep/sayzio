@@ -30,7 +30,7 @@
 
     <div class="min-h-screen flex relative z-10">
         <div class="hidden lg:block flex-1 relative">
-            <a href="{{ route('home') }}" class="absolute top-7 left-7 xl:top-9 xl:left-9 z-30 inline-flex items-center group">
+            <a href="{{ route('home') }}" class="force-dark-logo absolute top-7 left-7 xl:top-9 xl:left-9 z-30 inline-flex items-center group">
                 @include('common.partials.brand-logo', ['height' => 'h-10'])
             </a>
             @include('common.partials.auth-slider', ['variant' => 'page'])

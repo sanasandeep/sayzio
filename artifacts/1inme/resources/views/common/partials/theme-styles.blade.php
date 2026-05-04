@@ -793,6 +793,13 @@
     .brand-logo--dark { display: inline-block; }
     html.light-mode .brand-logo--dark { display: none; }
     html.light-mode .brand-logo--light { display: inline-block; }
+    /* Force the dark-bg logo variant regardless of page theme — used on
+       always-dark surfaces like the auth-hero photo pane where the
+       light-mode logo would wash out against the dark image. */
+    .force-dark-logo .brand-logo--light { display: none !important; }
+    .force-dark-logo .brand-logo--dark  { display: inline-block !important; }
+    html.light-mode .force-dark-logo .brand-logo--light { display: none !important; }
+    html.light-mode .force-dark-logo .brand-logo--dark  { display: inline-block !important; }
 </style>
 <script>
 (function(){
