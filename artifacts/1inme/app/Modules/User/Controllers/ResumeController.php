@@ -9,6 +9,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePdfRenderer;
+use App\Modules\User\Services\ResumePresenter;
 use App\Modules\User\Services\ResumeTemplateRegistry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -631,74 +632,19 @@ class ResumeController extends Controller
         return $validated;
     }
 
-    /** Shape we return from every endpoint so the client sees one schema. */
+    /**
+     * Shape we return from every endpoint so the client sees one schema.
+     * Delegates to ResumePresenter so the mobile API controller emits
+     * exactly the same JSON for the same row.
+     */
     private function present(Resume $resume): array
     {
-        $items    = $resume->items->map(fn ($i) => $this->presentItem($i))->groupBy('section_type');
-        $sections = $resume->getMergedSections();
-
-        // Resolve the header photo URL from the referenced UserFile (if any).
-        // Stored as an id, exposed as a URL so the editor + JS preview can
-        // render it directly. Only the owner ever calls this controller, so
-        // the owner-only `/f/{id}/{filename}` URL stays appropriate.
-        $sections['header']['photo_url'] = null;
-        $photoId = $sections['header']['photo_user_file_id'] ?? null;
-        if ($photoId) {
-            $file = UserFile::where('id', $photoId)
-                ->where('user_id', $resume->user_id)
-                ->first();
-            if ($file) {
-                $sections['header']['photo_url'] = $file->url;
-            } else {
-                // Stored id no longer resolves — clear it so the UI doesn't
-                // keep showing a broken-image affordance, and persist the
-                // cleanup so subsequent renders don't keep re-querying for
-                // a file that no longer exists.
-                $sections['header']['photo_user_file_id'] = null;
-                $persisted = $resume->sections ?? [];
-                if (isset($persisted['header']['photo_user_file_id'])) {
-                    $persisted['header']['photo_user_file_id'] = null;
-                    $resume->update(['sections' => $persisted]);
-                }
-            }
-        }
-
-        $owner  = $resume->user;
-        $handle = $owner?->handle;
-        $publicUrl = ($handle && $resume->is_public_pdf)
-            ? url('/' . $handle . '/resume.pdf')
-            : null;
-
-        return [
-            'id'             => $resume->id,
-            'template_id'    => $resume->template_id,
-            'template'       => $resume->templateMeta(),
-            'color_theme_id' => $resume->color_theme_id,
-            'color_theme'    => $resume->colorThemeMeta(),
-            'sections'       => $sections,
-            'items'          => $items,
-            'is_public_pdf'  => (bool) $resume->is_public_pdf,
-            'public_pdf_url' => $publicUrl,
-            'handle'         => $handle,
-            // Publishing / sharing state (password is never serialized).
-            'is_public'        => (bool) $resume->is_public,
-            'visibility'       => $resume->visibility ?: 'public',
-            'allow_indexing'   => $resume->allow_indexing === null ? true : (bool) $resume->allow_indexing,
-            'has_password'     => filled($resume->password),
-            'view_count'       => (int) ($resume->view_count ?? 0),
-            'meta_description' => $resume->meta_description,
-            'updated_at'     => optional($resume->updated_at)->toIso8601String(),
-        ];
+        return ResumePresenter::present($resume);
     }
 
     /** @return array<string,mixed> */
     private function presentItem(ResumeSectionItem $item): array
     {
-        return [
-            'id'           => $item->id,
-            'section_type' => $item->section_type,
-            'position'     => $item->position,
-            'data'         => $item->data ?? [],
-        ];
+        return ResumePresenter::presentItem($item);
     }
 }

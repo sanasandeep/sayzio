@@ -238,6 +238,19 @@ Route::prefix('v1')->group(function () {
         Route::patch ('/projects/{id}',   [ProjectController::class, 'update'])->whereNumber('id');
         Route::delete('/projects/{id}',   [ProjectController::class, 'destroy'])->whereNumber('id');
 
+        // Resume / Portfolio (single resume per user — the controller
+        // resolves it from the bearer token, so the URL never carries a
+        // resume id and members of foreign workspaces can't reach it).
+        Route::get   ('/resume',                 [\App\Modules\Api\Controllers\ResumeController::class, 'show']);
+        Route::put   ('/resume/header',          [\App\Modules\Api\Controllers\ResumeController::class, 'updateHeader']);
+        Route::put   ('/resume/summary',         [\App\Modules\Api\Controllers\ResumeController::class, 'updateSummary']);
+        Route::put   ('/resume/template',        [\App\Modules\Api\Controllers\ResumeController::class, 'updateTemplate']);
+        Route::put   ('/resume/color-theme',     [\App\Modules\Api\Controllers\ResumeController::class, 'updateColorTheme']);
+        Route::post  ('/resume/items',           [\App\Modules\Api\Controllers\ResumeController::class, 'storeItem']);
+        Route::put   ('/resume/items/{item}',    [\App\Modules\Api\Controllers\ResumeController::class, 'updateItem'])->whereNumber('item');
+        Route::delete('/resume/items/{item}',    [\App\Modules\Api\Controllers\ResumeController::class, 'destroyItem'])->whereNumber('item');
+        Route::post  ('/resume/items/reorder',   [\App\Modules\Api\Controllers\ResumeController::class, 'reorderItems']);
+
         // Posts (creator feed)
         Route::get   ('/posts',            [CreatorPostController::class, 'index']);
         Route::post  ('/posts',            [CreatorPostController::class, 'store']);

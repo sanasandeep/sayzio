@@ -828,6 +828,132 @@ paths:
     patch:  { summary: Update a project, responses: { '200': { description: ok } } }
     delete: { summary: Delete a project, responses: { '204': { description: deleted } } }
 
+  /resume:
+    get:
+      summary: Full resume (sections, items, registries) for the signed-in user
+      description: |
+        Returns the single Resume row for the authenticated user
+        (auto-created on first read), grouped section items, and the
+        registries (templates + color themes) the editor needs to render
+        the picker UI. The same payload powers the web editor and the
+        mobile native editor.
+      responses:
+        '200': { description: ok }
+  /resume/header:
+    put:
+      summary: Update the resume header (name, headline, contact info)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:     { type: string, nullable: true }
+                headline: { type: string, nullable: true }
+                location: { type: string, nullable: true }
+                email:    { type: string, nullable: true, format: email }
+                phone:    { type: string, nullable: true }
+                website:  { type: string, nullable: true, format: uri }
+      responses:
+        '200': { description: ok }
+  /resume/summary:
+    put:
+      summary: Update the resume summary blurb
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                summary: { type: string, nullable: true, maxLength: 2000 }
+      responses:
+        '200': { description: ok }
+  /resume/template:
+    put:
+      summary: Switch resume template (plan-gated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [template_id]
+              properties:
+                template_id: { type: string }
+      responses:
+        '200': { description: ok }
+        '403': { description: template not available on current plan }
+  /resume/color-theme:
+    put:
+      summary: Switch resume color theme
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [color_theme_id]
+              properties:
+                color_theme_id: { type: string }
+      responses:
+        '200': { description: ok }
+  /resume/items:
+    post:
+      summary: Append a new section item (experience, education, skills, …)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [section_type, data]
+              properties:
+                section_type:
+                  type: string
+                  enum: [experience, education, skills, projects, certifications, awards, languages, links]
+                data: { type: object, additionalProperties: true }
+      responses:
+        '201': { description: created }
+  /resume/items/{item}:
+    parameters:
+      - { in: path, name: item, required: true, schema: { type: integer } }
+    put:
+      summary: Update a section item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: ok }
+    delete:
+      summary: Delete a section item
+      responses:
+        '204': { description: deleted }
+  /resume/items/reorder:
+    post:
+      summary: Reorder items inside a single section type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [section_type, item_ids]
+              properties:
+                section_type:
+                  type: string
+                  enum: [experience, education, skills, projects, certifications, awards, languages, links]
+                item_ids:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '200': { description: ok }
+
   /posts:
     get:  { summary: List your creator posts, responses: { '200': { description: ok } } }
     post:
