@@ -227,18 +227,72 @@ class SlideDeckController extends Controller
     }
 
     /**
+     * Resolve the requested analytics window (period pill or custom from/to)
+     * into an inclusive [start, end] day range. Falls back to the last 30
+     * days when nothing valid is supplied. Returns null bounds for "all".
+     */
+    protected function resolveAnalyticsRange(Request $request): array
+    {
+        $period = (string) $request->query('period', '30d');
+        $allowed = ['today', '7d', '30d', '90d', 'year', 'all', 'custom'];
+        if (!in_array($period, $allowed, true)) {
+            $period = '30d';
+        }
+
+        $today = now()->startOfDay();
+        $end   = now()->endOfDay();
+        $start = null;
+
+        switch ($period) {
+            case 'today': $start = $today->copy(); break;
+            case '7d':    $start = $today->copy()->subDays(6); break;
+            case '90d':   $start = $today->copy()->subDays(89); break;
+            case 'year':  $start = $today->copy()->startOfYear(); break;
+            case 'all':   $start = null; $end = null; break;
+            case 'custom':
+                $from = $request->query('from');
+                $to   = $request->query('to');
+                try {
+                    if ($from) $start = \Carbon\Carbon::parse($from)->startOfDay();
+                    if ($to)   $end   = \Carbon\Carbon::parse($to)->endOfDay();
+                } catch (\Throwable $e) {
+                    $start = $today->copy()->subDays(29);
+                    $end   = now()->endOfDay();
+                    $period = '30d';
+                }
+                if ($start && $end && $start->gt($end)) {
+                    [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+                }
+                break;
+            case '30d':
+            default:
+                $start = $today->copy()->subDays(29);
+                break;
+        }
+
+        return ['period' => $period, 'start' => $start, 'end' => $end];
+    }
+
+    /**
      * Per-deck slide analytics: total impressions, unique sessions, per-slide
-     * view counts + drop-off, and a 30-day daily time series. Mirrors the
-     * JSON shape produced by ConversationFlowController::analytics so the
+     * view counts + drop-off, and a daily time series for the selected window.
+     * Accepts ?period=today|7d|30d|90d|year|all|custom (with from/to). Mirrors
+     * the JSON shape produced by ConversationFlowController::analytics so the
      * front-end pattern stays consistent.
      */
-    public function analytics(Link $link)
+    public function analytics(Request $request, Link $link)
     {
         $this->authorizeLink($link);
         $deck = $this->ensureDeck($link);
         $slides = $deck->slides()->orderBy('sort_order')->get(['id', 'sort_order', 'title']);
 
+        $range = $this->resolveAnalyticsRange($request);
+        $start = $range['start'];
+        $end   = $range['end'];
+
         $events = LinkSlideViewEvent::where('deck_id', $deck->id);
+        if ($start) $events->where('occurred_at', '>=', $start);
+        if ($end)   $events->where('occurred_at', '<=', $end);
         $totalImpressions = (clone $events)->count();
         $uniqueSessions   = (clone $events)
             ->whereNotNull('page_session_id')
@@ -285,19 +339,31 @@ class SlideDeckController extends Controller
             ];
         }
 
-        // 30-day daily view trend (inclusive of today). Use a zero-filled
-        // map so the chart has a continuous x-axis even on quiet days.
-        $since = now()->startOfDay()->subDays(29);
+        // Daily view trend across the selected window (inclusive). Zero-fill
+        // every day so the chart has a continuous x-axis on quiet days.
+        // For "all", anchor the series to the first recorded event so we don't
+        // walk an empty timeline forward from the epoch.
+        $seriesStart = $start ? $start->copy()->startOfDay() : null;
+        $seriesEnd   = $end   ? $end->copy()->startOfDay()   : now()->startOfDay();
+        if (!$seriesStart) {
+            $firstAt = (clone $events)->min('occurred_at');
+            $seriesStart = $firstAt
+                ? \Carbon\Carbon::parse($firstAt)->startOfDay()
+                : $seriesEnd->copy();
+        }
+        $dayCount = $seriesStart->diffInDays($seriesEnd) + 1;
+
         $rawSeries = (clone $events)
-            ->where('occurred_at', '>=', $since)
+            ->where('occurred_at', '>=', $seriesStart)
+            ->where('occurred_at', '<=', $seriesEnd->copy()->endOfDay())
             ->select(DB::raw('DATE(occurred_at) as d'), DB::raw('COUNT(*) as c'))
             ->groupBy('d')
             ->pluck('c', 'd')
             ->all();
 
         $series = [];
-        for ($i = 0; $i < 30; $i++) {
-            $day = $since->copy()->addDays($i)->toDateString();
+        for ($i = 0; $i < $dayCount; $i++) {
+            $day = $seriesStart->copy()->addDays($i)->toDateString();
             $series[] = ['date' => $day, 'views' => (int) ($rawSeries[$day] ?? 0)];
         }
 
@@ -305,6 +371,11 @@ class SlideDeckController extends Controller
             'deck' => [
                 'id'      => $deck->id,
                 'version' => (int) $deck->version,
+            ],
+            'range' => [
+                'period' => $range['period'],
+                'from'   => $start ? $start->toDateString() : ($series[0]['date'] ?? null),
+                'to'     => $end   ? $end->toDateString()   : ($series[count($series) - 1]['date'] ?? null),
             ],
             'total_impressions' => $totalImpressions,
             'unique_sessions'   => $uniqueSessions,
