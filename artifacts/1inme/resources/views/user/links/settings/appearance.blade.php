@@ -366,19 +366,29 @@
                                 {!! str_replace(['.bg-template-', 'position:fixed', 'position: fixed', 'z-index:-1', 'z-index: -1'], ['.bg-thumb-', 'position:absolute', 'position:absolute', 'z-index:0', 'z-index:0'], $tpl->css) !!}
                                 @endforeach
                                 </style>
-                                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[640px] overflow-y-auto pr-1">
+                                {{-- Dense color-grid swatches. Names are
+                                     hidden by default to maximise density;
+                                     they appear on hover via the native
+                                     title tooltip and at the bottom of the
+                                     panel as a "currently hovered" label
+                                     for clarity. --}}
+                                <div class="grid grid-cols-6 xs:grid-cols-7 sm:grid-cols-9 md:grid-cols-10 lg:grid-cols-12 gap-1 max-h-[560px] overflow-y-auto pr-1">
                                     @foreach($bgTemplates as $tpl)
                                     @php $tplCat = $tpl->category ?: 'pattern'; @endphp
-                                    <label class="cursor-pointer group"
+                                    <label class="cursor-pointer group block"
+                                           title="{{ $tpl->name }}"
                                            x-show="(tplCat === 'all' || tplCat === '{{ $tplCat }}') && (!tplSearch || '{{ strtolower(addslashes($tpl->name)) }}'.includes(tplSearch.toLowerCase()))">
                                         <input type="radio" name="bg_template_id" value="{{ $tpl->id }}" {{ $bgTemplateId == $tpl->id ? 'checked' : '' }} class="hidden peer" @click="selectedTpl = {{ $tpl->id }}">
-                                        <div class="p-1.5 rounded-xl transition-all peer-checked:ring-2 peer-checked:ring-violet-500 hover:scale-[1.03]"
-                                             style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-                                             :style="selectedTpl === {{ $tpl->id }} ? 'border-color: rgba(124,58,237,0.5); background: rgba(124,58,237,0.08);' : ''">
-                                            <div class="rounded-lg mb-1.5 overflow-hidden relative" style="aspect-ratio: 9/16; background: {{ $tpl->preview_color }};">
-                                                <div class="bg-thumb-{{ $tpl->slug }}" style="position:absolute;inset:0;"></div>
+                                        <div class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10 hover:shadow-lg peer-checked:ring-2 peer-checked:ring-violet-400 peer-checked:ring-offset-1 peer-checked:ring-offset-transparent"
+                                             style="aspect-ratio: 9/14; background: {{ $tpl->preview_color }}; border: 1px solid var(--border-glass);"
+                                             :style="selectedTpl === {{ $tpl->id }} ? 'box-shadow: 0 0 0 2px rgba(167,139,250,0.9), 0 4px 12px rgba(0,0,0,.4);' : ''">
+                                            <div class="bg-thumb-{{ $tpl->slug }}" style="position:absolute;inset:0;"></div>
+                                            {{-- selected check chip --}}
+                                            <div class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full items-center justify-center hidden peer-checked:flex"
+                                                 style="background: rgba(124,58,237,0.95); color:#fff; font-size:7px;"
+                                                 :class="selectedTpl === {{ $tpl->id }} ? '!flex' : ''">
+                                                <i class="fas fa-check" style="font-size:6px;"></i>
                                             </div>
-                                            <p class="text-[9px] font-semibold text-center leading-tight truncate" style="color: var(--text-muted);" title="{{ $tpl->name }}">{{ $tpl->name }}</p>
                                         </div>
                                     </label>
                                     @endforeach

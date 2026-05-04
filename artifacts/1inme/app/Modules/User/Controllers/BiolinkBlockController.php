@@ -94,11 +94,98 @@ class BiolinkBlockController extends Controller
     public function settingsAppearance(Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
-        $bgTemplates = \App\Modules\Admin\Models\BgTemplate::active()->get();
+        // Order templates as a "color grid": neutrals first (sorted by
+        // lightness, brightest → darkest), then a rainbow sweep through
+        // the colour wheel (red → orange → yellow → green → cyan → blue
+        // → purple → magenta → red), with lightness as a tiebreaker
+        // inside each hue band so adjacent swatches look related.
+        $bgTemplates = \App\Modules\Admin\Models\BgTemplate::active()->get()
+            ->sortBy(fn ($t) => $this->bgTemplateColorSortKey($t))
+            ->values();
         $link->load(['pixels', 'aliases']);
         $projects = auth()->user()->projects()->orderBy('name')->get();
         $pixels = auth()->user()->pixels()->orderBy('name')->get();
         return view('user.links.settings.appearance', compact('link', 'bgTemplates', 'projects', 'pixels'));
+    }
+
+    /**
+     * Build a sort key that arranges background templates as a colour
+     * grid (neutrals first, then a rainbow sweep). Returns a numeric
+     * key that's safe to use with Collection::sortBy.
+     *
+     * Format: bucket * 1_000_000 + hueBand * 1000 + lightness, where
+     *   bucket    = 0 for neutrals (saturation < ~12%), 1 for colours
+     *   hueBand   = floor(hue/15)  → 24 bands, 15° wide
+     *   lightness = 0..999, descending light first within the band
+     */
+    private function bgTemplateColorSortKey(\App\Modules\Admin\Models\BgTemplate $t): int
+    {
+        $rgb = $this->extractFirstRgb((string) $t->preview_color);
+        if ($rgb === null) {
+            // Things we couldn't parse (data-URI svg patterns etc.) get
+            // pushed to the very end so the rainbow stays clean.
+            return 9_000_000_000;
+        }
+        [$h, $s, $l] = $this->rgbToHsl($rgb[0], $rgb[1], $rgb[2]);
+
+        // Neutrals: very low saturation OR extreme lightness (near
+        // pure black / white) — order by lightness descending.
+        if ($s < 12 || $l > 96 || $l < 6) {
+            $lightDesc = (int) round(999 - ($l * 9.99));
+            return 0 + $lightDesc;
+        }
+
+        $hueBand   = (int) floor($h / 15);                     // 0..23
+        $lightDesc = (int) round(999 - ($l * 9.99));           // light → dark
+        return 1_000_000 + ($hueBand * 1000) + $lightDesc;
+    }
+
+    /**
+     * Extract the first colour referenced in a CSS background string.
+     * Handles `#rgb`, `#rrggbb`, `rgb()` and `rgba()`. Returns null if
+     * nothing parseable is found (e.g. pure SVG data-URI patterns).
+     *
+     * @return array{0:int,1:int,2:int}|null
+     */
+    private function extractFirstRgb(string $css): ?array
+    {
+        if (preg_match('/rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i', $css, $m)) {
+            return [(int)$m[1], (int)$m[2], (int)$m[3]];
+        }
+        if (preg_match('/#([0-9a-f]{6})\b/i', $css, $m)) {
+            $hex = $m[1];
+            return [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
+        }
+        if (preg_match('/#([0-9a-f]{3})\b/i', $css, $m)) {
+            $hex = $m[1];
+            return [hexdec(str_repeat($hex[0], 2)), hexdec(str_repeat($hex[1], 2)), hexdec(str_repeat($hex[2], 2))];
+        }
+        return null;
+    }
+
+    /**
+     * Convert sRGB (0–255) to HSL where H is 0–360, S/L are 0–100.
+     *
+     * @return array{0:float,1:float,2:float}
+     */
+    private function rgbToHsl(int $r, int $g, int $b): array
+    {
+        $rf = $r / 255; $gf = $g / 255; $bf = $b / 255;
+        $max = max($rf, $gf, $bf); $min = min($rf, $gf, $bf);
+        $l = ($max + $min) / 2;
+        $d = $max - $min;
+        if ($d === 0.0) {
+            $h = 0.0; $s = 0.0;
+        } else {
+            $s = $l > 0.5 ? $d / (2 - $max - $min) : $d / ($max + $min);
+            switch ($max) {
+                case $rf: $h = (($gf - $bf) / $d) + ($gf < $bf ? 6 : 0); break;
+                case $gf: $h = (($bf - $rf) / $d) + 2; break;
+                default:  $h = (($rf - $gf) / $d) + 4;
+            }
+            $h *= 60;
+        }
+        return [$h, $s * 100, $l * 100];
     }
 
     public function settingsLayout(Link $link)
