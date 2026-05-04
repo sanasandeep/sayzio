@@ -181,9 +181,13 @@
     const STREAM = document.getElementById('cv-stream');
     const INPUT_AREA = document.getElementById('cv-input-area');
     const ALIAS = @json($alias);
-    const START_URL  = @json(rtrim(config('app.url'), '/') . '/cv/' . $alias . '/start');
-    const ANSWER_URL = (id) => @json(rtrim(config('app.url'), '/') . '/cv/') + id + '/answer';
-    const DROP_URL   = (id) => @json(rtrim(config('app.url'), '/') . '/cv/') + id + '/drop';
+    // Use same-origin relative URLs so the preview iframe (which loads
+    // through the shared proxy) doesn't trigger a CORS preflight against
+    // the raw backend host in `config('app.url')`. Same-origin also keeps
+    // the preview session cookie attached so draft flows render.
+    const START_URL  = '/cv/' + encodeURIComponent(ALIAS) + '/start';
+    const ANSWER_URL = (id) => '/cv/' + encodeURIComponent(id) + '/answer';
+    const DROP_URL   = (id) => '/cv/' + encodeURIComponent(id) + '/drop';
     const STORAGE_KEY = 'cv_page_session_' + ALIAS;
     const CSRF = '{{ csrf_token() }}';
     const TYPING_MS = 600;
@@ -374,7 +378,7 @@
                     status.textContent = 'Saving…';
                     try {
                         const r = await fetch(
-                            @json(rtrim(config('app.url'), '/') . '/cv/') + publicId + '/capture-email',
+                            '/cv/' + encodeURIComponent(publicId) + '/capture-email',
                             {
                                 method: 'POST',
                                 headers: {
