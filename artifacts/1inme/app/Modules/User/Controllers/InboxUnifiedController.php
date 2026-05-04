@@ -12,7 +12,9 @@ use App\Modules\User\Models\InboxMessage;
 use App\Modules\User\Models\InboxReply;
 use App\Modules\User\Models\InboxSnippet;
 use App\Modules\User\Models\InboxThread;
+use App\Modules\User\Models\InboxThreadAssignment;
 use App\Modules\User\Models\InboxThreadConversion;
+use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\TaskBoard;
 use App\Modules\User\Models\TaskCard;
@@ -126,7 +128,8 @@ class InboxUnifiedController
     {
         $this->authorize($thread);
 
-        $thread->load(['messages']);
+        $thread->load(['messages', 'assignments.toUser:id,name', 'assignments.fromUser:id,name', 'assignments.actor:id,name']);
+        $assignments = $thread->assignments;
         if (!$thread->is_read || $thread->unread_count > 0) {
             $thread->update(['is_read' => true, 'unread_count' => 0]);
             $this->markSourceRead($thread);
@@ -143,7 +146,7 @@ class InboxUnifiedController
         $teammates  = $this->teammates($this->workspace());
         $conversions = $thread->conversions()->orderByDesc('id')->get();
 
-        return view('user.inbox.unified.show', compact('thread', 'suggestions', 'snippets', 'teammates', 'conversions'));
+        return view('user.inbox.unified.show', compact('thread', 'suggestions', 'snippets', 'teammates', 'conversions', 'assignments'));
     }
 
     public function reply(Request $request, InboxThread $thread)
@@ -207,9 +210,15 @@ class InboxUnifiedController
         switch ($action) {
             case 'star':       $thread->update(['is_starred' => true]); break;
             case 'unstar':     $thread->update(['is_starred' => false]); break;
-            case 'archive':    $thread->update(['status' => 'archived']); break;
+            case 'archive':
+                $thread->update(['status' => 'archived']);
+                $this->recordResolution($thread, 'archived', (string) $request->input('note', ''));
+                break;
             case 'unarchive':  $thread->update(['status' => 'open']); break;
-            case 'snooze':     $thread->update(['status' => 'snoozed']); break;
+            case 'snooze':
+                $thread->update(['status' => 'snoozed']);
+                $this->recordResolution($thread, 'snoozed', (string) $request->input('note', ''));
+                break;
             case 'mark_read':  $thread->update(['is_read' => true, 'unread_count' => 0]); break;
             case 'mark_unread':$thread->update(['is_read' => false, 'unread_count' => 1]); break;
             case 'set_category':
@@ -223,7 +232,8 @@ class InboxUnifiedController
                 if ($uid && !$this->teammateExists($this->workspace(), $uid)) {
                     return back()->with('error', 'That teammate is not in this workspace.');
                 }
-                $thread->update(['assignee_user_id' => $uid]);
+                $note = trim((string) $request->input('note', ''));
+                $this->applyAssignment($thread, $uid, $note !== '' ? $note : null);
                 break;
             case 'set_private':
                 $thread->update(['is_private' => $request->boolean('value')]);
@@ -440,6 +450,92 @@ class InboxUnifiedController
             if ($m->user) $rows[] = ['id' => $m->user->id, 'name' => $m->user->name];
         }
         return $rows;
+    }
+
+    /**
+     * Apply an assignee change, log it to the assignment-history table,
+     * and notify the teammates entering / leaving the thread. Skips the
+     * notification when the assignee isn't actually changing so we don't
+     * spam people on idempotent form submits.
+     */
+    protected function applyAssignment(InboxThread $thread, ?int $newId, ?string $note): void
+    {
+        $oldId = $thread->assignee_user_id ? (int) $thread->assignee_user_id : null;
+        if ($oldId === $newId && !$note) return;
+
+        $thread->update(['assignee_user_id' => $newId]);
+
+        $action = match (true) {
+            $newId === null && $oldId !== null => 'unassign',
+            $newId !== null && $oldId === null => 'assign',
+            default => 'reassign',
+        };
+        $actorId = (int) auth()->id();
+
+        InboxThreadAssignment::create([
+            'thread_id'     => $thread->id,
+            'from_user_id'  => $oldId,
+            'to_user_id'    => $newId,
+            'actor_user_id' => $actorId,
+            'action'        => $action,
+            'note'          => $note,
+            'created_at'    => now(),
+        ]);
+
+        $actorName = optional(auth()->user())->name ?? 'A teammate';
+        $subject = $thread->subject ?: ($thread->sender_name ?: 'an inbox thread');
+        $url = route('user.inbox.unified.show', $thread->id);
+
+        // Notify the *new* assignee (unless they assigned themselves).
+        if ($newId && $newId !== $actorId) {
+            UserNotification::create([
+                'user_id'    => $newId,
+                'type'       => 'inbox_assigned',
+                'data'       => [
+                    'message'   => $actorName . ' assigned you a thread: ' . $subject,
+                    'thread_id' => $thread->id,
+                    'note'      => $note,
+                    'url'       => $url,
+                ],
+                'created_at' => now(),
+            ]);
+        }
+        // Notify the *previous* assignee that the handoff happened (skip
+        // if they're the one who reassigned — they already know).
+        if ($oldId && $oldId !== $actorId && $oldId !== $newId) {
+            UserNotification::create([
+                'user_id'    => $oldId,
+                'type'       => 'inbox_unassigned',
+                'data'       => [
+                    'message'   => $actorName . ' reassigned a thread you were handling: ' . $subject,
+                    'thread_id' => $thread->id,
+                    'note'      => $note,
+                    'url'       => $url,
+                ],
+                'created_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Stamp an assignment-history row when a thread is closed/snoozed so
+     * we keep an audit of who was holding it at the moment it left the
+     * open queue. No-op for unassigned threads.
+     */
+    protected function recordResolution(InboxThread $thread, string $why, string $note): void
+    {
+        $assigneeId = $thread->assignee_user_id ? (int) $thread->assignee_user_id : null;
+        if (!$assigneeId) return;
+
+        InboxThreadAssignment::create([
+            'thread_id'     => $thread->id,
+            'from_user_id'  => $assigneeId,
+            'to_user_id'    => $assigneeId,
+            'actor_user_id' => (int) auth()->id(),
+            'action'        => 'resolved',
+            'note'          => trim($note) !== '' ? trim($note . ' (' . $why . ')') : $why,
+            'created_at'    => now(),
+        ]);
     }
 
     protected function teammateExists(Workspace $ws, int $userId): bool

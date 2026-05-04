@@ -76,6 +76,11 @@ class InboxThread extends Model
         return $this->belongsTo(User::class, 'assignee_user_id');
     }
 
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(InboxThreadAssignment::class, 'thread_id')->orderByDesc('created_at');
+    }
+
     public function channelLabel(): string
     {
         return self::CHANNEL_LABELS[$this->channel ?? ''][0] ?? ucfirst((string) $this->channel);

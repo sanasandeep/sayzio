@@ -23,16 +23,23 @@ const TABS: { key: "open" | "archived"; label: string }[] = [
   { key: "archived", label: "Archived" },
 ];
 
+const ASSIGNEE_TABS: { key: "all" | "me"; label: string }[] = [
+  { key: "all", label: "Everyone" },
+  { key: "me", label: "Assigned to me" },
+];
+
 export default function InboxTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const webTop = Platform.OS === "web" ? 67 : 0;
   const [tab, setTab] = useState<"open" | "archived">("open");
+  const [assigneeTab, setAssigneeTab] = useState<"all" | "me">("all");
 
   const q = useQuery({
-    queryKey: ["inbox", "conversations", tab],
-    queryFn: () => listConversations(tab),
+    queryKey: ["inbox", "conversations", tab, assigneeTab],
+    queryFn: () =>
+      listConversations(tab, assigneeTab === "me" ? "me" : undefined),
   });
 
   return (
@@ -85,6 +92,45 @@ export default function InboxTab() {
                   color: active ? colors.primary : colors.mutedForeground,
                   fontFamily: "SpaceGrotesk_600SemiBold",
                   fontSize: 13,
+                }}
+              >
+                {t.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={[styles.segment, { paddingHorizontal: 20 }]}>
+        {ASSIGNEE_TABS.map((t) => {
+          const active = assigneeTab === t.key;
+          return (
+            <Pressable
+              key={t.key}
+              onPress={() => setAssigneeTab(t.key)}
+              style={[
+                styles.segmentItem,
+                {
+                  backgroundColor: active ? colors.primary + "1c" : "transparent",
+                  borderRadius: colors.radius - 4,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                },
+              ]}
+            >
+              {t.key === "me" ? (
+                <Feather
+                  name="user-check"
+                  size={12}
+                  color={active ? colors.primary : colors.mutedForeground}
+                />
+              ) : null}
+              <Text
+                style={{
+                  color: active ? colors.primary : colors.mutedForeground,
+                  fontFamily: "SpaceGrotesk_500Medium",
+                  fontSize: 12,
                 }}
               >
                 {t.label}
@@ -159,6 +205,29 @@ export default function InboxTab() {
                   >
                     on {item.link_title || `/${item.link_alias}`}
                   </Text>
+                ) : null}
+                {item.assignee_name ? (
+                  <View
+                    style={[
+                      styles.assigneeChip,
+                      {
+                        backgroundColor: colors.primary + "1c",
+                        borderColor: colors.primary + "55",
+                      },
+                    ]}
+                  >
+                    <Feather name="user" size={10} color={colors.primary} />
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        color: colors.primary,
+                        fontFamily: "SpaceGrotesk_500Medium",
+                        fontSize: 10,
+                      }}
+                    >
+                      {item.assignee_name}
+                    </Text>
+                  </View>
                 ) : null}
               </View>
               {item.owner_unread_count > 0 ? (
@@ -250,5 +319,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 11,
+  },
+  assigneeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: 4,
   },
 });

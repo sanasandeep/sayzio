@@ -125,15 +125,53 @@
                 </form>
 
                 <div class="text-[10px] font-bold uppercase tracking-wider mt-4 mb-2" style="color: var(--text-faint);">Assign</div>
-                <form method="POST" action="{{ route('user.inbox.unified.update', $thread->id) }}">@csrf
+                <form method="POST" action="{{ route('user.inbox.unified.update', $thread->id) }}" class="space-y-2">@csrf
                     <input type="hidden" name="action" value="assign">
-                    <select name="assignee_user_id" onchange="this.form.submit()" class="w-full px-2 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    <select name="assignee_user_id" class="w-full px-2 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                         <option value="">Unassigned</option>
                         @foreach($teammates as $t)
                             <option value="{{ $t['id'] }}" {{ (int) $thread->assignee_user_id === (int) $t['id'] ? 'selected' : '' }}>{{ $t['name'] }}</option>
                         @endforeach
                     </select>
+                    <textarea name="note" rows="2" maxlength="500" placeholder="Handoff note (optional)…"
+                              class="w-full px-2 py-1.5 rounded-lg text-xs"
+                              style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"></textarea>
+                    <button class="w-full px-2 py-1.5 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+                        <i class="fas fa-user-plus mr-1"></i>Apply assignment
+                    </button>
                 </form>
+
+                @if($assignments->isNotEmpty())
+                    <div class="mt-3 pt-3 border-t" style="border-color: var(--border-glass);">
+                        <div class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Assignment history</div>
+                        <ul class="space-y-2">
+                            @foreach($assignments as $a)
+                                @php
+                                    $verb = match($a->action) {
+                                        'assign'   => 'assigned to',
+                                        'unassign' => 'unassigned from',
+                                        'reassign' => 'reassigned to',
+                                        'resolved' => 'resolved by',
+                                        default    => $a->action,
+                                    };
+                                    $who = $a->action === 'unassign'
+                                        ? optional($a->fromUser)->name
+                                        : optional($a->toUser)->name;
+                                @endphp
+                                <li class="text-[11px]" style="color: var(--text-muted);">
+                                    <i class="fas fa-circle text-[6px] mr-1" style="color: var(--text-faint);"></i>
+                                    <span class="font-semibold" style="color: var(--text-secondary);">{{ optional($a->actor)->name ?: 'Someone' }}</span>
+                                    {{ $verb }}
+                                    <span class="font-semibold" style="color: var(--text-secondary);">{{ $who ?: '—' }}</span>
+                                    · {{ optional($a->created_at)->diffForHumans() }}
+                                    @if($a->note)
+                                        <div class="ml-3 mt-0.5 text-[11px] italic" style="color: var(--text-muted);">“{{ $a->note }}”</div>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <div class="text-[10px] font-bold uppercase tracking-wider mt-4 mb-2" style="color: var(--text-faint);">Privacy</div>
                 <form method="POST" action="{{ route('user.inbox.unified.update', $thread->id) }}" class="flex items-center gap-2">@csrf

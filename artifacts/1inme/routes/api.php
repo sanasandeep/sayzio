@@ -316,7 +316,9 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/inbox/conversations/{id}',        [InboxController::class, 'show'])->whereNumber('id');
         Route::post  ('/inbox/conversations/{id}/reply',  [InboxController::class, 'reply'])->whereNumber('id');
         Route::patch ('/inbox/conversations/{id}/status', [InboxController::class, 'setStatus'])->whereNumber('id');
+        Route::post  ('/inbox/conversations/{id}/assign', [InboxController::class, 'assign'])->whereNumber('id');
         Route::delete('/inbox/conversations/{id}',        [InboxController::class, 'destroy'])->whereNumber('id');
+        Route::get   ('/inbox/teammates',                 [InboxController::class, 'teammates']);
 
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);

@@ -18,8 +18,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import {
+  assignConversation,
   deleteConversation,
   getConversation,
+  listTeammates,
   replyConversation,
   setConversationStatus,
   type Message,
@@ -33,6 +35,9 @@ export default function ConversationScreen() {
   const id = Number(params.id);
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignNote, setAssignNote] = useState("");
+  const [assignSelected, setAssignSelected] = useState<number | null>(null);
 
   const q = useQuery({
     queryKey: ["inbox", "conversation", id],
@@ -66,6 +71,25 @@ export default function ConversationScreen() {
     },
   });
 
+  const teammatesQ = useQuery({
+    queryKey: ["inbox", "teammates"],
+    queryFn: listTeammates,
+    enabled: assignOpen,
+  });
+
+  const assign = useMutation({
+    mutationFn: (payload: { uid: number | null; note: string }) =>
+      assignConversation(id, payload.uid, payload.note || undefined),
+    onSuccess: () => {
+      setAssignOpen(false);
+      setAssignNote("");
+      qc.invalidateQueries({ queryKey: ["inbox", "conversation", id] });
+      qc.invalidateQueries({ queryKey: ["inbox", "conversations"] });
+    },
+    onError: (e: any) =>
+      Alert.alert("Assignment failed", e?.message ?? "Try again"),
+  });
+
   const conv = q.data?.conversation;
 
   return (
@@ -81,6 +105,14 @@ export default function ConversationScreen() {
           headerTintColor: colors.primary,
           headerRight: () => (
             <View style={{ flexDirection: "row", gap: 14, paddingRight: 8 }}>
+              <Pressable
+                onPress={() => {
+                  setAssignSelected(conv?.assignee_user_id ?? null);
+                  setAssignOpen(true);
+                }}
+              >
+                <Feather name="user-plus" size={18} color={colors.primary} />
+              </Pressable>
               {conv?.status !== "archived" ? (
                 <Pressable onPress={() => setStatus.mutate("archived")}>
                   <Feather name="archive" size={18} color={colors.primary} />
@@ -104,6 +136,182 @@ export default function ConversationScreen() {
           ),
         }}
       />
+
+      {conv?.assignee_name ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: colors.primary + "12",
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <Feather name="user-check" size={12} color={colors.primary} />
+          <Text
+            style={{
+              color: colors.primary,
+              fontFamily: "SpaceGrotesk_500Medium",
+              fontSize: 12,
+            }}
+          >
+            Assigned to {conv.assignee_name}
+          </Text>
+        </View>
+      ) : null}
+
+      {assignOpen ? (
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            gap: 8,
+            backgroundColor: colors.card,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "SpaceGrotesk_600SemiBold",
+              fontSize: 13,
+              color: colors.foreground,
+            }}
+          >
+            Assign this thread
+          </Text>
+          {teammatesQ.isLoading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 6,
+              }}
+            >
+              <Pressable
+                onPress={() => setAssignSelected(null)}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor:
+                    assignSelected === null ? colors.primary : colors.border,
+                  backgroundColor:
+                    assignSelected === null
+                      ? colors.primary + "1c"
+                      : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      assignSelected === null
+                        ? colors.primary
+                        : colors.mutedForeground,
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 12,
+                  }}
+                >
+                  Unassigned
+                </Text>
+              </Pressable>
+              {(teammatesQ.data ?? []).map((t) => {
+                const sel = assignSelected === t.id;
+                return (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => setAssignSelected(t.id)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: sel ? colors.primary : colors.border,
+                      backgroundColor: sel
+                        ? colors.primary + "1c"
+                        : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: sel ? colors.primary : colors.mutedForeground,
+                        fontFamily: "SpaceGrotesk_500Medium",
+                        fontSize: 12,
+                      }}
+                    >
+                      {t.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+          <TextInput
+            value={assignNote}
+            onChangeText={setAssignNote}
+            placeholder="Handoff note (optional)"
+            placeholderTextColor={colors.mutedForeground}
+            multiline
+            maxLength={500}
+            style={{
+              color: colors.foreground,
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: colors.radius - 4,
+              padding: 8,
+              fontFamily: "SpaceGrotesk_400Regular",
+              fontSize: 13,
+              minHeight: 50,
+            }}
+          />
+          <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
+            <Pressable
+              onPress={() => setAssignOpen(false)}
+              style={{ paddingHorizontal: 12, paddingVertical: 8 }}
+            >
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontFamily: "SpaceGrotesk_500Medium",
+                  fontSize: 13,
+                }}
+              >
+                Cancel
+              </Text>
+            </Pressable>
+            <Pressable
+              disabled={assign.isPending}
+              onPress={() =>
+                assign.mutate({ uid: assignSelected, note: assignNote.trim() })
+              }
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: colors.radius - 4,
+                backgroundColor: colors.primary,
+                opacity: assign.isPending ? 0.6 : 1,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 13,
+                }}
+              >
+                {assign.isPending ? "Saving…" : "Apply"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       {q.isLoading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
