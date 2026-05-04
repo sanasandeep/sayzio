@@ -158,7 +158,7 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="cv-field-label">Opening line — supports <code>{{ '{{name}}' }}</code> and <code>{{ '{{answer:field}}' }}</code></label>
+                    <label class="cv-field-label">Opening line — supports <code>@{{name}}</code> and <code>@{{answer:field}}</code></label>
                     <textarea id="cv-intro" class="cv-textarea" rows="2">{{ $flow->intro_message }}</textarea>
                 </div>
                 <label class="cv-checkbox-line">
@@ -576,7 +576,7 @@ function renderSteps() {
                 <div><label class="cv-field-label">Answer field</label>
                     <input class="cv-input cv-step-field" value="${escapeAttr(s.answer_field||'')}" placeholder="e.g. intent"></div>
             </div>
-            <label class="cv-field-label">Bot message — supports <code>{{ '{{name}}' }}</code>, <code>{{ '{{answer:field}}' }}</code></label>
+            <label class="cv-field-label">Bot message — supports <code>@{{name}}</code>, <code>@{{answer:field}}</code></label>
             <textarea class="cv-textarea cv-step-msg mb-2" rows="2">${escapeHtml(s.message_text||'')}</textarea>
             <div class="cv-row-3">
                 <div><label class="cv-field-label">Next step (default)</label>
