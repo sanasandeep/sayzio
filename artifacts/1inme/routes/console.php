@@ -18,6 +18,14 @@ Schedule::command('tasks:send-due-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: end any biolink layout A/B test whose stop condition (sample
+// size or end date) has been met. Most experiments end inline as
+// visitors trickle in, so this is the safety net for low-traffic pages.
+Schedule::command('biolink:promote-experiment-winners')
+    ->hourlyAt(7)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Nightly: write yesterday's Performance Coach score + component breakdown
 // for every active link. Drives the 30-day sparkline in the coach card.
 Schedule::command('coach:snapshot-scores')

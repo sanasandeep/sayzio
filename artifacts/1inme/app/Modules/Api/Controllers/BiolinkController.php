@@ -12,6 +12,7 @@ use App\Modules\User\Models\LinkSlideViewEvent;
 use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Services\BiolinkExperimentService;
 use App\Modules\User\Services\InboxForwarder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -40,17 +41,34 @@ class BiolinkController extends Controller
             ]);
         }
 
-        $blocks = BiolinkBlock::where('link_id', $link->id)
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get()
-            ->map(fn ($b) => [
-                'id'         => $b->id,
-                'type'       => $b->type,
-                'sort_order' => $b->sort_order,
-                'parent_id'  => $b->parent_id,
-                'settings'   => $b->settings,
-            ])->all();
+        // Honour any active layout A/B test: assign the visitor a sticky
+        // variant and serve that variant's snapshot blocks. The mobile
+        // client should send a stable `X-1INME-Visitor-Id` header so the
+        // assignment persists across requests without cookies.
+        $abService = app(BiolinkExperimentService::class);
+        $abExp = $abService->activeFor($link);
+        $abInfo = null;
+        if ($abExp) {
+            $assigned = $abService->assignVariant($request, $abExp);
+            $tree = $abExp->{"variant_{$assigned}_snapshot"} ?? [];
+            $blocks = $this->flattenSnapshotForApi($tree);
+            $abInfo = [
+                'experiment_id' => $abExp->id,
+                'variant'       => $assigned,
+            ];
+        } else {
+            $blocks = BiolinkBlock::where('link_id', $link->id)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get()
+                ->map(fn ($b) => [
+                    'id'         => $b->id,
+                    'type'       => $b->type,
+                    'sort_order' => $b->sort_order,
+                    'parent_id'  => $b->parent_id,
+                    'settings'   => $b->settings,
+                ])->all();
+        }
 
         $mode = (string) (data_get($link->settings, 'biolink.mode', 'list'));
         $slidesPayload = null;
@@ -110,7 +128,36 @@ class BiolinkController extends Controller
             ],
             'blocks' => $blocks,
             'slides' => $slidesPayload,
+            'ab_test' => $abInfo,
         ]);
+    }
+
+    /**
+     * Flatten an A/B variant snapshot tree (top-level + nested children)
+     * into the flat list the mobile client renders. We keep parent_id so
+     * the client can group children under their card containers, just
+     * like it already does for the live-row response shape.
+     *
+     * @param array<int, array<string, mixed>> $tree
+     * @return array<int, array<string, mixed>>
+     */
+    protected function flattenSnapshotForApi(array $tree): array
+    {
+        $out = [];
+        foreach ($tree as $node) {
+            if (!($node['is_active'] ?? true)) continue;
+            $out[] = [
+                'id'         => (int) ($node['id'] ?? 0),
+                'type'       => (string) ($node['type'] ?? ''),
+                'sort_order' => (int) ($node['sort_order'] ?? 0),
+                'parent_id'  => $node['parent_id'] ?? null,
+                'settings'   => $node['settings'] ?? [],
+            ];
+            foreach ($this->flattenSnapshotForApi($node['children'] ?? []) as $child) {
+                $out[] = $child;
+            }
+        }
+        return $out;
     }
 
     /**
@@ -210,6 +257,13 @@ class BiolinkController extends Controller
 
         $this->trackingService->track($link, $request, $alias, 'mobile_app');
 
+        // Mirror the per-variant visit count when an A/B test is running.
+        $abService = app(BiolinkExperimentService::class);
+        if ($abExp = $abService->activeFor($link)) {
+            $variant = $abService->assignVariant($request, $abExp);
+            $abService->recordVisit($abExp, $variant);
+        }
+
         return $this->ok(['tracked' => true]);
     }
 
@@ -229,9 +283,20 @@ class BiolinkController extends Controller
             return $this->fail($gate['message'], $gate['status'], $gate['code']);
         }
 
+        // When an A/B test is running we may need to look up the block
+        // from the variant snapshot if the live row is gone (Variant A
+        // blocks survive only in the snapshot once the creator starts
+        // editing the live page).
+        $abService = app(BiolinkExperimentService::class);
+        $abExp = $abService->activeFor($link);
+        $abVariant = $abExp ? $abService->assignVariant($request, $abExp) : null;
+
         $block = BiolinkBlock::where('id', $blockId)
             ->where('link_id', $link->id)
             ->first();
+        if (!$block && $abExp && $abVariant) {
+            $block = $abService->findSnapshotBlock($abExp, $blockId, $abVariant);
+        }
         if (!$block) return $this->notFound('Block not found');
 
         $data = $request->validate([
@@ -250,6 +315,10 @@ class BiolinkController extends Controller
         }
 
         $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias, 'mobile_app');
+
+        if ($abExp && $abVariant) {
+            $abService->recordClick($abExp, $abVariant);
+        }
 
         return $this->ok(['tracked' => true]);
     }
@@ -280,6 +349,12 @@ class BiolinkController extends Controller
 
         if ($sub->status !== 'active') {
             $sub->forceFill(['status' => 'active', 'subscribed_at' => now(), 'unsubscribed_at' => null])->save();
+        }
+
+        // A/B conversion attribution for the mobile subscribe path.
+        [$abExp, $abVariant] = app(BiolinkExperimentService::class)->resolveAssignment($request, $link);
+        if ($abExp && $abVariant) {
+            app(BiolinkExperimentService::class)->recordConversion($abExp, $abVariant);
         }
 
         return $this->created(['subscribed' => true, 'creator_id' => $link->user_id]);
@@ -571,6 +646,12 @@ class BiolinkController extends Controller
             app(InboxForwarder::class)->dispatchForRsvp($link->user_id, $rsvp);
         } catch (\Throwable $e) {
             logger()->warning('Inbox forwarder (rsvp api) failed: ' . $e->getMessage());
+        }
+
+        // A/B conversion attribution for the mobile RSVP path.
+        [$abExp, $abVariant] = app(BiolinkExperimentService::class)->resolveAssignment($request, $link);
+        if ($abExp && $abVariant) {
+            app(BiolinkExperimentService::class)->recordConversion($abExp, $abVariant);
         }
 
         return $this->created([

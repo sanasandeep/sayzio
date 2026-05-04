@@ -236,6 +236,24 @@ protected $fillable = [
             ->orderBy('sort_order');
     }
 
+    /**
+     * Layout A/B tests for this biolink. Most links never have one, but
+     * when present the public renderer prefers the variant snapshots
+     * over the live `biolink_blocks` rows.
+     */
+    public function biolinkExperiments()
+    {
+        return $this->hasMany(\App\Modules\User\Models\BiolinkExperiment::class)
+            ->orderByDesc('id');
+    }
+
+    public function activeBiolinkExperiment()
+    {
+        return $this->hasOne(\App\Modules\User\Models\BiolinkExperiment::class)
+            ->where('status', 'running')
+            ->latestOfMany();
+    }
+
     public function isExpired(): bool
     {
         if ($this->expires_at && $this->expires_at->isPast()) return true;

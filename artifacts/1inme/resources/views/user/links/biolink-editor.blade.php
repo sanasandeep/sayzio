@@ -343,6 +343,8 @@ $catColors = [
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
 
+    @include('user.links.partials.experiment-panel', ['link' => $link])
+
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div class="flex items-center gap-3 flex-wrap">
             <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="add-block-btn">

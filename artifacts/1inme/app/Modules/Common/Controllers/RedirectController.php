@@ -12,6 +12,7 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Services\BiolinkExperimentService;
 use App\Modules\User\Services\SpamChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -322,7 +323,18 @@ class RedirectController extends Controller
                     response()->view($this->biolinkViewFor($link), compact('link')),
                     $request
                 ),
-                fn () => $this->scheduleLazySocialRefresh()
+                function () use ($link, $request) {
+                    $this->scheduleLazySocialRefresh();
+                    // Record this visit against the assigned A/B variant. The
+                    // variant was already chosen and the renderer-override
+                    // attached inside biolinkViewFor() so the visit count
+                    // reflects whatever the visitor actually saw.
+                    $variant = $link->_abAssignedVariant ?? null;
+                    $exp = $link->_abActiveExperiment ?? null;
+                    if ($exp && $variant) {
+                        app(BiolinkExperimentService::class)->recordVisit($exp, $variant);
+                    }
+                }
             ),
             'file' => $this->handleFileDownload($link),
             'ics' => $this->handleIcsDownload($link),
@@ -414,6 +426,11 @@ class RedirectController extends Controller
 
     protected function biolinkViewFor(Link $link): string
     {
+        // Pick the visitor's variant + override the rendered block tree
+        // BEFORE the view is resolved so all biolink modes (list,
+        // conversational, slides) share the same A/B plumbing.
+        $this->applyBiolinkAbExperiment($link);
+
         $mode = data_get($link->settings, 'biolink.mode', 'list');
         if ($mode !== 'conversational' && $mode !== 'slides') return 'common.biolink';
 
@@ -751,7 +768,19 @@ class RedirectController extends Controller
             return $gated;
         }
 
-        $block = BiolinkBlock::where('id', $blockId)->where('link_id', $link->id)->firstOrFail();
+        // A/B test bookkeeping: figure out which variant this visitor was
+        // assigned (if any) so we can attribute the click + fall back to
+        // the variant snapshot when the live row is gone (typical for
+        // Variant A blocks once the creator starts editing live).
+        $abService = app(BiolinkExperimentService::class);
+        $abExp = $abService->activeFor($link);
+        $abVariant = $abExp ? $abService->assignVariant($request, $abExp) : null;
+
+        $block = BiolinkBlock::where('id', $blockId)->where('link_id', $link->id)->first();
+        if (!$block && $abExp && $abVariant) {
+            $block = $abService->findSnapshotBlock($abExp, $blockId, $abVariant);
+        }
+        if (!$block) abort(404);
         $s = $block->settings ?? [];
         $linkData = $s['_link'] ?? [];
 
@@ -786,7 +815,31 @@ class RedirectController extends Controller
 
         $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, $sourceTag);
 
+        if ($abExp && $abVariant) {
+            $abService->recordClick($abExp, $abVariant);
+        }
+
         return redirect()->away($destinationUrl, 302);
+    }
+
+    /**
+     * Resolve the visitor's assigned A/B variant for this biolink and
+     * stash both the active experiment and the variant-specific block
+     * tree on the link instance so the blade renderer can pick them up
+     * without re-querying. No-op when no experiment is running.
+     */
+    protected function applyBiolinkAbExperiment(Link $link): void
+    {
+        $service = app(BiolinkExperimentService::class);
+        $exp = $service->activeFor($link);
+        if (!$exp) return;
+
+        $variant = $service->assignVariant(request(), $exp);
+        $blocks  = $service->renderableBlocks($exp, $variant);
+
+        $link->setAttribute('_abActiveExperiment', $exp);
+        $link->setAttribute('_abAssignedVariant', $variant);
+        $link->setAttribute('_abVariantBlocks', $blocks);
     }
 
     protected function handleIcsDownload(Link $link)
@@ -822,6 +875,18 @@ class RedirectController extends Controller
     {
         $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link) abort(404);
+
+        // A/B conversion attribution. The actual increment fires only on
+        // a successful submission below; we resolve here once so the
+        // helper stays cheap (it short-circuits when no experiment is
+        // active for this biolink).
+        [$abExp, $abVariant] = app(BiolinkExperimentService::class)
+            ->resolveAssignment($request, $link);
+        $recordAbConversion = function () use ($abExp, $abVariant) {
+            if ($abExp && $abVariant) {
+                app(BiolinkExperimentService::class)->recordConversion($abExp, $abVariant);
+            }
+        };
 
         $data = $request->validate([
             'block_id' => 'required|integer',
@@ -890,6 +955,7 @@ class RedirectController extends Controller
                 }
             }
 
+            $recordAbConversion();
             return response()->json(['success' => true, 'message' => 'Message sent — thanks for getting in touch!']);
         }
 
@@ -975,6 +1041,7 @@ class RedirectController extends Controller
             }
         }
 
+        $recordAbConversion();
         return response()->json(['success' => true, 'message' => 'Subscribed successfully!']);
     }
 
@@ -1031,6 +1098,15 @@ class RedirectController extends Controller
         }
 
         $request->session()->put('rsvp_submitted_' . $link->id, true);
+
+        // A/B conversion attribution for RSVP form submissions on biolinks
+        // that wrap an event (rsvp_enabled). Only fires when an experiment
+        // is running; cheap no-op otherwise.
+        [$abExp, $abVariant] = app(BiolinkExperimentService::class)
+            ->resolveAssignment($request, $link);
+        if ($abExp && $abVariant) {
+            app(BiolinkExperimentService::class)->recordConversion($abExp, $abVariant);
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true, 'message' => 'Thanks for your RSVP!']);

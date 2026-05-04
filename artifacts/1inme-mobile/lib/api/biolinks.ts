@@ -46,6 +46,13 @@ export type SlidesPayload = {
   slides: Slide[];
 };
 
+export type BiolinkAbTestInfo = {
+  experiment_id: number;
+  // 'a' = frozen original layout, 'b' = the layout the creator is editing.
+  // Sticky per visitor (the server uses our `X-1INME-Visitor-Id` header).
+  variant: "a" | "b";
+};
+
 export type BiolinkPayload = {
   biolink: {
     id: number;
@@ -67,6 +74,12 @@ export type BiolinkPayload = {
   };
   blocks: BiolinkBlock[];
   slides?: SlidesPayload | null;
+  // Present (non-null) when an A/B test is running on this biolink.
+  // The `blocks` array is already the snapshot for the assigned variant
+  // — the client doesn't need to reshape anything based on this field,
+  // but it can use it to show a "you're seeing variant B" badge in the
+  // owner's preview.
+  ab_test?: BiolinkAbTestInfo | null;
 };
 
 // Best-effort slide-view ping. Mirrors the web's /sl/{alias}/view ping
@@ -106,9 +119,48 @@ export type BiolinkError = {
   owner?: { handle: string | null; name: string | null };
 };
 
+// Stable per-install visitor id used by the server's A/B test bucketer
+// to keep a viewer pinned to the same variant across app restarts.
+// Generated lazily on first use and cached in AsyncStorage. Falls back
+// to an in-memory id when storage is unavailable so we still get
+// per-session stickiness.
+const VISITOR_ID_KEY = "biolink:visitor-id:v1";
+let _visitorIdMemo: string | null = null;
+
+async function getVisitorId(): Promise<string> {
+  if (_visitorIdMemo) return _visitorIdMemo;
+  try {
+    const cached = await AsyncStorage.getItem(VISITOR_ID_KEY);
+    if (cached) {
+      _visitorIdMemo = cached;
+      return cached;
+    }
+  } catch {
+    // ignore — fall through to generation
+  }
+  const fresh =
+    "v_" +
+    Date.now().toString(36) +
+    "_" +
+    Math.random().toString(36).slice(2, 12);
+  _visitorIdMemo = fresh;
+  try {
+    await AsyncStorage.setItem(VISITOR_ID_KEY, fresh);
+  } catch {
+    // best-effort persistence
+  }
+  return fresh;
+}
+
+async function visitorHeaders(): Promise<Record<string, string>> {
+  return { "X-1INME-Visitor-Id": await getVisitorId() };
+}
+
 export async function getBiolink(alias: string): Promise<BiolinkPayload> {
+  const headers = await visitorHeaders();
   const res = await apiFetch<{ data: BiolinkPayload }>(
     `/biolinks/${encodeURIComponent(alias)}`,
+    { headers },
   );
   return res.data;
 }
@@ -119,10 +171,14 @@ export async function getBiolink(alias: string): Promise<BiolinkPayload> {
 // Never throws — analytics is fire-and-forget.
 export function trackBiolinkVisit(alias: string): void {
   if (!alias) return;
-  void apiFetch(`/biolinks/${encodeURIComponent(alias)}/visit`, {
-    method: "POST",
-    body: JSON.stringify({}),
-  }).catch(() => {
+  void (async () => {
+    const headers = await visitorHeaders();
+    return apiFetch(`/biolinks/${encodeURIComponent(alias)}/visit`, {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers,
+    });
+  })().catch(() => {
     // Swallow — analytics must never disrupt the page load.
   });
 }
@@ -189,13 +245,17 @@ export function trackBiolinkBlockTap(
   if (!alias || !Number.isFinite(blockId)) return;
   const body: Record<string, unknown> = {};
   if (destinationUrl) body.destination_url = destinationUrl;
-  void apiFetch(
-    `/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/tap`,
-    {
-      method: "POST",
-      body: JSON.stringify(body),
-    },
-  ).catch(() => {
+  void (async () => {
+    const headers = await visitorHeaders();
+    return apiFetch(
+      `/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/tap`,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers,
+      },
+    );
+  })().catch(() => {
     // Swallow — analytics is best-effort and must never disrupt the tap.
   });
 }

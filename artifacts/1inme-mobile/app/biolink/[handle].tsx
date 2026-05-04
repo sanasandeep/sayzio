@@ -1843,6 +1843,29 @@ export default function BiolinkViewer() {
               {q.data.owner.bio}
             </Text>
           ) : null}
+          {q.data.ab_test ? (
+            // Surfaces the active A/B test status to the viewer. The
+            // server already picked the variant for this visitor (sticky
+            // via the X-1INME-Visitor-Id header) so we just render which
+            // bucket they're in. Useful for the creator previewing the
+            // page on their phone, harmless for casual visitors.
+            <View
+              style={{
+                alignSelf: "center",
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 999,
+                backgroundColor: "rgba(124,58,237,0.15)",
+                borderWidth: 1,
+                borderColor: "rgba(124,58,237,0.4)",
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#a78bfa" }}>
+                A/B test live · Showing Variant {q.data.ab_test.variant.toUpperCase()}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.blocks}>
             {q.data.blocks
               .filter((b) => !b.parent_id)

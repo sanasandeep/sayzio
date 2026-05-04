@@ -484,6 +484,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/blocks/{block}/variant-previews', [BiolinkBlockController::class, 'variantPreviews'])->middleware('workspace.can:links.view')->name('links.blocks.variantPreviews');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->middleware('workspace.can:links.edit')->name('links.page-settings');
 
+        // Biolink layout A/B tests — start, stop, fetch live results.
+        Route::post('links/{link}/experiment/start',  [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'start'])->middleware('workspace.can:links.edit')->name('links.experiment.start');
+        Route::post('links/{link}/experiment/stop',   [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'stop'])->middleware('workspace.can:links.edit')->name('links.experiment.stop');
+        Route::get ('links/{link}/experiment.json',   [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'results'])->middleware('workspace.can:links.view')->name('links.experiment.results');
+
         // Custom fonts (.woff/.woff2/.ttf/.otf) — surface in the "My Fonts"
         // section pinned at the top of every font picker. Lives at the user
         // level (not per-link) so a single upload powers every page.

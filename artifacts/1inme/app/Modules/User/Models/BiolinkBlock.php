@@ -43,6 +43,29 @@ class BiolinkBlock extends Model
                 self::$migrating = false;
             }
         });
+
+        // Whenever the live blocks change AND there's an A/B test running on
+        // the parent link, mirror the new state into `variant_b_snapshot` so
+        // the public renderer (which reads from snapshots, not live rows)
+        // sees the latest Variant B layout. We bail when the touched row is
+        // a hydrated snapshot block (no real `link_id` on disk) or when no
+        // experiment is active to keep this near-free on the hot path.
+        $sync = function (BiolinkBlock $block): void {
+            if (!$block->link_id || !$block->exists) return;
+            $link = $block->link;
+            if (!$link) return;
+            try {
+                app(\App\Modules\User\Services\BiolinkExperimentService::class)
+                    ->syncVariantBFromLive($link);
+            } catch (\Throwable $e) {
+                // Snapshotting must never break a save. Worst case the
+                // public page serves a slightly stale Variant B until
+                // the next edit; the scheduled command will recompute.
+                report($e);
+            }
+        };
+        static::saved($sync);
+        static::deleted($sync);
     }
 
     /**

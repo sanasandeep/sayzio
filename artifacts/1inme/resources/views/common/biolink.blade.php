@@ -852,7 +852,14 @@
 
     <div class="biolink-container">
         @php
-            $blocks = $link->activeBiolinkBlocks()->get()->filter(fn($b) => $b->isVisible());
+            // When an A/B test is running, the renderer reads the assigned
+            // variant snapshot (set on the link by RedirectController) instead
+            // of the live biolink_blocks rows so each visitor sees a stable
+            // layout. We still run the same isVisible() filter so per-block
+            // scheduling and geo-targeting work identically across variants.
+            $blocks = ($link->_abVariantBlocks instanceof \Illuminate\Support\Collection)
+                ? $link->_abVariantBlocks->filter(fn($b) => $b->isVisible())
+                : $link->activeBiolinkBlocks()->get()->filter(fn($b) => $b->isVisible());
             $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Link in Bio';
             $pageDescription = $bs['biolink_description'] ?? $link->seo_description ?? '';
             $globalTheme = $bs['block_theme'] ?? [];
