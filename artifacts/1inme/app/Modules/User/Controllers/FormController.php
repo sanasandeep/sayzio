@@ -212,13 +212,16 @@ class FormController extends Controller
         $design = array_merge(Form::defaultDesign(), $form->design ?? [], $data);
         $design['show_branding'] = $request->boolean('show_branding');
 
-        // File-backed design assets — uploaded file form-key => stored design key
+        // File-backed design assets — uploaded file form-key => stored design key.
+        // Photo-style assets (cover / card) are downscaled+re-encoded; the
+        // brand logo is stored as-is to preserve crisp edges.
         $assetMap = [
-            'cover_image' => 'cover',
-            'logo'        => 'logo',
-            'card_image'  => 'card_image',
+            'cover_image' => ['key' => 'cover',      'compress' => ['max_width' => 1600, 'max_height' => 1600]],
+            'logo'        => ['key' => 'logo',       'compress' => null],
+            'card_image'  => ['key' => 'card_image', 'compress' => ['max_width' => 1200, 'max_height' => 1200]],
         ];
-        foreach ($assetMap as $field => $key) {
+        foreach ($assetMap as $field => $cfg) {
+            $key = $cfg['key'];
             $removeKey = match ($field) {
                 'cover_image' => 'remove_cover',
                 'card_image'  => 'remove_card_image',
@@ -234,7 +237,14 @@ class FormController extends Controller
             }
             if ($request->hasFile($field)) {
                 try {
-                    $userFile = UserFile::createFromUpload($request->file($field), $request->user());
+                    $opts = [];
+                    if (!empty($cfg['compress'])) {
+                        $opts['compress_image'] = true;
+                        $opts['max_width']  = (int) $cfg['compress']['max_width'];
+                        $opts['max_height'] = (int) $cfg['compress']['max_height'];
+                        $opts['quality']    = 85;
+                    }
+                    $userFile = UserFile::createFromUpload($request->file($field), $request->user(), $opts);
                     $design[$key] = $userFile->url;
                 } catch (\RuntimeException $e) {
                     return back()->withInput()->with('error', $e->getMessage());

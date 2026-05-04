@@ -166,10 +166,13 @@ class SplashPageController extends Controller
     {
         // Per-asset size caps come from the user's plan via UploadPolicy.
         $user = $request->user();
+        // OG images are photographic and benefit from downscaling; logos
+        // and favicons are typically vector / pixel-perfect artwork and
+        // are stored as-is so we don't soften their edges.
         $map = [
-            'logo'     => ['col' => 'logo',     'max_mb' => \App\Services\UploadPolicy::for('splash.logo',    $user)['max_mb']],
-            'favicon'  => ['col' => 'favicon',  'max_mb' => \App\Services\UploadPolicy::for('splash.favicon', $user)['max_mb']],
-            'og_image' => ['col' => 'og_image', 'max_mb' => \App\Services\UploadPolicy::for('splash.og',      $user)['max_mb']],
+            'logo'     => ['col' => 'logo',     'max_mb' => \App\Services\UploadPolicy::for('splash.logo',    $user)['max_mb'], 'compress' => null],
+            'favicon'  => ['col' => 'favicon',  'max_mb' => \App\Services\UploadPolicy::for('splash.favicon', $user)['max_mb'], 'compress' => null],
+            'og_image' => ['col' => 'og_image', 'max_mb' => \App\Services\UploadPolicy::for('splash.og',      $user)['max_mb'], 'compress' => ['max_width' => 1200, 'max_height' => 1200, 'quality' => 85]],
         ];
         $changed = false;
         foreach ($map as $field => $cfg) {
@@ -177,11 +180,16 @@ class SplashPageController extends Controller
             $removeFlag = 'remove_' . ($field === 'og_image' ? 'og' : $field);
             if ($request->hasFile($field)) {
                 $this->deleteLegacyPublicAsset($sp->$col);
+                $opts = ['max_size_mb' => $cfg['max_mb']];
+                if (!empty($cfg['compress'])) {
+                    $opts['compress_image'] = true;
+                    $opts['max_width']  = (int) $cfg['compress']['max_width'];
+                    $opts['max_height'] = (int) $cfg['compress']['max_height'];
+                    $opts['quality']    = (int) $cfg['compress']['quality'];
+                }
                 // Bubble RuntimeException up to store()/update(), which wrap
                 // this call in try/catch and flash an error to the user.
-                $userFile = UserFile::createFromUpload($request->file($field), $user, [
-                    'max_size_mb' => $cfg['max_mb'],
-                ]);
+                $userFile = UserFile::createFromUpload($request->file($field), $user, $opts);
                 $sp->$col = $userFile->url;
                 $changed = true;
             } elseif ($request->boolean($removeFlag)) {

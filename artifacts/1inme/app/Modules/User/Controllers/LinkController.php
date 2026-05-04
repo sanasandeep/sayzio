@@ -243,9 +243,16 @@ class LinkController extends Controller
 
         try {
             if ($request->hasFile('seo_image')) {
-                $validated['seo_image'] = UserFile::createFromUpload($request->file('seo_image'), $request->user())->url;
+                // OG / share image — photographic, downscale aggressively.
+                $validated['seo_image'] = UserFile::createFromUpload($request->file('seo_image'), $request->user(), [
+                    'compress_image' => true,
+                    'max_width'      => 1200,
+                    'max_height'     => 1200,
+                    'quality'        => 85,
+                ])->url;
             }
             if ($request->hasFile('favicon')) {
+                // Favicons are tiny / pixel-perfect — store as-is.
                 $validated['favicon'] = UserFile::createFromUpload($request->file('favicon'), $request->user())->url;
             }
         } catch (\RuntimeException $e) {
@@ -2044,11 +2051,18 @@ class LinkController extends Controller
 
         try {
             if ($request->hasFile('seo_image')) {
-                $validated['seo_image'] = UserFile::createFromUpload($request->file('seo_image'), $request->user())->url;
+                // OG / share image — photographic, downscale aggressively.
+                $validated['seo_image'] = UserFile::createFromUpload($request->file('seo_image'), $request->user(), [
+                    'compress_image' => true,
+                    'max_width'      => 1200,
+                    'max_height'     => 1200,
+                    'quality'        => 85,
+                ])->url;
             } else {
                 unset($validated['seo_image']);
             }
             if ($request->hasFile('favicon')) {
+                // Favicons are tiny / pixel-perfect — store as-is.
                 $validated['favicon'] = UserFile::createFromUpload($request->file('favicon'), $request->user())->url;
             } else {
                 unset($validated['favicon']);

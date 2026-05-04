@@ -878,13 +878,25 @@ class BiolinkBlockController extends Controller
 
         // Vault helper: store an UploadedFile and return its public vault URL.
         // Quota / size failures bubble up as RuntimeException; we catch them
-        // once around the whole upload block below.
-        $vault = fn ($file) => UserFile::createFromUpload($file, $user)->url;
+        // once around the whole upload block below. The optional $compress
+        // arg downscales+re-encodes raster photos so backgrounds / OG images
+        // / carousel slides don't bloat the vault with full-res camera dumps.
+        // Logos, favicons, and videos omit $compress so they're stored as-is.
+        $vault = function ($file, array $compress = []) use ($user) {
+            $opts = [];
+            if (!empty($compress)) {
+                $opts['compress_image'] = true;
+                $opts['max_width']  = (int) ($compress['max_width']  ?? 1600);
+                $opts['max_height'] = (int) ($compress['max_height'] ?? 1600);
+                $opts['quality']    = (int) ($compress['quality']    ?? 85);
+            }
+            return UserFile::createFromUpload($file, $user, $opts)->url;
+        };
 
         try {
 
         if ($request->hasFile('background_image')) {
-            $settings['biolink']['background_image'] = $vault($request->file('background_image'));
+            $settings['biolink']['background_image'] = $vault($request->file('background_image'), ['max_width' => 1920, 'max_height' => 1920]);
         }
 
         if (!empty($validated['gradient_colors'])) {
@@ -904,7 +916,7 @@ class BiolinkBlockController extends Controller
         if ($slideshowFiles && is_array($slideshowFiles)) {
             $existingSlides = $settings['biolink']['slideshow_images'] ?? [];
             foreach ($slideshowFiles as $file) {
-                $existingSlides[] = $vault($file);
+                $existingSlides[] = $vault($file, ['max_width' => 1600, 'max_height' => 1600]);
             }
             $settings['biolink']['slideshow_images'] = array_slice($existingSlides, 0, 10);
         }
@@ -914,7 +926,7 @@ class BiolinkBlockController extends Controller
         }
 
         if ($fallbackImageFile) {
-            $settings['biolink']['bg_fallback_image'] = $vault($fallbackImageFile);
+            $settings['biolink']['bg_fallback_image'] = $vault($fallbackImageFile, ['max_width' => 1920, 'max_height' => 1920]);
         }
 
         if ($request->has('remove_slideshow_images')) {
@@ -941,7 +953,7 @@ class BiolinkBlockController extends Controller
         }
 
         if ($request->hasFile('og_image_upload')) {
-            $settings['biolink']['og']['image_url'] = $vault($request->file('og_image_upload'));
+            $settings['biolink']['og']['image_url'] = $vault($request->file('og_image_upload'), ['max_width' => 1200, 'max_height' => 1200]);
         }
 
         } catch (\RuntimeException $e) {

@@ -463,7 +463,14 @@ SVG;
                         $file = $request->file("a_files.{$key}");
                         $rules = \App\Services\UploadPolicy::rule('biolink.avatar', $request->user());
                         $request->validate(["a_files.{$key}" => $rules]);
-                        $out[$key] = UserFile::createFromUpload($file, $request->user())->url;
+                        // Wizard image answers are typically avatars / hero photos —
+                        // shrink raster originals so they don't bloat the vault.
+                        $out[$key] = UserFile::createFromUpload($file, $request->user(), [
+                            'compress_image' => true,
+                            'max_width'      => 800,
+                            'max_height'     => 800,
+                            'quality'        => 85,
+                        ])->url;
                     } catch (\Throwable $e) {
                         // Skip — placeholder will be used.
                     }
