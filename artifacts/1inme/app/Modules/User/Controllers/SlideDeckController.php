@@ -6,10 +6,12 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkSlide;
 use App\Modules\User\Models\LinkSlideDeck;
+use App\Modules\User\Models\LinkSlideViewEvent;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class SlideDeckController extends Controller
 {
@@ -221,6 +223,108 @@ class SlideDeckController extends Controller
             'ok'           => true,
             'is_published' => (bool) $deck->is_published,
             'version'      => (int) $deck->version,
+        ]);
+    }
+
+    /**
+     * Per-deck slide analytics: total impressions, unique sessions, per-slide
+     * view counts + drop-off, and a 30-day daily time series. Mirrors the
+     * JSON shape produced by ConversationFlowController::analytics so the
+     * front-end pattern stays consistent.
+     */
+    public function analytics(Link $link)
+    {
+        $this->authorizeLink($link);
+        $deck = $this->ensureDeck($link);
+        $slides = $deck->slides()->orderBy('sort_order')->get(['id', 'sort_order', 'title']);
+
+        $events = LinkSlideViewEvent::where('deck_id', $deck->id);
+        $totalImpressions = (clone $events)->count();
+        $uniqueSessions   = (clone $events)
+            ->whereNotNull('page_session_id')
+            ->distinct('page_session_id')
+            ->count('page_session_id');
+        // Count distinct sessions that hit a completed event so the rate
+        // can't exceed 100% if a session fires multiple completed pings.
+        $completedCount   = (clone $events)
+            ->where('completed', true)
+            ->whereNotNull('page_session_id')
+            ->distinct('page_session_id')
+            ->count('page_session_id');
+
+        // Per-slide impression and unique-session counts, keyed by slide_index.
+        $perIndexCounts = (clone $events)
+            ->select('slide_index', DB::raw('COUNT(*) as c'))
+            ->groupBy('slide_index')
+            ->pluck('c', 'slide_index')
+            ->all();
+
+        $perIndexUnique = (clone $events)
+            ->whereNotNull('page_session_id')
+            ->select('slide_index', DB::raw('COUNT(DISTINCT page_session_id) as c'))
+            ->groupBy('slide_index')
+            ->pluck('c', 'slide_index')
+            ->all();
+
+        // First-slide impressions form the funnel baseline for drop-off %.
+        $firstImpressions = (int) ($perIndexCounts[$slides->first()->sort_order ?? 0] ?? 0);
+
+        $perSlide = [];
+        foreach ($slides as $s) {
+            $idx = (int) $s->sort_order;
+            $views = (int) ($perIndexCounts[$idx] ?? 0);
+            $uniq  = (int) ($perIndexUnique[$idx] ?? 0);
+            $perSlide[] = [
+                'index'        => $idx,
+                'title'        => $s->title ? Str::limit($s->title, 60) : ('Slide ' . ($idx + 1)),
+                'views'        => $views,
+                'unique'       => $uniq,
+                'drop_off_pct' => $firstImpressions > 0
+                    ? round((($firstImpressions - $views) / $firstImpressions) * 100, 1)
+                    : 0,
+            ];
+        }
+
+        // 30-day daily view trend (inclusive of today). Use a zero-filled
+        // map so the chart has a continuous x-axis even on quiet days.
+        $since = now()->startOfDay()->subDays(29);
+        $rawSeries = (clone $events)
+            ->where('occurred_at', '>=', $since)
+            ->select(DB::raw('DATE(occurred_at) as d'), DB::raw('COUNT(*) as c'))
+            ->groupBy('d')
+            ->pluck('c', 'd')
+            ->all();
+
+        $series = [];
+        for ($i = 0; $i < 30; $i++) {
+            $day = $since->copy()->addDays($i)->toDateString();
+            $series[] = ['date' => $day, 'views' => (int) ($rawSeries[$day] ?? 0)];
+        }
+
+        return response()->json([
+            'deck' => [
+                'id'      => $deck->id,
+                'version' => (int) $deck->version,
+            ],
+            'total_impressions' => $totalImpressions,
+            'unique_sessions'   => $uniqueSessions,
+            'completed'         => $completedCount,
+            'completion_pct'    => $uniqueSessions > 0
+                ? round(($completedCount / $uniqueSessions) * 100, 1)
+                : 0,
+            'slides'  => $perSlide,
+            'series'  => $series,
+        ]);
+    }
+
+    /** Render the analytics page (HTML wrapper). */
+    public function analyticsPage(Link $link)
+    {
+        $this->authorizeLink($link);
+        $deck = $this->ensureDeck($link);
+        return view('user.links.slides.analytics', [
+            'link' => $link,
+            'deck' => $deck,
         ]);
     }
 

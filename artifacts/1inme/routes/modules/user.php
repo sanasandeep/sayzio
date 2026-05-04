@@ -492,6 +492,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/slides',        [\App\Modules\User\Controllers\SlideDeckController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.slides.editor');
         Route::post('links/{link}/slides/toggle', [\App\Modules\User\Controllers\SlideDeckController::class, 'toggleMode'])->middleware('workspace.can:links.edit')->name('links.slides.toggle');
         Route::post('links/{link}/slides',        [\App\Modules\User\Controllers\SlideDeckController::class, 'save'])->middleware('workspace.can:links.edit')->name('links.slides.save');
+        Route::get ('links/{link}/slides/analytics',      [\App\Modules\User\Controllers\SlideDeckController::class, 'analyticsPage'])->middleware('workspace.can:links.view')->name('links.slides.analytics');
+        Route::get ('links/{link}/slides/analytics.json', [\App\Modules\User\Controllers\SlideDeckController::class, 'analytics'])->middleware('workspace.can:links.view')->name('links.slides.analytics.json');
 
         // Plan upgrade, checkout & billing — these touch the workspace
         // owner's subscription/wallet/invoices, so they remain owner-only

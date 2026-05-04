@@ -133,9 +133,14 @@
         <div class="sl-card">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
                 <h5>Deck settings</h5>
-                <span id="sl-status-pill" class="sl-status-pill {{ $deckPayload['is_published'] ? 'live' : 'draft' }}">
-                    {{ $deckPayload['is_published'] ? 'Published v'.$deckPayload['version'] : 'Draft' }}
-                </span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <a href="{{ route('user.links.slides.analytics', $link) }}" class="sl-btn" title="View slide analytics">
+                        <i class="fas fa-chart-bar"></i> Analytics
+                    </a>
+                    <span id="sl-status-pill" class="sl-status-pill {{ $deckPayload['is_published'] ? 'live' : 'draft' }}">
+                        {{ $deckPayload['is_published'] ? 'Published v'.$deckPayload['version'] : 'Draft' }}
+                    </span>
+                </div>
             </div>
             <div class="sl-row" style="margin-top:10px;">
                 <div>
