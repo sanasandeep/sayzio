@@ -62,9 +62,31 @@
                      x-cloak
                      x-data="{ expanded: false }"
                      class="glass rounded-2xl border border-white/10 overflow-hidden hover:border-violet-500/40 transition group">
+                    @php $previewRows = $tpl->preview_layout ?? []; @endphp
                     <div class="aspect-[4/3] flex items-center justify-center overflow-hidden relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                         @if($tpl->thumbnail_url)
                             <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
+                        @elseif(!empty($previewRows))
+                            {{-- Auto-generated mini blueprint of the page's top-level
+                                 blocks. Mirrors the card-templates gallery preview:
+                                 each row is a flex row whose children flex-grow
+                                 proportional to their grid_span, with type-specific
+                                 background/height/icon hints so the layout is
+                                 recognisable at thumbnail size. --}}
+                            <div class="w-full h-full px-2 py-1.5 flex flex-col gap-1 justify-center">
+                                @foreach($previewRows as $row)
+                                    <div class="flex gap-1 w-full items-center">
+                                        @foreach($row as $cell)
+                                            <div class="rounded-[3px] flex items-center justify-center text-white/70"
+                                                 style="flex: {{ $cell['span'] }} 0 0; min-height: {{ $cell['h'] }}px; background: {{ $cell['bg'] }};">
+                                                @if(!empty($cell['icon']))
+                                                    <i class="fas {{ $cell['icon'] }}" style="font-size: 7px;"></i>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endforeach
+                            </div>
                         @else
                             <img src="{{ asset('template-placeholders/page.svg') }}" alt="{{ $tpl->name }} preview" class="w-full h-full object-cover">
                         @endif
