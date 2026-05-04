@@ -342,12 +342,47 @@ class ConversationPublicController extends Controller
 
         $field = $current['answer_field'] ?: $current['key'];
         $answers = $session->answers ?? [];
-        $answers[$field]          = $file->getClientOriginalName();
-        $answers[$field . '_url'] = $url;
-        $answers[$field . '_size']= $file->getSize();
+
+        // Re-upload on the same step: drop the previous file so it doesn't
+        // become an orphan. The nightly cv-uploads:prune-abandoned sweep
+        // would catch it eventually, but cleaning up at write time keeps
+        // disk usage tight and avoids leaking the prior file for `--days`.
+        $prevPath = $this->resolveStoredPath($answers[$field . '_path'] ?? null, $answers[$field . '_url'] ?? null);
+        if ($prevPath && $prevPath !== $path) {
+            try {
+                Storage::disk('public')->delete($prevPath);
+            } catch (\Throwable $ex) {
+                logger()->warning('Failed deleting replaced cv_upload ' . $prevPath . ': ' . $ex->getMessage());
+            }
+        }
+
+        $answers[$field]           = $file->getClientOriginalName();
+        $answers[$field . '_url']  = $url;
+        $answers[$field . '_path'] = $path;
+        $answers[$field . '_size'] = $file->getSize();
         $session->update(['answers' => $answers]);
 
         return response()->json(['ok' => true, 'url' => $url, 'name' => $file->getClientOriginalName()]);
+    }
+
+    /**
+     * Recover a public-disk relative path (e.g. `cv_uploads/2026/05/foo.bin`)
+     * from a stored `_path` answer, or fall back to parsing it out of the
+     * `_url` we wrote earlier. Only paths inside `cv_uploads/` are returned
+     * so a stray value can never trigger a delete elsewhere on the disk.
+     */
+    protected function resolveStoredPath(mixed $storedPath, mixed $storedUrl): ?string
+    {
+        if (is_string($storedPath) && str_starts_with($storedPath, 'cv_uploads/')) {
+            return $storedPath;
+        }
+        if (is_string($storedUrl) && $storedUrl !== '') {
+            $urlPath = parse_url($storedUrl, PHP_URL_PATH) ?: $storedUrl;
+            if (preg_match('#(cv_uploads/[A-Za-z0-9_/\-.]+)#', $urlPath, $m)) {
+                return $m[1];
+            }
+        }
+        return null;
     }
 
     public function captureEmail(Request $request, string $publicId)

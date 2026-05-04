@@ -361,6 +361,11 @@ function renderKindPanel(s, card) {
                     <div><label class="cv-field-label">Accepted extensions (comma-list)</label>
                         <input class="cv-input" data-fbind="accept" value="${escapeAttr(f.accept||'')}" placeholder="pdf,jpg,png"></div>
                 </div>
+                <p class="cv-help" style="margin-top:8px;font-size:12px;opacity:.75">
+                    Heads up: visitor uploads are kept for 7 days. Files from
+                    abandoned chats — and previous uploads when a visitor
+                    re-uploads on this step — are deleted automatically.
+                </p>
             </div>`;
     } else if (s.kind === 'rating') {
         ks.rating = ks.rating || { scale: 'star', min: 1, max: 5 };

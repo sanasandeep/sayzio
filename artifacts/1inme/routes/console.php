@@ -202,3 +202,14 @@ Schedule::command('carbon:snapshot-monthly')
     ->monthlyOn(1, '02:30')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Daily (off-peak): delete orphaned conversational-flow visitor uploads
+// (storage/app/public/cv_uploads/) older than 7 days that aren't
+// referenced by any completed session. Visitors who upload then drop
+// off — or re-upload before completing — would otherwise leave files
+// on disk forever. Re-uploads on the same step are also cleaned up at
+// write time inside ConversationPublicController::captureFile().
+Schedule::command('cv-uploads:prune-abandoned --days=7')
+    ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->onOneServer();
