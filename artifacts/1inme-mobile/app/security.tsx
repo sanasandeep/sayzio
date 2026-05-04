@@ -22,6 +22,7 @@ import {
 
 type Row = {
   href:
+    | "/security/two-factor"
     | "/security/backup-codes"
     | "/security/trusted-contacts"
     | "/security/cool-off";
@@ -83,6 +84,15 @@ export default function SecurityHub() {
     recovery.filter((r) => r.status === "pending" && !r.my_confirmation).length;
 
   const rows: Row[] = [
+    {
+      href: "/security/two-factor",
+      icon: "shield",
+      title: "Two-factor authentication",
+      body: codes?.enabled
+        ? "On — every new device has to enter a code from your authenticator app."
+        : "Add an authenticator app so a stolen password isn't enough to get in.",
+      badge: codes ? (codes.enabled ? "On" : "Off") : null,
+    },
     {
       href: "/security/backup-codes",
       icon: "key",

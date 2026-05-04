@@ -59,6 +59,45 @@ export type SecuritySettings = {
   block_new_devices_during_cool_off: boolean;
 };
 
+// ── TOTP enrolment ────────────────────────────────────────────────
+export type TwoFactorSetup = {
+  secret: string;
+  otpauth_uri: string;
+  issuer: string;
+  account: string;
+};
+
+export async function setupTwoFactor(): Promise<TwoFactorSetup> {
+  const res = await apiFetch<{ data: TwoFactorSetup }>("/auth/2fa/setup", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  return res.data;
+}
+
+export async function enableTwoFactor(
+  code: string,
+): Promise<{ codes: string[]; status: BackupCodeStatus }> {
+  const res = await apiFetch<{
+    data: { codes: string[]; backup_codes: BackupCodeStatus };
+  }>("/auth/2fa/enable", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+  return { codes: res.data.codes, status: res.data.backup_codes };
+}
+
+export async function disableTwoFactor(input: {
+  code?: string;
+  backup_code?: string;
+}): Promise<BackupCodeStatus> {
+  const res = await apiFetch<{ data: { backup_codes: BackupCodeStatus } }>(
+    "/auth/2fa",
+    { method: "DELETE", body: JSON.stringify(input) },
+  );
+  return res.data.backup_codes;
+}
+
 // ── Backup codes ──────────────────────────────────────────────────
 export async function getBackupCodeStatus(): Promise<BackupCodeStatus> {
   const res = await apiFetch<{ data: { backup_codes: BackupCodeStatus } }>(

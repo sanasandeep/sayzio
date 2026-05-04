@@ -462,6 +462,114 @@ paths:
         '400': { description: invalid code, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { description: user not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /auth/2fa/setup:
+    post:
+      summary: Begin TOTP enrolment — returns a fresh secret + otpauth URI
+      description: |
+        Starts a 2FA enrolment ceremony. The server stores a *pending* secret
+        keyed to the current user and returns it (plus a scannable
+        `otpauth://` URI) so the client can render a QR code. The secret is
+        not yet active — the user must confirm by submitting a working code
+        to `POST /auth/2fa/enable` within the enrolment window. Calling this
+        endpoint again replaces any previous pending secret. Fails with 409
+        if 2FA is already enabled (call `DELETE /auth/2fa` first to reset).
+      responses:
+        '200':
+          description: enrolment started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      secret:      { type: string, description: 'Base32-encoded TOTP secret. Show alongside the QR for users who can''t scan.' }
+                      otpauth_uri: { type: string, description: 'Full `otpauth://totp/...` URI for QR rendering.' }
+                      issuer:      { type: string }
+                      account:     { type: string, description: 'Label rendered inside the authenticator app (typically the user''s email).' }
+        '409':
+          description: 2FA already enabled
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  /auth/2fa/enable:
+    post:
+      summary: Confirm TOTP enrolment with a test code and enable 2FA
+      description: |
+        Verifies a 6-digit code against the pending secret from
+        `POST /auth/2fa/setup`. On success, 2FA is switched on for the
+        account and a fresh set of single-use backup codes is generated and
+        returned in the same response so the user can save them right away
+        (subsequent fetches via `GET /auth/2fa/backup-codes` only expose the
+        count). Fails with 400 if the code doesn't match, or 409 if there is
+        no pending secret to confirm.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, minLength: 6, maxLength: 6, description: 'Current TOTP code from the user''s authenticator app.' }
+      responses:
+        '200':
+          description: 2FA enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      backup_codes: { $ref: '#/components/schemas/BackupCodeStatus' }
+                      codes:        { type: array, items: { type: string }, description: 'Plaintext backup codes — show once, never re-fetchable.' }
+        '400':
+          description: invalid code
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '409':
+          description: no pending enrolment / already enabled
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  /auth/2fa:
+    delete:
+      summary: Turn 2FA off for the current account
+      description: |
+        Disables 2FA, wipes the stored TOTP secret, and invalidates every
+        outstanding backup code. The caller must prove possession by
+        supplying either the current TOTP code or a still-valid backup code
+        — guarding against an attacker who has only stolen the session
+        token. Returns the (now-disabled) backup-code snapshot for UI
+        consistency.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:        { type: string, nullable: true, description: 'Current TOTP code.' }
+                backup_code: { type: string, nullable: true, description: 'A still-valid single-use backup code (alternative to `code`).' }
+      responses:
+        '200':
+          description: 2FA disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      backup_codes: { $ref: '#/components/schemas/BackupCodeStatus' }
+        '400':
+          description: invalid code
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '409':
+          description: 2FA was not enabled
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
   /auth/2fa/backup-codes:
     get:
       summary: Status of the current backup-code set (counts only, no plaintext)

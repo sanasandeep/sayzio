@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -23,6 +23,7 @@ import {
 
 export default function BackupCodesScreen() {
   const colors = useColors();
+  const router = useRouter();
   const [status, setStatus] = useState<BackupCodeStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,9 +151,14 @@ export default function BackupCodesScreen() {
               </Text>
             </View>
             <Text style={[styles.body, { color: colors.mutedForeground }]}>
-              Enable 2FA from the web security page first; backup codes only
-              make sense as a fallback for it.
+              Backup codes only make sense as a fallback for two-factor.
+              Turn 2FA on first and we'll generate your codes right away.
             </Text>
+            <Button
+              label="Set up two-factor"
+              onPress={() => router.push("/security/two-factor" as never)}
+              style={{ marginTop: 8 }}
+            />
           </View>
         ) : (
           <View
