@@ -2298,6 +2298,17 @@
                 #c2410c 78%,
                 #b45309 100%);
         }
+        html.light-mode .grad-text {
+            background: linear-gradient(95deg,
+                #0aa3a8 0%,
+                #6d28d9 30%,
+                #be185d 55%,
+                #c2410c 78%,
+                #b45309 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            animation: gradShift 9s ease-in-out infinite;
+        }
         html.light-mode .btn-glow::after {
             background: conic-gradient(from 0deg,
                 #0aa3a8, #6d28d9, #be185d, #c2410c, #b45309, #0aa3a8);
