@@ -71,20 +71,30 @@ export type BiolinkPayload = {
 
 // Best-effort slide-view ping. Mirrors the web's /sl/{alias}/view ping
 // so creator analytics include slide impressions from the mobile viewer.
+// `dwellMs` is sent on the follow-up "exit" ping fired when the viewer
+// scrolls past or unmounts the slide; the server stores entry rows with
+// dwell_ms = NULL and exit rows with dwell_ms set, so impression counts
+// stay honest while powering the per-slide avg-time analytic.
 export function trackSlideView(
   alias: string,
   slideIndex: number,
   pageSessionId?: string | null,
   completed: boolean = false,
+  dwellMs?: number | null,
 ): void {
   if (!alias || !Number.isFinite(slideIndex)) return;
+  const body: Record<string, unknown> = {
+    slide_index: slideIndex,
+    page_session_id: pageSessionId ?? null,
+    completed: !!completed,
+  };
+  if (Number.isFinite(dwellMs as number) && (dwellMs as number) >= 0) {
+    // Cap client-side at 10 minutes to match the server validator.
+    body.dwell_ms = Math.min(600000, Math.round(dwellMs as number));
+  }
   void apiFetch(`/biolinks/${encodeURIComponent(alias)}/slides/view`, {
     method: "POST",
-    body: JSON.stringify({
-      slide_index: slideIndex,
-      page_session_id: pageSessionId ?? null,
-      completed: !!completed,
-    }),
+    body: JSON.stringify(body),
   }).catch(() => {});
 }
 

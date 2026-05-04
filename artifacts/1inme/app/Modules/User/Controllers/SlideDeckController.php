@@ -290,7 +290,13 @@ class SlideDeckController extends Controller
         $start = $range['start'];
         $end   = $range['end'];
 
-        $events = LinkSlideViewEvent::where('deck_id', $deck->id);
+        // Entry pings are stored with dwell_ms = NULL; "exit" pings the
+        // player fires when leaving a slide carry dwell_ms. Filtering
+        // impression-style aggregations to NULL dwell rows keeps the
+        // existing counts honest now that exit pings live in the same
+        // table.
+        $events = LinkSlideViewEvent::where('deck_id', $deck->id)
+            ->whereNull('dwell_ms');
         if ($start) $events->where('occurred_at', '>=', $start);
         if ($end)   $events->where('occurred_at', '<=', $end);
         $totalImpressions = (clone $events)->count();
@@ -320,6 +326,22 @@ class SlideDeckController extends Controller
             ->pluck('c', 'slide_index')
             ->all();
 
+        // Per-slide average dwell time (ms). Pulled from "exit" pings the
+        // player fires when leaving a slide; the server already caps each
+        // ping at 10 minutes (see SlideEventController::view) so a tab
+        // left open overnight can't poison the average. Scope to the same
+        // window as the impression metrics so the avg-time figures match
+        // the period pill the user picked.
+        $dwellQ = LinkSlideViewEvent::where('deck_id', $deck->id)
+            ->whereNotNull('dwell_ms');
+        if ($start) $dwellQ->where('occurred_at', '>=', $start);
+        if ($end)   $dwellQ->where('occurred_at', '<=', $end);
+        $perIndexDwell = $dwellQ
+            ->select('slide_index', DB::raw('AVG(dwell_ms) as a'), DB::raw('COUNT(*) as c'))
+            ->groupBy('slide_index')
+            ->get()
+            ->keyBy('slide_index');
+
         // First-slide impressions form the funnel baseline for drop-off %.
         $firstImpressions = (int) ($perIndexCounts[$slides->first()->sort_order ?? 0] ?? 0);
 
@@ -328,14 +350,19 @@ class SlideDeckController extends Controller
             $idx = (int) $s->sort_order;
             $views = (int) ($perIndexCounts[$idx] ?? 0);
             $uniq  = (int) ($perIndexUnique[$idx] ?? 0);
+            $dwellRow    = $perIndexDwell->get($idx);
+            $avgDwellMs  = $dwellRow ? (int) round((float) $dwellRow->a) : null;
+            $dwellSample = $dwellRow ? (int) $dwellRow->c : 0;
             $perSlide[] = [
-                'index'        => $idx,
-                'title'        => $s->title ? Str::limit($s->title, 60) : ('Slide ' . ($idx + 1)),
-                'views'        => $views,
-                'unique'       => $uniq,
-                'drop_off_pct' => $firstImpressions > 0
+                'index'         => $idx,
+                'title'         => $s->title ? Str::limit($s->title, 60) : ('Slide ' . ($idx + 1)),
+                'views'         => $views,
+                'unique'        => $uniq,
+                'drop_off_pct'  => $firstImpressions > 0
                     ? round((($firstImpressions - $views) / $firstImpressions) * 100, 1)
                     : 0,
+                'avg_dwell_ms'  => $avgDwellMs,
+                'dwell_samples' => $dwellSample,
             ];
         }
 

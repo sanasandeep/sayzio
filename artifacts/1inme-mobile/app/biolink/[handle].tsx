@@ -1523,6 +1523,12 @@ function SlidesViewer({
   const sessionRef = useRef<string>(`m_${Math.random().toString(36).slice(2, 12)}`);
   const trackedRef = useRef<Set<number>>(new Set());
   const completedRef = useRef<boolean>(false);
+  // Track when the active slide first became visible so we can fire a
+  // follow-up "exit" ping with dwell_ms on slide change / unmount. The
+  // server stores entry rows with dwell_ms = NULL and exit rows with
+  // dwell_ms set, so per-slide averages don't double-count impressions.
+  const dwellStartRef = useRef<number>(0);
+  const dwellSlideRef = useRef<number>(-1);
 
   // Build a quick lookup so slides can render owner blocks even if the
   // server-stripped snapshot only carried minimal fields.
@@ -1530,10 +1536,20 @@ function SlidesViewer({
   for (const b of ownerBlocks) blockById.set(b.id, b);
 
   useEffect(() => {
+    // Flush dwell for the slide we are leaving (if any) before logging
+    // the new one, so the exit ping is attributed to the right slide.
+    if (dwellSlideRef.current !== -1 && dwellSlideRef.current !== active && dwellStartRef.current > 0) {
+      const elapsed = Date.now() - dwellStartRef.current;
+      if (elapsed > 0) {
+        trackSlideView(alias, dwellSlideRef.current, sessionRef.current, false, elapsed);
+      }
+    }
     if (!trackedRef.current.has(active)) {
       trackedRef.current.add(active);
       trackSlideView(alias, active, sessionRef.current);
     }
+    dwellSlideRef.current = active;
+    dwellStartRef.current = Date.now();
     // Fire a one-shot deck-completion event when the viewer reaches
     // the last slide so analytics can report deck-completion rate.
     if (!completedRef.current && slides.length > 0 && active >= slides.length - 1) {
@@ -1541,6 +1557,19 @@ function SlidesViewer({
       trackSlideView(alias, active, sessionRef.current, true);
     }
   }, [active, alias, slides.length]);
+
+  // On unmount, flush dwell for whichever slide is still active so the
+  // last slide in a session still contributes an avg-time sample.
+  useEffect(() => {
+    return () => {
+      if (dwellSlideRef.current !== -1 && dwellStartRef.current > 0) {
+        const elapsed = Date.now() - dwellStartRef.current;
+        if (elapsed > 0) {
+          trackSlideView(alias, dwellSlideRef.current, sessionRef.current, false, elapsed);
+        }
+      }
+    };
+  }, [alias]);
 
   // Optional auto-advance ticker.
   useEffect(() => {

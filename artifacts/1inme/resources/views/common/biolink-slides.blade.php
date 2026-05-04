@@ -231,18 +231,39 @@
     let timer = null;
     let paused = false;
 
-    function track(i, completed) {
+    // Cap dwell-time pings at 10 minutes — matches server validator.
+    // Anything longer is almost certainly a tab left open and would
+    // otherwise skew the per-slide average. The server applies the
+    // same cap, but trimming here saves a round trip.
+    const DWELL_CAP_MS = 600000;
+
+    function track(i, completed, dwellMs) {
         try {
+            const body = { slide_index: i, page_session_id: pageSessionId, completed: !!completed };
+            if (Number.isFinite(dwellMs) && dwellMs >= 0) {
+                body.dwell_ms = Math.min(DWELL_CAP_MS, Math.round(dwellMs));
+            }
             fetch(VISIT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-                body: JSON.stringify({ slide_index: i, page_session_id: pageSessionId, completed: !!completed }),
+                body: JSON.stringify(body),
                 keepalive: true,
                 credentials: 'same-origin',
             }).catch(() => {});
         } catch (e) {}
     }
     let completedFired = false;
+    // Time the active slide became visible. We fire a follow-up "exit"
+    // ping with dwell_ms when the viewer leaves it (next/prev nav, tab
+    // hidden, or page unload) so analytics can compute average time
+    // spent per slide without changing the impression-count semantics.
+    let dwellStart = 0;
+    function flushDwell() {
+        if (!dwellStart) return;
+        const elapsed = Date.now() - dwellStart;
+        dwellStart = 0;
+        if (elapsed > 0) track(current, false, elapsed);
+    }
 
     function clearTimer() { if (timer) { clearInterval(timer); timer = null; } }
 
@@ -265,8 +286,12 @@
             else fill.style.width = AUTO_MS > 0 ? '0%' : '100%';
         });
         counter.textContent = (idx + 1) + ' / ' + TOTAL;
+        // Flush dwell for the slide we are leaving before swapping
+        // `current`, so the exit ping is attributed to the right slide.
+        if (idx !== current) flushDwell();
         current = idx;
         track(idx, false);
+        dwellStart = Date.now();
         // Fire a one-shot deck-completion event when the viewer reaches
         // the final slide so analytics can compute completion rate.
         if (!completedFired && idx >= TOTAL - 1) {
@@ -275,6 +300,21 @@
         }
         startAuto();
     }
+
+    // Page hide / tab switch: flush dwell for the currently visible
+    // slide so the last slide in a session still contributes an avg-time
+    // sample. `pagehide` is more reliable than `unload` on mobile Safari.
+    // When the tab becomes visible again we restart the dwell timer so
+    // subsequent time on the same slide is still attributed (otherwise
+    // we'd undercount viewers who tab away and return).
+    window.addEventListener('pagehide', flushDwell);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            flushDwell();
+        } else if (!dwellStart) {
+            dwellStart = Date.now();
+        }
+    });
 
     function startAuto() {
         clearTimer();

@@ -133,6 +133,10 @@ class BiolinkController extends Controller
             'slide_index'     => ['required', 'integer', 'min:0', 'max:200'],
             'page_session_id' => ['nullable', 'string', 'max:60'],
             'completed'       => ['nullable', 'boolean'],
+            // Optional dwell-time ping fired when the mobile viewer leaves
+            // the slide. Capped server-side at 10 minutes — see web
+            // SlideEventController::view for the same rationale.
+            'dwell_ms'        => ['nullable', 'integer', 'min:0', 'max:600000'],
         ]);
 
         $deck = LinkSlideDeck::withoutGlobalScope('workspace')
@@ -145,6 +149,7 @@ class BiolinkController extends Controller
                 'link_id'         => $link->id,
                 'slide_index'     => (int) $data['slide_index'],
                 'completed'       => (bool) ($data['completed'] ?? false),
+                'dwell_ms'        => isset($data['dwell_ms']) ? (int) $data['dwell_ms'] : null,
                 'page_session_id' => $data['page_session_id'] ?? null,
                 'source'          => 'mobile_app',
             ]);

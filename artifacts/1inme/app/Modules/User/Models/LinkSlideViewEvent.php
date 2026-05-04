@@ -10,7 +10,7 @@ class LinkSlideViewEvent extends Model
     protected $table = 'link_slide_view_events';
 
     protected $fillable = [
-        'deck_id', 'link_id', 'slide_index', 'completed',
+        'deck_id', 'link_id', 'slide_index', 'completed', 'dwell_ms',
         'page_session_id', 'source', 'occurred_at',
     ];
 
@@ -19,6 +19,7 @@ class LinkSlideViewEvent extends Model
         return [
             'slide_index' => 'integer',
             'completed'   => 'boolean',
+            'dwell_ms'    => 'integer',
             'occurred_at' => 'datetime',
         ];
     }

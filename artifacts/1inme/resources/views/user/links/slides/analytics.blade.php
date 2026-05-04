@@ -56,12 +56,23 @@
     </div>
 
     <div class="card p-3">
-        <h5>Per-slide views &amp; drop-off</h5>
+        <h5>Per-slide views, drop-off &amp; avg time</h5>
+        <div class="text-muted small">Avg time is the average seconds a viewer spends on a slide before moving on.</div>
         <div id="sl-funnel" class="mt-3"><em class="text-muted small">Loading…</em></div>
     </div>
 </div>
 
 <script>
+function formatDwell(ms) {
+    if (ms == null || !isFinite(ms)) return '—';
+    if (ms < 1000) return ms + 'ms';
+    const s = ms / 1000;
+    if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + 's';
+    const m = Math.floor(s / 60);
+    const r = Math.round(s - m * 60);
+    return m + 'm ' + r + 's';
+}
+
 (function () {
     // Forward the page's current ?period=… (and from/to for custom) to the
     // JSON endpoint so the headline cards, funnel, and trend all reflect the
@@ -105,11 +116,18 @@
                 const max = Math.max(...data.slides.map(s => s.views)) || 1;
                 f.innerHTML = data.slides.map(s => {
                     const pct = Math.round((s.views / max) * 100);
+                    const dwell = formatDwell(s.avg_dwell_ms);
+                    const dwellTitle = s.dwell_samples > 0
+                        ? `Average across ${s.dwell_samples} viewer${s.dwell_samples === 1 ? '' : 's'} who moved on`
+                        : 'No dwell samples yet';
                     return `
                         <div class="mb-3">
                             <div class="d-flex justify-content-between small">
                                 <strong>#${s.index + 1} · ${s.title.replace(/</g,'&lt;')}</strong>
-                                <span class="text-muted">${s.views} views · ${s.unique} unique · ${s.drop_off_pct}% drop-off</span>
+                                <span class="text-muted">
+                                    ${s.views} views · ${s.unique} unique · ${s.drop_off_pct}% drop-off ·
+                                    <span title="${dwellTitle}">avg ${dwell}</span>
+                                </span>
                             </div>
                             <div class="progress" style="height:18px;">
                                 <div class="progress-bar bg-primary" style="width:${pct}%;">${s.views}</div>
