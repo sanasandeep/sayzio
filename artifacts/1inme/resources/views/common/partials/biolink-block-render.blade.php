@@ -52,7 +52,7 @@
             </div>
             <div class="px-6 py-5 flex items-center gap-4">
                 @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
-                @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center"><i class="{{ $s['icon'] }} text-xl text-white"></i></div>@endif
+                @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl text-white"></i></div>@endif
                 <div class="flex-1 min-w-0">
                     <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
                     @if(!empty($s['description']))<p class="text-xs text-white/80 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
@@ -65,7 +65,7 @@
            class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3"
            @if($btnInline) style="{{ $btnInline }}" @endif>
             @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
-            @elseif(!empty($s['icon']))<i class="{{ $s['icon'] }}"></i>@endif
+            @elseif(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
             <span>{{ $s['text'] ?? 'Link' }}</span>
         </a>
     @endif
@@ -77,7 +77,7 @@
        style="background: {{ $s['bg_color'] ?? ($btnColor ?? '#7c3aed') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
         <div class="px-6 py-5 flex items-center gap-4">
             @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
-            @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ $s['icon'] }} text-xl"></i></div>@endif
+            @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl"></i></div>@endif
             <div class="flex-1 min-w-0">
                 <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
                 @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
@@ -227,7 +227,7 @@
         @foreach(($s['items'] ?? []) as $i => $item)
         <div class="glass-block rounded-xl overflow-hidden {{ $block->type === 'faq_v2' ? 'border border-white/10' : '' }}">
             <button @click="open = open === {{ $i }} ? null : {{ $i }}" class="w-full px-4 py-3 flex items-center justify-between text-left">
-                <span class="text-sm font-medium flex items-center gap-2">@if(!empty($item['icon']))<i class="{{ $item['icon'] }}"></i>@endif{{ $item['question'] ?? '' }}</span>
+                <span class="text-sm font-medium flex items-center gap-2">@if(!empty($item['icon']))<i class="{{ fa_icon_class($item['icon']) }}"></i>@endif{{ $item['question'] ?? '' }}</span>
                 <i class="fas fa-chevron-down text-xs transition-transform" :class="open === {{ $i }} ? 'rotate-180' : ''"></i>
             </button>
             <div x-show="open === {{ $i }}" x-cloak class="px-4 pb-3"><p class="text-sm" style="color:{{ $fontColor }}99">{{ $item['answer'] ?? '' }}</p></div>
@@ -251,7 +251,7 @@
 @elseif($block->type === 'service')
     <div class="mb-4 glass-block rounded-xl p-4">
         <div class="flex items-start gap-3">
-            <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0"><i class="{{ $s['icon'] ?? 'fas fa-star' }} text-purple-400"></i></div>
+            <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0"><i class="{{ fa_icon_class($s['icon'] ?? 'fas fa-star', 'fas fa-star') }} text-purple-400"></i></div>
             <div class="flex-1">
                 <p class="font-semibold text-sm">{{ $s['name'] ?? '' }}</p>
                 @if(!empty($s['price']))<p class="text-xs text-purple-400 mt-0.5">{{ $s['price'] }}</p>@endif
@@ -279,14 +279,14 @@
 @elseif($block->type === 'alert')
     @php $alertColors = ['info' => 'border-violet-400/30 bg-violet-500/10', 'success' => 'border-green-400/30 bg-green-500/10', 'warning' => 'border-yellow-400/30 bg-yellow-500/10', 'error' => 'border-red-400/30 bg-red-500/10']; @endphp
     <div class="mb-4 rounded-xl p-4 border {{ $alertColors[$s['type'] ?? 'info'] ?? $alertColors['info'] }}">
-        @php $_alertIcon = $s['icon'] ?? 'fa-info-circle'; if(!preg_match('/^fa[sbrl] /', $_alertIcon)) $_alertIcon = 'fas ' . $_alertIcon; @endphp
+        @php $_alertIcon = fa_icon_class($s['icon'] ?? 'fa-info-circle', 'fas fa-info-circle'); @endphp
         <p class="text-sm flex items-center gap-2"><i class="{{ $_alertIcon }}"></i>{{ $s['text'] ?? '' }}</p>
     </div>
 
 @elseif(in_array($block->type, ['list', 'list_numbered']))
     <div class="mb-4 glass-block rounded-xl p-4">
         @if($block->type === 'list')
-            @php $_listIcon = $s['icon'] ?? 'fa-check'; if(!preg_match('/^fa[sbrl] /', $_listIcon)) $_listIcon = 'fas ' . $_listIcon; @endphp
+            @php $_listIcon = fa_icon_class($s['icon'] ?? 'fa-check', 'fas fa-check'); @endphp
             <ul class="space-y-2">@foreach(($s['items'] ?? []) as $item)<li class="flex items-start gap-2 text-sm"><i class="{{ $_listIcon }} text-purple-400 mt-0.5 text-xs"></i><span style="color:{{ $fontColor }}cc">{{ $item }}</span></li>@endforeach</ul>
         @else
             <ol class="space-y-2 list-decimal list-inside">@foreach(($s['items'] ?? []) as $item)<li class="text-sm" style="color:{{ $fontColor }}cc">{{ $item }}</li>@endforeach</ol>
@@ -620,7 +620,7 @@
 
 @elseif($block->type === 'file')
     <a href="{{ $s['url'] ?? '#' }}" target="_blank" class="mb-3 glass-block rounded-xl p-4 flex items-center gap-3 block hover:bg-white/[0.06] transition">
-        <div class="w-11 h-11 rounded-xl bg-purple-500/20 flex items-center justify-center"><i class="{{ $s['icon'] ?? 'fas fa-file-download' }} text-purple-400"></i></div>
+        <div class="w-11 h-11 rounded-xl bg-purple-500/20 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon'] ?? 'fas fa-file-download', 'fas fa-file-download') }} text-purple-400"></i></div>
         <div class="flex-1 min-w-0"><p class="font-medium text-sm truncate">{{ $s['name'] ?? 'Download File' }}</p>@if(!empty($s['size']))<p class="text-xs text-white/40">{{ $s['size'] }}</p>@endif</div>
         <i class="fas fa-download text-white/30"></i>
     </a>
@@ -777,7 +777,7 @@
             @if(!empty($s['thumbnail']))
                 <img src="{{ $s['thumbnail'] }}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
             @elseif(!empty($s['icon']))
-                <i class="fas {{ $s['icon'] }} text-2xl flex-shrink-0"></i>
+                <i class="{{ fa_icon_class($s['icon']) }} text-2xl flex-shrink-0"></i>
             @endif
             <div class="text-left flex-1 min-w-0">
                 <div class="font-semibold truncate">{{ $s['text'] ?? 'Featured' }}</div>

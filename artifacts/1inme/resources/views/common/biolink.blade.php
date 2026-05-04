@@ -943,7 +943,7 @@
                    class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3"
                    @if($btnInline) style="{{ $btnInline }}" @endif>
                     @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
-                    @elseif(!empty($s['icon']))@php $_lnkIcon = $s['icon']; if(!preg_match('/^fa[sbrl] /', $_lnkIcon)) $_lnkIcon = 'fas ' . $_lnkIcon; @endphp<i class="{{ $_lnkIcon }}"></i>@endif
+                    @elseif(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
                     <span>{{ $s['text'] ?? 'Link' }}</span>
                 </a>
 
@@ -953,7 +953,7 @@
                    style="background: {{ $s['bg_color'] ?? $btnColor }};{{ $btnInline ? ' ' . $btnInline : '' }}">
                     <div class="px-6 py-5 flex items-center gap-4">
                         @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
-                        @elseif(!empty($s['icon']))@php $_lnkBigIcon = $s['icon']; if(!preg_match('/^fa[sbrl] /', $_lnkBigIcon)) $_lnkBigIcon = 'fas ' . $_lnkBigIcon; @endphp<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ $_lnkBigIcon }} text-xl"></i></div>@endif
+                        @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl"></i></div>@endif
                         <div class="flex-1 min-w-0">
                             <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
                             @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
@@ -971,7 +971,7 @@
             @elseif(in_array($block->type, ['list', 'list_numbered']))
                 <div class="mb-4 glass-block rounded-xl p-4">
                     @if($block->type === 'list')
-                        @php $_listIcon = $s['icon'] ?? 'fa-check'; if(!preg_match('/^fa[sbrl] /', $_listIcon)) $_listIcon = 'fas ' . $_listIcon; @endphp
+                        @php $_listIcon = fa_icon_class($s['icon'] ?? 'fa-check', 'fas fa-check'); @endphp
                         <ul class="space-y-2">@foreach(($s['items'] ?? []) as $item)<li class="flex items-start gap-2 text-sm"><i class="{{ $_listIcon }} text-purple-400 mt-0.5 text-xs"></i><span style="color:{{ $fontColor }}cc">{{ $item }}</span></li>@endforeach</ul>
                     @else
                         <ol class="space-y-2 list-decimal list-inside">@foreach(($s['items'] ?? []) as $item)<li class="text-sm" style="color:{{ $fontColor }}cc">{{ $item }}</li>@endforeach</ol>
@@ -991,7 +991,7 @@
             @elseif($block->type === 'alert')
                 @php $alertColors = ['info' => 'border-violet-400/30 bg-violet-500/10', 'success' => 'border-green-400/30 bg-green-500/10', 'warning' => 'border-yellow-400/30 bg-yellow-500/10', 'error' => 'border-red-400/30 bg-red-500/10']; @endphp
                 <div class="mb-4 rounded-xl p-4 border {{ $alertColors[$s['type'] ?? 'info'] ?? $alertColors['info'] }}">
-                    @php $_alertIcon = $s['icon'] ?? 'fa-info-circle'; if(!preg_match('/^fa[sbrl] /', $_alertIcon)) $_alertIcon = 'fas ' . $_alertIcon; @endphp
+                    @php $_alertIcon = fa_icon_class($s['icon'] ?? 'fa-info-circle', 'fas fa-info-circle'); @endphp
                     <p class="text-sm flex items-center gap-2"><i class="{{ $_alertIcon }}"></i>{{ $s['text'] ?? '' }}</p>
                 </div>
 
