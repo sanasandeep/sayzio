@@ -218,14 +218,19 @@ window.__SA_SUBHEADING = @json(\App\Services\AI\SiteAssistantSettings::subheadin
 // already-localized starter prompts — `starterPromptsFor` resolves the
 // Accept-Language header for us, so the visitor sees prompts in their
 // language whenever the admin has provided overrides.
-window.__SA_TOOLTIPS = @json(array_values(array_unique(array_filter(array_map('strval', array_merge(
-  [
-    __('Need a hand? 👋'),
-    __('Ask me anything'),
-    __('Tips for this page?'),
-  ],
-  \App\Services\AI\SiteAssistantSettings::starterPromptsFor($__sa_cfg)
-))))));
+@php
+    $__sa_tooltip_seed = [
+        __('Need a hand? 👋'),
+        __('Ask me anything'),
+        __('Tips for this page?'),
+    ];
+    $__sa_tooltip_admin = \App\Services\AI\SiteAssistantSettings::starterPromptsFor($__sa_cfg);
+    $__sa_tooltips = array_values(array_unique(array_filter(array_map(
+        'strval',
+        array_merge($__sa_tooltip_seed, is_array($__sa_tooltip_admin) ? $__sa_tooltip_admin : [])
+    ))));
+@endphp
+window.__SA_TOOLTIPS = @json($__sa_tooltips);
 window.__SA_CHROME = {
   subheading:        @json(\App\Services\AI\SiteAssistantSettings::subheadingFor($__sa_cfg)),
   typing_indicator:  @json(\App\Services\AI\SiteAssistantSettings::typingIndicatorFor($__sa_cfg)),
