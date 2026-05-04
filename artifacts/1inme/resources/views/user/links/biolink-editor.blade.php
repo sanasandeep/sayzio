@@ -975,7 +975,11 @@ function biolinkEditor() {
             window.addEventListener('open-edit-drawer', function(e) {
                 self.editingBlockId = e.detail.id;
             });
-            window.addEventListener('close-edit-drawer', function() {
+            window.addEventListener('close-edit-drawer', function(e) {
+                // Same in-app confirm guard as closeEditDrawer() so the
+                // dispatch-based close path (Cancel buttons, programmatic
+                // closes) can't silently drop a failed design change either.
+                if (!(e && e.detail && e.detail.skipDirtyCheck) && !_confirmDiscardDesignChange()) return;
                 self.editingBlockId = null;
                 var c = document.getElementById('editDrawerContent');
                 Alpine.destroyTree(c);
@@ -990,6 +994,11 @@ function biolinkEditor() {
             });
         },
         closeEditDrawer() {
+            // In-app confirm so creators don't silently drop a failed
+            // design change by clicking the overlay or the close (X)
+            // button. Cancelling keeps the drawer open with the chip and
+            // the same block selected; confirming proceeds with the close.
+            if (!_confirmDiscardDesignChange()) return;
             this.editingBlockId = null;
             var container = document.getElementById('editDrawerContent');
             Alpine.destroyTree(container);
@@ -1001,6 +1010,36 @@ function biolinkEditor() {
 
 function closeEditDrawerGlobal() {
     window.dispatchEvent(new CustomEvent('close-edit-drawer'));
+}
+
+// Returns true when the currently-open edit drawer has a `blockDesignsGallery`
+// child whose `_error` flag is set — i.e. the creator's last design change
+// failed and the red chip is still visible. Used by the close / switch
+// guards below so navigating away from that block doesn't silently drop
+// the unsaved attempt. Mirrors the `beforeunload` guard added in #1031,
+// but for in-editor transitions that never trigger `beforeunload`.
+function _hasPendingDesignError() {
+    var c = document.getElementById('editDrawerContent');
+    if (!c) return false;
+    var nodes = c.querySelectorAll('[x-data]');
+    for (var i = 0; i < nodes.length; i++) {
+        var stack = nodes[i]._x_dataStack;
+        if (!stack || !stack.length) continue;
+        var d = stack[0];
+        // Duck-type the gallery: it's the only x-data scope on the
+        // edit form that owns both `_error` and a `blockId` matching
+        // the gallery contract. Avoids coupling to a brittle x-data
+        // selector that would break if the attribute string changes.
+        if (d && typeof d._error !== 'undefined' && typeof d.blockId !== 'undefined') {
+            if (d._error) return true;
+        }
+    }
+    return false;
+}
+
+function _confirmDiscardDesignChange() {
+    if (!_hasPendingDesignError()) return true;
+    return confirm('You have an unsaved design change — discard it?');
 }
 
 var _editingBlockId = null;
@@ -1021,6 +1060,15 @@ function _hideEditPreview() {
 }
 
 function openEditDrawer(blockId) {
+    // Guard the in-editor "switch to a different block" transition the
+    // same way we guard close: if the currently-open block has a failed
+    // design change still showing in the chip, confirm before swapping
+    // it out. Re-opening the same block (e.g. refreshBlockEditor() after
+    // a successful action) is exempt — _error would already be cleared,
+    // but we also short-circuit the check to keep refreshes silent.
+    if (_editingBlockId && String(blockId) !== String(_editingBlockId)) {
+        if (!_confirmDiscardDesignChange()) return;
+    }
     _editingBlockId = blockId;
     var container = document.getElementById('editDrawerContent');
     container.innerHTML = '<div class="flex items-center justify-center py-16"><i class="fas fa-spinner fa-spin text-2xl" style="color: var(--text-faint);"></i></div>';
