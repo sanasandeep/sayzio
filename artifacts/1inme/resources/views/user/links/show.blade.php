@@ -1518,7 +1518,10 @@
                 $prevKey = $b->block_id . '|' . ($b->destination_url ?? '');
                 $prev    = $blockStatsPrevByDest[$prevKey]->count ?? 0;
             @endphp
-            <tr>
+            <tr class="cursor-pointer hover:bg-white/[0.02] block-drilldown-row"
+                data-block-id="{{ $b->block_id }}"
+                data-block-title="{{ $bi['title'] }}"
+                title="Click to see clicks over time, top referrers, devices, and visitor types for this block">
                 <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
                 <td style="color: var(--text-primary); min-width: 220px;">
                     <div class="flex items-center gap-2.5">
@@ -1538,6 +1541,7 @@
                                     <span class="text-[9.5px] px-1.5 py-0.5 rounded-md" style="background: var(--bg-glass-input); color: var(--text-muted); border: 1px solid var(--border-glass);" title="Parent block">in {{ \Illuminate\Support\Str::limit($bi['parent_title'], 22) }}</span>
                                 @endif
                                 <span class="text-[9.5px]" style="color: var(--text-faint);">#{{ $b->block_id }}</span>
+                                <span class="text-[9.5px] px-1.5 py-0.5 rounded-md inline-flex items-center gap-1" style="background: rgba(56,189,248,0.12); color:#7dd3fc; border:1px solid rgba(56,189,248,0.3);"><i class="fas fa-chart-line text-[8px]"></i>Drill down</span>
                             </div>
                         </div>
                     </div>
@@ -1558,7 +1562,150 @@
         </table>
     </div>
     @endif
+
+    {{-- Zero-click blocks: still clickable so creators can drill down on
+         blocks that haven't gotten any traffic in this window yet. --}}
+    @php
+        $shownBlockIds = collect($blockStats ?? [])->pluck('block_id')->map(fn($v)=>(int)$v)->unique();
+        $zeroClickBlocks = collect($blockSummaryAll ?? [])->filter(fn($b) => !$shownBlockIds->contains((int)$b['block_id']))->values();
+    @endphp
+    @if($zeroClickBlocks->isNotEmpty())
+        <div class="mt-4 pt-4" style="border-top: 1px dashed var(--border-glass);">
+            <div class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-faint);">No clicks in this period — click to drill down</div>
+            <div class="flex flex-wrap gap-2">
+                @foreach($zeroClickBlocks as $zb)
+                    <button type="button"
+                            class="block-drilldown-row inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
+                            data-block-id="{{ $zb['block_id'] }}"
+                            data-block-title="{{ $zb['title'] }}"
+                            title="See clicks/day, referrers, devices, and visitor types for this block">
+                        <i class="fas fa-chart-line text-[10px]" style="color:#7dd3fc;"></i>
+                        <span class="truncate" style="max-width: 180px;">{{ $zb['title'] }}</span>
+                        <span class="text-[9.5px]" style="color: var(--text-faint);">#{{ $zb['block_id'] }}</span>
+                    </button>
+                @endforeach
+            </div>
+        </div>
+    @endif
 </div>
+
+{{-- ============== Per-block analytics drill-down modal ============== --}}
+<div id="block-drilldown-modal" class="fixed inset-0 z-50 hidden" style="background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);" role="dialog" aria-modal="true" aria-labelledby="bdd-title">
+    <div class="absolute inset-0" data-bdd-close></div>
+    <div class="relative max-w-3xl mx-auto mt-12 mb-12 mx-4 rounded-2xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border-glass); box-shadow: 0 30px 60px rgba(0,0,0,0.5);">
+        <div class="flex items-center justify-between gap-3 px-5 py-4" style="border-bottom: 1px solid var(--border-glass);">
+            <div class="min-w-0">
+                <div class="text-[11px] uppercase tracking-wider" style="color: var(--text-faint);">Block drill-down</div>
+                <div id="bdd-title" class="text-base font-bold truncate" style="color: var(--text-primary);">Block</div>
+            </div>
+            <div class="flex items-center gap-2">
+                <select id="bdd-range" class="text-xs px-2 py-1.5 rounded-md" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+                <button type="button" data-bdd-close class="btn-ghost text-xs py-1.5 px-2.5"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div id="bdd-body" class="p-5 max-h-[75vh] overflow-y-auto" style="color: var(--text-primary);">
+            <div class="text-center py-14" style="color: var(--text-faint);"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    var modal  = document.getElementById('block-drilldown-modal');
+    if (!modal) return;
+    var titleEl = document.getElementById('bdd-title');
+    var rangeEl = document.getElementById('bdd-range');
+    var bodyEl  = document.getElementById('bdd-body');
+    var current = { blockId: null, title: '' };
+    var urlTpl  = @json(route('user.links.analytics.block', [$link, '__BLOCK__']));
+
+    function close(){ modal.classList.add('hidden'); }
+    function open(blockId, title){
+        current.blockId = blockId;
+        current.title   = title || ('Block #' + blockId);
+        titleEl.textContent = current.title;
+        modal.classList.remove('hidden');
+        load();
+    }
+    function fmt(n){ return (n||0).toLocaleString(); }
+    function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+    function bar(label, count, max, color){
+        var w = max > 0 ? Math.round((count / max) * 100) : 0;
+        return '<div class="flex items-center gap-2 mb-1.5">'
+            + '<div class="text-[11px] truncate" style="color: var(--text-muted); flex: 0 0 38%;" title="' + esc(label) + '">' + esc(label) + '</div>'
+            + '<div class="flex-1 h-2 rounded" style="background: rgba(255,255,255,0.06);"><div style="width:' + w + '%; height: 100%; border-radius: inherit; background:' + color + ';"></div></div>'
+            + '<div class="text-[11px] tabular-nums" style="color: var(--text-primary); flex: 0 0 60px; text-align: right;">' + fmt(count) + '</div>'
+            + '</div>';
+    }
+    function dayBars(byDay){
+        if (!byDay || byDay.length === 0) return '<p class="text-xs text-center py-6" style="color: var(--text-faint);">No clicks in this range.</p>';
+        var max = byDay.reduce(function(m,d){ return Math.max(m, d.clicks); }, 0);
+        var html = '<div class="flex items-end gap-[3px] h-32" style="border-bottom: 1px solid var(--border-glass); padding-bottom: 2px;">';
+        byDay.forEach(function(d){
+            var h = max > 0 ? Math.max(2, Math.round((d.clicks / max) * 100)) : 2;
+            html += '<div class="flex-1 rounded-t" title="' + esc(d.day) + ': ' + fmt(d.clicks) + ' clicks" style="height:' + h + '%; background: linear-gradient(180deg,#8b5cf6,#6366f1); min-height:2px;"></div>';
+        });
+        html += '</div>';
+        if (byDay.length > 0) {
+            html += '<div class="flex justify-between mt-1 text-[10px]" style="color: var(--text-faint);"><span>' + esc(byDay[0].day) + '</span><span>' + esc(byDay[byDay.length-1].day) + '</span></div>';
+        }
+        return html;
+    }
+    var VISITOR_LABELS = { anonymous:'Anonymous', registered:'Registered', follower:'Followers', subscriber:'Subscribers' };
+    var VISITOR_COLORS = { anonymous:'#94a3b8', registered:'#38bdf8', follower:'#a78bfa', subscriber:'#f472b6' };
+    function load(){
+        bodyEl.innerHTML = '<div class="text-center py-14" style="color: var(--text-faint);"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+        var days = parseInt(rangeEl.value, 10) || 30;
+        var to   = new Date();
+        var from = new Date(); from.setDate(from.getDate() - days);
+        var url  = urlTpl.replace('__BLOCK__', String(current.blockId)) + '?from=' + from.toISOString() + '&to=' + to.toISOString();
+        fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+            .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function(payload){
+                var a = (payload && payload.data && payload.data.analytics) || {};
+                var refMax = (a.by_referrer || []).reduce(function(m,r){ return Math.max(m, r.clicks); }, 0);
+                var devMax = (a.by_device   || []).reduce(function(m,r){ return Math.max(m, r.clicks); }, 0);
+                var vtMax  = (a.by_visitor_type || []).reduce(function(m,r){ return Math.max(m, r.clicks); }, 0);
+                var html = ''
+                    + '<div class="grid grid-cols-2 gap-3 mb-5">'
+                    + '<div class="rounded-lg p-3" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"><div class="text-[10px] uppercase" style="color: var(--text-faint);">Total clicks</div><div class="text-xl font-bold">' + fmt(a.total_clicks) + '</div></div>'
+                    + '<div class="rounded-lg p-3" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"><div class="text-[10px] uppercase" style="color: var(--text-faint);">Unique visitors</div><div class="text-xl font-bold">' + fmt(a.unique_clicks) + '</div></div>'
+                    + '</div>'
+                    + '<div class="mb-5"><div class="text-xs font-semibold mb-2" style="color: var(--text-muted);">Clicks per day</div>' + dayBars(a.by_day) + '</div>'
+                    + '<div class="grid md:grid-cols-2 gap-5">'
+                    + '<div><div class="text-xs font-semibold mb-2" style="color: var(--text-muted);">Top referrers</div>'
+                    +   ((a.by_referrer && a.by_referrer.length) ? a.by_referrer.map(function(r){ return bar(r.referrer_host || 'Direct', r.clicks, refMax, 'linear-gradient(90deg,#22d3ee,#0ea5e9)'); }).join('') : '<p class="text-xs" style="color: var(--text-faint);">No referrers yet.</p>')
+                    + '</div>'
+                    + '<div><div class="text-xs font-semibold mb-2" style="color: var(--text-muted);">Devices</div>'
+                    +   ((a.by_device && a.by_device.length) ? a.by_device.map(function(r){ return bar(r.device_type || 'Unknown', r.clicks, devMax, 'linear-gradient(90deg,#f59e0b,#ef4444)'); }).join('') : '<p class="text-xs" style="color: var(--text-faint);">No device data yet.</p>')
+                    + '</div>'
+                    + '</div>'
+                    + '<div class="mt-5"><div class="text-xs font-semibold mb-2" style="color: var(--text-muted);">By visitor type</div>'
+                    +   (a.by_visitor_type || []).map(function(r){ return bar(VISITOR_LABELS[r.visitor_type] || r.visitor_type, r.clicks, vtMax, VISITOR_COLORS[r.visitor_type] || '#8b5cf6'); }).join('')
+                    + '</div>';
+                bodyEl.innerHTML = html;
+            })
+            .catch(function(e){
+                bodyEl.innerHTML = '<p class="text-xs text-center py-8" style="color: var(--text-faint);">Couldn\u2019t load drill-down (' + esc(e.message) + ').</p>';
+            });
+    }
+    document.querySelectorAll('.block-drilldown-row').forEach(function(row){
+        row.addEventListener('click', function(){
+            var id = row.getAttribute('data-block-id');
+            if (!id) return;
+            open(id, row.getAttribute('data-block-title'));
+        });
+    });
+    modal.querySelectorAll('[data-bdd-close]').forEach(function(el){ el.addEventListener('click', close); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+    rangeEl.addEventListener('change', function(){ if (current.blockId) load(); });
+})();
+</script>
 
 @if($hasPollBlocks || $pollVotesInRange > 0)
 <div id="poll-engagement" class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#ec4899,#8b5cf6); --sc-glow: rgba(236,72,153,0.35); --sc-color: #f9a8d4; --sc-border: rgba(236,72,153,0.3);">

@@ -726,6 +726,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/heatmap/live', [LinkController::class, 'heatmapLive'])->middleware('workspace.can:stats.view')->name('links.heatmap.live');
         Route::get('links/{link}/heatmap/live/stream', [LinkController::class, 'heatmapLiveStream'])->middleware('workspace.can:stats.view')->name('links.heatmap.live.stream');
         Route::get('links/{link}/clicks/partial', [LinkController::class, 'recentClicksPartial'])->middleware('workspace.can:stats.view')->name('links.clicks.partial');
+        // Per-block analytics drill-down (JSON) — used by the modal that
+        // opens when a creator clicks a row in the block stats table.
+        Route::get('links/{link}/analytics/blocks/{blockId}.json', [LinkController::class, 'blockAnalytics'])->whereNumber('blockId')->middleware('workspace.can:stats.view')->name('links.analytics.block');
         Route::get('links/{link}/clicks/export', [LinkController::class, 'exportClicks'])->middleware('workspace.can:stats.view')->name('links.clicks.export');
         Route::get('links/{link}/qrcode', [QrCodeController::class, 'show'])->middleware('workspace.can:links.view')->name('links.qrcode');
         Route::post('links/{link}/qrcode', [QrCodeController::class, 'generate'])->middleware('workspace.can:links.edit')->name('links.qrcode.download');

@@ -7,6 +7,7 @@ use App\Modules\Api\Resources\LinkResource;
 use App\Modules\User\Controllers\LinkController as UserLinkController;
 use App\Modules\User\Models\AbVariant;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Services\BlockAnalyticsAggregator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -255,6 +256,11 @@ class LinkController extends Controller
                 ->groupBy('device_type')->orderByDesc('clicks')->get()->all();
         }
 
+        // Per-block click summary — list of every block that received clicks
+        // in the window with title/type so the mobile app can render a
+        // tap-through list on the analytics screen.
+        $payload['by_block'] = BlockAnalyticsAggregator::blockSummary($link, $from, $to);
+
         // A/B variant breakdown — populated when the link was created via
         // the browser extension's "Shorten as A/B test" flow. The popup
         // (and dashboard) renders the per-variant counts and surfaces the
@@ -303,6 +309,26 @@ class LinkController extends Controller
         }
 
         return $this->ok(['analytics' => $payload]);
+    }
+
+    /**
+     * Per-block analytics drill-down. Returns clicks-per-day, top
+     * referrers, device split and the visitor-type breakdown
+     * (anonymous / registered / follower / subscriber) for one block on
+     * the link. Powers the drill-down panel on the mobile analytics
+     * screen and the equivalent modal on the web biolink analytics page.
+     */
+    public function blockAnalytics(Request $request, int $id, int $blockId)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        $from = $request->date('from') ?? now()->subDays(30);
+        $to   = $request->date('to')   ?? now();
+
+        return $this->ok([
+            'analytics' => BlockAnalyticsAggregator::aggregate($link, $blockId, $from, $to),
+        ]);
     }
 
     /**

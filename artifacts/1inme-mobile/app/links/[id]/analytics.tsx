@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,7 +13,20 @@ import {
 
 import { StatTile } from "@/components/StatTile";
 import { useColors } from "@/hooks/useColors";
-import { getAnalytics, getNfcCount } from "@/lib/api/analytics";
+import {
+  type BlockAnalytics,
+  type VisitorType,
+  getAnalytics,
+  getBlockAnalytics,
+  getNfcCount,
+} from "@/lib/api/analytics";
+
+const VISITOR_LABEL: Record<VisitorType, string> = {
+  anonymous: "Anonymous",
+  registered: "Registered",
+  follower: "Followers",
+  subscriber: "Subscribers",
+};
 
 export default function LinkAnalyticsScreen() {
   const colors = useColors();
@@ -48,6 +63,7 @@ export default function LinkAnalyticsScreen() {
 
   const data = a.data;
   const maxDay = Math.max(1, ...data.by_day.map((d) => d.clicks));
+  const blocks = data.by_block ?? [];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -59,11 +75,7 @@ export default function LinkAnalyticsScreen() {
             value={data.total_clicks}
             icon="bar-chart-2"
           />
-          <StatTile
-            label="Unique"
-            value={data.unique_clicks}
-            icon="users"
-          />
+          <StatTile label="Unique" value={data.unique_clicks} icon="users" />
         </View>
         <View style={styles.tileRow}>
           <StatTile
@@ -102,6 +114,24 @@ export default function LinkAnalyticsScreen() {
                     {d.clicks}
                   </Text>
                 </View>
+              ))}
+            </View>
+          )}
+        </Section>
+
+        <Section
+          title="Blocks"
+          subtitle="Tap a block to see clicks/day, referrers, devices, and visitor types"
+        >
+          {blocks.length === 0 ? (
+            <Text style={{ color: colors.mutedForeground }}>
+              No block clicks yet. Once visitors tap your blocks, they'll show
+              up here.
+            </Text>
+          ) : (
+            <View style={{ gap: 6 }}>
+              {blocks.map((b) => (
+                <BlockRow key={b.block_id} linkId={id} block={b} />
               ))}
             </View>
           )}
@@ -152,11 +182,221 @@ export default function LinkAnalyticsScreen() {
   );
 }
 
+function BlockRow({
+  linkId,
+  block,
+}: {
+  linkId: number;
+  block: NonNullable<
+    Awaited<ReturnType<typeof getAnalytics>>["by_block"]
+  >[number];
+}) {
+  const colors = useColors();
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState<7 | 30 | 90>(30);
+
+  const drill = useQuery({
+    queryKey: ["block-analytics", linkId, block.block_id, days],
+    queryFn: () => getBlockAnalytics(linkId, block.block_id, days),
+    enabled: open,
+  });
+
+  const title = block.title || `Block #${block.block_id}`;
+
+  return (
+    <View
+      style={[
+        styles.blockCard,
+        { backgroundColor: colors.background, borderColor: colors.border },
+      ]}
+    >
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={styles.blockHeader}
+        accessibilityRole="button"
+        accessibilityLabel={`Show drill-down for ${title}`}
+      >
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontFamily: "SpaceGrotesk_600SemiBold",
+              fontSize: 13,
+            }}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          <Text
+            style={{
+              color: colors.mutedForeground,
+              fontFamily: "SpaceGrotesk_500Medium",
+              fontSize: 11,
+              marginTop: 2,
+            }}
+            numberOfLines={1}
+          >
+            {block.type ?? "block"}
+            {block.destination_url ? ` · ${block.destination_url}` : ""}
+          </Text>
+        </View>
+        <View style={{ alignItems: "flex-end" }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontFamily: "SpaceGrotesk_700Bold",
+              fontSize: 13,
+            }}
+          >
+            {block.clicks}
+          </Text>
+          <Text
+            style={{
+              color: colors.mutedForeground,
+              fontFamily: "SpaceGrotesk_500Medium",
+              fontSize: 10,
+            }}
+          >
+            {block.unique_clicks} unique
+          </Text>
+        </View>
+        <Feather
+          name={open ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={colors.mutedForeground}
+          style={{ marginLeft: 8 }}
+        />
+      </Pressable>
+
+      {open ? (
+        <View style={styles.drillBody}>
+          <View style={styles.rangeRow}>
+            {([7, 30, 90] as const).map((opt) => {
+              const active = days === opt;
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => setDays(opt)}
+                  style={[
+                    styles.rangeChip,
+                    {
+                      backgroundColor: active ? colors.primary : colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: active
+                        ? colors.primaryForeground
+                        : colors.foreground,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      fontSize: 11,
+                    }}
+                  >
+                    {opt}d
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {drill.isLoading ? (
+            <View style={{ paddingVertical: 16, alignItems: "center" }}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : drill.error || !drill.data ? (
+            <Text style={{ color: colors.destructive, fontSize: 12 }}>
+              Couldn't load drill-down.
+            </Text>
+          ) : (
+            <BlockDrill data={drill.data} />
+          )}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function BlockDrill({ data }: { data: BlockAnalytics }) {
+  const colors = useColors();
+  const dayMax = Math.max(1, ...data.by_day.map((d) => d.clicks));
+
+  return (
+    <View style={{ gap: 14 }}>
+      <View style={styles.tileRow}>
+        <StatTile
+          label="Clicks"
+          value={data.total_clicks}
+          icon="bar-chart-2"
+        />
+        <StatTile label="Unique" value={data.unique_clicks} icon="users" />
+      </View>
+
+      <SubSection title="Clicks per day">
+        {data.by_day.length === 0 ? (
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+            No clicks in this range.
+          </Text>
+        ) : (
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 2, height: 60 }}>
+            {data.by_day.map((d) => {
+              const h = Math.max(2, (d.clicks / dayMax) * 100);
+              return (
+                <View
+                  key={d.day}
+                  style={{
+                    flex: 1,
+                    height: `${h}%`,
+                    backgroundColor: colors.primary,
+                    borderTopLeftRadius: 2,
+                    borderTopRightRadius: 2,
+                    minHeight: 2,
+                  }}
+                />
+              );
+            })}
+          </View>
+        )}
+      </SubSection>
+
+      <SubSection title="Top referrers">
+        <Breakdown
+          rows={data.by_referrer.map((r) => ({
+            label: r.referrer_host || "Direct",
+            clicks: r.clicks,
+          }))}
+        />
+      </SubSection>
+
+      <SubSection title="Devices">
+        <Breakdown
+          rows={data.by_device.map((r) => ({
+            label: r.device_type || "Unknown",
+            clicks: r.clicks,
+          }))}
+        />
+      </SubSection>
+
+      <SubSection title="By visitor type">
+        <Breakdown
+          rows={data.by_visitor_type.map((r) => ({
+            label: VISITOR_LABEL[r.visitor_type] ?? r.visitor_type,
+            clicks: r.clicks,
+          }))}
+        />
+      </SubSection>
+    </View>
+  );
+}
+
 function Section({
   title,
+  subtitle,
   children,
 }: {
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
   const colors = useColors();
@@ -172,6 +412,44 @@ function Section({
       ]}
     >
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text
+          style={{
+            color: colors.mutedForeground,
+            fontFamily: "SpaceGrotesk_500Medium",
+            fontSize: 11,
+            marginTop: -6,
+          }}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
+      {children}
+    </View>
+  );
+}
+
+function SubSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const colors = useColors();
+  return (
+    <View style={{ gap: 8 }}>
+      <Text
+        style={{
+          color: colors.mutedForeground,
+          fontFamily: "SpaceGrotesk_600SemiBold",
+          fontSize: 11,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+        }}
+      >
         {title}
       </Text>
       {children}
@@ -232,5 +510,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     minWidth: 36,
     textAlign: "right",
+  },
+  blockCard: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 10 },
+  blockHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  drillBody: { gap: 12, paddingTop: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(0,0,0,0.08)" },
+  rangeRow: { flexDirection: "row", gap: 6 },
+  rangeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
   },
 });

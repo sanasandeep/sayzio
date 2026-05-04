@@ -11,6 +11,7 @@ use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\Workspace;
+use App\Modules\User\Services\BlockAnalyticsAggregator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
@@ -974,8 +975,14 @@ class LinkController extends Controller
             'blockInventory'     => $blockInventory,
         ]);
 
+        // Full block inventory (every block on the biolink, including
+        // zero-click ones in this window) for the per-block drill-down
+        // — required so EVERY block is clickable, not just clicked ones.
+        $blockSummaryAll = BlockAnalyticsAggregator::blockSummary($link, $startDate, $endDate);
+
         return view('user.links.show', compact(
             'link', 'clicksOverTime', 'botClicksOverTime', 'topReferrers',
+            'blockSummaryAll',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
             'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',
@@ -1213,6 +1220,28 @@ class LinkController extends Controller
             'nonFollowerClicks', 'dailySeries', 'topFollowers',
             'retentionSeries', 'retentionStart', 'retentionEnd'
         ));
+    }
+
+    /**
+     * Per-block analytics drill-down (JSON) for the biolink analytics page.
+     * Powers the modal that opens when a creator clicks a row in the block
+     * stats table — clicks/day with range picker, top referrers, device
+     * split, and the visitor-type breakdown (anonymous / registered /
+     * follower / subscriber). Shares the aggregator with the mobile API
+     * endpoint so both surfaces show identical numbers.
+     */
+    public function blockAnalytics(Request $request, Link $link, int $blockId)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+
+        $from = $request->date('from') ?? now()->subDays(30);
+        $to   = $request->date('to')   ?? now();
+
+        return response()->json([
+            'data' => [
+                'analytics' => BlockAnalyticsAggregator::aggregate($link, $blockId, $from, $to),
+            ],
+        ]);
     }
 
     /**

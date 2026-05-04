@@ -605,10 +605,35 @@ paths:
       - { in: query, name: from, schema: { type: string, format: date-time } }
       - { in: query, name: to,   schema: { type: string, format: date-time } }
     get:
-      summary: Per-link analytics summary (clicks by day/country/referrer/device)
+      summary: Per-link analytics summary (clicks by day/country/referrer/device, plus per-block click summary)
+      description: |
+        Includes a `by_block` array used by the per-block analytics drill-down
+        on web and mobile to populate the clickable block list. Each entry
+        carries the block identifier, type, title, destination URL, total
+        clicks, and unique-visitor count for the selected window.
       responses:
         '200': { description: ok }
         '404': { description: not found }
+
+  /links/{id}/analytics/blocks/{blockId}:
+    parameters:
+      - { in: path, name: id,      required: true, schema: { type: integer } }
+      - { in: path, name: blockId, required: true, schema: { type: integer } }
+      - { in: query, name: from,   schema: { type: string, format: date-time } }
+      - { in: query, name: to,     schema: { type: string, format: date-time } }
+    get:
+      summary: Per-block analytics drill-down (clicks per day, top referrers, devices, visitor types)
+      description: |
+        Powers the drill-down opened when a creator taps a block on the biolink
+        analytics screen. Returns clicks per day for the selected range
+        (defaults to the last 30 days), top referrers, device split, and a
+        visitor-type breakdown bucketed as anonymous / registered / follower /
+        subscriber (mutually exclusive, with priority subscriber > follower >
+        registered > anonymous).
+      responses:
+        '200': { description: ok }
+        '403': { description: 'block does not belong to this link' }
+        '404': { description: 'link or block not found' }
 
   /links/{id}/blocks:
     parameters:

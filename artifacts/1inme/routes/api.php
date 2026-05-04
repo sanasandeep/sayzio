@@ -194,6 +194,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/links/{id}',  [LinkController::class, 'update'])->whereNumber('id');
         Route::delete('/links/{id}', [LinkController::class, 'destroy'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
+        Route::get   ('/links/{id}/analytics/blocks/{blockId}', [LinkController::class, 'blockAnalytics'])->whereNumber('id')->whereNumber('blockId');
         Route::post  ('/links/{id}/reset',     [LinkController::class, 'reset'])->whereNumber('id');
 
         // Smart links — geo / device / language / time / AB routing.
