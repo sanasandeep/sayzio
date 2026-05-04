@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -150,6 +151,49 @@ function variantTagLabel(tag: string): string {
     .filter(Boolean)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(" ");
+}
+
+// Inline preview for a pricing item's Thumbnail URL. Renders nothing
+// while the URL is empty or doesn't look like an http(s) URL, and hides
+// itself if the image fails to load — so a typo'd or 404'ing URL just
+// disappears instead of showing a broken-image icon.
+function PricingThumbnailPreview({
+  uri,
+  borderColor,
+  mutedColor,
+}: {
+  uri: string;
+  borderColor: string;
+  mutedColor: string;
+}) {
+  const [errored, setErrored] = useState(false);
+  useEffect(() => {
+    setErrored(false);
+  }, [uri]);
+  const trimmed = uri.trim();
+  const looksLikeUrl = /^https?:\/\//i.test(trimmed);
+  if (!trimmed || !looksLikeUrl || errored) return null;
+  return (
+    <View
+      style={{
+        width: 56,
+        height: 56,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor,
+        overflow: "hidden",
+        backgroundColor: mutedColor,
+      }}
+    >
+      <Image
+        source={{ uri: trimmed }}
+        style={{ width: "100%", height: "100%" }}
+        resizeMode="cover"
+        onError={() => setErrored(true)}
+        accessibilityLabel="Thumbnail preview"
+      />
+    </View>
+  );
 }
 
 export default function EditBlockScreen() {
@@ -872,17 +916,24 @@ export default function EditBlockScreen() {
                       style={{ minHeight: 60, paddingTop: 12, textAlignVertical: "top" }}
                     />
                     <View style={{ flexDirection: "row", gap: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <TextField
-                          label="Thumbnail URL"
-                          value={it.thumbnail}
-                          autoCapitalize="none"
-                          keyboardType="url"
-                          onChangeText={(t) =>
-                            setPricingItems((prev) =>
-                              prev.map((p, i) => (i === idx ? { ...p, thumbnail: t } : p)),
-                            )
-                          }
+                      <View style={{ flex: 1, flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
+                        <View style={{ flex: 1 }}>
+                          <TextField
+                            label="Thumbnail URL"
+                            value={it.thumbnail}
+                            autoCapitalize="none"
+                            keyboardType="url"
+                            onChangeText={(t) =>
+                              setPricingItems((prev) =>
+                                prev.map((p, i) => (i === idx ? { ...p, thumbnail: t } : p)),
+                              )
+                            }
+                          />
+                        </View>
+                        <PricingThumbnailPreview
+                          uri={it.thumbnail}
+                          borderColor={colors.border}
+                          mutedColor={colors.muted}
                         />
                       </View>
                       <View style={{ flex: 1 }}>
