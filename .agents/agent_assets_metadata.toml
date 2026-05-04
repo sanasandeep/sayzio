@@ -461,3 +461,9 @@ id = "18oaUFLuWSmAvAENvux6s"
 uri = "file://artifacts/1inme-mobile/assets/images/icon.png"
 type = "image"
 title = "1INME app icon / splash artwork"
+
+[[outputs]]
+id = "CGoetzbjUmyiNalwLQdFz"
+uri = "file://.local/prod_orphan_cleanup.txt"
+type = "text"
+title = "Production orphan-type cleanup SQL (paste into prod DB, then re-publish)"
