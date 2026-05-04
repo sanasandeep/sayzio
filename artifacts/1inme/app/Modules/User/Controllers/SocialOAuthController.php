@@ -23,6 +23,34 @@ use Illuminate\Support\Str;
  */
 class SocialOAuthController extends Controller
 {
+    /**
+     * Redirect URIs the WebBrowser-based OAuth flow is allowed to bounce
+     * back to once the provider returns. The mobile app registers the
+     * `1inme://oauth-callback` deep link in its app.json and expects the
+     * backend to honor it in every environment.
+     *
+     * Anything outside this allowlist is dropped and the controller falls
+     * back to the safe web-app redirect, so a stolen state cookie cannot
+     * be used to redirect a victim's browser to an attacker URL.
+     */
+    public const MOBILE_RETURN_ALLOWLIST = [
+        '1inme://oauth-callback',
+    ];
+
+    /**
+     * Validate a mobile `?return=` query against the allowlist. Returns
+     * the canonical URL on success or null when the value is missing,
+     * malformed, or not whitelisted.
+     */
+    public static function allowedMobileReturn(?string $candidate): ?string
+    {
+        if ($candidate === null || $candidate === '') {
+            return null;
+        }
+        $candidate = trim($candidate);
+        return in_array($candidate, self::MOBILE_RETURN_ALLOWLIST, true) ? $candidate : null;
+    }
+
     public function connect(Request $request, string $provider, SocialOAuthService $oauth)
     {
         abort_unless(isset(SocialOAuthService::PROVIDERS[$provider]), 404);
@@ -49,6 +77,16 @@ class SocialOAuthController extends Controller
         $code     = (string) $request->query('code', '');
         $mode     = (string) (session()->pull('social_oauth_mode_' . $provider) ?: 'connect');
 
+        // Mobile-source markers stashed in loginConnect(). Pull them out
+        // up-front so even early failure paths can bounce back to the
+        // deep link with an `?error=` rather than dumping the user on the
+        // web login page (which is a dead end inside an in-app browser).
+        $mobileSource = (string) (session()->pull('social_oauth_source_' . $provider) ?: '');
+        $mobileReturn = self::allowedMobileReturn(
+            (string) (session()->pull('social_oauth_return_' . $provider) ?: '')
+        );
+        $isMobile = $mobileSource === 'mobile' && $mobileReturn !== null && $mode === 'login';
+
         // Pick the right place to bounce back to based on the original
         // intent — login-mode failures should land on the login page,
         // merge-mode failures on the merge page, and connect-mode on
@@ -59,13 +97,19 @@ class SocialOAuthController extends Controller
             default => 'user.social-accounts.index',
         };
 
+        $bounceError = function (string $code, string $message) use ($isMobile, $mobileReturn, $errorRoute) {
+            if ($isMobile) {
+                return redirect()->away($mobileReturn . '?error=' . rawurlencode($code));
+            }
+            return redirect()->route($errorRoute)->with('error', $message);
+        };
+
         if (! $expected || ! hash_equals($expected, $state)) {
-            return redirect()->route($errorRoute)
-                ->with('error', 'OAuth state mismatch. Please try again.');
+            return $bounceError('invalid_state', 'OAuth state mismatch. Please try again.');
         }
         if ($request->has('error') || $code === '') {
-            return redirect()->route($errorRoute)
-                ->with('error', 'Authorization was cancelled or failed: ' . $request->query('error', 'no code'));
+            $providerErr = (string) $request->query('error', 'no code');
+            return $bounceError($providerErr, 'Authorization was cancelled or failed: ' . $providerErr);
         }
 
         // LOGIN-mode: resolve the social identity to its linked account
@@ -76,6 +120,9 @@ class SocialOAuthController extends Controller
             try {
                 [$externalId, $handle] = $oauth->fetchProfile($provider, $code, $state);
             } catch (\Throwable $e) {
+                if ($isMobile) {
+                    return redirect()->away($mobileReturn . '?error=' . rawurlencode('provider_failed'));
+                }
                 return redirect()->route('user.login')
                     ->with('error', 'Sign-in with ' . SocialAccountConnection::platformLabel($provider) . ' failed: ' . $e->getMessage());
             }
@@ -87,9 +134,36 @@ class SocialOAuthController extends Controller
                 $user = LinkedIdentifier::resolveUser('social', '', $provider, (string) $handle);
             }
             if (! $user) {
+                if ($isMobile) {
+                    return redirect()->away($mobileReturn . '?error=' . rawurlencode('no_linked_account'));
+                }
                 return redirect()->route('user.login')
                     ->with('error', 'No account is linked to that ' . SocialAccountConnection::platformLabel($provider) . ' identity yet. Sign in another way and link it from Account Settings.');
             }
+
+            // Mobile-source: bounce to the registered deep link with a
+            // freshly-minted Sanctum token + minimal user payload, which
+            // the app's oauth-callback.tsx already knows how to consume.
+            // We deliberately do NOT call Auth::login() — there is no web
+            // session for the in-app browser to keep around, and the
+            // mobile app authenticates with the bearer token going forward.
+            if ($isMobile) {
+                $user->forceFill(['last_login_at' => now()])->save();
+                $token = $user->createToken('mobile-social-' . $provider)->plainTextToken;
+                $payload = json_encode([
+                    'id'     => $user->id,
+                    'name'   => $user->name,
+                    'email'  => $user->email,
+                    'avatar' => $user->avatar ?? null,
+                ], JSON_UNESCAPED_SLASHES);
+                $qs = http_build_query([
+                    'token'    => $token,
+                    'user'     => $payload,
+                    'provider' => $provider,
+                ]);
+                return redirect()->away($mobileReturn . '?' . $qs);
+            }
+
             Auth::login($user, true);
             $user->update(['last_login_at' => now()]);
             $request->session()->regenerate();
@@ -203,10 +277,25 @@ class SocialOAuthController extends Controller
                     . ' sign-in is not configured on this server.');
         }
         $state = Str::random(64);
-        session([
+        $session = [
             'social_oauth_state_' . $provider => $state,
             'social_oauth_mode_'  . $provider => 'login',
-        ]);
+        ];
+
+        // Mobile clients call this endpoint with `?source=mobile&return=...`
+        // (see artifacts/1inme-mobile/app/(auth)/index.tsx). The provider
+        // doesn't preserve those when it bounces back, so we stash them
+        // in the session keyed on provider — alongside the OAuth state —
+        // and pull them out in callback() to bounce to the deep link.
+        if ((string) $request->query('source') === 'mobile') {
+            $return = self::allowedMobileReturn((string) $request->query('return', ''));
+            if ($return !== null) {
+                $session['social_oauth_source_' . $provider] = 'mobile';
+                $session['social_oauth_return_' . $provider] = $return;
+            }
+        }
+
+        session($session);
         return redirect()->away($oauth->authorizeUrl($provider, $state));
     }
 
