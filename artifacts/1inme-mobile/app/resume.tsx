@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,6 +16,13 @@ import {
   Text,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -971,34 +979,39 @@ function SectionEditor({
         </Card>
       ) : null}
 
-      {items.map((it, idx) => {
-        const isEditing = editing?.id === it.id;
-        if (isEditing) {
-          return (
-            <Card key={it.id} style={{ gap: 8 }}>
-              <FieldStack
-                def={def}
-                data={editing!.data}
-                onChange={(k, v) => setEditing({ ...editing!, data: { ...editing!.data, [k]: v } })}
-              />
-              <View style={styles.rowGap}>
-                <Button label="Cancel" variant="outline" onPress={() => setEditing(null)} style={{ flex: 1 }} />
-                <Button label={busy ? "Saving…" : "Save"} onPress={save} loading={busy} style={{ flex: 1 }} />
-              </View>
-            </Card>
-          );
-        }
-        return (
-          <Card key={it.id} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      {(() => {
+        const isAnyEditing = editing != null && editing.id != null;
+        const renderRow = (it: ResumeItem, idx: number) => (
+          <Card style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Feather
+              name="menu"
+              size={16}
+              color={colors.mutedForeground}
+              accessibilityLabel="Drag handle. Long-press and drag to reorder."
+            />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}
+              >
                 {def.summarize(it.data)}
               </Text>
             </View>
-            <Pressable hitSlop={6} onPress={() => move(it.id, -1)} disabled={idx === 0}>
+            <Pressable
+              hitSlop={6}
+              onPress={() => move(it.id, -1)}
+              disabled={idx === 0}
+              accessibilityLabel="Move up"
+            >
               <Feather name="chevron-up" size={18} color={idx === 0 ? colors.border : colors.mutedForeground} />
             </Pressable>
-            <Pressable hitSlop={6} onPress={() => move(it.id, 1)} disabled={idx === items.length - 1}>
+            <Pressable
+              hitSlop={6}
+              onPress={() => move(it.id, 1)}
+              disabled={idx === items.length - 1}
+              accessibilityLabel="Move down"
+            >
               <Feather name="chevron-down" size={18} color={idx === items.length - 1 ? colors.border : colors.mutedForeground} />
             </Pressable>
             <Pressable hitSlop={6} onPress={() => setEditing({ id: it.id, data: { ...it.data } })}>
@@ -1017,7 +1030,39 @@ function SectionEditor({
             </Pressable>
           </Card>
         );
-      })}
+
+        if (isAnyEditing) {
+          // Drag is disabled while an item is being edited inline; rows
+          // would have wildly different heights and a half-typed edit
+          // shouldn't fight the gesture. Chevrons remain available.
+          return items.map((it, idx) => {
+            if (editing!.id === it.id) {
+              return (
+                <Card key={it.id} style={{ gap: 8 }}>
+                  <FieldStack
+                    def={def}
+                    data={editing!.data}
+                    onChange={(k, v) => setEditing({ ...editing!, data: { ...editing!.data, [k]: v } })}
+                  />
+                  <View style={styles.rowGap}>
+                    <Button label="Cancel" variant="outline" onPress={() => setEditing(null)} style={{ flex: 1 }} />
+                    <Button label={busy ? "Saving…" : "Save"} onPress={save} loading={busy} style={{ flex: 1 }} />
+                  </View>
+                </Card>
+              );
+            }
+            return <View key={it.id}>{renderRow(it, idx)}</View>;
+          });
+        }
+
+        return (
+          <DraggableItemList
+            items={items}
+            renderRow={renderRow}
+            onReorder={(ids) => onMove(def.type, ids)}
+          />
+        );
+      })()}
 
       {editing && editing.id == null ? (
         <Card style={{ gap: 8 }}>
@@ -1033,6 +1078,204 @@ function SectionEditor({
         </Card>
       ) : null}
     </View>
+  );
+}
+
+// ── Drag-to-reorder list ────────────────────────────────────────
+//
+// Long-press on any row to "pick it up", then drag up/down to
+// reorder. Other rows slide out of the way as the dragged row
+// crosses their midpoint. On release we call `onReorder` with the
+// new id order, which the parent persists via the existing
+// /resume/items/reorder endpoint.
+//
+// Implementation notes:
+//  * Rows render in their original DOM order. Each row's translateY
+//    is `(currentSlot - originalIndex) * rowHeight`, animated.
+//  * The dragged row ignores its slot offset and follows the finger
+//    directly, so movement feels 1:1.
+//  * We measure the first row's height once and assume all rows in
+//    the same section are uniform (they all show one summary line +
+//    icons inside the same Card).
+function DraggableItemList({
+  items,
+  renderRow,
+  onReorder,
+}: {
+  items: ResumeItem[];
+  renderRow: (item: ResumeItem, idx: number) => React.ReactNode;
+  onReorder: (ids: number[]) => void;
+}) {
+  const [rowH, setRowH] = useState(0);
+  const idsKey = items.map((i) => i.id).join(",");
+  const lastCommittedKey = useRef(idsKey);
+
+  // Mutable map: id -> current visual slot. Lives outside React
+  // because it's read/written from the UI thread by gesture
+  // handlers, and we don't want to re-render on every frame.
+  const slots = useSharedValue<Record<string, number>>(
+    Object.fromEntries(items.map((it, idx) => [String(it.id), idx])),
+  );
+
+  useEffect(() => {
+    slots.value = Object.fromEntries(items.map((it, idx) => [String(it.id), idx]));
+    lastCommittedKey.current = idsKey;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
+
+  const commit = useCallback(() => {
+    const entries = Object.entries(slots.value).sort((a, b) => a[1] - b[1]);
+    const newIds = entries.map(([id]) => Number(id));
+    const newKey = newIds.join(",");
+    if (newKey !== lastCommittedKey.current) {
+      lastCommittedKey.current = newKey;
+      onReorder(newIds);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onReorder]);
+
+  if (items.length <= 1) {
+    return (
+      <>
+        {items.map((it, idx) => (
+          <View key={it.id}>{renderRow(it, idx)}</View>
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <View>
+      {items.map((it, idx) => (
+        <DraggableRow
+          key={it.id}
+          id={it.id}
+          origIdx={idx}
+          totalItems={items.length}
+          rowH={rowH}
+          slots={slots}
+          onMeasureRow={idx === 0 ? setRowH : undefined}
+          onCommit={commit}
+        >
+          {renderRow(it, idx)}
+        </DraggableRow>
+      ))}
+    </View>
+  );
+}
+
+function DraggableRow({
+  id,
+  origIdx,
+  totalItems,
+  rowH,
+  slots,
+  children,
+  onMeasureRow,
+  onCommit,
+}: {
+  id: number;
+  origIdx: number;
+  totalItems: number;
+  rowH: number;
+  slots: ReturnType<typeof useSharedValue<Record<string, number>>>;
+  children: React.ReactNode;
+  onMeasureRow?: (h: number) => void;
+  onCommit: () => void;
+}) {
+  const isDragging = useSharedValue(false);
+  const panY = useSharedValue(0);
+
+  const triggerHaptic = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  }, []);
+
+  const gesture = useMemo(() => {
+    return Gesture.Pan()
+      .activateAfterLongPress(350)
+      .onStart(() => {
+        "worklet";
+        isDragging.value = true;
+        panY.value = 0;
+        runOnJS(triggerHaptic)();
+      })
+      .onUpdate((e) => {
+        "worklet";
+        if (rowH <= 0) return;
+        panY.value = e.translationY;
+        const myCurrent = slots.value[String(id)] ?? origIdx;
+        const target = Math.max(
+          0,
+          Math.min(totalItems - 1, origIdx + Math.round(e.translationY / rowH)),
+        );
+        if (target === myCurrent) return;
+        const next: Record<string, number> = { ...slots.value };
+        if (target > myCurrent) {
+          for (const k of Object.keys(next)) {
+            const v = next[k];
+            if (Number(k) === id) continue;
+            if (v > myCurrent && v <= target) next[k] = v - 1;
+          }
+        } else {
+          for (const k of Object.keys(next)) {
+            const v = next[k];
+            if (Number(k) === id) continue;
+            if (v >= target && v < myCurrent) next[k] = v + 1;
+          }
+        }
+        next[String(id)] = target;
+        slots.value = next;
+      })
+      .onEnd(() => {
+        "worklet";
+        isDragging.value = false;
+        panY.value = 0;
+        runOnJS(onCommit)();
+      })
+      .onFinalize(() => {
+        "worklet";
+        isDragging.value = false;
+        panY.value = 0;
+      });
+  }, [id, origIdx, totalItems, rowH, slots, isDragging, panY, onCommit, triggerHaptic]);
+
+  const animStyle = useAnimatedStyle(() => {
+    const mySlot = slots.value[String(id)] ?? origIdx;
+    if (isDragging.value) {
+      return {
+        transform: [{ translateY: panY.value }, { scale: 1.03 }],
+        zIndex: 100,
+        elevation: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        opacity: 0.97,
+      };
+    }
+    const target = (mySlot - origIdx) * rowH;
+    return {
+      transform: [{ translateY: withTiming(target, { duration: 180 }) }],
+      zIndex: 1,
+    };
+  });
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        style={animStyle}
+        onLayout={
+          onMeasureRow
+            ? (e) => {
+                const h = e.nativeEvent.layout.height;
+                if (h > 0) onMeasureRow(h);
+              }
+            : undefined
+        }
+      >
+        {children}
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
