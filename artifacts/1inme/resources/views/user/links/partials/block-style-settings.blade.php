@@ -687,6 +687,35 @@ window.blockDesignsGallery = function(opts) {
                 var raw = localStorage.getItem('biolink:variantFavorites:' + this.blockType);
                 this.favorites = raw ? JSON.parse(raw) : [];
             } catch (e) { this.favorites = []; }
+            // Bind once so add/remove pair to the same function reference.
+            // While _error is set the gallery installs a beforeunload guard
+            // so creators don't silently lose their last failed design click
+            // by closing the tab or navigating away. The handler is removed
+            // again the moment _error clears (success, retry, dismiss, or
+            // the 6s auto-clear timer).
+            var self = this;
+            this._beforeUnloadHandler = function(e) {
+                if (!self._error) return;
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            };
+        },
+
+        destroy() {
+            this._uninstallUnloadGuard();
+            if (this._errorTimer) { clearTimeout(this._errorTimer); this._errorTimer = null; }
+        },
+
+        _installUnloadGuard() {
+            if (this._unloadGuardInstalled) return;
+            window.addEventListener('beforeunload', this._beforeUnloadHandler);
+            this._unloadGuardInstalled = true;
+        },
+        _uninstallUnloadGuard() {
+            if (!this._unloadGuardInstalled) return;
+            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+            this._unloadGuardInstalled = false;
         },
 
         catalog() {
@@ -707,11 +736,13 @@ window.blockDesignsGallery = function(opts) {
             this._retry = retryFn || null;
             if (this._errorTimer) clearTimeout(this._errorTimer);
             this._errorTimer = setTimeout(function() { self.clearError(); }, 6000);
+            this._installUnloadGuard();
         },
         clearError() {
             this._error = '';
             this._retry = null;
             if (this._errorTimer) { clearTimeout(this._errorTimer); this._errorTimer = null; }
+            this._uninstallUnloadGuard();
         },
         retryLastAction() {
             var fn = this._retry;
