@@ -11,6 +11,8 @@ const RESERVED = new Set([
   "biolink",
   "call",
   "auth",
+  "cancel-change",
+  "security",
   "tabs",
   "_sitemap",
   "+not-found",

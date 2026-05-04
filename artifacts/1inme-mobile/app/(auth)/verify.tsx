@@ -14,21 +14,33 @@ import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import type { ApiError } from "@/lib/api";
+import { verifyBackupCode } from "@/lib/api/security";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
+
+type Mode = "otp" | "backup";
 
 export default function Verify() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const auth = useAuth();
-  const { verifyOtp, sendOtp } = auth;
+  const { verifyOtp, sendOtp, applySession } = auth;
 
-  const params = useLocalSearchParams<{ channel?: string; identifier?: string }>();
+  const params = useLocalSearchParams<{
+    channel?: string;
+    identifier?: string;
+    challenge_token?: string;
+  }>();
   const channel = (params.channel === "mobile" ? "mobile" : "email") as
     | "email"
     | "mobile";
   const identifier = String(params.identifier ?? "");
+  // When the prior auth step requires a 2FA challenge, it forwards a
+  // short-lived `challenge_token` here. If we have it, the user can opt
+  // into the "use a backup code" branch instead of waiting for the OTP.
+  const challengeToken = String(params.challenge_token ?? "");
 
+  const [mode, setMode] = useState<Mode>("otp");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState<null | "verify" | "resend">(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,17 +48,41 @@ export default function Verify() {
 
   const verify = async () => {
     if (code.trim().length < 4) {
-      setError("Enter the code we sent you");
+      setError(
+        mode === "backup"
+          ? "Enter one of your backup codes"
+          : "Enter the code we sent you",
+      );
       return;
     }
     setBusy("verify");
     setError(null);
     try {
-      await verifyOtp({ channel, identifier, code: code.trim() });
+      if (mode === "backup") {
+        // Trade the prior step's challenge_token + a single backup code
+        // for a real session. If we don't have a challenge token, fall
+        // back to the identifier so a backend that keys the challenge
+        // by user can still resolve the account.
+        const session = await verifyBackupCode({
+          challenge_token: challengeToken || identifier,
+          code: code.trim(),
+        });
+        await applySession(session.token, session.user as never);
+      } else {
+        await verifyOtp({ channel, identifier, code: code.trim() });
+      }
       router.replace("/(tabs)");
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
-      setError((e as ApiError)?.message ?? "Code did not match");
+      const err = e as ApiError;
+      let msg = err?.message ?? "Code did not match";
+      if (mode === "backup" && err?.status === 400) {
+        msg = "That backup code isn't valid (or has already been used).";
+      }
+      if (mode === "backup" && err?.status === 410) {
+        msg = "Sign-in expired. Start again from the login screen.";
+      }
+      setError(msg);
     } finally {
       setBusy(null);
     }
@@ -76,21 +112,31 @@ export default function Verify() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={[styles.h1, { color: colors.foreground }]}>
-          Check your {channel === "email" ? "inbox" : "messages"}
+          {mode === "backup"
+            ? "Use a backup code"
+            : `Check your ${channel === "email" ? "inbox" : "messages"}`}
         </Text>
         <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-          We sent a code to {identifier}. Enter it below to sign in.
+          {mode === "backup"
+            ? "Type one of the single-use backup codes you saved when you turned on two-factor authentication."
+            : `We sent a code to ${identifier}. Enter it below to sign in.`}
         </Text>
 
         <View style={{ height: 24 }} />
 
         <TextField
-          label="Verification code"
-          placeholder="123456"
-          keyboardType="number-pad"
-          autoComplete={Platform.select({ ios: "one-time-code", android: "sms-otp" })}
-          textContentType="oneTimeCode"
-          maxLength={8}
+          label={mode === "backup" ? "Backup code" : "Verification code"}
+          placeholder={mode === "backup" ? "abcd-efgh-ijkl" : "123456"}
+          keyboardType={mode === "backup" ? "default" : "number-pad"}
+          autoCapitalize={mode === "backup" ? "none" : "none"}
+          autoCorrect={false}
+          autoComplete={
+            mode === "backup"
+              ? "off"
+              : Platform.select({ ios: "one-time-code", android: "sms-otp" })
+          }
+          textContentType={mode === "backup" ? "none" : "oneTimeCode"}
+          maxLength={mode === "backup" ? 32 : 8}
           value={code}
           onChangeText={setCode}
           error={error ?? undefined}
@@ -104,13 +150,33 @@ export default function Verify() {
           disabled={!!busy && busy !== "verify"}
         />
 
-        <View style={{ height: 12 }} />
+        {mode === "otp" ? (
+          <>
+            <View style={{ height: 12 }} />
+            <Button
+              label={resentAt ? "Code sent again" : "Resend code"}
+              variant="ghost"
+              onPress={resend}
+              loading={busy === "resend"}
+              disabled={!!busy && busy !== "resend"}
+            />
+          </>
+        ) : null}
+
+        <View style={{ height: 8 }} />
         <Button
-          label={resentAt ? "Code sent again" : "Resend code"}
+          label={
+            mode === "backup"
+              ? `Use the ${channel === "email" ? "email" : "SMS"} code instead`
+              : "Use a backup code instead"
+          }
           variant="ghost"
-          onPress={resend}
-          loading={busy === "resend"}
-          disabled={!!busy && busy !== "resend"}
+          onPress={() => {
+            setMode((m) => (m === "backup" ? "otp" : "backup"));
+            setCode("");
+            setError(null);
+          }}
+          disabled={!!busy}
         />
       </ScrollView>
     </View>

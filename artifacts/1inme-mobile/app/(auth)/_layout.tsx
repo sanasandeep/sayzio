@@ -23,6 +23,10 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="verify" options={{ title: "Verify code" }} />
+      <Stack.Screen
+        name="cancel-change"
+        options={{ title: "Cancel pending change" }}
+      />
     </Stack>
   );
 }

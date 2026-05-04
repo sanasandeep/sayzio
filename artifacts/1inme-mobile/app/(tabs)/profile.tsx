@@ -135,7 +135,8 @@ const SETTINGS_PAGES: {
     | "/domains"
     | "/integrations"
     | "/vault"
-    | "/verification";
+    | "/verification"
+    | "/security";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
@@ -146,6 +147,7 @@ const SETTINGS_PAGES: {
   { href: "/integrations", label: "Integrations", icon: "link" },
   { href: "/vault", label: "Vault", icon: "lock" },
   { href: "/verification", label: "Verification", icon: "award" },
+  { href: "/security", label: "Security & recovery", icon: "shield" },
 ];
 
 const THEME_OPTIONS: {

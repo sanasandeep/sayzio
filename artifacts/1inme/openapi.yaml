@@ -265,6 +265,95 @@ components:
         features:      { type: array, items: { type: string } }
         is_active:     { type: boolean }
         sort_order:    { type: integer }
+    BackupCodeStatus:
+      type: object
+      description: |
+        Snapshot of the user's 2FA backup-code state. The plaintext codes are
+        only ever returned once (on `POST /auth/2fa/backup-codes`); after that
+        only counts and a generated-at timestamp are exposed. Backup codes are
+        only meaningful when 2FA is enabled — `enabled` will be false otherwise.
+      properties:
+        enabled:           { type: boolean, description: 'True when 2FA is enabled and backup codes are available.' }
+        total:             { type: integer, description: 'How many codes were issued in the current set.' }
+        remaining:         { type: integer, description: 'How many of those codes have not been consumed yet.' }
+        generated_at:      { type: string, nullable: true, format: date-time }
+        last_used_at:      { type: string, nullable: true, format: date-time }
+    TrustedContact:
+      type: object
+      description: |
+        A 1INME user nominated as a recovery contact. The `status` reflects
+        the invitation lifecycle: `pending` (waiting for the contact to
+        accept), `active` (accepted, eligible to confirm recovery requests),
+        or `revoked` (removed by either party).
+      properties:
+        id:                { type: integer }
+        contact_user_id:   { type: integer }
+        contact_handle:    { type: string, nullable: true }
+        contact_name:      { type: string, nullable: true }
+        contact_avatar:    { type: string, nullable: true }
+        status:            { type: string, enum: [pending, active, revoked] }
+        invited_at:        { type: string, format: date-time }
+        accepted_at:       { type: string, nullable: true, format: date-time }
+    TrustedContactInvitation:
+      type: object
+      description: |
+        An invitation pointing at the *current* user — i.e. someone else has
+        nominated me as their recovery contact and is waiting for me to
+        accept. Distinct from `TrustedContact`, which represents contacts I
+        have nominated.
+      properties:
+        id:                { type: integer }
+        owner_user_id:     { type: integer }
+        owner_handle:      { type: string, nullable: true }
+        owner_name:        { type: string, nullable: true }
+        owner_avatar:      { type: string, nullable: true }
+        invited_at:        { type: string, format: date-time }
+    RecoveryRequest:
+      type: object
+      description: |
+        A recovery attempt that needs out-of-band confirmation from the
+        owner's trusted contacts. `confirmations_required` is the threshold
+        the owner must reach before the recovery succeeds.
+      properties:
+        id:                     { type: integer }
+        owner_user_id:          { type: integer }
+        owner_handle:           { type: string, nullable: true }
+        owner_name:             { type: string, nullable: true }
+        reason:                 { type: string, nullable: true, description: 'Free-text context the requester provided (e.g. "lost phone").' }
+        status:                 { type: string, enum: [pending, approved, denied, expired, cancelled] }
+        confirmations_required: { type: integer }
+        confirmations_received: { type: integer }
+        my_confirmation:        { type: string, nullable: true, enum: [confirmed, denied], description: 'Where I (the contact) stand on this request.' }
+        created_at:             { type: string, format: date-time }
+        expires_at:             { type: string, format: date-time }
+    PendingSensitiveChange:
+      type: object
+      description: |
+        A staged change to the account email or password that is currently
+        inside its cooling-off window. The change only takes effect at
+        `effective_at` and can be cancelled by the original email recipient
+        any time before then. New-device logins are blocked while a change
+        is pending.
+      properties:
+        id:               { type: integer }
+        kind:             { type: string, enum: [email, password] }
+        new_email_masked: { type: string, nullable: true, description: 'Lightly-masked preview (e.g. "j••@example.com") shown in the UI; never the plaintext target.' }
+        requested_at:     { type: string, format: date-time }
+        effective_at:     { type: string, format: date-time }
+        ip_address:       { type: string, nullable: true }
+        user_agent:       { type: string, nullable: true }
+    SecuritySettings:
+      type: object
+      description: |
+        Per-account hardening configuration. `cool_off_hours` controls the
+        delay before email/password changes take effect; `trusted_contact_*`
+        bounds the trusted-contact list; `block_new_devices_during_cool_off`
+        is the kill-switch for the new-device login lockout described above.
+      properties:
+        cool_off_hours:                       { type: integer, minimum: 0, maximum: 168 }
+        trusted_contacts_max:                 { type: integer, minimum: 0, maximum: 10 }
+        trusted_contacts_required_to_recover: { type: integer, minimum: 1, maximum: 10 }
+        block_new_devices_during_cool_off:    { type: boolean }
 
 paths:
   /health:
@@ -372,6 +461,325 @@ paths:
         '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSuccess' } } } }
         '400': { description: invalid code, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { description: user not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/2fa/backup-codes:
+    get:
+      summary: Status of the current backup-code set (counts only, no plaintext)
+      description: |
+        Returns the snapshot used by the security-settings UI. The plaintext
+        codes themselves are only returned once at generation time and are
+        never recoverable later; if a user loses them they must regenerate.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      backup_codes: { $ref: '#/components/schemas/BackupCodeStatus' }
+        '409':
+          description: 2FA not enabled — enable it before generating backup codes
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    post:
+      summary: Generate (or regenerate) backup codes — invalidates any previous set
+      description: |
+        Regeneration is destructive: every code in the previous set is
+        immediately invalidated. The full plaintext list is returned in
+        the response so the client can offer download/print; subsequent
+        GETs only expose the count.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                count: { type: integer, minimum: 6, maximum: 16, description: 'How many codes to issue (default 10).' }
+      responses:
+        '201':
+          description: codes generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      codes:        { type: array, items: { type: string }, description: 'Plaintext codes — show once, never re-fetchable.' }
+                      backup_codes: { $ref: '#/components/schemas/BackupCodeStatus' }
+        '409':
+          description: 2FA not enabled
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  /auth/2fa/backup-codes/verify:
+    post:
+      summary: Use a backup code to satisfy a pending 2FA challenge
+      security: []
+      description: |
+        Alternative to the TOTP step in the 2FA flow. Accepts the
+        challenge token returned by `/auth/login` (or the OTP flow when
+        2FA is required) and one of the user's unused backup codes.
+        Each code is single-use and is consumed on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challenge_token, code]
+              properties:
+                challenge_token: { type: string, description: 'Short-lived token issued by the prior auth step that signalled "2fa required".' }
+                code:            { type: string, description: 'A backup code from the user''s set.' }
+                device:          { type: string, nullable: true }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSuccess' } } } }
+        '400': { description: invalid or already-used code, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '410': { description: challenge token expired — restart sign-in, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /security/settings:
+    get:
+      summary: Read account-recovery hardening settings
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      settings: { $ref: '#/components/schemas/SecuritySettings' }
+    patch:
+      summary: Update hardening settings (cool-off duration, lockout policy)
+      description: |
+        Set `cool_off_hours` to 0 to disable the cooling-off period
+        entirely (not recommended). Lowering the value does not shorten
+        any change that is already in flight.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cool_off_hours:                       { type: integer, minimum: 0, maximum: 168 }
+                trusted_contacts_required_to_recover: { type: integer, minimum: 1, maximum: 10 }
+                block_new_devices_during_cool_off:    { type: boolean }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      settings: { $ref: '#/components/schemas/SecuritySettings' }
+
+  /security/trusted-contacts:
+    get:
+      summary: List my nominated trusted contacts
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/TrustedContact' } }
+    post:
+      summary: Nominate another 1INME user as a trusted contact
+      description: |
+        The contact receives an in-app prompt and must accept before the
+        nomination becomes `active`. Self-nomination is rejected and the
+        list is capped at `trusted_contacts_max` from `/security/settings`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contact_user_id: { type: integer, nullable: true }
+                handle:          { type: string, nullable: true, description: 'Alternative to contact_user_id — resolved server-side.' }
+      responses:
+        '201': { description: invited, content: { application/json: { schema: { type: object, properties: { data: { type: object, properties: { contact: { $ref: '#/components/schemas/TrustedContact' } } } } } } } }
+        '404': { description: user not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: already nominated / self-nomination / list full, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /security/trusted-contacts/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    delete:
+      summary: Revoke a trusted contact (works in both `pending` and `active` states)
+      responses:
+        '204': { description: revoked }
+        '404': { description: not found }
+
+  /security/trusted-contacts/invitations:
+    get:
+      summary: Pending nominations *pointing at me* — i.e. people who want me as their recovery contact
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/TrustedContactInvitation' } }
+
+  /security/trusted-contacts/invitations/{id}/accept:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: Accept a nomination so I become an active recovery contact
+      responses:
+        '200': { description: ok }
+        '404': { description: invitation not found or already resolved }
+
+  /security/trusted-contacts/invitations/{id}/decline:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: Decline a nomination
+      responses:
+        '204': { description: declined }
+        '404': { description: invitation not found or already resolved }
+
+  /security/recovery/requests:
+    get:
+      summary: Recovery requests I should weigh in on (as someone's trusted contact)
+      description: |
+        Lists the in-app prompts the recovery flow surfaces to a contact:
+        e.g. "Alex is trying to recover their account — was it them?"
+        Each prompt shows confirmation progress so contacts can see
+        when the threshold has been reached.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/RecoveryRequest' } }
+
+  /security/recovery/requests/{id}/confirm:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: Confirm or deny a recovery request as a trusted contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [confirmed, denied] }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      request: { $ref: '#/components/schemas/RecoveryRequest' }
+        '404': { description: request not found / not eligible }
+        '410': { description: request expired or already resolved }
+
+  /security/sensitive-changes:
+    get:
+      summary: My pending email/password changes (those still inside the cool-off window)
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/PendingSensitiveChange' } }
+    post:
+      summary: Stage a sensitive change (email or password) behind the cool-off window
+      description: |
+        Validates the new value, persists the staged change, and emails
+        the *previous* email address a one-click cancel link. The change
+        only takes effect after `cool_off_hours` have passed; until then,
+        new-device logins for this account are blocked when
+        `block_new_devices_during_cool_off` is set.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind:             { type: string, enum: [email, password] }
+                new_email:        { type: string, format: email, nullable: true, description: 'Required when kind=email.' }
+                new_password:     { type: string, minLength: 8, nullable: true, description: 'Required when kind=password.' }
+                current_password: { type: string, nullable: true, description: 'Required for kind=password and recommended for kind=email.' }
+      responses:
+        '201':
+          description: staged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      change: { $ref: '#/components/schemas/PendingSensitiveChange' }
+        '409': { description: another change is already pending for this kind }
+        '422': { description: validation error }
+
+  /security/sensitive-changes/{id}/cancel:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: Cancel a staged change before it takes effect
+      description: |
+        Callable two ways: 1) authenticated, from the in-app security
+        screen; 2) unauthenticated, by following the one-click link
+        emailed to the previous address — in that case the
+        `cancellation_token` query parameter authorises the call.
+      security: []
+      parameters:
+        - { in: query, name: cancellation_token, schema: { type: string }, description: 'Email cancel-link token. Omit when calling authenticated.' }
+      responses:
+        '204': { description: cancelled }
+        '404': { description: not found }
+        '410': { description: cool-off already elapsed; the change has taken effect and can no longer be cancelled }
 
   /auth/otp/register:
     post:
