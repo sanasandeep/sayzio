@@ -1543,15 +1543,17 @@ class BiolinkBlockController extends Controller
         $allowed = [
             'continents' => ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'],
             'countries' => null,
+            'countries_exclude' => null,
             'cities' => null,
             'devices' => ['desktop', 'tablet', 'mobile'],
+            'devices_exclude' => ['desktop', 'tablet', 'mobile'],
             'os' => ['iOS', 'Android', 'Windows', 'OS X', 'Linux', 'Chrome OS'],
             'browsers' => ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera', 'Brave', 'Vivaldi', 'Internet Explorer'],
             'languages' => null,
         ];
 
         // CSV-style fields (free-form text, comma-separated): accept scalar string too.
-        $csvFields = ['countries', 'cities', 'languages'];
+        $csvFields = ['countries', 'countries_exclude', 'cities', 'languages'];
 
         $result = [];
         foreach ($allowed as $key => $validValues) {

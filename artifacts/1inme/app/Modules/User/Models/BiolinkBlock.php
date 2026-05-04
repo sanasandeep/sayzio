@@ -759,6 +759,16 @@ class BiolinkBlock extends Model
             if ($country && !in_array($country, $v['countries'])) return false;
         }
 
+        // Geo exclusion: hide for visitors from a denied country.
+        // We only block when we actually detected a country — an
+        // unknown country (no header + no GeoIP hit) is treated as
+        // "allowed" so we never silently hide blocks for everyone
+        // when the geo signal is unavailable.
+        if (!empty($v['countries_exclude'])) {
+            $country = self::detectCountry($request);
+            if ($country && in_array($country, $v['countries_exclude'])) return false;
+        }
+
         if (!empty($v['cities'])) {
             $city = $request->header('X-City', $request->header('CF-IPCity', ''));
             if ($city && !in_array(strtolower($city), array_map('strtolower', $v['cities']))) return false;
@@ -767,6 +777,12 @@ class BiolinkBlock extends Model
         if (!empty($v['devices'])) {
             $device = self::detectDevice($request);
             if ($device && !in_array($device, $v['devices'])) return false;
+        }
+
+        // Device exclusion: hide on the listed device classes.
+        if (!empty($v['devices_exclude'])) {
+            $device = self::detectDevice($request);
+            if ($device && in_array($device, $v['devices_exclude'])) return false;
         }
 
         if (!empty($v['os'])) {
@@ -836,11 +852,38 @@ class BiolinkBlock extends Model
 
     public static function detectCountry($request): string
     {
-        return strtoupper($request->header('CF-IPCountry', $request->header('X-Country', '')));
+        // Owner-preview simulation override (set by RedirectController
+        // after a valid signed-preview check). Always wins so creators
+        // can preview "as visitor in CC" reliably.
+        $sim = $request->attributes->get('biolink_sim_country');
+        if (is_string($sim) && $sim !== '') return strtoupper($sim);
+
+        $cc = strtoupper($request->header('CF-IPCountry', $request->header('X-Country', '')));
+        if ($cc !== '') return $cc;
+
+        // GeoIP fallback — same path RedirectController uses for smart
+        // routing. Service caches per-IP for 1h so the per-render cost
+        // is one Cache::get() once warm.
+        try {
+            $ip = $request->ip();
+            if ($ip) {
+                $detected = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($ip);
+                if (is_string($detected) && $detected !== '') return strtoupper($detected);
+            }
+        } catch (\Throwable $e) {
+            // Fail open — treat as "unknown country" so visibility
+            // exclusion lists never silently hide blocks for everyone
+            // when the GeoIP backend is unreachable.
+        }
+        return '';
     }
 
     public static function detectDevice($request): string
     {
+        $sim = $request->attributes->get('biolink_sim_device');
+        if (is_string($sim) && in_array($sim, ['mobile', 'tablet', 'desktop'], true)) {
+            return $sim;
+        }
         $ua = strtolower($request->userAgent() ?? '');
         if (str_contains($ua, 'tablet') || str_contains($ua, 'ipad')) return 'tablet';
         if (preg_match('/mobile|android|iphone|ipod|opera mini|iemobile/i', $ua)) return 'mobile';

@@ -196,7 +196,7 @@
             Unsaved preview
         </span>
     </div>
-    <div class="flex items-center justify-center gap-1 mb-4">
+    <div class="flex items-center justify-center gap-1 mb-2">
         <button type="button" @click="previewMode = 'phone'; switchPreviewMode('phone')" class="device-switcher-btn" :class="previewMode === 'phone' ? 'active' : ''" title="Phone">
             <i class="fas fa-mobile-alt"></i>
         </button>
@@ -209,6 +209,42 @@
         <button type="button" @click="previewMode = 'desktop'; switchPreviewMode('desktop')" class="device-switcher-btn" :class="previewMode === 'desktop' ? 'active' : ''" title="Desktop">
             <i class="fas fa-desktop"></i>
         </button>
+    </div>
+
+    {{-- "Simulate as" controls — let creators preview their per-block geo
+         and device targeting rules without spoofing headers or VPN-hopping.
+         The chosen sim values get appended as `_sim_country` / `_sim_device`
+         query params on the iframe URL; the RedirectController honors them
+         only when the owner-signed `?_preview=1` signature still validates. --}}
+    <div class="flex flex-wrap items-center justify-center gap-1.5 mb-3 text-[10px]"
+         x-data="previewSimulator()"
+         x-init="restore()">
+        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md" style="color: var(--text-faint); background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass);">
+            <i class="fas fa-user-secret text-[9px]"></i> Simulate as
+        </span>
+        <select x-model="simDevice" @change="apply()"
+                class="text-[10px] py-0.5 px-1.5 rounded-md"
+                style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+            <option value="">Real device</option>
+            <option value="mobile">Mobile</option>
+            <option value="tablet">Tablet</option>
+            <option value="desktop">Desktop</option>
+        </select>
+        <input type="text" x-model="simCountry" @change="apply()" @keyup.enter="apply()"
+               maxlength="2" placeholder="--"
+               class="text-[10px] py-0.5 px-1.5 rounded-md w-12 text-center uppercase tracking-wider"
+               style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
+               title="ISO country code (e.g. US, IN, GB) — leave blank for real geo">
+        <button type="button" x-show="simDevice || simCountry" @click="clear()"
+                class="text-[10px] px-1.5 py-0.5 rounded-md transition"
+                style="background: rgba(244,114,182,0.10); color: rgba(251,207,232,0.85); border: 1px solid rgba(244,114,182,0.25);"
+                title="Clear simulation">
+            <i class="fas fa-times text-[9px]"></i>
+        </button>
+        <span x-show="simDevice || simCountry" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md"
+              style="background: rgba(245,158,11,0.10); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25);">
+            <i class="fas fa-eye text-[8px]"></i> simulating
+        </span>
     </div>
     <div class="flex justify-center transition-all duration-500 ease-in-out">
         {{-- Phone --}}
@@ -331,6 +367,13 @@ var _previewRefreshTimer = null;
 var _draftPreviewUrl = @json($__draftPreviewEndpoint);
 var _draftActive = false;
 var _activePreviewMode = 'phone';
+// Owner-preview simulation overrides — set by the previewSimulator Alpine
+// component below when the creator picks a simulated device/country, so
+// _currentPreviewSrc() can append `_sim_device=` / `_sim_country=` query
+// params to every iframe URL. Persisted in sessionStorage so the choice
+// survives accidental page reloads but doesn't leak across tabs.
+var _simDevice = '';
+var _simCountry = '';
 var _deviceViewports = {
     phone:        { w: 375, h: 812 },
     tablet:       { w: 768, h: 1024 },
@@ -437,7 +480,58 @@ function _currentPreviewSrc() {
     // Draft mode appends `&_draft=1&_t=<ts>` so the iframe re-fetches the
     // server-rendered page with the cached unsaved overrides applied. The
     // signature ignores both params (see RedirectController).
-    return _draftActive ? (_previewUrl + '&_draft=1&_t=' + Date.now()) : _previewUrl;
+    var url = _draftActive ? (_previewUrl + '&_draft=1&_t=' + Date.now()) : _previewUrl;
+    if (_simDevice)  url += '&_sim_device='  + encodeURIComponent(_simDevice);
+    if (_simCountry) url += '&_sim_country=' + encodeURIComponent(_simCountry);
+    return url;
+}
+
+// Alpine component backing the "Simulate as" toolbar. Picks are persisted
+// in sessionStorage so a tab-local refresh keeps the simulation, but new
+// tabs (and other creators on shared devices) start clean.
+function previewSimulator() {
+    return {
+        simDevice: '',
+        simCountry: '',
+        restore() {
+            try {
+                this.simDevice  = sessionStorage.getItem('_simDevice')  || '';
+                this.simCountry = (sessionStorage.getItem('_simCountry') || '').toUpperCase();
+            } catch (e) { /* sessionStorage disabled (private mode) — no-op */ }
+            _simDevice  = this.simDevice;
+            _simCountry = this.simCountry;
+        },
+        apply() {
+            // Country must be a 2-letter ISO code (or blank). Anything else
+            // is silently dropped so we don't ship junk into the URL.
+            var cc = (this.simCountry || '').toUpperCase();
+            if (cc && !/^[A-Z]{2}$/.test(cc)) cc = '';
+            this.simCountry = cc;
+            _simDevice  = this.simDevice  || '';
+            _simCountry = cc;
+            try {
+                if (_simDevice)  sessionStorage.setItem('_simDevice', _simDevice);  else sessionStorage.removeItem('_simDevice');
+                if (_simCountry) sessionStorage.setItem('_simCountry', _simCountry); else sessionStorage.removeItem('_simCountry');
+            } catch (e) { /* ignore */ }
+            // Re-render every loaded iframe so the new simulation takes
+            // effect everywhere immediately. Hidden iframes get marked
+            // stale and reload on next activation (cheap; matches draft
+            // preview behaviour).
+            document.querySelectorAll('.preview-iframe').forEach(function(f) {
+                if (!f.src || f.src === 'about:blank' || f.src === window.location.href) return;
+                if (f.dataset.preview === _activePreviewMode) {
+                    _reloadIframe(f);
+                } else {
+                    f.dataset.previewStale = '1';
+                }
+            });
+        },
+        clear() {
+            this.simDevice = '';
+            this.simCountry = '';
+            this.apply();
+        },
+    };
 }
 
 function _reloadIframe(f) {

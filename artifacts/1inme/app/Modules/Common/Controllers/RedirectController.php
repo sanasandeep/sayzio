@@ -277,6 +277,7 @@ class RedirectController extends Controller
         // tweaks without hitting Save first.
         if ($link->type === 'biolink') {
             $this->applyDraftOverrides($request, $link);
+            $this->applyPreviewSimulation($request);
         }
 
         // Auto-pixel interstitial — when the link is opted-in (auto_pixel)
@@ -418,7 +419,7 @@ class RedirectController extends Controller
 
         $req = request();
         $isOwnerPreview = $req && $req->boolean('_preview')
-            && $req->hasValidSignatureWhileIgnoring(['_draft', '_t'], false);
+            && $req->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false);
 
         if ($mode === 'slides') {
             $q = \App\Modules\User\Models\LinkSlideDeck::withoutGlobalScope('workspace')
@@ -442,7 +443,7 @@ class RedirectController extends Controller
     {
         $response->headers->set('X-Frame-Options', 'ALLOWALL');
         $response->headers->set('Content-Security-Policy', 'frame-ancestors *');
-        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'], false)) {
+        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false)) {
             $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             $response->headers->set('Pragma', 'no-cache');
         }
@@ -461,7 +462,7 @@ class RedirectController extends Controller
         if (!$request->boolean('_preview') || !$request->boolean('_draft')) {
             return;
         }
-        if (!$request->hasValidSignatureWhileIgnoring(['_draft', '_t'], false)) {
+        if (!$request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false)) {
             return;
         }
         $draft = \Illuminate\Support\Facades\Cache::get("biolink_draft:{$link->id}");
@@ -471,6 +472,31 @@ class RedirectController extends Controller
         $settings = $link->settings ?? [];
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $draft['biolink']);
         $link->settings = $settings;
+    }
+
+    /**
+     * Owner-scoped "simulate as" preview — when the editor iframe loads
+     * with `?_preview=1` plus `_sim_country=US` and/or `_sim_device=mobile`
+     * (signature must still be valid, those params are in the ignored
+     * list), stash the simulated values on the request so
+     * BiolinkBlock::detectCountry/detectDevice (and therefore
+     * isVisible()) honor them. Lets creators preview their geo/device
+     * targeting without spoofing headers or VPN-hopping.
+     */
+    protected function applyPreviewSimulation(Request $request): void
+    {
+        if (!$request->boolean('_preview')) return;
+        if (!$request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false)) {
+            return;
+        }
+        $simCountry = $request->query('_sim_country');
+        if (is_string($simCountry) && preg_match('/^[A-Za-z]{2}$/', $simCountry)) {
+            $request->attributes->set('biolink_sim_country', strtoupper($simCountry));
+        }
+        $simDevice = $request->query('_sim_device');
+        if (is_string($simDevice) && in_array($simDevice, ['mobile', 'tablet', 'desktop'], true)) {
+            $request->attributes->set('biolink_sim_device', $simDevice);
+        }
     }
 
     /**
@@ -498,7 +524,7 @@ class RedirectController extends Controller
         // This guarantees the preview is never blocked by visibility tiers
         // even if the iframe loses the session cookie (SameSite / 3rd-party
         // cookie behavior on a custom domain).
-        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'], false)) {
+        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false)) {
             return null;
         }
 

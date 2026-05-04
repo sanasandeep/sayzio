@@ -192,14 +192,25 @@
                 <div class="grid grid-cols-1 gap-2.5">
                     <div>
                         <label class="text-[11px] font-medium flex items-center gap-1.5 mb-1" style="color: var(--text-muted);">
-                            <i class="fas fa-flag text-cyan-400/80 text-[10px]"></i> Countries
+                            <i class="fas fa-flag text-emerald-400/80 text-[10px]"></i> Countries · Show only in
                         </label>
                         <input type="text" name="visibility_countries_text"
                                value="{{ implode(', ', $vis['countries'] ?? []) }}"
-                               placeholder="US, IN, GB · ISO codes, comma-separated"
+                               placeholder="US, IN, GB · ISO codes, comma-separated · leave blank for all"
                                class="{{ $inputClass }} text-xs"
                                x-data x-init="$watch('$el.value', v => { $el.nextElementSibling.value = v; })">
                         <input type="hidden" name="visibility[countries]" value="{{ implode(',', $vis['countries'] ?? []) }}">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-medium flex items-center gap-1.5 mb-1" style="color: var(--text-muted);">
+                            <i class="fas fa-ban text-rose-400/80 text-[10px]"></i> Countries · Hide in
+                        </label>
+                        <input type="text" name="visibility_countries_exclude_text"
+                               value="{{ implode(', ', $vis['countries_exclude'] ?? []) }}"
+                               placeholder="RU, KP · ISO codes, comma-separated"
+                               class="{{ $inputClass }} text-xs"
+                               x-data x-init="$watch('$el.value', v => { $el.nextElementSibling.value = v; })">
+                        <input type="hidden" name="visibility[countries_exclude]" value="{{ implode(',', $vis['countries_exclude'] ?? []) }}">
                     </div>
                     <div>
                         <label class="text-[11px] font-medium flex items-center gap-1.5 mb-1" style="color: var(--text-muted);">
@@ -244,13 +255,29 @@
             <div x-show="openCard === 'device'" x-cloak x-transition class="px-3 pb-3 space-y-3">
 
                 <div>
-                    <label class="text-[11px] font-medium flex items-center gap-1.5 mb-1.5" style="color: var(--text-muted);"><i class="fas fa-laptop text-pink-400/80 text-[10px]"></i> Devices</label>
+                    <label class="text-[11px] font-medium flex items-center gap-1.5 mb-1.5" style="color: var(--text-muted);"><i class="fas fa-laptop text-emerald-400/80 text-[10px]"></i> Devices · Show only on</label>
                     <div class="flex flex-wrap gap-1.5">
                         @foreach($allDevices as $d)
                         <label class="flex items-center gap-1.5 text-[11px] cursor-pointer px-2.5 py-1 rounded-md transition" style="color: var(--text-muted); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                             <input type="checkbox" name="visibility[devices][]" value="{{ $d }}"
                                    {{ in_array($d, $vis['devices'] ?? []) ? 'checked' : '' }}
                                    class="rounded border-white/20 bg-white/5 text-pink-500 focus:ring-pink-500/30 w-3 h-3">
+                            <i class="fas fa-{{ $d === 'desktop' ? 'desktop' : ($d === 'tablet' ? 'tablet-alt' : 'mobile-alt') }} text-[10px]"></i>
+                            {{ ucfirst($d) }}
+                        </label>
+                        @endforeach
+                    </div>
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Leave empty to show on all devices.</p>
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-medium flex items-center gap-1.5 mb-1.5" style="color: var(--text-muted);"><i class="fas fa-ban text-rose-400/80 text-[10px]"></i> Devices · Hide on</label>
+                    <div class="flex flex-wrap gap-1.5">
+                        @foreach($allDevices as $d)
+                        <label class="flex items-center gap-1.5 text-[11px] cursor-pointer px-2.5 py-1 rounded-md transition" style="color: var(--text-muted); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                            <input type="checkbox" name="visibility[devices_exclude][]" value="{{ $d }}"
+                                   {{ in_array($d, $vis['devices_exclude'] ?? []) ? 'checked' : '' }}
+                                   class="rounded border-white/20 bg-white/5 text-rose-500 focus:ring-rose-500/30 w-3 h-3">
                             <i class="fas fa-{{ $d === 'desktop' ? 'desktop' : ($d === 'tablet' ? 'tablet-alt' : 'mobile-alt') }} text-[10px]"></i>
                             {{ ucfirst($d) }}
                         </label>

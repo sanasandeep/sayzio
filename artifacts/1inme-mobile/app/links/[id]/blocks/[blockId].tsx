@@ -214,6 +214,14 @@ export default function EditBlockScreen() {
 
   const [active, setActive] = useState(true);
   const [values, setValues] = useState<Record<string, string>>({});
+  // Per-block targeting (mirrors the web editor's Display Settings card —
+  // `settings._visibility.{countries,countries_exclude,devices,devices_exclude}`).
+  // Country lists stay as comma-separated strings to match the web's CSV
+  // input UX; device lists are sets for cheap toggling.
+  const [visDevices, setVisDevices] = useState<Set<string>>(new Set());
+  const [visDevicesExclude, setVisDevicesExclude] = useState<Set<string>>(new Set());
+  const [visCountries, setVisCountries] = useState<string>("");
+  const [visCountriesExclude, setVisCountriesExclude] = useState<string>("");
   // List/pricing block state. These block types persist a `style` string,
   // an `items` array, and (for `list`) a default bullet `icon`. They are
   // edited via a bespoke UI rather than the generic field renderer.
@@ -255,6 +263,23 @@ export default function EditBlockScreen() {
     setValues(init);
     const style = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
     setVariantKey(typeof style._variant === "string" ? style._variant : "");
+    // Hydrate visibility/targeting from `_visibility` (everything missing
+    // means "show everywhere"). Country codes are upper-cased on the way in
+    // so the chip below the input never disagrees with what the saved CSV
+    // actually contains.
+    const vis = (block.settings?._visibility as Record<string, unknown> | undefined) ?? {};
+    const toCsv = (v: unknown): string =>
+      Array.isArray(v) ? v.map((x) => String(x).trim().toUpperCase()).filter(Boolean).join(", ") : "";
+    const toDeviceSet = (v: unknown): Set<string> => {
+      const allowed = new Set(["mobile", "tablet", "desktop"]);
+      const out = new Set<string>();
+      if (Array.isArray(v)) v.forEach((x) => { const s = String(x); if (allowed.has(s)) out.add(s); });
+      return out;
+    };
+    setVisDevices(toDeviceSet(vis.devices));
+    setVisDevicesExclude(toDeviceSet(vis.devices_exclude));
+    setVisCountries(toCsv(vis.countries));
+    setVisCountriesExclude(toCsv(vis.countries_exclude));
     // Hydrate list/pricing-specific state from the saved settings. We
     // keep these in their own state buckets so the generic `values`
     // map (string-only) doesn't trip over the array/boolean fields.
@@ -445,6 +470,20 @@ export default function EditBlockScreen() {
       // backend keeps whatever variant/snapshot is currently persisted.
       const nextSettings: Record<string, unknown> = { ...values };
       delete nextSettings._style;
+      // Merge per-block targeting back into `_visibility`. We preserve any
+      // pre-existing keys (continents/cities/os/browsers/languages/time_slots)
+      // that the mobile UI doesn't surface yet so saving from mobile never
+      // wipes settings configured from the web editor.
+      const csvToCodes = (s: string): string[] =>
+        s.split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^[A-Z]{2}$/.test(x));
+      const prevVis = (block?.settings?._visibility as Record<string, unknown> | undefined) ?? {};
+      nextSettings._visibility = {
+        ...prevVis,
+        countries: csvToCodes(visCountries),
+        countries_exclude: csvToCodes(visCountriesExclude),
+        devices: Array.from(visDevices),
+        devices_exclude: Array.from(visDevicesExclude),
+      };
       // For list/pricing blocks, replace the primitive `style`/`icon`
       // strings copied into `values` with the structured editor state
       // (style + items + per-item icons). Empty trailing rows are
@@ -1078,6 +1117,105 @@ export default function EditBlockScreen() {
             }
           />
         ))}
+
+        {/* Targeting — per-block geo + device visibility rules. Mirrors the
+            web editor's "Display Settings → Audience/Device" cards but
+            scoped to the controls a creator is most likely to want on the
+            go (countries include/exclude, devices include/exclude). Other
+            visibility keys (continents, cities, OS, browser, time slots)
+            are preserved on save so this never wipes web-only settings. */}
+        <View
+          style={[
+            styles.row,
+            {
+              flexDirection: "column",
+              alignItems: "stretch",
+              gap: 12,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+            Targeting
+          </Text>
+
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+              Devices · Show only on (leave empty for all)
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {(["mobile", "tablet", "desktop"] as const).map((d) => {
+                const on = visDevices.has(d);
+                return (
+                  <Pressable
+                    key={d}
+                    onPress={() => {
+                      const next = new Set(visDevices);
+                      if (on) next.delete(d); else next.add(d);
+                      setVisDevices(next);
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: on ? colors.primary : colors.border,
+                      backgroundColor: on ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: on ? "#fff" : colors.mutedForeground, textTransform: "capitalize" }}>{d}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Devices · Hide on</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {(["mobile", "tablet", "desktop"] as const).map((d) => {
+                const on = visDevicesExclude.has(d);
+                return (
+                  <Pressable
+                    key={d}
+                    onPress={() => {
+                      const next = new Set(visDevicesExclude);
+                      if (on) next.delete(d); else next.add(d);
+                      setVisDevicesExclude(next);
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: on ? colors.destructive : colors.border,
+                      backgroundColor: on ? colors.destructive : "transparent",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: on ? "#fff" : colors.mutedForeground, textTransform: "capitalize" }}>{d}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <TextField
+            label="Countries · Show only in"
+            hint="ISO codes, comma-separated. e.g. US, IN, GB. Leave empty for all."
+            value={visCountries}
+            onChangeText={setVisCountries}
+            autoCapitalize="characters"
+          />
+          <TextField
+            label="Countries · Hide in"
+            hint="ISO codes, comma-separated. e.g. RU, KP."
+            value={visCountriesExclude}
+            onChangeText={setVisCountriesExclude}
+            autoCapitalize="characters"
+          />
+        </View>
 
         <View
           style={[
