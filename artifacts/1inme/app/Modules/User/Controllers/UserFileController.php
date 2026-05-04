@@ -37,7 +37,47 @@ class UserFileController extends Controller
 
         return view('user.files.index', [
             'quota' => $this->getQuotaInfo($user),
+            'reoptimizeNotice' => $this->getReoptimizeNotice($user),
         ]);
+    }
+
+    /**
+     * Dismiss the one-time "we shrunk old images and recovered X" banner.
+     * Stamps a timestamp on the user row; subsequent backfill runs that
+     * record more savings clear it again so creators see the new totals.
+     */
+    public function dismissReoptimizeNotice(Request $request)
+    {
+        $user = $request->user();
+        $user->forceFill(['image_reoptimize_notice_dismissed_at' => now()])->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Build the one-time vault-cleanup banner payload, or null when there
+     * is nothing to show (no savings recorded yet, or already dismissed
+     * since the most recent backfill run).
+     */
+    private function getReoptimizeNotice($user): ?array
+    {
+        $count = (int) ($user->image_reoptimize_files_count ?? 0);
+        $bytes = (int) ($user->image_reoptimize_bytes_freed ?? 0);
+        if ($count <= 0 || $bytes <= 0) return null;
+        if (!empty($user->image_reoptimize_notice_dismissed_at)) return null;
+
+        $mb = $bytes / 1048576;
+        if ($mb >= 1) {
+            $human = number_format($mb, $mb >= 10 ? 0 : 1) . ' MB';
+        } else {
+            $human = max(1, (int) round($bytes / 1024)) . ' KB';
+        }
+
+        return [
+            'files_count' => $count,
+            'bytes_freed' => $bytes,
+            'bytes_human' => $human,
+        ];
     }
 
     public function upload(Request $request)

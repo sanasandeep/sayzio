@@ -5,8 +5,10 @@ namespace App\Console\Commands;
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\SplashPage;
+use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Lazily shrink legacy raster UserFile rows that were uploaded before the
@@ -82,6 +84,11 @@ class BackfillImageReoptimization extends Command
             'shrunk'     => 0,
             'skipped'    => 0,
             'bytes_freed' => 0,
+            // Per-user totals accumulated across every context this run, so a
+            // single UPDATE per user lands at the end (atomic increments
+            // survive concurrent runs / re-runs without double-counting,
+            // because $seen dedupes the UserFile rows themselves).
+            'per_user'   => [],
         ];
         $seen = [];
 
@@ -91,6 +98,10 @@ class BackfillImageReoptimization extends Command
             if ($limit > 0 && $stats['scanned'] >= $limit) break;
             $this->line("· {$ctx}");
             $this->runContext($ctx, $chunk, $limit, $dry, $stats, $seen);
+        }
+
+        if (!$dry && !empty($stats['per_user'])) {
+            $this->flushPerUserStats($stats['per_user']);
         }
 
         $this->newLine();
@@ -263,9 +274,43 @@ class BackfillImageReoptimization extends Command
         if ($changed) {
             $stats['shrunk']++;
             $delta = $beforeBytes - (int) $file->size_bytes;
-            if ($delta > 0) $stats['bytes_freed'] += $delta;
+            if ($delta > 0) {
+                $stats['bytes_freed'] += $delta;
+                $uid = (int) $file->user_id;
+                if ($uid > 0) {
+                    if (!isset($stats['per_user'][$uid])) {
+                        $stats['per_user'][$uid] = ['count' => 0, 'bytes' => 0];
+                    }
+                    $stats['per_user'][$uid]['count']++;
+                    $stats['per_user'][$uid]['bytes'] += $delta;
+                }
+            }
         } else {
             $stats['skipped']++;
+        }
+    }
+
+    /**
+     * Persist accumulated per-user shrink totals onto the users row and
+     * re-arm the one-time "we recovered X" banner by clearing any prior
+     * dismissal. Skips users whose row no longer exists. Increments are
+     * atomic so re-runs simply add to the totals.
+     */
+    private function flushPerUserStats(array $perUser): void
+    {
+        foreach ($perUser as $userId => $totals) {
+            $count = (int) ($totals['count'] ?? 0);
+            $bytes = (int) ($totals['bytes'] ?? 0);
+            if ($count <= 0 && $bytes <= 0) continue;
+
+            User::query()
+                ->whereKey($userId)
+                ->update([
+                    'image_reoptimize_files_count' => DB::raw('image_reoptimize_files_count + ' . $count),
+                    'image_reoptimize_bytes_freed' => DB::raw('image_reoptimize_bytes_freed + ' . $bytes),
+                    // Clear any prior dismissal so the new savings show up.
+                    'image_reoptimize_notice_dismissed_at' => null,
+                ]);
         }
     }
 }

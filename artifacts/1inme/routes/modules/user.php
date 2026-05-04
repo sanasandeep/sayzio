@@ -840,6 +840,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('import-url', [UserFileController::class, 'importUrl'])->middleware(['workspace.can:links.edit', CheckPlanLimit::class . ':files'])->name('import-url');
             Route::delete('{file}', [UserFileController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('destroy');
             Route::get('quota', [UserFileController::class, 'quota'])->middleware('workspace.can:links.view')->name('quota');
+            Route::post('reoptimize-notice/dismiss', [UserFileController::class, 'dismissReoptimizeNotice'])->middleware('workspace.can:links.view')->name('reoptimize-notice.dismiss');
         });
 
         // Inbox: parent gate is `inbox.view` (members without view can't reach

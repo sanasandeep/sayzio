@@ -28,6 +28,9 @@ class User extends Authenticatable
         'preferred_currency',
         'is_demo',
         'blocked_bot_families',
+        'image_reoptimize_files_count',
+        'image_reoptimize_bytes_freed',
+        'image_reoptimize_notice_dismissed_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -53,6 +56,9 @@ class User extends Authenticatable
             'social_connection_broken_emails' => 'boolean',
             'last_handle_ban_email_sent_at' => 'datetime',
             'blocked_bot_families' => 'array',
+            'image_reoptimize_files_count' => 'integer',
+            'image_reoptimize_bytes_freed' => 'integer',
+            'image_reoptimize_notice_dismissed_at' => 'datetime',
         ];
     }
 

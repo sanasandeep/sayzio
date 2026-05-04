@@ -15,6 +15,34 @@
         <input type="file" x-ref="fileInput" @change="handleFileSelect($event)" multiple accept="image/*,video/*,audio/*,.pdf,.ppt,.pptx,.xls,.xlsx,.doc,.docx" class="hidden">
     </div>
 
+    @if(!empty($reoptimizeNotice))
+        <div x-show="showReoptimizeNotice" x-transition x-cloak
+             class="glass rounded-2xl p-4 mb-4 border border-emerald-500/30"
+             style="background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(99,102,241,0.08));">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <i class="fas fa-leaf text-emerald-300"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold mb-0.5" style="color: var(--text-primary);">
+                        We tidied up your vault
+                    </div>
+                    <div class="text-xs" style="color: var(--text-faint);">
+                        Re-compressed <strong style="color: var(--text-secondary);" x-text="reoptimizeNotice.files_count + ' old image' + (reoptimizeNotice.files_count === 1 ? '' : 's')"></strong>
+                        and recovered <strong style="color: var(--text-secondary);" x-text="reoptimizeNotice.bytes_human"></strong>
+                        of storage on your account.
+                    </div>
+                </div>
+                <button type="button" @click="dismissReoptimizeNotice()"
+                        class="text-xs px-2 py-1 rounded-lg hover:bg-white/5 transition-colors shrink-0"
+                        style="color: var(--text-faint);"
+                        aria-label="Dismiss vault cleanup notice">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    @endif
+
     <div class="glass rounded-2xl p-4 mb-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="flex-1 w-full sm:w-auto">
@@ -317,6 +345,8 @@ function fileManager() {
         uploadQueue: [],
         pagination: { current_page: 1, last_page: 1, total: 0 },
         quota: @json($quota),
+        reoptimizeNotice: @json($reoptimizeNotice ?? null),
+        showReoptimizeNotice: !!@json($reoptimizeNotice ?? null),
         selectedFile: null,
         showDetail: false,
         showDeleteConfirm: false,
@@ -457,6 +487,22 @@ function fileManager() {
         formatDate(d) {
             if (!d) return '';
             return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        },
+
+        async dismissReoptimizeNotice() {
+            // Optimistically hide so the banner disappears instantly even
+            // if the network call is slow / fails (worst case it reappears
+            // on next page load, which is fine).
+            this.showReoptimizeNotice = false;
+            try {
+                await fetch('/user/files/reoptimize-notice/dismiss', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+            } catch (e) { /* swallow — banner already hidden */ }
         },
 
         showToast(msg, type) {
