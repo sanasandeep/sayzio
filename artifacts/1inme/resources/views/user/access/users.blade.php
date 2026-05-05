@@ -52,12 +52,16 @@
         </p>
     @endif
 
-    @if((!empty($audits) && $audits->count() > 0) || !empty($auditSource))
-        <details class="rounded-2xl border border-white/10 bg-white/[0.03]" {{ !empty($auditSource) ? 'open' : '' }}>
+    @php
+        $hasAuditFilter = !empty($auditSource) || !empty($auditRange) || !empty($auditFrom) || !empty($auditTo);
+    @endphp
+
+    @if($audits->count() > 0 || $hasAuditFilter)
+        <details class="rounded-2xl border border-white/10 bg-white/[0.03]" {{ $hasAuditFilter ? 'open' : '' }}>
             <summary class="cursor-pointer px-4 py-3 text-sm text-white/80 select-none flex items-center justify-between gap-3">
                 <span>
                     Recent role changes
-                    <span class="ml-1 text-xs text-white/40">({{ $audits->count() }} {{ !empty($auditSource) ? 'matching' : 'latest' }})</span>
+                    <span class="ml-1 text-xs text-white/40">({{ $audits->count() }} {{ $hasAuditFilter ? 'matching' : 'latest' }})</span>
                 </span>
                 <a href="{{ route('user.access.users.audit.export') }}"
                    onclick="event.stopPropagation();"
@@ -69,10 +73,11 @@
             <div class="px-4 pb-4">
                 {{-- Source filter chips. Each chip is a plain link that
                      adds/clears `?audit_source=` while preserving the
-                     active search term, so the URL is shareable. --}}
+                     active search term AND the current date range, so
+                     combinations are shareable. --}}
                 <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-source-filter">
-                    <span class="text-xs text-white/40 mr-1">Filter:</span>
-                    <a href="{{ route('user.access.users.index', array_filter(['q' => $search])) }}"
+                    <span class="text-xs text-white/40 mr-1">Source:</span>
+                    <a href="{{ route('user.access.users.index', array_filter(['q' => $search, 'audit_range' => $auditRange, 'audit_from' => $auditFrom, 'audit_to' => $auditTo])) }}"
                        data-source="all"
                        class="px-2.5 py-1 rounded-full text-xs border
                            {{ empty($auditSource)
@@ -81,7 +86,7 @@
                         All
                     </a>
                     @foreach($auditFilters as $filterValue => $filterLabel)
-                        <a href="{{ route('user.access.users.index', array_filter(['q' => $search, 'audit_source' => $filterValue])) }}"
+                        <a href="{{ route('user.access.users.index', array_filter(['q' => $search, 'audit_source' => $filterValue, 'audit_range' => $auditRange, 'audit_from' => $auditFrom, 'audit_to' => $auditTo])) }}"
                            data-source="{{ $filterValue }}"
                            class="px-2.5 py-1 rounded-full text-xs border
                                {{ $auditSource === $filterValue
@@ -90,6 +95,69 @@
                             {{ $filterLabel }}
                         </a>
                     @endforeach
+                </div>
+
+                {{-- Date-range presets + optional from/to picker. Preset
+                     chips preserve the active source filter and any
+                     custom from/to, so a reviewer can stack "admin
+                     changes in the last 7 days" without losing context.
+                     The custom range is a tiny GET form so submitting
+                     it round-trips through the controller and updates
+                     the URL alongside `?audit_source=`. --}}
+                <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-range-filter">
+                    <span class="text-xs text-white/40 mr-1">Range:</span>
+                    @foreach($auditRangeFilters as $rangeValue => $rangeLabel)
+                        @php
+                            $isAllChip = ($rangeValue === \App\Modules\User\Models\UserRoleAudit::RANGE_ALL);
+                            $isActive  = $isAllChip
+                                ? (empty($auditRange) && $auditFrom === '' && $auditTo === '')
+                                : ($auditRange === $rangeValue);
+                            // Preset chips preserve the custom from/to so a
+                            // reviewer can intersect "last 7 days" with a
+                            // hand-picked window — the model scope composes
+                            // preset and explicit endpoints as an AND.
+                            $params    = array_filter([
+                                'q'            => $search,
+                                'audit_source' => $auditSource,
+                                'audit_range'  => $isAllChip ? null : $rangeValue,
+                                'audit_from'   => $auditFrom !== '' ? $auditFrom : null,
+                                'audit_to'     => $auditTo   !== '' ? $auditTo   : null,
+                            ]);
+                        @endphp
+                        <a href="{{ route('user.access.users.index', $params) }}"
+                           data-range="{{ $rangeValue }}"
+                           class="px-2.5 py-1 rounded-full text-xs border
+                               {{ $isActive
+                                   ? 'bg-white/15 text-white border-white/20'
+                                   : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
+                            {{ $rangeLabel }}
+                        </a>
+                    @endforeach
+                    <form method="GET" action="{{ route('user.access.users.index') }}" class="flex items-center gap-1 ml-1" data-testid="audit-range-custom">
+                        @if($search !== '')
+                            <input type="hidden" name="q" value="{{ $search }}">
+                        @endif
+                        @if(!empty($auditSource))
+                            <input type="hidden" name="audit_source" value="{{ $auditSource }}">
+                        @endif
+                        {{-- Carry the active preset through so submitting
+                             a custom from/to intersects with it instead of
+                             silently clearing it. --}}
+                        @if(!empty($auditRange))
+                            <input type="hidden" name="audit_range" value="{{ $auditRange }}">
+                        @endif
+                        <input type="date" name="audit_from" value="{{ $auditFrom }}"
+                               class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80"
+                               aria-label="From date">
+                        <span class="text-xs text-white/40">→</span>
+                        <input type="date" name="audit_to" value="{{ $auditTo }}"
+                               class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80"
+                               aria-label="To date">
+                        <button type="submit"
+                                class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-xs">
+                            Apply
+                        </button>
+                    </form>
                 </div>
 
                 @if($audits->isEmpty())

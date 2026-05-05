@@ -839,4 +839,320 @@ class UserRoleAuditTest extends TestCase
         $this->assertSame((int) $admin->id, (int) $row->actor_admin_id);
         $this->assertSame('Back Office Bob', $row->actor_name);
     }
+
+    /**
+     * Helper for the date-range tests: seed four audit rows for the
+     * same target spaced across the last ~6 weeks (now-1h, now-3d,
+     * now-2w, now-6w) so each preset has a clear inclusion boundary.
+     *
+     * @return array{User, array<string,UserRoleAudit>}
+     */
+    private function seedFourAcrossDates(): array
+    {
+        $target = $this->makeUser(['name' => 'Range Target']);
+        $role   = $this->makeRole('rangetest');
+
+        $base = [
+            'actor_user_id'  => null,
+            'actor_admin_id' => null,
+            'actor_guard'    => null,
+            'actor_email'    => null,
+            'target_user_id' => $target->id,
+            'role_id'        => $role->id,
+            'role_slug'      => $role->slug,
+            'role_name'      => $role->name,
+            'action'         => 'attached',
+            'source'         => UserRoleAudit::SOURCE_ADMIN,
+        ];
+
+        $rows = [
+            'recent'   => UserRoleAudit::create($base + [
+                'actor_name' => 'Recent Rachel',
+                'created_at' => now()->subHour(),
+            ]),
+            'lastWeek' => UserRoleAudit::create($base + [
+                'actor_name' => 'Last-Week Larry',
+                'created_at' => now()->subDays(3),
+            ]),
+            'lastMonth' => UserRoleAudit::create($base + [
+                'actor_name' => 'Last-Month Mona',
+                'created_at' => now()->subWeeks(2),
+            ]),
+            'old'      => UserRoleAudit::create($base + [
+                'actor_name' => 'Ancient Alex',
+                'created_at' => now()->subWeeks(6),
+            ]),
+        ];
+
+        return [$target, $rows];
+    }
+
+    public function test_range_preset_24h_keeps_only_rows_within_the_last_day(): void
+    {
+        [$target] = $this->seedFourAcrossDates();
+
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(UserRoleAudit::RANGE_24H)
+            ->get();
+
+        $this->assertSame(1, $rows->count());
+        $this->assertSame('Recent Rachel', $rows->first()->actor_name);
+    }
+
+    public function test_range_preset_7d_keeps_rows_within_the_last_week(): void
+    {
+        [$target] = $this->seedFourAcrossDates();
+
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(UserRoleAudit::RANGE_7D)
+            ->orderBy('created_at')
+            ->get();
+
+        $this->assertSame(2, $rows->count());
+        $this->assertSame(
+            ['Last-Week Larry', 'Recent Rachel'],
+            $rows->pluck('actor_name')->all(),
+        );
+    }
+
+    public function test_range_preset_30d_keeps_rows_within_the_last_month(): void
+    {
+        [$target] = $this->seedFourAcrossDates();
+
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(UserRoleAudit::RANGE_30D)
+            ->orderBy('created_at')
+            ->get();
+
+        // Drops only the 6-week-old "Ancient Alex" row.
+        $this->assertSame(3, $rows->count());
+        $this->assertFalse($rows->pluck('actor_name')->contains('Ancient Alex'));
+    }
+
+    public function test_range_preset_all_and_unknown_value_apply_no_constraint(): void
+    {
+        [$target] = $this->seedFourAcrossDates();
+
+        $allRows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(UserRoleAudit::RANGE_ALL)
+            ->get();
+        $this->assertSame(4, $allRows->count());
+
+        $bogusRows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates('totally-bogus')
+            ->get();
+        $this->assertSame(4, $bogusRows->count());
+
+        $nullRows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(null)
+            ->get();
+        $this->assertSame(4, $nullRows->count());
+    }
+
+    public function test_range_explicit_from_to_inputs_are_inclusive_and_skip_unparsable(): void
+    {
+        [$target] = $this->seedFourAcrossDates();
+
+        // From three days ago up through today should keep just the
+        // two most recent rows (now-1h and now-3d). `to` defaults to
+        // end-of-day so a same-day "now-1h" row is included.
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(
+                null,
+                now()->subDays(3)->startOfDay()->toDateString(),
+                now()->toDateString(),
+            )
+            ->orderBy('created_at')
+            ->get();
+
+        $this->assertSame(2, $rows->count());
+        $this->assertSame(
+            ['Last-Week Larry', 'Recent Rachel'],
+            $rows->pluck('actor_name')->all(),
+        );
+
+        // Garbage from/to should be silently ignored, not 500.
+        $allRows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(null, 'definitely not a date', 'also nope')
+            ->get();
+        $this->assertSame(4, $allRows->count());
+    }
+
+    public function test_range_preset_and_explicit_from_to_compose_as_intersection(): void
+    {
+        [$target] = $this->seedFourAcrossDates();
+
+        // 30-day preset alone keeps 3 rows; layering a `from` of
+        // 5 days ago should narrow that to the 2 most recent.
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->betweenDates(
+                UserRoleAudit::RANGE_30D,
+                now()->subDays(5)->toDateString(),
+                null,
+            )
+            ->orderBy('created_at')
+            ->get();
+
+        $this->assertSame(2, $rows->count());
+        $this->assertSame(
+            ['Last-Week Larry', 'Recent Rachel'],
+            $rows->pluck('actor_name')->all(),
+        );
+    }
+
+    public function test_range_preset_normalisation_collapses_unknown_and_all_to_null(): void
+    {
+        $this->assertNull(UserRoleAudit::normaliseRangePreset(null));
+        $this->assertNull(UserRoleAudit::normaliseRangePreset(''));
+        $this->assertNull(UserRoleAudit::normaliseRangePreset('all'));
+        $this->assertNull(UserRoleAudit::normaliseRangePreset('garbage'));
+        $this->assertSame('24h', UserRoleAudit::normaliseRangePreset('24h'));
+        $this->assertSame('7d', UserRoleAudit::normaliseRangePreset('7d'));
+        $this->assertSame('30d', UserRoleAudit::normaliseRangePreset('30d'));
+    }
+
+    public function test_user_access_page_applies_audit_range_filter_from_query_string(): void
+    {
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $operator = $this->makeUser(['name' => 'Range Viewer']);
+        $operator->roles()->attach($userAdminRole->id);
+
+        $this->seedFourAcrossDates();
+
+        // 7d preset should drop the 2-week-old and 6-week-old rows.
+        $resp = $this->actingAs($operator, 'web')
+            ->get(route('user.access.users.index', ['audit_range' => '7d']))
+            ->assertOk();
+
+        $resp->assertSee('Recent Rachel');
+        $resp->assertSee('Last-Week Larry');
+        $resp->assertDontSee('Last-Month Mona');
+        $resp->assertDontSee('Ancient Alex');
+    }
+
+    public function test_user_access_page_applies_audit_range_chip_alongside_source_chip(): void
+    {
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $operator = $this->makeUser(['name' => 'Range Viewer Combo']);
+        $operator->roles()->attach($userAdminRole->id);
+
+        // Seed a 4-source spread (all "minutes ago") plus an old
+        // admin-source row from 6 weeks back. Combining `audit_source=admin`
+        // with `audit_range=7d` should keep the recent admin row but
+        // drop both the old admin row and the recent non-admin rows.
+        [$target] = $this->seedFourSources();
+        UserRoleAudit::create([
+            'actor_user_id'  => null,
+            'actor_admin_id' => null,
+            'actor_guard'    => null,
+            'actor_name'     => 'Old Admin Row',
+            'actor_email'    => null,
+            'target_user_id' => $target->id,
+            'role_id'        => null,
+            'role_slug'      => 'oldadmin',
+            'role_name'      => 'Old Admin',
+            'action'         => 'attached',
+            'source'         => UserRoleAudit::SOURCE_ADMIN,
+            'created_at'     => now()->subWeeks(6),
+        ]);
+
+        $resp = $this->actingAs($operator, 'web')
+            ->get(route('user.access.users.index', [
+                'audit_source' => 'admin',
+                'audit_range'  => '7d',
+            ]))
+            ->assertOk();
+
+        $resp->assertSee('Back-Office Bob');
+        $resp->assertDontSee('Old Admin Row');
+        $resp->assertDontSee('Self-Service Sue');
+        $resp->assertDontSee('Backfill Bot');
+        $resp->assertDontSee('CLI Seeder');
+    }
+
+    public function test_admin_user_show_applies_audit_range_filter_from_query_string(): void
+    {
+        $superRole = Role::firstOrCreate(
+            ['slug' => 'super-admin', 'guard' => 'admin'],
+            ['name' => 'Super Admin']
+        );
+        $admin = Admin::create([
+            'name'     => 'Range Admin',
+            'email'    => 'ra@admin.test',
+            'password' => Hash::make('x'),
+            'role_id'  => $superRole->id,
+            'status'   => 'active',
+        ]);
+
+        [$target] = $this->seedFourAcrossDates();
+
+        $resp = $this->actingAs($admin, 'admin')
+            ->get(route('admin.users.show', ['user' => $target, 'audit_range' => '24h']))
+            ->assertOk();
+
+        $resp->assertSee('Recent Rachel');
+        $resp->assertDontSee('Last-Week Larry');
+        $resp->assertDontSee('Last-Month Mona');
+        $resp->assertDontSee('Ancient Alex');
+    }
+
+    public function test_admin_role_edit_applies_audit_range_from_to_inputs(): void
+    {
+        $superRole = Role::firstOrCreate(
+            ['slug' => 'super-admin', 'guard' => 'admin'],
+            ['name' => 'Super Admin']
+        );
+        $admin = Admin::create([
+            'name'     => 'Range From-To Admin',
+            'email'    => 'rfta@admin.test',
+            'password' => Hash::make('x'),
+            'role_id'  => $superRole->id,
+            'status'   => 'active',
+        ]);
+
+        [$target] = $this->seedFourAcrossDates();
+
+        // From-to window centred on the 2-week-old row only.
+        $resp = $this->actingAs($admin, 'admin')
+            ->get(route('admin.users.roles.edit', [
+                'user'       => $target,
+                'audit_from' => now()->subWeeks(3)->toDateString(),
+                'audit_to'   => now()->subWeek()->toDateString(),
+            ]))
+            ->assertOk();
+
+        $resp->assertSee('Last-Month Mona');
+        $resp->assertDontSee('Recent Rachel');
+        $resp->assertDontSee('Last-Week Larry');
+        $resp->assertDontSee('Ancient Alex');
+    }
+
+    public function test_user_access_page_keeps_range_chip_visible_when_filter_returns_no_rows(): void
+    {
+        // Seeding nothing intentionally — the panel's empty state with
+        // an active filter must still render the chip group so the
+        // reviewer can adjust without losing context.
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $operator = $this->makeUser(['name' => 'Empty Viewer']);
+        $operator->roles()->attach($userAdminRole->id);
+
+        $resp = $this->actingAs($operator, 'web')
+            ->get(route('user.access.users.index', ['audit_range' => '7d']))
+            ->assertOk();
+
+        // The chip filter container should still render when the
+        // result set is empty but a filter is active, so the user can
+        // adjust it.
+        $resp->assertSee('data-testid="audit-range-filter"', false);
+        $resp->assertSee('No entries match this filter.');
+    }
 }

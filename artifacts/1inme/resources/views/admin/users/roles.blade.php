@@ -70,12 +70,21 @@
             </a>
         </div>
 
+        @php
+            $auditRange        = $auditRange        ?? null;
+            $auditFrom         = $auditFrom         ?? '';
+            $auditTo           = $auditTo           ?? '';
+            $auditRangeFilters = $auditRangeFilters ?? [];
+            $hasAuditFilter    = !empty($auditSource ?? null) || !empty($auditRange) || $auditFrom !== '' || $auditTo !== '';
+        @endphp
+
         {{-- Source chip filter. Each chip is a plain link that
-             sets/clears `?audit_source=` so the URL is shareable and
-             survives reloads. --}}
+             sets/clears `?audit_source=` while preserving the active
+             date range, so source × range combinations are
+             shareable URLs. --}}
         <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-source-filter">
-            <span class="text-xs text-white/40 mr-1">Filter:</span>
-            <a href="{{ route('admin.users.roles.edit', $user) }}"
+            <span class="text-xs text-white/40 mr-1">Source:</span>
+            <a href="{{ route('admin.users.roles.edit', array_filter(['user' => $user->id, 'audit_range' => $auditRange, 'audit_from' => $auditFrom, 'audit_to' => $auditTo])) }}"
                data-source="all"
                class="px-2.5 py-1 rounded-full text-xs border
                    {{ empty($auditSource ?? null)
@@ -84,7 +93,7 @@
                 All
             </a>
             @foreach(($auditFilters ?? []) as $filterValue => $filterLabel)
-                <a href="{{ route('admin.users.roles.edit', ['user' => $user, 'audit_source' => $filterValue]) }}"
+                <a href="{{ route('admin.users.roles.edit', array_filter(['user' => $user->id, 'audit_source' => $filterValue, 'audit_range' => $auditRange, 'audit_from' => $auditFrom, 'audit_to' => $auditTo])) }}"
                    data-source="{{ $filterValue }}"
                    class="px-2.5 py-1 rounded-full text-xs border
                        {{ ($auditSource ?? null) === $filterValue
@@ -95,9 +104,67 @@
             @endforeach
         </div>
 
+        {{-- Date-range preset chips + custom from/to picker. Presets
+             preserve the source filter and any explicit from/to via
+             query params; the custom form is a tiny GET so submitting
+             it round-trips through the controller and the URL stays
+             the source of truth. --}}
+        <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-range-filter">
+            <span class="text-xs text-white/40 mr-1">Range:</span>
+            @foreach($auditRangeFilters as $rangeValue => $rangeLabel)
+                @php
+                    $isAllChip = ($rangeValue === \App\Modules\User\Models\UserRoleAudit::RANGE_ALL);
+                    $isActive  = $isAllChip
+                        ? (empty($auditRange) && $auditFrom === '' && $auditTo === '')
+                        : ($auditRange === $rangeValue);
+                    // Preset chips preserve the custom from/to so a
+                    // reviewer can intersect "last 7 days" with a
+                    // hand-picked window — the model scope composes
+                    // preset and explicit endpoints as an AND.
+                    $params    = array_filter([
+                        'user'         => $user->id,
+                        'audit_source' => $auditSource ?? null,
+                        'audit_range'  => $isAllChip ? null : $rangeValue,
+                        'audit_from'   => $auditFrom !== '' ? $auditFrom : null,
+                        'audit_to'     => $auditTo   !== '' ? $auditTo   : null,
+                    ]);
+                @endphp
+                <a href="{{ route('admin.users.roles.edit', $params) }}"
+                   data-range="{{ $rangeValue }}"
+                   class="px-2.5 py-1 rounded-full text-xs border
+                       {{ $isActive
+                           ? 'bg-white/15 text-white border-white/20'
+                           : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
+                    {{ $rangeLabel }}
+                </a>
+            @endforeach
+            <form method="GET" action="{{ route('admin.users.roles.edit', $user) }}" class="flex items-center gap-1 ml-1" data-testid="audit-range-custom">
+                @if(!empty($auditSource ?? null))
+                    <input type="hidden" name="audit_source" value="{{ $auditSource }}">
+                @endif
+                {{-- Carry the active preset through so submitting a
+                     custom from/to intersects with it instead of
+                     silently clearing it. --}}
+                @if(!empty($auditRange))
+                    <input type="hidden" name="audit_range" value="{{ $auditRange }}">
+                @endif
+                <input type="date" name="audit_from" value="{{ $auditFrom }}"
+                       class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80"
+                       aria-label="From date">
+                <span class="text-xs text-white/40">→</span>
+                <input type="date" name="audit_to" value="{{ $auditTo }}"
+                       class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80"
+                       aria-label="To date">
+                <button type="submit"
+                        class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-xs">
+                    Apply
+                </button>
+            </form>
+        </div>
+
         @if(empty($audits) || $audits->isEmpty())
             <p class="text-sm text-white/40">
-                @if(!empty($auditSource ?? null))
+                @if($hasAuditFilter)
                     No entries match this filter.
                 @else
                     No role changes recorded yet.

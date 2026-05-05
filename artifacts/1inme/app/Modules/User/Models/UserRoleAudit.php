@@ -44,6 +44,53 @@ class UserRoleAudit extends Model
     public const FILTER_NOT_BACKFILL = 'not_backfill';
 
     /**
+     * Preset chip values for the date-range filter on the audit
+     * snapshot panels. `RANGE_ALL` is a sentinel that means
+     * "no date constraint" and is normalised to null by
+     * `normaliseRangePreset()` so it never reaches the query.
+     */
+    public const RANGE_24H = '24h';
+    public const RANGE_7D  = '7d';
+    public const RANGE_30D = '30d';
+    public const RANGE_ALL = 'all';
+
+    /**
+     * Selectable date-range presets surfaced as chips on the audit
+     * snapshot panels, in the order chips should be rendered. Keys
+     * are the URL-safe values used in `?audit_range=`; values are
+     * short human labels.
+     *
+     * @return array<string, string>
+     */
+    public static function rangeFilters(): array
+    {
+        return [
+            self::RANGE_24H => 'Last 24h',
+            self::RANGE_7D  => 'Last 7 days',
+            self::RANGE_30D => 'Last 30 days',
+            self::RANGE_ALL => 'All time',
+        ];
+    }
+
+    /**
+     * Normalise an incoming `?audit_range=` query string parameter
+     * to one of the bounded preset keys, or `null` when there is no
+     * effective constraint (`'all'`, empty, or unknown values). The
+     * `RANGE_ALL` sentinel is intentionally collapsed to null so the
+     * query layer never has to special-case it.
+     */
+    public static function normaliseRangePreset(?string $value): ?string
+    {
+        if ($value === null || $value === '' || $value === self::RANGE_ALL) {
+            return null;
+        }
+        if (!array_key_exists($value, self::rangeFilters())) {
+            return null;
+        }
+        return $value;
+    }
+
+    /**
      * Selectable filter values surfaced on the audit timeline UIs,
      * in the order chips should be rendered. Keys are URL-safe
      * filter values; values are short human labels.
@@ -104,6 +151,65 @@ class UserRoleAudit extends Model
             });
         }
         return $query->where('source', $filter);
+    }
+
+    /**
+     * Apply the date-range filter to an audit query. Companion to
+     * `scopeBySourceFilter` so the snapshot panels can scope a
+     * timeline by both who acted and when, e.g. "admin changes in
+     * the last 7 days".
+     *
+     * - `$preset` is one of the `RANGE_*` keys (or `null`/`'all'`/
+     *   anything unknown, all of which mean "no preset"). When set,
+     *   constrains `created_at >= now() - <preset window>`.
+     * - `$from` and `$to` are free-form date strings parsed by
+     *   Carbon (`YYYY-MM-DD` from the from/to picker, but anything
+     *   Carbon understands is accepted). Each is independently
+     *   skipped when blank or unparsable, so a typo'd value never
+     *   500s the page — it just doesn't constrain that side.
+     * - `$from` snaps to start-of-day and `$to` to end-of-day so an
+     *   inclusive `2026-05-01 → 2026-05-01` range still returns rows
+     *   created later that day.
+     * - Preset and from/to compose: explicit endpoints further
+     *   narrow a preset rather than overriding it, matching the
+     *   composable behaviour of `scopeFiltered` on the dedicated
+     *   audit page.
+     */
+    public function scopeBetweenDates($query, ?string $preset, ?string $from = null, ?string $to = null)
+    {
+        $preset = self::normaliseRangePreset($preset);
+
+        $from = trim((string) $from);
+        if ($from !== '') {
+            try {
+                $query->where('created_at', '>=', \Carbon\Carbon::parse($from)->startOfDay());
+            } catch (\Throwable $e) {
+                // ignore unparsable input rather than 500
+            }
+        }
+
+        $to = trim((string) $to);
+        if ($to !== '') {
+            try {
+                $query->where('created_at', '<=', \Carbon\Carbon::parse($to)->endOfDay());
+            } catch (\Throwable $e) {
+                // ignore unparsable input rather than 500
+            }
+        }
+
+        if ($preset !== null) {
+            $cutoff = match ($preset) {
+                self::RANGE_24H => now()->subDay(),
+                self::RANGE_7D  => now()->subDays(7),
+                self::RANGE_30D => now()->subDays(30),
+                default         => null,
+            };
+            if ($cutoff !== null) {
+                $query->where('created_at', '>=', $cutoff);
+            }
+        }
+
+        return $query;
     }
 
     protected $table = 'user_role_audits';

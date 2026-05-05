@@ -27,6 +27,14 @@ class UserRoleController extends Controller
         // same value seeds the query and the view's chip highlight.
         $auditSource = UserRoleAudit::normaliseSourceFilter($request->get('audit_source'));
 
+        // Optional `?audit_range=` preset chip plus free-form
+        // `?audit_from=` / `?audit_to=` from/to inputs. Same wiring
+        // pattern as the source filter — normalise the preset, leave
+        // from/to as raw strings the view echoes back into inputs.
+        $auditRange = UserRoleAudit::normaliseRangePreset($request->get('audit_range'));
+        $auditFrom  = trim((string) $request->get('audit_from', ''));
+        $auditTo    = trim((string) $request->get('audit_to', ''));
+
         // Per-user role-change history. Surfaced to anyone with
         // `users.edit` (the existing route guard) so back-office
         // operators can see who promoted/demoted this user before.
@@ -34,17 +42,22 @@ class UserRoleController extends Controller
             ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email'])
             ->where('target_user_id', $user->id)
             ->bySourceFilter($auditSource)
+            ->betweenDates($auditRange, $auditFrom, $auditTo)
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();
 
         return view('admin.users.roles', [
-            'user'         => $user,
-            'roles'        => $roles,
-            'assigned'     => $assigned,
-            'audits'       => $audits,
-            'auditSource'  => $auditSource,
-            'auditFilters' => UserRoleAudit::sourceFilters(),
+            'user'              => $user,
+            'roles'             => $roles,
+            'assigned'          => $assigned,
+            'audits'            => $audits,
+            'auditSource'       => $auditSource,
+            'auditFilters'      => UserRoleAudit::sourceFilters(),
+            'auditRange'        => $auditRange,
+            'auditFrom'         => $auditFrom,
+            'auditTo'           => $auditTo,
+            'auditRangeFilters' => UserRoleAudit::rangeFilters(),
         ]);
     }
 
