@@ -2,8 +2,8 @@
 /**
  * Coverage matrix audit for Task #1197 block defaults.
  *
- * Boots Laravel and exercises BiolinkBlockController::getDefaultSettings()
- * (via reflection) plus BlockDefaults::styleForType() for every canonical
+ * Boots Laravel and exercises BlockDefaults::contentForType() plus
+ * BlockDefaults::styleForType() for every canonical
  * type in BiolinkBlock::TYPES. Asserts every type produces:
  *   - non-empty default settings (no `default => []` fall-through), or
  *     is on the explicit "intentionally empty" allowlist (system blocks
@@ -25,7 +25,6 @@ require __DIR__ . '/../vendor/autoload.php';
 $app = require __DIR__ . '/../bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockTypeRegistry;
@@ -42,11 +41,6 @@ $emptyAllowed = [
 // theme-resolved at render time via STYLE_DEFAULTS.
 $themeColorFields = ['bg_color', 'border_color', 'text_color', 'bg_image'];
 
-$controller = new BiolinkBlockController();
-$ref = new ReflectionClass($controller);
-$getDefaults = $ref->getMethod('getDefaultSettings');
-$getDefaults->setAccessible(true);
-
 $total      = 0;
 $failures   = [];
 $noFlag     = [];
@@ -56,7 +50,7 @@ $themeBleed = [];
 foreach (array_keys(BiolinkBlock::TYPES) as $type) {
     $total++;
     $canonical = BlockTypeRegistry::canonical($type);
-    $defaults  = $getDefaults->invoke($controller, $type);
+    $defaults  = BlockDefaults::contentForType($type);
     $style     = BlockDefaults::styleForType($type);
 
     // 1) Non-empty defaults (or in the system allowlist)

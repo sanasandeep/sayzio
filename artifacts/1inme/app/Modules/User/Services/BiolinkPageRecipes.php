@@ -561,7 +561,7 @@ class BiolinkPageRecipes
 
     // ───────────────────────────────────────────────────────────────
     // Block setting keys mirror the canonical defaults in
-    // BiolinkBlockController::getDefaultSettingsForType() so that
+    // BlockDefaults::contentForType() so that
     // TemplateService::applyPageToLink → BiolinkBlock::sanitizeSettings
     // accepts our payload without falling back to placeholder defaults.
     // ───────────────────────────────────────────────────────────────

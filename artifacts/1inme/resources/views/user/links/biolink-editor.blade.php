@@ -289,6 +289,206 @@
         box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
 
+    /* ─────────────────── Block-picker preview thumbnails ─────────────────── */
+    /* Mini visual representations of seeded block content rendered above
+       the icon+label row in each gallery tile. Pointer-events disabled
+       so the tile-level click handler still fires. */
+    .block-preview-thumb {
+        position: relative;
+        height: 78px;
+        margin: -2px -2px 10px -2px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(255,255,255,0.04);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        justify-content: center;
+        pointer-events: none;
+        font-size: 9px;
+        color: var(--text-muted);
+    }
+    .bpt-line { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); }
+    .bpt-line-100 { width: 100%; }
+    .bpt-line-90  { width: 90%; }
+    .bpt-line-80  { width: 80%; }
+    .bpt-line-70  { width: 70%; }
+    .bpt-line-60  { width: 60%; }
+    .bpt-line-50  { width: 50%; }
+    .bpt-btn {
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        padding: 8px 10px; border-radius: 6px; color: white;
+        font-size: 10px; font-weight: 600; text-align: center;
+    }
+    .bpt-btn i { font-size: 9px; }
+    .bpt-btn-sm { padding: 5px 8px; font-size: 9px; }
+    .bpt-heading { font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+    .bpt-underline { width: 28px; height: 2px; border-radius: 1px; margin-top: 2px; }
+    .bpt-pill {
+        display: inline-block; padding: 3px 9px; border-radius: 999px;
+        font-size: 9px; font-weight: 700; color: white; align-self: center;
+    }
+    .bpt-pill-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .bpt-pill-sm { padding: 2px 6px; border-radius: 999px; font-size: 8px; font-weight: 700; }
+    .bpt-divider { height: 1px; background: rgba(255,255,255,0.18); width: 100%; }
+    .bpt-spacer { font-size: 16px; text-align: center; opacity: 0.4; }
+    .bpt-card {
+        border: 1px dashed rgba(255,255,255,0.2);
+        border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .bpt-list-row, .bpt-faq-row, .bpt-tl-row, .bpt-menu-row, .bpt-lb-row, .bpt-chat-row {
+        display: flex; align-items: center; gap: 6px;
+    }
+    .bpt-menu-row { justify-content: space-between; }
+    .bpt-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+    .bpt-tl-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .bpt-rank {
+        width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.15);
+        color: white; font-size: 8px; font-weight: 700; display: flex;
+        align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .bpt-mini-num { font-size: 11px; font-weight: 700; color: var(--text-primary); }
+    .bpt-pricing { display: flex; gap: 3px; align-items: stretch; }
+    .bpt-price-col {
+        flex: 1; padding: 5px 4px; border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.1); display: flex;
+        flex-direction: column; align-items: center; gap: 3px;
+    }
+    .bpt-price-col.bpt-featured { border-width: 1.5px; transform: scale(1.05); }
+    .bpt-image, .bpt-thumb, .bpt-avatar {
+        background-size: cover; background-position: center;
+        background-color: rgba(255,255,255,0.1);
+    }
+    .bpt-image { height: 100%; border-radius: 6px; }
+    .bpt-thumb { aspect-ratio: 1; border-radius: 4px; }
+    .bpt-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
+    .bpt-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; }
+    .bpt-avatar-sm { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+        background-size: cover; background-position: center; background-color: rgba(255,255,255,0.1); }
+    .bpt-video {
+        flex: 1; border-radius: 6px; position: relative;
+        background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.7));
+        display: flex; align-items: center; justify-content: center;
+    }
+    .bpt-play {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: rgba(255,255,255,0.95); color: #000;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px;
+    }
+    .bpt-play-sm {
+        width: 22px; height: 22px; border-radius: 50%;
+        color: white; display: flex; align-items: center; justify-content: center;
+        font-size: 9px; flex-shrink: 0;
+    }
+    .bpt-audio { display: flex; align-items: center; gap: 6px; }
+    .bpt-wave { display: flex; align-items: center; gap: 2px; flex: 1; height: 22px; }
+    .bpt-wave span {
+        flex: 1; background: rgba(255,255,255,0.3); border-radius: 1px;
+    }
+    .bpt-wave span:nth-child(1) { height: 30%; }
+    .bpt-wave span:nth-child(2) { height: 70%; }
+    .bpt-wave span:nth-child(3) { height: 100%; }
+    .bpt-wave span:nth-child(4) { height: 50%; }
+    .bpt-wave span:nth-child(5) { height: 80%; }
+    .bpt-wave span:nth-child(6) { height: 40%; }
+    .bpt-wave span:nth-child(7) { height: 90%; }
+    .bpt-wave span:nth-child(8) { height: 60%; }
+    .bpt-wave span:nth-child(9) { height: 20%; }
+    .bpt-doc { display: flex; align-items: center; gap: 8px; }
+    .bpt-doc i { font-size: 22px; flex-shrink: 0; }
+    .bpt-doc-lines { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .bpt-socials { display: flex; gap: 5px; justify-content: center; align-items: center; }
+    .bpt-socials span {
+        width: 22px; height: 22px; border-radius: 50%; color: white;
+        display: flex; align-items: center; justify-content: center; font-size: 10px;
+    }
+    .bpt-input {
+        height: 18px; border-radius: 4px; background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .bpt-input-sm { height: 14px; }
+    .bpt-embed {
+        flex: 1; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 4px; border: 1px dashed rgba(255,255,255,0.2);
+        border-radius: 6px;
+    }
+    .bpt-embed i { font-size: 16px; }
+    .bpt-embed-label { font-size: 8px; opacity: 0.7; }
+    .bpt-map {
+        flex: 1; border-radius: 6px;
+        background: linear-gradient(135deg, #1a3a4a 0%, #2a5a6a 100%);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .bpt-map i { font-size: 22px; }
+    .bpt-profile, .bpt-product, .bpt-event { display: flex; align-items: center; gap: 8px; }
+    .bpt-profile-meta, .bpt-product-meta, .bpt-event-meta {
+        flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+    }
+    .bpt-product .bpt-thumb { width: 32px; height: 32px; flex-shrink: 0; }
+    .bpt-stats { display: flex; gap: 4px; justify-content: space-around; }
+    .bpt-stat {
+        flex: 1; padding: 4px 0; border-radius: 4px;
+        background: rgba(255,255,255,0.04); text-align: center;
+    }
+    .bpt-countdown { display: flex; gap: 4px; justify-content: center; }
+    .bpt-countdown span {
+        width: 24px; height: 24px; border-radius: 4px;
+        font-size: 11px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .bpt-qr {
+        flex: 1; display: flex; align-items: center; justify-content: center;
+    }
+    .bpt-qr i { font-size: 36px; color: var(--text-primary); }
+    .bpt-poll-row { background: rgba(255,255,255,0.05); border-radius: 3px; height: 9px; overflow: hidden; }
+    .bpt-poll-bar { height: 100%; border-radius: 3px; }
+    .bpt-quote { display: flex; gap: 8px; align-items: flex-start; }
+    .bpt-quote i { font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+    .bpt-quote-lines { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .bpt-event-date {
+        width: 32px; padding: 2px 0; border-radius: 4px; color: white;
+        text-align: center; flex-shrink: 0;
+    }
+    .bpt-event-date span { display: block; font-size: 13px; font-weight: 700; line-height: 1; }
+    .bpt-event-date small { display: block; font-size: 7px; font-weight: 600; letter-spacing: 0.5px; }
+    .bpt-tabs { display: flex; gap: 3px; }
+    .bpt-tab, .bpt-tab-active {
+        flex: 1; padding: 4px 0; border-radius: 4px; text-align: center;
+        font-size: 9px; font-weight: 600;
+    }
+    .bpt-tab { background: rgba(255,255,255,0.05); color: var(--text-faint); }
+    .bpt-tab-active { color: white; }
+    .bpt-ticker {
+        display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+        border: 1px solid; border-radius: 4px;
+    }
+    .bpt-ticker span { font-size: 8px; }
+    .bpt-nav {
+        display: flex; gap: 8px; justify-content: center; font-size: 9px;
+        color: var(--text-muted); font-weight: 600;
+    }
+    .bpt-lock { text-align: center; }
+    .bpt-lock i { font-size: 16px; }
+    .bpt-bubble {
+        height: 12px; border-radius: 8px;
+        background: rgba(255,255,255,0.1);
+    }
+    .bpt-bubble-them { width: 60%; }
+    .bpt-bubble-me { width: 50%; }
+    .bpt-roadmap { display: flex; gap: 3px; }
+    .bpt-roadmap span {
+        flex: 1; padding: 4px 0; border-radius: 4px; text-align: center;
+        font-size: 8px; font-weight: 700;
+    }
+    .bpt-generic {
+        flex: 1; display: flex; align-items: center; justify-content: center;
+        border-radius: 6px;
+    }
+    .bpt-generic i { font-size: 20px; }
+
     .empty-state-icon {
         width: 80px; height: 80px;
         border-radius: 24px;
@@ -712,6 +912,7 @@ $catColors = [
                                 </a>
                             @else
                                 <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}', _cardGalleryParentId)">
+                                    @include('user.links.partials.block-picker-preview', ['type' => $typeKey, 'typeInfo' => $typeInfo, 'catColor' => $catColor])
                                     <div class="flex items-center gap-3">
                                         <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
                                             <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>

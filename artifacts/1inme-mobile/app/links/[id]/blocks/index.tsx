@@ -23,6 +23,7 @@ import {
   View,
 } from "react-native";
 
+import { BlockPickerPreview } from "@/components/BlockPickerPreview";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
@@ -323,6 +324,7 @@ export default function BlocksScreen() {
                     },
                   ]}
                 >
+                  <BlockPickerPreview type={k.type} />
                   <Text style={[styles.kindLabel, { color: colors.foreground }]}>
                     {k.label}
                   </Text>
