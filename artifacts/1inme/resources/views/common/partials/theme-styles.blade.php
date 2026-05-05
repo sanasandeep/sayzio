@@ -6,6 +6,10 @@
 </script>
 <style>
     :root {
+        /* Tells the browser/OS to render native form controls
+           (select option lists, scrollbars, date pickers, etc.) using their
+           dark variants so they don't flash white against the dark canvas. */
+        color-scheme: dark;
         /* Glassmorphic Dark — translucent frosted surfaces over a near-black
            canvas with purple/cyan/pink ambient blooms (see .bg-mesh below). */
         --bg-body: #0a0a0f;
@@ -62,6 +66,8 @@
     }
 
     html.light-mode {
+        /* Switch native UI controls back to the light variant in light mode. */
+        color-scheme: light;
         /* Metronic demo1 inspired — flat, clean, ultra-light surfaces.
            Body is a soft neutral gray so pure-white cards visibly lift off the
            page; borders are darker than before so card edges are obvious. */
@@ -619,6 +625,9 @@
     }
     .theme-input::placeholder { color: var(--text-dimmed); }
 
+    /* Explicit option colors so dropdown popups always match the theme even
+       on browsers that don't fully honor color-scheme for <option> rendering. */
+    html:not(.light-mode) select option { background-color: #1e1b2e !important; color: #f1f5f9 !important; }
     html.light-mode select option { background-color: #ffffff !important; color: #0f172a !important; }
 
     .theme-toggle-btn {
