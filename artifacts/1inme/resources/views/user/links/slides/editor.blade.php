@@ -6,11 +6,18 @@
 <style>
     .sl-builder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 24px; align-items: start; }
     @media (max-width: 1100px) { .sl-builder { grid-template-columns: minmax(0, 1fr); } }
-    .sl-bg-form-wrap { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 1rem; padding: 0; margin-bottom: 16px; }
-    .sl-bg-actions { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border-glass); background: var(--bg-glass-input); border-radius: 0 0 1rem 1rem; }
-    .sl-bg-status { font-size: 12px; color: var(--text-faint); }
-    .sl-bg-status.is-ok    { color: #10b981; }
-    .sl-bg-status.is-error { color: #ef4444; }
+    /* Per-slide background panel — same option-set as the page background
+       card but inline with each slide. Each block is a stack of small inputs
+       that swap in via JS when the bg type changes. */
+    .sl-bg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 8px; }
+    .sl-bg-tpl  { aspect-ratio: 9/14; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-glass); position: relative; transition: transform .15s ease, box-shadow .15s ease; overflow: hidden; }
+    .sl-bg-tpl:hover { transform: scale(1.06); z-index: 2; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+    .sl-bg-tpl.is-selected { box-shadow: 0 0 0 2px #a78bfa, 0 4px 12px rgba(0,0,0,.4); }
+    .sl-bg-tpl-name { position: absolute; bottom: 0; left: 0; right: 0; font-size: 9px; padding: 1px 3px; background: rgba(0,0,0,.55); color: #fff; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sl-bg-list { display: flex; flex-direction: column; gap: 6px; }
+    .sl-bg-list-row { display: flex; gap: 6px; }
+    .sl-bg-list-row input { flex: 1; }
+    .sl-bg-list-row .sl-btn { padding: 4px 8px; font-size: 12px; }
 
     .sl-card {
         background: var(--bg-card);
@@ -281,20 +288,6 @@
             <div id="sl-slides" class="sl-list" style="margin-top:14px;"></div>
         </div>
 
-        {{-- Page background — same controls as Settings → Appearance, posts to
-             the existing page-settings endpoint via fetch so the device preview
-             on the right reloads inline. --}}
-        <form id="sl-bg-form" class="sl-bg-form-wrap" method="POST"
-              action="{{ route('user.links.page-settings', $link) }}"
-              enctype="multipart/form-data">
-            @csrf
-            @include('user.links.partials.biolink-background-card', ['link' => $link])
-            <div class="sl-bg-actions">
-                <button type="submit" class="sl-btn sl-btn-primary"><i class="fas fa-save text-[10px] mr-1"></i> Save background</button>
-                <span id="sl-bg-status" class="sl-bg-status"></span>
-            </div>
-        </form>
-
         <div class="sl-actions-bar">
             <button type="button" class="sl-btn sl-btn-primary" id="sl-publish">
                 <i class="fas fa-rocket text-[10px] mr-1"></i> Publish changes
@@ -329,6 +322,11 @@ let version     = DECK.version || 1;
 const ENTERS = ['fade','slide_up','slide_down','slide_left','slide_right','zoom','flip','none'];
 const TRANS  = ['slide','fade','zoom','flip','none'];
 const SPANS  = [{v:3,l:'¼'},{v:4,l:'⅓'},{v:6,l:'½'},{v:8,l:'⅔'},{v:9,l:'¾'},{v:12,l:'Full'}];
+// Background templates served from the bg_templates catalog. Each entry is
+// { id, name, slug, preview_color, category } — we render thumbnails using
+// preview_color as a flat colour swatch since we don't load the template's
+// full CSS into the editor (the public renderer applies that).
+const BG_TEMPLATES = @json($bgTemplates);
 
 function escAttr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -336,6 +334,95 @@ function blockLabel(id) {
     const b = BLOCKS.find(x => x.id === id);
     if (!b) return '#' + id + ' (missing)';
     return (b.label ? (b.label + ' · ') : '') + b.type;
+}
+
+// Builds the per-slide background editor. Mirrors the option-set of the
+// page-background card (color/gradient/image/slideshow/video/template) but
+// keeps everything inside the slide JSON so each slide carries its own
+// treatment with no extra endpoint round-trip.
+function renderSlideBgFields(wrap, i) {
+    const bg = slides[i].background;
+    const t  = bg.type || 'color';
+    if (t === 'color') {
+        wrap.innerHTML = `
+            <div class="sl-row"><div><label class="sl-field-label">Background colour</label>
+                <input type="color" class="sl-input sl-bg-color" value="${bg.color || '#0f172a'}"></div></div>`;
+        wrap.querySelector('.sl-bg-color').addEventListener('input', e => { slides[i].background.color = e.target.value; scheduleAutoSave(); });
+    } else if (t === 'gradient') {
+        wrap.innerHTML = `
+            <div class="sl-row">
+                <div><label class="sl-field-label">From</label>
+                    <input type="color" class="sl-input sl-bg-from" value="${bg.from_color || '#1e293b'}"></div>
+                <div><label class="sl-field-label">To</label>
+                    <input type="color" class="sl-input sl-bg-to" value="${bg.to_color || '#0f172a'}"></div>
+            </div>`;
+        wrap.querySelector('.sl-bg-from').addEventListener('input', e => { slides[i].background.from_color = e.target.value; scheduleAutoSave(); });
+        wrap.querySelector('.sl-bg-to'  ).addEventListener('input', e => { slides[i].background.to_color   = e.target.value; scheduleAutoSave(); });
+    } else if (t === 'image') {
+        wrap.innerHTML = `
+            <label class="sl-field-label">Image URL</label>
+            <input class="sl-input sl-bg-url" value="${escAttr(bg.image_url || '')}" placeholder="https://…">`;
+        wrap.querySelector('.sl-bg-url').addEventListener('input', e => { slides[i].background.image_url = e.target.value; scheduleAutoSave(); });
+    } else if (t === 'slideshow') {
+        const imgs = Array.isArray(bg.images) ? bg.images : [];
+        const rows = imgs.length ? imgs : [''];
+        wrap.innerHTML = `
+            <label class="sl-field-label">Image URLs (cycles automatically)</label>
+            <div class="sl-bg-list">
+                ${rows.map((u, k) => `<div class="sl-bg-list-row"><input class="sl-input sl-bg-img" data-k="${k}" value="${escAttr(u)}" placeholder="https://…"><button type="button" class="sl-btn sl-btn-danger" data-rm-img="${k}">×</button></div>`).join('')}
+            </div>
+            <button type="button" class="sl-btn" style="margin-top:6px;" data-add-img>+ Add image</button>
+            <div class="sl-row" style="margin-top:8px;">
+                <div><label class="sl-field-label">Interval (ms)</label>
+                    <input type="number" min="500" max="30000" step="100" class="sl-input sl-bg-interval" value="${bg.interval_ms || 3500}"></div>
+            </div>`;
+        wrap.querySelectorAll('.sl-bg-img').forEach(el => el.addEventListener('input', e => {
+            slides[i].background.images = slides[i].background.images || [];
+            const k = parseInt(el.dataset.k, 10);
+            slides[i].background.images[k] = e.target.value;
+            scheduleAutoSave();
+        }));
+        wrap.querySelectorAll('[data-rm-img]').forEach(el => el.addEventListener('click', () => {
+            const k = parseInt(el.dataset.rmImg, 10);
+            slides[i].background.images = (slides[i].background.images || []).filter((_, j) => j !== k);
+            renderSlideBgFields(wrap, i); scheduleAutoSave();
+        }));
+        wrap.querySelector('[data-add-img]').addEventListener('click', () => {
+            slides[i].background.images = (slides[i].background.images || []).concat(['']);
+            renderSlideBgFields(wrap, i); scheduleAutoSave();
+        });
+        wrap.querySelector('.sl-bg-interval').addEventListener('input', e => { slides[i].background.interval_ms = parseInt(e.target.value, 10) || 3500; scheduleAutoSave(); });
+    } else if (t === 'video') {
+        wrap.innerHTML = `
+            <label class="sl-field-label">Video URL (mp4 / webm)</label>
+            <input class="sl-input sl-bg-vurl" value="${escAttr(bg.video_url || '')}" placeholder="https://…">
+            <div class="sl-row" style="margin-top:8px;">
+                <label class="sl-field-label" style="display:flex;align-items:center;gap:6px;font-size:12px;text-transform:none;letter-spacing:0;"><input type="checkbox" class="sl-bg-vauto" ${bg.video_autoplay !== false ? 'checked' : ''}> Autoplay</label>
+                <label class="sl-field-label" style="display:flex;align-items:center;gap:6px;font-size:12px;text-transform:none;letter-spacing:0;"><input type="checkbox" class="sl-bg-vmute" ${bg.video_muted !== false ? 'checked' : ''}> Muted</label>
+                <label class="sl-field-label" style="display:flex;align-items:center;gap:6px;font-size:12px;text-transform:none;letter-spacing:0;"><input type="checkbox" class="sl-bg-vloop" ${bg.video_loop !== false ? 'checked' : ''}> Loop</label>
+            </div>`;
+        wrap.querySelector('.sl-bg-vurl' ).addEventListener('input',  e => { slides[i].background.video_url      = e.target.value;   scheduleAutoSave(); });
+        wrap.querySelector('.sl-bg-vauto').addEventListener('change', e => { slides[i].background.video_autoplay = e.target.checked; scheduleAutoSave(); });
+        wrap.querySelector('.sl-bg-vmute').addEventListener('change', e => { slides[i].background.video_muted    = e.target.checked; scheduleAutoSave(); });
+        wrap.querySelector('.sl-bg-vloop').addEventListener('change', e => { slides[i].background.video_loop     = e.target.checked; scheduleAutoSave(); });
+    } else if (t === 'template') {
+        const sel = bg.template_id || null;
+        wrap.innerHTML = `
+            <label class="sl-field-label">Template (${BG_TEMPLATES.length})</label>
+            <div class="sl-bg-grid">
+                ${BG_TEMPLATES.map(tpl => `
+                    <div class="sl-bg-tpl ${sel == tpl.id ? 'is-selected' : ''}" data-tpl="${tpl.id}" title="${escAttr(tpl.name)}" style="background:${escAttr(tpl.preview_color || '#0f172a')};">
+                        <div class="sl-bg-tpl-name">${escAttr(tpl.name)}</div>
+                    </div>
+                `).join('')}
+            </div>
+            ${BG_TEMPLATES.length === 0 ? '<p class="sl-empty" style="margin-top:6px;">No templates available yet.</p>' : ''}`;
+        wrap.querySelectorAll('.sl-bg-tpl').forEach(el => el.addEventListener('click', () => {
+            slides[i].background.template_id = parseInt(el.dataset.tpl, 10);
+            wrap.querySelectorAll('.sl-bg-tpl').forEach(x => x.classList.toggle('is-selected', x === el));
+            scheduleAutoSave();
+        }));
+    }
 }
 
 function renderSlides() {
@@ -363,16 +450,17 @@ function renderSlides() {
                 </div>
             </div>
 
-            <div class="sl-row">
-                <div>
-                    <label class="sl-field-label">Background type</label>
-                    <select class="sl-select sl-bg-type">
-                        <option value="color"    ${s.background.type==='color'?'selected':''}>Color</option>
-                        <option value="gradient" ${s.background.type==='gradient'?'selected':''}>Gradient</option>
-                        <option value="image"    ${s.background.type==='image'?'selected':''}>Image URL</option>
-                    </select>
-                </div>
-                <div class="sl-bg-fields" style="display:flex;gap:8px;flex:2;"></div>
+            <div>
+                <label class="sl-field-label">Slide background</label>
+                <select class="sl-select sl-bg-type" style="max-width:220px;">
+                    <option value="color"     ${s.background.type==='color'?'selected':''}>Color</option>
+                    <option value="gradient"  ${s.background.type==='gradient'?'selected':''}>Gradient</option>
+                    <option value="image"     ${s.background.type==='image'?'selected':''}>Image</option>
+                    <option value="slideshow" ${s.background.type==='slideshow'?'selected':''}>Slideshow</option>
+                    <option value="video"     ${s.background.type==='video'?'selected':''}>Video</option>
+                    <option value="template"  ${s.background.type==='template'?'selected':''}>Template</option>
+                </select>
+                <div class="sl-bg-fields" style="margin-top:8px;"></div>
             </div>
 
             <div class="sl-row" style="margin-top:8px;">
@@ -440,28 +528,10 @@ function renderSlides() {
             });
         });
 
-        // Background-type-specific fields
-        const bgWrap = card.querySelector('.sl-bg-fields');
-        const t = slides[i].background.type;
-        if (t === 'color') {
-            bgWrap.innerHTML = `
-                <div style="flex:1;"><label class="sl-field-label">Color</label>
-                    <input type="color" class="sl-input sl-bg-color" value="${s.background.color || '#0f172a'}"></div>`;
-            bgWrap.querySelector('.sl-bg-color').addEventListener('input', e => { slides[i].background.color = e.target.value; scheduleAutoSave(); });
-        } else if (t === 'gradient') {
-            bgWrap.innerHTML = `
-                <div style="flex:1;"><label class="sl-field-label">From</label>
-                    <input type="color" class="sl-input sl-bg-from" value="${s.background.from_color || '#1e293b'}"></div>
-                <div style="flex:1;"><label class="sl-field-label">To</label>
-                    <input type="color" class="sl-input sl-bg-to"   value="${s.background.to_color   || '#0f172a'}"></div>`;
-            bgWrap.querySelector('.sl-bg-from').addEventListener('input', e => { slides[i].background.from_color = e.target.value; scheduleAutoSave(); });
-            bgWrap.querySelector('.sl-bg-to'  ).addEventListener('input', e => { slides[i].background.to_color   = e.target.value; scheduleAutoSave(); });
-        } else if (t === 'image') {
-            bgWrap.innerHTML = `
-                <div style="flex:1;"><label class="sl-field-label">Image URL</label>
-                    <input class="sl-input sl-bg-url" value="${escAttr(s.background.image_url || '')}"></div>`;
-            bgWrap.querySelector('.sl-bg-url').addEventListener('input', e => { slides[i].background.image_url = e.target.value; scheduleAutoSave(); });
-        }
+        // Background-type-specific fields. Mirrors the option-set of the
+        // page-background card but operates entirely inside the slide JSON
+        // payload so each slide can carry its own visual treatment.
+        renderSlideBgFields(card.querySelector('.sl-bg-fields'), i);
 
         // Block chips + per-block animation/width rows
         const chips = card.querySelector('.sl-chips');
@@ -670,46 +740,6 @@ function reloadDevicePreview() {
         } catch (_) {
             const sep = f.src.includes('?') ? '&' : '?';
             f.src = f.src + sep + '_t=' + Date.now();
-        }
-    });
-}
-
-// Background-card AJAX submit — re-uses the existing page-settings endpoint
-// (which now returns JSON when `Accept: application/json` is sent) so the
-// preview on the right reloads inline.
-const sl_bg_form = document.getElementById('sl-bg-form');
-if (sl_bg_form) {
-    sl_bg_form.addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        const status = document.getElementById('sl-bg-status');
-        status.className = 'sl-bg-status'; status.textContent = 'Saving…';
-        const fd = new FormData(sl_bg_form);
-        try {
-            const r = await fetch(sl_bg_form.action, {
-                method: 'POST',
-                body: fd,
-                credentials: 'same-origin',
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            // Strictly require JSON {ok:true}. The page-settings endpoint
-            // returns a redirect (HTML) on validation/upload failure, and
-            // fetch's default redirect:'follow' would otherwise mask that as
-            // a 200 OK and falsely show "Saved".
-            const ct = r.headers.get('content-type') || '';
-            let body = null;
-            if (ct.includes('application/json')) {
-                try { body = await r.json(); } catch (_) {}
-            }
-            if (!r.ok || !body || body.ok !== true) {
-                throw new Error((body && body.message) || 'Save failed');
-            }
-            status.className = 'sl-bg-status is-ok';
-            status.textContent = 'Saved · preview updating…';
-            reloadDevicePreview();
-            setTimeout(() => { status.textContent = ''; status.className = 'sl-bg-status'; }, 3500);
-        } catch (e) {
-            status.className = 'sl-bg-status is-error';
-            status.textContent = e.message || 'Save failed';
         }
     });
 }

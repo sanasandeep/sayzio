@@ -78,14 +78,33 @@
         font-size: clamp(22px, 6vw, 36px); font-weight: 800; line-height: 1.15;
         text-align: center; letter-spacing: -0.01em;
     }
-    .sl-blocks { display: flex; flex-direction: column; gap: 12px; }
-    .sl-blocks > * + * { margin-top: 0; }
+    /* 12-column grid lets blocks of grid_span < 12 share the same row when
+       their spans add up to 12 (e.g. two ½-width blocks → 6 + 6 share one
+       row; ⅓ + ⅔ → 4 + 8 share one row). Rows wrap automatically. */
+    .sl-blocks { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; align-items: start; }
+    .sl-blocks > * { min-width: 0; }
     .sl-block-anim { opacity: 0; transform: var(--bx, none);
+        grid-column: span var(--span, 12);
         transition: opacity var(--bd, 400ms) ease, transform var(--bd, 400ms) ease;
         transition-delay: var(--ba, 0ms); }
+    .sl-block-anim[data-align="left"]   { justify-self: start; }
+    .sl-block-anim[data-align="center"] { justify-self: center; }
+    .sl-block-anim[data-align="right"]  { justify-self: end; }
+    .sl-block-anim[data-align="stretch"]{ justify-self: stretch; }
     .sl-slide.is-active .sl-block-anim { opacity: 1; transform: none; }
     .sl-blocks .biolink-block, .sl-blocks .block, .sl-blocks > div { color: inherit; }
     .sl-blocks a, .sl-blocks button { color: inherit; }
+    /* Slideshow + video background layers — sit behind the .sl-content
+       layer but inside the .sl-slide so they inherit the slide's transition
+       state. */
+    /* `contain: layout paint` makes the layer a containing block for any
+       `position:fixed` descendants slipped in by template CSS, preventing
+       cross-slide bleed even when our scoping rewrite misses an edge case. */
+    .sl-bg-layer { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; contain: layout paint; }
+    .sl-bg-layer img, .sl-bg-layer video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .sl-bg-layer .sl-bg-show { animation: sl-bg-fade var(--sl-bg-cycle, 14s) infinite; opacity: 0; }
+    @keyframes sl-bg-fade { 0%, 8% { opacity: 1; } 25%, 100% { opacity: 0; } }
+    .sl-content { position: relative; z-index: 1; }
 
     .sl-progress {
         position: absolute; top: max(env(safe-area-inset-top), 12px); left: 12px; right: 12px;
@@ -146,17 +165,80 @@
         </div>
 
         <div class="sl-stage" id="sl-stage">
+            @php
+                // Pre-load any bg_templates referenced by template-type slides
+                // so we can emit their CSS once at the top of the page rather
+                // than per-slide. Keys are template ids; values are the model.
+                $tplIdsNeeded = [];
+                foreach ($slides as $s) {
+                    if (($s['background']['type'] ?? null) === 'template' && !empty($s['background']['template_id'])) {
+                        $tplIdsNeeded[] = (int) $s['background']['template_id'];
+                    }
+                }
+                $tplLookup = [];
+                if (!empty($tplIdsNeeded)) {
+                    $tplLookup = \App\Modules\Admin\Models\BgTemplate::whereIn('id', array_unique($tplIdsNeeded))
+                        ->where('is_active', true)
+                        ->get()->keyBy('id');
+                }
+            @endphp
+            @if(!empty($tplLookup))
+            <style>
+                @foreach($tplLookup as $tpl)
+                    /* Scope each template's CSS to a per-slide bg layer so
+                       multiple slides can use different templates without
+                       collisions. We rewrite the .bg-template-{slug} root
+                       used by the appearance card to .sl-bg-tpl-{slug} and
+                       collapse any `position: fixed` (with arbitrary
+                       whitespace + optional !important) to `position: absolute`
+                       so the bg stays inside the slide. The .sl-bg-layer also
+                       declares `contain: layout paint` as a final safety
+                       net for fixed elements that escape the rewrite. */
+                    @php
+                        $css = str_replace('.bg-template-' . $tpl->slug, '.sl-bg-tpl-' . $tpl->slug, $tpl->css);
+                        $css = preg_replace('/position\s*:\s*fixed/i', 'position:absolute', $css);
+                        $css = preg_replace('/z-index\s*:\s*-1\b/i',   'z-index:0',         $css);
+                    @endphp
+                    {!! $css !!}
+                @endforeach
+            </style>
+            @endif
             @foreach($slides as $i => $s)
                 @php
-                    $bgInline = '';
-                    $bgConf = $s['background'] ?? [];
-                    $bgType = $bgConf['type'] ?? 'color';
+                    $bgInline      = '';
+                    $bgLayerHtml   = '';
+                    $bgConf        = $s['background'] ?? [];
+                    $bgType        = $bgConf['type'] ?? 'color';
                     if ($bgType === 'image' && !empty($bgConf['image_url'])) {
                         $bgInline = "background-image:url('".e($bgConf['image_url'])."'); background-size:cover; background-position:center;";
                     } elseif ($bgType === 'gradient') {
                         $bgInline = "background: linear-gradient(135deg, "
                             . e($bgConf['from_color'] ?? '#1e293b') . ", "
                             . e($bgConf['to_color'] ?? '#0f172a') . ");";
+                    } elseif ($bgType === 'slideshow' && !empty($bgConf['images']) && is_array($bgConf['images'])) {
+                        // Crossfade slideshow: stagger animation-delay across
+                        // images so each one is visible for ~`interval` ms.
+                        $imgs   = array_values(array_filter($bgConf['images']));
+                        $count  = max(1, count($imgs));
+                        $perMs  = (int) ($bgConf['interval_ms'] ?? 3500);
+                        $cycle  = max(1500, $perMs * $count);
+                        $bgInline = "background:" . e($bgConf['color'] ?? $bg) . ";";
+                        $bgLayerHtml = '<div class="sl-bg-layer" style="--sl-bg-cycle:' . $cycle . 'ms;">';
+                        foreach ($imgs as $k => $u) {
+                            $delay = $k * $perMs;
+                            $bgLayerHtml .= '<img class="sl-bg-show" src="' . e($u) . '" alt="" style="animation-delay:' . $delay . 'ms;">';
+                        }
+                        $bgLayerHtml .= '</div>';
+                    } elseif ($bgType === 'video' && !empty($bgConf['video_url'])) {
+                        $autoplay = ($bgConf['video_autoplay'] ?? true) ? ' autoplay' : '';
+                        $loop     = ($bgConf['video_loop']     ?? true) ? ' loop' : '';
+                        $muted    = ($bgConf['video_muted']    ?? true) ? ' muted' : '';
+                        $bgInline = "background:" . e($bgConf['color'] ?? $bg) . ";";
+                        $bgLayerHtml = '<div class="sl-bg-layer"><video' . $autoplay . $loop . $muted . ' playsinline preload="metadata"><source src="' . e($bgConf['video_url']) . '"></video></div>';
+                    } elseif ($bgType === 'template' && !empty($bgConf['template_id']) && isset($tplLookup[$bgConf['template_id']])) {
+                        $tpl = $tplLookup[$bgConf['template_id']];
+                        $bgInline = "background:" . e($tpl->preview_color ?: '#0f172a') . ";";
+                        $bgLayerHtml = '<div class="sl-bg-layer sl-bg-tpl-' . e($tpl->slug) . '"></div>';
                     } else {
                         $bgInline = "background:" . e($bgConf['color'] ?? $bg) . ";";
                     }
@@ -168,6 +250,7 @@
                     data-transition="{{ $tr }}"
                     style="{{ $bgInline }}"
                 >
+                    {!! $bgLayerHtml !!}
                     <div class="sl-content">
                         @if(!empty($s['title']))
                             <div class="sl-title">{{ $s['title'] }}</div>
@@ -183,20 +266,11 @@
                                     $gridSpan = (int) ($anim['grid_span'] ?? 12);
                                     if ($gridSpan < 1 || $gridSpan > 12) { $gridSpan = 12; }
                                     $tx = ['fade'=>'none','slide_up'=>'translateY(16px)','slide_down'=>'translateY(-16px)','slide_left'=>'translateX(16px)','slide_right'=>'translateX(-16px)','zoom'=>'scale(0.92)','flip'=>'rotateX(20deg)','none'=>'none'][$enter] ?? 'none';
-                                    $alignCss = ['left'=>'flex-start','center'=>'center','right'=>'flex-end','stretch'=>'stretch'][$align] ?? 'center';
-                                    // Width: grid_span chooses fraction of container.
-                                    // Full (12) keeps existing align-self behaviour;
-                                    // anything less forces a fractional width and
-                                    // overrides 'stretch' to behave as a sized box.
-                                    if ($gridSpan >= 12) {
-                                        $widthCss = $align==='stretch' ? '100%' : 'auto';
-                                    } else {
-                                        $widthCss = round($gridSpan / 12 * 100, 4) . '%';
-                                    }
                                 @endphp
                                 <div class="sl-block-anim"
                                      data-enter="{{ $enter }}"
-                                     style="--bx:{{ $tx }};--bd:{{ $durMs }}ms;--ba:{{ $delay }}ms;align-self:{{ $alignCss }};width:{{ $widthCss }};max-width:100%;">
+                                     data-align="{{ $align }}"
+                                     style="--bx:{{ $tx }};--bd:{{ $durMs }}ms;--ba:{{ $delay }}ms;--span:{{ $gridSpan }};">
                                     {!! $b['html'] ?? '' !!}
                                 </div>
                             @endforeach
@@ -358,24 +432,54 @@
         else if (e.key === 'ArrowLeft') { show(current - 1); }
     });
 
-    // Touch swipe (vertical first, fall back to horizontal).
-    let tStartX = 0, tStartY = 0, tStartT = 0;
-    document.getElementById('sl-deck').addEventListener('touchstart', (e) => {
-        const t = e.changedTouches[0];
-        tStartX = t.clientX; tStartY = t.clientY; tStartT = Date.now();
-    }, { passive: true });
-    document.getElementById('sl-deck').addEventListener('touchend', (e) => {
-        const t = e.changedTouches[0];
-        const dx = t.clientX - tStartX;
-        const dy = t.clientY - tStartY;
-        const dt = Date.now() - tStartT;
-        if (dt > 800) return;
-        if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx)) {
+    // Swipe handling — we run touch + mouse listeners side-by-side rather
+    // than the unified Pointer Events API, because the latter proved flaky
+    // when the slide deck is rendered inside the editor's preview iframe
+    // (mouse drag was not advancing slides under Playwright/desktop). The
+    // dual-listener approach has no such issues: touchstart/end power real
+    // mobile, while mousedown + window-level mouseup power desktop drag.
+    const deck = document.getElementById('sl-deck');
+    let sStartX = 0, sStartY = 0, sStartT = 0, sActive = false;
+
+    function startSwipe(x, y, target) {
+        // Don't begin a swipe when the press lands on an interactive
+        // element — preserves clicks on links, buttons, form inputs.
+        if (target && target.closest && target.closest('a, button, input, textarea, select, label')) return;
+        sActive = true;
+        sStartX = x; sStartY = y; sStartT = Date.now();
+    }
+    function endSwipeAt(x, y) {
+        if (!sActive) return;
+        sActive = false;
+        const dx = x - sStartX;
+        const dy = y - sStartY;
+        const dt = Date.now() - sStartT;
+        if (dt > 1200) return;
+        if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx)) {
             show(current + (dy < 0 ? 1 : -1));
-        } else if (Math.abs(dx) > 60) {
+        } else if (Math.abs(dx) > 50) {
             show(current + (dx < 0 ? 1 : -1));
         }
+    }
+
+    // Touch (mobile)
+    deck.addEventListener('touchstart', (e) => {
+        const t = e.changedTouches[0];
+        startSwipe(t.clientX, t.clientY, e.target);
     }, { passive: true });
+    deck.addEventListener('touchend', (e) => {
+        const t = e.changedTouches[0];
+        endSwipeAt(t.clientX, t.clientY);
+    }, { passive: true });
+
+    // Mouse (desktop drag, including inside the editor's preview iframe).
+    // We attach mouseup on `window` so a release that happens after the
+    // cursor wanders outside the deck still completes the swipe.
+    deck.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        startSwipe(e.clientX, e.clientY, e.target);
+    });
+    window.addEventListener('mouseup', (e) => { if (sActive) endSwipeAt(e.clientX, e.clientY); });
 
     show(0);
 })();

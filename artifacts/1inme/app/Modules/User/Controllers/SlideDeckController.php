@@ -106,12 +106,18 @@ class SlideDeckController extends Controller
             ])->values(),
         ];
 
+        // Per-slide backgrounds re-use the same "template" catalog as the
+        // page background so creators get a consistent picker. We pull the
+        // active templates here and pass a lightweight payload to the editor.
+        $bgTemplates = \App\Modules\Admin\Models\BgTemplate::active()->get(['id', 'name', 'slug', 'preview_color', 'category']);
+
         return view('user.links.slides.editor', [
             'link'         => $link,
             'deck'         => $deck,
             'deckPayload'  => $deckPayload,
             'blockOptions' => $blockOptions,
             'previewUrl'   => $previewUrl,
+            'bgTemplates'  => $bgTemplates,
         ]);
     }
 
@@ -161,11 +167,25 @@ class SlideDeckController extends Controller
             'slides.*.block_settings.*.align'        => 'nullable|string|in:left,center,right,stretch',
             'slides.*.block_settings.*.grid_span'    => 'nullable|integer|min:1|max:12',
             'slides.*.background'       => 'nullable|array',
-            'slides.*.background.type'  => 'nullable|string|in:color,gradient,image',
+            'slides.*.background.type'  => 'nullable|string|in:color,gradient,image,slideshow,video,template',
             'slides.*.background.color' => 'nullable|string|max:60',
             'slides.*.background.from_color' => 'nullable|string|max:60',
             'slides.*.background.to_color'   => 'nullable|string|max:60',
             'slides.*.background.image_url'  => 'nullable|string|max:1024',
+            // Slideshow: list of image URLs (max 8) and per-image dwell time.
+            'slides.*.background.images'        => 'nullable|array|max:8',
+            'slides.*.background.images.*'      => 'nullable|string|max:1024',
+            'slides.*.background.interval_ms'   => 'nullable|integer|min:500|max:30000',
+            // Video background: URL + playback flags.
+            'slides.*.background.video_url'     => 'nullable|string|max:1024',
+            'slides.*.background.video_loop'    => 'nullable|boolean',
+            'slides.*.background.video_muted'   => 'nullable|boolean',
+            'slides.*.background.video_autoplay'=> 'nullable|boolean',
+            // Template: id from the bg_templates catalog.
+            'slides.*.background.template_id'   => 'nullable|integer|min:1',
+            // Shared overlay knobs (apply to every type for consistency).
+            'slides.*.background.overlay_color'   => 'nullable|string|max:60',
+            'slides.*.background.overlay_opacity' => 'nullable|numeric|min:0|max:1',
             'slides.*.animation'        => 'nullable|array',
             'slides.*.animation.enter'  => 'nullable|string|in:fade,slide_up,slide_down,slide_left,slide_right,zoom,flip,none',
             'slides.*.animation.duration_ms' => 'nullable|integer|min:0|max:5000',
