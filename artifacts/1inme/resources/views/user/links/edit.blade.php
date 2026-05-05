@@ -24,6 +24,10 @@
         ],
     ])
 
+    <div class="mb-6">
+        @include('user.links.partials.aliases-card', ['link' => $link])
+    </div>
+
     @php
         $s = $link->settings ?? [];
         $expMode = !empty($s['expire_on_first_click']) ? 'first_click'
@@ -97,98 +101,6 @@
 
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">Link Details</h2>
-
-            @php
-                $primaryHost = $link->domain?->domain
-                    ?: (\App\Modules\Common\Support\PlatformHosts::currentRequestHost()
-                        ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost()));
-                $primaryShortUrl = $link->domain
-                    ? $link->getShortUrl()
-                    : (request()->getScheme() . '://' . $primaryHost . '/' . $link->alias);
-            @endphp
-            <div class="mb-4" x-data="{ copied: false }">
-                <label class="block text-sm font-medium text-white/60 mb-1">Short URL <span class="text-[10px] text-white/30">(primary alias)</span></label>
-                <div class="flex items-center gap-2 text-sm text-violet-400 bg-violet-500/10 px-3 py-2.5 rounded-xl">
-                    <a href="{{ $primaryShortUrl }}" target="_blank" rel="noopener" class="hover:underline truncate">{{ $primaryShortUrl }}</a>
-                    <button type="button"
-                            @click="navigator.clipboard.writeText('{{ $primaryShortUrl }}'); copied = true; setTimeout(() => copied = false, 1800)"
-                            class="text-white/50 hover:text-violet-300" title="Copy link">
-                        <i x-show="!copied" class="fas fa-copy text-xs"></i>
-                        <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
-                    </button>
-                    <span class="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded ml-auto">{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</span>
-                </div>
-                @unless($link->domain)
-                    @include('user.links.partials.platform-hosts-hint', ['primary' => $primaryHost, 'alias' => $link->alias])
-                @endunless
-            </div>
-
-            @php
-                $maxExtras = auth()->user()->getMaxAliasesPerLink();
-                $extras = $link->aliases()->orderBy('created_at')->get();
-                $usedExtras = $extras->count();
-                $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
-                // Prefer the host the user is currently browsing on (when it's a
-                // configured platform host) so generated alias URLs match context.
-                $editorHost = \App\Modules\Common\Support\PlatformHosts::currentRequestHost()
-                    ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
-                $base = rtrim(request()->getScheme() . '://' . $editorHost, '/');
-            @endphp
-            <div class="mb-6 p-4 bg-white/5 border border-white/10 rounded-xl">
-                <div class="flex items-center justify-between mb-2">
-                    <div>
-                        <h3 class="text-sm font-semibold text-white/80">Alternative URLs (aliases)</h3>
-                        <p class="text-xs text-white/40 mt-0.5">All aliases serve the same page — no redirect. Useful for campaign-specific links.</p>
-                    </div>
-                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/60">
-                        @if($maxExtras === -1) Unlimited
-                        @else {{ $usedExtras }} / {{ $maxExtras }}
-                        @endif
-                    </span>
-                </div>
-
-                @if($maxExtras === 0)
-                    <p class="text-xs text-amber-400/80 mt-2"><i class="fas fa-lock mr-1"></i> Your current plan does not include additional aliases. Upgrade your plan to unlock this feature.</p>
-                @else
-                    @if($extras->isNotEmpty())
-                        <ul class="divide-y divide-white/5 mb-3">
-                            @foreach($extras as $a)
-                                <li class="flex items-center justify-between py-2">
-                                    <a href="{{ $base }}/{{ $a->alias }}" target="_blank" class="text-sm text-violet-300 hover:underline truncate">{{ $base }}/{{ $a->alias }}</a>
-                                    <div class="flex items-center gap-2 ml-3">
-                                        <button type="button"
-                                                onclick="window.linkAliasAction(this, 'POST', 'Make this the primary alias? The current primary will become an alternative.')"
-                                                data-action="{{ route('user.links.aliases.promote', [$link, $a]) }}"
-                                                class="text-xs text-white/50 hover:text-white px-2 py-1 rounded hover:bg-white/10" title="Make this the primary alias"><i class="fas fa-star"></i></button>
-                                        <button type="button"
-                                                onclick="window.linkAliasAction(this, 'DELETE', 'Delete this alias? Anyone visiting it will get a 404.')"
-                                                data-action="{{ route('user.links.aliases.destroy', [$link, $a]) }}"
-                                                class="text-xs text-red-400/70 hover:text-red-400 px-2 py-1 rounded hover:bg-red-500/10"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-
-                    @if($canAddMore)
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs text-white/40 whitespace-nowrap">{{ $base }}/</span>
-                            <input type="text" id="newAliasInput" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
-                                   placeholder="my-campaign" class="flex-1 border border-white/10 rounded-lg px-3 py-2 text-sm bg-white/5 text-white focus:ring-2 focus:ring-violet-500/40">
-                            <button type="button"
-                                    onclick="window.linkAliasAdd('{{ route('user.links.aliases.store', $link) }}')"
-                                    class="px-3 py-2 text-sm bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 rounded-lg whitespace-nowrap"><i class="fas fa-plus mr-1"></i>Add</button>
-                        </div>
-                        @error('alias') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
-                    @else
-                        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> You've reached your plan's alias limit. Upgrade for more.</p>
-                    @endif
-                @endif
-
-                @unless($link->domain)
-                    @include('user.links.partials.platform-hosts-hint', ['primary' => $editorHost, 'alias' => $link->alias])
-                @endunless
-            </div>
 
             @if($link->type === 'url')
             <div class="mb-4">
