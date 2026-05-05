@@ -100,4 +100,59 @@ abstract class PayoutProviderAdapter
         }
         return true;
     }
+
+    /**
+     * Build the hosted-checkout URL for a fan starting a subscription
+     * to a creator. The platform takes 0% — `application_fee_amount`
+     * (or its provider-equivalent) is always 0 in real implementations.
+     *
+     * Default: returns a preview-mode hand-off URL so the full UX flows
+     * end-to-end without provider keys (matching the onboarding pattern
+     * established in Task #1208). Real adapters will override this once
+     * provider credentials are wired.
+     *
+     * The $context array always carries a 'reference' key (the
+     * creator_subscription id) and a 'return_url' key the provider must
+     * redirect back to on success.
+     */
+    public function createSubscriptionCheckout(
+        CreatorPaymentConnection $connection,
+        array $context,
+    ): string {
+        return route('checkout.preview', [
+            'provider'  => $this->slug(),
+            'kind'      => 'subscription',
+            'reference' => $context['reference'] ?? '',
+            'token'     => $context['token'] ?? '',
+        ]);
+    }
+
+    /**
+     * Build the hosted-checkout URL for a one-off charge — used both
+     * for per-post unlocks and tips. Same preview behaviour and 0%
+     * platform fee policy as createSubscriptionCheckout().
+     */
+    public function createOneTimeCheckout(
+        CreatorPaymentConnection $connection,
+        array $context,
+    ): string {
+        return route('checkout.preview', [
+            'provider'  => $this->slug(),
+            'kind'      => $context['kind'] ?? 'one_time',
+            'reference' => $context['reference'] ?? '',
+            'token'     => $context['token'] ?? '',
+        ]);
+    }
+
+    /**
+     * Apply a refund to an in-flight charge. The default is a no-op
+     * stub — concrete adapters issue the provider-side refund call.
+     * The caller (MonetizationCheckout::refund) is still responsible
+     * for revoking access locally (clearing post_unlocks.refunded_at,
+     * marking subscription canceled, etc.) and emitting the ledger event.
+     */
+    public function refundCharge(string $chargeId, ?int $amountCents = null): bool
+    {
+        return true;
+    }
 }

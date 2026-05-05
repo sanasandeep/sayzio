@@ -728,6 +728,13 @@
                     <span class="nav-label">Earnings & Payouts</span>
                     <span class="sidebar-tooltip">Earnings & Payouts</span>
                 </a>
+                <a href="{{ route('user.monetization.earnings') }}"
+                   class="sidebar-link {{ request()->routeIs('user.monetization.*') ? 'active' : '' }}"
+                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-gem"></i></div>
+                    <span class="nav-label">Monetization</span>
+                    <span class="sidebar-tooltip">Monetization</span>
+                </a>
                 <a href="{{ route('feed.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"
                    style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">

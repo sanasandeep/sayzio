@@ -274,6 +274,29 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('posts/{post}/reject',          [\App\Modules\User\Controllers\CreatorPostController::class, 'reject'])->name('posts.reject');
         Route::post('posts/{post}/resubmit',        [\App\Modules\User\Controllers\CreatorPostController::class, 'resubmit'])->middleware('workspace.can:posts.create')->name('posts.resubmit');
         Route::post('posts/{post}/comments',        [\App\Modules\User\Controllers\CreatorPostController::class, 'comment'])->name('posts.comments.store');
+
+        // ---- Monetization (Task #1209): tiers, promos, earnings,
+        // subscribers, ledger. Permission-gated under posts.view since
+        // the dashboard sits next to "My Posts" in the sidebar and is
+        // only meaningful for the workspace owner.
+        Route::prefix('monetization')->name('monetization.')->middleware('workspace.can:posts.view')->group(function () {
+            Route::get ('/',             [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'index'])->name('index');
+            Route::get ('/earnings',     [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'earnings'])->name('earnings');
+            Route::get ('/subscribers',  [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'subscribers'])->name('subscribers');
+            Route::get ('/payments',     [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'payments'])->name('payments');
+
+            Route::get ('/tiers',                  [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'tiers'])->name('tiers');
+            Route::post('/tiers',                  [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'storeTier'])->name('tiers.store');
+            Route::put ('/tiers/{tier}',           [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'updateTier'])->name('tiers.update');
+            Route::delete('/tiers/{tier}',         [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'destroyTier'])->name('tiers.destroy');
+
+            Route::get ('/promos',                 [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'promos'])->name('promos');
+            Route::post('/promos',                 [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'storePromo'])->name('promos.store');
+            Route::delete('/promos/{promo}',       [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'destroyPromo'])->name('promos.destroy');
+            Route::post('/promos/{promo}/toggle', [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'togglePromo'])->name('promos.toggle');
+
+            Route::post('/refund',                 [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'refund'])->name('refund');
+        });
         // Notifications are scoped to the signed-in user (not the workspace
         // owner) — every team member has their own notification feed.
         Route::get('notifications',  [\App\Modules\User\Controllers\NotificationController::class, 'index'])->name('notifications.index');

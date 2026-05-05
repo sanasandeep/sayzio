@@ -79,6 +79,22 @@ Route::prefix('v1')->group(function () {
         Route::get('/creator-profile/{handle}/posts/{post}/comments',    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'comments'])->whereNumber('post');
         Route::post('/creator-profile/{handle}/posts/{post}/react',      [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'react'])->whereNumber('post')->middleware('throttle:120,1');
         Route::post('/creator-profile/{handle}/posts/{post}/comment',    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'comment'])->whereNumber('post')->middleware('throttle:60,1');
+
+        // Creator monetization (Task #1209). Public-facing per-creator
+        // endpoints — listing tiers is unauthenticated; subscribing,
+        // unlocking, and tipping require auth (Sanctum).
+        Route::get ('/creators/{handle}/tiers',                  [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'tiers']);
+        Route::post('/creators/{handle}/subscribe',              [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'subscribe'])->middleware('throttle:30,1');
+        Route::post('/creators/{handle}/posts/{post}/unlock',    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'unlockPost'])->whereNumber('post')->middleware('throttle:30,1');
+        Route::post('/creators/{handle}/tip',                    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'tip'])->middleware('throttle:30,1');
+        Route::get ('/creators/{handle}/my-subscription',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'mySubscription']);
+        Route::post('/creators/{handle}/my-subscription/cancel', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'cancelSubscription']);
+
+        // Owner-side dashboard endpoints (Sanctum-authenticated creator).
+        Route::get('/me/creator/earnings',     [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'earnings']);
+        Route::get('/me/creator/subscribers',  [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerSubscribers']);
+        Route::get('/me/creator/payments',     [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerPayments']);
+        Route::get('/me/creator/tiers',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerTiers']);
     });
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])

@@ -16,6 +16,9 @@ protected $fillable = [
         'approval_decided_by_user_id', 'intended_scheduled_at',
         // Creator Profile post types (Task #1207).
         'post_type', 'media', 'reactions_count', 'comments_count',
+        // Paywall (Task #1209).
+        'visibility', 'visible_tier_ids',
+        'ppv_price_cents', 'ppv_currency', 'paywall_settings',
     ];
 
     protected $casts = [
@@ -28,7 +31,67 @@ protected $fillable = [
         'media'                 => 'array',
         'reactions_count'       => 'integer',
         'comments_count'        => 'integer',
+        'visible_tier_ids'      => 'array',
+        'ppv_price_cents'       => 'integer',
+        'paywall_settings'      => 'array',
     ];
+
+    public const VISIBILITY_FREE = 'free';
+    public const VISIBILITY_TIER = 'tier';
+    public const VISIBILITY_PPV  = 'ppv';
+
+    public const VISIBILITIES = [self::VISIBILITY_FREE, self::VISIBILITY_TIER, self::VISIBILITY_PPV];
+
+    public function isPaywalled(): bool
+    {
+        return in_array($this->visibility, [self::VISIBILITY_TIER, self::VISIBILITY_PPV], true);
+    }
+
+    public function ppvPriceDollars(): float
+    {
+        return ((int) $this->ppv_price_cents) / 100;
+    }
+
+    /** Resolved blur intensity (low|medium|high). */
+    public function blurIntensity(): string
+    {
+        $s = is_array($this->paywall_settings) ? $this->paywall_settings : [];
+        $b = $s['blur_intensity'] ?? 'medium';
+        return in_array($b, ['low', 'medium', 'high'], true) ? $b : 'medium';
+    }
+
+    public function teaserCaption(): ?string
+    {
+        $s = is_array($this->paywall_settings) ? $this->paywall_settings : [];
+        return isset($s['teaser']) && is_string($s['teaser']) && trim($s['teaser']) !== ''
+            ? trim($s['teaser']) : null;
+    }
+
+    /**
+     * Number of gallery items the creator wants visible (in the clear)
+     * on the locked variant of this post. 0 means "no preview, just a
+     * gradient placeholder". Bounded 0-3 — we don't want to give away
+     * more than three of a paid gallery for free.
+     */
+    public function galleryPreviewCount(): int
+    {
+        $s = is_array($this->paywall_settings) ? $this->paywall_settings : [];
+        $n = (int) ($s['gallery_preview_count'] ?? 0);
+        return max(0, min(3, $n));
+    }
+
+    /**
+     * Number of seconds of a paywalled video the creator wants visible
+     * on the locked variant. We don't actually trim the video file — we
+     * just expose the poster image and the duration so the client can
+     * render a "X-second preview available" affordance. Bounded 0-30.
+     */
+    public function videoPreviewSeconds(): int
+    {
+        $s = is_array($this->paywall_settings) ? $this->paywall_settings : [];
+        $n = (int) ($s['video_preview_seconds'] ?? 0);
+        return max(0, min(30, $n));
+    }
 
     public const TYPE_TEXT    = 'text';
     public const TYPE_IMAGE   = 'image';

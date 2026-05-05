@@ -295,6 +295,36 @@ Route::delete('/@{handle}/c/{comment}', [\App\Modules\Common\Controllers\Creator
     ->where(['handle' => '[A-Za-z0-9_]+', 'comment' => '[0-9]+'])
     ->name('creator-profile.comment.destroy');
 
+// ── Creator Profile monetization (Task #1209): subscribe / unlock /
+// tip surfaces hosted on /@handle. Routes live with the rest of the
+// /@handle URLs so deep-links from the profile (and from the
+// Creator Profile mobile app) hit the same paths.
+Route::get   ('/@{handle}/subscribe', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'subscribePage'])
+    ->where('handle', '[A-Za-z0-9_]+')->name('creator-profile.subscribe.show');
+Route::post  ('/@{handle}/subscribe', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'subscribe'])
+    ->where('handle', '[A-Za-z0-9_]+')->middleware('throttle:30,1')->name('creator-profile.subscribe');
+Route::post  ('/@{handle}/p/{post}/unlock', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'unlock'])
+    ->where(['handle' => '[A-Za-z0-9_]+', 'post' => '[0-9]+'])
+    ->middleware('throttle:30,1')->name('creator-profile.unlock');
+Route::post  ('/@{handle}/tip', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'tip'])
+    ->where('handle', '[A-Za-z0-9_]+')->middleware('throttle:30,1')->name('creator-profile.tip');
+Route::post  ('/@{handle}/p/{post}/tip', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'tip'])
+    ->where(['handle' => '[A-Za-z0-9_]+', 'post' => '[0-9]+'])
+    ->middleware('throttle:30,1')->name('creator-profile.tip.post');
+Route::get   ('/@{handle}/manage-subscription', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'manage'])
+    ->where('handle', '[A-Za-z0-9_]+')->name('creator-profile.subscription.manage');
+Route::post  ('/@{handle}/manage-subscription/cancel', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'cancel'])
+    ->where('handle', '[A-Za-z0-9_]+')->name('creator-profile.subscription.cancel');
+Route::post  ('/@{handle}/manage-subscription/resume', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'resume'])
+    ->where('handle', '[A-Za-z0-9_]+')->name('creator-profile.subscription.resume');
+
+// Preview-mode hosted-checkout pages for Task #1209. Real provider
+// adapters (Stripe Connect / PayPal / Razorpay / CCBill / Segpay) take
+// over these URLs once their env credentials are configured.
+Route::get ('/checkout/preview', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'preview'])->name('checkout.preview');
+Route::post('/checkout/preview/confirm', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'confirmPreview'])->name('checkout.preview.confirm');
+Route::get ('/checkout/return',  [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'returnHandler'])->name('checkout.return');
+
 // Carbon-Neutral Biolinks: public methodology page (linked from the
 // "Carbon Neutral" badge popover on every opted-in biolink) and a
 // JSON endpoint the badge JS hits on first open. Both must be public

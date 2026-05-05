@@ -37,8 +37,18 @@ class CreatorPostController extends Controller
         $userIsApprover  = $workspace ? $workspace->userCanApprovePosts(auth()->user()) : false;
         $approverRoles   = $workspace ? $workspace->postApproverRoles() : [];
 
+        // Active paid tiers — surfaced in the composer so the editor
+        // can flip a post to "Tier-only" with a click. (Task #1209.)
+        $monetizationTiers = \App\Modules\User\Models\SubscriptionTier::query()
+            ->where('user_id', $ownerId)
+            ->where('is_active', true)
+            ->where('is_free', false)
+            ->orderBy('sort_order')
+            ->orderBy('price_monthly_cents')
+            ->get();
+
         return view('user.posts.index', compact(
-            'posts', 'workspace', 'approvalEnabled', 'userIsApprover', 'approverRoles'
+            'posts', 'workspace', 'approvalEnabled', 'userIsApprover', 'approverRoles', 'monetizationTiers'
         ));
     }
 
@@ -52,6 +62,21 @@ class CreatorPostController extends Controller
             'is_pinned'    => 'nullable|boolean',
             'cloud_file_ids'   => 'nullable|array|max:20',
             'cloud_file_ids.*' => 'integer',
+            // Paywall (Task #1209). Visibility flips between public,
+            // tier-gated, and pay-per-view; the rest only apply for
+            // their relevant visibility.
+            'visibility'        => 'nullable|in:free,tier,ppv',
+            'visible_tier_ids'  => 'nullable|array|max:20',
+            'visible_tier_ids.*' => 'integer',
+            'ppv_price'         => 'nullable|numeric|min:1|max:500',
+            'teaser_caption'    => 'nullable|string|max:280',
+            'blur_intensity'    => 'nullable|in:low,medium,high',
+            // Paywall preview configurability (Task #1209): how much of
+            // the locked content the creator wants to give away as a
+            // teaser. Caps prevent giving away the whole gallery /
+            // video. 0 = no preview, only a gradient placeholder.
+            'gallery_preview_count' => 'nullable|integer|min:0|max:3',
+            'video_preview_seconds' => 'nullable|integer|min:0|max:30',
         ]);
 
         $imagePath = null;
@@ -77,6 +102,41 @@ class CreatorPostController extends Controller
             && $workspace->postApprovalEnabled()
             && !$workspace->userCanApprovePosts($actor);
 
+        // Resolve paywall fields. Visibility defaults to free; tier-gated
+        // posts must include at least one tier id (otherwise they'd be
+        // unreachable); PPV posts must have a price.
+        $visibility = $data['visibility'] ?? CreatorPost::VISIBILITY_FREE;
+        $tierIds    = array_values(array_unique(array_map('intval', (array) ($data['visible_tier_ids'] ?? []))));
+        $ppvCents   = isset($data['ppv_price']) ? (int) round(((float) $data['ppv_price']) * 100) : null;
+        $teaser     = $data['teaser_caption'] ?? null;
+        $blur       = $data['blur_intensity'] ?? 'medium';
+
+        if ($visibility === CreatorPost::VISIBILITY_TIER && !$tierIds) {
+            $visibility = CreatorPost::VISIBILITY_FREE;
+        }
+        if ($visibility === CreatorPost::VISIBILITY_PPV && (!$ppvCents || $ppvCents < 100)) {
+            $visibility = CreatorPost::VISIBILITY_FREE;
+            $ppvCents   = null;
+        }
+        if ($visibility !== CreatorPost::VISIBILITY_TIER) $tierIds  = null;
+        if ($visibility !== CreatorPost::VISIBILITY_PPV)  $ppvCents = null;
+
+        $galleryPreviewCount = isset($data['gallery_preview_count'])
+            ? max(0, min(3, (int) $data['gallery_preview_count']))
+            : 0;
+        $videoPreviewSeconds = isset($data['video_preview_seconds'])
+            ? max(0, min(30, (int) $data['video_preview_seconds']))
+            : 0;
+
+        $paywallSettings = $visibility !== CreatorPost::VISIBILITY_FREE
+            ? array_filter([
+                'teaser'                 => $teaser ? trim($teaser) : null,
+                'blur_intensity'         => $blur,
+                'gallery_preview_count'  => $galleryPreviewCount > 0 ? $galleryPreviewCount : null,
+                'video_preview_seconds'  => $videoPreviewSeconds > 0 ? $videoPreviewSeconds : null,
+            ], fn ($v) => $v !== null && $v !== '')
+            : null;
+
         $post = CreatorPost::create([
             'user_id'               => $ownerId,
             'title'                 => $data['title'] ?? null,
@@ -88,6 +148,12 @@ class CreatorPostController extends Controller
             'published_at'          => ($needsApproval || $isFuture) ? null : now(),
             'approval_status'       => $needsApproval ? CreatorPost::APPROVAL_PENDING : null,
             'approval_requested_at' => $needsApproval ? now() : null,
+            // Paywall (Task #1209).
+            'visibility'            => $visibility,
+            'visible_tier_ids'      => $tierIds,
+            'ppv_price_cents'       => $ppvCents,
+            'ppv_currency'          => $ppvCents ? ($actor?->preferred_currency ?: 'USD') : null,
+            'paywall_settings'      => $paywallSettings,
         ]);
 
         $this->syncCloudAttachments($post, (array) $request->input('cloud_file_ids', []));

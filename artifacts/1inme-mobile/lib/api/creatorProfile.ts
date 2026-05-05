@@ -61,11 +61,47 @@ export type CreatorPostMedia = {
   items?: { url: string; caption?: string | null }[];
 };
 
+export type PostAccess = {
+  can: boolean;
+  reason:
+    | "owner"
+    | "free"
+    | "subscriber"
+    | "ppv_unlocked"
+    | "tier_locked"
+    | "ppv_locked"
+    | "guest";
+  requires_subscription: boolean;
+  requires_ppv: boolean;
+  lowest_tier: {
+    id: number;
+    name: string;
+    badge: string | null;
+    price_monthly_cents: number;
+    currency: string;
+  } | null;
+};
+
+export type LockedPreview =
+  | {
+      kind: "gallery";
+      items: { url: string | null; alt: string | null }[];
+      total_items: number;
+      visible_count: number;
+    }
+  | {
+      kind: "video";
+      poster: string | null;
+      seconds: number;
+    };
+
 export type CreatorProfilePost = {
   id: number;
   post_type: CreatorPostType;
   title: string | null;
   body: string | null;
+  body_excerpt?: string | null;
+  teaser_caption?: string | null;
   image: string | null;
   media: CreatorPostMedia | null;
   is_pinned: boolean;
@@ -74,6 +110,16 @@ export type CreatorProfilePost = {
   comments_count: number;
   reaction_totals: Record<string, number>;
   my_reaction: ReactionKey | null;
+  visibility?: "free" | "tier" | "ppv";
+  ppv_price_cents?: number | null;
+  blur_intensity?: "low" | "medium" | "high";
+  access?: PostAccess;
+  locked?: boolean;
+  preview?: LockedPreview | null;
+  paywall_preview?: {
+    gallery_preview_count: number;
+    video_preview_seconds: number;
+  };
 };
 
 export type ProfileComment = {
@@ -90,9 +136,39 @@ export type ProfileComment = {
   replies: ProfileComment[];
 };
 
+export type ViewerSubscriptionState = {
+  id: number;
+  tier_id: number;
+  tier_name: string | null;
+  tier_badge: string | null;
+  status: string;
+  status_label: string;
+  billing_cycle: "monthly" | "yearly";
+  price_cents: number;
+  currency: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  is_current: boolean;
+};
+
 export type ProfileResponse = {
   profile: CreatorProfile;
   reactions_catalog: { key: string; label: string; emoji: string }[];
+  tiers?: {
+    id: number;
+    slug: string;
+    name: string;
+    is_free: boolean;
+    is_active: boolean;
+    price_monthly_cents: number;
+    price_yearly_cents: number | null;
+    currency: string;
+    badge: string | null;
+    color: string | null;
+    perks: string[];
+    yearly_discount_percent: number | null;
+  }[];
+  viewer_subscription?: ViewerSubscriptionState | null;
 };
 
 const stripHandle = (h: string) => h.replace(/^@/, "");

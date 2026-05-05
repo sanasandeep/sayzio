@@ -84,18 +84,41 @@ class CreatorProfilePublicController extends Controller
                 ->where('creator_id', $creator->id)->exists();
         }
 
+        // Monetization (Task #1209). Surface the creator's active tiers
+        // for the Subscribe/Tip CTAs and pre-compute per-post access so
+        // the partial can render locked/blurred variants without N+1.
+        $tiers = \App\Modules\User\Models\SubscriptionTier::query()
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('is_free', false)
+            ->orderBy('price_monthly_cents')
+            ->get();
+        $viewerSubscription = null;
+        if ($viewer && !$isOwner) {
+            $viewerSubscription = \App\Modules\User\Models\CreatorSubscription::query()
+                ->where('creator_user_id', $creator->id)
+                ->where('fan_user_id', $viewer->id)
+                ->whereIn('status', ['active', 'trialing', 'past_due'])
+                ->latest('id')
+                ->first();
+        }
+        $accessByPost = \App\Services\Monetization\PostAccessPolicy::evaluateMany($viewer, $posts->getCollection());
+
         return view('public.creator-profile', [
-            'creator'         => $creator,
-            'posts'           => $posts,
-            'reactionTotals'  => $reactionTotals,
-            'myReactions'     => $myReactions,
-            'commentsByPost'  => $commentsByPost,
-            'primaryBiolink'  => $primaryBiolink,
-            'sectionsVisible' => $sectionsVisible,
-            'viewer'          => $viewer,
-            'isOwner'         => $isOwner,
-            'isFollowing'     => $isFollowing,
-            'reactionDefs'    => CreatorPostReaction::REACTIONS,
+            'creator'             => $creator,
+            'posts'               => $posts,
+            'reactionTotals'      => $reactionTotals,
+            'myReactions'         => $myReactions,
+            'commentsByPost'      => $commentsByPost,
+            'primaryBiolink'      => $primaryBiolink,
+            'sectionsVisible'     => $sectionsVisible,
+            'viewer'              => $viewer,
+            'isOwner'             => $isOwner,
+            'isFollowing'         => $isFollowing,
+            'reactionDefs'        => CreatorPostReaction::REACTIONS,
+            'tiers'               => $tiers,
+            'viewerSubscription'  => $viewerSubscription,
+            'accessByPost'        => $accessByPost,
         ]);
     }
 

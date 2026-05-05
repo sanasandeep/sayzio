@@ -8,7 +8,10 @@ use App\Modules\User\Models\CreatorPostComment;
 use App\Modules\User\Models\CreatorPostReaction;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\SubscriptionTier;
+use App\Modules\User\Models\CreatorSubscription;
 use App\Modules\User\Models\User;
+use App\Services\Monetization\PostAccessPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +48,62 @@ class CreatorProfileApiController extends Controller
             ->where('type', 'biolink')->where('is_active', true)
             ->orderBy('id')->first();
 
+        // ── Monetization (Task #1209) ────────────────────────────
+        // Active tiers for the Subscribe sheet, plus the viewer's
+        // own current subscription if they have one. Mirrors the
+        // shape exposed by the web profile controller.
+        $tiers = SubscriptionTier::query()
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('price_monthly_cents')
+            ->get()
+            ->map(fn (SubscriptionTier $t) => [
+                'id'                       => $t->id,
+                'slug'                     => $t->slug,
+                'name'                     => $t->name,
+                'is_free'                  => (bool) $t->is_free,
+                'is_active'                => (bool) $t->is_active,
+                'price_monthly_cents'      => (int) $t->price_monthly_cents,
+                'price_yearly_cents'       => $t->price_yearly_cents !== null ? (int) $t->price_yearly_cents : null,
+                'currency'                 => $t->currency,
+                'trial_days'               => (int) $t->trial_days,
+                'badge'                    => $t->badge,
+                'color'                    => $t->color,
+                'perks'                    => $t->visiblePerks(),
+                'yearly_discount_percent'  => $t->yearlyDiscountPercent(),
+            ])->values();
+
+        $viewerSubscription = null;
+        if ($viewer && !$isOwner) {
+            $sub = CreatorSubscription::query()
+                ->where('fan_user_id', $viewer->id)
+                ->where('creator_user_id', $creator->id)
+                ->whereIn('status', [
+                    CreatorSubscription::STATUS_ACTIVE,
+                    CreatorSubscription::STATUS_TRIALING,
+                    CreatorSubscription::STATUS_PAST_DUE,
+                ])
+                ->first();
+            if ($sub) {
+                $tier = SubscriptionTier::find($sub->tier_id);
+                $viewerSubscription = [
+                    'id'                       => $sub->id,
+                    'tier_id'                  => $sub->tier_id,
+                    'tier_name'                => $tier?->name,
+                    'tier_badge'               => $tier?->badge,
+                    'status'                   => $sub->status,
+                    'status_label'             => $sub->statusLabel(),
+                    'billing_cycle'            => $sub->billing_cycle,
+                    'price_cents'              => (int) $sub->price_cents,
+                    'currency'                 => $sub->currency,
+                    'current_period_end'       => optional($sub->current_period_end)->toIso8601String(),
+                    'cancel_at_period_end'     => (bool) $sub->cancel_at_period_end,
+                    'is_current'               => $sub->isCurrent(),
+                ];
+            }
+        }
+
         return $this->ok([
             'profile' => [
                 'id'              => $creator->id,
@@ -65,7 +124,9 @@ class CreatorProfileApiController extends Controller
                 'is_owner'        => $isOwner,
                 'biolink_url'     => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
             ],
-            'reactions_catalog' => CreatorPostReaction::REACTIONS,
+            'reactions_catalog'   => CreatorPostReaction::REACTIONS,
+            'tiers'               => $tiers,
+            'viewer_subscription' => $viewerSubscription,
         ]);
     }
 
@@ -97,12 +158,19 @@ class CreatorProfileApiController extends Controller
                 ->pluck('reaction', 'post_id')->all()
             : [];
 
-        $items = collect($page->items())->map(function (CreatorPost $p) use ($totals, $mine) {
-            return [
+        // Per-post paywall access (Task #1209). Bulk-evaluated so we
+        // don't issue a query per post when rendering a page of 15.
+        $access = PostAccessPolicy::evaluateMany($viewer, collect($page->items()));
+
+        $items = collect($page->items())->map(function (CreatorPost $p) use ($totals, $mine, $access) {
+            $a = $access[$p->id] ?? ['can' => true, 'reason' => 'free', 'requires_subscription' => false, 'requires_ppv' => false];
+            $lowest = $a['lowest_tier'] ?? null;
+            $payload = [
                 'id'              => $p->id,
                 'post_type'       => $p->effectiveType(),
                 'title'           => $p->title,
                 'body'            => $p->body,
+                'teaser_caption'  => $p->teaser_caption,
                 'image'           => $p->image,
                 'media'           => is_array($p->media) ? $p->media : null,
                 'is_pinned'       => $p->isPinned(),
@@ -111,7 +179,32 @@ class CreatorProfileApiController extends Controller
                 'comments_count'  => (int) $p->comments_count,
                 'reaction_totals' => $totals[$p->id] ?? new \stdClass(),
                 'my_reaction'     => $mine[$p->id] ?? null,
+                'visibility'      => $p->visibility,
+                'ppv_price_cents' => $p->ppv_price_cents !== null ? (int) $p->ppv_price_cents : null,
+                'blur_intensity'  => $p->blur_intensity ?? 'medium',
+                'access'          => [
+                    'can'                   => (bool) $a['can'],
+                    'reason'                => $a['reason'],
+                    'requires_subscription' => (bool) ($a['requires_subscription'] ?? false),
+                    'requires_ppv'          => (bool) ($a['requires_ppv'] ?? false),
+                    'lowest_tier'           => $lowest ? [
+                        'id'    => $lowest->id,
+                        'name'  => $lowest->name,
+                        'badge' => $lowest->badge,
+                        'price_monthly_cents' => (int) $lowest->price_monthly_cents,
+                        'currency' => $lowest->currency,
+                    ] : null,
+                ],
             ];
+            // Server-side gating (Task #1209): when the viewer can't see the
+            // post, strip body + media URLs entirely so the client cannot
+            // bypass the paywall by ignoring `access.can` or removing CSS
+            // blur. Only safe metadata (teaser_caption, blur_intensity)
+            // and a body excerpt remain.
+            if (!($a['can'] ?? true)) {
+                $payload = PostAccessPolicy::maskForLockedViewer($payload, $p);
+            }
+            return $payload;
         })->all();
 
         return $this->ok([

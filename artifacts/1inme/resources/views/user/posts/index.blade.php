@@ -46,6 +46,134 @@
                 </template>
             </div>
 
+            {{-- ── Paywall block (Task #1209) ─────────────────────────
+                 Three visibility modes; tier and PPV reveal extra controls.
+                 The links to Monetization let creators set up tiers
+                 without leaving the post composer flow. --}}
+            <div x-data="{
+                    visibility: '{{ old('visibility', 'free') }}',
+                    selectedTiers: {{ json_encode(array_map('intval', (array) old('visible_tier_ids', []))) }},
+                    toggleTier(id) {
+                        const i = this.selectedTiers.indexOf(id);
+                        if (i === -1) this.selectedTiers.push(id);
+                        else this.selectedTiers.splice(i, 1);
+                    }
+                 }"
+                 class="rounded-xl p-3 border" style="background: rgba(139,92,246,0.05); border-color: rgba(139,92,246,0.2);">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <span class="text-xs font-bold flex items-center gap-1.5" style="color: var(--text-primary);">
+                        <i class="fas fa-gem" style="color: #8b5cf6;"></i> Audience &amp; paywall
+                    </span>
+                    <a href="{{ route('user.monetization.tiers') }}" target="_blank" class="text-[11px]" style="color: #8b5cf6;">
+                        Manage tiers <i class="fas fa-up-right-from-square text-[9px]"></i>
+                    </a>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 mb-2">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="visibility" value="free" x-model="visibility" class="hidden">
+                        <div class="px-2 py-1.5 rounded-lg border text-center text-xs"
+                             :style="visibility === 'free' ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
+                            <i class="fas fa-globe"></i> Public
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="visibility" value="tier" x-model="visibility" class="hidden">
+                        <div class="px-2 py-1.5 rounded-lg border text-center text-xs"
+                             :style="visibility === 'tier' ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
+                            <i class="fas fa-layer-group"></i> Tier-only
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="visibility" value="ppv" x-model="visibility" class="hidden">
+                        <div class="px-2 py-1.5 rounded-lg border text-center text-xs"
+                             :style="visibility === 'ppv' ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
+                            <i class="fas fa-lock"></i> Pay-per-view
+                        </div>
+                    </label>
+                </div>
+
+                {{-- Tier picker --}}
+                <div x-show="visibility === 'tier'" x-cloak class="mt-2">
+                    @if($monetizationTiers->isEmpty())
+                        <p class="text-xs" style="color: var(--text-faint);">
+                            No paid tiers yet — <a href="{{ route('user.monetization.tiers') }}" class="underline" style="color: #8b5cf6;">create one</a> first.
+                        </p>
+                    @else
+                        <p class="text-[11px] mb-1.5" style="color: var(--text-faint);">Visible to subscribers of:</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach($monetizationTiers as $tier)
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" class="hidden"
+                                           :checked="selectedTiers.includes({{ (int) $tier->id }})"
+                                           @change="toggleTier({{ (int) $tier->id }})">
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold border"
+                                          :style="selectedTiers.includes({{ (int) $tier->id }}) ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:transparent;color:var(--text-secondary);border-color:var(--border-soft);'">
+                                        {{ $tier->badge ? $tier->badge.' ' : '' }}{{ $tier->name }}
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <template x-for="tid in selectedTiers" :key="'vt-' + tid">
+                            <input type="hidden" name="visible_tier_ids[]" :value="tid">
+                        </template>
+                    @endif
+                </div>
+
+                {{-- PPV price --}}
+                <div x-show="visibility === 'ppv'" x-cloak class="mt-2 grid grid-cols-2 gap-2">
+                    <label class="text-xs" style="color: var(--text-secondary);">
+                        Price ($)
+                        <input type="number" name="ppv_price" min="1" max="500" step="0.5" value="{{ old('ppv_price', 5) }}"
+                               class="w-full mt-1 px-2 py-1.5 rounded border text-sm"
+                               style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);">
+                    </label>
+                    <label class="text-xs" style="color: var(--text-secondary);">
+                        Blur intensity
+                        <select name="blur_intensity" class="w-full mt-1 px-2 py-1.5 rounded border text-sm"
+                                style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);">
+                            @foreach(['low' => 'Low (preview-y)', 'medium' => 'Medium', 'high' => 'High (silhouette only)'] as $k => $l)
+                                <option value="{{ $k }}" {{ old('blur_intensity', 'medium') === $k ? 'selected' : '' }}>{{ $l }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
+
+                {{-- Teaser --}}
+                <div x-show="visibility !== 'free'" x-cloak class="mt-2">
+                    <input type="text" name="teaser_caption" maxlength="280"
+                           value="{{ old('teaser_caption') }}"
+                           placeholder="Teaser caption shown on the locked card (optional)"
+                           class="w-full px-2 py-1.5 rounded border text-xs"
+                           style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);">
+                </div>
+
+                {{--
+                    Preview controls (Task #1209): how much of the locked
+                    post the creator wants to give away as a teaser. We
+                    cap gallery preview at 3 items and video preview at
+                    30 seconds so a paywall can't be bypassed by setting
+                    "show everything". 0 = gradient placeholder only.
+                --}}
+                <div x-show="visibility !== 'free'" x-cloak class="mt-2 grid grid-cols-2 gap-2">
+                    <label class="text-xs" style="color: var(--text-secondary);">
+                        Gallery preview (items)
+                        <input type="number" name="gallery_preview_count" min="0" max="3" step="1"
+                               value="{{ old('gallery_preview_count', 0) }}"
+                               class="w-full mt-1 px-2 py-1.5 rounded border text-sm"
+                               style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);">
+                        <span class="block text-[10px] mt-0.5" style="color: var(--text-faint);">0 – 3 unblurred items shown to non-subscribers.</span>
+                    </label>
+                    <label class="text-xs" style="color: var(--text-secondary);">
+                        Video preview (seconds)
+                        <input type="number" name="video_preview_seconds" min="0" max="30" step="1"
+                               value="{{ old('video_preview_seconds', 0) }}"
+                               class="w-full mt-1 px-2 py-1.5 rounded border text-sm"
+                               style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);">
+                        <span class="block text-[10px] mt-0.5" style="color: var(--text-faint);">0 – 30 second teaser. 0 hides the poster too.</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="flex items-center gap-3 flex-wrap">
                 <input type="file" name="image" accept="image/*" class="text-xs" style="color: var(--text-muted);"/>
                 <label class="text-xs flex items-center gap-2" style="color: var(--text-muted);">

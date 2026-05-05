@@ -4,6 +4,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type InfiniteData,
 } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -32,6 +33,12 @@ import {
   type ReactionKey,
 } from "@/lib/api/creatorProfile";
 import { follow, unfollow } from "@/lib/api/follows";
+
+// Strongly-typed shape of one infinite-query page returned by
+// `creatorProfile.feed`. We derive it from the function rather than
+// duplicating the shape so it stays in sync with the API contract.
+type FeedPage = Awaited<ReturnType<typeof creatorProfile.feed>>;
+type FeedData = InfiniteData<FeedPage>;
 
 export default function CreatorProfileScreen() {
   const { handle: rawHandle } = useLocalSearchParams<{ handle: string }>();
@@ -67,8 +74,8 @@ export default function CreatorProfileScreen() {
     },
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["creator-profile", handle] }),
-    onError: (e: any) =>
-      Alert.alert("Couldn't update follow", e?.message ?? "Try again."),
+    onError: (e: Error) =>
+      Alert.alert("Couldn't update follow", e.message || "Try again."),
   });
 
   if (profileQ.isLoading) {
@@ -238,13 +245,52 @@ export default function CreatorProfileScreen() {
               ) : null}
 
               {!profile.is_owner ? (
-                <Button
-                  label={profile.is_following ? "Following" : "Follow"}
-                  onPress={() => followM.mutate(!profile.is_following)}
-                  variant={profile.is_following ? "secondary" : "primary"}
-                  loading={followM.isPending}
-                  style={{ marginTop: 14, alignSelf: "stretch" }}
-                />
+                <View style={{ marginTop: 14, gap: 8 }}>
+                  <Button
+                    label={profile.is_following ? "Following" : "Follow"}
+                    onPress={() => followM.mutate(!profile.is_following)}
+                    variant={profile.is_following ? "secondary" : "primary"}
+                    loading={followM.isPending}
+                    style={{ alignSelf: "stretch" }}
+                  />
+                  {/* Subscribe & Tip CTAs (Task #1209) — only render
+                      when the creator has a payout connection wired
+                      up; the Subscribe screen handles the empty
+                      tier-list case gracefully. */}
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label={
+                          profileQ.data?.viewer_subscription?.is_current
+                            ? `${profileQ.data.viewer_subscription.tier_badge ?? "✓"} Subscribed`
+                            : "Subscribe"
+                        }
+                        variant={
+                          profileQ.data?.viewer_subscription?.is_current ? "secondary" : "primary"
+                        }
+                        onPress={() =>
+                          router.push(
+                            profileQ.data?.viewer_subscription?.is_current
+                              ? { pathname: "/monetization/manage", params: { handle: profile.handle ?? "" } }
+                              : { pathname: "/monetization/subscribe", params: { handle: profile.handle ?? "" } },
+                          )
+                        }
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label="💖 Tip"
+                        variant="outline"
+                        onPress={() =>
+                          router.push({
+                            pathname: "/monetization/tip",
+                            params: { handle: profile.handle ?? "", name: profile.name },
+                          })
+                        }
+                      />
+                    </View>
+                  </View>
+                </View>
               ) : (
                 <Button
                   label="Edit profile"
@@ -440,32 +486,39 @@ function PostCard({
 }) {
   const colors = useColors();
   const qc = useQueryClient();
+  const router = useRouter();
   const [showComments, setShowComments] = useState(false);
 
   const reactM = useMutation({
     mutationFn: (key: ReactionKey) => creatorProfile.react(handle, post.id, key),
     onMutate: async (key) => {
-      // Optimistic update — flip the user's reaction immediately.
+      // Optimistic update — flip the viewer's reaction immediately,
+      // then mirror the change in every cached page of the infinite
+      // feed query. Strongly typed against the same FeedPage shape the
+      // server returns; no `any` casts.
       await qc.cancelQueries({ queryKey: ["creator-profile-feed", handle] });
-      const snap = qc.getQueriesData<{
-        pages: { items: CreatorProfilePost[] }[];
-      }>({ queryKey: ["creator-profile-feed", handle] });
-      qc.setQueriesData<any>(
+      const snap = qc.getQueriesData<FeedData>({
+        queryKey: ["creator-profile-feed", handle],
+      });
+      qc.setQueriesData<FeedData>(
         { queryKey: ["creator-profile-feed", handle] },
-        (old: any) => {
+        (old) => {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((pg: any) => ({
+            pages: old.pages.map((pg) => ({
               ...pg,
-              items: pg.items.map((p: CreatorProfilePost) => {
+              items: pg.items.map((p) => {
                 if (p.id !== post.id) return p;
-                const totals = { ...(p.reaction_totals ?? {}) };
-                if (p.my_reaction)
+                const totals: Record<string, number> = {
+                  ...(p.reaction_totals ?? {}),
+                };
+                if (p.my_reaction) {
                   totals[p.my_reaction] = Math.max(
                     0,
                     (totals[p.my_reaction] ?? 1) - 1,
                   );
+                }
                 let mine: ReactionKey | null = key;
                 let count = p.reactions_count;
                 if (p.my_reaction === key) {
@@ -520,7 +573,7 @@ function PostCard({
         </Text>
       ) : null}
 
-      <PostBody post={post} />
+      <PostBody post={post} handle={handle} />
 
       <View style={styles.metaRow}>
         <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
@@ -529,6 +582,27 @@ function PostCard({
             : ""}
         </Text>
         <View style={{ flex: 1 }} />
+        {/*
+          Tip CTA (Task #1209): always visible on every post — locked
+          or unlocked, free or paid. Tipping is independent of access:
+          fans can show appreciation regardless of whether they're
+          subscribed or have unlocked the post.
+        */}
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/monetization/tip",
+              params: { handle, postId: String(post.id) },
+            })
+          }
+          style={styles.commentToggle}
+          accessibilityLabel="Send a tip"
+        >
+          <Feather name="heart" size={14} color={colors.mutedForeground} />
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginLeft: 4 }}>
+            Tip
+          </Text>
+        </Pressable>
         <Pressable
           onPress={() => setShowComments((v) => !v)}
           style={styles.commentToggle}
@@ -559,8 +633,177 @@ function PostCard({
   );
 }
 
-function PostBody({ post }: { post: CreatorProfilePost }) {
+function PostBody({
+  post,
+  handle,
+}: {
+  post: CreatorProfilePost;
+  handle: string;
+}) {
   const colors = useColors();
+  const router = useRouter();
+
+  // ── Locked variant (Task #1209) ─────────────────────────────────
+  // Server omits asset URLs (`image`, `media`) on locked posts and
+  // instead emits a sanitized `preview` containing ONLY the items /
+  // poster the creator opted to share. We never render the gated
+  // asset directly — CSS blur is cosmetic, not access control.
+  if (post.access && !post.access.can) {
+    const ppvDollars =
+      post.ppv_price_cents != null ? (post.ppv_price_cents / 100).toFixed(0) : null;
+    const ctaLabel = post.access.requires_ppv
+      ? `Unlock for $${ppvDollars ?? "?"}`
+      : post.access.lowest_tier
+        ? `Subscribe — from $${(post.access.lowest_tier.price_monthly_cents / 100).toFixed(0)}/mo`
+        : "Subscribe to view";
+    const onPress = () =>
+      router.push(
+        post.access!.requires_ppv
+          ? { pathname: "/monetization/unlock", params: { handle, postId: String(post.id) } }
+          : { pathname: "/monetization/subscribe", params: { handle } },
+      );
+
+    // Render the creator-approved preview surface (gallery items or
+    // video poster). When neither is configured, show an opaque
+    // gradient placeholder — never the original asset URL.
+    const preview = post.preview ?? null;
+    const previewSurface =
+      preview?.kind === "gallery" && preview.items.length > 0 ? (
+        <View style={{ flexDirection: "row", gap: 4 }}>
+          {preview.items.map((it, idx) =>
+            it.url ? (
+              <Image
+                key={`${idx}-${it.url}`}
+                source={{ uri: it.url }}
+                style={{ flex: 1, aspectRatio: 1, borderRadius: 8, backgroundColor: "#0f172a" }}
+                contentFit="cover"
+              />
+            ) : null,
+          )}
+          {preview.total_items > preview.visible_count ? (
+            <View
+              style={{
+                flex: 1,
+                aspectRatio: 1,
+                borderRadius: 8,
+                backgroundColor: "#7c3aed",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+                +{preview.total_items - preview.visible_count}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : preview?.kind === "video" && preview.poster ? (
+        <View
+          style={{
+            position: "relative",
+            borderRadius: 12,
+            overflow: "hidden",
+            aspectRatio: 16 / 10,
+            backgroundColor: "#000",
+          }}
+        >
+          <Image
+            source={{ uri: preview.poster }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+          />
+          <View
+            style={{
+              position: "absolute",
+              bottom: 8,
+              right: 8,
+              backgroundColor: "rgba(0,0,0,0.7)",
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 999,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+              {preview.seconds}s preview
+            </Text>
+          </View>
+        </View>
+      ) : (
+        // Gradient placeholder, keyed off post id so it's stable across
+        // renders. We do NOT use `post.image` / `post.media` here —
+        // those are intentionally null on a locked payload.
+        <View
+          style={{
+            borderRadius: 12,
+            aspectRatio: 16 / 10,
+            backgroundColor: ["#7c3aed", "#ec4899", "#0ea5e9", "#10b981"][post.id % 4],
+            opacity: 0.55,
+          }}
+        />
+      );
+
+    return (
+      <View style={{ marginTop: 8, gap: 8 }}>
+        {previewSurface}
+        <View
+          style={{
+            borderRadius: 12,
+            backgroundColor: "rgba(124,58,237,0.10)",
+            padding: 12,
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Feather name="lock" size={14} color={colors.primary} />
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 13 }}>
+              {post.access.requires_ppv ? "Pay-per-view" : "Subscribers only"}
+            </Text>
+          </View>
+          {post.teaser_caption ? (
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 12,
+                textAlign: "center",
+                maxWidth: 280,
+              }}
+              numberOfLines={2}
+            >
+              {post.teaser_caption}
+            </Text>
+          ) : post.body_excerpt ? (
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 12,
+                textAlign: "center",
+                maxWidth: 280,
+              }}
+              numberOfLines={2}
+            >
+              {post.body_excerpt}…
+            </Text>
+          ) : null}
+          <Pressable
+            onPress={onPress}
+            style={{
+              marginTop: 4,
+              backgroundColor: colors.primary,
+              paddingHorizontal: 16,
+              paddingVertical: 9,
+              borderRadius: 999,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
+              {ctaLabel}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   const text = post.body ? (
     <Text style={{ color: colors.foreground, marginTop: 6, lineHeight: 20 }}>
       {post.body}
@@ -744,8 +987,8 @@ function CommentsThread({
       });
       qc.invalidateQueries({ queryKey: ["creator-profile-feed", handle] });
     },
-    onError: (e: any) =>
-      Alert.alert("Couldn't post comment", e?.message ?? "Try again."),
+    onError: (e: Error) =>
+      Alert.alert("Couldn't post comment", e.message || "Try again."),
   });
 
   const flat = useMemo(() => q.data ?? [], [q.data]);

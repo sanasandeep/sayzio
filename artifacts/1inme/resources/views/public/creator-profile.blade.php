@@ -45,13 +45,40 @@
                         </div>
                     @endif
                 </div>
-                <div class="flex items-center gap-2 mb-1">
+                <div class="flex items-center gap-2 mb-1 flex-wrap justify-end">
                     @if($isOwner)
                         <a href="{{ route('user.creator-profile.edit') }}" class="px-3.5 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700">
                             <i class="fas fa-pen mr-1"></i> Edit profile
                         </a>
+                        <a href="{{ route('user.monetization.earnings') }}" class="px-3.5 py-2 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100">
+                            <i class="fas fa-gem mr-1"></i> Monetization
+                        </a>
                     @else
                         @include('public.partials.follow-button', ['creator' => $creator, 'viewer' => $viewer, 'isFollowing' => $isFollowing])
+
+                        {{-- ── Monetization CTAs (Task #1209) ──────────────── --}}
+                        @if($tiers->count())
+                            @if($viewerSubscription && $viewerSubscription->isCurrent())
+                                <a href="{{ route('creator-profile.subscription.manage', ['handle' => $creator->handle]) }}"
+                                   class="px-3.5 py-2 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100">
+                                    <i class="fas fa-circle-check mr-1"></i> Subscribed
+                                </a>
+                            @else
+                                <a href="{{ route('creator-profile.subscribe.show', ['handle' => $creator->handle]) }}"
+                                   class="px-3.5 py-2 rounded-lg text-xs font-semibold text-white shadow-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700">
+                                    <i class="fas fa-gem mr-1"></i> Subscribe
+                                </a>
+                            @endif
+                        @endif
+                        @if($creator->canAcceptTips ?? true)
+                            <button type="button"
+                                    data-cp-open-tip
+                                    data-cp-tip-creator="{{ $creator->id }}"
+                                    data-cp-tip-handle="{{ $creator->handle }}"
+                                    class="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-rose-600 text-xs font-semibold hover:border-rose-400">
+                                <i class="fas fa-heart mr-1"></i> Tip
+                            </button>
+                        @endif
                         @if($creator->isSectionVisible('contact'))
                             <a href="mailto:{{ $creator->email }}" class="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:border-violet-400 hover:text-violet-600">
                                 <i class="fas fa-envelope mr-1"></i> Contact
@@ -178,6 +205,7 @@
                             'comments'      => $commentsByPost[$post->id] ?? [],
                             'reactionDefs'  => $reactionDefs,
                             'viewer'        => $viewer,
+                            'access'        => $accessByPost[$post->id] ?? ['can' => true, 'reason' => 'free'],
                         ])
                     @endforeach
                 </div>
@@ -268,7 +296,83 @@
             if (target) target.classList.toggle('hidden');
         });
     });
+
+    // ── Tip modal (Task #1209) ───────────────────────────
+    const tipModal = document.getElementById('cp-tip-modal');
+    const tipForm  = document.getElementById('cp-tip-form');
+    const tipPostInput = document.getElementById('cp-tip-post-id');
+    const tipCloseBtn  = document.getElementById('cp-tip-close');
+    document.querySelectorAll('[data-cp-open-tip]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (!tipModal) return;
+            const handle = btn.dataset.cpTipHandle;
+            const postId = btn.dataset.cpTipPost || '';
+            tipForm.action = postId
+                ? `/@${handle}/p/${postId}/tip`
+                : `/@${handle}/tip`;
+            tipPostInput.value = postId;
+            tipModal.classList.remove('hidden');
+        });
+    });
+    if (tipCloseBtn) tipCloseBtn.addEventListener('click', () => tipModal.classList.add('hidden'));
+    if (tipModal) tipModal.addEventListener('click', (e) => {
+        if (e.target === tipModal) tipModal.classList.add('hidden');
+    });
+    document.querySelectorAll('[data-cp-tip-amount]').forEach(b => {
+        b.addEventListener('click', () => {
+            document.querySelector('input[name=amount]').value = b.dataset.cpTipAmount;
+        });
+    });
+
+    // Auto-trigger viewer-OTP modal when controller flashed
+    // viewer_login_required (e.g. user tried to subscribe while signed
+    // out). Reuses the existing global modal already on the page.
+    @if(session('viewer_login_required'))
+        window.dispatchEvent(new CustomEvent('open-viewer-login', { detail: { creatorId: {{ (int) $creator->id }} } }));
+    @endif
 })();
 </script>
+
+{{-- ── Tip modal (Task #1209) ─────────────────────────────── --}}
+@if(!$isOwner)
+<div id="cp-tip-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] hidden items-center justify-center" style="display: none;">
+    <style>#cp-tip-modal:not(.hidden){display:flex !important;}</style>
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-[95%] p-6">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Send a tip to {{ $creator->name }}</h3>
+                <p class="text-xs text-slate-500 mt-0.5">100% goes to the creator. 1INME takes 0%.</p>
+            </div>
+            <button id="cp-tip-close" class="text-slate-400 hover:text-slate-700"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="cp-tip-form" method="POST" action="{{ route('creator-profile.tip', ['handle' => $creator->handle]) }}" class="space-y-3">
+            @csrf
+            <input type="hidden" name="post_id" id="cp-tip-post-id" value="">
+            <div class="grid grid-cols-4 gap-1.5">
+                @foreach([3, 5, 10, 20, 50, 100] as $amt)
+                    <button type="button" data-cp-tip-amount="{{ $amt }}"
+                            class="px-2 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:border-rose-400 hover:bg-rose-50">
+                        ${{ $amt }}
+                    </button>
+                @endforeach
+            </div>
+            <div>
+                <label class="text-xs uppercase tracking-wider text-slate-500">Amount ($)</label>
+                <input type="number" name="amount" min="1" max="500" step="0.5" required value="5"
+                       class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 focus:border-rose-400 focus:outline-none">
+            </div>
+            <div>
+                <label class="text-xs uppercase tracking-wider text-slate-500">Message (optional)</label>
+                <textarea name="note" rows="2" maxlength="280" placeholder="Say something nice…"
+                          class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 focus:border-rose-400 focus:outline-none text-sm"></textarea>
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-pink-600">
+                <i class="fas fa-heart mr-1"></i> Send tip
+            </button>
+        </form>
+    </div>
+</div>
+@endif
+
 </body>
 </html>
