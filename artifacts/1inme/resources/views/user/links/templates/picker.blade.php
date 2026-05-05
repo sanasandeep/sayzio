@@ -2,7 +2,32 @@
 @section('title', 'Choose a Template')
 
 @section('content')
-<div class="max-w-6xl mx-auto" x-data="{ category: 'all', search: '' }">
+@php
+    // Lightweight JS mirror of the templates so Alpine can compute how many
+    // pass the active category + search filter without having to query the
+    // DOM. Keeps the per-card x-show logic the source of truth — this list
+    // just mirrors the same fields used in those expressions.
+    $filterIndex = $pageTemplates->map(fn($t) => [
+        'category' => $t->category,
+        'text' => strtolower(($t->name ?? '') . ' ' . ($t->description ?? '')),
+    ])->values();
+@endphp
+<div class="max-w-6xl mx-auto" x-data="{
+        category: 'all',
+        search: '',
+        templates: {{ \Illuminate\Support\Js::from($filterIndex) }},
+        // Single source of truth for whether a template passes the active
+        // category + search filter. Used by both the per-card x-show and the
+        // visibleCount accessor below so the two can never drift apart.
+        // `text` should already be lowercased by the server-side index.
+        matches(category, text) {
+            return (this.category === 'all' || this.category === category) &&
+                (this.search === '' || text.includes(this.search.toLowerCase()));
+        },
+        get visibleCount() {
+            return this.templates.filter(t => this.matches(t.category, t.text)).length;
+        }
+    }">
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-white">Choose a starting template</h1>
@@ -66,6 +91,40 @@
             </div>
         </div>
     @else
+        {{-- Filter-empty state: shown when the active search/category combo
+             matches zero of the rendered cards. Mirrors the styling of the
+             seed-empty state above (glass card, violet accent) but trimmed
+             down since this is an inline filter hint, not a first-run
+             explainer. --}}
+        <div x-show="visibleCount === 0" x-cloak
+             class="glass rounded-2xl border border-white/10 p-8 sm:p-10 text-center max-w-lg mx-auto">
+            <div class="relative w-14 h-14 mx-auto mb-4">
+                <div class="absolute inset-0 rounded-2xl blur-xl opacity-60" style="background: linear-gradient(135deg, rgba(124,58,237,0.55), rgba(236,72,153,0.35));"></div>
+                <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center border border-white/10"
+                     style="background: linear-gradient(135deg, rgba(124,58,237,0.22), rgba(139,92,246,0.10));">
+                    <i class="fas fa-magnifying-glass text-lg text-violet-300"></i>
+                </div>
+            </div>
+            <h3 class="text-base font-semibold text-white mb-1.5">No templates match your filters</h3>
+            <p class="text-sm text-white/55 mb-5 leading-relaxed">
+                <template x-if="search !== ''">
+                    <span>Nothing matches “<span class="text-white/80 font-medium" x-text="search"></span>”<template x-if="category !== 'all'"><span> in this category</span></template>.</span>
+                </template>
+                <template x-if="search === ''">
+                    <span>No templates in this category yet.</span>
+                </template>
+                <br class="hidden sm:block">
+                Try a different search term or clear the filters to see everything.
+            </p>
+            <button type="button"
+                    @click="search = ''; category = 'all'"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition shadow-lg shadow-violet-900/30"
+                    style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+                <i class="fas fa-rotate-left"></i>
+                Clear filters
+            </button>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($pageTemplates as $tpl)
                 @php
@@ -75,7 +134,7 @@
                     $blockCount = $topCount;
                     foreach ($summary as $s) { $blockCount += count($s['children'] ?? []); }
                 @endphp
-                <div x-show="(category === 'all' || category === '{{ $tpl->category }}') && (search === '' || '{{ strtolower($tpl->name . ' ' . $tpl->description) }}'.includes(search.toLowerCase()))"
+                <div x-show="matches('{{ $tpl->category }}', {{ \Illuminate\Support\Js::from(strtolower($tpl->name . ' ' . $tpl->description)) }})"
                      x-cloak
                      x-data="{ expanded: false }"
                      class="glass rounded-2xl border border-white/10 overflow-hidden hover:border-violet-500/40 transition group">
