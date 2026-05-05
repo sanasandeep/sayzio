@@ -18,6 +18,11 @@ class DatabaseSeeder extends Seeder
         // Reference data (idempotent — safely no-ops if already populated).
         $this->call(CitiesTableSeeder::class);
         $this->call(BannedNamesSeeder::class);
+        // Starter page templates run BEFORE the persona library so the
+        // page-template picker has a usable baseline (5 broadly-useful
+        // templates) even when PersonaCatalog is empty or the expanded
+        // library hasn't been (re)seeded yet.
+        $this->call(StarterPageTemplatesSeeder::class);
         $this->call(PageTemplatePersonaSeeder::class);
         $this->call(ExpandedPageTemplateLibrarySeeder::class);
         $this->call(PlansAndAddonsSeeder::class);
