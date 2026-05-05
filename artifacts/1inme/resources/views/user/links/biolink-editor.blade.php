@@ -860,17 +860,110 @@ $catColors = [
                                         </template>
                                         {{-- Auto-generated mini blueprint of the card layout. Each row is a
                                              flex row whose children flex-grow proportional to their grid_span,
-                                             so column counts and image position match the real card. Heights
-                                             are type-specific px hints so headings/buttons/images look
-                                             distinguishable at thumbnail size. --}}
+                                             so column counts and image position match the real card. Each
+                                             cell's `shape` hint drives a small mock (avatar circle, pill
+                                             button, stacked input lines, etc.) so the tile communicates the
+                                             card's actual contents at a glance instead of looking like every
+                                             other tile. Falls back to a generic coloured tile for unknown
+                                             shapes so future block types never render blank. --}}
                                         <template x-if="!t.thumbnail_url && (t.preview_layout || []).length">
                                             <div class="w-full h-full px-2 py-1.5 flex flex-col gap-1 justify-center">
                                                 <template x-for="(row, ri) in t.preview_layout" :key="ri">
                                                     <div class="flex gap-1 w-full items-center">
                                                         <template x-for="(cell, ci) in row" :key="ci">
-                                                            <div class="rounded-[3px] flex items-center justify-center text-white/70"
-                                                                 :style="'flex: ' + cell.span + ' 0 0; min-height: ' + cell.h + 'px; background: ' + cell.bg + ';'">
-                                                                <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 7px;"></i>
+                                                            <div class="flex items-center justify-center"
+                                                                 :style="'flex: ' + cell.span + ' 0 0;'">
+                                                                {{-- heading: solid bar, optionally with a shorter sub-line --}}
+                                                                <template x-if="cell.shape === 'heading'">
+                                                                    <div class="w-full flex flex-col gap-[2px] items-center">
+                                                                        <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px;'"></div>
+                                                                        <template x-if="cell.sub">
+                                                                            <div class="rounded-[2px]" :style="'background: ' + cell.bg + '; height: ' + Math.max(cell.h - 6, 4) + 'px; width: 55%;'"></div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- text_lines: stack of N thin paragraph lines, last one shorter --}}
+                                                                <template x-if="cell.shape === 'text_lines'">
+                                                                    <div class="w-full flex flex-col gap-[2px] justify-center" :style="'min-height: ' + cell.h + 'px;'">
+                                                                        <template x-for="i in (cell.lines || 2)" :key="i">
+                                                                            <div class="rounded-[2px]" :style="'background: ' + cell.bg + '; height: 3px; width: ' + (i === (cell.lines || 2) ? '60%' : '100%') + ';'"></div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- pill: rounded full-radius button with arrow glyph --}}
+                                                                <template x-if="cell.shape === 'pill'">
+                                                                    <div class="w-full rounded-full flex items-center justify-end px-1.5 text-white/85"
+                                                                         :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
+                                                                        <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 6px;"></i>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- avatar: circle on the left + 2 stacked lines on the right --}}
+                                                                <template x-if="cell.shape === 'avatar'">
+                                                                    <div class="w-full flex items-center gap-1.5" :style="'min-height: ' + cell.h + 'px;'">
+                                                                        <div class="rounded-full flex items-center justify-center text-white/90 shrink-0"
+                                                                             :style="'background: ' + cell.bg + '; width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
+                                                                            <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 7px;"></i>
+                                                                        </div>
+                                                                        <div class="flex-1 flex flex-col gap-[2px] min-w-0">
+                                                                            <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.55); height: 4px; width: 70%;'"></div>
+                                                                            <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.30); height: 3px; width: 50%;'"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- media: gradient block with centred media glyph --}}
+                                                                <template x-if="cell.shape === 'media'">
+                                                                    <div class="w-full rounded-[3px] flex items-center justify-center text-white/85"
+                                                                         :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
+                                                                        <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 11px;"></i>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- dot_row: row of small circular icon dots --}}
+                                                                <template x-if="cell.shape === 'dot_row'">
+                                                                    <div class="w-full flex items-center justify-center gap-1" :style="'min-height: ' + cell.h + 'px;'">
+                                                                        <template x-for="i in (cell.dots || 5)" :key="i">
+                                                                            <div class="rounded-full" :style="'background: ' + cell.bg + '; width: 5px; height: 5px;'"></div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- form: stacked input-line shapes with a small button at the bottom --}}
+                                                                <template x-if="cell.shape === 'form'">
+                                                                    <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
+                                                                        <template x-for="i in (cell.lines || 1)" :key="i">
+                                                                            <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: 5px;'"></div>
+                                                                        </template>
+                                                                        <div class="rounded-full mx-auto" :style="'background: ' + (cell.btn_bg || 'rgba(139,92,246,0.85)') + '; height: 6px; width: 60%;'"></div>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- list_rows: stack of small dot + line rows --}}
+                                                                <template x-if="cell.shape === 'list_rows'">
+                                                                    <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
+                                                                        <template x-for="i in (cell.lines || 3)" :key="i">
+                                                                            <div class="flex items-center gap-1 w-full">
+                                                                                <div class="rounded-full shrink-0" :style="'background: ' + cell.bg + '; width: 3px; height: 3px;'"></div>
+                                                                                <div class="rounded-[2px] flex-1" :style="'background: ' + cell.bg + '; height: 3px;'"></div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+                                                                {{-- hairline: thin horizontal line --}}
+                                                                <template x-if="cell.shape === 'hairline'">
+                                                                    <div class="w-full rounded-[2px]" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px;'"></div>
+                                                                </template>
+                                                                {{-- spacer: empty gap --}}
+                                                                <template x-if="cell.shape === 'spacer'">
+                                                                    <div class="w-full" :style="'min-height: ' + cell.h + 'px;'"></div>
+                                                                </template>
+                                                                {{-- badge: short narrow chip --}}
+                                                                <template x-if="cell.shape === 'badge'">
+                                                                    <div class="rounded-full mx-auto" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px; width: 50%;'"></div>
+                                                                </template>
+                                                                {{-- tile: default coloured rect with optional centred icon --}}
+                                                                <template x-if="!cell.shape || cell.shape === 'tile'">
+                                                                    <div class="w-full rounded-[3px] flex items-center justify-center text-white/70"
+                                                                         :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
+                                                                        <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 8px;"></i>
+                                                                    </div>
+                                                                </template>
                                                             </div>
                                                         </template>
                                                     </div>
@@ -886,22 +979,50 @@ $catColors = [
                                         <div x-show="t.locked" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i><span x-text="t.plan_tier"></span></div>
                                     </div>
                                     <div class="p-3">
-                                        <div class="text-xs font-semibold mb-1" style="color: var(--text-primary);" x-text="t.name"></div>
-                                        {{-- Compact block list (first ~3 friendly labels + "+N more"). Keeps card heights consistent. --}}
-                                        <div class="text-[10px] leading-snug min-h-[14px]" style="color: var(--text-muted);">
+                                        {{-- Title row: name on the left, small subtle category pill on the
+                                             right so the most useful info (the title and the chip list below)
+                                             is the most prominent. --}}
+                                        <div class="flex items-start justify-between gap-2 mb-1.5">
+                                            <div class="text-xs font-semibold flex-1 min-w-0" style="color: var(--text-primary);" x-text="t.name"></div>
+                                            <span class="shrink-0 text-[8.5px] uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                                                  style="color: var(--text-faint); background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass);"
+                                                  x-text="t.category_label || t.category"></span>
+                                        </div>
+                                        {{-- Primary "what's inside" caption: small icon-tagged chips
+                                             (icon + short label like 'Avatar', '2 Buttons') built from the
+                                             children summary. Same height regardless of how many chips fit
+                                             so the gallery grid stays aligned. --}}
+                                        <div class="flex flex-wrap gap-1 min-h-[18px]"
+                                             x-data="{
+                                                chips() {
+                                                    const groups = new Map();
+                                                    for (const c of (t.children || [])) {
+                                                        const key = c.type;
+                                                        if (!groups.has(key)) {
+                                                            groups.set(key, { icon: c.icon || 'fa-cube', label: c.label, count: 0 });
+                                                        }
+                                                        groups.get(key).count += 1;
+                                                    }
+                                                    return Array.from(groups.values());
+                                                }
+                                             }">
                                             <template x-if="(t.children || []).length">
-                                                <span>
-                                                    <span x-text="(t.children || []).slice(0, 3).map(c => c.label).join(' · ')"></span>
-                                                    <template x-if="(t.children || []).length > 3">
-                                                        <span class="text-violet-400/80" x-text="' +' + ((t.children.length) - 3) + ' more'"></span>
-                                                    </template>
-                                                </span>
+                                                <template x-for="(chip, i) in chips().slice(0, 3)" :key="i">
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-medium"
+                                                          style="background: rgba(139,92,246,0.10); color: var(--text-primary); border: 1px solid rgba(139,92,246,0.18);">
+                                                        <i :class="'fas ' + chip.icon" class="text-violet-400" style="font-size: 8px;"></i>
+                                                        <span x-text="chip.count > 1 ? (chip.count + ' ' + chip.label + 's') : chip.label"></span>
+                                                    </span>
+                                                </template>
+                                            </template>
+                                            <template x-if="(t.children || []).length && chips().length > 3">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9.5px] font-semibold text-violet-400/90"
+                                                      x-text="'+' + (chips().length - 3) + ' more'"></span>
                                             </template>
                                             <template x-if="!(t.children || []).length">
-                                                <span x-text="(t.children_count || 0) + ' blocks'"></span>
+                                                <span class="text-[10px]" style="color: var(--text-muted);" x-text="(t.children_count || 0) + ' blocks'"></span>
                                             </template>
                                         </div>
-                                        <div class="text-[10px] mt-0.5" style="color: var(--text-faint);"><span x-text="t.category_label || t.category"></span></div>
                                         {{-- Mobile-only "what's inside" toggle. Desktop uses the hover popover below. --}}
                                         <button type="button"
                                                 class="sm:hidden mt-2 text-[10px] text-violet-400 hover:text-violet-300"

@@ -7,6 +7,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Services\TemplateService;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\TemplateContentSummarizer;
+use App\Modules\User\Services\TemplatePreviewLayoutBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -23,6 +24,7 @@ class CardTemplateController extends Controller
     public function __construct(
         private TemplateService $templates,
         private TemplateContentSummarizer $summarizer,
+        private TemplatePreviewLayoutBuilder $previewLayout,
     ) {}
 
     public function index(Request $request, int $id): JsonResponse
@@ -61,6 +63,13 @@ class CardTemplateController extends Controller
                 'locked'         => $this->isLocked($t->plan_tier, $userPlanSlug),
                 'children_count' => count($children),
                 'children'       => $children,
+                // Same shape-aware blueprint the web gallery renders so the
+                // mobile picker can draw a recognisable mock of the card
+                // (avatar circle, pill buttons, social dots, stacked input
+                // lines, etc.) at thumbnail size when no static
+                // thumbnail_url is set. Built from the raw snapshot so web
+                // and mobile share one source of truth.
+                'preview_layout' => $this->previewLayout->build($rawChildren),
             ];
         });
 

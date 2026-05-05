@@ -70,18 +70,105 @@
                             {{-- Auto-generated mini blueprint of the page's top-level
                                  blocks. Mirrors the card-templates gallery preview:
                                  each row is a flex row whose children flex-grow
-                                 proportional to their grid_span, with type-specific
-                                 background/height/icon hints so the layout is
-                                 recognisable at thumbnail size. --}}
+                                 proportional to their grid_span, with shape-aware
+                                 cell rendering (avatar circles, pill buttons, stacked
+                                 input lines, social dot rows, etc.) so the tile shows
+                                 the card's actual content at thumbnail size. --}}
                             <div class="w-full h-full px-2 py-1.5 flex flex-col gap-1 justify-center">
                                 @foreach($previewRows as $row)
                                     <div class="flex gap-1 w-full items-center">
                                         @foreach($row as $cell)
-                                            <div class="rounded-[3px] flex items-center justify-center text-white/70"
-                                                 style="flex: {{ $cell['span'] }} 0 0; min-height: {{ $cell['h'] }}px; background: {{ $cell['bg'] }};">
-                                                @if(!empty($cell['icon']))
-                                                    <i class="fas {{ $cell['icon'] }}" style="font-size: 7px;"></i>
-                                                @endif
+                                            @php
+                                                $shape = $cell['shape'] ?? 'tile';
+                                                $bg    = $cell['bg']    ?? 'rgba(255,255,255,0.10)';
+                                                $h     = (int) ($cell['h'] ?? 12);
+                                                $icon  = $cell['icon']  ?? '';
+                                                $lines = (int) ($cell['lines'] ?? 2);
+                                                $dots  = (int) ($cell['dots']  ?? 5);
+                                                $sub   = !empty($cell['sub']);
+                                                $btnBg = $cell['btn_bg'] ?? 'rgba(139,92,246,0.85)';
+                                            @endphp
+                                            <div class="flex items-center justify-center" style="flex: {{ $cell['span'] }} 0 0;">
+                                                @switch($shape)
+                                                    @case('heading')
+                                                        <div class="w-full flex flex-col gap-[2px] items-center">
+                                                            <div class="rounded-[2px] w-full" style="background: {{ $bg }}; height: {{ $h }}px;"></div>
+                                                            @if($sub)
+                                                                <div class="rounded-[2px]" style="background: {{ $bg }}; height: {{ max($h - 6, 4) }}px; width: 55%;"></div>
+                                                            @endif
+                                                        </div>
+                                                        @break
+                                                    @case('text_lines')
+                                                        <div class="w-full flex flex-col gap-[2px] justify-center" style="min-height: {{ $h }}px;">
+                                                            @for($i = 1; $i <= max($lines, 1); $i++)
+                                                                <div class="rounded-[2px]" style="background: {{ $bg }}; height: 3px; width: {{ $i === max($lines, 1) ? '60%' : '100%' }};"></div>
+                                                            @endfor
+                                                        </div>
+                                                        @break
+                                                    @case('pill')
+                                                        <div class="w-full rounded-full flex items-center justify-end px-1.5 text-white/85"
+                                                             style="background: {{ $bg }}; min-height: {{ $h }}px;">
+                                                            @if($icon)<i class="fas {{ $icon }}" style="font-size: 6px;"></i>@endif
+                                                        </div>
+                                                        @break
+                                                    @case('avatar')
+                                                        <div class="w-full flex items-center gap-1.5" style="min-height: {{ $h }}px;">
+                                                            <div class="rounded-full flex items-center justify-center text-white/90 shrink-0"
+                                                                 style="background: {{ $bg }}; width: {{ max($h - 8, 14) }}px; height: {{ max($h - 8, 14) }}px;">
+                                                                @if($icon)<i class="fas {{ $icon }}" style="font-size: 7px;"></i>@endif
+                                                            </div>
+                                                            <div class="flex-1 flex flex-col gap-[2px] min-w-0">
+                                                                <div class="rounded-[2px]" style="background: rgba(255,255,255,0.55); height: 4px; width: 70%;"></div>
+                                                                <div class="rounded-[2px]" style="background: rgba(255,255,255,0.30); height: 3px; width: 50%;"></div>
+                                                            </div>
+                                                        </div>
+                                                        @break
+                                                    @case('media')
+                                                        <div class="w-full rounded-[3px] flex items-center justify-center text-white/85"
+                                                             style="background: {{ $bg }}; min-height: {{ $h }}px;">
+                                                            @if($icon)<i class="fas {{ $icon }}" style="font-size: 11px;"></i>@endif
+                                                        </div>
+                                                        @break
+                                                    @case('dot_row')
+                                                        <div class="w-full flex items-center justify-center gap-1" style="min-height: {{ $h }}px;">
+                                                            @for($i = 1; $i <= max($dots, 1); $i++)
+                                                                <div class="rounded-full" style="background: {{ $bg }}; width: 5px; height: 5px;"></div>
+                                                            @endfor
+                                                        </div>
+                                                        @break
+                                                    @case('form')
+                                                        <div class="w-full flex flex-col gap-1 justify-center" style="min-height: {{ $h }}px;">
+                                                            @for($i = 1; $i <= max($lines, 1); $i++)
+                                                                <div class="rounded-[2px] w-full" style="background: {{ $bg }}; height: 5px;"></div>
+                                                            @endfor
+                                                            <div class="rounded-full mx-auto" style="background: {{ $btnBg }}; height: 6px; width: 60%;"></div>
+                                                        </div>
+                                                        @break
+                                                    @case('list_rows')
+                                                        <div class="w-full flex flex-col gap-1 justify-center" style="min-height: {{ $h }}px;">
+                                                            @for($i = 1; $i <= max($lines, 1); $i++)
+                                                                <div class="flex items-center gap-1 w-full">
+                                                                    <div class="rounded-full shrink-0" style="background: {{ $bg }}; width: 3px; height: 3px;"></div>
+                                                                    <div class="rounded-[2px] flex-1" style="background: {{ $bg }}; height: 3px;"></div>
+                                                                </div>
+                                                            @endfor
+                                                        </div>
+                                                        @break
+                                                    @case('hairline')
+                                                        <div class="w-full rounded-[2px]" style="background: {{ $bg }}; height: {{ $h }}px;"></div>
+                                                        @break
+                                                    @case('spacer')
+                                                        <div class="w-full" style="min-height: {{ $h }}px;"></div>
+                                                        @break
+                                                    @case('badge')
+                                                        <div class="rounded-full mx-auto" style="background: {{ $bg }}; height: {{ $h }}px; width: 50%;"></div>
+                                                        @break
+                                                    @default
+                                                        <div class="w-full rounded-[3px] flex items-center justify-center text-white/70"
+                                                             style="background: {{ $bg }}; min-height: {{ $h }}px;">
+                                                            @if($icon)<i class="fas {{ $icon }}" style="font-size: 8px;"></i>@endif
+                                                        </div>
+                                                @endswitch
                                             </div>
                                         @endforeach
                                     </div>
@@ -95,23 +182,53 @@
                         @endif
                     </div>
                     <div class="p-4">
-                        <h3 class="text-sm font-semibold text-white mb-1">{{ $tpl->name }}</h3>
-                        <p class="text-xs text-white/40 mb-1">{{ ucfirst($tpl->category) }} · {{ $blockCount }} {{ \Illuminate\Support\Str::plural('block', $blockCount) }}</p>
+                        {{-- Title row: name on the left, small subtle category pill on the
+                             right so the most useful info (the title and the chip list below)
+                             reads first. --}}
+                        <div class="flex items-start justify-between gap-2 mb-1.5">
+                            <h3 class="text-sm font-semibold text-white flex-1 min-w-0">{{ $tpl->name }}</h3>
+                            <span class="shrink-0 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap text-white/55"
+                                  style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);">
+                                {{ ucfirst($tpl->category) }}
+                            </span>
+                        </div>
                         @if($tpl->description)
-                            <p class="text-xs text-white/50 mb-3 line-clamp-2">{{ $tpl->description }}</p>
+                            <p class="text-xs text-white/50 mb-2 line-clamp-2">{{ $tpl->description }}</p>
                         @endif
 
                         @if($topCount)
-                            {{-- Compact "what's inside" peek: first ~3 top-level cards/blocks
-                                 with friendly type labels. Full breakdown lives in the
-                                 expand panel below so card heights stay consistent. --}}
-                            <div class="text-[11px] leading-snug text-white/55 mb-2">
-                                @php $peek = array_slice($summary, 0, 3); @endphp
-                                <span>{{ implode(' · ', array_map(fn($s) => $s['label'], $peek)) }}</span>
-                                @if($topCount > 3)
-                                    <span class="text-violet-300/80"> +{{ $topCount - 3 }} more</span>
+                            {{-- Primary "what's inside" caption: small icon-tagged chips
+                                 (icon + short label like '2 Cards', 'Heading'), grouped by
+                                 type with counts. Full breakdown lives in the expand panel
+                                 below so card heights stay consistent. --}}
+                            @php
+                                $chipGroups = [];
+                                foreach ($summary as $entry) {
+                                    $key = $entry['type'];
+                                    if (!isset($chipGroups[$key])) {
+                                        $chipGroups[$key] = ['icon' => $entry['icon'] ?: 'fa-cube', 'label' => $entry['label'], 'count' => 0];
+                                    }
+                                    $chipGroups[$key]['count'] += 1;
+                                }
+                                $chipGroups = array_values($chipGroups);
+                                $shownChips = array_slice($chipGroups, 0, 3);
+                                $extraChips = max(0, count($chipGroups) - 3);
+                            @endphp
+                            <div class="flex flex-wrap gap-1 mb-2">
+                                @foreach($shownChips as $chip)
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium text-white/90"
+                                          style="background: rgba(139,92,246,0.10); border: 1px solid rgba(139,92,246,0.18);">
+                                        <i class="fas {{ $chip['icon'] }} text-violet-300" style="font-size: 9px;"></i>
+                                        <span>{{ $chip['count'] > 1 ? $chip['count'] . ' ' . $chip['label'] . 's' : $chip['label'] }}</span>
+                                    </span>
+                                @endforeach
+                                @if($extraChips > 0)
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-violet-300/90">
+                                        +{{ $extraChips }} more
+                                    </span>
                                 @endif
                             </div>
+                            <p class="text-[10px] text-white/35 mb-2">{{ $blockCount }} {{ \Illuminate\Support\Str::plural('block', $blockCount) }} total</p>
                             <button type="button"
                                     @click="expanded = !expanded"
                                     class="text-[11px] text-violet-400 hover:text-violet-300 mb-3 inline-flex items-center gap-1">

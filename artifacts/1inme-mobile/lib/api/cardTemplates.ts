@@ -7,6 +7,37 @@ export type CardTemplateChildSummary = {
   preview: string;
 };
 
+/**
+ * One cell in the mini-blueprint thumbnail. Mirrors the PHP
+ * `TemplatePreviewLayoutBuilder` output — `shape` drives which kind of
+ * mock is drawn (avatar circle, pill button, stacked input lines, etc.)
+ * so the tile's thumbnail communicates the card's actual contents at a
+ * glance instead of rendering as a flat coloured bar.
+ */
+export type PreviewLayoutCell = {
+  span: number;
+  shape:
+    | "tile"
+    | "heading"
+    | "pill"
+    | "avatar"
+    | "media"
+    | "dot_row"
+    | "text_lines"
+    | "form"
+    | "list_rows"
+    | "hairline"
+    | "spacer"
+    | "badge";
+  bg: string;
+  h: number;
+  icon?: string;
+  lines?: number;
+  dots?: number;
+  sub?: boolean;
+  btn_bg?: string;
+};
+
 export type CardTemplate = {
   id: number;
   name: string;
@@ -18,6 +49,7 @@ export type CardTemplate = {
   locked: boolean;
   children_count: number;
   children: CardTemplateChildSummary[];
+  preview_layout?: PreviewLayoutCell[][];
 };
 
 export type CardTemplateGallery = {
