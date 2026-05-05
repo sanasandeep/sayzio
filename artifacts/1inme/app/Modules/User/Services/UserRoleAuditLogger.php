@@ -19,10 +19,12 @@ use Illuminate\Support\Facades\Log;
  * Failures are logged and swallowed — an audit miss must never break
  * the user-facing role update.
  *
- * When an attached row carries a platform-admin level role,
- * `PlatformRoleAlertService` is invoked to email the configured ops
- * recipient list. The alert dispatch is best-effort and isolated
- * inside the service so a mail outage cannot break role updates.
+ * When one OR MORE attached rows in the same diff carry a
+ * platform-admin level role, `PlatformRoleAlertService` is invoked
+ * ONCE with the full batch — recipients receive a single multi-row
+ * summary email instead of one alert per attached role. The alert
+ * dispatch is best-effort and isolated inside the service so a mail
+ * outage cannot break role updates.
  */
 class UserRoleAuditLogger
 {
@@ -94,14 +96,17 @@ class UserRoleAuditLogger
 
         // Fire ops alerts AFTER the ledger writes finish so a partial
         // failure can't email about a row that didn't get persisted.
-        $alerts = $this->platformRoleAlerts ?? app(PlatformRoleAlertService::class);
-        foreach ($attachedRows as [$row, $role]) {
+        // The whole attached batch goes through a SINGLE dispatch
+        // call so that recipients get one summary email even when
+        // several sensitive roles were granted in the same save.
+        if (!empty($attachedRows)) {
+            $alerts = $this->platformRoleAlerts ?? app(PlatformRoleAlertService::class);
             try {
-                $alerts->dispatchFor($row, $role);
+                $alerts->dispatchForBatch($attachedRows);
             } catch (\Throwable $e) {
                 Log::warning('UserRoleAuditLogger: platform alert dispatch failed', [
-                    'audit_id' => $row->id,
-                    'error'    => $e->getMessage(),
+                    'audit_ids' => array_map(fn ($r) => $r[0]->id, $attachedRows),
+                    'error'     => $e->getMessage(),
                 ]);
             }
         }

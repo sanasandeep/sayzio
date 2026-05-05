@@ -112,35 +112,73 @@ class PlatformRoleAlertService
      * Dispatch one alert email per recipient for the given attached
      * audit row. Failures are swallowed and logged so a mail outage
      * cannot break the originating role-edit request.
+     *
+     * Thin wrapper around `dispatchForBatch` so callers handling a
+     * single attach don't have to wrap it in an array themselves.
      */
     public function dispatchFor(UserRoleAudit $audit, ?Role $role): void
     {
-        if ($audit->action !== UserRoleAudit::ACTION_ATTACHED) {
-            return;
+        $this->dispatchForBatch([[$audit, $role]]);
+    }
+
+    /**
+     * Dispatch a SINGLE alert email per recipient covering every
+     * sensitive attach in the supplied batch. This collapses the
+     * "operator granted two admin roles in the same save" case from
+     * N near-identical emails into one summary email per recipient.
+     *
+     * Each entry must be `[UserRoleAudit $audit, ?Role $role]`. Rows
+     * whose action isn't `attached` or whose role doesn't match the
+     * sensitivity rules are silently dropped from the batch — they
+     * weren't going to email anyway.
+     *
+     * If the filtered batch ends up empty, no mail is sent. Failures
+     * are swallowed and logged so a mail outage cannot break the
+     * originating role-edit request.
+     *
+     * @param array<int, array{0: UserRoleAudit, 1: ?Role}> $items
+     */
+    public function dispatchForBatch(array $items): void
+    {
+        $grants = [];
+        foreach ($items as $item) {
+            if (!is_array($item) || !isset($item[0]) || !$item[0] instanceof UserRoleAudit) {
+                continue;
+            }
+            $audit = $item[0];
+            $role  = $item[1] ?? null;
+
+            if ($audit->action !== UserRoleAudit::ACTION_ATTACHED) {
+                continue;
+            }
+            $reasons = $this->matchedReasons($role);
+            if (empty($reasons)) {
+                continue;
+            }
+            $grants[] = ['audit' => $audit, 'reasons' => $reasons];
         }
 
-        $reasons = $this->matchedReasons($role);
-        if (empty($reasons)) {
+        if (empty($grants)) {
             return;
         }
 
         $emails = $this->recipientEmails();
         if (empty($emails)) {
             Log::info('PlatformRoleAlertService: no recipients configured for sensitive role grant', [
-                'audit_id'  => $audit->id,
-                'role_slug' => $audit->role_slug,
+                'audit_ids'  => array_map(fn ($g) => $g['audit']->id, $grants),
+                'role_slugs' => array_map(fn ($g) => $g['audit']->role_slug, $grants),
             ]);
             return;
         }
 
         foreach ($emails as $email) {
             try {
-                Mail::to($email)->send(new PlatformRoleAttachedAlertMail($audit, $reasons));
+                Mail::to($email)->send(new PlatformRoleAttachedAlertMail($grants));
             } catch (\Throwable $e) {
                 Log::warning('PlatformRoleAlertService: alert mail failed', [
-                    'audit_id' => $audit->id,
-                    'email'    => $email,
-                    'error'    => $e->getMessage(),
+                    'audit_ids' => array_map(fn ($g) => $g['audit']->id, $grants),
+                    'email'     => $email,
+                    'error'     => $e->getMessage(),
                 ]);
             }
         }

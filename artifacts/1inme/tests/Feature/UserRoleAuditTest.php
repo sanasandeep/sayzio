@@ -319,10 +319,11 @@ class UserRoleAuditTest extends TestCase
 
         Mail::assertSent(PlatformRoleAttachedAlertMail::class, function ($m) use ($opsUser, $target, $userAdminRole) {
             return $m->hasTo($opsUser->email)
-                && $m->audit->target_user_id === $target->id
-                && $m->audit->role_id === $userAdminRole->id
-                && $m->audit->action === UserRoleAudit::ACTION_ATTACHED
-                && !empty($m->reasons);
+                && count($m->grants) === 1
+                && $m->grants[0]['audit']->target_user_id === $target->id
+                && $m->grants[0]['audit']->role_id === $userAdminRole->id
+                && $m->grants[0]['audit']->action === UserRoleAudit::ACTION_ATTACHED
+                && !empty($m->grants[0]['reasons']);
         });
     }
 
@@ -437,8 +438,126 @@ class UserRoleAuditTest extends TestCase
 
         Mail::assertSent(PlatformRoleAttachedAlertMail::class, function ($m) use ($custom) {
             return $m->hasTo('ops@example.com')
-                && in_array('permission:user.workspaces.access_any', $m->reasons, true)
-                && $m->audit->role_id === $custom->id;
+                && count($m->grants) === 1
+                && in_array('permission:user.workspaces.access_any', $m->grants[0]['reasons'], true)
+                && $m->grants[0]['audit']->role_id === $custom->id;
+        });
+    }
+
+    public function test_attaching_two_sensitive_roles_in_one_diff_sends_one_batched_email(): void
+    {
+        // Operator grants TWO platform-admin level roles in the same
+        // save. The old code path emailed once per attached role per
+        // recipient; the batched path collapses both grants into a
+        // single multi-row email per recipient.
+        Mail::fake();
+
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+
+        // Second sensitive role: a custom role carrying a permission
+        // listed in `sensitive_permission_slugs`. This exercises both
+        // halves of the sensitivity rule (slug-listed AND permission-listed)
+        // ending up in the same email.
+        $custom = Role::create([
+            'name'  => 'Quiet Custom ' . Str::random(4),
+            'slug'  => 'custom-' . Str::random(6),
+            'guard' => 'web',
+        ]);
+        $perm = Permission::firstOrCreate(
+            ['slug' => 'user.workspaces.access_any'],
+            ['name' => 'Access any workspace', 'group' => 'user-app'],
+        );
+        $custom->permissions()->attach($perm->id);
+
+        config([
+            'platform_role_alerts.recipient_emails' => ['security-team@example.com', 'on-call@example.com'],
+        ]);
+
+        $target = $this->makeUser(['name' => 'Doubly Promoted Pat']);
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [],
+            [$userAdminRole->id, $custom->id],
+            UserRoleAudit::SOURCE_ADMIN,
+            '198.51.100.9',
+        );
+
+        // Exactly two emails total: one per recipient, NOT one per
+        // (recipient × attached role).
+        Mail::assertSent(PlatformRoleAttachedAlertMail::class, 2);
+
+        foreach (['security-team@example.com', 'on-call@example.com'] as $email) {
+            Mail::assertSent(PlatformRoleAttachedAlertMail::class, function ($m) use ($email, $target, $userAdminRole, $custom) {
+                if (!$m->hasTo($email)) {
+                    return false;
+                }
+                if (count($m->grants) !== 2) {
+                    return false;
+                }
+                $roleIds = array_map(fn ($g) => $g['audit']->role_id, $m->grants);
+                sort($roleIds);
+                $expected = [$userAdminRole->id, $custom->id];
+                sort($expected);
+                if ($roleIds !== $expected) {
+                    return false;
+                }
+                // Both rows must point at the same target user, and
+                // each grant must carry its own non-empty reasons.
+                foreach ($m->grants as $g) {
+                    if ($g['audit']->target_user_id !== $target->id) {
+                        return false;
+                    }
+                    if ($g['audit']->action !== UserRoleAudit::ACTION_ATTACHED) {
+                        return false;
+                    }
+                    if (empty($g['reasons'])) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+        }
+
+        // Both audit rows should still be persisted independently.
+        $this->assertSame(
+            2,
+            UserRoleAudit::where('target_user_id', $target->id)
+                ->where('action', UserRoleAudit::ACTION_ATTACHED)
+                ->count(),
+        );
+    }
+
+    public function test_mixed_diff_only_batches_the_sensitive_attaches(): void
+    {
+        // A diff with one sensitive attach, one non-sensitive attach
+        // and one detach should still email exactly once per recipient
+        // and that email should ONLY mention the sensitive grant.
+        Mail::fake();
+
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $editor        = $this->makeRole('editor');
+        $oldRole       = $this->makeRole('previously');
+
+        $target = $this->makeUser(['name' => 'Mixed Bag Mia']);
+        $target->roles()->attach($oldRole->id);
+
+        config([
+            'platform_role_alerts.recipient_emails' => ['ops@example.com'],
+        ]);
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [$oldRole->id],
+            [$userAdminRole->id, $editor->id],
+            UserRoleAudit::SOURCE_USER_ACCESS,
+        );
+
+        Mail::assertSent(PlatformRoleAttachedAlertMail::class, 1);
+        Mail::assertSent(PlatformRoleAttachedAlertMail::class, function ($m) use ($userAdminRole) {
+            return $m->hasTo('ops@example.com')
+                && count($m->grants) === 1
+                && $m->grants[0]['audit']->role_id === $userAdminRole->id;
         });
     }
 
