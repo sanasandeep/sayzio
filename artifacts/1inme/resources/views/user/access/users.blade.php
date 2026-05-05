@@ -61,7 +61,9 @@
             <div class="px-4 pb-4">
                 <ul class="divide-y divide-white/5 text-sm">
                     @foreach($audits as $a)
-                        <li class="py-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        {{-- id anchor lets the platform-role alert email link
+                             straight to a single audit row via #audit-{id}. --}}
+                        <li id="audit-{{ $a->id }}" class="py-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 target:bg-amber-500/10 target:rounded-lg target:px-2">
                             <span class="text-white/40 text-xs whitespace-nowrap"
                                   title="{{ $a->created_at?->toDateTimeString() }}">
                                 {{ $a->created_at?->diffForHumans() }}

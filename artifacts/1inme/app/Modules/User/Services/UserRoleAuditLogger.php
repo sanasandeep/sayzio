@@ -18,9 +18,19 @@ use Illuminate\Support\Facades\Log;
  *
  * Failures are logged and swallowed — an audit miss must never break
  * the user-facing role update.
+ *
+ * When an attached row carries a platform-admin level role,
+ * `PlatformRoleAlertService` is invoked to email the configured ops
+ * recipient list. The alert dispatch is best-effort and isolated
+ * inside the service so a mail outage cannot break role updates.
  */
 class UserRoleAuditLogger
 {
+    public function __construct(
+        protected ?PlatformRoleAlertService $platformRoleAlerts = null,
+    ) {
+    }
+
     /**
      * Diff `$beforeRoleIds` against `$afterRoleIds` and append one
      * audit row per role that was attached or detached.
@@ -50,15 +60,26 @@ class UserRoleAuditLogger
 
         // Single query covers both directions so we can label each row
         // with the role slug/name even if the role is deleted moments
-        // later (we snapshot the values at write time).
+        // later (we snapshot the values at write time). Permissions
+        // are eager-loaded because the platform-role alert service
+        // inspects them per attached role to decide if the grant rises
+        // to platform-admin level.
         $allIds = array_unique(array_merge($attached, $detached));
-        $roles  = Role::query()->whereIn('id', $allIds)->get()->keyBy('id');
+        $roles  = Role::query()
+            ->with('permissions')
+            ->whereIn('id', $allIds)
+            ->get()
+            ->keyBy('id');
 
         $actor = $this->resolveActor();
 
+        $attachedRows = [];
         try {
             foreach ($attached as $id) {
-                $this->writeRow($target, $roles->get($id), $id, UserRoleAudit::ACTION_ATTACHED, $source, $actor, $ip);
+                $row = $this->writeRow($target, $roles->get($id), $id, UserRoleAudit::ACTION_ATTACHED, $source, $actor, $ip);
+                if ($row) {
+                    $attachedRows[] = [$row, $roles->get($id)];
+                }
             }
             foreach ($detached as $id) {
                 $this->writeRow($target, $roles->get($id), $id, UserRoleAudit::ACTION_DETACHED, $source, $actor, $ip);
@@ -69,6 +90,20 @@ class UserRoleAuditLogger
                 'source'         => $source,
                 'error'          => $e->getMessage(),
             ]);
+        }
+
+        // Fire ops alerts AFTER the ledger writes finish so a partial
+        // failure can't email about a row that didn't get persisted.
+        $alerts = $this->platformRoleAlerts ?? app(PlatformRoleAlertService::class);
+        foreach ($attachedRows as [$row, $role]) {
+            try {
+                $alerts->dispatchFor($row, $role);
+            } catch (\Throwable $e) {
+                Log::warning('UserRoleAuditLogger: platform alert dispatch failed', [
+                    'audit_id' => $row->id,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
         }
     }
 
@@ -127,8 +162,8 @@ class UserRoleAuditLogger
         string $source,
         array $actor,
         ?string $ip,
-    ): void {
-        UserRoleAudit::create(array_merge($actor, [
+    ): ?UserRoleAudit {
+        return UserRoleAudit::create(array_merge($actor, [
             'target_user_id' => $target->id,
             'role_id'        => $role?->id ?? $roleId,
             // Slug is mandatory in the schema — fall back to the id

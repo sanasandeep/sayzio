@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\PlatformRoleAttachedAlertMail;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Permission;
 use App\Modules\Admin\Models\Role;
@@ -10,6 +11,7 @@ use App\Modules\User\Models\UserRoleAudit;
 use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -273,6 +275,198 @@ class UserRoleAuditTest extends TestCase
         $this->assertSame('admin', $row->actor_guard);
         $this->assertSame((int) $admin->id, (int) $row->actor_admin_id);
         $this->assertSame('Destroyer Dana', $row->actor_name);
+    }
+
+    public function test_attaching_sensitive_role_emails_ops_recipients(): void
+    {
+        // Default config picks up `user-admin` as a sensitive slug AND
+        // every permission it carries (e.g. `user.platform.admin`),
+        // so attaching the seeded user-admin role must trigger an alert.
+        Mail::fake();
+
+        // Recipient: a user holding `user.ops_alerts.receive`. With no
+        // explicit recipient list configured, the service falls back
+        // to this permission-based audience.
+        $opsRole = Role::create([
+            'name'  => 'Ops ' . Str::random(4),
+            'slug'  => 'ops-' . Str::random(4),
+            'guard' => 'web',
+        ]);
+        $opsPerm = Permission::firstOrCreate(
+            ['slug' => 'user.ops_alerts.receive'],
+            ['name' => 'Receive operational alerts', 'group' => 'user-app'],
+        );
+        $opsRole->permissions()->attach($opsPerm->id);
+
+        $opsUser = $this->makeUser(['name' => 'Ops Olivia', 'email' => 'olivia@ops.test']);
+        $opsUser->roles()->attach($opsRole->id);
+        $opsUser->flushPermissionCache();
+
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $target = $this->makeUser(['name' => 'Promoted Pat']);
+
+        // Use the explicit recipient override path is empty; service
+        // should fall back to the ops-permission audience.
+        config(['platform_role_alerts.recipient_emails' => []]);
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [],
+            [$userAdminRole->id],
+            UserRoleAudit::SOURCE_ADMIN,
+            '198.51.100.7',
+        );
+
+        Mail::assertSent(PlatformRoleAttachedAlertMail::class, function ($m) use ($opsUser, $target, $userAdminRole) {
+            return $m->hasTo($opsUser->email)
+                && $m->audit->target_user_id === $target->id
+                && $m->audit->role_id === $userAdminRole->id
+                && $m->audit->action === UserRoleAudit::ACTION_ATTACHED
+                && !empty($m->reasons);
+        });
+    }
+
+    public function test_attaching_non_sensitive_role_does_not_email(): void
+    {
+        Mail::fake();
+
+        $target = $this->makeUser();
+        $editor = $this->makeRole('editor'); // freshly created, no sensitive perms
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [],
+            [$editor->id],
+            UserRoleAudit::SOURCE_USER_ACCESS,
+        );
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_detaching_sensitive_role_does_not_email(): void
+    {
+        // Revokes are still ledger'd but they are NOT a privilege
+        // escalation, so no ops alert should fire on detach.
+        Mail::fake();
+
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $target = $this->makeUser();
+        $target->roles()->attach($userAdminRole->id);
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [$userAdminRole->id],
+            [],
+            UserRoleAudit::SOURCE_ADMIN,
+        );
+
+        Mail::assertNotSent(PlatformRoleAttachedAlertMail::class);
+    }
+
+    public function test_explicit_recipient_emails_override_ops_permission_holders(): void
+    {
+        Mail::fake();
+
+        // An ops-permission holder exists but should be ignored once
+        // an explicit recipient list is configured.
+        $opsRole = Role::create([
+            'name'  => 'Ops ' . Str::random(4),
+            'slug'  => 'ops-' . Str::random(4),
+            'guard' => 'web',
+        ]);
+        $opsPerm = Permission::firstOrCreate(
+            ['slug' => 'user.ops_alerts.receive'],
+            ['name' => 'Receive operational alerts', 'group' => 'user-app'],
+        );
+        $opsRole->permissions()->attach($opsPerm->id);
+
+        $opsUser = $this->makeUser(['name' => 'Ignored Iris', 'email' => 'iris@ops.test']);
+        $opsUser->roles()->attach($opsRole->id);
+        $opsUser->flushPermissionCache();
+
+        config([
+            'platform_role_alerts.recipient_emails' => ['security-team@example.com', 'on-call@example.com'],
+        ]);
+
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $target = $this->makeUser(['name' => 'Sensitive Sam']);
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [],
+            [$userAdminRole->id],
+            UserRoleAudit::SOURCE_ADMIN,
+        );
+
+        Mail::assertSent(PlatformRoleAttachedAlertMail::class, fn ($m) => $m->hasTo('security-team@example.com'));
+        Mail::assertSent(PlatformRoleAttachedAlertMail::class, fn ($m) => $m->hasTo('on-call@example.com'));
+        Mail::assertNotSent(PlatformRoleAttachedAlertMail::class, fn ($m) => $m->hasTo('iris@ops.test'));
+    }
+
+    public function test_custom_role_with_sensitive_permission_triggers_alert(): void
+    {
+        // A role with a slug nobody listed but which carries
+        // `user.workspaces.access_any` should still trip the alert via
+        // the permission-side check. This is the catch-all that
+        // prevents quietly-elevated custom roles slipping past ops.
+        Mail::fake();
+
+        $custom = Role::create([
+            'name'  => 'Quiet Custom ' . Str::random(4),
+            'slug'  => 'custom-' . Str::random(6),
+            'guard' => 'web',
+        ]);
+        $perm = Permission::firstOrCreate(
+            ['slug' => 'user.workspaces.access_any'],
+            ['name' => 'Access any workspace', 'group' => 'user-app'],
+        );
+        $custom->permissions()->attach($perm->id);
+
+        config([
+            'platform_role_alerts.recipient_emails' => ['ops@example.com'],
+        ]);
+
+        $target = $this->makeUser();
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [],
+            [$custom->id],
+            UserRoleAudit::SOURCE_USER_ACCESS,
+        );
+
+        Mail::assertSent(PlatformRoleAttachedAlertMail::class, function ($m) use ($custom) {
+            return $m->hasTo('ops@example.com')
+                && in_array('permission:user.workspaces.access_any', $m->reasons, true)
+                && $m->audit->role_id === $custom->id;
+        });
+    }
+
+    public function test_alert_is_skipped_when_no_recipients_configured(): void
+    {
+        Mail::fake();
+
+        // No explicit recipients AND no ops-permission holders exist
+        // => the service should swallow the dispatch silently.
+        config(['platform_role_alerts.recipient_emails' => []]);
+
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $target = $this->makeUser();
+
+        app(UserRoleAuditLogger::class)->recordDiff(
+            $target,
+            [],
+            [$userAdminRole->id],
+            UserRoleAudit::SOURCE_ADMIN,
+        );
+
+        // Audit row still written even though no email could be sent.
+        $this->assertDatabaseHas('user_role_audits', [
+            'target_user_id' => $target->id,
+            'role_id'        => $userAdminRole->id,
+            'action'         => 'attached',
+        ]);
+        Mail::assertNothingSent();
     }
 
     public function test_admin_role_update_records_actor_on_admin_guard(): void
