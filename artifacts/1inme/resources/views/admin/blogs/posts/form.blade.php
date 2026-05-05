@@ -3,20 +3,20 @@
 
 @push('styles')
 <style>
-    .rte-btn { display:inline-flex; align-items:center; justify-content:center; min-width:1.75rem; height:1.75rem; padding:0 .4rem; font-size:12px; color:rgba(255,255,255,.7); background:transparent; border-radius:.375rem; border:1px solid transparent; }
-    .rte-btn:hover { background:rgba(255,255,255,.08); color:#fff; }
-    .rte-content { min-height: 320px; padding: 12px 14px; border:1px solid rgba(255,255,255,.1); border-radius:.5rem; background:rgba(255,255,255,.04); color:#fff; }
-    .rte-content:focus { outline:none; border-color:rgba(139,92,246,.6); }
-    .rte-content :is(h2,h3,h4) { font-weight:600; color:#fff; margin:.6em 0 .25em; }
+    .rte-btn { display:inline-flex; align-items:center; justify-content:center; min-width:1.75rem; height:1.75rem; padding:0 .4rem; font-size:12px; color:var(--text-muted); background:transparent; border-radius:.375rem; border:1px solid transparent; }
+    .rte-btn:hover { background:var(--bg-glass-hover); color:var(--text-primary); }
+    .rte-content { min-height: 320px; padding: 12px 14px; border:1px solid var(--border-glass); border-radius:.5rem; background:var(--bg-glass-input); color:var(--text-primary); }
+    .rte-content:focus { outline:none; border-color:var(--accent); }
+    .rte-content :is(h2,h3,h4) { font-weight:600; color:var(--text-primary); margin:.6em 0 .25em; }
     .rte-content h2 { font-size:1.35rem; }
     .rte-content h3 { font-size:1.1rem; }
     .rte-content p { margin:.4em 0; }
     .rte-content ul { list-style:disc; padding-left:1.25rem; margin:.4em 0; }
     .rte-content ol { list-style:decimal; padding-left:1.25rem; margin:.4em 0; }
-    .rte-content blockquote { border-left:3px solid rgba(139,92,246,.5); padding-left:.75rem; color:rgba(255,255,255,.8); margin:.5em 0; }
-    .rte-content a { color:#c4b5fd; text-decoration:underline; }
+    .rte-content blockquote { border-left:3px solid rgba(139,92,246,.5); padding-left:.75rem; color:var(--text-secondary); margin:.5em 0; }
+    .rte-content a { color:var(--accent); text-decoration:underline; }
     .rte-content img { max-width:100%; border-radius:.5rem; }
-    .rte-content:empty::before { content: attr(data-placeholder); color:rgba(255,255,255,.35); }
+    .rte-content:empty::before { content: attr(data-placeholder); color:var(--text-faint); }
 </style>
 @endpush
 

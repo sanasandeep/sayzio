@@ -3,19 +3,19 @@
 
 @push('styles')
 <style>
-    .rte-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; height: 1.75rem; padding: 0 .4rem; font-size: 12px; color: rgba(255,255,255,.7); background: transparent; border-radius: .375rem; border: 1px solid transparent; }
-    .rte-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
-    .rte-btn:focus { outline: none; border-color: rgba(139,92,246,.6); }
-    .rte-content :is(h3,h4) { font-weight: 600; color: #fff; margin: .5em 0 .25em; }
+    .rte-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; height: 1.75rem; padding: 0 .4rem; font-size: 12px; color: var(--text-muted); background: transparent; border-radius: .375rem; border: 1px solid transparent; }
+    .rte-btn:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
+    .rte-btn:focus { outline: none; border-color: var(--accent); }
+    .rte-content :is(h3,h4) { font-weight: 600; color: var(--text-primary); margin: .5em 0 .25em; }
     .rte-content h3 { font-size: 1.05rem; }
     .rte-content h4 { font-size: 0.95rem; }
     .rte-content p { margin: .35em 0; }
     .rte-content ul { list-style: disc; padding-left: 1.25rem; margin: .35em 0; }
     .rte-content ol { list-style: decimal; padding-left: 1.25rem; margin: .35em 0; }
-    .rte-content blockquote { border-left: 3px solid rgba(255,255,255,.2); padding-left: .75rem; color: rgba(255,255,255,.75); margin: .5em 0; }
-    .rte-content code { background: rgba(255,255,255,.08); padding: .05em .35em; border-radius: .25rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
-    .rte-content a { color: #c4b5fd; text-decoration: underline; }
-    .rte-content:empty::before { content: attr(data-placeholder); color: rgba(255,255,255,.35); }
+    .rte-content blockquote { border-left: 3px solid var(--border-glass-light); padding-left: .75rem; color: var(--text-secondary); margin: .5em 0; }
+    .rte-content code { background: var(--bg-glass-hover); padding: .05em .35em; border-radius: .25rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+    .rte-content a { color: var(--accent); text-decoration: underline; }
+    .rte-content:empty::before { content: attr(data-placeholder); color: var(--text-faint); }
 </style>
 @endpush
 

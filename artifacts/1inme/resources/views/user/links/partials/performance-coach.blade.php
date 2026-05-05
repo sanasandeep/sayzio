@@ -389,7 +389,7 @@
         position: relative; z-index: 1; text-align: center; line-height: 1;
     }
     .perf-coach .pc-score {
-        font-size: 1.75rem; font-weight: 800; color: var(--text-primary, #fff);
+        font-size: 1.75rem; font-weight: 800; color: var(--text-primary);
         letter-spacing: -0.02em;
     }
     .perf-coach .pc-grade {
@@ -448,8 +448,8 @@
     }
     .perf-coach .pc-spark-point:hover,
     .perf-coach .pc-spark-point:focus-visible {
-        fill: rgba(255,255,255,0.95);
-        stroke: rgba(0,0,0,0.4);
+        fill: var(--text-primary);
+        stroke: var(--bg-body);
         stroke-width: 1;
     }
     .perf-coach .pc-spark-label {
@@ -516,7 +516,7 @@
     }
     .perf-coach .pc-settings-head { margin-bottom: 10px; }
     .perf-coach .pc-settings-title {
-        font-size: 13px; font-weight: 700; color: var(--text-primary, #fff);
+        font-size: 13px; font-weight: 700; color: var(--text-primary);
     }
     .perf-coach .pc-settings-sub {
         font-size: 11px; color: var(--text-faint, #94a3b8); margin-top: 2px;
@@ -528,18 +528,18 @@
     .perf-coach .pc-preset-card {
         border: 1px solid var(--border-glass, rgba(148,163,184,0.25));
         border-radius: 10px; padding: 10px 12px;
-        cursor: pointer; background: rgba(255,255,255,0.02);
+        cursor: pointer; background: var(--bg-glass);
         transition: border-color .15s ease, background .15s ease;
     }
-    .perf-coach .pc-preset-card:hover { background: rgba(255,255,255,0.05); }
+    .perf-coach .pc-preset-card:hover { background: var(--bg-glass-hover); }
     .perf-coach .pc-preset-card.is-active {
-        border-color: rgba(139,92,246,0.6); background: rgba(139,92,246,0.08);
+        border-color: rgba(139,92,246,0.6); background: var(--c-primary-soft);
     }
     .perf-coach .pc-preset-top {
         display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
     }
     .perf-coach .pc-preset-label {
-        font-size: 13px; font-weight: 700; color: var(--text-primary, #fff);
+        font-size: 13px; font-weight: 700; color: var(--text-primary);
     }
     .perf-coach .pc-preset-desc {
         font-size: 11px; color: var(--text-faint, #94a3b8); line-height: 1.3;
@@ -549,7 +549,7 @@
         gap: 12px 16px;
     }
     .perf-coach .pc-field-group {
-        background: rgba(255,255,255,0.02);
+        background: var(--bg-glass);
         border: 1px solid var(--border-glass, rgba(148,163,184,0.18));
         border-radius: 10px; padding: 10px 12px;
     }
@@ -570,12 +570,12 @@
         width: 100%;
         padding: 5px 8px; border-radius: 6px;
         border: 1px solid var(--border-glass, rgba(148,163,184,0.25));
-        background: rgba(0,0,0,0.2); color: var(--text-primary, #fff);
+        background: var(--bg-glass-input); color: var(--text-primary);
         font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0;
     }
     .perf-coach .pc-field-row input[type="number"]:focus {
-        outline: none; border-color: rgba(139,92,246,0.55);
-        box-shadow: 0 0 0 2px rgba(139,92,246,0.15);
+        outline: none; border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-glow);
     }
     .perf-coach .pc-settings-foot {
         display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;
@@ -591,9 +591,10 @@
         background: transparent; color: var(--text-faint, #94a3b8);
         border-color: var(--border-glass, rgba(148,163,184,0.25));
     }
-    .perf-coach .pc-btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-primary, #fff); }
+    .perf-coach .pc-btn-ghost:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
     .perf-coach .pc-btn-save {
         background: linear-gradient(135deg, rgba(139,92,246,0.9), rgba(99,102,241,0.9));
+        /* White text intentional: button bg is the dark violet/indigo accent gradient in both light & dark modes. */
         color: #fff; border-color: rgba(139,92,246,0.6);
     }
     .perf-coach .pc-btn-save:hover { filter: brightness(1.1); }

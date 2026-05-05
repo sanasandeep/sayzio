@@ -208,50 +208,50 @@
     .pc-admin-card {
         display: block; cursor: pointer;
         padding: 12px 14px; border-radius: 12px;
-        border: 1px solid rgba(148,163,184,0.18);
-        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border-glass);
+        background: var(--bg-glass);
         transition: border-color .15s ease, background .15s ease;
     }
-    .pc-admin-card:hover { background: rgba(255,255,255,0.05); }
-    .pc-admin-card.is-active { border-color: rgba(139,92,246,0.6); background: rgba(139,92,246,0.08); }
+    .pc-admin-card:hover { background: var(--bg-glass-hover); }
+    .pc-admin-card.is-active { border-color: rgba(139,92,246,0.6); background: var(--c-primary-soft); }
     .pc-admin-group {
-        background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(148,163,184,0.18);
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
         border-radius: 10px; padding: 12px;
     }
     .pc-admin-group-title {
-        font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.55);
+        font-size: 11px; font-weight: 600; color: var(--text-muted);
         margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em;
     }
     .pc-admin-group label {
         display: flex; flex-direction: column; gap: 3px;
-        font-size: 10px; color: rgba(255,255,255,0.5);
+        font-size: 10px; color: var(--text-faint);
         font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
     }
     .pc-admin-group input[type="number"],
     .pc-admin-group input[type="text"] {
         width: 100%;
         padding: 6px 8px; border-radius: 6px;
-        border: 1px solid rgba(148,163,184,0.25);
-        background: rgba(0,0,0,0.25); color: #fff;
+        border: 1px solid var(--border-glass);
+        background: var(--bg-glass-input); color: var(--text-primary);
         font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0;
     }
     .pc-admin-group input:focus {
-        outline: none; border-color: rgba(139,92,246,0.55);
-        box-shadow: 0 0 0 2px rgba(139,92,246,0.15);
+        outline: none; border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-glow);
     }
     .pc-admin-sub-label {
-        font-size: 10px; color: rgba(255,255,255,0.5);
+        font-size: 10px; color: var(--text-faint);
         margin-bottom: 3px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
     }
     .pc-admin-input {
         width: 100%; padding: 6px 10px; border-radius: 6px;
-        border: 1px solid rgba(148,163,184,0.25);
-        background: rgba(0,0,0,0.25); color: #fff; font-size: 13px;
+        border: 1px solid var(--border-glass);
+        background: var(--bg-glass-input); color: var(--text-primary); font-size: 13px;
     }
     .pc-admin-input:focus {
-        outline: none; border-color: rgba(139,92,246,0.55);
-        box-shadow: 0 0 0 2px rgba(139,92,246,0.15);
+        outline: none; border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-glow);
     }
 </style>
 @endsection
