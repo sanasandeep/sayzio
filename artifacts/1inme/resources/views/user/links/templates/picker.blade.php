@@ -42,11 +42,28 @@
     </div>
 
     @if($pageTemplates->isEmpty())
-        <div class="glass rounded-2xl border border-white/10 p-12 text-center">
-            <i class="fas fa-layer-group text-3xl text-violet-400 mb-3"></i>
-            <h3 class="text-base font-semibold text-white mb-1">No templates available yet</h3>
-            <p class="text-sm text-white/40 mb-4">Start from scratch and build your Link in Bio your way.</p>
-            <a href="{{ route('user.links.blocks.editor', $link) }}" class="inline-block px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Open editor</a>
+        <div class="glass rounded-2xl border border-white/10 p-10 sm:p-14 text-center max-w-xl mx-auto">
+            <div class="relative w-20 h-20 mx-auto mb-5">
+                <div class="absolute inset-0 rounded-2xl blur-xl opacity-60" style="background: linear-gradient(135deg, rgba(124,58,237,0.55), rgba(236,72,153,0.35));"></div>
+                <div class="relative w-20 h-20 rounded-2xl flex items-center justify-center border border-white/10"
+                     style="background: linear-gradient(135deg, rgba(124,58,237,0.22), rgba(139,92,246,0.10));">
+                    <i class="fas fa-layer-group text-3xl text-violet-300"></i>
+                </div>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">No templates yet</h3>
+            <p class="text-sm text-white/55 mb-6 leading-relaxed">
+                Page templates are ready-made layouts — like a "Creator profile" or "Product launch" — that drop a complete set of blocks onto your Link in Bio so you don't have to start from a blank page.
+                <br class="hidden sm:block">
+                Once some are added you'll see them here. For now, jump into the editor and design yours from scratch.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
+                <a href="{{ route('user.links.blocks.editor', $link) }}"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-lg shadow-violet-900/30"
+                   style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+                    <i class="fas fa-pen-to-square"></i>
+                    Open the editor
+                </a>
+            </div>
         </div>
     @else
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
