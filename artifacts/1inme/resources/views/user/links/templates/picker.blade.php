@@ -90,11 +90,25 @@
         $usedCats = $pageTemplates->pluck('category')->unique()->all();
     @endphp
 
-    <div class="flex items-center gap-3 mb-5">
+    <div class="flex items-center gap-3 mb-2">
         <div class="flex-1">
             <input type="text" x-model="search" placeholder="Search templates…" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20">
         </div>
     </div>
+
+    {{-- Live "Showing X of Y" counter sitting right under the search input.
+         Shown whenever a filter is active (non-empty search or a category
+         other than 'all') so the default view stays clean but users always
+         see a hard count once they're filtering — including the "0 of N"
+         state, which complements (rather than duplicates) the
+         filter-empty panel's reset CTA below. Only renders when there's
+         at least one seeded template. --}}
+    @if(!$pageTemplates->isEmpty())
+        <p x-show="search !== '' || category !== 'all'" x-cloak class="text-xs text-white/40 mb-3 px-1">
+            Showing <span class="text-white/70 font-medium" x-text="visibleCount"></span>
+            of {{ $pageTemplates->count() }} {{ \Illuminate\Support\Str::plural('template', $pageTemplates->count()) }}
+        </p>
+    @endif
 
     <div class="flex items-center gap-1 mb-3 overflow-x-auto pb-2">
         @foreach($cats as $key => $label)
@@ -105,16 +119,6 @@
             @endif
         @endforeach
     </div>
-
-    {{-- Live "Showing X of Y" counter under the filter chips. Hidden when the
-         filter-empty panel is visible so we don't echo "Showing 0 of N" right
-         next to it. Only renders when there's at least one seeded template. --}}
-    @if(!$pageTemplates->isEmpty())
-        <p x-show="visibleCount > 0" x-cloak class="text-xs text-white/40 mb-5">
-            Showing <span class="text-white/70 font-medium" x-text="visibleCount"></span>
-            of {{ $pageTemplates->count() }} {{ \Illuminate\Support\Str::plural('template', $pageTemplates->count()) }}
-        </p>
-    @endif
 
     @if($pageTemplates->isEmpty())
         <div class="glass rounded-2xl border border-white/10 p-10 sm:p-14 text-center max-w-xl mx-auto">
