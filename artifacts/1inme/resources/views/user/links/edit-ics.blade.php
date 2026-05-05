@@ -33,44 +33,45 @@
     [x-cloak] { display: none !important; }
     .ics-input {
         width: 100%;
-        background-color: rgb(255 255 255 / 0.05);
-        border: 1px solid rgb(255 255 255 / 0.1);
+        background-color: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
         border-radius: 0.75rem;
         padding: 0.625rem 1rem;
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #ffffff;
+        color: var(--text-primary);
         transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
     }
-    .ics-input::placeholder { color: rgb(255 255 255 / 0.3); }
+    .ics-input::placeholder { color: var(--text-faint); }
     .ics-input:focus {
         outline: 2px solid transparent;
         outline-offset: 2px;
-        border-color: rgb(139 92 246 / 0.4);
-        box-shadow: 0 0 0 2px rgb(139 92 246 / 0.4);
+        background-color: var(--bg-glass-input-focus);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-glow);
     }
     .ics-label {
         display: block;
         font-size: 0.875rem;
         line-height: 1.25rem;
         font-weight: 500;
-        color: rgb(255 255 255 / 0.7);
+        color: var(--text-secondary);
         margin-bottom: 0.375rem;
     }
     .ics-help {
         font-size: 0.75rem;
         line-height: 1rem;
-        color: rgb(255 255 255 / 0.4);
+        color: var(--text-muted);
         margin-top: 0.25rem;
     }
     .ics-section {
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 1.25rem;
-        background-color: rgb(255 255 255 / 0.03);
-        border: 1px solid rgb(255 255 255 / 0.1);
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-glass);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
     }
@@ -80,14 +81,14 @@
         gap: 0.75rem;
         margin-bottom: 1.25rem;
         padding-bottom: 1rem;
-        border-bottom: 1px solid rgb(255 255 255 / 0.05);
+        border-bottom: 1px solid var(--border-subtle);
     }
     .ics-section-icon {
         width: 2.25rem;
         height: 2.25rem;
         border-radius: 0.75rem;
-        background-color: rgb(139 92 246 / 0.15);
-        color: rgb(196 181 253);
+        background-color: var(--c-primary-soft);
+        color: var(--c-primary);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -99,12 +100,12 @@
         font-size: 1rem;
         line-height: 1.25;
         font-weight: 600;
-        color: #ffffff;
+        color: var(--text-primary);
     }
     .ics-section-sub {
         font-size: 0.75rem;
         line-height: 1rem;
-        color: rgb(255 255 255 / 0.5);
+        color: var(--text-muted);
         margin-top: 0.125rem;
     }
     .day-chip {
@@ -121,6 +122,89 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+    .day-chip-off {
+        background: var(--bg-glass);
+        border-color: var(--border-glass);
+        color: var(--text-muted);
+    }
+    .day-chip-off:hover {
+        border-color: var(--border-strong);
+        color: var(--text-primary);
+    }
+    .day-chip-on {
+        background-color: #8b5cf6;
+        border-color: #8b5cf6;
+        color: #ffffff;
+        box-shadow: 0 10px 15px -3px rgba(139,92,246,0.20), 0 4px 6px -4px rgba(139,92,246,0.20);
+    }
+    .ics-freq-off {
+        background: var(--bg-glass);
+        border-color: var(--border-glass);
+        color: var(--text-muted);
+    }
+    .ics-freq-off:hover {
+        background: var(--bg-glass-hover);
+        color: var(--text-primary);
+    }
+    .ics-freq-on {
+        background-color: rgba(139,92,246,0.15);
+        border-color: #8b5cf6;
+        color: var(--c-primary);
+    }
+    html:not(.light-mode) .ics-freq-on {
+        color: #ffffff;
+    }
+    .ics-tile {
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        border-radius: 0.75rem;
+    }
+    .ics-tile:hover { background: var(--bg-glass-hover); }
+    .ics-tile-strong {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: 0.75rem;
+    }
+    .ics-pill {
+        display: flex;
+        align-items: stretch;
+        background-color: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+    .ics-pill:focus-within {
+        box-shadow: 0 0 0 2px var(--accent-glow);
+        border-color: var(--accent);
+    }
+    .ics-pill > input {
+        background: transparent;
+        color: var(--text-primary);
+        outline: none;
+    }
+    .ics-pill > .ics-pill-suffix {
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        border-left: 1px solid var(--border-glass);
+        background-color: var(--bg-glass);
+    }
+    .ics-empty-dashed {
+        border: 1px dashed var(--border-glass);
+        border-radius: 0.75rem;
+        text-align: center;
+        padding: 2rem 0;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    .ics-empty-dashed .ics-empty-icon {
+        display: block;
+        font-size: 1.5rem;
+        color: var(--text-faint);
+        margin-bottom: 0.5rem;
     }
 </style>
 
@@ -242,13 +326,13 @@
                 </div>
             </div>
 
-            <label class="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07]">
+            <label class="ics-tile flex items-center gap-3 mb-4 p-3 cursor-pointer">
                 <input type="hidden" name="all_day" value="0">
                 <input type="checkbox" name="all_day" value="1" x-model="allDay"
-                       class="w-4 h-4 rounded text-violet-500 focus:ring-violet-500/40 bg-white/10 border-white/20">
+                       class="w-4 h-4 rounded text-violet-500 focus:ring-violet-500/40">
                 <div class="flex-1">
-                    <div class="text-sm font-medium text-white/90">All-day event</div>
-                    <div class="text-xs text-white/40">Use this for full-day events like conferences or holidays.</div>
+                    <div class="text-sm font-medium" style="color: var(--text-primary);">All-day event</div>
+                    <div class="text-xs" style="color: var(--text-muted);">Use this for full-day events like conferences or holidays.</div>
                 </div>
             </label>
 
@@ -301,7 +385,7 @@
                         'yearly' => ['label' => 'Yearly', 'icon' => 'fa-calendar'],
                     ] as $val => $meta)
                         <button type="button" @click="freq = @js($val)"
-                                :class="freq === @js($val) ? 'border-violet-500 bg-violet-500/15 text-white' : 'border-white/10 bg-white/[0.02] text-white/60 hover:bg-white/5 hover:text-white/80'"
+                                :class="freq === @js($val) ? 'ics-freq-on' : 'ics-freq-off'"
                                 class="flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-xl border text-xs font-medium transition-all">
                             <i class="fas {{ $meta['icon'] }} text-base"></i>
                             {{ $meta['label'] }}
@@ -315,11 +399,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="ics-label">Repeat every</label>
-                        <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
+                        <div class="ics-pill">
                             <input type="number" name="recurrence_interval" min="1" max="365"
                                    value="{{ old('recurrence_interval', $ics->recurrence_interval ?: 1) }}"
-                                   class="w-20 bg-transparent px-3 py-2.5 text-sm text-white outline-none">
-                            <span class="flex items-center px-4 text-sm text-white/60 border-l border-white/10 bg-white/[0.03]"
+                                   class="w-20 px-3 py-2.5 text-sm">
+                            <span class="ics-pill-suffix"
                                   x-text="freq === 'daily' ? 'day(s)' : freq === 'weekly' ? 'week(s)' : freq === 'monthly' ? 'month(s)' : 'year(s)'"></span>
                         </div>
                         <p class="ics-help" x-text="freq === 'daily' ? 'e.g. every 2 days' : freq === 'weekly' ? 'e.g. every 2 weeks' : freq === 'monthly' ? 'e.g. every 3 months' : 'e.g. every year'"></p>
@@ -339,7 +423,7 @@
                     <div class="flex flex-wrap gap-2">
                         @foreach(['MO' => 'M', 'TU' => 'T', 'WE' => 'W', 'TH' => 'T', 'FR' => 'F', 'SA' => 'S', 'SU' => 'S'] as $code => $letter)
                             <button type="button" @click="toggleDay('{{ $code }}')"
-                                    :class="hasDay('{{ $code }}') ? 'border-violet-500 bg-violet-500 text-white shadow-lg shadow-violet-500/20' : 'border-white/15 text-white/60 hover:border-white/30 hover:text-white'"
+                                    :class="hasDay('{{ $code }}') ? 'day-chip-on' : 'day-chip-off'"
                                     class="day-chip"
                                     title="{{ ['MO'=>'Monday','TU'=>'Tuesday','WE'=>'Wednesday','TH'=>'Thursday','FR'=>'Friday','SA'=>'Saturday','SU'=>'Sunday'][$code] }}">{{ $letter }}</button>
                         @endforeach
@@ -352,12 +436,12 @@
 
                 <div x-show="endMode === 'count'" x-cloak>
                     <label class="ics-label">Number of times to repeat</label>
-                    <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 overflow-hidden md:w-64 focus-within:ring-2 focus-within:ring-violet-500/40">
+                    <div class="ics-pill md:w-64">
                         <input type="number" name="recurrence_count" min="1" max="999"
                                value="{{ old('recurrence_count', $ics->recurrence_count) }}"
                                placeholder="e.g. 10"
-                               class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white outline-none">
-                        <span class="flex items-center px-4 text-sm text-white/60 border-l border-white/10 bg-white/[0.03]">times</span>
+                               class="flex-1 px-3 py-2.5 text-sm">
+                        <span class="ics-pill-suffix">times</span>
                     </div>
                 </div>
                 <div x-show="endMode === 'until'" x-cloak>
@@ -390,43 +474,43 @@
             </div>
 
             <template x-if="extras.length === 0">
-                <div class="text-center py-8 text-sm text-white/40 border border-dashed border-white/10 rounded-xl">
-                    <i class="far fa-calendar text-2xl text-white/20 block mb-2"></i>
+                <div class="ics-empty-dashed">
+                    <i class="far fa-calendar ics-empty-icon"></i>
                     No extra dates yet — most events don't need any.
                 </div>
             </template>
 
             <div class="space-y-3">
                 <template x-for="(ex, i) in extras" :key="i">
-                    <div class="border border-white/10 rounded-xl p-4 bg-white/[0.02] space-y-3">
+                    <div class="ics-tile-strong p-4 space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs uppercase tracking-wide text-white/40 font-semibold" x-text="'Date #' + (i + 1)"></span>
+                            <span class="text-xs uppercase tracking-wide font-semibold" style="color: var(--text-muted);" x-text="'Date #' + (i + 1)"></span>
                             <button type="button" @click="removeExtra(i)" class="text-red-400/70 hover:text-red-400 text-xs px-2 py-1 rounded hover:bg-red-500/10">
                                 <i class="fas fa-trash mr-1"></i>Remove
                             </button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <label class="text-xs text-white/50 block mb-1">Starts</label>
+                                <label class="ics-label text-xs">Starts</label>
                                 <input :type="allDay ? 'date' : 'datetime-local'"
                                        :name="'extra_schedules[' + i + '][start]'"
                                        x-model="ex.start" class="ics-input">
                             </div>
                             <div>
-                                <label class="text-xs text-white/50 block mb-1">Ends</label>
+                                <label class="ics-label text-xs">Ends</label>
                                 <input :type="allDay ? 'date' : 'datetime-local'"
                                        :name="'extra_schedules[' + i + '][end]'"
                                        x-model="ex.end" class="ics-input">
                             </div>
                             <div>
-                                <label class="text-xs text-white/50 block mb-1">Name <span class="text-white/30">(optional)</span></label>
+                                <label class="ics-label text-xs">Name <span style="color: var(--text-faint);">(optional)</span></label>
                                 <input type="text"
                                        :name="'extra_schedules[' + i + '][label]'"
                                        x-model="ex.label" placeholder="e.g. Day 2 Workshop"
                                        class="ics-input">
                             </div>
                             <div>
-                                <label class="text-xs text-white/50 block mb-1">Different location <span class="text-white/30">(optional)</span></label>
+                                <label class="ics-label text-xs">Different location <span style="color: var(--text-faint);">(optional)</span></label>
                                 <input type="text"
                                        :name="'extra_schedules[' + i + '][location]'"
                                        x-model="ex.location" placeholder="leave blank to use main location"
@@ -486,16 +570,16 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="ics-label">Custom short link</label>
-                    <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
-                        <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10">{{ parse_url($base, PHP_URL_HOST) }}/</span>
+                    <div class="ics-pill">
+                        <span class="ics-pill-suffix" style="border-left: 0; border-right: 1px solid var(--border-glass);">{{ parse_url($base, PHP_URL_HOST) }}/</span>
                         <input type="text" name="alias" value="{{ old('alias', $link->alias) }}" pattern="[A-Za-z0-9_\-]+"
-                               class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white outline-none">
+                               class="flex-1 px-3 py-2.5 text-sm">
                     </div>
                     @error('alias') <p class="text-red-400 text-xs mt-1.5">{{ $message }}</p> @enderror
                     <p class="ics-help">Letters, numbers, dashes and underscores only.</p>
                 </div>
                 <div>
-                    <label class="ics-label">Folder <span class="text-white/30 font-normal">(optional)</span></label>
+                    <label class="ics-label">Folder <span style="color: var(--text-faint);" class="font-normal">(optional)</span></label>
                     <select name="project_id" class="ics-input">
                         <option value="">No folder</option>
                         @foreach($projects as $p)
@@ -505,39 +589,39 @@
                 </div>
             </div>
 
-            <label class="flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07]">
+            <label class="ics-tile flex items-start gap-3 p-4 cursor-pointer">
                 <input type="hidden" name="show_preview_page" value="0">
                 <input type="checkbox" name="show_preview_page" value="1"
                        {{ old('show_preview_page', !empty($s['show_preview_page'])) ? 'checked' : '' }}
-                       class="mt-0.5 w-4 h-4 rounded text-violet-500 focus:ring-violet-500/40 bg-white/10 border-white/20">
+                       class="mt-0.5 w-4 h-4 rounded text-violet-500 focus:ring-violet-500/40">
                 <div>
-                    <div class="text-sm font-medium text-white/90">Show a preview page first</div>
-                    <p class="text-xs text-white/50 mt-0.5">Visitors will see your event on a landing page before downloading. Helps with tracking and looks more professional.</p>
+                    <div class="text-sm font-medium" style="color: var(--text-primary);">Show a preview page first</div>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">Visitors will see your event on a landing page before downloading. Helps with tracking and looks more professional.</p>
                 </div>
             </label>
 
             {{-- ===== RSVPs ===== --}}
-            <div class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+            <div class="ics-tile mt-4 p-4">
                 <div class="flex items-start justify-between gap-3 mb-3">
                     <div>
-                        <div class="text-sm font-semibold text-white/90"><i class="fas fa-calendar-check mr-1.5 text-violet-300"></i>Collect RSVPs</div>
-                        <p class="text-xs text-white/50 mt-0.5">Show an RSVP form on the event page so guests can confirm attendance.</p>
+                        <div class="text-sm font-semibold" style="color: var(--text-primary);"><i class="fas fa-calendar-check mr-1.5" style="color: var(--c-primary);"></i>Collect RSVPs</div>
+                        <p class="text-xs mt-0.5" style="color: var(--text-muted);">Show an RSVP form on the event page so guests can confirm attendance.</p>
                     </div>
                     <label class="inline-flex items-center cursor-pointer">
                         <input type="hidden" name="rsvp_enabled" value="0">
                         <input type="checkbox" name="rsvp_enabled" value="1" class="sr-only peer"
                                {{ old('rsvp_enabled', !empty($s['rsvp_enabled'])) ? 'checked' : '' }}>
-                        <div class="w-10 h-6 bg-white/15 peer-checked:bg-violet-500 rounded-full relative transition">
-                            <span class="absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full peer-checked:translate-x-4 transition"></span>
+                        <div class="w-10 h-6 rounded-full relative transition peer-checked:bg-violet-500" style="background: var(--bg-glass-input-focus);">
+                            <span class="absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full peer-checked:translate-x-4 transition toggle-knob"></span>
                         </div>
                     </label>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-xs text-white/70">
+                <div class="grid grid-cols-2 gap-2 text-xs" style="color: var(--text-secondary);">
                     <label class="flex items-center gap-2"><input type="hidden" name="rsvp_allow_plus_ones" value="0"><input type="checkbox" name="rsvp_allow_plus_ones" value="1" {{ old('rsvp_allow_plus_ones', !empty($s['rsvp_allow_plus_ones'])) ? 'checked':'' }}> Allow +1s</label>
                     <label class="flex items-center gap-2"><input type="hidden" name="rsvp_collect_phone" value="0"><input type="checkbox" name="rsvp_collect_phone" value="1" {{ old('rsvp_collect_phone', !empty($s['rsvp_collect_phone'])) ? 'checked':'' }}> Ask for phone</label>
                 </div>
                 @if(!empty($s['rsvp_enabled']))
-                    <a href="{{ route('user.links.rsvps.index', $link) }}" class="inline-block mt-3 text-xs text-violet-300 hover:text-violet-200">
+                    <a href="{{ route('user.links.rsvps.index', $link) }}" class="inline-block mt-3 text-xs text-violet-500 hover:text-violet-400">
                         <i class="fas fa-list mr-1"></i> View guest list →
                     </a>
                 @endif
@@ -548,13 +632,13 @@
                 $calAccounts = \App\Modules\User\Models\CalendarAccount::where('user_id', auth()->id())
                     ->where('push_enabled', true)->orderBy('provider')->get();
             @endphp
-            <div class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                <div class="text-sm font-semibold text-white/90 mb-2"><i class="fas fa-cloud-upload-alt mr-1.5 text-violet-300"></i>Push to my calendar</div>
-                <p class="text-xs text-white/50 mb-3">Save this event to one of your connected calendars. Updates and deletions stay in sync.</p>
+            <div class="ics-tile mt-4 p-4">
+                <div class="text-sm font-semibold mb-2" style="color: var(--text-primary);"><i class="fas fa-cloud-upload-alt mr-1.5" style="color: var(--c-primary);"></i>Push to my calendar</div>
+                <p class="text-xs mb-3" style="color: var(--text-muted);">Save this event to one of your connected calendars. Updates and deletions stay in sync.</p>
                 @if($calAccounts->isEmpty())
-                    <p class="text-xs text-white/40">No calendars connected. <a href="{{ route('user.calendar.index') }}" class="text-violet-300">Connect one</a>.</p>
+                    <p class="text-xs" style="color: var(--text-muted);">No calendars connected. <a href="{{ route('user.calendar.index') }}" class="text-violet-500 hover:text-violet-400">Connect one</a>.</p>
                 @else
-                    <select name="push_calendar_account_id" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white">
+                    <select name="push_calendar_account_id" class="ics-input">
                         <option value="">— Don't push —</option>
                         @foreach($calAccounts as $a)
                             <option value="{{ $a->id }}" {{ (string)old('push_calendar_account_id', $s['push_calendar_account_id'] ?? '') === (string)$a->id ? 'selected' : '' }}>
