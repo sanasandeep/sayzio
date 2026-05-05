@@ -54,9 +54,17 @@
 
     @if(!empty($audits) && $audits->count() > 0)
         <details class="rounded-2xl border border-white/10 bg-white/[0.03]">
-            <summary class="cursor-pointer px-4 py-3 text-sm text-white/80 select-none">
-                Recent role changes
-                <span class="ml-1 text-xs text-white/40">({{ $audits->count() }} latest)</span>
+            <summary class="cursor-pointer px-4 py-3 text-sm text-white/80 select-none flex items-center justify-between gap-3">
+                <span>
+                    Recent role changes
+                    <span class="ml-1 text-xs text-white/40">({{ $audits->count() }} latest)</span>
+                </span>
+                <a href="{{ route('user.access.users.audit.export') }}"
+                   onclick="event.stopPropagation();"
+                   class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-xs font-medium whitespace-nowrap"
+                   title="Download the full role-change history as CSV — not just the rows shown here.">
+                    <i class="fas fa-file-csv mr-1"></i> Export CSV
+                </a>
             </summary>
             <div class="px-4 pb-4">
                 <ul class="divide-y divide-white/5 text-sm">

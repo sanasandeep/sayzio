@@ -56,10 +56,19 @@
     </div>
 
     <div class="glass rounded-2xl border border-white/10 p-6 mt-6">
-        <h3 class="text-sm font-semibold text-white mb-1">Role change history</h3>
-        <p class="text-xs text-white/50 mb-4">
-            Every grant or revoke for {{ $user->name }}, newest first.
-        </p>
+        <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-sm font-semibold text-white mb-1">Role change history</h3>
+                <p class="text-xs text-white/50">
+                    Every grant or revoke for {{ $user->name }}, newest first.
+                </p>
+            </div>
+            <a href="{{ route('admin.users.roles.audit.export', $user) }}"
+               class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 whitespace-nowrap"
+               title="Download the full role-change history for {{ $user->name }} as CSV — not just the rows shown here.">
+                <i class="fas fa-file-csv mr-1"></i> Export CSV
+            </a>
+        </div>
 
         @if(empty($audits) || $audits->isEmpty())
             <p class="text-sm text-white/40">No role changes recorded yet.</p>

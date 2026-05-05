@@ -517,6 +517,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{user}/wallet/adjust', [UserManagementController::class, 'adjustWallet'])->middleware(CheckPermission::class . ':users.edit')->name('wallet.adjust');
             Route::get ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'edit'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.edit');
             Route::put ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.update');
+            Route::get ('{user}/roles/audit.csv', [\App\Modules\Admin\Controllers\UserRoleController::class, 'export'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.audit.export');
         });
     });
 });

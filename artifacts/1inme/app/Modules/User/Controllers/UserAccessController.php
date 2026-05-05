@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserRoleAudit;
+use App\Modules\User\Services\UserRoleAuditCsvExporter;
 use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -197,5 +198,26 @@ class UserAccessController extends Controller
             'from'   => trim((string) $request->get('from', '')),
             'to'     => trim((string) $request->get('to', '')),
         ];
+    }
+
+    /**
+     * One-click CSV download wired to the small "Recent role changes"
+     * panel on this page. Covers every audit row across the user pool
+     * — not just the latest 50 surfaced inline — so reviewers can pull
+     * the full history without first navigating to the dedicated
+     * audit page (`audit()`) and clearing all filters.
+     *
+     * Lives alongside `auditExport()` rather than replacing it: the
+     * filtered exporter on the audit page is the right tool when you
+     * already know what you're looking for; this one is the right
+     * tool when you just want everything. Mirrors the access gate of
+     * `index()` (the `user.roles.manage` permission applied at the
+     * route layer).
+     */
+    public function export(UserRoleAuditCsvExporter $exporter): StreamedResponse
+    {
+        $filename = 'role-change-audit-' . date('Ymd-His') . '.csv';
+
+        return $exporter->streamResponse(UserRoleAudit::query(), $filename);
     }
 }

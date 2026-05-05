@@ -1378,6 +1378,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // user.roles.manage) can promote/demote others.
         Route::middleware('user.can:user.roles.manage')->prefix('access')->name('access.')->group(function () {
             Route::get ('users',                   [UserAccessController::class, 'index'])->name('users.index');
+            Route::get ('users/audit.csv',         [UserAccessController::class, 'export'])->name('users.audit.export');
             Route::post('users/{user}/roles',      [UserAccessController::class, 'update'])->whereNumber('user')->name('users.update');
 
             // Full role-change audit log + CSV export. Same gate as

@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserRoleAudit;
+use App\Modules\User\Services\UserRoleAuditCsvExporter;
 use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserRoleController extends Controller
 {
@@ -81,5 +83,23 @@ class UserRoleController extends Controller
         return redirect()
             ->route('admin.users.roles.edit', $user)
             ->with('success', 'Roles updated for ' . $user->name . '.');
+    }
+
+    /**
+     * Stream every role-change audit row for a single user as a CSV
+     * download. Scoped strictly to `$user` so the export matches the
+     * panel on `admin.users.{show,roles.edit}` and never leaks rows
+     * for accounts the operator might not be looking at.
+     *
+     * Gated by the `users.edit` permission at the route layer, the
+     * same check the timeline panel itself uses.
+     */
+    public function export(User $user, UserRoleAuditCsvExporter $exporter): StreamedResponse
+    {
+        $filename = 'role-change-audit-user-' . $user->id . '-' . date('Ymd-His') . '.csv';
+
+        $query = UserRoleAudit::query()->where('target_user_id', $user->id);
+
+        return $exporter->streamResponse($query, $filename);
     }
 }

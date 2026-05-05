@@ -107,6 +107,11 @@
                        class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
                         <i class="fas fa-clipboard-list mr-1"></i> Full audit log
                     </a>
+                    <a href="{{ route('admin.users.roles.audit.export', $user) }}"
+                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 whitespace-nowrap"
+                       title="Download the full role-change history for {{ $user->name }} as CSV — not just the rows shown here.">
+                        <i class="fas fa-file-csv mr-1"></i> Export CSV
+                    </a>
                     <a href="{{ route('admin.users.roles.edit', $user) }}"
                        class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
                         Manage roles
