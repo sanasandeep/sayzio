@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    <div class="flex items-center gap-1 mb-6 overflow-x-auto pb-2">
+    <div class="flex items-center gap-1 mb-3 overflow-x-auto pb-2">
         @foreach($cats as $key => $label)
             @if($key === 'all' || in_array($key, $usedCats, true))
             <button @click="category = '{{ $key }}'" :class="category === '{{ $key }}' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white bg-white/5'" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex-shrink-0">
@@ -65,6 +65,16 @@
             @endif
         @endforeach
     </div>
+
+    {{-- Live "Showing X of Y" counter under the filter chips. Hidden when the
+         filter-empty panel is visible so we don't echo "Showing 0 of N" right
+         next to it. Only renders when there's at least one seeded template. --}}
+    @if(!$pageTemplates->isEmpty())
+        <p x-show="visibleCount > 0" x-cloak class="text-xs text-white/40 mb-5">
+            Showing <span class="text-white/70 font-medium" x-text="visibleCount"></span>
+            of {{ $pageTemplates->count() }} {{ \Illuminate\Support\Str::plural('template', $pageTemplates->count()) }}
+        </p>
+    @endif
 
     @if($pageTemplates->isEmpty())
         <div class="glass rounded-2xl border border-white/10 p-10 sm:p-14 text-center max-w-xl mx-auto">
