@@ -2,6 +2,19 @@
 @section('title', 'Choose a Template')
 
 @section('content')
+{{-- Inline style for the search-match highlight mark. Kept inline (rather
+     than a Tailwind class string) so the highlight() helper above can emit
+     a single-class <mark> tag without needing quoted attributes inside the
+     double-quoted x-data expression. Mirrors the violet accent used for
+     focused/selected states elsewhere on the picker. --}}
+<style>
+    mark.tpl-mark {
+        background-color: rgba(139, 92, 246, 0.30);
+        color: #fff;
+        border-radius: 2px;
+        padding: 0 2px;
+    }
+</style>
 @php
     // Lightweight JS mirror of the templates so Alpine can compute how many
     // pass the active category + search filter without having to query the
@@ -26,6 +39,33 @@
         },
         get visibleCount() {
             return this.templates.filter(t => this.matches(t.category, t.text)).length;
+        },
+        // Wrap occurrences of the active search term inside `text` in a
+        // <mark> tag so the picker shows *why* a card matched. HTML-escapes
+        // surrounding text and the matched slice to keep admin-authored
+        // names/descriptions safe from injection. Falls back to the plain
+        // (escaped) string when the search box is empty. The wrapping mark
+        // uses a single class (.tpl-mark, defined in the <style> block
+        // below) so we don't need quoted attributes inside this
+        // double-quoted x-data expression.
+        highlight(text) {
+            const raw = text == null ? '' : String(text);
+            const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const q = this.search.trim();
+            if (q === '') return esc(raw);
+            const pattern = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(pattern, 'gi');
+            let out = '';
+            let last = 0;
+            let m;
+            while ((m = re.exec(raw)) !== null) {
+                out += esc(raw.slice(last, m.index));
+                out += '<mark class=tpl-mark>' + esc(m[0]) + '</mark>';
+                last = m.index + m[0].length;
+                if (m[0].length === 0) re.lastIndex++;
+            }
+            out += esc(raw.slice(last));
+            return out;
         }
     }">
     <div class="flex items-center justify-between mb-6">
@@ -272,14 +312,16 @@
                              right so the most useful info (the title and the chip list below)
                              reads first. --}}
                         <div class="flex items-start justify-between gap-2 mb-1.5">
-                            <h3 class="text-sm font-semibold text-white flex-1 min-w-0">{{ $tpl->name }}</h3>
+                            <h3 class="text-sm font-semibold text-white flex-1 min-w-0"
+                                x-html="highlight({{ \Illuminate\Support\Js::from($tpl->name) }})">{{ $tpl->name }}</h3>
                             <span class="shrink-0 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap text-white/55"
                                   style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);">
                                 {{ ucfirst($tpl->category) }}
                             </span>
                         </div>
                         @if($tpl->description)
-                            <p class="text-xs text-white/50 mb-2 line-clamp-2">{{ $tpl->description }}</p>
+                            <p class="text-xs text-white/50 mb-2 line-clamp-2"
+                               x-html="highlight({{ \Illuminate\Support\Js::from($tpl->description) }})">{{ $tpl->description }}</p>
                         @endif
 
                         @if($topCount)
