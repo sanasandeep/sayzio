@@ -54,5 +54,45 @@
             </div>
         </form>
     </div>
+
+    <div class="glass rounded-2xl border border-white/10 p-6 mt-6">
+        <h3 class="text-sm font-semibold text-white mb-1">Role change history</h3>
+        <p class="text-xs text-white/50 mb-4">
+            Every grant or revoke for {{ $user->name }}, newest first.
+        </p>
+
+        @if(empty($audits) || $audits->isEmpty())
+            <p class="text-sm text-white/40">No role changes recorded yet.</p>
+        @else
+            <ul class="divide-y divide-white/5 text-sm">
+                @foreach($audits as $a)
+                    <li class="py-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span class="text-white/40 text-xs whitespace-nowrap"
+                              title="{{ $a->created_at?->toDateTimeString() }}">
+                            {{ $a->created_at?->diffForHumans() }}
+                        </span>
+                        <span class="text-white">{{ $a->actorLabel() }}</span>
+                        <span class="text-white/50">
+                            @if($a->action === 'attached')
+                                granted
+                            @else
+                                revoked
+                            @endif
+                        </span>
+                        <span class="px-2 py-0.5 rounded-md text-xs
+                            {{ $a->action === 'attached' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300' }}">
+                            {{ $a->role_name ?: $a->role_slug }}
+                        </span>
+                        @if($a->source === 'user_access')
+                            <span class="text-xs text-white/30">via user access page</span>
+                        @endif
+                        @if($a->ip)
+                            <span class="text-xs text-white/30">· {{ $a->ip }}</span>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </div>
 </div>
 @endsection

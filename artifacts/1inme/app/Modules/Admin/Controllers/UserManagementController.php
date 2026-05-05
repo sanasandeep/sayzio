@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserRoleAudit;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Services\ReferralService;
 use App\Services\Billing\WalletService;
@@ -45,7 +46,27 @@ class UserManagementController extends Controller
         $wallet = app(WalletService::class)->walletFor($user);
         $walletEnabled = WalletService::isEnabled();
         $walletTransactions = $wallet->transactions()->limit(10)->get();
-        return view('admin.users.show', compact('user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions'));
+
+        // Latest role grants/revokes against this user. The route is
+        // gated by `users.view`, but the task restricts visibility of
+        // role-change audits to operators with `users.edit` (the same
+        // permission required to mutate roles). We skip the query
+        // entirely for read-only viewers so the data never reaches
+        // the response body — the view also hides the panel.
+        $admin = Auth::guard('admin')->user();
+        $canSeeRoleAudits = $admin && $admin->hasPermission('users.edit');
+        $roleAudits = $canSeeRoleAudits
+            ? UserRoleAudit::query()
+                ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email'])
+                ->where('target_user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get()
+            : collect();
+
+        return view('admin.users.show', compact(
+            'user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions', 'roleAudits'
+        ));
     }
 
     public function adjustWallet(Request $request, User $user, WalletService $wallets)

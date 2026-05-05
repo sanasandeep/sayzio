@@ -5,6 +5,8 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserRoleAudit;
+use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -46,14 +48,24 @@ class UserAccessController extends Controller
 
         $users = $query->with(['roles' => fn ($q) => $q->where('guard', 'web')])->get();
 
+        // Recent role changes across the user pool. Surfaced to anyone
+        // who can see this page (i.e. holders of `user.roles.manage`)
+        // so promote/demote actions are no longer invisible.
+        $audits = UserRoleAudit::query()
+            ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email', 'targetUser:id,name,email'])
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
         return view('user.access.users', [
             'roles'  => $roles,
             'users'  => $users,
             'search' => $search,
+            'audits' => $audits,
         ]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user, UserRoleAuditLogger $auditLogger)
     {
         $validated = $request->validate([
             'role_ids'   => 'array',
@@ -92,8 +104,24 @@ class UserAccessController extends Controller
             }
         }
 
+        // Snapshot the previous role set BEFORE sync so we can diff
+        // for the audit log. We restrict to web-guard ids on both
+        // sides so admin-guard roles (irrelevant here) don't leak in.
+        $previousRoleIds = $user->roles()
+            ->where('guard', 'web')
+            ->pluck('roles.id')
+            ->all();
+
         $user->roles()->sync($webGuardIds);
         $user->flushPermissionCache();
+
+        $auditLogger->recordDiff(
+            $user,
+            $previousRoleIds,
+            $webGuardIds,
+            UserRoleAudit::SOURCE_USER_ACCESS,
+            $request->ip(),
+        );
 
         return redirect()
             ->route('user.access.users.index', ['q' => $request->get('q')])

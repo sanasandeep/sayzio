@@ -46,6 +46,49 @@
         </p>
     @endif
 
+    @if(!empty($audits) && $audits->count() > 0)
+        <details class="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <summary class="cursor-pointer px-4 py-3 text-sm text-white/80 select-none">
+                Recent role changes
+                <span class="ml-1 text-xs text-white/40">({{ $audits->count() }} latest)</span>
+            </summary>
+            <div class="px-4 pb-4">
+                <ul class="divide-y divide-white/5 text-sm">
+                    @foreach($audits as $a)
+                        <li class="py-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                            <span class="text-white/40 text-xs whitespace-nowrap"
+                                  title="{{ $a->created_at?->toDateTimeString() }}">
+                                {{ $a->created_at?->diffForHumans() }}
+                            </span>
+                            <span class="text-white">{{ $a->actorLabel() }}</span>
+                            <span class="text-white/50">
+                                @if($a->action === 'attached')
+                                    granted
+                                @else
+                                    revoked
+                                @endif
+                            </span>
+                            <span class="px-2 py-0.5 rounded-md text-xs
+                                {{ $a->action === 'attached' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300' }}">
+                                {{ $a->role_name ?: $a->role_slug }}
+                            </span>
+                            <span class="text-white/50">on</span>
+                            <span class="text-white">
+                                {{ optional($a->targetUser)->name ?: ('User #' . $a->target_user_id) }}
+                            </span>
+                            @if($a->source === 'admin')
+                                <span class="text-xs text-white/30">via back-office</span>
+                            @endif
+                            @if($a->ip)
+                                <span class="text-xs text-white/30">· {{ $a->ip }}</span>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </details>
+    @endif
+
     <div class="space-y-3">
         @forelse($users as $u)
             <form method="POST"
