@@ -50,20 +50,28 @@ class UserAccessController extends Controller
 
         $users = $query->with(['roles' => fn ($q) => $q->where('guard', 'web')])->get();
 
+        // Optional `?audit_source=` chip filter on the timeline below.
+        // Normalise here so the same value can drive the query AND the
+        // view's "active chip" highlighting without re-validating.
+        $auditSource = UserRoleAudit::normaliseSourceFilter($request->get('audit_source'));
+
         // Recent role changes across the user pool. Surfaced to anyone
         // who can see this page (i.e. holders of `user.roles.manage`)
         // so promote/demote actions are no longer invisible.
         $audits = UserRoleAudit::query()
             ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email', 'targetUser:id,name,email'])
+            ->bySourceFilter($auditSource)
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();
 
         return view('user.access.users', [
-            'roles'  => $roles,
-            'users'  => $users,
-            'search' => $search,
-            'audits' => $audits,
+            'roles'        => $roles,
+            'users'        => $users,
+            'search'       => $search,
+            'audits'       => $audits,
+            'auditSource'  => $auditSource,
+            'auditFilters' => UserRoleAudit::sourceFilters(),
         ]);
     }
 

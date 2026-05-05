@@ -469,6 +469,219 @@ class UserRoleAuditTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    /**
+     * Helper for the filter tests: seed one audit row per known
+     * source value (plus a NULL/system row) all targeting the same
+     * user, so each test can assert which rows survive a filter.
+     *
+     * @return array{User, array<string,UserRoleAudit>}
+     */
+    private function seedFourSources(): array
+    {
+        $target = $this->makeUser(['name' => 'Filter Target']);
+        $role   = $this->makeRole('filterable');
+
+        $base = [
+            'actor_user_id'  => null,
+            'actor_admin_id' => null,
+            'actor_guard'    => null,
+            'actor_email'    => null,
+            'target_user_id' => $target->id,
+            'role_id'        => $role->id,
+            'role_slug'      => $role->slug,
+            'role_name'      => $role->name,
+            'action'         => 'attached',
+        ];
+
+        $rows = [
+            'user_access' => UserRoleAudit::create($base + [
+                'actor_name'  => 'Self-Service Sue',
+                'source'      => UserRoleAudit::SOURCE_USER_ACCESS,
+                'created_at'  => now()->subMinutes(4),
+            ]),
+            'admin' => UserRoleAudit::create($base + [
+                'actor_name'  => 'Back-Office Bob',
+                'source'      => UserRoleAudit::SOURCE_ADMIN,
+                'created_at'  => now()->subMinutes(3),
+            ]),
+            'backfill' => UserRoleAudit::create($base + [
+                'actor_name'  => 'Backfill Bot',
+                'source'      => UserRoleAudit::SOURCE_BACKFILL,
+                'created_at'  => now()->subMinutes(2),
+            ]),
+            'system' => UserRoleAudit::create($base + [
+                'actor_name'  => 'CLI Seeder',
+                'source'      => null,
+                'created_at'  => now()->subMinute(),
+            ]),
+        ];
+
+        return [$target, $rows];
+    }
+
+    public function test_source_filter_scope_returns_exact_match_for_named_sources(): void
+    {
+        [$target] = $this->seedFourSources();
+
+        $userAccessRows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->bySourceFilter(UserRoleAudit::SOURCE_USER_ACCESS)
+            ->get();
+        $this->assertSame(1, $userAccessRows->count());
+        $this->assertSame('Self-Service Sue', $userAccessRows->first()->actor_name);
+
+        $adminRows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->bySourceFilter(UserRoleAudit::SOURCE_ADMIN)
+            ->get();
+        $this->assertSame(1, $adminRows->count());
+        $this->assertSame('Back-Office Bob', $adminRows->first()->actor_name);
+
+        $backfillRows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->bySourceFilter(UserRoleAudit::SOURCE_BACKFILL)
+            ->get();
+        $this->assertSame(1, $backfillRows->count());
+        $this->assertSame('Backfill Bot', $backfillRows->first()->actor_name);
+    }
+
+    public function test_source_filter_system_returns_only_null_source_rows(): void
+    {
+        [$target] = $this->seedFourSources();
+
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->bySourceFilter(UserRoleAudit::FILTER_SYSTEM)
+            ->get();
+
+        $this->assertSame(1, $rows->count());
+        $this->assertNull($rows->first()->source);
+        $this->assertSame('CLI Seeder', $rows->first()->actor_name);
+    }
+
+    public function test_source_filter_not_backfill_excludes_only_backfill_rows(): void
+    {
+        [$target] = $this->seedFourSources();
+
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->bySourceFilter(UserRoleAudit::FILTER_NOT_BACKFILL)
+            ->orderBy('created_at')
+            ->get();
+
+        // Should keep user_access, admin, and the NULL/system row but
+        // drop the single backfill row.
+        $this->assertSame(3, $rows->count());
+        $this->assertSame(
+            ['user_access', 'admin', null],
+            $rows->pluck('source')->all(),
+        );
+        foreach ($rows as $r) {
+            $this->assertNotSame(UserRoleAudit::SOURCE_BACKFILL, $r->source);
+        }
+    }
+
+    public function test_source_filter_ignores_unknown_value_and_returns_everything(): void
+    {
+        [$target] = $this->seedFourSources();
+
+        // Unknown / typo'd filter value should normalise to null and
+        // therefore NOT restrict the query.
+        $rows = UserRoleAudit::query()
+            ->where('target_user_id', $target->id)
+            ->bySourceFilter('garbage-value')
+            ->get();
+
+        $this->assertSame(4, $rows->count());
+    }
+
+    public function test_user_access_page_applies_audit_source_filter_from_query_string(): void
+    {
+        // Operator with `user.roles.manage` so they can hit the page.
+        $userAdminRole = Role::where('slug', 'user-admin')->where('guard', 'web')->firstOrFail();
+        $operator = $this->makeUser(['name' => 'Audit Viewer']);
+        $operator->roles()->attach($userAdminRole->id);
+
+        $this->seedFourSources();
+
+        // Filter to backfill only — the page should show the
+        // Backfill Bot row but hide the others.
+        $resp = $this->actingAs($operator, 'web')
+            ->get(route('user.access.users.index', ['audit_source' => 'backfill']))
+            ->assertOk();
+
+        $resp->assertSee('Backfill Bot');
+        $resp->assertDontSee('Self-Service Sue');
+        $resp->assertDontSee('Back-Office Bob');
+        $resp->assertDontSee('CLI Seeder');
+
+        // "Hide backfilled" should drop only the Backfill Bot row.
+        $resp = $this->actingAs($operator, 'web')
+            ->get(route('user.access.users.index', ['audit_source' => 'not_backfill']))
+            ->assertOk();
+
+        $resp->assertSee('Self-Service Sue');
+        $resp->assertSee('Back-Office Bob');
+        $resp->assertSee('CLI Seeder');
+        $resp->assertDontSee('Backfill Bot');
+    }
+
+    public function test_admin_user_show_applies_audit_source_filter_from_query_string(): void
+    {
+        $superRole = Role::firstOrCreate(
+            ['slug' => 'super-admin', 'guard' => 'admin'],
+            ['name' => 'Super Admin']
+        );
+        $admin = Admin::create([
+            'name'     => 'Filter Admin',
+            'email'    => 'fa@admin.test',
+            'password' => Hash::make('x'),
+            'role_id'  => $superRole->id,
+            'status'   => 'active',
+        ]);
+
+        [$target] = $this->seedFourSources();
+
+        // System / CLI filter — only the NULL-source row should
+        // remain in the rendered timeline.
+        $resp = $this->actingAs($admin, 'admin')
+            ->get(route('admin.users.show', ['user' => $target, 'audit_source' => 'system']))
+            ->assertOk();
+
+        $resp->assertSee('CLI Seeder');
+        $resp->assertDontSee('Self-Service Sue');
+        $resp->assertDontSee('Back-Office Bob');
+        $resp->assertDontSee('Backfill Bot');
+    }
+
+    public function test_admin_role_edit_applies_audit_source_filter_from_query_string(): void
+    {
+        $superRole = Role::firstOrCreate(
+            ['slug' => 'super-admin', 'guard' => 'admin'],
+            ['name' => 'Super Admin']
+        );
+        $admin = Admin::create([
+            'name'     => 'Roles Filter Admin',
+            'email'    => 'rfa@admin.test',
+            'password' => Hash::make('x'),
+            'role_id'  => $superRole->id,
+            'status'   => 'active',
+        ]);
+
+        [$target] = $this->seedFourSources();
+
+        // Admin source filter — only Back-Office Bob's row should
+        // appear in the per-user history.
+        $resp = $this->actingAs($admin, 'admin')
+            ->get(route('admin.users.roles.edit', ['user' => $target, 'audit_source' => 'admin']))
+            ->assertOk();
+
+        $resp->assertSee('Back-Office Bob');
+        $resp->assertDontSee('Self-Service Sue');
+        $resp->assertDontSee('Backfill Bot');
+        $resp->assertDontSee('CLI Seeder');
+    }
+
     public function test_admin_role_update_records_actor_on_admin_guard(): void
     {
         // Seed a super-admin Admin (role lookup is permissive — slug

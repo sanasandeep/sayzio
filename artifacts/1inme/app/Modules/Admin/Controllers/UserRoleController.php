@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserRoleController extends Controller
 {
-    public function edit(User $user)
+    public function edit(Request $request, User $user)
     {
         $roles = Role::query()
             ->where('guard', 'web')
@@ -22,21 +22,28 @@ class UserRoleController extends Controller
 
         $assigned = $user->roles()->pluck('roles.id')->all();
 
+        // Optional `?audit_source=` chip filter; normalise once so the
+        // same value seeds the query and the view's chip highlight.
+        $auditSource = UserRoleAudit::normaliseSourceFilter($request->get('audit_source'));
+
         // Per-user role-change history. Surfaced to anyone with
         // `users.edit` (the existing route guard) so back-office
         // operators can see who promoted/demoted this user before.
         $audits = UserRoleAudit::query()
             ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email'])
             ->where('target_user_id', $user->id)
+            ->bySourceFilter($auditSource)
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();
 
         return view('admin.users.roles', [
-            'user'     => $user,
-            'roles'    => $roles,
-            'assigned' => $assigned,
-            'audits'   => $audits,
+            'user'         => $user,
+            'roles'        => $roles,
+            'assigned'     => $assigned,
+            'audits'       => $audits,
+            'auditSource'  => $auditSource,
+            'auditFilters' => UserRoleAudit::sourceFilters(),
         ]);
     }
 

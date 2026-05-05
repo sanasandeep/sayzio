@@ -28,6 +28,84 @@ class UserRoleAudit extends Model
     public const SOURCE_USER_DELETED = 'user_deleted';
     public const SOURCE_ROLE_DELETED = 'role_deleted';
 
+    /**
+     * Sentinel used by the source filter to mean "rows whose `source`
+     * column is NULL" — i.e. ledger entries written by CLI seeders or
+     * other code paths that don't tag themselves. NOT a value that
+     * gets persisted to the database.
+     */
+    public const FILTER_SYSTEM       = 'system';
+
+    /**
+     * Sentinel that hides backfilled rows while still showing every
+     * other source. Selectable from the same chip group as the
+     * specific-source filters.
+     */
+    public const FILTER_NOT_BACKFILL = 'not_backfill';
+
+    /**
+     * Selectable filter values surfaced on the audit timeline UIs,
+     * in the order chips should be rendered. Keys are URL-safe
+     * filter values; values are short human labels.
+     *
+     * @return array<string, string>
+     */
+    public static function sourceFilters(): array
+    {
+        return [
+            self::SOURCE_USER_ACCESS  => 'User access',
+            self::SOURCE_ADMIN        => 'Back-office',
+            self::FILTER_SYSTEM       => 'System / CLI',
+            self::SOURCE_BACKFILL     => 'Backfilled',
+            self::FILTER_NOT_BACKFILL => 'Hide backfilled',
+        ];
+    }
+
+    /**
+     * Normalise an incoming `?audit_source=` query string parameter
+     * to one of the known filter keys, or `null` when no recognised
+     * filter is in effect ("All sources"). Anything we don't
+     * understand becomes null so a stale/typo'd link still renders
+     * the timeline rather than a blank page.
+     */
+    public static function normaliseSourceFilter(?string $value): ?string
+    {
+        if ($value === null || $value === '' || $value === 'all') {
+            return null;
+        }
+        return array_key_exists($value, self::sourceFilters()) ? $value : null;
+    }
+
+    /**
+     * Apply the chip-bar source filter to an audit query.
+     *
+     * - `null`             → no filter (show everything).
+     * - `user_access` /
+     *   `admin` /
+     *   `backfill`         → exact match on the `source` column.
+     * - `system`           → rows where `source IS NULL` (CLI seeders,
+     *                        legacy writes that pre-date the column).
+     * - `not_backfill`     → everything except `source = 'backfill'`,
+     *                        including NULL rows.
+     */
+    public function scopeBySourceFilter($query, ?string $filter)
+    {
+        $filter = self::normaliseSourceFilter($filter);
+        if ($filter === null) {
+            return $query;
+        }
+        if ($filter === self::FILTER_SYSTEM) {
+            return $query->whereNull('source');
+        }
+        if ($filter === self::FILTER_NOT_BACKFILL) {
+            return $query->where(function ($q) {
+                $q->whereNull('source')
+                  ->orWhere('source', '!=', self::SOURCE_BACKFILL);
+            });
+        }
+        return $query->where('source', $filter);
+    }
+
     protected $table = 'user_role_audits';
 
     public $timestamps = false;

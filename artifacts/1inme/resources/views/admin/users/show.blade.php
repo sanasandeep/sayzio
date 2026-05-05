@@ -119,8 +119,39 @@
                 </div>
             </div>
 
+            {{-- Source chip filter. Each chip is a plain link that
+                 sets/clears `?audit_source=` so the URL is shareable
+                 and survives reloads. --}}
+            <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-source-filter">
+                <span class="text-xs text-white/40 mr-1">Filter:</span>
+                <a href="{{ route('admin.users.show', $user) }}"
+                   data-source="all"
+                   class="px-2.5 py-1 rounded-full text-xs border
+                       {{ empty($auditSource ?? null)
+                           ? 'bg-white/15 text-white border-white/20'
+                           : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
+                    All
+                </a>
+                @foreach(($auditFilters ?? []) as $filterValue => $filterLabel)
+                    <a href="{{ route('admin.users.show', ['user' => $user, 'audit_source' => $filterValue]) }}"
+                       data-source="{{ $filterValue }}"
+                       class="px-2.5 py-1 rounded-full text-xs border
+                           {{ ($auditSource ?? null) === $filterValue
+                               ? 'bg-white/15 text-white border-white/20'
+                               : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
+                        {{ $filterLabel }}
+                    </a>
+                @endforeach
+            </div>
+
             @if(empty($roleAudits) || $roleAudits->isEmpty())
-                <p class="text-sm text-white/40">No role changes recorded yet.</p>
+                <p class="text-sm text-white/40">
+                    @if(!empty($auditSource ?? null))
+                        No entries match this filter.
+                    @else
+                        No role changes recorded yet.
+                    @endif
+                </p>
             @else
                 <ul class="divide-y divide-white/5 text-sm">
                     @foreach($roleAudits as $a)

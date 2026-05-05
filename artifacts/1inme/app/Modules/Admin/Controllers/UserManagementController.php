@@ -40,7 +40,7 @@ class UserManagementController extends Controller
         return view('admin.users.index', compact('users', 'plans'));
     }
 
-    public function show(User $user)
+    public function show(Request $request, User $user)
     {
         $user->load('plan');
         $plans = Plan::active()->ordered()->get();
@@ -56,17 +56,26 @@ class UserManagementController extends Controller
         // the response body — the view also hides the panel.
         $admin = Auth::guard('admin')->user();
         $canSeeRoleAudits = $admin && $admin->hasPermission('users.edit');
+
+        // Optional `?audit_source=` chip filter; normalise once so the
+        // same value seeds the query and the view's chip highlight.
+        $auditSource = UserRoleAudit::normaliseSourceFilter($request->get('audit_source'));
+
         $roleAudits = $canSeeRoleAudits
             ? UserRoleAudit::query()
                 ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email'])
                 ->where('target_user_id', $user->id)
+                ->bySourceFilter($auditSource)
                 ->orderByDesc('created_at')
                 ->limit(20)
                 ->get()
             : collect();
 
+        $auditFilters = UserRoleAudit::sourceFilters();
+
         return view('admin.users.show', compact(
-            'user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions', 'roleAudits'
+            'user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions',
+            'roleAudits', 'auditSource', 'auditFilters'
         ));
     }
 

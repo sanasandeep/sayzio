@@ -52,12 +52,12 @@
         </p>
     @endif
 
-    @if(!empty($audits) && $audits->count() > 0)
-        <details class="rounded-2xl border border-white/10 bg-white/[0.03]">
+    @if((!empty($audits) && $audits->count() > 0) || !empty($auditSource))
+        <details class="rounded-2xl border border-white/10 bg-white/[0.03]" {{ !empty($auditSource) ? 'open' : '' }}>
             <summary class="cursor-pointer px-4 py-3 text-sm text-white/80 select-none flex items-center justify-between gap-3">
                 <span>
                     Recent role changes
-                    <span class="ml-1 text-xs text-white/40">({{ $audits->count() }} latest)</span>
+                    <span class="ml-1 text-xs text-white/40">({{ $audits->count() }} {{ !empty($auditSource) ? 'matching' : 'latest' }})</span>
                 </span>
                 <a href="{{ route('user.access.users.audit.export') }}"
                    onclick="event.stopPropagation();"
@@ -67,6 +67,34 @@
                 </a>
             </summary>
             <div class="px-4 pb-4">
+                {{-- Source filter chips. Each chip is a plain link that
+                     adds/clears `?audit_source=` while preserving the
+                     active search term, so the URL is shareable. --}}
+                <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-source-filter">
+                    <span class="text-xs text-white/40 mr-1">Filter:</span>
+                    <a href="{{ route('user.access.users.index', array_filter(['q' => $search])) }}"
+                       data-source="all"
+                       class="px-2.5 py-1 rounded-full text-xs border
+                           {{ empty($auditSource)
+                               ? 'bg-white/15 text-white border-white/20'
+                               : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
+                        All
+                    </a>
+                    @foreach($auditFilters as $filterValue => $filterLabel)
+                        <a href="{{ route('user.access.users.index', array_filter(['q' => $search, 'audit_source' => $filterValue])) }}"
+                           data-source="{{ $filterValue }}"
+                           class="px-2.5 py-1 rounded-full text-xs border
+                               {{ $auditSource === $filterValue
+                                   ? 'bg-white/15 text-white border-white/20'
+                                   : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
+                            {{ $filterLabel }}
+                        </a>
+                    @endforeach
+                </div>
+
+                @if($audits->isEmpty())
+                    <p class="text-sm text-white/40 py-2">No entries match this filter.</p>
+                @else
                 <ul class="divide-y divide-white/5 text-sm">
                     @foreach($audits as $a)
                         {{-- id anchor lets the platform-role alert email link
@@ -107,6 +135,7 @@
                         </li>
                     @endforeach
                 </ul>
+                @endif
             </div>
         </details>
     @endif
