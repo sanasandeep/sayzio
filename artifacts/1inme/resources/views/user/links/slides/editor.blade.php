@@ -273,6 +273,14 @@
                             <option value="1" {{ !empty($deckPayload['settings']['loop'])?'selected':'' }}>On</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="sl-field-label">Navigation arrows</label>
+                        @php $showArrows = ($deckPayload['settings']['show_arrows'] ?? true) ? true : false; @endphp
+                        <select id="sl-arrows" class="sl-select">
+                            <option value="1" {{ $showArrows ? 'selected' : '' }}>Show (faded ‹ ›)</option>
+                            <option value="0" {{ !$showArrows ? 'selected' : '' }}>Hide (swipe only)</option>
+                        </select>
+                    </div>
                 </div>
             </details>
         </div>
@@ -626,7 +634,7 @@ document.getElementById('sl-add-slide').addEventListener('click', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input',  () => scheduleAutoSave());
 });
-['sl-transition','sl-auto','sl-loop'].forEach(id => {
+['sl-transition','sl-auto','sl-loop','sl-arrows'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('change', () => scheduleAutoSave());
@@ -645,6 +653,7 @@ function buildPayload(publish) {
             transition:   document.getElementById('sl-transition').value,
             auto_advance: parseInt(document.getElementById('sl-auto').value, 10) || 0,
             loop:         document.getElementById('sl-loop').value === '1',
+            show_arrows:  document.getElementById('sl-arrows').value === '1',
         },
         slides: slides.map(s => ({
             title:          s.title || null,

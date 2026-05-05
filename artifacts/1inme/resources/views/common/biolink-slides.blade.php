@@ -29,6 +29,9 @@
     $defaultTransition = $settings['transition'] ?? 'slide';
     $autoAdvance       = (int) ($settings['auto_advance'] ?? 0);
     $loop              = (bool) ($settings['loop'] ?? false);
+    // Light, faded chevron arrows are on by default. Creators can disable
+    // them per deck if they prefer a swipe-only / minimal look.
+    $showArrows        = ($settings['show_arrows'] ?? true) ? true : false;
     $slides            = $payload['slides'] ?? [];
 
     $title = $link->title ?: $link->alias;
@@ -118,13 +121,29 @@
     /* Nav is edge-only so the middle of the screen stays interactive
        for slide blocks (links, polls, forms, etc.). The container
        ignores pointer events; only the explicit edge buttons receive
-       them. */
+       them. The arrows are light + faded so they suggest navigation
+       without competing with the slide content; tap targets remain
+       generous (full slide height, ~52px wide) for easy thumb reach. */
     .sl-nav { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
     .sl-nav button {
-        position: absolute; top: 0; bottom: 0; width: 64px;
+        position: absolute; top: 0; bottom: 0; width: 56px;
         background: transparent; border: 0; cursor: pointer; outline: none;
-        color: transparent; font-size: 0; pointer-events: auto;
+        color: rgba(255,255,255,0.55); pointer-events: auto;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0; padding: 0;
+        transition: color 180ms ease, background 180ms ease, opacity 180ms ease;
     }
+    /* SVG chevrons are inlined below; size + colour is driven from CSS so
+       the arrow inherits the button colour and the deck's overall theme. */
+    .sl-nav button svg { width: 22px; height: 22px; opacity: 0.85;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+    .sl-nav button:hover { color: rgba(255,255,255,0.95); }
+    .sl-nav button:hover svg { opacity: 1; }
+    /* When the deck setting `show_arrows` is false we keep the buttons in
+       the DOM (so swipe-only users don't lose the keyboard handlers) but
+       hide them visually + remove the tap target. */
+    .sl-deck.no-arrows #sl-prev,
+    .sl-deck.no-arrows #sl-next { display: none; }
     #sl-prev  { left: 0; }
     #sl-next  { right: 0; }
     #sl-pause {
@@ -152,7 +171,7 @@
 </style>
 </head>
 <body>
-<div class="sl-deck" id="sl-deck">
+<div class="sl-deck {{ $showArrows ? '' : 'no-arrows' }}" id="sl-deck">
     @if(empty($slides))
         <div class="sl-empty">
             This deck is empty.@if($isOwnerPreview)<br><small>Add slides in the editor and republish.</small>@endif
@@ -281,9 +300,13 @@
         </div>
 
         <div class="sl-nav" aria-hidden="true">
-            <button type="button" id="sl-prev" aria-label="Previous slide">prev</button>
+            <button type="button" id="sl-prev" aria-label="Previous slide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
             <button type="button" id="sl-pause" aria-label="Pause"></button>
-            <button type="button" id="sl-next" aria-label="Next slide">next</button>
+            <button type="button" id="sl-next" aria-label="Next slide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
         </div>
 
         <div class="sl-counter"><span id="sl-counter">1 / {{ count($slides) }}</span></div>

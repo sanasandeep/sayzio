@@ -152,6 +152,8 @@ class SlideDeckController extends Controller
             'settings.transition'       => 'nullable|string|in:slide,fade,zoom,flip,none',
             'settings.auto_advance'     => 'nullable|integer|min:0|max:60000',
             'settings.loop'             => 'nullable|boolean',
+            // Faded ‹ › chevrons rendered on the public deck. Default: true.
+            'settings.show_arrows'      => 'nullable|boolean',
             'is_published'              => 'nullable|boolean',
             'slides'                    => 'required|array|min:1|max:50',
             'slides.*.title'            => 'nullable|string|max:160',
