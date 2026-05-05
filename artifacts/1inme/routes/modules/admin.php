@@ -477,6 +477,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('authors', [\App\Modules\Admin\Controllers\Blog\AuthorController::class, 'index'])->middleware(CheckPermission::class . ':blogs.view')->name('authors.index');
         });
 
+        // Adult-content moderation (Task #1208). Suspends or restores
+        // a creator's public 18+ tag while preserving the consent /
+        // age-affirmation audit trail.
+        Route::prefix('adult-moderation')->name('adult-moderation.')->group(function () {
+            Route::get ('/',                       [\App\Modules\Admin\Controllers\AdultModerationController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
+            Route::post('{user}/suspend',          [\App\Modules\Admin\Controllers\AdultModerationController::class, 'suspend'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('suspend');
+            Route::post('{user}/restore',          [\App\Modules\Admin\Controllers\AdultModerationController::class, 'restore'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('restore');
+        });
+
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserManagementController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');

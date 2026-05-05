@@ -109,6 +109,7 @@ function RootLayoutNav() {
       <Stack.Screen name="biolink/[handle]" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
       <Stack.Screen name="resume" options={{ title: "Resume" }} />
+      <Stack.Screen name="payouts" options={{ title: "Earnings & Payouts" }} />
       <Stack.Screen name="qr-studio" options={{ title: "QR studio" }} />
       <Stack.Screen name="backlinks" options={{ title: "Backlinks" }} />
       <Stack.Screen name="visitors" options={{ title: "Visitors" }} />

@@ -34,6 +34,10 @@ class User extends Authenticatable
         // Creator Profile (separate /@handle surface — see Task #1207).
         'cover_image', 'tagline', 'location', 'niche_tags', 'socials',
         'profile_published', 'profile_section_visibility', 'posts_count',
+        // Creator payouts + NSFW consent (Task #1208).
+        'adult_content_enabled', 'adult_content_enabled_at',
+        'age_verified_at',
+        'adult_flag_suspended_at', 'adult_flag_suspended_reason', 'adult_flag_suspended_by',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -68,7 +72,33 @@ class User extends Authenticatable
             'profile_section_visibility' => 'array',
             'profile_published' => 'boolean',
             'posts_count' => 'integer',
+            // Creator payouts + NSFW consent (Task #1208).
+            'adult_content_enabled'        => 'boolean',
+            'adult_content_enabled_at'     => 'datetime',
+            'age_verified_at'              => 'datetime',
+            'adult_flag_suspended_at'      => 'datetime',
         ];
+    }
+
+    /**
+     * Convenience: per the policy, a creator is publicly tagged 18+
+     * when they opted in AND a moderator hasn't suspended the flag.
+     * Used by visitor surfaces (age gate, /creators directory filter).
+     */
+    public function isAdultProfile(): bool
+    {
+        return (bool) $this->adult_content_enabled
+            && empty($this->adult_flag_suspended_at);
+    }
+
+    public function paymentConnections()
+    {
+        return $this->hasMany(\App\Modules\User\Models\CreatorPaymentConnection::class)->orderByDesc('is_default')->orderBy('id');
+    }
+
+    public function defaultPaymentConnection(): ?\App\Modules\User\Models\CreatorPaymentConnection
+    {
+        return $this->paymentConnections()->where('is_default', true)->first();
     }
 
     /**

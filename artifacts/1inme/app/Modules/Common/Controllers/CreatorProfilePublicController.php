@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Services\AgeGate;
 use App\Modules\Common\Services\ViewerSession;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\CreatorPostComment;
@@ -28,7 +29,7 @@ class CreatorProfilePublicController extends Controller
     /**
      * Render the public profile page for /@{handle}.
      */
-    public function show(string $handle)
+    public function show(string $handle, Request $request)
     {
         $creator = $this->resolveCreator($handle);
         if (!$creator) abort(404);
@@ -41,6 +42,16 @@ class CreatorProfilePublicController extends Controller
         $isOwner = $viewer && (int) $viewer->id === (int) $creator->id;
         if (!$isOwner && !$creator->profile_published) {
             abort(404);
+        }
+
+        // Visitor 18+ age gate (Task #1208). Owners always bypass.
+        // Logged-in viewers who have ever affirmed 18+ on their own
+        // account also bypass; otherwise we set a 30-day cookie via the
+        // interstitial form.
+        if (!$isOwner && $creator->isAdultProfile() && !AgeGate::passed($request, $viewer)) {
+            return response()->view('public.age-gate', [
+                'creator' => $creator,
+            ], 200);
         }
 
         $sectionsVisible = $creator->profileSectionVisibility();

@@ -326,6 +326,26 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('/handle',  [\App\Modules\User\Controllers\CreatorProfileController::class, 'claimHandle'])->name('handle.claim');
         });
 
+        // ── Earnings & Payouts (Task #1208) ─────────────────────────
+        // Workspace owner area: connect / manage payout providers and
+        // toggle the 18+ adult-content flag on the profile. Owner-only
+        // because payout connections are per-account financial data.
+        Route::prefix('payouts')->name('payouts.')->middleware('workspace.owner')->group(function () {
+            Route::get ('/',                                  [\App\Modules\User\Controllers\CreatorPayoutController::class, 'show'])->name('show');
+            Route::get ('preview',                            [\App\Modules\User\Controllers\CreatorPayoutController::class, 'preview'])->name('preview');
+            Route::get ('connect/{provider}',                 [\App\Modules\User\Controllers\CreatorPayoutController::class, 'connect'])->name('connect');
+            Route::get ('return/{provider}',                  [\App\Modules\User\Controllers\CreatorPayoutController::class, 'returnFrom'])->name('return');
+            Route::post('preview/{provider}/complete',        [\App\Modules\User\Controllers\CreatorPayoutController::class, 'previewComplete'])->name('preview-complete');
+            Route::post('{connection}/sync',                  [\App\Modules\User\Controllers\CreatorPayoutController::class, 'sync'])->whereNumber('connection')->name('sync');
+            Route::post('{connection}/default',               [\App\Modules\User\Controllers\CreatorPayoutController::class, 'setDefault'])->whereNumber('connection')->name('set-default');
+            Route::delete('{connection}',                     [\App\Modules\User\Controllers\CreatorPayoutController::class, 'destroy'])->whereNumber('connection')->name('destroy');
+        });
+
+        Route::prefix('adult-content')->name('adult-content.')->middleware('workspace.owner')->group(function () {
+            Route::get ('/',  [\App\Modules\User\Controllers\AdultContentController::class, 'show'])->name('show');
+            Route::post('/',  [\App\Modules\User\Controllers\AdultContentController::class, 'update'])->name('update');
+        });
+
         Route::prefix('profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');

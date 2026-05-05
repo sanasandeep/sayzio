@@ -34,6 +34,13 @@ Route::get('/.well-known/assetlinks.json',
 // ---- Public Creators directory ----
 Route::get('/creators', [\App\Modules\Common\Controllers\CreatorsController::class, 'index'])->name('creators.index');
 
+// ── Visitor 18+ age gate (Task #1208) ─────────────────────────────
+// Posted from the interstitial shown on /@handle when the creator
+// has the adult flag enabled. Stores a per-device cookie for 30 days.
+Route::post('/age-gate/confirm', [\App\Modules\Common\Controllers\AgeGateController::class, 'confirm'])
+    ->middleware('throttle:30,1')->name('age-gate.confirm');
+Route::get ('/age-gate/leave',   [\App\Modules\Common\Controllers\AgeGateController::class, 'leave'])->name('age-gate.leave');
+
 // Public viewer feed (works for ViewerSession OR dashboard auth).
 Route::get ('/feed',                  [\App\Modules\User\Controllers\FeedController::class, 'index'])->name('feed.index');
 Route::post('/feed/notifications/read',[\App\Modules\User\Controllers\FeedController::class, 'markAllRead'])->name('feed.notifications.read');

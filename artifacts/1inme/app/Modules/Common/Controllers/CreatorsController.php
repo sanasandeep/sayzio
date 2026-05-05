@@ -4,6 +4,7 @@ namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Models\ViewerDmUserBlock;
+use App\Modules\Common\Services\AgeGate;
 use App\Modules\Common\Services\ViewerSession;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
@@ -20,6 +21,18 @@ class CreatorsController extends Controller
         $q    = trim((string) $request->query('q', ''));
         $sort = $request->query('sort', 'trending');
 
+        // Adult-content directory filter (Task #1208).
+        //   - Default: hide 18+ profiles entirely.
+        //   - `show_adult=1` opt-in surfaces them, but only when the
+        //     visitor has either passed the per-device age gate cookie
+        //     OR is signed in with their own 18+ affirmation.
+        //   - `only_adult=1` is a stricter view used by adult-content
+        //     creators looking for peers (still respects the gate).
+        $viewer = ViewerSession::user() ?? auth()->user();
+        $ageGated = AgeGate::passed($request, $viewer);
+        $showAdult = $ageGated && (string) $request->query('show_adult', '0') === '1';
+        $onlyAdult = $ageGated && (string) $request->query('only_adult', '0') === '1';
+
         // Discoverable users that have at least one published biolink.
         $publishedBiolinkUserIds = Link::where('type', 'biolink')
             ->where('is_active', true)
@@ -28,6 +41,19 @@ class CreatorsController extends Controller
         $query = User::query()
             ->where('discoverable', true)
             ->whereIn('id', $publishedBiolinkUserIds);
+
+        if ($onlyAdult) {
+            $query->where('adult_content_enabled', true)
+                  ->whereNull('adult_flag_suspended_at');
+        } elseif (!$showAdult) {
+            // Hide adult-flagged profiles. We treat suspended-flag rows
+            // as visible (the moderator decision lifts the public 18+
+            // tag) so they don't fall off the directory entirely.
+            $query->where(function ($w) {
+                $w->where('adult_content_enabled', false)
+                  ->orWhereNotNull('adult_flag_suspended_at');
+            });
+        }
 
         if ($q !== '') {
             $like = '%' . $q . '%';
@@ -71,7 +97,10 @@ class CreatorsController extends Controller
         $buzzSnippets = $this->buildBuzzSnippets($creators->pluck('id')->all());
         $messageableBiolinks = $this->buildMessageableBiolinks($creators);
 
-        return view('common.creators-directory', compact('creators', 'q', 'sort', 'myFollowingIds', 'buzzSnippets', 'messageableBiolinks'));
+        return view('common.creators-directory', compact(
+            'creators', 'q', 'sort', 'myFollowingIds', 'buzzSnippets', 'messageableBiolinks',
+            'showAdult', 'onlyAdult', 'ageGated'
+        ));
     }
 
     /**

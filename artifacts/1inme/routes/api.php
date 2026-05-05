@@ -161,6 +161,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/profile',   [ProfileController::class, 'show']);
         Route::patch('/profile', [ProfileController::class, 'update']);
 
+        // Creator Payouts + Adult-content (Task #1208) ───────────────
+        // Mobile parity for the "Earnings & Payouts" dashboard. The
+        // hosted-onboarding URL is returned to the app to open in an
+        // in-app browser; webhooks + return parsing remain server-side.
+        Route::get   ('/payouts',                       [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'index']);
+        Route::post  ('/payouts/{provider}/connect',    [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'connect']);
+        Route::post  ('/payouts/{connection}/sync',     [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'sync'])->whereNumber('connection');
+        Route::post  ('/payouts/{connection}/default',  [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'setDefault'])->whereNumber('connection');
+        Route::delete('/payouts/{connection}',          [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'destroy'])->whereNumber('connection');
+
+        Route::get   ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultShow']);
+        Route::post  ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultUpdate']);
+
         // Wallet & coins (mobile parity).
         Route::get ('/wallet',              [WalletController::class, 'balance']);
         Route::get ('/wallet/transactions', [WalletController::class, 'transactions']);

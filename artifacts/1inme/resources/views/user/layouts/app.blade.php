@@ -721,6 +721,13 @@
                     <span class="nav-label">My Posts</span>
                     <span class="sidebar-tooltip">My Posts</span>
                 </a>
+                <a href="{{ route('user.payouts.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"
+                   style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div>
+                    <span class="nav-label">Earnings & Payouts</span>
+                    <span class="sidebar-tooltip">Earnings & Payouts</span>
+                </a>
                 <a href="{{ route('feed.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"
                    style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
