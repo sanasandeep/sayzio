@@ -56,6 +56,11 @@ class PlatformHosts
      * Useful as the default for "copy short link" buttons so a creator
      * editing on the Replit dev domain copies a URL that uses that
      * same host (rather than always APP_URL).
+     *
+     * Loopback hosts (localhost / 127.0.0.1 / 0.0.0.0) are intentionally
+     * skipped — they appear in dev when the public Replit proxy forwards
+     * to the app on localhost, but they are never useful as a copyable
+     * short-link prefix for the creator.
      */
     public static function currentRequestHost(): ?string
     {
@@ -65,7 +70,42 @@ class PlatformHosts
             return null;
         }
         if ($host === null) return null;
+        if (self::isLoopback($host)) return null;
         return in_array($host, self::configured(), true) ? $host : null;
+    }
+
+    /**
+     * The best host to *display* to the creator as their primary
+     * platform short-link prefix. Always prefers a real public domain
+     * (Replit deployment domains, then the dev preview, then APP_URL)
+     * over loopback hosts so the alias card never shows "localhost/".
+     */
+    public static function primary(): string
+    {
+        $deployed = (string) env('REPLIT_DOMAINS', '');
+        if ($deployed !== '') {
+            foreach (explode(',', $deployed) as $d) {
+                $n = self::normalize($d);
+                if ($n && !self::isLoopback($n)) return $n;
+            }
+        }
+
+        $dev = self::normalize(env('REPLIT_DEV_DOMAIN'));
+        if ($dev && !self::isLoopback($dev)) return $dev;
+
+        $app = self::normalize(parse_url((string) config('app.url'), PHP_URL_HOST) ?: null);
+        if ($app && !self::isLoopback($app)) return $app;
+
+        // Last resort: any configured host, even loopback, then raw APP_URL.
+        foreach (self::configured() as $h) {
+            if (!self::isLoopback($h)) return $h;
+        }
+        return $app ?? 'localhost';
+    }
+
+    private static function isLoopback(string $host): bool
+    {
+        return in_array($host, ['localhost', '127.0.0.1', '0.0.0.0', '::1'], true);
     }
 
     /**

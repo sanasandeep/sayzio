@@ -11,10 +11,10 @@
     $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
     // Prefer the host the creator is currently browsing on (when it's a
     // configured platform host) so the displayed/copied URL matches their
-    // current context. Falls back to APP_URL, then the raw request host.
+    // current context. Falls back to the platform's primary public host
+    // (deploy domain → dev preview → APP_URL), never to "localhost/".
     $aliasHost  = $link->domain?->domain
-        ?: (PlatformHosts::currentRequestHost()
-            ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost()));
+        ?: (PlatformHosts::currentRequestHost() ?: PlatformHosts::primary());
     // Only show "also live on" hints for platform short links (no custom domain).
     $showHostsHint = !$link->domain;
 @endphp
