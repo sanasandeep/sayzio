@@ -78,19 +78,106 @@
     .sl-btn-ghost   { background: transparent; color: var(--text-muted);
         border: 1px solid var(--border-glass); }
 
+    /* Light-mode contrast fixes — the chip/button colors above were tuned
+       for the dark canvas and become invisible on a white surface. */
+    html.light-mode .sl-btn {
+        background: rgba(124,58,237,0.10);
+        color: #5b21b6;
+        border-color: rgba(124,58,237,0.30);
+    }
+    html.light-mode .sl-btn:hover { background: rgba(124,58,237,0.18); }
+    html.light-mode .sl-btn-primary { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    html.light-mode .sl-btn-primary:hover { background: #6d28d9; }
+    html.light-mode .sl-btn-danger  { background: #fde7ec; color: #b91c1c; border-color: #fca5a5; }
+    html.light-mode .sl-btn-ghost   { color: var(--text-secondary); }
+
     .sl-block-chip {
         display: inline-flex; align-items: center; gap: 6px;
-        background: rgba(139,92,246,0.15); color: #ddd;
-        border: 1px solid rgba(139,92,246,0.3);
+        background: rgba(139,92,246,0.18); color: var(--text-primary);
+        border: 1px solid rgba(139,92,246,0.35);
         border-radius: 999px; padding: 4px 10px;
-        font-size: 12px; margin: 0 4px 4px 0;
+        font-size: 12px; margin: 0 4px 4px 0; font-weight: 600;
     }
     .sl-block-chip button {
-        background: transparent; border: 0; color: #fca5a5;
+        background: transparent; border: 0; color: #ef4444;
         font-size: 14px; cursor: pointer; padding: 0; line-height: 1;
     }
+    html.light-mode .sl-block-chip {
+        background: #f3eeff; color: #5b21b6; border-color: #d8c3ff;
+    }
+    html.light-mode .sl-block-chip button { color: #dc2626; }
 
     .sl-empty { color: var(--text-faint); font-size: 13px; padding: 8px 0; }
+    html.light-mode .sl-empty { color: var(--text-dimmed); }
+
+    /* Width selector — same 6-stop pattern as biolink-editor (3,4,6,8,9,12). */
+    .sl-span-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+    .sl-span-row > .sl-span-label {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; color: var(--text-faint); flex-shrink: 0;
+    }
+    .sl-span-btns { display: flex; gap: 3px; flex: 1; }
+    .sl-span-btn {
+        flex: 1; min-width: 28px;
+        font-size: 11px; font-weight: 700; padding: 4px 6px; border-radius: 6px;
+        background: var(--bg-glass-input); border: 1px solid var(--border-glass);
+        color: var(--text-muted); cursor: pointer; transition: all .12s ease;
+    }
+    .sl-span-btn:hover { color: var(--text-primary); border-color: rgba(124,58,237,0.5); }
+    .sl-span-btn.active {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: #fff; border-color: transparent;
+        box-shadow: 0 2px 8px -2px rgba(124,58,237,0.55);
+    }
+
+    /* Per-block compact row — the cluster of Anim/Delay/Align/Width below each chip. */
+    .sl-block-row {
+        display: flex; flex-direction: column; gap: 6px;
+        background: var(--bg-glass-input); border: 1px solid var(--border-glass);
+        border-radius: 10px; padding: 8px 10px; margin-bottom: 6px;
+    }
+    .sl-block-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sl-block-row-controls {
+        display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+        gap: 6px; align-items: center;
+    }
+    .sl-block-row-controls > label {
+        font-size: 10px; font-weight: 600; color: var(--text-muted);
+        display: flex; flex-direction: column; gap: 2px;
+    }
+    .sl-block-row-controls .sl-select,
+    .sl-block-row-controls .sl-input { padding: 4px 6px; font-size: 11px; border-radius: 6px; }
+
+    /* Autosave status pill — top-right of the Slides card. */
+    .sl-autosave {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11px; font-weight: 600; color: var(--text-faint);
+        padding: 4px 10px; border-radius: 999px;
+        background: var(--bg-glass-input); border: 1px solid var(--border-glass);
+        transition: opacity .25s ease, color .15s ease;
+    }
+    .sl-autosave .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .sl-autosave.is-saving { color: #f59e0b; }
+    .sl-autosave.is-saved  { color: #10b981; }
+    .sl-autosave.is-error  { color: #ef4444; }
+    .sl-autosave.is-idle   { opacity: 0; pointer-events: none; }
+
+    /* "Advanced" disclosure — keeps secondary fields out of the way. */
+    .sl-advanced { margin-top: 10px; }
+    .sl-advanced > summary {
+        cursor: pointer; list-style: none; user-select: none;
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; color: var(--text-muted); padding: 4px 0;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .sl-advanced > summary::-webkit-details-marker { display: none; }
+    .sl-advanced > summary::before {
+        content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
+        font-size: 10px; transition: transform .15s ease;
+    }
+    .sl-advanced[open] > summary::before { transform: rotate(90deg); }
+    .sl-advanced > summary:hover { color: var(--text-primary); }
+    .sl-advanced > .sl-row { margin-top: 8px; }
 
     .sl-preview-wrap {
         background: rgba(0,0,0,0.35); border-radius: 18px;
@@ -130,7 +217,8 @@
         <div class="sl-card">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
                 <h5>Deck settings</h5>
-                <div style="display:flex;align-items:center;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span id="sl-autosave" class="sl-autosave is-idle"><span class="dot"></span><span class="label">Saved</span></span>
                     <a href="{{ route('user.links.slides.analytics', $link) }}" class="sl-btn" title="View slide analytics">
                         <i class="fas fa-chart-bar"></i> Analytics
                     </a>
@@ -141,39 +229,45 @@
             </div>
             <div class="sl-row" style="margin-top:10px;">
                 <div>
-                    <label class="sl-field-label">Background</label>
+                    <label class="sl-field-label">Default slide background</label>
                     <input type="color" id="sl-theme-bg"  class="sl-input" value="{{ $deckPayload['settings']['theme']['background'] ?? '#0f172a' }}">
                 </div>
                 <div>
-                    <label class="sl-field-label">Accent</label>
-                    <input type="color" id="sl-theme-acc" class="sl-input" value="{{ $deckPayload['settings']['theme']['accent'] ?? '#8b5cf6' }}">
-                </div>
-                <div>
-                    <label class="sl-field-label">Text</label>
+                    <label class="sl-field-label">Text color</label>
                     <input type="color" id="sl-theme-text" class="sl-input" value="{{ $deckPayload['settings']['theme']['text'] ?? '#f8fafc' }}">
                 </div>
             </div>
-            <div class="sl-row" style="margin-top:10px;">
-                <div>
-                    <label class="sl-field-label">Default transition</label>
-                    <select id="sl-transition" class="sl-select">
-                        @foreach(['slide'=>'Slide','fade'=>'Fade','zoom'=>'Zoom','flip'=>'Flip','none'=>'None'] as $k=>$v)
-                            <option value="{{ $k }}" {{ ($deckPayload['settings']['transition'] ?? 'slide')===$k?'selected':'' }}>{{ $v }}</option>
-                        @endforeach
-                    </select>
+
+            <details class="sl-advanced">
+                <summary>Advanced</summary>
+                <div class="sl-row">
+                    <div>
+                        <label class="sl-field-label">Accent</label>
+                        <input type="color" id="sl-theme-acc" class="sl-input" value="{{ $deckPayload['settings']['theme']['accent'] ?? '#8b5cf6' }}">
+                    </div>
+                    <div>
+                        <label class="sl-field-label">Default transition</label>
+                        <select id="sl-transition" class="sl-select">
+                            @foreach(['slide'=>'Slide','fade'=>'Fade','zoom'=>'Zoom','flip'=>'Flip','none'=>'None'] as $k=>$v)
+                                <option value="{{ $k }}" {{ ($deckPayload['settings']['transition'] ?? 'slide')===$k?'selected':'' }}>{{ $v }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="sl-field-label">Auto-advance (ms, 0=off)</label>
-                    <input id="sl-auto" class="sl-input" type="number" min="0" max="60000" step="500" value="{{ (int)($deckPayload['settings']['auto_advance'] ?? 0) }}">
+                <div class="sl-row">
+                    <div>
+                        <label class="sl-field-label">Auto-advance (ms, 0=off)</label>
+                        <input id="sl-auto" class="sl-input" type="number" min="0" max="60000" step="500" value="{{ (int)($deckPayload['settings']['auto_advance'] ?? 0) }}">
+                    </div>
+                    <div>
+                        <label class="sl-field-label">Loop</label>
+                        <select id="sl-loop" class="sl-select">
+                            <option value="0" {{ empty($deckPayload['settings']['loop'])?'selected':'' }}>Off</option>
+                            <option value="1" {{ !empty($deckPayload['settings']['loop'])?'selected':'' }}>On</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="sl-field-label">Loop</label>
-                    <select id="sl-loop" class="sl-select">
-                        <option value="0" {{ empty($deckPayload['settings']['loop'])?'selected':'' }}>Off</option>
-                        <option value="1" {{ !empty($deckPayload['settings']['loop'])?'selected':'' }}>On</option>
-                    </select>
-                </div>
-            </div>
+            </details>
         </div>
 
         <div class="sl-card">
@@ -181,6 +275,9 @@
                 <h5>Slides</h5>
                 <button type="button" class="sl-btn sl-btn-primary" id="sl-add-slide">+ Add slide</button>
             </div>
+            <p style="margin: 8px 0 0; font-size: 12px; color: var(--text-muted);">
+                Changes save automatically. Click <strong>Publish</strong> below to push them live.
+            </p>
             <div id="sl-slides" class="sl-list" style="margin-top:14px;"></div>
         </div>
 
@@ -199,8 +296,9 @@
         </form>
 
         <div class="sl-actions-bar">
-            <button type="button" class="sl-btn sl-btn-ghost" id="sl-save-draft">Save draft</button>
-            <button type="button" class="sl-btn sl-btn-primary" id="sl-publish">Save &amp; publish</button>
+            <button type="button" class="sl-btn sl-btn-primary" id="sl-publish">
+                <i class="fas fa-rocket text-[10px] mr-1"></i> Publish changes
+            </button>
         </div>
     </div>
 
@@ -230,6 +328,7 @@ let version     = DECK.version || 1;
 
 const ENTERS = ['fade','slide_up','slide_down','slide_left','slide_right','zoom','flip','none'];
 const TRANS  = ['slide','fade','zoom','flip','none'];
+const SPANS  = [{v:3,l:'¼'},{v:4,l:'⅓'},{v:6,l:'½'},{v:8,l:'⅔'},{v:9,l:'¾'},{v:12,l:'Full'}];
 
 function escAttr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -309,30 +408,34 @@ function renderSlides() {
         `;
         wrap.appendChild(card);
 
-        // Wire events
-        card.querySelector('.sl-title').addEventListener('input', e => slides[i].title = e.target.value);
+        // Wire events — every state change schedules a debounced autosave so
+        // the device-preview iframe and the saved snapshot stay in sync without
+        // forcing the user to remember to click Save.
+        card.querySelector('.sl-title').addEventListener('input', e => { slides[i].title = e.target.value; scheduleAutoSave(); });
         card.querySelector('.sl-bg-type').addEventListener('change', e => {
             slides[i].background = { type: e.target.value };
             if (e.target.value === 'color')    slides[i].background.color = '#0f172a';
             if (e.target.value === 'gradient') Object.assign(slides[i].background, {from_color:'#1e293b', to_color:'#0f172a'});
             renderSlides();
+            scheduleAutoSave();
         });
-        card.querySelector('.sl-anim').addEventListener('change', e => slides[i].animation.enter = e.target.value);
-        card.querySelector('.sl-anim-dur').addEventListener('input', e => slides[i].animation.duration_ms = parseInt(e.target.value, 10) || 0);
-        card.querySelector('.sl-trans').addEventListener('change', e => slides[i].transition = e.target.value);
+        card.querySelector('.sl-anim').addEventListener('change', e => { slides[i].animation.enter = e.target.value; scheduleAutoSave(); });
+        card.querySelector('.sl-anim-dur').addEventListener('input', e => { slides[i].animation.duration_ms = parseInt(e.target.value, 10) || 0; scheduleAutoSave(); });
+        card.querySelector('.sl-trans').addEventListener('change', e => { slides[i].transition = e.target.value; scheduleAutoSave(); });
 
         card.querySelectorAll('[data-act]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const act = btn.dataset.act;
-                if (act === 'rm')   { slides.splice(i, 1); renderSlides(); }
-                if (act === 'up'   && i > 0) { [slides[i-1], slides[i]] = [slides[i], slides[i-1]]; renderSlides(); }
-                if (act === 'down' && i < slides.length-1) { [slides[i+1], slides[i]] = [slides[i], slides[i+1]]; renderSlides(); }
+                if (act === 'rm')   { slides.splice(i, 1); renderSlides(); scheduleAutoSave(); }
+                if (act === 'up'   && i > 0) { [slides[i-1], slides[i]] = [slides[i], slides[i-1]]; renderSlides(); scheduleAutoSave(); }
+                if (act === 'down' && i < slides.length-1) { [slides[i+1], slides[i]] = [slides[i], slides[i+1]]; renderSlides(); scheduleAutoSave(); }
                 if (act === 'dup') {
                     // Deep clone via JSON so nested settings don't share refs.
                     const copy = JSON.parse(JSON.stringify(slides[i]));
                     copy.title = (copy.title || 'Slide') + ' (copy)';
                     slides.splice(i + 1, 0, copy);
                     renderSlides();
+                    scheduleAutoSave();
                 }
             });
         });
@@ -344,45 +447,59 @@ function renderSlides() {
             bgWrap.innerHTML = `
                 <div style="flex:1;"><label class="sl-field-label">Color</label>
                     <input type="color" class="sl-input sl-bg-color" value="${s.background.color || '#0f172a'}"></div>`;
-            bgWrap.querySelector('.sl-bg-color').addEventListener('input', e => slides[i].background.color = e.target.value);
+            bgWrap.querySelector('.sl-bg-color').addEventListener('input', e => { slides[i].background.color = e.target.value; scheduleAutoSave(); });
         } else if (t === 'gradient') {
             bgWrap.innerHTML = `
                 <div style="flex:1;"><label class="sl-field-label">From</label>
                     <input type="color" class="sl-input sl-bg-from" value="${s.background.from_color || '#1e293b'}"></div>
                 <div style="flex:1;"><label class="sl-field-label">To</label>
                     <input type="color" class="sl-input sl-bg-to"   value="${s.background.to_color   || '#0f172a'}"></div>`;
-            bgWrap.querySelector('.sl-bg-from').addEventListener('input', e => slides[i].background.from_color = e.target.value);
-            bgWrap.querySelector('.sl-bg-to'  ).addEventListener('input', e => slides[i].background.to_color   = e.target.value);
+            bgWrap.querySelector('.sl-bg-from').addEventListener('input', e => { slides[i].background.from_color = e.target.value; scheduleAutoSave(); });
+            bgWrap.querySelector('.sl-bg-to'  ).addEventListener('input', e => { slides[i].background.to_color   = e.target.value; scheduleAutoSave(); });
         } else if (t === 'image') {
             bgWrap.innerHTML = `
                 <div style="flex:1;"><label class="sl-field-label">Image URL</label>
                     <input class="sl-input sl-bg-url" value="${escAttr(s.background.image_url || '')}"></div>`;
-            bgWrap.querySelector('.sl-bg-url').addEventListener('input', e => slides[i].background.image_url = e.target.value);
+            bgWrap.querySelector('.sl-bg-url').addEventListener('input', e => { slides[i].background.image_url = e.target.value; scheduleAutoSave(); });
         }
 
-        // Block chips + per-block animation rows
+        // Block chips + per-block animation/width rows
         const chips = card.querySelector('.sl-chips');
         if (!s.block_ids.length) {
             chips.innerHTML = '<span class="sl-empty">No blocks yet — pick one below.</span>';
         } else {
             s.block_ids.forEach((bid, bi) => {
                 const ov = (slides[i].block_settings && slides[i].block_settings[bid]) || {};
+                const span = parseInt(ov.grid_span, 10) || 12;
                 const row = document.createElement('div');
-                row.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(255,255,255,0.03);border:1px solid var(--border-glass);border-radius:10px;padding:6px 8px;margin-bottom:6px;';
+                row.className = 'sl-block-row';
                 row.innerHTML = `
-                    <span class="sl-block-chip" style="margin:0;">${escAttr(blockLabel(bid))}
-                        <button type="button" data-rm title="Remove">×</button>
-                    </span>
-                    <label style="font-size:11px;color:var(--text-muted);">Anim</label>
-                    <select class="sl-select sl-bs-enter" style="flex:0 0 110px;padding:4px 6px;font-size:12px;">
-                        ${ENTERS.map(e => `<option value="${e}" ${(ov.enter||'fade')===e?'selected':''}>${e}</option>`).join('')}
-                    </select>
-                    <label style="font-size:11px;color:var(--text-muted);">Delay</label>
-                    <input type="number" min="0" max="10000" step="50" class="sl-input sl-bs-delay" value="${parseInt(ov.delay_ms,10)||0}" style="width:70px;padding:4px 6px;font-size:12px;">
-                    <label style="font-size:11px;color:var(--text-muted);">Align</label>
-                    <select class="sl-select sl-bs-align" style="flex:0 0 100px;padding:4px 6px;font-size:12px;">
-                        ${['left','center','right','stretch'].map(a => `<option value="${a}" ${(ov.align||'center')===a?'selected':''}>${a}</option>`).join('')}
-                    </select>
+                    <div class="sl-block-row-top">
+                        <span class="sl-block-chip" style="margin:0;">${escAttr(blockLabel(bid))}
+                            <button type="button" data-rm title="Remove">×</button>
+                        </span>
+                        <div class="sl-span-row" style="flex:1; min-width: 220px;">
+                            <span class="sl-span-label"><i class="fas fa-columns"></i> Width</span>
+                            <div class="sl-span-btns">
+                                ${SPANS.map(sp => `<button type="button" class="sl-span-btn ${span===sp.v?'active':''}" data-span="${sp.v}" title="${sp.l} (${sp.v}/12)">${sp.l}</button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sl-block-row-controls">
+                        <label>Anim
+                            <select class="sl-select sl-bs-enter">
+                                ${ENTERS.map(e => `<option value="${e}" ${(ov.enter||'fade')===e?'selected':''}>${e}</option>`).join('')}
+                            </select>
+                        </label>
+                        <label>Delay (ms)
+                            <input type="number" min="0" max="10000" step="50" class="sl-input sl-bs-delay" value="${parseInt(ov.delay_ms,10)||0}">
+                        </label>
+                        <label>Align
+                            <select class="sl-select sl-bs-align">
+                                ${['left','center','right','stretch'].map(a => `<option value="${a}" ${(ov.align||'center')===a?'selected':''}>${a}</option>`).join('')}
+                            </select>
+                        </label>
+                    </div>
                 `;
                 chips.appendChild(row);
 
@@ -390,15 +507,24 @@ function renderSlides() {
                     slides[i].block_ids.splice(bi, 1);
                     if (slides[i].block_settings) delete slides[i].block_settings[bid];
                     renderSlides();
+                    scheduleAutoSave();
                 });
                 const ensure = () => {
                     if (!slides[i].block_settings) slides[i].block_settings = {};
                     if (!slides[i].block_settings[bid]) slides[i].block_settings[bid] = {};
                     return slides[i].block_settings[bid];
                 };
-                row.querySelector('.sl-bs-enter').addEventListener('change', e => { ensure().enter = e.target.value; });
-                row.querySelector('.sl-bs-delay').addEventListener('input',  e => { ensure().delay_ms = parseInt(e.target.value, 10) || 0; });
-                row.querySelector('.sl-bs-align').addEventListener('change', e => { ensure().align = e.target.value; });
+                row.querySelector('.sl-bs-enter').addEventListener('change', e => { ensure().enter = e.target.value; scheduleAutoSave(); });
+                row.querySelector('.sl-bs-delay').addEventListener('input',  e => { ensure().delay_ms = parseInt(e.target.value, 10) || 0; scheduleAutoSave(); });
+                row.querySelector('.sl-bs-align').addEventListener('change', e => { ensure().align = e.target.value; scheduleAutoSave(); });
+                row.querySelectorAll('.sl-span-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        row.querySelectorAll('.sl-span-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        ensure().grid_span = parseInt(btn.dataset.span, 10) || 12;
+                        scheduleAutoSave();
+                    });
+                });
             });
         }
 
@@ -406,7 +532,7 @@ function renderSlides() {
         addBlock.addEventListener('change', e => {
             const v = parseInt(e.target.value, 10);
             if (v && !slides[i].block_ids.includes(v)) {
-                slides[i].block_ids.push(v); renderSlides();
+                slides[i].block_ids.push(v); renderSlides(); scheduleAutoSave();
             }
         });
     });
@@ -414,13 +540,27 @@ function renderSlides() {
 
 document.getElementById('sl-add-slide').addEventListener('click', () => {
     slides.push({
-        title: '', block_ids: [],
+        title: '', block_ids: [], block_settings: {},
         background: { type: 'color', color: document.getElementById('sl-theme-bg').value },
         animation:  { enter: 'fade', duration_ms: 400 },
         transition: document.getElementById('sl-transition').value,
         settings:   {},
     });
     renderSlides();
+    scheduleAutoSave();
+});
+
+// Deck-level inputs — autosave on any change so the live preview reflects
+// theme/transition/auto-advance/loop tweaks without requiring a Publish click.
+['sl-theme-bg','sl-theme-acc','sl-theme-text'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input',  () => scheduleAutoSave());
+});
+['sl-transition','sl-auto','sl-loop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => scheduleAutoSave());
+    if (el.tagName === 'INPUT') el.addEventListener('input', () => scheduleAutoSave());
 });
 
 function buildPayload(publish) {
@@ -448,15 +588,35 @@ function buildPayload(publish) {
     };
 }
 
-async function save(publish) {
-    const btn = publish ? document.getElementById('sl-publish') : document.getElementById('sl-save-draft');
-    btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Saving…';
+// Autosave status pill helpers — small DOM updates, no alerts.
+function setAutoSaveState(state, label) {
+    const pill = document.getElementById('sl-autosave');
+    if (!pill) return;
+    pill.classList.remove('is-idle','is-saving','is-saved','is-error');
+    pill.classList.add('is-' + state);
+    const lab = pill.querySelector('.label');
+    if (lab && label) lab.textContent = label;
+}
+
+// Core save — `mode` is 'autosave' (silent, draft) or 'publish' (loud, push live).
+async function save(mode) {
+    const isPublish  = (mode === 'publish');
+    const isAutosave = (mode === 'autosave');
+    const btn = isPublish ? document.getElementById('sl-publish') : null;
+    let orig = '';
+    if (btn) { btn.disabled = true; orig = btn.innerHTML; btn.textContent = 'Publishing…'; }
+    if (isAutosave) setAutoSaveState('saving', 'Saving…');
     try {
         const r = await fetch(URLS.save, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify(buildPayload(publish)),
+            // Autosave is always a draft save (is_published=false). The
+            // controller's `if ($publish)` block — which bumps the version and
+            // overwrites the public snapshot — is only entered for the
+            // explicit Publish click, so the live version stays frozen until
+            // the user clicks Publish, matching the on-screen contract.
+            body: JSON.stringify(buildPayload(isPublish)),
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.message || 'Save failed');
@@ -466,15 +626,34 @@ async function save(publish) {
         pill.className = 'sl-status-pill ' + (isPublished ? 'live' : 'draft');
         pill.textContent = isPublished ? ('Published v' + version) : 'Draft';
         reloadDevicePreview();
+        if (isAutosave) {
+            setAutoSaveState('saved', 'Saved');
+            // Fade back to idle after a couple seconds so it doesn't shout.
+            clearTimeout(window._slAutoSaveIdleTimer);
+            window._slAutoSaveIdleTimer = setTimeout(() => setAutoSaveState('idle', 'Saved'), 2200);
+        }
     } catch (e) {
-        alert(e.message || 'Save failed');
+        if (isAutosave) {
+            setAutoSaveState('error', e.message || 'Save failed');
+        } else {
+            alert(e.message || 'Save failed');
+        }
     } finally {
-        btn.disabled = false; btn.textContent = orig;
+        if (btn) { btn.disabled = false; btn.innerHTML = orig; }
     }
 }
 
-document.getElementById('sl-save-draft').addEventListener('click', () => save(false));
-document.getElementById('sl-publish').addEventListener('click',    () => save(true));
+// Debounced autosave — collapses bursts of input events into one save.
+// 700ms feels responsive while a user types into a number/color picker but
+// avoids hammering the server on every keystroke or color-picker drag.
+let _slAutoSaveTimer = null;
+function scheduleAutoSave() {
+    setAutoSaveState('saving', 'Pending…');
+    clearTimeout(_slAutoSaveTimer);
+    _slAutoSaveTimer = setTimeout(() => save('autosave'), 700);
+}
+
+document.getElementById('sl-publish').addEventListener('click', () => save('publish'));
 
 // Reload every device-preview iframe on the page (cache-busting query param).
 function reloadDevicePreview() {

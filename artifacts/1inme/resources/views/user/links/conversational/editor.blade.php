@@ -124,6 +124,42 @@
     .cv-save-status { font-size: 12px; color: var(--text-faint); }
     .cv-save-status.is-error { color: #ef4444; }
     .cv-save-status.is-ok    { color: #10b981; }
+
+    /* Autosave status pill — mirrors the slides editor for a consistent feel. */
+    .cv-autosave {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11px; font-weight: 600; color: var(--text-faint);
+        padding: 4px 10px; border-radius: 999px;
+        background: var(--bg-glass-input); border: 1px solid var(--border-glass);
+        transition: opacity .25s ease, color .15s ease;
+    }
+    .cv-autosave .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .cv-autosave.is-saving { color: #f59e0b; }
+    .cv-autosave.is-saved  { color: #10b981; }
+    .cv-autosave.is-error  { color: #ef4444; }
+    .cv-autosave.is-idle   { opacity: 0; pointer-events: none; }
+
+    /* Light-mode contrast — the chips/pills above use translucent purples
+       calibrated for the dark theme; on white they wash out. These overrides
+       restore legible foreground/border colors without touching dark-mode. */
+    html.light-mode .cv-key {
+        background: #f3eeff; color: #5b21b6;
+    }
+    html.light-mode .cv-sim-chip {
+        background: #f3eeff; color: #5b21b6; border-color: #d8c3ff;
+    }
+    html.light-mode .cv-sim-chip.is-picked { color: #fff; }
+    html.light-mode .cv-btn-outline {
+        color: #5b21b6; border-color: rgba(124,58,237,0.45);
+    }
+    html.light-mode .cv-btn-outline:hover { background: rgba(124,58,237,0.08); }
+    html.light-mode .cv-btn-ghost {
+        color: var(--text-secondary);
+    }
+    html.light-mode .cv-empty,
+    html.light-mode .cv-help { color: var(--text-dimmed); }
+    html.light-mode .cv-section-title { color: #6d28d9; }
+    html.light-mode .cv-section { background: #faf7ff; border-color: #d8c3ff; }
 </style>
 
 <div class="max-w-7xl mx-auto">
@@ -190,8 +226,10 @@
             </div>
 
             <div class="cv-save-row">
-                <button id="cv-save" class="cv-btn cv-btn-success"><i class="fas fa-save"></i> Save flow</button>
+                <button id="cv-save" class="cv-btn cv-btn-success" type="button"><i class="fas fa-rocket"></i> Publish flow</button>
+                <span id="cv-autosave" class="cv-autosave is-idle"><span class="dot"></span><span class="label">Saved</span></span>
                 <span id="cv-save-status" class="cv-save-status"></span>
+                <span style="font-size:11px; color: var(--text-faint);">Edits save automatically — click <strong>Publish</strong> to push them live.</span>
             </div>
 
             {{-- Page background — same controls as Settings → Appearance,
@@ -294,7 +332,7 @@ function renderActions() {
         row.querySelector('.cv-action-kind').addEventListener('change', e => { actions[idx].kind = e.target.value; renderSteps(); });
         row.querySelector('.cv-action-label').addEventListener('input', e => { actions[idx].label = e.target.value; });
         row.querySelector('.cv-action-payload').addEventListener('input', e => { actions[idx].payload = payloadFromInput(actions[idx].kind, e.target.value); });
-        row.querySelector('[data-rm]').addEventListener('click', () => { actions.splice(idx, 1); renderActions(); renderSteps(); });
+        row.querySelector('[data-rm]').addEventListener('click', () => { actions.splice(idx, 1); renderActions(); renderSteps(); cvScheduleAutoSave(); });
     });
     if (!actions.length) wrap.innerHTML = '<div class="cv-empty">No actions yet.</div>';
 }
@@ -521,11 +559,12 @@ function renderKindPanel(s, card) {
         });
     });
     panel.querySelectorAll('[data-rm-i]').forEach(el => {
-        el.addEventListener('click', () => { ks.ai.intents.splice(parseInt(el.dataset.rmI,10), 1); renderKindPanel(s, card); });
+        el.addEventListener('click', () => { ks.ai.intents.splice(parseInt(el.dataset.rmI,10), 1); renderKindPanel(s, card); cvScheduleAutoSave(); });
     });
     const addI = panel.querySelector('[data-add-intent]');
     if (addI) addI.addEventListener('click', () => {
         ks.ai.intents.push({ value: 'intent_' + (ks.ai.intents.length+1), label: 'New intent', examples: '', next_step_key: null });
+        cvScheduleAutoSave();
         renderKindPanel(s, card);
     });
 
@@ -545,10 +584,11 @@ function renderKindPanel(s, card) {
         ins[1].addEventListener('change', e => stepConds[ci].op = e.target.value);
         ins[2].addEventListener('input', e => stepConds[ci].value = e.target.value);
         ins[3].addEventListener('change', e => stepConds[ci].goto = e.target.value || null);
-        row.querySelector('[data-rm-cond]').addEventListener('click', () => { stepConds.splice(ci, 1); renderKindPanel(s, card); });
+        row.querySelector('[data-rm-cond]').addEventListener('click', () => { stepConds.splice(ci, 1); renderKindPanel(s, card); cvScheduleAutoSave(); });
     });
     condBox.querySelector('[data-add-cond]').addEventListener('click', () => {
         stepConds.push({ field: s.answer_field || s.key, op: 'eq', value: '', goto: '' });
+        cvScheduleAutoSave();
         renderKindPanel(s, card);
     });
 }
@@ -648,7 +688,7 @@ function renderSteps() {
                 inputs[1].addEventListener('input', e => c.value = e.target.value);
                 inputs[2].addEventListener('change', e => c.next_step_key = e.target.value || null);
                 inputs[3].addEventListener('change', e => c.action_client_id = e.target.value || null);
-                choiceRow.querySelector('button').addEventListener('click', () => { s.choices.splice(ci, 1); rebuildChoices(); });
+                choiceRow.querySelector('button').addEventListener('click', () => { s.choices.splice(ci, 1); rebuildChoices(); cvScheduleAutoSave(); });
                 condRow.querySelectorAll('[data-cb]').forEach(el => {
                     el.addEventListener('input', e => {
                         const k = el.getAttribute('data-cb');
@@ -671,6 +711,7 @@ function renderSteps() {
         card.querySelector('.cv-add-choice').addEventListener('click', () => {
             s.choices = s.choices || [];
             s.choices.push({ label: 'New choice', value: 'choice_' + (s.choices.length + 1), next_step_key: null, action_client_id: null, settings: {} });
+            cvScheduleAutoSave();
             rebuildChoices();
         });
         card.querySelector('.cv-step-kind').addEventListener('change', e => {
@@ -697,7 +738,7 @@ function renderSteps() {
         card.querySelector('.cv-step-msg').addEventListener('input', e => s.message_text = e.target.value);
         card.querySelector('.cv-step-next').addEventListener('change', e => s.next_step_key = e.target.value || null);
         card.querySelector('.cv-step-action').addEventListener('change', e => s.action_client_id = e.target.value || null);
-        card.querySelector('[data-rm-step]').addEventListener('click', () => { steps.splice(idx, 1); renderSteps(); });
+        card.querySelector('[data-rm-step]').addEventListener('click', () => { steps.splice(idx, 1); renderSteps(); cvScheduleAutoSave(); });
 
         renderKindPanel(s, card);
     });
@@ -717,13 +758,34 @@ document.getElementById('cv-add-action').addEventListener('click', () => {
     renderActions(); renderSteps();
 });
 
-document.getElementById('cv-save').addEventListener('click', async () => {
+// Autosave status pill helpers — small DOM updates, no alerts.
+function cvSetAutoSaveState(state, label) {
+    const pill = document.getElementById('cv-autosave');
+    if (!pill) return;
+    pill.classList.remove('is-idle','is-saving','is-saved','is-error');
+    pill.classList.add('is-' + state);
+    const lab = pill.querySelector('.label');
+    if (lab && label) lab.textContent = label;
+}
+
+// Core save — `mode` is 'autosave' (silent, draft) or 'publish' (loud).
+// Autosave preserves the existing published flag; only the explicit
+// Publish button pushes the version live.
+async function cvSave(mode) {
+    const isPublish  = (mode === 'publish');
+    const isAutosave = (mode === 'autosave');
     const status = document.getElementById('cv-save-status');
-    status.textContent = 'Saving…'; status.className = 'cv-save-status';
+    const btn = document.getElementById('cv-save');
+    let orig = '';
+    if (isPublish && btn) { btn.disabled = true; orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing…'; }
+    if (isAutosave) cvSetAutoSaveState('saving', 'Saving…');
+
+    const publishedNow = !!document.getElementById('cv-published').checked;
     const body = {
         name: document.getElementById('cv-name').value,
         intro_message: document.getElementById('cv-intro').value,
-        is_published: document.getElementById('cv-published').checked,
+        // Publish click forces true; autosave keeps the current setting.
+        is_published: isPublish ? true : publishedNow,
         settings: { default_typing_ms: Number(document.getElementById('cv-typing').value || 600) },
         actions, steps,
     };
@@ -734,12 +796,82 @@ document.getElementById('cv-save').addEventListener('click', async () => {
             body: JSON.stringify(body),
         });
         const j = await r.json();
-        if (!j.ok) { status.textContent = '❌ ' + (j.error || 'Save failed'); status.className = 'cv-save-status is-error'; return; }
-        status.textContent = '✓ Saved (v' + j.version + ')'; status.className = 'cv-save-status is-ok';
+        if (!j.ok) {
+            const msg = j.error || 'Save failed';
+            if (isAutosave) {
+                cvSetAutoSaveState('error', msg);
+            } else {
+                status.textContent = '❌ ' + msg; status.className = 'cv-save-status is-error';
+            }
+            return;
+        }
+        if (isPublish) {
+            // Reflect the new published state in the checkbox.
+            const pub = document.getElementById('cv-published');
+            if (pub) pub.checked = true;
+            status.textContent = '✓ Published (v' + j.version + ')';
+            status.className = 'cv-save-status is-ok';
+        }
+        if (isAutosave) {
+            cvSetAutoSaveState('saved', 'Saved');
+            clearTimeout(window._cvAutoSaveIdleTimer);
+            window._cvAutoSaveIdleTimer = setTimeout(() => cvSetAutoSaveState('idle', 'Saved'), 2200);
+        }
         cvReloadDevicePreview();
     } catch (e) {
-        status.textContent = '❌ Network error'; status.className = 'cv-save-status is-error';
+        if (isAutosave) {
+            cvSetAutoSaveState('error', 'Network error');
+        } else {
+            status.textContent = '❌ Network error'; status.className = 'cv-save-status is-error';
+        }
+    } finally {
+        if (isPublish && btn) { btn.disabled = false; btn.innerHTML = orig || '<i class="fas fa-rocket"></i> Publish flow'; }
     }
+}
+
+document.getElementById('cv-save').addEventListener('click', () => cvSave('publish'));
+
+// Debounced autosave — collapses bursts of input events into one save call.
+// 800ms is a hair longer than slides because conversational steps include
+// long-form text fields where users type continuously.
+let _cvAutoSaveTimer = null;
+function cvScheduleAutoSave() {
+    cvSetAutoSaveState('saving', 'Pending…');
+    clearTimeout(_cvAutoSaveTimer);
+    _cvAutoSaveTimer = setTimeout(() => cvSave('autosave'), 800);
+}
+// Expose so dynamically-rendered controls (renderSteps/renderActions) can
+// trigger an autosave after splice/swap operations that don't fire DOM events.
+window.cvScheduleAutoSave = cvScheduleAutoSave;
+
+// Event-delegated autosave — every input/change inside the editor area
+// schedules a save. Using delegation avoids re-binding handlers on every
+// renderSteps()/renderActions() rebuild. We exclude the cv-bg-form so the
+// background card keeps its explicit "Save background" submit flow (it
+// uploads files and has its own status pill).
+document.addEventListener('input',  (ev) => {
+    const t = ev.target;
+    if (!t || !t.closest) return;
+    if (t.closest('#cv-bg-form')) return;
+    if (!t.closest('.cv-builder')) return;
+    if (t.matches('.cv-input, .cv-select, .cv-textarea, input, select, textarea')) {
+        cvScheduleAutoSave();
+    }
+});
+document.addEventListener('change', (ev) => {
+    const t = ev.target;
+    if (!t || !t.closest) return;
+    if (t.closest('#cv-bg-form')) return;
+    if (!t.closest('.cv-builder')) return;
+    if (t.matches('.cv-input, .cv-select, .cv-textarea, input, select, textarea')) {
+        cvScheduleAutoSave();
+    }
+});
+
+// Wire add/remove buttons too — splice mutations don't fire input events.
+['cv-add-step','cv-add-action'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => cvScheduleAutoSave());
 });
 
 // Reload every device-preview iframe on the page (cache-busting query param).

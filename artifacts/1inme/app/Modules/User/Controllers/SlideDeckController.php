@@ -159,6 +159,7 @@ class SlideDeckController extends Controller
             'slides.*.block_settings.*.delay_ms'     => 'nullable|integer|min:0|max:10000',
             'slides.*.block_settings.*.duration_ms'  => 'nullable|integer|min:0|max:5000',
             'slides.*.block_settings.*.align'        => 'nullable|string|in:left,center,right,stretch',
+            'slides.*.block_settings.*.grid_span'    => 'nullable|integer|min:1|max:12',
             'slides.*.background'       => 'nullable|array',
             'slides.*.background.type'  => 'nullable|string|in:color,gradient,image',
             'slides.*.background.color' => 'nullable|string|max:60',
@@ -581,6 +582,7 @@ class SlideDeckController extends Controller
                             'delay_ms'    => (int) ($override['delay_ms']    ?? 0),
                             'duration_ms' => (int) ($override['duration_ms'] ?? 400),
                             'align'       => $override['align']       ?? 'center',
+                            'grid_span'   => isset($override['grid_span']) ? (int) $override['grid_span'] : 12,
                         ] : null,
                     ];
                 })

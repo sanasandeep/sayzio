@@ -180,12 +180,23 @@
                                     $delay  = (int) ($anim['delay_ms']    ?? 0);
                                     $durMs  = (int) ($anim['duration_ms'] ?? 400);
                                     $align  = $anim['align']       ?? 'center';
+                                    $gridSpan = (int) ($anim['grid_span'] ?? 12);
+                                    if ($gridSpan < 1 || $gridSpan > 12) { $gridSpan = 12; }
                                     $tx = ['fade'=>'none','slide_up'=>'translateY(16px)','slide_down'=>'translateY(-16px)','slide_left'=>'translateX(16px)','slide_right'=>'translateX(-16px)','zoom'=>'scale(0.92)','flip'=>'rotateX(20deg)','none'=>'none'][$enter] ?? 'none';
                                     $alignCss = ['left'=>'flex-start','center'=>'center','right'=>'flex-end','stretch'=>'stretch'][$align] ?? 'center';
+                                    // Width: grid_span chooses fraction of container.
+                                    // Full (12) keeps existing align-self behaviour;
+                                    // anything less forces a fractional width and
+                                    // overrides 'stretch' to behave as a sized box.
+                                    if ($gridSpan >= 12) {
+                                        $widthCss = $align==='stretch' ? '100%' : 'auto';
+                                    } else {
+                                        $widthCss = round($gridSpan / 12 * 100, 4) . '%';
+                                    }
                                 @endphp
                                 <div class="sl-block-anim"
                                      data-enter="{{ $enter }}"
-                                     style="--bx:{{ $tx }};--bd:{{ $durMs }}ms;--ba:{{ $delay }}ms;align-self:{{ $alignCss }};width:{{ $align==='stretch' ? '100%' : 'auto' }};max-width:100%;">
+                                     style="--bx:{{ $tx }};--bd:{{ $durMs }}ms;--ba:{{ $delay }}ms;align-self:{{ $alignCss }};width:{{ $widthCss }};max-width:100%;">
                                     {!! $b['html'] ?? '' !!}
                                 </div>
                             @endforeach
