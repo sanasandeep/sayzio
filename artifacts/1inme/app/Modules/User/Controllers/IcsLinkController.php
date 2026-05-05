@@ -201,7 +201,7 @@ class IcsLinkController extends Controller
             'slots.*.end'          => 'nullable|date',
             'slots.*.label'        => 'nullable|string|max:255',
             'slots.*.location'     => 'nullable|string|max:500',
-        ]);
+        ] + LinkController::protectionSchedulingRules());
     }
 
     private function icsPayload(array $v, int $linkId): array

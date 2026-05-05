@@ -210,7 +210,7 @@ class LinkController extends Controller
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
             'smart_rules_json' => 'nullable|string|max:20000',
-        ]);
+        ] + self::protectionSchedulingRules());
 
         if (empty($validated['alias'])) {
             $validated['alias'] = Link::generateAlias();
@@ -221,10 +221,9 @@ class LinkController extends Controller
         // protection-and-scheduling fields here (consumed later by
         // applyProtectionScheduling) so a downgraded plan cannot bypass.
         $owner = workspace_owner();
-        $expMode = $request->input('_exp_mode', 'none');
         $gateMap = [
             'password'         => !empty($validated['password']),
-            'expiry'           => !empty($validated['expires_at']) || !empty($validated['expiry_url']) || !empty($validated['expire_on_first_click']) || !empty($validated['max_clicks']) || ($expMode !== 'none' && $expMode !== ''),
+            'expiry'           => self::isExpiryRequested($request),
             'geo_targeting'    => !empty($validated['country_restrictions']) || $request->filled('country_blocklist'),
             'device_targeting' => !empty($validated['device_targeting']),
             'deep_link'        => array_key_exists('open_in_app', $validated) && $request->boolean('open_in_app'),
@@ -1730,11 +1729,24 @@ class LinkController extends Controller
                     $expiresCol = \Carbon\Carbon::parse($expRaw, $tz)->utc();
                 } catch (\Throwable $e) { /* leave null */ }
             }
-        } elseif ($expMode === 'clicks') {
-            $max = (int) $request->input('max_clicks', 0);
-            if ($max > 0) $settings['max_clicks'] = $max;
         } elseif ($expMode === 'first_click') {
             $settings['expire_on_first_click'] = true;
+        } elseif ($expMode === 'clicks') {
+            // Backward-compat: legacy "expires after N clicks" mode now maps
+            // onto the independent click-limit field below.
+        }
+
+        // ---- Click limit (independent of expiry rule) --------------------
+        // The shared partial posts an explicit on/off flag plus the cap.
+        // Older callers without the flag still work: a positive max_clicks
+        // is treated as "enabled".
+        $clicksFlag = $request->input('click_limit_enabled', null);
+        $maxClicks  = (int) $request->input('max_clicks', 0);
+        $limitOn    = $clicksFlag !== null
+            ? (bool) $request->boolean('click_limit_enabled')
+            : ($maxClicks > 0);
+        if ($limitOn && $maxClicks > 0) {
+            $settings['max_clicks'] = $maxClicks;
         }
 
         $expiryUrl = trim((string) $request->input('expiry_url', ''));
@@ -1806,6 +1818,56 @@ class LinkController extends Controller
     {
         if (!is_string($v)) return null;
         return preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $v) ? $v : null;
+    }
+
+    /**
+     * Validation rules for every input the shared "Protection & Scheduling"
+     * partial posts. Merge this into a controller's $request->validate([...])
+     * call so out-of-range values are rejected on the way in instead of being
+     * silently coerced inside applyProtectionScheduling().
+     */
+    public static function protectionSchedulingRules(): array
+    {
+        return [
+            'tz'                       => 'nullable|string|max:64',
+            '_exp_mode'                => 'nullable|in:none,date,clicks,first_click',
+            'expires_at'               => 'nullable|date',
+            'start_at'                 => 'nullable|date',
+            'click_limit_enabled'      => 'nullable|boolean',
+            'max_clicks'               => 'nullable|integer|min:0|max:1000000000',
+            'expire_on_first_click'    => 'nullable|boolean',
+            'expiry_url'               => 'nullable|url|max:2048',
+            'active_window_enabled'    => 'nullable|boolean',
+            'active_window_starts'     => 'nullable|array|max:24',
+            'active_window_starts.*'   => 'nullable|string|max:5',
+            'active_window_ends'       => 'nullable|array|max:24',
+            'active_window_ends.*'     => 'nullable|string|max:5',
+            'active_window_days'       => 'nullable|array|max:7',
+            'active_window_days.*'     => 'nullable|in:mon,tue,wed,thu,fri,sat,sun',
+            'country_blocklist'        => 'nullable|string|max:500',
+        ];
+    }
+
+    /**
+     * True when the request is asking to use the "expiry" protection feature
+     * in any form — date-based, first-click, or the independent click cap.
+     * Centralised so plan gates stay consistent across controllers.
+     */
+    public static function isExpiryRequested(Request $request): bool
+    {
+        $expMode = $request->input('_exp_mode', 'none');
+        if ($expMode !== 'none' && $expMode !== '') return true;
+
+        // Independent click-limit toggle. When the explicit flag is present
+        // (current UI) it wins outright — false means the user actively
+        // turned the limit off, even if a stale max_clicks value is still
+        // posted from the hidden field. When the flag is absent (legacy
+        // callers without the new partial), fall back to "treat any positive
+        // max_clicks as enabled".
+        if ($request->input('click_limit_enabled', null) !== null) {
+            return $request->boolean('click_limit_enabled');
+        }
+        return (int) $request->input('max_clicks', 0) > 0;
     }
 
     public static function sanitizeSmartRules(?string $json): array
@@ -2061,14 +2123,13 @@ class LinkController extends Controller
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
             'smart_rules_json' => 'nullable|string|max:20000',
-        ]);
+        ] + self::protectionSchedulingRules());
 
         // Per-link advanced setting gates (update path). The protection /
         // scheduling fields are processed later by applyProtectionScheduling
         // — gate them here so a downgraded user cannot bypass via update.
         $owner = workspace_owner();
-        $expMode = $request->input('_exp_mode', 'none');
-        $expiryRequested = $expMode !== 'none' && $expMode !== '';
+        $expiryRequested = self::isExpiryRequested($request);
         $activeWindowRequested = $request->boolean('active_window_enabled');
         $countryBlocklistRequested = $request->filled('country_blocklist');
         $gateMap = [

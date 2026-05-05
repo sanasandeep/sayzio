@@ -39,8 +39,10 @@
     } catch (\Throwable $e) { /* fall through with empty defaults */ }
 
     $expMode_ps = !empty($s_ps['expire_on_first_click']) ? 'first_click'
-        : (!empty($s_ps['max_clicks']) ? 'clicks'
-        : ($link->expires_at ? 'date' : 'none'));
+        : ($link->expires_at ? 'date' : 'none');
+    $maxClicks_ps   = (int) ($s_ps['max_clicks'] ?? 0);
+    $clicksLimitOn  = $maxClicks_ps > 0;
+    $totalClicks_ps = (int) ($link->total_clicks ?? 0);
 
     $aw         = (array) ($s_ps['active_window'] ?? []);
     $awEnabled  = !empty($aw['enabled']);
@@ -80,6 +82,7 @@
      x-data="protectionScheduling({
         tz: @js($tz_ps),
         expMode: @js($expMode_ps),
+        clicksLimitOn: @js($clicksLimitOn),
         awEnabled: @js($awEnabled),
         awDays: @js($awDays),
         awSlots: @js($awSlots),
@@ -119,7 +122,6 @@
                     class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
                 <option value="none">Never expires</option>
                 <option value="date">Expires on a specific date</option>
-                <option value="clicks">Expires after N clicks</option>
                 <option value="first_click">One-time use (expires after first click)</option>
             </select>
         </div>
@@ -130,17 +132,33 @@
                    value="{{ old('expires_at', $expiresLocal) }}"
                    class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
         </div>
+    </div>
 
-        <div x-show="expMode === 'clicks'" x-cloak>
+    {{-- Click limit — independent of the expiry rule above, so it can be
+         combined with date-based expiry (link stops at whichever happens
+         first) or used on its own. --}}
+    <div class="border-t border-white/5 pt-4 mt-4 mb-4">
+        <input type="hidden" name="click_limit_enabled" :value="clicksLimitOn ? '1' : '0'">
+        <label class="flex items-center gap-3 cursor-pointer mb-3">
+            <input type="checkbox" x-model="clicksLimitOn"
+                   class="rounded text-violet-400 focus:ring-violet-500/40">
+            <div>
+                <div class="text-sm font-medium text-white">Limit total clicks</div>
+                <p class="text-xs text-white/40 mt-0.5">Stop accepting visits once this link has been opened a set number of times. Works alongside any expiry rule above.</p>
+            </div>
+        </label>
+
+        <div x-show="clicksLimitOn" x-cloak class="ml-7">
             <label class="block text-sm text-white/60 mb-1">Maximum clicks</label>
-            <input type="number" min="1" name="max_clicks"
-                   value="{{ old('max_clicks', $s_ps['max_clicks'] ?? '') }}"
+            <input type="number" min="1" max="1000000000" name="max_clicks"
+                   value="{{ old('max_clicks', $maxClicks_ps ?: '') }}"
                    placeholder="e.g. 100"
-                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                   class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+            <p class="text-xs text-white/30 mt-1">Used so far: <span class="font-mono text-white/50">{{ number_format($totalClicks_ps) }}</span> click{{ $totalClicks_ps === 1 ? '' : 's' }}.</p>
         </div>
     </div>
 
-    <div x-show="expMode !== 'none'" x-cloak class="mb-4">
+    <div x-show="expMode !== 'none' || clicksLimitOn" x-cloak class="mb-4">
         <label class="block text-sm text-white/60 mb-1">After expiry, redirect to <span class="text-white/30">(optional)</span></label>
         <input type="url" name="expiry_url"
                value="{{ old('expiry_url', $s_ps['expiry_url'] ?? '') }}"
@@ -221,6 +239,7 @@
         return {
             tz: initial.tz || 'UTC',
             expMode: initial.expMode || 'none',
+            clicksLimitOn: !!initial.clicksLimitOn,
             awEnabled: !!initial.awEnabled,
             awDays: Array.isArray(initial.awDays) ? initial.awDays : [],
             awSlots: Array.isArray(initial.awSlots) && initial.awSlots.length
