@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserRoleAudit;
+use App\Modules\User\Models\UserRoleAuditExport;
 use App\Modules\User\Services\UserRoleAuditCsvExporter;
 use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Http\Request;
@@ -101,12 +102,16 @@ class UserRoleController extends Controller
      * Gated by the `users.edit` permission at the route layer, the
      * same check the timeline panel itself uses.
      */
-    public function export(User $user, UserRoleAuditCsvExporter $exporter): StreamedResponse
+    public function export(Request $request, User $user, UserRoleAuditCsvExporter $exporter): StreamedResponse
     {
         $filename = 'role-change-audit-user-' . $user->id . '-' . date('Ymd-His') . '.csv';
 
         $query = UserRoleAudit::query()->where('target_user_id', $user->id);
 
-        return $exporter->streamResponse($query, $filename);
+        return $exporter->streamResponse($query, $filename, [
+            'scope'          => UserRoleAuditExport::SCOPE_SINGLE_USER,
+            'target_user_id' => $user->id,
+            'request'        => $request,
+        ]);
     }
 }

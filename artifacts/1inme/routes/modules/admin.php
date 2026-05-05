@@ -6,6 +6,7 @@ use App\Modules\Admin\Controllers\PasswordResetController;
 use App\Modules\Admin\Controllers\DashboardController;
 use App\Modules\Admin\Controllers\StaffController;
 use App\Modules\Admin\Controllers\UserManagementController;
+use App\Modules\Admin\Controllers\UserRoleAuditExportController;
 use App\Modules\Admin\Controllers\RoleController;
 use App\Modules\Admin\Controllers\PlanController;
 use App\Modules\Admin\Controllers\AddonController;
@@ -508,6 +509,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // the existing per-user "role change history" panel.
             Route::get('role-audits',        [UserManagementController::class, 'roleAudits'])->middleware(CheckPermission::class . ':users.edit')->name('role-audits.index');
             Route::get('role-audits/export', [UserManagementController::class, 'roleAuditsExport'])->middleware(CheckPermission::class . ':users.edit')->name('role-audits.export');
+
+            // Audit-the-auditor panel: surfaces recent CSV downloads of
+            // the role-change audit. Super-admin gate is enforced in
+            // the controller (mirroring DemoContentController) since
+            // there's no dedicated permission slug for it yet.
+            Route::get('role-audit-exports', [UserRoleAuditExportController::class, 'index'])->name('role-audit-exports.index');
 
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');
             Route::put('{user}', [UserManagementController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->name('update');

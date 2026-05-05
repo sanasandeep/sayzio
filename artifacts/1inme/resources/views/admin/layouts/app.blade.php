@@ -143,7 +143,10 @@
                 </div>
                 <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
                     <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div><span>Dashboard</span></a>
-                    <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div><span>Users</span></a>
+                    <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') && ! request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div><span>Users</span></a>
+                    @if(auth('admin')->user()?->isSuperAdmin())
+                        <a href="{{ route('admin.users.role-audit-exports.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-csv"></i></div><span>Audit downloads</span></a>
+                    @endif
                     <a href="{{ route('admin.adult-moderation.index') }}" class="sidebar-link {{ request()->routeIs('admin.adult-moderation.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-fire"></i></div><span>18+ moderation</span></a>
                     <a href="{{ route('admin.moderation-queue.index') }}" class="sidebar-link {{ request()->routeIs('admin.moderation-queue.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-flag"></i></div><span>Reports & DMCA</span></a>
                     <a href="{{ route('admin.staff.index') }}" class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Staff</span></a>

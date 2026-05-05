@@ -26,10 +26,19 @@
                 </p>
             @endif
         </div>
-        <a href="{{ route('admin.users.index') }}"
-           class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium whitespace-nowrap">
-            <i class="fas fa-arrow-left mr-1"></i> Back to users
-        </a>
+        <div class="flex gap-2 flex-wrap">
+            @if(auth('admin')->user()?->isSuperAdmin())
+                <a href="{{ route('admin.users.role-audit-exports.index') }}"
+                   class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium whitespace-nowrap"
+                   title="Recent CSV downloads of this audit log">
+                    <i class="fas fa-file-csv mr-1"></i> Download history
+                </a>
+            @endif
+            <a href="{{ route('admin.users.index') }}"
+               class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium whitespace-nowrap">
+                <i class="fas fa-arrow-left mr-1"></i> Back to users
+            </a>
+        </div>
     </div>
 
     <form method="GET" action="{{ route('admin.users.role-audits.index') }}"

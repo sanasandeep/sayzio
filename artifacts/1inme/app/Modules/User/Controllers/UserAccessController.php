@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserRoleAudit;
+use App\Modules\User\Models\UserRoleAuditExport;
 use App\Modules\User\Services\UserRoleAuditCsvExporter;
 use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Http\Request;
@@ -222,10 +223,13 @@ class UserAccessController extends Controller
      * `index()` (the `user.roles.manage` permission applied at the
      * route layer).
      */
-    public function export(UserRoleAuditCsvExporter $exporter): StreamedResponse
+    public function export(Request $request, UserRoleAuditCsvExporter $exporter): StreamedResponse
     {
         $filename = 'role-change-audit-' . date('Ymd-His') . '.csv';
 
-        return $exporter->streamResponse(UserRoleAudit::query(), $filename);
+        return $exporter->streamResponse(UserRoleAudit::query(), $filename, [
+            'scope'   => UserRoleAuditExport::SCOPE_FULL_POOL,
+            'request' => $request,
+        ]);
     }
 }
