@@ -24,10 +24,6 @@
         ],
     ])
 
-    <div class="mb-6">
-        @include('user.links.partials.aliases-card', ['link' => $link])
-    </div>
-
     @php
         $s = $link->settings ?? [];
         $expMode = !empty($s['expire_on_first_click']) ? 'first_click'

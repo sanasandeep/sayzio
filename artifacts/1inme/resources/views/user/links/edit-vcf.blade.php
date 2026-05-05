@@ -14,10 +14,6 @@
         <a href="{{ route('user.links.show', $link) }}" class="text-xs text-white/50 hover:text-white">View link &rarr;</a>
     </div>
 
-    <div class="mb-6">
-        @include('user.links.partials.aliases-card', ['link' => $link])
-    </div>
-
     <form method="POST" action="{{ route('user.links.vcf.update', $link) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
