@@ -71,6 +71,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/discovery/creators/{handle}', [DiscoveryController::class, 'creator']);
         Route::get('/feed',                        [FeedController::class, 'index']);
         Route::get('/creators/{handle}/feed',      [FeedController::class, 'byCreator']);
+
+        // Creator Profile JSON API (Task #1207). Mirrors the /@handle web
+        // surface so the Expo app can render the same page.
+        Route::get('/creator-profile/{handle}',                          [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'show']);
+        Route::get('/creator-profile/{handle}/posts',                    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'feed']);
+        Route::get('/creator-profile/{handle}/posts/{post}/comments',    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'comments'])->whereNumber('post');
+        Route::post('/creator-profile/{handle}/posts/{post}/react',      [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'react'])->whereNumber('post')->middleware('throttle:120,1');
+        Route::post('/creator-profile/{handle}/posts/{post}/comment',    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'comment'])->whereNumber('post')->middleware('throttle:60,1');
     });
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])

@@ -14,6 +14,8 @@ protected $fillable = [
         'user_id', 'title', 'body', 'image', 'scheduled_at', 'published_at', 'pinned_at',
         'approval_status', 'approval_requested_at', 'approval_decided_at',
         'approval_decided_by_user_id', 'intended_scheduled_at',
+        // Creator Profile post types (Task #1207).
+        'post_type', 'media', 'reactions_count', 'comments_count',
     ];
 
     protected $casts = [
@@ -23,7 +25,38 @@ protected $fillable = [
         'approval_requested_at' => 'datetime',
         'approval_decided_at'   => 'datetime',
         'intended_scheduled_at' => 'datetime',
+        'media'                 => 'array',
+        'reactions_count'       => 'integer',
+        'comments_count'        => 'integer',
     ];
+
+    public const TYPE_TEXT    = 'text';
+    public const TYPE_IMAGE   = 'image';
+    public const TYPE_GALLERY = 'gallery';
+    public const TYPE_VIDEO   = 'video';
+    public const TYPE_AUDIO   = 'audio';
+    public const TYPE_LINK    = 'link';
+
+    public const TYPES = [
+        self::TYPE_TEXT, self::TYPE_IMAGE, self::TYPE_GALLERY,
+        self::TYPE_VIDEO, self::TYPE_AUDIO, self::TYPE_LINK,
+    ];
+
+    public function comments()  { return $this->hasMany(CreatorPostComment::class, 'post_id'); }
+    public function reactions() { return $this->hasMany(CreatorPostReaction::class, 'post_id'); }
+
+    /**
+     * Convenient accessor that gives you the post type after defaulting
+     * legacy rows (which only had an `image` column) to the right type.
+     */
+    public function effectiveType(): string
+    {
+        if (in_array($this->post_type, self::TYPES, true) && $this->post_type !== self::TYPE_TEXT) {
+            return $this->post_type;
+        }
+        if (!empty($this->image)) return self::TYPE_IMAGE;
+        return self::TYPE_TEXT;
+    }
 
     public const APPROVAL_PENDING  = 'pending_review';
     public const APPROVAL_CHANGES  = 'changes_requested';
@@ -41,6 +74,29 @@ protected $fillable = [
     {
         static::deleting(function (CreatorPost $post) {
             $post->cloudAttachments()->delete();
+        });
+
+        // Keep User.posts_count in sync regardless of which controller
+        // (web, API, scheduler, approval workflow) saves the row, so the
+        // /@handle stats strip and /creators directory don't have to
+        // recount on every render. Counts a post once it transitions to
+        // a non-null published_at, and decrements when published_at is
+        // cleared or the row is deleted while published.
+        static::saved(function (CreatorPost $post) {
+            $original = $post->getOriginal('published_at');
+            $current  = $post->published_at;
+            if (!$post->user_id) return;
+            if (!$original && $current) {
+                User::query()->whereKey($post->user_id)->increment('posts_count');
+            } elseif ($original && !$current) {
+                User::query()->whereKey($post->user_id)->where('posts_count', '>', 0)->decrement('posts_count');
+            }
+        });
+
+        static::deleted(function (CreatorPost $post) {
+            if ($post->user_id && $post->published_at) {
+                User::query()->whereKey($post->user_id)->where('posts_count', '>', 0)->decrement('posts_count');
+            }
         });
     }
 

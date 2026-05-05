@@ -269,6 +269,25 @@ Route::prefix('ar/{alias}')->where(['alias' => '[A-Za-z0-9._-]+'])->group(functi
     Route::get('kit.pdf',     [\App\Modules\Common\Controllers\ArCardController::class, 'kitPdf'])->name('ar.card.kit.pdf');
 });
 
+// ── Creator Profile: public /@handle surface (Task #1207) ──────────
+// MUST live above the catch-all `/{alias}` matcher so the @-prefixed
+// URLs resolve here instead of being treated as biolink aliases. The
+// `@` is part of the URL, mirroring Twitter / Instagram conventions.
+Route::get('/@{handle}', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'show'])
+    ->where('handle', '[A-Za-z0-9_]+')
+    ->name('creator-profile.show');
+Route::post('/@{handle}/p/{post}/react', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'react'])
+    ->where(['handle' => '[A-Za-z0-9_]+', 'post' => '[0-9]+'])
+    ->middleware('throttle:120,1')
+    ->name('creator-profile.react');
+Route::post('/@{handle}/p/{post}/comment', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'comment'])
+    ->where(['handle' => '[A-Za-z0-9_]+', 'post' => '[0-9]+'])
+    ->middleware('throttle:60,1')
+    ->name('creator-profile.comment');
+Route::delete('/@{handle}/c/{comment}', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'deleteComment'])
+    ->where(['handle' => '[A-Za-z0-9_]+', 'comment' => '[0-9]+'])
+    ->name('creator-profile.comment.destroy');
+
 // Carbon-Neutral Biolinks: public methodology page (linked from the
 // "Carbon Neutral" badge popover on every opted-in biolink) and a
 // JSON endpoint the badge JS hits on first open. Both must be public

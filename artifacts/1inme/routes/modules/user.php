@@ -317,6 +317,15 @@ Route::prefix('user')->name('user.')->group(function () {
                 ->name('settings.sessions.destroy');
         });
 
+        // Creator Profile editor (Task #1207). Lives next to the regular
+        // Profile editor so the existing settings.view permission applies
+        // — the public surface is at /@handle, this is just the editor.
+        Route::prefix('creator-profile')->name('creator-profile.')->middleware('workspace.can:settings.view')->group(function () {
+            Route::get('/',         [\App\Modules\User\Controllers\CreatorProfileController::class, 'edit'])->name('edit');
+            Route::post('/',        [\App\Modules\User\Controllers\CreatorProfileController::class, 'update'])->name('update');
+            Route::post('/handle',  [\App\Modules\User\Controllers\CreatorProfileController::class, 'claimHandle'])->name('handle.claim');
+        });
+
         Route::prefix('profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');

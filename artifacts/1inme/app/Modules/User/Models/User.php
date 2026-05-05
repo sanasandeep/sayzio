@@ -31,6 +31,9 @@ class User extends Authenticatable
         'image_reoptimize_files_count',
         'image_reoptimize_bytes_freed',
         'image_reoptimize_notice_dismissed_at',
+        // Creator Profile (separate /@handle surface — see Task #1207).
+        'cover_image', 'tagline', 'location', 'niche_tags', 'socials',
+        'profile_published', 'profile_section_visibility', 'posts_count',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -59,7 +62,61 @@ class User extends Authenticatable
             'image_reoptimize_files_count' => 'integer',
             'image_reoptimize_bytes_freed' => 'integer',
             'image_reoptimize_notice_dismissed_at' => 'datetime',
+            // Creator Profile fields (Task #1207).
+            'niche_tags' => 'array',
+            'socials' => 'array',
+            'profile_section_visibility' => 'array',
+            'profile_published' => 'boolean',
+            'posts_count' => 'integer',
         ];
+    }
+
+    /**
+     * Default visibility map for the fixed-layout Creator Profile sections.
+     * Hero is always shown — toggling it would leave a blank page — so it
+     * is intentionally absent from the editor.
+     */
+    public const PROFILE_DEFAULT_VISIBILITY = [
+        'stats'   => true,
+        'about'   => true,
+        'posts'   => true,
+        'socials' => true,
+        'biolink' => true,
+        'contact' => true,
+    ];
+
+    public function profileSectionVisibility(): array
+    {
+        $stored = is_array($this->profile_section_visibility) ? $this->profile_section_visibility : [];
+        return array_merge(self::PROFILE_DEFAULT_VISIBILITY, $stored);
+    }
+
+    public function isSectionVisible(string $section): bool
+    {
+        $vis = $this->profileSectionVisibility();
+        return (bool) ($vis[$section] ?? true);
+    }
+
+    /**
+     * 0–100 score telling the creator how filled-in their profile is.
+     * Drives the completeness meter shown in the editor.
+     */
+    public function profileCompletenessPercent(): int
+    {
+        $checks = [
+            !empty($this->handle),
+            !empty($this->avatar),
+            !empty($this->cover_image),
+            !empty($this->tagline),
+            !empty($this->bio),
+            !empty($this->location),
+            is_array($this->niche_tags) && count($this->niche_tags) > 0,
+            is_array($this->socials) && count($this->socials) > 0,
+            (int) ($this->posts_count ?? 0) > 0,
+            (bool) $this->profile_published,
+        ];
+        $done = count(array_filter($checks));
+        return (int) round(($done / count($checks)) * 100);
     }
 
     /**

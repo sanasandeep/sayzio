@@ -35,23 +35,41 @@ class CreatorPostController extends Controller
     {
         $data = $request->validate([
             'title'        => ['nullable', 'string', 'max:200'],
-            'body'         => ['required', 'string', 'max:10000'],
+            'body'         => ['nullable', 'string', 'max:10000'],
             'image'        => ['nullable', 'string', 'max:1024'],
             'scheduled_at' => ['nullable', 'date'],
             'is_pinned'    => ['nullable', 'boolean'],
+            // Creator Profile post types (Task #1207). `body` becomes
+            // optional once a media payload is supplied so a gallery /
+            // video / audio / link card post doesn't have to ship a
+            // caption to be valid.
+            'post_type'    => ['nullable', 'string', 'in:' . implode(',', CreatorPost::TYPES)],
+            'media'        => ['nullable', 'array'],
         ]);
 
         $scheduledAt = !empty($data['scheduled_at']) ? \Carbon\Carbon::parse($data['scheduled_at']) : null;
         $isFuture = $scheduledAt && $scheduledAt->isFuture();
 
+        $postType = $data['post_type'] ?? CreatorPost::TYPE_TEXT;
+        $media    = $this->sanitizeMedia($postType, $data['media'] ?? []);
+
+        if (empty($data['body']) && $postType === CreatorPost::TYPE_TEXT && empty($data['image'])) {
+            return $this->fail('A text post must have a body.', 422);
+        }
+
         $p = CreatorPost::create([
             'user_id'      => $request->user()->id,
             'title'        => $data['title'] ?? null,
-            'body'         => $data['body'],
+            'body'         => (string) ($data['body'] ?? ''),
             'image'        => $data['image'] ?? null,
+            'post_type'    => $postType,
+            'media'        => $media,
             'scheduled_at' => $scheduledAt,
             'published_at' => $isFuture ? null : now(),
         ]);
+
+        // posts_count is kept in sync by the CreatorPost model's saved()
+        // hook (covers web, API, scheduler, and approval workflow).
 
         if (!empty($data['is_pinned']) && !$isFuture) {
             CreatorPost::query()
@@ -77,10 +95,17 @@ class CreatorPostController extends Controller
         $p = CreatorPost::where('user_id', $request->user()->id)->find($id);
         if (!$p) return $this->notFound('Post not found');
         $data = $request->validate([
-            'title' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'body'  => ['sometimes', 'string', 'max:10000'],
-            'image' => ['sometimes', 'nullable', 'string', 'max:1024'],
+            'title'     => ['sometimes', 'nullable', 'string', 'max:200'],
+            'body'      => ['sometimes', 'string', 'max:10000'],
+            'image'     => ['sometimes', 'nullable', 'string', 'max:1024'],
+            'post_type' => ['sometimes', 'string', 'in:' . implode(',', CreatorPost::TYPES)],
+            'media'     => ['sometimes', 'nullable', 'array'],
         ]);
+        if (array_key_exists('media', $data) || array_key_exists('post_type', $data)) {
+            $type = $data['post_type'] ?? $p->post_type ?? CreatorPost::TYPE_TEXT;
+            $data['media'] = $this->sanitizeMedia($type, $data['media'] ?? []);
+            $data['post_type'] = $type;
+        }
         $p->fill($data)->save();
         WorkspaceActivityRecorder::record(
             null, 'post.update', 'post', $p->id,
@@ -131,17 +156,84 @@ class CreatorPostController extends Controller
     protected function transform(CreatorPost $p): array
     {
         return [
-            'id'           => $p->id,
-            'title'        => $p->title,
-            'body'         => $p->body,
-            'image'        => $p->image,
-            'scheduled_at' => optional($p->scheduled_at)->toIso8601String(),
-            'published_at' => optional($p->published_at)->toIso8601String(),
-            'pinned_at'    => optional($p->pinned_at)->toIso8601String(),
-            'is_pinned'    => $p->isPinned(),
-            'is_scheduled' => $p->isScheduled(),
-            'status'       => $p->statusLabel(),
-            'created_at'   => optional($p->created_at)->toIso8601String(),
+            'id'              => $p->id,
+            'title'           => $p->title,
+            'body'            => $p->body,
+            'image'           => $p->image,
+            'post_type'       => $p->effectiveType(),
+            'media'           => is_array($p->media) ? $p->media : null,
+            'reactions_count' => (int) ($p->reactions_count ?? 0),
+            'comments_count'  => (int) ($p->comments_count ?? 0),
+            'scheduled_at'    => optional($p->scheduled_at)->toIso8601String(),
+            'published_at'    => optional($p->published_at)->toIso8601String(),
+            'pinned_at'       => optional($p->pinned_at)->toIso8601String(),
+            'is_pinned'       => $p->isPinned(),
+            'is_scheduled'    => $p->isScheduled(),
+            'status'          => $p->statusLabel(),
+            'created_at'      => optional($p->created_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * Trim a `media` payload to the fields each post type knows how to
+     * render. Anything else is dropped so we never persist arbitrary
+     * client-supplied JSON. Schemas:
+     *
+     *   gallery: { items: [{url, alt?}, …] }     // up to 10 items
+     *   video  : { url, poster?, duration? }
+     *   audio  : { url, title?, duration? }
+     *   link   : { url, title?, description?, image? }
+     *   image  : { url, alt? }                    // for type=image without legacy `image` col
+     *   text   : (no media)
+     */
+    protected function sanitizeMedia(string $type, array $media): ?array
+    {
+        $clip = fn ($s, $n = 1024) => is_string($s) ? mb_substr(trim($s), 0, $n) : null;
+        switch ($type) {
+            case CreatorPost::TYPE_GALLERY:
+                $items = collect($media['items'] ?? [])
+                    ->take(10)
+                    ->map(fn ($it) => [
+                        'url' => $clip($it['url'] ?? null, 1024),
+                        'alt' => $clip($it['alt'] ?? null, 200),
+                    ])
+                    ->filter(fn ($it) => !empty($it['url']))
+                    ->values()->all();
+                return $items ? ['items' => $items] : null;
+            case CreatorPost::TYPE_VIDEO:
+                $url = $clip($media['url'] ?? null);
+                if (!$url) return null;
+                return array_filter([
+                    'url'      => $url,
+                    'poster'   => $clip($media['poster'] ?? null),
+                    'duration' => isset($media['duration']) ? (int) $media['duration'] : null,
+                ], fn ($v) => $v !== null && $v !== '');
+            case CreatorPost::TYPE_AUDIO:
+                $url = $clip($media['url'] ?? null);
+                if (!$url) return null;
+                return array_filter([
+                    'url'      => $url,
+                    'title'    => $clip($media['title'] ?? null, 200),
+                    'duration' => isset($media['duration']) ? (int) $media['duration'] : null,
+                ], fn ($v) => $v !== null && $v !== '');
+            case CreatorPost::TYPE_LINK:
+                $url = $clip($media['url'] ?? null);
+                if (!$url) return null;
+                return array_filter([
+                    'url'         => $url,
+                    'title'       => $clip($media['title'] ?? null, 200),
+                    'description' => $clip($media['description'] ?? null, 500),
+                    'image'       => $clip($media['image'] ?? null),
+                ], fn ($v) => $v !== null && $v !== '');
+            case CreatorPost::TYPE_IMAGE:
+                $url = $clip($media['url'] ?? null);
+                if (!$url) return null;
+                return array_filter([
+                    'url' => $url,
+                    'alt' => $clip($media['alt'] ?? null, 200),
+                ], fn ($v) => $v !== null && $v !== '');
+            default:
+                return null;
+        }
     }
 }

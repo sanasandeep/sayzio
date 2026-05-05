@@ -1,10 +1,26 @@
 import { apiFetch } from "@/lib/api";
 
+// One of the six Creator Post types — kept in sync with the
+// CreatorPost::TYPES constant on the server.
+export type PostType = "text" | "image" | "gallery" | "video" | "audio" | "link";
+
+export type PostMedia = {
+  url?: string | null;
+  poster?: string | null;
+  duration?: number | null;
+  title?: string | null;
+  description?: string | null;
+  thumbnail?: string | null;
+  items?: { url: string; caption?: string | null }[];
+};
+
 export type Post = {
   id: number;
   title: string | null;
   body: string;
   image: string | null;
+  post_type?: PostType | null;
+  media?: PostMedia | null;
   scheduled_at: string | null;
   published_at: string | null;
   pinned_at: string | null;
@@ -12,6 +28,8 @@ export type Post = {
   is_scheduled: boolean;
   status: string;
   created_at: string | null;
+  reactions_count?: number;
+  comments_count?: number;
 };
 
 export async function listPosts(): Promise<{ items: Post[] }> {
@@ -23,6 +41,8 @@ export async function createPost(payload: {
   title?: string | null;
   body: string;
   image?: string | null;
+  post_type?: PostType;
+  media?: PostMedia | null;
   scheduled_at?: string | null;
   is_pinned?: boolean;
 }): Promise<Post> {

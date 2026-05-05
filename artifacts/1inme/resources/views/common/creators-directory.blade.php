@@ -57,22 +57,34 @@
             @foreach($creators as $creator)
                 @php
                     $bio = $creator->primaryBiolink();
-                    $href = $bio ? url('/' . $bio->alias) : '#';
+                    // Task #1207: cards now point to the new public Creator
+                    // Profile at /@handle (when the creator has a handle and
+                    // has published their profile). Falls back to the
+                    // primary biolink for legacy accounts that haven't
+                    // claimed a handle yet.
+                    $hasProfile = !empty($creator->handle) && (bool) ($creator->profile_published ?? false);
+                    $href = $hasProfile ? url('/@' . $creator->handle) : ($bio ? url('/' . $bio->alias) : '#');
                     $isFollowing = $viewerNow ? \App\Modules\User\Models\Follow::where('follower_id', $viewerNow->id)->where('creator_id', $creator->id)->exists() : false;
                 @endphp
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg transition-all">
-                    <div class="flex items-center gap-3">
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all">
+                    @if(!empty($creator->cover_image))
+                        <a href="{{ $href }}" class="block h-20 bg-cover bg-center" style="background-image:url('{{ $creator->cover_image }}');"></a>
+                    @else
+                        <a href="{{ $href }}" class="block h-20 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500"></a>
+                    @endif
+                    <div class="p-5">
+                    <div class="flex items-center gap-3 -mt-9">
                         @if($creator->avatar)
-                            <img src="{{ $creator->avatar }}" class="w-14 h-14 rounded-full object-cover" alt=""/>
+                            <img src="{{ $creator->avatar }}" class="w-14 h-14 rounded-full object-cover border-4 border-white bg-white" alt=""/>
                         @else
-                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-lg">
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-lg border-4 border-white">
                                 {{ $creator->getInitials() }}
                             </div>
                         @endif
-                        <div class="flex-1 min-w-0">
+                        <div class="flex-1 min-w-0 mt-7">
                             <a href="{{ $href }}" class="block font-bold text-slate-900 truncate hover:text-violet-700">{{ $creator->name }}</a>
                             @if($creator->handle)
-                                <p class="text-xs text-slate-500 truncate">&#64;{{ $creator->handle }}</p>
+                                <p class="text-xs text-slate-500 truncate">&#64;{{ $creator->handle }}{{ $hasProfile ? '' : ' · biolink' }}</p>
                             @endif
                         </div>
                     </div>
@@ -214,6 +226,7 @@
                             @endif
                         </div>
                     </div>
+                    </div>{{-- /p-5 wrapper added for cover-image header --}}
                 </div>
             @endforeach
         </div>
