@@ -29,34 +29,98 @@
     $base = rtrim(config('app.url', url('/')), '/');
 @endphp
 
-<style>[x-cloak] { display: none !important; }</style>
-<style type="text/tailwindcss">
+<style>
+    [x-cloak] { display: none !important; }
     .ics-input {
-        @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition;
+        width: 100%;
+        background-color: rgb(255 255 255 / 0.05);
+        border: 1px solid rgb(255 255 255 / 0.1);
+        border-radius: 0.75rem;
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #ffffff;
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+    .ics-input::placeholder { color: rgb(255 255 255 / 0.3); }
+    .ics-input:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        border-color: rgb(139 92 246 / 0.4);
+        box-shadow: 0 0 0 2px rgb(139 92 246 / 0.4);
     }
     .ics-label {
-        @apply block text-sm font-medium text-white/70 mb-1.5;
+        display: block;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 500;
+        color: rgb(255 255 255 / 0.7);
+        margin-bottom: 0.375rem;
     }
     .ics-help {
-        @apply text-xs text-white/40 mt-1;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(255 255 255 / 0.4);
+        margin-top: 0.25rem;
     }
     .ics-section {
-        @apply rounded-2xl p-6 mb-5 bg-white/[0.03] border border-white/10 backdrop-blur;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        background-color: rgb(255 255 255 / 0.03);
+        border: 1px solid rgb(255 255 255 / 0.1);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
     .ics-section-head {
-        @apply flex items-start gap-3 mb-5 pb-4 border-b border-white/5;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgb(255 255 255 / 0.05);
     }
     .ics-section-icon {
-        @apply w-9 h-9 rounded-xl bg-violet-500/15 text-violet-300 flex items-center justify-center text-base shrink-0;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.75rem;
+        background-color: rgb(139 92 246 / 0.15);
+        color: rgb(196 181 253);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        line-height: 1.5rem;
+        flex-shrink: 0;
     }
     .ics-section-title {
-        @apply text-base font-semibold text-white leading-tight;
+        font-size: 1rem;
+        line-height: 1.25;
+        font-weight: 600;
+        color: #ffffff;
     }
     .ics-section-sub {
-        @apply text-xs text-white/50 mt-0.5;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(255 255 255 / 0.5);
+        margin-top: 0.125rem;
     }
     .day-chip {
-        @apply w-11 h-11 rounded-full text-xs font-semibold border transition-all flex items-center justify-center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>
 
