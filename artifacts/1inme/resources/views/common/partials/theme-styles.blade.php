@@ -804,10 +804,10 @@
 <script>
 (function(){
     var css = `
-        html.light-mode [class*="text-white"]:not([class*="bg-purple-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-blue-"]):not([class*="bg-green-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
+        html.light-mode [class*="text-white"]:not([class*="bg-purple-"]):not([class*="bg-violet-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
             color: var(--text-primary) !important;
         }
-        html.light-mode [class*="text-white/"]:not([class*="bg-purple-"]):not([class*="bg-emerald-"]):not([class*="bg-gradient"]):not(.toggle-knob):not(.btn-primary) {
+        html.light-mode [class*="text-white/"]:not([class*="bg-purple-"]):not([class*="bg-violet-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
             color: var(--text-muted) !important;
         }
         html.light-mode [class*="text-white/8"],
