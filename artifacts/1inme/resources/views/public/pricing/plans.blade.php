@@ -698,6 +698,32 @@
                 </a>
             </div>
         </div>
+
+        {{-- Referral-program teaser --}}
+        <div class="mt-10 max-w-3xl mx-auto" data-anim="fade-up">
+            <div class="grad-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 bg-white/[0.02]">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0"
+                     style="background: linear-gradient(135deg,#7c3aed,#ec4899);">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] text-violet-300 mb-1">Referral program</div>
+                    <div class="text-white font-semibold leading-snug">Tell a friend, both get credit.</div>
+                    <p class="text-sm text-gray-400 mt-1 leading-relaxed">
+                        Share your personal <span class="font-mono text-violet-300">/r/&lt;your-code&gt;</span> link — every signup is tracked back to you, and your referrals land on the right plan with a thank-you discount applied automatically.
+                    </p>
+                </div>
+                @auth
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('user.referrals.index') ? route('user.referrals.index') : route('user.dashboard') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-violet-400/30 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 text-sm font-bold whitespace-nowrap shrink-0">
+                        Get my referral link <i class="fas fa-arrow-right text-[11px]"></i>
+                    </a>
+                @else
+                    <a href="{{ route('register.page') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-violet-400/30 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 text-sm font-bold whitespace-nowrap shrink-0">
+                        Sign up &amp; share <i class="fas fa-arrow-right text-[11px]"></i>
+                    </a>
+                @endauth
+            </div>
+        </div>
     </div>
 </section>
 

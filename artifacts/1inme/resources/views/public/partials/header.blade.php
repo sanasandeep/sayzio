@@ -36,6 +36,18 @@
                             <i class="fas fa-play text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">How it works</span><span class="block text-xs text-gray-500">Step-by-step setup</span></span>
                         </a>
+                        <a href="{{ route('site.analytics') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-chart-line text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Analytics</span><span class="block text-xs text-gray-500">Live geo, coach &amp; cohorts</span></span>
+                        </a>
+                        <a href="{{ route('site.audience') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-users text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Audience</span><span class="block text-xs text-gray-500">Followers, digest emails &amp; directory</span></span>
+                        </a>
+                        <a href="{{ route('site.integrations') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-plug text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Integrations</span><span class="block text-xs text-gray-500">One-click social connections</span></span>
+                        </a>
                         <a href="{{ route('site.workspace-team') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-people-group text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Workspace &amp; Team</span><span class="block text-xs text-gray-500">Roles, permissions, audit logs</span></span>
@@ -97,6 +109,14 @@
                             <i class="fas fa-bullhorn text-pink-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Buzz</span><span class="block text-xs text-gray-500">News, press &amp; love</span></span>
                         </a>
+                        <a href="{{ route('site.features') }}#cat-events" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-calendar-day text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Events &amp; RSVPs</span><span class="block text-xs text-gray-500">Run launches with one link</span></span>
+                        </a>
+                        <a href="{{ route('site.features') }}#cat-referrals" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-gift text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Referrals</span><span class="block text-xs text-gray-500">Reward fans who spread the word</span></span>
+                        </a>
                     </div>
                 </div>
 
@@ -154,6 +174,9 @@
             <div class="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Product</div>
             <a href="{{ route('site.features') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Features</a>
             <a href="{{ route('site.how-it-works') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">How it works</a>
+            <a href="{{ route('site.analytics') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Analytics</a>
+            <a href="{{ route('site.audience') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Audience</a>
+            <a href="{{ route('site.integrations') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Integrations</a>
             <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Workspace &amp; Team</a>
             <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
 
@@ -169,6 +192,8 @@
             <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Discover creators</a>
             <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Creators feed</a>
             <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Buzz</a>
+            <a href="{{ route('site.features') }}#cat-events" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Events &amp; RSVPs</a>
+            <a href="{{ route('site.features') }}#cat-referrals" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Referrals</a>
 
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Company</div>
             <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>

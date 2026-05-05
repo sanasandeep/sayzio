@@ -325,7 +325,7 @@
                         <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c1)"></span>
                         <span class="ring-pulse" style="inset:0;background:var(--c1);"></span>
                     </span>
-                    <span class="grad-text">All-in-one growth stack · Free Forever · Native mobile app</span>
+                    <span class="grad-text">Analytics · Followers · Social integrations · Free Forever · Native mobile app</span>
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-8">

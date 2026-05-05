@@ -82,11 +82,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10]">
-<<<<<<< HEAD
                     <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="Diagram of the 1INME setup flow">
-=======
-                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="">
->>>>>>> 60d7746 (Saved your changes before starting work)
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white">
@@ -135,6 +131,57 @@
                 </div>
             </div>
         @endforeach
+    </div>
+</section>
+
+{{-- Templates & link types --}}
+<section class="pb-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-8" data-anim="fade-up">
+        <div class="grad-border rounded-3xl p-7 sm:p-8 relative overflow-hidden">
+            <div class="mesh-bg opacity-50"></div>
+            <div class="relative">
+                <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-300 mb-2">
+                    <i class="fas fa-rectangle-list"></i> Templates
+                </div>
+                <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Skip the blank canvas.</h3>
+                <p class="mt-3 text-gray-300 leading-relaxed">
+                    Pick a professionally designed template, swap in your details, and you’re live in two minutes. Built for creators, brands, agencies, restaurants, coaches and more — and you can save your own as a reusable template for clients or your team.
+                </p>
+                <div class="mt-5">
+                    <a href="{{ route('site.features') }}#cat-templates" class="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-300 hover:text-white">
+                        Browse templates <i class="fas fa-arrow-right text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="glass rounded-3xl p-7 sm:p-8 relative overflow-hidden">
+            <div class="text-xs font-bold uppercase tracking-[.2em] text-cyan-300 mb-2">
+                <i class="fas fa-link"></i> Friendly link types
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Plain-English link types.</h3>
+            <p class="mt-3 text-gray-300 leading-relaxed">
+                No jargon — just pick what the link should do. Every type is named for what it actually does for your visitor.
+            </p>
+            <ul class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm text-gray-300">
+                @foreach([
+                    ['fa-arrow-up-right-from-square', 'Send to a website'],
+                    ['fa-file-arrow-down',            'Download a file'],
+                    ['fa-image',                      'Show a splash page'],
+                    ['fa-mobile-screen',              'Open an app'],
+                    ['fa-address-card',               'Save my contact (vCard)'],
+                    ['fa-calendar-plus',              'Add to calendar (.ics)'],
+                    ['fa-wifi',                       'Join my Wi-Fi'],
+                    ['fa-shuffle',                    'Pick one of many (A/B)'],
+                ] as [$ic, $label])
+                    <li class="flex items-start gap-2.5">
+                        <span class="mt-0.5 w-6 h-6 rounded-md flex items-center justify-center text-cyan-300 flex-shrink-0" style="background:rgba(34,211,238,.1);">
+                            <i class="fas {{ $ic }} text-[11px]"></i>
+                        </span>
+                        <span>{{ $label }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
     </div>
 </section>
 

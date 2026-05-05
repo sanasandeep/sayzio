@@ -33,6 +33,13 @@ class PremiumFeatures
             ['key' => 'pixels', 'group' => 'Tracking & analytics', 'name' => 'Marketing pixels', 'description' => 'Drop Meta, TikTok, Google Ads and other tracking pixels onto your links and biolink pages so your ad campaigns can attribute clicks and conversions.'],
             ['key' => 'utm_params', 'group' => 'Tracking & analytics', 'name' => 'UTM parameters', 'description' => 'Auto-append UTM source/medium/campaign tags to your links so the visits show up cleanly in Google Analytics and other tools.'],
             ['key' => 'analytics', 'group' => 'Tracking & analytics', 'name' => 'Analytics depth', 'description' => 'Basic plans show clicks and top countries; advanced unlocks geographic, device, referrer and cohort breakdowns plus the Performance Coach.'],
+            ['key' => 'audience_followers', 'group' => 'Tracking & analytics', 'name' => 'Audience & followers', 'description' => 'Lightweight viewer accounts, live follower counts, daily digest emails and one-tap follow buttons on every social block — so visitors become an audience you actually own.'],
+
+            // ---- Audience growth ----
+            ['key' => 'social_integrations', 'group' => 'Audience growth', 'name' => 'Social integrations', 'description' => 'Plug in Instagram, TikTok, Facebook, X, LinkedIn and Pinterest with a single tap. Connections auto-retry when tokens expire and you get notified the moment something needs your attention.'],
+            ['key' => 'scheduling', 'group' => 'Audience growth', 'name' => 'Scheduling', 'description' => 'Schedule blocks and pages to publish or expire on a date and time you set, with visitor-timezone-aware drops and a test-send for digest emails.'],
+            ['key' => 'events_rsvps', 'group' => 'Audience growth', 'name' => 'Events & RSVPs', 'description' => 'Run launches, drops and meet-ups inside your biolink with countdown blocks, RSVP capture, reminder emails, capacity caps and add-to-calendar (.ics) downloads.'],
+            ['key' => 'referrals', 'group' => 'Audience growth', 'name' => 'Referral program', 'description' => 'Give every creator a personal /r/<code> share link, custom referral codes and live tracking of who joined through them — turn happy users into your biggest growth channel.'],
 
             // ---- Domains & SEO ----
             ['key' => 'custom_domains', 'group' => 'Domains & SEO', 'name' => 'Custom domains', 'description' => 'Connect your own domain (yourbrand.com) so short links and biolink pages live under your URL instead of 1inme.co.'],

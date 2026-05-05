@@ -35,6 +35,22 @@ class SitePageController extends Controller
             );
             if (empty($categories)) {
                 $categories = SitePagesContent::featuresCategoriesDefault();
+            } else {
+                // Append any default categories whose `id` isn't already
+                // in the stored sections so new categories surface even
+                // on instances with admin-edited content.
+                $existingIds = [];
+                foreach ($categories as $c) {
+                    $cid = (string) ($c['id'] ?? '');
+                    if ($cid !== '') $existingIds[$cid] = true;
+                }
+                foreach (SitePagesContent::featuresCategoriesDefault() as $defaultCat) {
+                    $defaultId = (string) ($defaultCat['id'] ?? '');
+                    if ($defaultId === '' || isset($existingIds[$defaultId])) {
+                        continue;
+                    }
+                    $categories[] = $defaultCat;
+                }
             }
             return view('public.features', ['page' => $page, 'categories' => $categories]);
         }

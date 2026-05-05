@@ -14,6 +14,74 @@
         asset('images/marketing/services/ecommerce.png'),
         asset('images/marketing/services/coach.png'),
     ];
+
+    $extraUseCases = [
+        [
+            'title' => 'Data-led creators',
+            'tagline' => 'Grow with live numbers',
+            'desc' => 'Live geo pins, the AI Performance Coach, retention cohorts and a Top Followers CSV — fix what’s underperforming in one tap and double-down on what’s working.',
+            'icon' => 'fa-chart-line',
+            'tint' => 'from-cyan-400 to-violet-500',
+            'cta_label' => 'See the analytics suite',
+            'cta_url' => route('site.analytics'),
+            'bullets' => [
+                'Real-time visitor map &amp; per-block CTR',
+                'AI Coach with one-click recommendations',
+                'Retention cohorts &amp; Top Followers CSV',
+                'Snapshot share for clients &amp; sponsors',
+            ],
+        ],
+        [
+            'title' => 'Audience-first creators',
+            'tagline' => 'Own your follower list',
+            'desc' => 'Lightweight viewer accounts, a daily digest with previews, a public creators directory, and one-tap follow buttons everywhere — an audience no algorithm can take away.',
+            'icon' => 'fa-users',
+            'tint' => 'from-pink-400 to-violet-500',
+            'cta_label' => 'See audience features',
+            'cta_url' => route('site.audience'),
+            'bullets' => [
+                'Live follower counts on every social block',
+                'Daily digest emails with previews &amp; test sends',
+                'Public creators directory with category opt-in',
+                'CSV export of your top followers',
+            ],
+        ],
+        [
+            'title' => 'Launch operators',
+            'tagline' => 'Schedule drops, run events, reward fans',
+            'desc' => 'Schedule blocks and pages to flip live, run event blocks with RSVPs and reminders, hand out referral codes that track signups straight back to the people who shared them.',
+            'icon' => 'fa-calendar-day',
+            'tint' => 'from-emerald-400 to-cyan-500',
+            'cta_label' => 'See events &amp; referrals',
+            'cta_url' => route('site.features') . '#cat-events',
+            'bullets' => [
+                'Block-level publish &amp; expire scheduling',
+                'Event blocks with RSVPs, reminders &amp; .ics',
+                'Referral codes &amp; signup tracking built-in',
+                'Pre-built launch templates to start in seconds',
+            ],
+        ],
+        [
+            'title' => 'Multi-network agencies',
+            'tagline' => 'One-click social on every network',
+            'desc' => 'Plug in Instagram, TikTok, Facebook, X, LinkedIn and Pinterest in a single tap. Auto-retry handles expired tokens, live status keeps surprises to zero, and reconnect is one click.',
+            'icon' => 'fa-plug',
+            'tint' => 'from-violet-500 to-pink-500',
+            'cta_label' => 'See integrations',
+            'cta_url' => route('site.integrations'),
+            'bullets' => [
+                'One-click connect on six major networks',
+                'Auto-retry on expired tokens',
+                'Live "healthy / reconnect" status dashboard',
+                'In-app + email alerts when something breaks',
+            ],
+        ],
+    ];
+
+    // Merge into the same shape the loop expects, keeping CMS-driven
+    // entries first so admins keep ordering control over those, then
+    // appending our new product-surface use cases at the end.
+    $useCases = array_values(array_merge($useCases ?? [], $extraUseCases));
 @endphp
 
 {{-- HERO --}}

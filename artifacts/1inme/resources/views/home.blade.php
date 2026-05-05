@@ -2380,6 +2380,18 @@
                             <i class="fas fa-play text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">How it works</span><span class="block text-xs text-gray-500">Step-by-step setup</span></span>
                         </a>
+                        <a href="{{ route('site.analytics') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-chart-line text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Analytics</span><span class="block text-xs text-gray-500">Live geo, coach &amp; cohorts</span></span>
+                        </a>
+                        <a href="{{ route('site.audience') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-users text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Audience</span><span class="block text-xs text-gray-500">Followers, digest emails &amp; directory</span></span>
+                        </a>
+                        <a href="{{ route('site.integrations') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-plug text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Integrations</span><span class="block text-xs text-gray-500">One-click social connections</span></span>
+                        </a>
                         <a href="{{ route('site.workspace-team') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-people-group text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Workspace &amp; Team</span><span class="block text-xs text-gray-500">Roles, permissions, audit logs</span></span>
@@ -2416,6 +2428,14 @@
                             <i class="fas fa-bullhorn text-pink-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Buzz</span><span class="block text-xs text-gray-500">News, press &amp; love</span></span>
                         </a>
+                        <a href="{{ route('site.features') }}#cat-events" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-calendar-day text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Events &amp; RSVPs</span><span class="block text-xs text-gray-500">Run launches with one link</span></span>
+                        </a>
+                        <a href="{{ route('site.features') }}#cat-referrals" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-gift text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Referrals</span><span class="block text-xs text-gray-500">Reward fans who spread the word</span></span>
+                        </a>
                     </div>
                 </div>
                 <a href="#pricing" class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white">Pricing</a>
@@ -2448,6 +2468,9 @@
             <a href="#features" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Features</a>
             <a href="#audience" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Who it&rsquo;s for</a>
             <a href="#how-it-works" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">How it works</a>
+            <a href="{{ route('site.analytics') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Analytics</a>
+            <a href="{{ route('site.audience') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Audience</a>
+            <a href="{{ route('site.integrations') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Integrations</a>
             <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Workspace &amp; Team</a>
             <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
 
@@ -2456,6 +2479,8 @@
             <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Discover creators</a>
             <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Creators feed</a>
             <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Buzz</a>
+            <a href="{{ route('site.features') }}#cat-events" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Events &amp; RSVPs</a>
+            <a href="{{ route('site.features') }}#cat-referrals" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Referrals</a>
 
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Company</div>
             <a href="#pricing" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
@@ -3386,6 +3411,71 @@
                 ['fa-coins',    'Coin / Wallet add-ons'],
             ],
         ],
+        [
+            'eyebrow' => 'Audience & followers',
+            'title'   => 'Build an audience you actually own',
+            'icon'    => 'fa-users',
+            'color'   => '#f472b6',
+            'href'    => route('site.audience'),
+            'items'   => [
+                ['fa-user-plus',          'Lightweight viewer accounts'],
+                ['fa-bolt',               'Live follower counts everywhere'],
+                ['fa-compass',            'Public creators directory'],
+                ['fa-envelope-open-text', 'Daily digest emails'],
+            ],
+        ],
+        [
+            'eyebrow' => 'Social integrations',
+            'title'   => 'Every network · one-click connect',
+            'icon'    => 'fa-plug',
+            'color'   => '#a78bfa',
+            'href'    => route('site.integrations'),
+            'items'   => [
+                ['fa-plug',           'Instagram, TikTok, Facebook, X, LinkedIn, Pinterest'],
+                ['fa-arrows-rotate',  'Auto-retry when tokens expire'],
+                ['fa-circle-check',   'Live "healthy / needs reconnect" status'],
+                ['fa-bell',           'Notifications when something breaks'],
+            ],
+        ],
+        [
+            'eyebrow' => 'Scheduling',
+            'title'   => 'Launch on the date and time you want',
+            'icon'    => 'fa-clock',
+            'color'   => '#34d399',
+            'href'    => route('site.features') . '#cat-scheduling',
+            'items'   => [
+                ['fa-clock',         'Schedule blocks to publish &amp; expire'],
+                ['fa-calendar-week', 'Page-level publish scheduling'],
+                ['fa-globe',         'Visitor-timezone-aware drops'],
+                ['fa-paper-plane',   'Test send for digest emails'],
+            ],
+        ],
+        [
+            'eyebrow' => 'Events & RSVPs',
+            'title'   => 'Run launches, drops &amp; meetups in-line',
+            'icon'    => 'fa-calendar-day',
+            'color'   => '#fbbf24',
+            'href'    => route('site.features') . '#cat-events',
+            'items'   => [
+                ['fa-calendar-day',  'Event blocks with live countdown'],
+                ['fa-clipboard-list','RSVPs with reminder emails'],
+                ['fa-calendar-plus', 'Add to calendar (.ics)'],
+                ['fa-people-group',  'Capacity caps &amp; waitlists'],
+            ],
+        ],
+        [
+            'eyebrow' => 'Referrals & templates',
+            'title'   => 'Reward your fans. Start in seconds.',
+            'icon'    => 'fa-gift',
+            'color'   => '#fb7185',
+            'href'    => route('site.features') . '#cat-referrals',
+            'items'   => [
+                ['fa-gift',           'Custom referral codes &amp; tracking'],
+                ['fa-link',           'Personal /r/&lt;code&gt; share links'],
+                ['fa-rectangle-list', 'Pre-built launch templates'],
+                ['fa-floppy-disk',    'Save your own pages as templates'],
+            ],
+        ],
     ];
 @endphp
 <section id="everything" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="everything-h">
@@ -3400,7 +3490,7 @@
             </p>
         </div>
 
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             @foreach($__pillars as $i => $p)
                 <article class="reveal rd-{{ ($i % 4) + 1 }} glass rounded-3xl p-6 lift relative overflow-hidden">
                     <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" style="background:radial-gradient(circle, {{ $p['color'] }}, transparent 70%);"></div>
@@ -3519,6 +3609,13 @@
                             </li>
                         @endforeach
                     </ul>
+                    @if(!empty($p['href']))
+                        <div class="relative mt-5 pt-4 border-t border-white/5">
+                            <a href="{{ $p['href'] }}" class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider hover:translate-x-0.5 transition" style="color: {{ $p['color'] }};">
+                                Explore <i class="fas fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
+                    @endif
                 </article>
             @endforeach
         </div>

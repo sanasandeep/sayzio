@@ -163,6 +163,9 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     // Standalone marketing page for the Résumé / Portfolio Builder module.
     Route::view('/resume-builder', 'public.resume-builder')->name('site.resume-builder');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
+    Route::view('/analytics',    'public.analytics')   ->name('site.analytics');
+    Route::view('/audience',     'public.audience')    ->name('site.audience');
+    Route::view('/integrations', 'public.integrations')->name('site.integrations');
     Route::get('/pricing',          [\App\Modules\Common\Controllers\PricingPagesController::class, 'plans'])   ->name('site.pricing');
     // Lightweight AJAX target the /pricing Alpine toggle pings whenever
     // the visitor flips Monthly ↔ Annual. The page itself doesn't
@@ -256,7 +259,7 @@ Route::get('/{handle}/resume/v/{slug}.pdf',
 // allow-list of suffixes that does not include "resume").
 Route::get ('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'show'])
     ->name('resume.public.show')
-    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|creators|feed|viewer|companion|embed|assistant|sp|r)[a-zA-Z0-9_\-\.]+$');
+    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations)[a-zA-Z0-9_\-\.]+$');
 Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'unlock'])
     ->name('resume.public.unlock')
     ->middleware('throttle:10,1')
@@ -380,8 +383,8 @@ Route::get('/sustainability/methodology', [\App\Modules\Common\Controllers\Carbo
 Route::get('/sustainability/badge/{link}', [\App\Modules\Common\Controllers\CarbonPublicController::class, 'badge'])
     ->whereNumber('link')->middleware('throttle:60,1')->name('public.carbon.badge');
 
-Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout).*$');
-Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout)[^/]+$');
+Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations).*$');
+Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations)[^/]+$');
 // ── Conversational Biolink visitor endpoints ─────────────────────
 // Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.
 Route::post('/sl/{alias}/view',            [\App\Modules\Common\Controllers\SlideEventController::class, 'view'])
