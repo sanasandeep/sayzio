@@ -426,60 +426,6 @@
 
 @push('scripts')
 <script>
-// Helper: submit an alias action by building a transient form (top-level,
-// not nested) so HTML doesn't auto-close the parent edit form.
-window.linkAliasAction = function (btn, method, confirmMsg) {
-    var action = btn.getAttribute('data-action');
-    var doIt = function () { window.linkAliasActionRun(btn, method, action); };
-    if (confirmMsg) {
-        window.themedConfirm({
-            title: 'Are you sure?',
-            message: confirmMsg,
-            confirmText: 'Continue',
-            confirmIcon: 'fa-check',
-            iconClass: 'fa-triangle-exclamation',
-            onConfirm: doIt,
-        });
-        return;
-    }
-    doIt();
-};
-window.linkAliasActionRun = function (btn, method, action) {
-    var f = document.createElement('form');
-    f.method = 'POST';
-    f.action = action;
-    f.style.display = 'none';
-    var t = document.createElement('input');
-    t.type = 'hidden'; t.name = '_token';
-    t.value = document.querySelector('meta[name="csrf-token"]')
-        ? document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        : (document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '');
-    f.appendChild(t);
-    if (method && method.toUpperCase() !== 'POST') {
-        var m = document.createElement('input');
-        m.type = 'hidden'; m.name = '_method'; m.value = method.toUpperCase();
-        f.appendChild(m);
-    }
-    document.body.appendChild(f);
-    f.submit();
-};
-window.linkAliasAdd = function (action) {
-    var input = document.getElementById('newAliasInput');
-    if (!input || !input.value.trim()) { input && input.focus(); return; }
-    var f = document.createElement('form');
-    f.method = 'POST';
-    f.action = action;
-    f.style.display = 'none';
-    var t = document.createElement('input');
-    t.type = 'hidden'; t.name = '_token';
-    t.value = document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '';
-    f.appendChild(t);
-    var a = document.createElement('input');
-    a.type = 'hidden'; a.name = 'alias'; a.value = input.value.trim();
-    f.appendChild(a);
-    document.body.appendChild(f);
-    f.submit();
-};
 // Legacy fallback object kept for backward-compat; the active component is
 // registered via Alpine.data('linkEditForm', ...) above the form.
 window.linkEditFormState = {
