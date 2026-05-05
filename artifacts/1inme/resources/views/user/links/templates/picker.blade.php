@@ -107,6 +107,11 @@
         <p x-show="search !== '' || category !== 'all'" x-cloak class="text-xs text-white/40 mb-3 px-1">
             Showing <span class="text-white/70 font-medium" x-text="visibleCount"></span>
             of {{ $pageTemplates->count() }} {{ \Illuminate\Support\Str::plural('template', $pageTemplates->count()) }}
+            <button type="button"
+                    @click="search = ''; category = 'all'"
+                    class="ml-2 text-white/40 hover:text-white/80 underline-offset-2 hover:underline transition">
+                Clear
+            </button>
         </p>
     @endif
 
