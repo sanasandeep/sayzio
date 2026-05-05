@@ -24,6 +24,7 @@ The UI features a glassmorphism design with dark/light modes, a purple color pal
 ### Biolink Customization
 The platform offers advanced biolink customization, including:
 - **Block Styling System**: Per-block styling with 11 properties, 10 templates, and global themes with overrides.
+- **First-Paint Block Defaults**: Newly-created blocks (web or mobile) immediately render with friendly placeholder text in every text field, a working placeholder media URL for media blocks (image/video/audio/document), and a populated `_style` payload (font, colors, radius, shadow, effect). Defaults live in `app/Modules/User/Support/BlockDefaults.php` and are applied only at creation time by `BiolinkBlockController::store()` — saved blocks remain untouched. A `_placeholder` flag drives a "We dropped in placeholder content" banner in both editors; the flag is cleared automatically on first save by `update()`. Variant picks from `BlockVariantCatalog` still fully replace seeded `_style`. Placeholder image assets live in `public/block-placeholders/`.
 - **Image Styling System**: 10 mask/crop shapes, customizable borders, and 6 shadow types for image blocks.
 - **Trackable Block Links**: Image blocks can have trackable destination URLs with analytics capture.
 - **Block Display Settings**: Per-block visibility based on schedule, location, device, OS, browser, and language.

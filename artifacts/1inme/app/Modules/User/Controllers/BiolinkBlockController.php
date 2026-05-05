@@ -6,6 +6,7 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
+use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockVariantCatalog;
 use App\Modules\User\Support\FontCatalog;
 use Illuminate\Http\Request;
@@ -275,7 +276,38 @@ class BiolinkBlockController extends Controller
             $sortOrder = $maxSort + 1;
         }
 
-        $settings = $validated['settings'] ?? $this->getDefaultSettings($validated['type']);
+        // Treat an empty settings array as "not provided" so
+        // partial-settings callers (mobile, gallery shortcuts) still
+        // receive the seeded defaults.
+        $defaults = $this->getDefaultSettings($validated['type']);
+        $incoming = $validated['settings'] ?? [];
+        $settings = empty($incoming)
+            ? $defaults
+            : array_replace($defaults, $incoming);
+
+        // Seed `_style` only when the caller didn't supply one.
+        if (!isset($settings['_style']) || !is_array($settings['_style']) || $settings['_style'] === []) {
+            $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                BlockDefaults::styleForType($validated['type'])
+            ));
+        }
+
+        // Snapshot the seeded *content* fields so update() can later tell
+        // whether the creator actually edited the placeholder copy or
+        // just saved unrelated changes (visibility, schedule, design,
+        // max_clicks, etc). Filtering out meta keys keeps the comparison
+        // tight: it only fires when a seeded text/media field differs.
+        if (!empty($settings['_placeholder'])) {
+            $seedKeys = array_diff(
+                array_keys($settings),
+                ['_placeholder', '_placeholder_seed', '_style', '_style_custom_snapshot', '_visibility', '_link', '_limits', '_variant', '_variant_version']
+            );
+            $seed = [];
+            foreach ($seedKeys as $k) { $seed[$k] = $settings[$k]; }
+            $settings['_placeholder_seed'] = $seed;
+        }
+
         $settings = $this->sanitizeSettings($validated['type'], $settings);
 
         $block = $link->biolinkBlocks()->create([
@@ -380,6 +412,26 @@ class BiolinkBlockController extends Controller
 
         $settings = $validated['settings'] ?? $block->settings;
         $settings = $this->sanitizeSettings($block->type, $settings);
+
+        // Clear the `_placeholder` flag only when the caller actually
+        // edited a seeded field. Loose equality so nested arrays
+        // compare element-wise.
+        $existingSeed = $block->settings['_placeholder_seed'] ?? null;
+        $wasPlaceholder = !empty($block->settings['_placeholder']);
+        if ($wasPlaceholder && is_array($existingSeed)) {
+            $touched = false;
+            foreach ($existingSeed as $k => $seedVal) {
+                if (($settings[$k] ?? null) != $seedVal) { $touched = true; break; }
+            }
+            if ($touched) {
+                unset($settings['_placeholder'], $settings['_placeholder_seed']);
+            } else {
+                $settings['_placeholder'] = true;
+                $settings['_placeholder_seed'] = $existingSeed;
+            }
+        } else {
+            unset($settings['_placeholder'], $settings['_placeholder_seed']);
+        }
 
         if (in_array($block->type, ['verified_heading', 'verified_avatar'])) {
             $existing = $block->settings;
@@ -1463,120 +1515,196 @@ class BiolinkBlockController extends Controller
         return $settings;
     }
 
+    /**
+     * First-paint defaults for a freshly-added block. Used by store()
+     * only — never re-applied to existing rows. Blocks returned with
+     * `_placeholder => true` show a "replace this" banner in the
+     * editor; the flag is cleared by update() once the creator edits
+     * a seeded field.
+     */
     private function getDefaultSettings(string $type): array
     {
+        $imgUrl       = \App\Modules\User\Support\BlockDefaults::placeholderUrl('image');
+        $imgSquareUrl = \App\Modules\User\Support\BlockDefaults::placeholderUrl('image_square');
+        $coverUrl     = \App\Modules\User\Support\BlockDefaults::placeholderUrl('cover');
+        $avatarUrl    = \App\Modules\User\Support\BlockDefaults::placeholderUrl('avatar');
+        $logoUrl      = \App\Modules\User\Support\BlockDefaults::placeholderUrl('logo');
+        $docUrl       = \App\Modules\User\Support\BlockDefaults::placeholderUrl('document');
+        $videoUrl     = \App\Modules\User\Support\BlockDefaults::sampleMediaUrl('video');
+        $audioUrl     = \App\Modules\User\Support\BlockDefaults::sampleMediaUrl('audio');
+        $pdfUrl       = \App\Modules\User\Support\BlockDefaults::sampleMediaUrl('pdf');
+        $pptUrl       = \App\Modules\User\Support\BlockDefaults::sampleMediaUrl('pptx');
+        $xlsxUrl      = \App\Modules\User\Support\BlockDefaults::sampleMediaUrl('xlsx');
+
         return match ($type) {
-            'link' => ['url' => '', 'text' => 'My Link', 'icon' => '', 'thumbnail' => ''],
-            'link_big' => ['url' => '', 'text' => 'My Link', 'description' => '', 'icon' => '', 'thumbnail' => '', 'bg_color' => '#7c3aed'],
-            'heading' => ['text' => 'Heading', 'size' => 'h2', 'align' => 'center', 'style' => 'plain'],
-            'heading_logo' => ['text' => 'Brand Name', 'logo_url' => '', 'size' => 'h2', 'align' => 'center'],
-            'paragraph' => ['text' => 'Your text here...', 'align' => 'center'],
-            'paragraph_rich' => ['html' => '<p>Your rich text content here...</p>'],
+            'link' => ['url' => 'https://example.com', 'text' => 'My Link', 'icon' => '', 'thumbnail' => '', '_placeholder' => true],
+            'link_big' => ['url' => 'https://example.com', 'text' => 'My Featured Link', 'description' => 'A short blurb about where this goes.', 'icon' => '', 'thumbnail' => $imgSquareUrl, 'bg_color' => '#7c3aed', '_placeholder' => true],
+            'heading' => ['text' => 'Hello, I\'m new here', 'size' => 'h2', 'align' => 'center', 'style' => 'plain', '_placeholder' => true],
+            'heading_logo' => ['text' => 'Your Brand', 'logo_url' => $logoUrl, 'size' => 'h2', 'align' => 'center', '_placeholder' => true],
+            'paragraph' => ['text' => 'Tell visitors a little about yourself or what this block is for.', 'align' => 'center', '_placeholder' => true],
+            'paragraph_rich' => ['html' => '<p>Replace this with your own rich text. <strong>Bold</strong>, <em>italic</em>, and links all work.</p>', '_placeholder' => true],
             'divider' => ['style' => 'solid', 'color' => 'rgba(255,255,255,0.1)'],
             'list' => ['style' => 'clean', 'icon' => 'fa-check', 'items' => [
-                ['text' => 'First item', 'icon' => ''],
-                ['text' => 'Second item', 'icon' => ''],
-                ['text' => 'Third item', 'icon' => ''],
-            ]],
+                ['text' => 'First item — replace with your own', 'icon' => ''],
+                ['text' => 'Second item — drag to reorder', 'icon' => ''],
+                ['text' => 'Third item — add as many as you need', 'icon' => ''],
+            ], '_placeholder' => true],
             'list_numbered' => ['style' => 'clean', 'items' => [
-                ['text' => 'First item'],
-                ['text' => 'Second item'],
-                ['text' => 'Third item'],
-            ]],
+                ['text' => 'First step — replace with your own'],
+                ['text' => 'Second step — keep going'],
+                ['text' => 'Third step — finish strong'],
+            ], '_placeholder' => true],
             'list_pricing' => ['style' => 'classic', 'items' => [
                 ['name' => 'Starter',   'description' => 'Perfect for trying things out', 'price' => '$9',  'period' => '/mo', 'included' => true,  'featured' => false],
                 ['name' => 'Pro',       'description' => 'Everything you need to grow',   'price' => '$29', 'period' => '/mo', 'included' => true,  'featured' => true],
                 ['name' => 'Enterprise','description' => 'Custom limits + priority support','price' => '$99','period' => '/mo', 'included' => false, 'featured' => false],
-            ]],
-            'alert' => ['text' => 'Important notice!', 'type' => 'info', 'icon' => 'fa-info-circle'],
-            'badge' => ['text' => 'New', 'color' => '#7c3aed', 'text_color' => '#ffffff'],
+            ], '_placeholder' => true],
+            'alert' => ['text' => 'Heads up! Replace this with your own announcement.', 'type' => 'info', 'icon' => 'fa-info-circle', '_placeholder' => true],
+            'badge' => ['text' => 'New', 'color' => '#7c3aed', 'text_color' => '#ffffff', '_placeholder' => true],
 
-            'image' => ['url' => '', 'alt' => '', 'link' => ''],
-            'image_grid' => ['images' => [], 'columns' => 3, 'gap' => 4],
-            'image_slider' => ['images' => [], 'autoplay' => true, 'interval' => 3000],
-            'image_slider_v2' => ['images' => [], 'autoplay' => true, 'effect' => 'fade'],
-            'header_video' => ['url' => '', 'autoplay' => true, 'muted' => true, 'loop' => true],
-            'video' => ['url' => '', 'autoplay' => false],
-            'audio' => ['url' => '', 'title' => ''],
-            'pdf_document' => ['url' => '', 'title' => 'Document'],
-            'powerpoint' => ['url' => '', 'title' => 'Presentation'],
-            'excel' => ['url' => '', 'title' => 'Spreadsheet'],
+            'image' => ['url' => $imgUrl, 'alt' => 'Placeholder image', 'link' => '', '_placeholder' => true],
+            'image_grid' => ['images' => [
+                ['url' => $imgUrl, 'alt' => 'Placeholder 1'],
+                ['url' => $imgSquareUrl, 'alt' => 'Placeholder 2'],
+                ['url' => $imgUrl, 'alt' => 'Placeholder 3'],
+            ], 'columns' => 3, 'gap' => 4, '_placeholder' => true],
+            'image_slider' => ['images' => [
+                ['url' => $imgUrl, 'alt' => 'Placeholder 1'],
+                ['url' => $imgUrl, 'alt' => 'Placeholder 2'],
+            ], 'autoplay' => true, 'interval' => 3000, '_placeholder' => true],
+            'image_slider_v2' => ['images' => [
+                ['url' => $imgUrl, 'alt' => 'Placeholder 1'],
+                ['url' => $imgUrl, 'alt' => 'Placeholder 2'],
+            ], 'autoplay' => true, 'effect' => 'fade', '_placeholder' => true],
+            'header_video' => ['url' => $videoUrl, 'autoplay' => true, 'muted' => true, 'loop' => true, '_placeholder' => true],
+            'video' => ['url' => $videoUrl, 'autoplay' => false, '_placeholder' => true],
+            'audio' => ['url' => $audioUrl, 'title' => 'Placeholder audio track', '_placeholder' => true],
+            'pdf_document' => ['url' => $pdfUrl, 'title' => 'Placeholder document', '_placeholder' => true],
+            'powerpoint' => ['url' => $pptUrl, 'title' => 'Placeholder presentation', '_placeholder' => true],
+            'excel' => ['url' => $xlsxUrl, 'title' => 'Placeholder spreadsheet', '_placeholder' => true],
 
-            'socials' => ['platforms' => []],
-            'socials_multi' => ['groups' => [['label' => 'Personal', 'platforms' => []]]],
-            'socials_custom' => ['platforms' => [], 'style' => 'rounded', 'size' => 'md'],
-            'instagram_media' => ['url' => ''],
-            'tiktok_video' => ['url' => ''],
-            'tiktok_profile' => ['username' => ''],
-            'twitter_profile' => ['username' => ''],
-            'twitter_tweet' => ['url' => ''],
-            'twitter_video' => ['url' => ''],
-            'pinterest_profile' => ['username' => ''],
-            'snapchat' => ['username' => ''],
-            'rss_feed' => ['url' => '', 'count' => 5],
+            'socials' => ['platforms' => [
+                ['platform' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
+                ['platform' => 'tiktok', 'url' => 'https://tiktok.com/@yourhandle'],
+                ['platform' => 'youtube', 'url' => 'https://youtube.com/@yourhandle'],
+            ], '_placeholder' => true],
+            'socials_multi' => ['groups' => [['label' => 'Personal', 'platforms' => [
+                ['platform' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
+                ['platform' => 'twitter', 'url' => 'https://twitter.com/yourhandle'],
+            ]]], '_placeholder' => true],
+            'socials_custom' => ['platforms' => [
+                ['icon' => 'fa-brands fa-instagram', 'url' => 'https://instagram.com/yourhandle', 'label' => 'Instagram'],
+                ['icon' => 'fa-brands fa-tiktok', 'url' => 'https://tiktok.com/@yourhandle', 'label' => 'TikTok'],
+            ], 'style' => 'rounded', 'size' => 'md', '_placeholder' => true],
+            'instagram_media' => ['url' => 'https://www.instagram.com/p/CkQ7-gDgF8B/', '_placeholder' => true],
+            'tiktok_video' => ['url' => 'https://www.tiktok.com/@scout2015/video/6718335390845095173', '_placeholder' => true],
+            'tiktok_profile' => ['username' => 'scout2015', '_placeholder' => true],
+            'twitter_profile' => ['username' => 'twitter', '_placeholder' => true],
+            'twitter_tweet' => ['url' => 'https://twitter.com/Twitter/status/1445078208190291973', '_placeholder' => true],
+            'twitter_video' => ['url' => 'https://twitter.com/Twitter/status/1445078208190291973', '_placeholder' => true],
+            'pinterest_profile' => ['username' => 'pinterest', '_placeholder' => true],
+            'snapchat' => ['username' => 'team.snapchat', '_placeholder' => true],
+            'rss_feed' => ['url' => 'https://hnrss.org/frontpage', 'count' => 5, '_placeholder' => true],
 
-            'spotify' => ['url' => '', 'type' => 'track'],
-            'apple_music' => ['url' => '', 'type' => 'album'],
-            'soundcloud' => ['url' => ''],
-            'tidal' => ['url' => ''],
-            'mixcloud' => ['url' => ''],
-            'anchor_fm' => ['url' => ''],
+            'spotify' => ['url' => 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT', 'type' => 'track', '_placeholder' => true],
+            'apple_music' => ['url' => 'https://music.apple.com/us/album/abbey-road-remastered/1441164426', 'type' => 'album', '_placeholder' => true],
+            'soundcloud' => ['url' => 'https://soundcloud.com/forss/flickermood', '_placeholder' => true],
+            'tidal' => ['url' => 'https://tidal.com/browse/track/77640617', '_placeholder' => true],
+            'mixcloud' => ['url' => 'https://www.mixcloud.com/discover/popular/', '_placeholder' => true],
+            'anchor_fm' => ['url' => 'https://anchor.fm/yourshow', '_placeholder' => true],
 
-            'youtube' => ['video_id' => '', 'autoplay' => false],
-            'youtube_feed' => ['channel_id' => '', 'count' => 3],
-            'vimeo' => ['video_id' => ''],
-            'twitch' => ['channel' => ''],
-            'kick' => ['channel' => ''],
-            'rumble_video' => ['url' => ''],
-            'vk_video' => ['url' => ''],
+            'youtube' => ['video_id' => 'dQw4w9WgXcQ', 'autoplay' => false, '_placeholder' => true],
+            'youtube_feed' => ['channel_id' => 'UC_x5XG1OV2P6uZZ5FSM9Ttw', 'count' => 3, '_placeholder' => true],
+            'vimeo' => ['video_id' => '76979871', '_placeholder' => true],
+            'twitch' => ['channel' => 'twitch', '_placeholder' => true],
+            'kick' => ['channel' => 'trainwreckstv', '_placeholder' => true],
+            'rumble_video' => ['url' => 'https://rumble.com/v3hxrlk-introducing-rumble-cloud.html', '_placeholder' => true],
+            'vk_video' => ['url' => 'https://vk.com/video-9695053_456239639', '_placeholder' => true],
 
-            'email_collector' => ['title' => 'Subscribe', 'placeholder' => 'Your email', 'button_text' => 'Subscribe'],
-            'phone_collector' => ['title' => 'Call Us', 'placeholder' => 'Your phone', 'button_text' => 'Submit'],
-            'contact_form' => ['title' => 'Contact Us', 'fields' => ['name', 'email', 'message'], 'button_text' => 'Send'],
-            'whatsapp_widget' => ['phone' => '', 'message' => 'Hi!', 'button_text' => 'Chat on WhatsApp'],
-            'whatsapp_item' => ['phone' => '', 'name' => '', 'message' => '', 'avatar' => ''],
-            'email_subscribe' => ['title' => 'Join our Newsletter', 'description' => 'Get the latest updates delivered to your inbox.', 'placeholder' => 'Enter your email', 'button_text' => 'Subscribe', 'success_message' => 'Thanks for subscribing!', 'name_field' => true],
-            'whatsapp_channel_subscribe' => ['title' => 'Follow our WhatsApp Channel', 'description' => 'Stay updated with our latest content.', 'channel_url' => '', 'button_text' => 'Follow Channel', 'icon_style' => 'branded'],
-            'whatsapp_number_subscribe' => ['title' => 'Subscribe via WhatsApp', 'description' => 'Get updates directly on WhatsApp.', 'phone' => '', 'default_message' => 'Hi! I want to subscribe to updates.', 'button_text' => 'Subscribe on WhatsApp', 'collect_phone' => true],
+            'email_collector' => ['title' => 'Stay in the loop', 'placeholder' => 'you@example.com', 'button_text' => 'Subscribe', '_placeholder' => true],
+            'phone_collector' => ['title' => 'Call me back', 'placeholder' => '+1 555 123 4567', 'button_text' => 'Request a callback', '_placeholder' => true],
+            'contact_form' => ['title' => 'Get in touch', 'fields' => ['name', 'email', 'message'], 'button_text' => 'Send message', '_placeholder' => true],
+            'whatsapp_widget' => ['phone' => '+15551234567', 'message' => 'Hi! I saw your link in bio and wanted to chat.', 'button_text' => 'Chat on WhatsApp', '_placeholder' => true],
+            'whatsapp_item' => ['phone' => '+15551234567', 'name' => 'Sales team', 'message' => 'Hi! I have a quick question.', 'avatar' => $avatarUrl, '_placeholder' => true],
+            'email_subscribe' => ['title' => 'Join our Newsletter', 'description' => 'Get the latest updates delivered to your inbox.', 'placeholder' => 'you@example.com', 'button_text' => 'Subscribe', 'success_message' => 'Thanks for subscribing!', 'name_field' => true, '_placeholder' => true],
+            'whatsapp_channel_subscribe' => ['title' => 'Follow our WhatsApp Channel', 'description' => 'Stay updated with our latest content.', 'channel_url' => 'https://whatsapp.com/channel/0029Va4f3oqGE56fFuoPJa1A', 'button_text' => 'Follow Channel', 'icon_style' => 'branded', '_placeholder' => true],
+            'whatsapp_number_subscribe' => ['title' => 'Subscribe via WhatsApp', 'description' => 'Get updates directly on WhatsApp.', 'phone' => '+15551234567', 'default_message' => 'Hi! I want to subscribe to updates.', 'button_text' => 'Subscribe on WhatsApp', 'collect_phone' => true, '_placeholder' => true],
 
             'verified_heading' => ['text' => '', 'verified' => true, 'locked_text' => true, 'font_size' => '24', 'alignment' => 'center'],
             'verified_avatar' => ['image_url' => '', 'verified' => true, 'locked_image' => true, 'size' => '100', 'shape' => 'circle'],
 
-            'faq' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.']]],
-            'faq_v2' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.', 'icon' => '']], 'style' => 'bordered'],
-            'poll' => ['question' => 'What do you prefer?', 'options' => ['Option A', 'Option B', 'Option C']],
-            'quiz' => ['title' => 'Quick Quiz', 'questions' => [['question' => 'Q?', 'options' => ['A', 'B'], 'correct' => 0]]],
-            'testimonials' => ['items' => [['name' => 'John', 'text' => 'Great!', 'avatar' => '', 'rating' => 5]]],
-            'review' => ['name' => '', 'text' => '', 'rating' => 5, 'avatar' => ''],
-            'timeline' => ['items' => [['title' => 'Event', 'description' => 'Description', 'date' => '']]],
-            'timeline_staged' => ['items' => [['title' => 'Stage 1', 'description' => '', 'status' => 'completed']]],
+            'faq' => ['items' => [
+                ['question' => 'How do I get started?', 'answer' => 'Replace this with your most common question and answer.'],
+                ['question' => 'Do you offer support?', 'answer' => 'Yes — replace this with how customers can reach you.'],
+            ], '_placeholder' => true],
+            'faq_v2' => ['items' => [
+                ['question' => 'How do I get started?', 'answer' => 'Replace with your real answer.', 'icon' => 'fa-circle-question'],
+                ['question' => 'Do you offer support?', 'answer' => 'Replace with your real answer.', 'icon' => 'fa-life-ring'],
+            ], 'style' => 'bordered', '_placeholder' => true],
+            'poll' => ['question' => 'What should I post next?', 'options' => ['Behind the scenes', 'Tutorials', 'Q&A sessions'], '_placeholder' => true],
+            'quiz' => ['title' => 'Quick Quiz', 'questions' => [
+                ['question' => 'Which option do you prefer?', 'options' => ['Option A', 'Option B'], 'correct' => 0],
+            ], '_placeholder' => true],
+            'testimonials' => ['items' => [
+                ['name' => 'Alex Carter', 'text' => 'A glowing testimonial goes here. Replace with a real one.', 'avatar' => $avatarUrl, 'rating' => 5],
+                ['name' => 'Sam Lopez', 'text' => 'Another testimonial — swap in real customer feedback.', 'avatar' => $avatarUrl, 'rating' => 5],
+            ], '_placeholder' => true],
+            'review' => ['name' => 'Alex Carter', 'text' => 'Loved working with them — would recommend! (Replace with a real review.)', 'rating' => 5, 'avatar' => $avatarUrl, '_placeholder' => true],
+            'timeline' => ['items' => [
+                ['title' => 'Got started', 'description' => 'The day it all began.', 'date' => '2024-01'],
+                ['title' => 'Hit a milestone', 'description' => 'Replace with your own moment.', 'date' => '2024-06'],
+                ['title' => 'Today', 'description' => 'Replace with what you\'re up to now.', 'date' => '2025'],
+            ], '_placeholder' => true],
+            'timeline_staged' => ['items' => [
+                ['title' => 'Stage 1 — Discovery', 'description' => 'Replace with your first stage.', 'status' => 'completed'],
+                ['title' => 'Stage 2 — In progress', 'description' => 'What you\'re working on now.', 'status' => 'in_progress'],
+                ['title' => 'Stage 3 — Coming up', 'description' => 'What\'s next on the roadmap.', 'status' => 'planned'],
+            ], '_placeholder' => true],
 
-            'product' => ['name' => 'Product', 'description' => '', 'price' => '', 'image' => '', 'url' => '', 'badge' => ''],
-            'service' => ['name' => 'Service', 'description' => '', 'price' => '', 'icon' => 'fa-star', 'url' => ''],
-            'catalog' => ['items' => [['name' => 'Item', 'price' => '', 'image' => '', 'url' => '']]],
-            'market' => ['items' => [['name' => 'Product', 'price' => '$0', 'image' => '', 'url' => '']]],
-            'price' => ['amount' => '$99', 'period' => '/month', 'title' => 'Pro Plan', 'features' => ['Feature 1'], 'url' => ''],
-            'donation' => ['title' => 'Support Us', 'description' => '', 'amounts' => [5, 10, 25, 50], 'currency' => 'USD', 'url' => ''],
-            'coupon' => ['code' => 'SAVE20', 'description' => '20% off!', 'expires' => ''],
-            'one_time_offer' => ['title' => 'Special Offer', 'description' => '', 'price' => '', 'original_price' => '', 'url' => '', 'countdown' => ''],
-            'paypal' => ['email' => '', 'amount' => '', 'currency' => 'USD', 'button_text' => 'Pay Now'],
+            'product' => ['name' => 'Sample Product', 'description' => 'A short description of what makes this product great.', 'price' => '$29', 'image' => $imgSquareUrl, 'url' => 'https://example.com', 'badge' => 'New', '_placeholder' => true],
+            'service' => ['name' => 'Sample Service', 'description' => 'What you offer and who it\'s for.', 'price' => 'From $99', 'icon' => 'fa-star', 'url' => 'https://example.com', '_placeholder' => true],
+            'catalog' => ['items' => [
+                ['name' => 'Sample Item 1', 'price' => '$19', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],
+                ['name' => 'Sample Item 2', 'price' => '$29', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],
+            ], '_placeholder' => true],
+            'market' => ['items' => [
+                ['name' => 'Sample Product', 'price' => '$29', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],
+                ['name' => 'Another Product', 'price' => '$49', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],
+            ], '_placeholder' => true],
+            'price' => ['amount' => '$99', 'period' => '/month', 'title' => 'Pro Plan', 'features' => ['Everything in Starter', 'Priority support', 'Custom integrations'], 'url' => 'https://example.com', '_placeholder' => true],
+            'donation' => ['title' => 'Support my work', 'description' => 'Every contribution helps me keep creating.', 'amounts' => [5, 10, 25, 50], 'currency' => 'USD', 'url' => 'https://example.com', '_placeholder' => true],
+            'coupon' => ['code' => 'SAVE20', 'description' => 'Get 20% off your first order.', 'expires' => '', '_placeholder' => true],
+            'one_time_offer' => ['title' => 'Limited-time offer', 'description' => 'A short pitch about why this offer is special.', 'price' => '$49', 'original_price' => '$99', 'url' => 'https://example.com', 'countdown' => '', '_placeholder' => true],
+            'paypal' => ['email' => 'you@example.com', 'amount' => '10', 'currency' => 'USD', 'button_text' => 'Pay with PayPal', '_placeholder' => true],
 
-            'countdown' => ['target_date' => '', 'title' => 'Coming Soon'],
-            'progress' => ['items' => [['label' => 'Progress', 'value' => 75, 'color' => '#7c3aed']]],
-            'chart_pie' => ['items' => [['label' => 'Segment', 'value' => 50, 'color' => '#7c3aed']]],
-            'qr_code' => ['url' => '', 'size' => 200],
-            'share' => ['text' => 'Share this page', 'platforms' => ['twitter', 'facebook', 'linkedin', 'whatsapp']],
-            'cta_button' => ['text' => 'Click Here', 'url' => '', 'color' => '#7c3aed', 'text_color' => '#ffffff', 'size' => 'lg'],
-            'notification' => ['text' => 'New update!', 'type' => 'info', 'dismissible' => true],
+            'countdown' => ['target_date' => date('Y-m-d', strtotime('+30 days')), 'title' => 'Coming soon — replace this', '_placeholder' => true],
+            'progress' => ['items' => [
+                ['label' => 'Goal one', 'value' => 75, 'color' => '#7c3aed'],
+                ['label' => 'Goal two', 'value' => 40, 'color' => '#22d3ee'],
+            ], '_placeholder' => true],
+            'chart_pie' => ['items' => [
+                ['label' => 'Segment A', 'value' => 50, 'color' => '#7c3aed'],
+                ['label' => 'Segment B', 'value' => 30, 'color' => '#ec4899'],
+                ['label' => 'Segment C', 'value' => 20, 'color' => '#22d3ee'],
+            ], '_placeholder' => true],
+            'qr_code' => ['url' => 'https://example.com', 'size' => 200, '_placeholder' => true],
+            'share' => ['text' => 'Share this page', 'platforms' => ['twitter', 'facebook', 'linkedin', 'whatsapp'], '_placeholder' => true],
+            'cta_button' => ['text' => 'Get started', 'url' => 'https://example.com', 'color' => '#7c3aed', 'text_color' => '#ffffff', 'size' => 'lg', '_placeholder' => true],
+            'notification' => ['text' => 'Replace this with your latest update or announcement.', 'type' => 'info', 'dismissible' => true, '_placeholder' => true],
             'social_proof' => ['social_proof_id' => null],
             'ai_companion' => ['companion_id' => null],
             'form' => ['form_id' => null, 'height' => 600],
-            'nav_menu' => ['items' => [['text' => 'Home', 'url' => '']]],
-            'ticker' => ['items' => ['Breaking news', 'Updates'], 'speed' => 'normal'],
+            'nav_menu' => ['items' => [
+                ['text' => 'Home', 'url' => '#'],
+                ['text' => 'About', 'url' => '#about'],
+                ['text' => 'Contact', 'url' => '#contact'],
+            ], '_placeholder' => true],
+            'ticker' => ['items' => ['Breaking news', 'Replace with your own announcements'], 'speed' => 'normal', '_placeholder' => true],
 
             'spacer' => ['height' => 20],
             'card' => [
-                'title' => '',
+                'title' => 'Card title',
+                '_placeholder' => true,
                 'columns' => 2,
                 'gap' => 12,
                 'padding' => 16,
@@ -1593,44 +1721,52 @@ class BiolinkBlockController extends Controller
                 'shadow_color' => '#00000040',
             ],
 
-            'card_slider' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '', 'url' => '']]],
-            'scroll_cards' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '']]],
-            'profile_card_v1' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'bio' => 'A short, friendly bio about yourself.', 'socials' => []],
-            'profile_card_v2' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'cover' => '', 'bio' => 'A short, friendly bio about yourself.'],
-            'profile_card_v3' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'stats' => [['label' => 'Followers', 'value' => '1.2K'], ['label' => 'Following', 'value' => '320'], ['label' => 'Posts', 'value' => '48']]],
-            'profile_card_v4' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'bio' => 'A short, friendly bio about yourself.', 'badges' => []],
+            'card_slider' => ['cards' => [
+                ['title' => 'Card one', 'description' => 'A short description of what this card is about.', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],
+                ['title' => 'Card two', 'description' => 'Replace these placeholder cards with your own content.', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],
+                ['title' => 'Card three', 'description' => 'Each card can link somewhere different.', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],
+            ], '_placeholder' => true],
+            'scroll_cards' => ['cards' => [
+                ['title' => 'Card one', 'description' => 'A short description of what this card is about.', 'image' => $imgSquareUrl],
+                ['title' => 'Card two', 'description' => 'Replace these with your own content.', 'image' => $imgSquareUrl],
+                ['title' => 'Card three', 'description' => 'Up to a dozen cards work nicely here.', 'image' => $imgSquareUrl],
+            ], '_placeholder' => true],
+            'profile_card_v1' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'bio' => 'A short, friendly bio about yourself.', 'socials' => [], '_placeholder' => true],
+            'profile_card_v2' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'cover' => $coverUrl, 'bio' => 'A short, friendly bio about yourself.', '_placeholder' => true],
+            'profile_card_v3' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'stats' => [['label' => 'Followers', 'value' => '1.2K'], ['label' => 'Following', 'value' => '320'], ['label' => 'Posts', 'value' => '48']], '_placeholder' => true],
+            'profile_card_v4' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'bio' => 'A short, friendly bio about yourself.', 'badges' => [], '_placeholder' => true],
 
-            'custom_html' => ['html' => ''],
-            'iframe_embed' => ['url' => '', 'height' => 400],
-            'typeform' => ['url' => ''],
-            'calendly' => ['url' => ''],
-            'discord_server' => ['server_id' => ''],
-            'facebook_post' => ['url' => ''],
-            'reddit_post' => ['url' => ''],
-            'telegram_post' => ['url' => ''],
+            'custom_html' => ['html' => '<!-- Paste your custom HTML here -->', '_placeholder' => true],
+            'iframe_embed' => ['url' => 'https://example.com', 'height' => 400, '_placeholder' => true],
+            'typeform' => ['url' => 'https://form.typeform.com/to/abcd1234', '_placeholder' => true],
+            'calendly' => ['url' => 'https://calendly.com/yourname/30min', '_placeholder' => true],
+            'discord_server' => ['server_id' => '267624335836053506', '_placeholder' => true],
+            'facebook_post' => ['url' => 'https://www.facebook.com/20531316728/posts/10154009990506729/', '_placeholder' => true],
+            'reddit_post' => ['url' => 'https://www.reddit.com/r/announcements/comments/8bb85p/', '_placeholder' => true],
+            'telegram_post' => ['url' => 'https://t.me/telegram/197', '_placeholder' => true],
 
-            'file' => ['url' => '', 'name' => 'Download File', 'size' => '', 'icon' => 'fa-file-download'],
-            'external_item' => ['url' => '', 'title' => '', 'description' => '', 'image' => ''],
-            'markdown' => ['content' => '# Hello\n\nYour markdown content here.'],
+            'file' => ['url' => $pdfUrl, 'name' => 'Download placeholder', 'size' => '12 KB', 'icon' => 'fa-file-download', '_placeholder' => true],
+            'external_item' => ['url' => 'https://example.com', 'title' => 'External item title', 'description' => 'A short description that will appear under the title.', 'image' => $imgUrl, '_placeholder' => true],
+            'markdown' => ['content' => "# Hello\n\nReplace this with your **markdown** content. Headings, _italics_, lists, and [links](https://example.com) all work.", '_placeholder' => true],
 
-            'map' => ['address' => '', 'zoom' => 14],
-            'yandex_maps' => ['address' => '', 'zoom' => 14],
-            'map_location' => ['address' => '', 'lat' => '', 'lng' => '', 'label' => '', 'zoom' => 15, 'show_directions' => true],
+            'map' => ['address' => '1600 Amphitheatre Parkway, Mountain View, CA', 'zoom' => 14, '_placeholder' => true],
+            'yandex_maps' => ['address' => 'Red Square, Moscow, Russia', 'zoom' => 14, '_placeholder' => true],
+            'map_location' => ['address' => '1600 Amphitheatre Parkway, Mountain View, CA', 'lat' => '37.4220', 'lng' => '-122.0841', 'label' => 'Drop a friendly label here', 'zoom' => 15, 'show_directions' => true, '_placeholder' => true],
 
-            'buy_me_coffee' => ['username' => '', 'text' => 'Buy me a coffee', 'description' => '', 'amounts' => [1, 3, 5]],
-            'patreon' => ['username' => '', 'text' => 'Become a patron', 'description' => '', 'tier_name' => ''],
-            'ko_fi' => ['username' => '', 'text' => 'Support me on Ko-fi', 'description' => '', 'amounts' => [3, 5, 10]],
-            'latest_youtube' => ['channel' => '', 'video_id' => '', 'title' => '', 'thumbnail' => '', 'cached_at' => null],
-            'latest_instagram' => ['handle' => '', 'post_url' => '', 'thumbnail' => '', 'caption' => '', 'cached_at' => null],
-            'featured_pin' => ['text' => 'Featured', 'description' => '', 'url' => '', 'icon' => 'fa-thumbtack', 'thumbnail' => '', 'accent_color' => '#f59e0b'],
-            'calendly_embed' => ['url' => '', 'height' => 700, 'hide_event_details' => false, 'hide_cookie_banner' => true],
+            'buy_me_coffee' => ['username' => 'yourname', 'text' => 'Buy me a coffee', 'description' => 'Your tips keep me caffeinated and creating.', 'amounts' => [1, 3, 5], '_placeholder' => true],
+            'patreon' => ['username' => 'yourname', 'text' => 'Become a patron', 'description' => 'Get exclusive perks and support what I make.', 'tier_name' => 'Supporter', '_placeholder' => true],
+            'ko_fi' => ['username' => 'yourname', 'text' => 'Support me on Ko-fi', 'description' => 'A small tip goes a long way.', 'amounts' => [3, 5, 10], '_placeholder' => true],
+            'latest_youtube' => ['channel' => 'GoogleDevelopers', 'video_id' => '', 'title' => 'Latest from your channel', 'thumbnail' => $imgUrl, 'cached_at' => null, '_placeholder' => true],
+            'latest_instagram' => ['handle' => 'instagram', 'post_url' => '', 'thumbnail' => $imgSquareUrl, 'caption' => 'Latest from your feed', 'cached_at' => null, '_placeholder' => true],
+            'featured_pin' => ['text' => 'Featured', 'description' => 'Highlight your top link or announcement.', 'url' => 'https://example.com', 'icon' => 'fa-thumbtack', 'thumbnail' => $imgSquareUrl, 'accent_color' => '#f59e0b', '_placeholder' => true],
+            'calendly_embed' => ['url' => 'https://calendly.com/yourname/30min', 'height' => 700, 'hide_event_details' => false, 'hide_cookie_banner' => true, '_placeholder' => true],
 
-            'vcard' => ['name' => '', 'email' => '', 'phone' => '', 'company' => '', 'title' => '', 'website' => ''],
-            'avatar' => ['url' => '', 'size' => 96, 'rounded' => true],
+            'vcard' => ['name' => 'Your Name', 'email' => 'you@example.com', 'phone' => '+1 555 123 4567', 'company' => 'Your Company', 'title' => 'Your Role', 'website' => 'https://example.com', '_placeholder' => true],
+            'avatar' => ['url' => $avatarUrl, 'size' => 96, 'rounded' => true, '_placeholder' => true],
 
             'roadmap' => [
-                'title'                => 'Roadmap',
-                'subtitle'             => 'Suggest ideas, vote on others.',
+                'title'                => 'Public Roadmap',
+                'subtitle'             => 'Suggest ideas, vote on what comes next.',
                 'allow_submissions'    => true,
                 'require_email'        => true,
                 'require_login'        => false,
@@ -1639,54 +1775,110 @@ class BiolinkBlockController extends Controller
                 'show_columns'         => ['ideas', 'planned', 'in_progress', 'shipped'],
                 'blocked_emails'       => [],
                 'blocked_fingerprints' => [],
+                '_placeholder'         => true,
             ],
 
-            'menu_section' => ['name' => 'Section', 'layout' => 'plain', 'accent_color' => '#7c3aed', 'items' => [
-                ['name' => 'Item', 'price' => '$0', 'description' => ''],
-            ]],
-            'instagram' => ['mode' => 'post', 'handle' => '', 'post_url' => '', 'thumbnail' => '', 'caption' => ''],
+            // ── Newer interactive / contact / identity types ───────────
+            // Insider feed: gated content stream. Seed with sample posts
+            // so the empty state isn't confusing on first paint.
+            'insider' => ['title' => 'Insider Updates', 'description' => 'Members-only news, drops, and behind-the-scenes posts.', 'access' => 'public', 'cta_text' => 'Become an insider', 'posts' => [
+                ['title' => 'Welcome to the inner circle', 'body' => 'Replace this with your first insider-only update.', 'date' => date('Y-m-d')],
+                ['title' => 'What I\'m working on', 'body' => 'A short note about what\'s coming up.', 'date' => date('Y-m-d', strtotime('-3 days'))],
+            ], '_placeholder' => true],
+            // Top-fans leaderboard: seed with 3 sample fans so the layout
+            // demonstrates rankings on first render.
+            'fan_leaderboard' => ['title' => 'Top Fans', 'description' => 'My most engaged supporters this month.', 'period' => 'monthly', 'show_avatars' => true, 'fans' => [
+                ['name' => 'Alex Carter', 'avatar' => $avatarUrl, 'score' => 1240, 'badge' => 'Champion'],
+                ['name' => 'Sam Lopez', 'avatar' => $avatarUrl, 'score' => 980, 'badge' => 'MVP'],
+                ['name' => 'Riley Chen', 'avatar' => $avatarUrl, 'score' => 720, 'badge' => 'Rising star'],
+            ], '_placeholder' => true],
+            // Direct message: seed with phone+email channel options and
+            // friendly prompt so the form is usable immediately.
+            'direct_message' => ['title' => 'Send me a message', 'description' => 'I read every note — usually reply within a day.', 'placeholder' => 'Say hi, ask a question, or pitch a collab…', 'button_text' => 'Send message', 'channel' => 'email', 'destination_email' => 'you@example.com', 'destination_phone' => '+15551234567', 'collect_name' => true, 'collect_email' => true, '_placeholder' => true],
+            // Resume / CV: seed with a believable mini-resume covering
+            // role, experience, education, skills, and links.
+            'resume' => [
+                'name' => 'Your Name',
+                'headline' => 'What you do, in one line',
+                'summary' => 'A short paragraph that sells you in 30 seconds. Replace with your own bio.',
+                'avatar' => $avatarUrl,
+                'email' => 'you@example.com',
+                'phone' => '+1 555 123 4567',
+                'website' => 'https://example.com',
+                'location' => 'City, Country',
+                'experience' => [
+                    ['title' => 'Lead Designer', 'company' => 'Bright Studio', 'start' => '2022', 'end' => 'Present', 'description' => 'Replace with what you built and the impact it had.'],
+                    ['title' => 'Designer', 'company' => 'Northwind Co', 'start' => '2019', 'end' => '2022', 'description' => 'A line about your previous role.'],
+                ],
+                'education' => [
+                    ['school' => 'State University', 'degree' => 'BFA, Design', 'start' => '2015', 'end' => '2019'],
+                ],
+                'skills' => ['Design systems', 'Prototyping', 'Product strategy', 'Workshops'],
+                'links' => [
+                    ['label' => 'Portfolio', 'url' => 'https://example.com'],
+                    ['label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/in/yourhandle'],
+                ],
+                '_placeholder' => true,
+            ],
+
+            'menu_section' => ['name' => 'Mains', 'layout' => 'plain', 'accent_color' => '#7c3aed', 'items' => [
+                ['name' => 'Margherita pizza', 'price' => '$14', 'description' => 'San Marzano tomato, fior di latte, basil.'],
+                ['name' => 'Cacio e pepe', 'price' => '$16', 'description' => 'Fresh tonnarelli, pecorino romano, black pepper.'],
+            ], '_placeholder' => true],
+            'instagram' => ['mode' => 'post', 'handle' => 'instagram', 'post_url' => 'https://www.instagram.com/p/CkQ7-gDgF8B/', 'thumbnail' => $imgSquareUrl, 'caption' => 'Latest from your feed', '_placeholder' => true],
 
 
             'file_list' => ['title' => 'Files', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'items' => [
-                ['name' => 'Document.pdf', 'url' => '', 'ext' => 'pdf', 'size' => 0, 'description' => ''],
-            ]],
+                ['name' => 'Placeholder document.pdf', 'url' => $pdfUrl, 'ext' => 'pdf', 'size' => 13312, 'description' => 'Replace with your own file.'],
+            ], '_placeholder' => true],
             'audio_list' => ['title' => 'Playlist', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'tracks' => [
-                ['title' => 'Track 1', 'artist' => '', 'url' => '', 'cover' => '', 'duration' => ''],
-            ]],
+                ['title' => 'Placeholder track', 'artist' => 'SoundHelix', 'url' => $audioUrl, 'cover' => $imgSquareUrl, 'duration' => '6:00'],
+            ], '_placeholder' => true],
             'link_tree_group' => ['title' => 'My Links', 'layout' => 'list', 'accent_color' => '#7c3aed', 'items' => [
-                ['text' => 'Link 1', 'url' => '', 'icon' => '', 'description' => ''],
-                ['text' => 'Link 2', 'url' => '', 'icon' => '', 'description' => ''],
-            ]],
+                ['text' => 'My website', 'url' => 'https://example.com', 'icon' => 'fa-globe', 'description' => 'Where it all lives.'],
+                ['text' => 'Latest project', 'url' => 'https://example.com', 'icon' => 'fa-rocket', 'description' => 'What I\'m working on now.'],
+                ['text' => 'Contact me', 'url' => 'mailto:you@example.com', 'icon' => 'fa-envelope', 'description' => 'For collabs and questions.'],
+            ], '_placeholder' => true],
             'tabs' => ['layout' => 'tabs', 'accent_color' => '#7c3aed', 'tabs' => [
-                ['label' => 'Tab 1', 'text' => 'Content for tab one.'],
-                ['label' => 'Tab 2', 'text' => 'Content for tab two.'],
-            ]],
+                ['label' => 'About', 'text' => 'A short intro about you or your project.'],
+                ['label' => 'Services', 'text' => 'Replace with what you offer.'],
+                ['label' => 'Contact', 'text' => 'How to get in touch.'],
+            ], '_placeholder' => true],
             'accordion' => ['layout' => 'plain', 'accent_color' => '#7c3aed', 'items' => [
-                ['title' => 'Question 1?', 'body' => 'Answer one goes here.'],
-                ['title' => 'Question 2?', 'body' => 'Answer two goes here.'],
-            ]],
+                ['title' => 'How does it work?', 'body' => 'Replace with your own answer.'],
+                ['title' => 'Where can I learn more?', 'body' => 'Replace with a real answer or a link to your docs.'],
+            ], '_placeholder' => true],
             'event_list' => ['title' => 'Upcoming Events', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'events' => [
-                ['title' => 'Event title', 'date' => '', 'location' => '', 'url' => '', 'description' => ''],
-            ]],
-            'menu' => ['title' => 'Menu', 'layout' => 'classic', 'accent_color' => '#7c3aed', 'sections' => [
-                ['name' => 'Mains', 'items' => [
-                    ['name' => 'Item name', 'price' => '$0', 'description' => '', 'thumbnail' => ''],
+                ['title' => 'Live Q&A on YouTube', 'date' => date('Y-m-d', strtotime('+7 days')), 'location' => 'Online', 'url' => 'https://example.com', 'description' => 'Replace with your real event.'],
+                ['title' => 'Pop-up workshop', 'date' => date('Y-m-d', strtotime('+21 days')), 'location' => 'Brooklyn, NY', 'url' => 'https://example.com', 'description' => 'A short blurb about what attendees will learn.'],
+            ], '_placeholder' => true],
+            'menu' => ['title' => 'Today\'s Menu', 'layout' => 'classic', 'accent_color' => '#7c3aed', 'sections' => [
+                ['name' => 'Starters', 'items' => [
+                    ['name' => 'House focaccia', 'price' => '$6', 'description' => 'With rosemary and flaky salt.', 'thumbnail' => $imgSquareUrl],
+                    ['name' => 'Caesar salad', 'price' => '$11', 'description' => 'Romaine, anchovy dressing, parmesan.', 'thumbnail' => $imgSquareUrl],
                 ]],
-            ]],
+                ['name' => 'Mains', 'items' => [
+                    ['name' => 'Margherita pizza', 'price' => '$14', 'description' => 'San Marzano tomato, fior di latte, basil.', 'thumbnail' => $imgSquareUrl],
+                ]],
+            ], '_placeholder' => true],
             'testimonial_carousel' => ['layout' => 'carousel', 'accent_color' => '#7c3aed', 'items' => [
-                ['quote' => 'Add a glowing quote here.', 'name' => 'Happy Customer', 'title' => '', 'avatar' => ''],
-            ]],
-            'stats' => ['title' => '', 'layout' => 'row', 'accent_color' => '#7c3aed', 'items' => [
-                ['value' => '10k', 'label' => 'Followers', 'caption' => ''],
-                ['value' => '4.9', 'label' => 'Rating', 'caption' => ''],
-                ['value' => '120', 'label' => 'Projects', 'caption' => ''],
-            ]],
+                ['quote' => 'Genuinely the best service I\'ve used this year.', 'name' => 'Alex Carter', 'title' => 'Founder, Bright Studio', 'avatar' => $avatarUrl],
+                ['quote' => 'The whole team was a delight to work with.', 'name' => 'Sam Lopez', 'title' => 'Head of Marketing, Northwind', 'avatar' => $avatarUrl],
+            ], '_placeholder' => true],
+            'stats' => ['title' => 'By the numbers', 'layout' => 'row', 'accent_color' => '#7c3aed', 'items' => [
+                ['value' => '10k', 'label' => 'Followers', 'caption' => 'across socials'],
+                ['value' => '4.9', 'label' => 'Rating', 'caption' => 'from 230 reviews'],
+                ['value' => '120', 'label' => 'Projects', 'caption' => 'shipped to date'],
+            ], '_placeholder' => true],
             'affiliate_links' => ['title' => 'My Picks', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'disclaimer' => 'Some links may earn a commission.', 'items' => [
-                ['name' => 'Product', 'url' => '', 'price' => '', 'merchant' => '', 'thumbnail' => ''],
-            ]],
+                ['name' => 'Sample affiliate product', 'url' => 'https://example.com', 'price' => '$29', 'merchant' => 'Example Store', 'thumbnail' => $imgSquareUrl],
+                ['name' => 'Another favourite', 'url' => 'https://example.com', 'price' => '$59', 'merchant' => 'Example Store', 'thumbnail' => $imgSquareUrl],
+            ], '_placeholder' => true],
             'booking_slots' => ['title' => 'Book a slot', 'layout' => 'list', 'cta_text' => 'Book', 'accent_color' => '#7c3aed', 'slots' => [
-                ['start' => '', 'duration' => '30 min', 'url' => '', 'taken' => false],
-            ]],
+                ['start' => date('Y-m-d', strtotime('+1 day')) . ' 10:00', 'duration' => '30 min', 'url' => 'https://example.com', 'taken' => false],
+                ['start' => date('Y-m-d', strtotime('+1 day')) . ' 14:00', 'duration' => '30 min', 'url' => 'https://example.com', 'taken' => false],
+                ['start' => date('Y-m-d', strtotime('+2 day')) . ' 09:30', 'duration' => '60 min', 'url' => 'https://example.com', 'taken' => false],
+            ], '_placeholder' => true],
 
             default => [],
         };

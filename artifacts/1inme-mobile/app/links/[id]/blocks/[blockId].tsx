@@ -698,6 +698,60 @@ export default function EditBlockScreen() {
           </Text>
         ) : null}
 
+        {/* First-paint placeholder banner + sample pill. Cleared by
+            backend update() once the creator edits a seeded field. */}
+        {block.settings?._placeholder ? (
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: "rgba(124,58,237,0.16)",
+                borderWidth: 1,
+                borderColor: "rgba(167,139,250,0.35)",
+              }}
+            >
+              <Feather name="zap" size={16} color="#fbbf24" style={{ marginTop: 2 }} />
+              <Text
+                style={{
+                  flex: 1,
+                  color: colors.foreground,
+                  fontSize: 12.5,
+                  lineHeight: 18,
+                }}
+              >
+                <Text style={{ fontWeight: "700" }}>We dropped in placeholder content </Text>
+                so this block looks great right away. Tap any text or media field below to replace it — this notice will disappear once you edit a seeded field.
+              </Text>
+            </View>
+            {/* Compact "Sample" pill row — visual reminder kept right
+                above the dynamic field UI so creators understand the
+                values they see in inputs are placeholders. */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                alignSelf: "flex-start",
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor: "rgba(251,191,36,0.18)",
+                borderWidth: 1,
+                borderColor: "rgba(251,191,36,0.35)",
+              }}
+            >
+              <Feather name="edit-3" size={11} color="#fbbf24" />
+              <Text style={{ color: "#fbbf24", fontSize: 10, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" }}>
+                Sample — tap to replace
+              </Text>
+            </View>
+          </>
+        ) : null}
+
         {/* Designs gallery — full mobile parity with the web editor:
             filter chips (incl. Favorites), Surprise me, Apply to all of
             this type, and a Custom snapshot restore card when the block

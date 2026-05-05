@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0.6">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="55%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  <g fill="#ffffff" opacity="0.9" font-family="-apple-system, system-ui, sans-serif">
+    <text x="60" y="200" font-size="44" font-weight="700">Your cover photo</text>
+    <text x="60" y="240" font-size="20" opacity="0.85">Replace with a hero image that represents you.</text>
+  </g>
+</svg>

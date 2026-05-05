@@ -4,8 +4,60 @@ $inputClass = 'theme-input w-full';
 $selectClass = $inputClass;
 $labelClass = 'block text-xs mb-1';
 @endphp
-<style>.block-settings-form label { color: var(--text-faint); } .block-settings-form .glass { background: var(--bg-glass); border: 1px solid var(--border-glass); }</style>
-<div class="block-settings-form">
+<style>.block-settings-form label { color: var(--text-faint); } .block-settings-form .glass { background: var(--bg-glass); border: 1px solid var(--border-glass); }
+.block-settings-form .placeholder-banner { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; margin-bottom:14px; border-radius:12px; background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(236,72,153,0.18)); border: 1px solid rgba(167,139,250,0.35); color: #f3e8ff; font-size: 12.5px; line-height:1.4; }
+.block-settings-form .placeholder-banner i { color:#fbbf24; font-size:14px; margin-top:2px; }
+
+/* Italic+dimmed inputs in placeholder mode; ::after pill on file
+   uploads. Restored on focus so editing feels normal. */
+.block-settings-form.placeholder-mode input[type="text"],
+.block-settings-form.placeholder-mode input[type="url"],
+.block-settings-form.placeholder-mode input[type="email"],
+.block-settings-form.placeholder-mode input[type="tel"],
+.block-settings-form.placeholder-mode textarea {
+    font-style: italic;
+    opacity: 0.78;
+    transition: opacity 0.15s ease, font-style 0.15s ease;
+}
+.block-settings-form.placeholder-mode input[type="text"]:focus,
+.block-settings-form.placeholder-mode input[type="url"]:focus,
+.block-settings-form.placeholder-mode input[type="email"]:focus,
+.block-settings-form.placeholder-mode input[type="tel"]:focus,
+.block-settings-form.placeholder-mode textarea:focus {
+    font-style: normal;
+    opacity: 1;
+}
+.block-settings-form.placeholder-mode .file-upload-field { position: relative; }
+.block-settings-form.placeholder-mode .file-upload-field::after {
+    content: "Sample — replace";
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: rgba(251,191,36,0.18);
+    color: #fbbf24;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    pointer-events: none;
+    border: 1px solid rgba(251,191,36,0.35);
+}
+</style>
+<div class="block-settings-form @if(!empty($s['_placeholder'])) placeholder-mode @endif">
+
+{{-- First-paint placeholder banner; cleared by update() once the
+     creator edits any seeded field. --}}
+@if(!empty($s['_placeholder']))
+<div class="placeholder-banner" role="note">
+    <i class="fas fa-lightbulb"></i>
+    <div>
+        <strong>We dropped in placeholder content</strong> so this block looks great right away.
+        Italic fields and media tagged with the amber <em>Sample</em> pill below are placeholders — overwrite any of them and this notice will disappear on your next save.
+    </div>
+</div>
+@endif
 
 @if($block->type === 'link')
 <div class="space-y-3" x-data="{ featured: {{ !empty($s['is_featured']) ? 'true' : 'false' }} }">
