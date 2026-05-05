@@ -278,6 +278,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{slug}/revisions/{revision}/restore', [\App\Modules\Admin\Controllers\SitePageController::class, 'restoreRevision'])->middleware(CheckPermission::class . ':settings.manage')->name('revisions.restore');
         });
 
+        // Task #1211 — extended moderation queue (user reports + DMCA).
+        // Lives next to biolink-reports / adult-moderation in the admin
+        // sidebar so all moderation surfaces share one neighbourhood.
+        Route::prefix('moderation-queue')->name('moderation-queue.')->group(function () {
+            Route::get ('/',                     [\App\Modules\Admin\Controllers\ModerationQueueController::class, 'index'])
+                ->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('user-reports/{report}', [\App\Modules\Admin\Controllers\ModerationQueueController::class, 'actUserReport'])
+                ->middleware(CheckPermission::class . ':settings.manage')->whereNumber('report')->name('user-reports.act');
+            Route::post('dmca/{dmca}',           [\App\Modules\Admin\Controllers\ModerationQueueController::class, 'actDmca'])
+                ->middleware(CheckPermission::class . ':settings.manage')->whereNumber('dmca')->name('dmca.act');
+        });
+
         Route::prefix('biolink-reports')->name('biolink-reports.')->group(function () {
             Route::get('/', [AdminBiolinkReportController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('{link}/dismiss',  [AdminBiolinkReportController::class, 'dismiss'])->middleware(CheckPermission::class . ':settings.manage')->name('dismiss');

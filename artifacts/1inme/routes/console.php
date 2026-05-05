@@ -243,3 +243,13 @@ Schedule::command('cv-uploads:prune-abandoned --days=7')
     ->dailyAt('03:30')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Task #1211 — weekly creator digest. Mondays 08:00 UTC. The service
+// itself dedupes by users.creator_digest_last_sent_at so reruns inside
+// the same week are no-ops, and only emails creators with at least one
+// new follower / reaction / comment in the past 7 days.
+Schedule::call(fn () => app(\App\Modules\User\Services\CreatorDigestService::class)->sendDueDigests())
+    ->weeklyOn(1, '08:00')
+    ->name('creator-digest:weekly')
+    ->withoutOverlapping()
+    ->onOneServer();

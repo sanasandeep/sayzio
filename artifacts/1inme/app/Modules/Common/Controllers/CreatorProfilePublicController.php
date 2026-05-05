@@ -4,6 +4,8 @@ namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\AgeGate;
+use App\Modules\Common\Services\CountryGate;
+use App\Modules\Common\Services\MuteWordsService;
 use App\Modules\Common\Services\ViewerSession;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\CreatorPostComment;
@@ -11,6 +13,7 @@ use App\Modules\User\Models\CreatorPostReaction;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserBlock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -52,6 +55,26 @@ class CreatorProfilePublicController extends Controller
             return response()->view('public.age-gate', [
                 'creator' => $creator,
             ], 200);
+        }
+
+        // Task #1211 — viewer has blocked this creator. We hide the
+        // profile entirely so the block surface mirrors what a fan
+        // expects from the same kebab menu on Twitter / Bluesky.
+        if (!$isOwner && $viewer && in_array((int) $creator->id, UserBlock::blockedIdsFor($viewer->id), true)) {
+            abort(404);
+        }
+
+        // Task #1211 — country gating. Profile-level lists apply here;
+        // per-post lists are evaluated when the post media is fetched
+        // through the SignedMediaController. Owners bypass.
+        if (!$isOwner) {
+            $decision = app(CountryGate::class)->decide($creator, null, $request->ip());
+            if (empty($decision['allowed'])) {
+                return response()->view('public.region-blocked', [
+                    'creator' => $creator,
+                    'reason'  => $decision['reason'] ?? 'The creator has restricted this content in your region.',
+                ], 451);
+            }
         }
 
         $sectionsVisible = $creator->profileSectionVisibility();
@@ -104,6 +127,11 @@ class CreatorProfilePublicController extends Controller
         }
         $accessByPost = \App\Services\Monetization\PostAccessPolicy::evaluateMany($viewer, $posts->getCollection());
 
+        // Task #1211 — related creators by overlapping niche tags. Cheap
+        // static helper on CreatorsController so the directory and the
+        // profile share one ranking definition.
+        $relatedCreators = \App\Modules\Common\Controllers\CreatorsController::relatedCreators($creator, $viewer, 6);
+
         return view('public.creator-profile', [
             'creator'             => $creator,
             'posts'               => $posts,
@@ -119,6 +147,7 @@ class CreatorProfilePublicController extends Controller
             'tiers'               => $tiers,
             'viewerSubscription'  => $viewerSubscription,
             'accessByPost'        => $accessByPost,
+            'relatedCreators'     => $relatedCreators,
         ]);
     }
 
@@ -220,14 +249,24 @@ class CreatorProfilePublicController extends Controller
             $parentId = $parent->id;
         }
 
+        // Task #1211 — apply the creator's mute-words list before the
+        // comment lands in their notification feed. Matches are still
+        // saved (so admins can review) but flipped to `hidden` so the
+        // creator never has to see them.
+        $body = trim($data['body']);
+        $muteHit = app(MuteWordsService::class)->firstMatch($creator, $body);
+        $status  = $muteHit ? 'hidden' : 'visible';
+
         $c = CreatorPostComment::create([
             'post_id'        => $p->id,
             'parent_id'      => $parentId,
             'viewer_user_id' => $viewer->id,
-            'body'           => trim($data['body']),
-            'status'         => 'visible',
+            'body'           => $body,
+            'status'         => $status,
         ]);
-        $p->increment('comments_count');
+        if ($status === 'visible') {
+            $p->increment('comments_count');
+        }
 
         return response()->json([
             'success' => true,

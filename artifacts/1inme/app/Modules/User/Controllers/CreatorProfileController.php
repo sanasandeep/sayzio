@@ -73,6 +73,15 @@ class CreatorProfileController extends Controller
             'sections'         => 'nullable|array',
             'sections.*'       => 'nullable|in:0,1,true,false',
             'profile_published'=> 'nullable|in:0,1,true,false',
+            // Task #1211 — moderation / safety preferences.
+            'mute_words_text'         => 'nullable|string|max:4000',
+            'watermark_enabled'       => 'nullable|in:0,1,true,false',
+            'watermark_opacity'       => 'nullable|integer|min:10|max:90',
+            'watermark_position'      => 'nullable|in:tl,tr,bl,br,center',
+            'watermark_text_template' => 'nullable|string|max:120',
+            'country_block_text'      => 'nullable|string|max:1000',
+            'country_allow_text'      => 'nullable|string|max:1000',
+            'dmca_email'              => 'nullable|email|max:255',
         ]);
 
         if ($request->hasFile('cover_image')) {
@@ -129,6 +138,39 @@ class CreatorProfileController extends Controller
                 'Pick a handle below before you publish — your profile lives at /@handle.');
         }
         $user->profile_published = $wantsPublished;
+
+        // ── Task #1211: moderation / safety preferences ──────────────
+        // Mute words: split on commas/newlines, lowercase, dedupe.
+        if ($request->has('mute_words_text')) {
+            $words = preg_split('/[\r\n,]+/', (string) $data['mute_words_text']) ?: [];
+            $user->mute_words = collect($words)
+                ->map(fn ($w) => mb_strtolower(trim((string) $w)))
+                ->filter(fn ($w) => $w !== '' && mb_strlen($w) <= 64)
+                ->unique()
+                ->take(\App\Modules\Common\Services\MuteWordsService::MAX_WORDS)
+                ->values()
+                ->all();
+        }
+
+        // Watermark settings JSON.
+        $user->watermark_settings = [
+            'enabled'       => filter_var($data['watermark_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'opacity'       => max(10, min(90, (int) ($data['watermark_opacity'] ?? 35))),
+            'position'      => $data['watermark_position'] ?? 'br',
+            'text_template' => trim((string) ($data['watermark_text_template'] ?? '@{handle} • {viewer}')) ?: '@{handle} • {viewer}',
+        ];
+
+        // Country lists: split CSV-style + uppercase 2-letter codes.
+        $normalize = function ($raw) {
+            return collect(preg_split('/[\s,;]+/', (string) $raw) ?: [])
+                ->map(fn ($c) => strtoupper(trim((string) $c)))
+                ->filter(fn ($c) => preg_match('/^[A-Z]{2}$/', $c))
+                ->unique()->values()->all();
+        };
+        $user->country_block_list = $normalize($data['country_block_text'] ?? '');
+        $user->country_allow_list = $normalize($data['country_allow_text'] ?? '');
+        $user->dmca_email = $data['dmca_email'] ?? null;
+
         $user->save();
 
         return redirect()->route('user.creator-profile.edit')

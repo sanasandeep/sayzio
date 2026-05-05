@@ -19,6 +19,8 @@ protected $fillable = [
         // Paywall (Task #1209).
         'visibility', 'visible_tier_ids',
         'ppv_price_cents', 'ppv_currency', 'paywall_settings',
+        // Country gating + trending (Task #1211).
+        'country_block_list', 'country_allow_list', 'view_count_7d',
     ];
 
     protected $casts = [
@@ -34,6 +36,9 @@ protected $fillable = [
         'visible_tier_ids'      => 'array',
         'ppv_price_cents'       => 'integer',
         'paywall_settings'      => 'array',
+        'country_block_list'    => 'array',
+        'country_allow_list'    => 'array',
+        'view_count_7d'         => 'integer',
     ];
 
     public const VISIBILITY_FREE = 'free';

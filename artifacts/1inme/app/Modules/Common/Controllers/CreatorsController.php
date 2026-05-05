@@ -20,6 +20,12 @@ class CreatorsController extends Controller
     {
         $q    = trim((string) $request->query('q', ''));
         $sort = $request->query('sort', 'trending');
+        // Discovery filters (Task #1211).
+        // - tag: pick a niche tag to filter the directory.
+        // - tier: 'free' | 'paid' restricts by whether the creator has at
+        //         least one active free or paid subscription tier.
+        $tag  = trim((string) $request->query('tag', ''));
+        $tier = $request->query('tier', '');
 
         // Adult-content directory filter (Task #1208).
         //   - Default: hide 18+ profiles entirely.
@@ -57,10 +63,38 @@ class CreatorsController extends Controller
 
         if ($q !== '') {
             $like = '%' . $q . '%';
-            $query->where(function ($w) use ($like) {
+            $query->where(function ($w) use ($like, $q) {
                 $w->where('name', 'ilike', $like)
                   ->orWhere('handle', 'ilike', $like)
-                  ->orWhere('bio', 'ilike', $like);
+                  ->orWhere('bio', 'ilike', $like)
+                  // Niche tag JSON contains match — searching for "music"
+                  // also surfaces creators tagged with #music.
+                  ->orWhereJsonContains('niche_tags', mb_strtolower($q));
+            });
+        }
+
+        // Niche tag pill filter (Task #1211). Stored on users.niche_tags
+        // as a JSON array — Postgres + MySQL both index it via the JSON
+        // contains operator.
+        if ($tag !== '') {
+            $query->whereJsonContains('niche_tags', mb_strtolower($tag));
+        }
+
+        // Free vs paid filter — joined to subscription_tiers so the row
+        // has at least one active free / paid tier respectively.
+        if ($tier === 'free') {
+            $query->whereExists(function ($w) {
+                $w->select(DB::raw(1))
+                  ->from('subscription_tiers')
+                  ->whereColumn('subscription_tiers.user_id', 'users.id')
+                  ->where('is_active', true)->where('is_free', true);
+            });
+        } elseif ($tier === 'paid') {
+            $query->whereExists(function ($w) {
+                $w->select(DB::raw(1))
+                  ->from('subscription_tiers')
+                  ->whereColumn('subscription_tiers.user_id', 'users.id')
+                  ->where('is_active', true)->where('is_free', false);
             });
         }
 
@@ -70,6 +104,18 @@ class CreatorsController extends Controller
                 break;
             case 'most_followed':
                 $query->orderByDesc('followers_count');
+                break;
+            case 'most_active':
+                // Posts published in the last 7 days.
+                $activeSub = DB::table('creator_posts')
+                    ->select('user_id', DB::raw('COUNT(*) as posts'))
+                    ->whereNotNull('published_at')
+                    ->where('published_at', '>=', now()->subDays(7))
+                    ->groupBy('user_id');
+                $query->leftJoinSub($activeSub, 'a', 'a.user_id', '=', 'users.id')
+                      ->orderByDesc(DB::raw('COALESCE(a.posts, 0)'))
+                      ->orderByDesc('users.followers_count')
+                      ->select('users.*');
                 break;
             case 'trending':
             default:
@@ -87,6 +133,14 @@ class CreatorsController extends Controller
 
         $creators = $query->paginate(24)->withQueryString();
 
+        // Trending carousel (Task #1211): up to 8 highest-velocity
+        // creators. Cached for 5 minutes to keep the directory fast.
+        $trendingCarousel = $this->trendingCarousel($publishedBiolinkUserIds, $showAdult, $onlyAdult);
+
+        // Tag cloud — top 24 niche tags by frequency, shown as pill
+        // filters above the grid.
+        $popularTags = $this->popularTags(24);
+
         $myFollowingIds = [];
         if (auth()->check()) {
             $myFollowingIds = Follow::where('follower_id', auth()->id())
@@ -98,9 +152,95 @@ class CreatorsController extends Controller
         $messageableBiolinks = $this->buildMessageableBiolinks($creators);
 
         return view('common.creators-directory', compact(
-            'creators', 'q', 'sort', 'myFollowingIds', 'buzzSnippets', 'messageableBiolinks',
-            'showAdult', 'onlyAdult', 'ageGated'
+            'creators', 'q', 'sort', 'tag', 'tier', 'myFollowingIds', 'buzzSnippets', 'messageableBiolinks',
+            'showAdult', 'onlyAdult', 'ageGated', 'trendingCarousel', 'popularTags'
         ));
+    }
+
+    /**
+     * Build the small "Trending now" carousel above the grid (Task #1211).
+     * Top 8 creators by 7-day follower gain. Cached for 5 minutes.
+     */
+    protected function trendingCarousel($publishedBiolinkUserIds, bool $showAdult, bool $onlyAdult): array
+    {
+        $cacheKey = "creators:trending:" . ($showAdult ? '1' : '0') . ':' . ($onlyAdult ? '1' : '0');
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($publishedBiolinkUserIds, $showAdult, $onlyAdult) {
+            $sub = DB::table('follows')
+                ->select('creator_id', DB::raw('COUNT(*) as gained'))
+                ->where('created_at', '>=', now()->subDays(7))
+                ->groupBy('creator_id');
+
+            $q = User::query()
+                ->where('discoverable', true)
+                ->whereIn('id', $publishedBiolinkUserIds)
+                ->joinSub($sub, 't', 't.creator_id', '=', 'users.id')
+                ->orderByDesc('t.gained')
+                ->select('users.*', 't.gained');
+            if ($onlyAdult) {
+                $q->where('adult_content_enabled', true)->whereNull('adult_flag_suspended_at');
+            } elseif (!$showAdult) {
+                $q->where(function ($w) {
+                    $w->where('adult_content_enabled', false)->orWhereNotNull('adult_flag_suspended_at');
+                });
+            }
+            return $q->limit(8)->get()->all();
+        });
+    }
+
+    /**
+     * Top niche tags from the directory pool. Aggregated in PHP because
+     * niche_tags is JSON and DBs vary in their array unnest support.
+     */
+    protected function popularTags(int $limit = 24): array
+    {
+        return \Illuminate\Support\Facades\Cache::remember('creators:popular_tags', 600, function () use ($limit) {
+            $rows = User::query()
+                ->where('discoverable', true)
+                ->whereNotNull('niche_tags')
+                ->limit(2000)
+                ->pluck('niche_tags')
+                ->all();
+            $counts = [];
+            foreach ($rows as $tags) {
+                if (!is_array($tags)) continue;
+                foreach ($tags as $t) {
+                    $t = mb_strtolower(trim((string) $t));
+                    if ($t === '') continue;
+                    $counts[$t] = ($counts[$t] ?? 0) + 1;
+                }
+            }
+            arsort($counts);
+            return array_slice($counts, 0, $limit, true);
+        });
+    }
+
+    /**
+     * Suggest similar creators for the public profile (Task #1211).
+     * Ranks candidates by shared niche tags first, then by follower
+     * count, excluding the creator themselves and any creator the
+     * viewer has blocked.
+     */
+    public static function relatedCreators(User $creator, ?User $viewer = null, int $limit = 6): \Illuminate\Support\Collection
+    {
+        $tags = is_array($creator->niche_tags) ? array_values(array_filter($creator->niche_tags)) : [];
+        $blocked = $viewer ? \App\Modules\User\Models\UserBlock::blockedIdsFor($viewer->id) : [];
+
+        $q = User::query()
+            ->where('discoverable', true)
+            ->where('profile_published', true)
+            ->where('id', '!=', $creator->id)
+            ->whereNotNull('handle')
+            ->whereIn('id', Link::where('type', 'biolink')->where('is_active', true)->select('user_id'));
+        if (!empty($blocked)) $q->whereNotIn('id', $blocked);
+
+        if (!empty($tags)) {
+            $q->where(function ($w) use ($tags) {
+                foreach ($tags as $t) {
+                    $w->orWhereJsonContains('niche_tags', mb_strtolower($t));
+                }
+            });
+        }
+        return $q->orderByDesc('followers_count')->limit($limit * 2)->get()->take($limit);
     }
 
     /**

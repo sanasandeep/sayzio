@@ -37,6 +37,11 @@ export default function ProfileEdit() {
         language: q.data.language ?? "",
         discoverable: q.data.discoverable ?? true,
         allow_followers: q.data.allow_followers ?? true,
+        mute_words_text: q.data.mute_words_text ?? "",
+        watermark_enabled: !!q.data.watermark_enabled,
+        country_block_text: q.data.country_block_text ?? "",
+        country_allow_text: q.data.country_allow_text ?? "",
+        dmca_email: q.data.dmca_email ?? "",
       });
     }
   }, [q.data]);
@@ -164,6 +169,69 @@ export default function ProfileEdit() {
           />
         </View>
 
+        {/* Task #1211 — Safety & moderation parity stub. Mirrors the
+            web Creator Profile editor so creators can manage mute
+            words, watermarking, country gating and the DMCA contact
+            from the phone too. */}
+        <Text style={[styles.section, { color: colors.foreground }]}>Safety & moderation</Text>
+
+        <TextField
+          label="Mute words on your comments"
+          value={form.mute_words_text ?? ""}
+          onChangeText={(t) => set("mute_words_text", t)}
+          multiline
+          numberOfLines={2}
+          placeholder="slur1, slur2, scammer"
+          hint="Comma- or newline-separated. Matched comments are silently hidden."
+          autoCapitalize="none"
+        />
+
+        <View
+          style={[
+            styles.toggleRow,
+            { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.tLabel, { color: colors.foreground }]}>Watermark images</Text>
+            <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
+              Stamp every image with your handle and the viewer's name
+            </Text>
+          </View>
+          <Switch
+            value={!!form.watermark_enabled}
+            onValueChange={(v) => set("watermark_enabled", v)}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
+
+        <TextField
+          label="Block countries (ISO codes)"
+          value={form.country_block_text ?? ""}
+          onChangeText={(t) => set("country_block_text", t.toUpperCase())}
+          placeholder="US, GB, DE"
+          autoCapitalize="characters"
+          hint="Leave empty to allow everywhere."
+        />
+
+        <TextField
+          label="Allow only countries (ISO codes)"
+          value={form.country_allow_text ?? ""}
+          onChangeText={(t) => set("country_allow_text", t.toUpperCase())}
+          placeholder="US, CA"
+          autoCapitalize="characters"
+          hint="When set, every other country is blocked."
+        />
+
+        <TextField
+          label="DMCA contact email"
+          value={form.dmca_email ?? ""}
+          onChangeText={(t) => set("dmca_email", t)}
+          placeholder="legal@yourdomain.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
         <Button
           label="Save changes"
           onPress={() => m.mutate(form)}
@@ -184,4 +252,5 @@ const styles = StyleSheet.create({
   },
   tLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   tHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, marginTop: 2 },
+  section: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 12 },
 });

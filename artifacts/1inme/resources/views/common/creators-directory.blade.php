@@ -36,16 +36,68 @@
         </div>
     </div>
 
-    <form method="GET" class="flex flex-wrap gap-2 mb-6">
-        <input type="text" name="q" value="{{ $q }}" placeholder="Search by name, handle or bio..."
+    <form method="GET" class="flex flex-wrap gap-2 mb-4">
+        <input type="text" name="q" value="{{ $q }}" placeholder="Search name, handle, bio or #tag..."
                class="flex-1 min-w-[240px] px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"/>
         <select name="sort" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
-            <option value="trending" {{ $sort === 'trending' ? 'selected' : '' }}>Trending (7d)</option>
+            <option value="trending"      {{ $sort === 'trending' ? 'selected' : '' }}>Trending (7d)</option>
             <option value="most_followed" {{ $sort === 'most_followed' ? 'selected' : '' }}>Most followed</option>
-            <option value="newest" {{ $sort === 'newest' ? 'selected' : '' }}>Newest</option>
+            <option value="most_active"   {{ $sort === 'most_active' ? 'selected' : '' }}>Most active</option>
+            <option value="newest"        {{ $sort === 'newest' ? 'selected' : '' }}>Newest</option>
         </select>
+        <select name="tier" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
+            <option value="">All creators</option>
+            <option value="free" {{ ($tier ?? '') === 'free' ? 'selected' : '' }}>Free tier available</option>
+            <option value="paid" {{ ($tier ?? '') === 'paid' ? 'selected' : '' }}>Paid tiers</option>
+        </select>
+        @if($ageGated)
+            <label class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-700">
+                <input type="checkbox" name="show_adult" value="1" {{ ($showAdult ?? false) ? 'checked' : '' }} onchange="this.form.submit()"/>
+                Show 18+
+            </label>
+        @endif
+        @if($tag !== '')<input type="hidden" name="tag" value="{{ $tag }}"/>@endif
         <button class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold">Search</button>
     </form>
+
+    {{-- Niche tag pills (Task #1211). --}}
+    @if(!empty($popularTags))
+        <div class="flex flex-wrap items-center gap-2 mb-6">
+            <a href="{{ route('creators.index') }}" class="text-[11px] px-2.5 py-1 rounded-full {{ $tag === '' ? 'bg-violet-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-violet-400' }}">All</a>
+            @foreach($popularTags as $tagName => $cnt)
+                <a href="{{ route('creators.index', array_filter(['tag' => $tagName, 'sort' => $sort, 'tier' => $tier, 'q' => $q])) }}"
+                   class="text-[11px] px-2.5 py-1 rounded-full {{ $tag === $tagName ? 'bg-violet-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-violet-400' }}">
+                    #{{ $tagName }} <span class="opacity-60">{{ $cnt }}</span>
+                </a>
+            @endforeach
+        </div>
+    @endif
+
+    {{-- Trending carousel (Task #1211). --}}
+    @if(!empty($trendingCarousel))
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-sm font-bold text-slate-900 flex items-center gap-1.5"><i class="fas fa-fire text-orange-500"></i> Trending now</h2>
+                <a href="{{ route('creators.index', ['sort' => 'trending']) }}" class="text-[11px] text-violet-700 hover:underline">See all</a>
+            </div>
+            <div class="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 snap-x">
+                @foreach($trendingCarousel as $tc)
+                    <a href="{{ url('/@' . $tc->handle) }}" class="snap-start flex-shrink-0 w-44 bg-white rounded-2xl border border-slate-200 hover:shadow-md transition-shadow p-3 text-center">
+                        @if($tc->avatar)
+                            <img src="{{ $tc->avatar }}" class="w-14 h-14 rounded-full mx-auto object-cover" alt=""/>
+                        @else
+                            <div class="w-14 h-14 rounded-full mx-auto bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $tc->getInitials() }}</div>
+                        @endif
+                        <div class="mt-2 text-[13px] font-bold truncate">{{ $tc->name }}</div>
+                        <div class="text-[11px] text-slate-500 truncate">&#64;{{ $tc->handle }}</div>
+                        @if(isset($tc->gained))
+                            <div class="mt-1 text-[10px] text-emerald-600 font-semibold">+{{ number_format((int) $tc->gained) }} this week</div>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     @if($creators->count() === 0)
         <div class="text-center py-16 bg-white rounded-2xl border border-slate-200">

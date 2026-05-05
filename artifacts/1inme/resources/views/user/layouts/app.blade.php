@@ -721,6 +721,13 @@
                     <span class="nav-label">My Posts</span>
                     <span class="sidebar-tooltip">My Posts</span>
                 </a>
+                <a href="{{ route('user.stats.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
+                    <span class="nav-label">Stats</span>
+                    <span class="sidebar-tooltip">Stats</span>
+                </a>
                 <a href="{{ route('user.payouts.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"
                    style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -1115,6 +1122,7 @@
                         @if($__can['posts_view'])
                         <a href="{{ route('user.creator-profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.creator-profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-id-badge"></i></div> <span>Creator Profile</span></a>
                         <a href="{{ route('user.posts.index') }}" class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div> <span>My Posts</span></a>
+                        <a href="{{ route('user.stats.index') }}" class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Stats</span></a>
                         <a href="{{ route('feed.index') }}" class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-stream"></i></div> <span>Feed</span></a>
                         @endif
                         @endif

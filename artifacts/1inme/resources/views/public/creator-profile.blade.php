@@ -78,6 +78,71 @@
                                     class="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-rose-600 text-xs font-semibold hover:border-rose-400">
                                 <i class="fas fa-heart mr-1"></i> Tip
                             </button>
+
+                            {{-- Task #1211 — Block / report kebab. Visible only to
+                                 logged-in viewers (otherwise both endpoints would
+                                 require auth and bounce them through OTP). --}}
+                            @auth
+                            <div class="relative" x-data="{open:false, reportOpen:false}">
+                                <button type="button" @click="open=!open"
+                                        class="px-2.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-500 text-xs hover:border-slate-400" title="More">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <div x-show="open" @click.outside="open=false" x-transition x-cloak
+                                     class="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-30 overflow-hidden">
+                                    <form method="POST" action="{{ route('users.block.toggle', ['creator' => $creator->id]) }}">
+                                        @csrf
+                                        <button class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 text-slate-700">
+                                            <i class="fas fa-ban mr-1.5 text-slate-500"></i> Block creator
+                                        </button>
+                                    </form>
+                                    <button type="button" @click="reportOpen=true; open=false"
+                                            class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 text-rose-600 border-t border-slate-100">
+                                        <i class="fas fa-flag mr-1.5"></i> Report creator
+                                    </button>
+                                    <a href="{{ route('legal.dmca.show', ['handle' => $creator->handle]) }}"
+                                       class="block px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 border-t border-slate-100">
+                                        <i class="fas fa-gavel mr-1.5 text-slate-500"></i> DMCA takedown
+                                    </a>
+                                </div>
+
+                                {{-- Report modal — submits the enum reason + optional
+                                     free-text comment that UserReportController validates. --}}
+                                <div x-show="reportOpen" x-transition x-cloak
+                                     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center"
+                                     style="display:none;">
+                                    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-[95%] p-5" @click.outside="reportOpen=false">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <h3 class="text-base font-bold text-slate-900">Report {{ $creator->name }}</h3>
+                                            <button type="button" @click="reportOpen=false" class="text-slate-400 hover:text-slate-700">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <form method="POST" action="{{ route('users.report', ['creator' => $creator->id]) }}" class="space-y-3">
+                                            @csrf
+                                            <div>
+                                                <label class="text-xs font-semibold text-slate-700">Reason</label>
+                                                <select name="reason" required class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                                                    @foreach(\App\Modules\Common\Models\UserReport::REASONS as $key => $label)
+                                                        <option value="{{ $key }}">{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-xs font-semibold text-slate-700">Add a note (optional)</label>
+                                                <textarea name="comment" rows="3" maxlength="1000"
+                                                          placeholder="More context for our moderators…"
+                                                          class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"></textarea>
+                                            </div>
+                                            <button type="submit" class="w-full py-2 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700">
+                                                Send report
+                                            </button>
+                                            <p class="text-[11px] text-slate-500 text-center">Reports are private and reviewed by our moderators.</p>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            @endauth
                         @endif
                         @if($creator->isSectionVisible('contact'))
                             <a href="mailto:{{ $creator->email }}" class="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:border-violet-400 hover:text-violet-600">
@@ -220,6 +285,35 @@
                 </div>
                 <div class="mt-4">{{ $posts->links() }}</div>
             @endif
+        </section>
+    @endif
+
+    {{-- Task #1211 — "More creators like {{ $creator->name }}". Surfaces only
+         when there are matches; uses the cached helper on CreatorsController
+         so we don't run discovery queries on every profile view. --}}
+    @if(!empty($relatedCreators) && count($relatedCreators) > 0)
+        <section class="cp-card mt-4 px-5 py-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-slate-900">More creators like {{ $creator->name }}</h3>
+                <a href="{{ route('creators.index') }}" class="text-xs font-semibold text-violet-600 hover:underline">Browse all →</a>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                @foreach($relatedCreators as $rc)
+                    <a href="{{ url('/@' . $rc->handle) }}" class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition">
+                        @if($rc->avatar)
+                            <img src="{{ $rc->avatar }}" alt="" class="w-9 h-9 rounded-full object-cover bg-slate-100 shrink-0">
+                        @else
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                {{ $rc->getInitials() }}
+                            </div>
+                        @endif
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold text-slate-900 truncate">{{ $rc->name }}</div>
+                            <div class="text-[11px] text-slate-500 truncate">@ {{ $rc->handle }}</div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
         </section>
     @endif
 </div>

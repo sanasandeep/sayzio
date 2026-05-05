@@ -41,6 +41,10 @@ class User extends Authenticatable
         // Paid DMs (Task #1210).
         'dm_access_mode', 'dm_pay_price_cents', 'dm_pay_currency',
         'dm_min_tier_id', 'dm_read_receipts_enabled',
+        // Creator safety & discovery (Task #1211).
+        'mute_words', 'watermark_settings',
+        'country_block_list', 'country_allow_list',
+        'dmca_email', 'creator_digest_last_sent_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -84,6 +88,12 @@ class User extends Authenticatable
             'dm_pay_price_cents'           => 'integer',
             'dm_min_tier_id'               => 'integer',
             'dm_read_receipts_enabled'     => 'boolean',
+            // Creator safety & discovery (Task #1211).
+            'mute_words'                    => 'array',
+            'watermark_settings'            => 'array',
+            'country_block_list'            => 'array',
+            'country_allow_list'            => 'array',
+            'creator_digest_last_sent_at'   => 'datetime',
         ];
     }
 

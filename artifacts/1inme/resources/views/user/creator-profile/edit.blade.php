@@ -164,6 +164,101 @@
             </div>
         </fieldset>
 
+        {{-- Task #1211 — Safety & moderation --}}
+        @php
+            $wm = is_array($user->watermark_settings) ? $user->watermark_settings : [];
+            $wmEnabled  = (bool) ($wm['enabled'] ?? false);
+            $wmOpacity  = (int)  ($wm['opacity'] ?? 35);
+            $wmPosition = (string) ($wm['position'] ?? 'br');
+            $wmTpl      = (string) ($wm['text_template'] ?? '@{handle} • {viewer}');
+            $muteWords  = is_array($user->mute_words) ? implode(', ', $user->mute_words) : '';
+            $cBlock     = is_array($user->country_block_list) ? implode(', ', $user->country_block_list) : '';
+            $cAllow     = is_array($user->country_allow_list) ? implode(', ', $user->country_allow_list) : '';
+        @endphp
+        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Safety &amp; moderation</legend>
+            <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Mute words, watermarking on shared images, and per-region availability.</p>
+
+            <div class="space-y-4">
+                {{-- Mute words --}}
+                <div>
+                    <label class="text-xs font-semibold" style="color: var(--text-primary);">Mute words on your comments</label>
+                    <textarea name="mute_words_text" rows="2" placeholder="slur1, slur2, scammer"
+                              class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">{{ old('mute_words_text', $muteWords) }}</textarea>
+                    <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Comma- or newline-separated. Matched comments are silently hidden — admins still see them.</p>
+                </div>
+
+                {{-- Watermarking --}}
+                <div class="rounded-lg p-3 border border-slate-200">
+                    <label class="flex items-start gap-2">
+                        <input type="hidden" name="watermark_enabled" value="0">
+                        <input type="checkbox" name="watermark_enabled" value="1" {{ old('watermark_enabled', $wmEnabled) ? 'checked' : '' }}
+                               class="mt-0.5 rounded border-slate-300 text-violet-600">
+                        <span>
+                            <span class="text-sm font-semibold" style="color: var(--text-primary);">Watermark images with viewer's name</span>
+                            <span class="block text-[11px]" style="color: var(--text-dimmed);">Adds "@your-handle • @their-handle" to every image so screenshots are traceable.</span>
+                        </span>
+                    </label>
+                    <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
+                        <div>
+                            <label class="font-semibold block" style="color: var(--text-primary);">Opacity</label>
+                            <input type="number" name="watermark_opacity" min="10" max="90" value="{{ old('watermark_opacity', $wmOpacity) }}"
+                                   class="mt-1 w-full px-2 py-1.5 rounded-lg border border-slate-200 text-sm"/>
+                        </div>
+                        <div>
+                            <label class="font-semibold block" style="color: var(--text-primary);">Position</label>
+                            <select name="watermark_position" class="mt-1 w-full px-2 py-1.5 rounded-lg border border-slate-200 text-sm">
+                                @foreach(['tl' => 'Top left', 'tr' => 'Top right', 'bl' => 'Bottom left', 'br' => 'Bottom right', 'center' => 'Centre'] as $k => $label)
+                                    <option value="{{ $k }}" {{ old('watermark_position', $wmPosition) === $k ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-semibold block" style="color: var(--text-primary);">Template</label>
+                            <input name="watermark_text_template" maxlength="120" value="{{ old('watermark_text_template', $wmTpl) }}"
+                                   class="mt-1 w-full px-2 py-1.5 rounded-lg border border-slate-200 text-sm"/>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Country gating --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold" style="color: var(--text-primary);">Block from countries</label>
+                        <input name="country_block_text" value="{{ old('country_block_text', $cBlock) }}"
+                               placeholder="US, GB, DE"
+                               class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm uppercase"/>
+                        <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">2-letter ISO codes. Leave empty for "everywhere".</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold" style="color: var(--text-primary);">Allow only from countries</label>
+                        <input name="country_allow_text" value="{{ old('country_allow_text', $cAllow) }}"
+                               placeholder="US, CA"
+                               class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm uppercase"/>
+                        <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">When set, every other country is blocked. Allow wins over block.</p>
+                    </div>
+                </div>
+
+                {{-- DMCA contact --}}
+                <div>
+                    <label class="text-xs font-semibold" style="color: var(--text-primary);">DMCA contact email</label>
+                    <input type="email" name="dmca_email" maxlength="255" value="{{ old('dmca_email', $user->dmca_email) }}"
+                           placeholder="legal@yourdomain.com"
+                           class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm"/>
+                    <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Used when admins forward you a takedown notice. Defaults to your account email.</p>
+                </div>
+
+                <div class="flex justify-end">
+                    <form method="POST" action="{{ route('user.creator-digest.sample') }}" onclick="event.stopPropagation()">
+                        @csrf
+                        <button class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                            <i class="fas fa-paper-plane mr-1"></i> Send me a sample weekly digest
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </fieldset>
+
         {{-- Publish --}}
         <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Publish</legend>

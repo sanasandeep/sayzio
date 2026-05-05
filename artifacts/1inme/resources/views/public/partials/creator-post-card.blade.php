@@ -14,6 +14,21 @@
     $needsSub = !empty($access['requires_subscription']);
     $needsPpv = !empty($access['requires_ppv']);
     $lowestTier = $access['lowest_tier'] ?? null;
+
+    // Task #1211 — when the creator has watermarking on, swap raw image URLs
+    // for the watermark proxy so screenshots can be traced. Visitors who are
+    // not logged in still see the un-watermarked original (no viewer name to
+    // stamp), so this only kicks in for authenticated viewers. Uses the
+    // dedicated watermark.serve route (re-checks viewer + creator settings
+    // server-side) — NOT signed-media.serve which is a paywall-token flow.
+    $wmEnabled = !$locked
+        && app(\App\Modules\Common\Services\WatermarkService::class)->isEnabled($creator)
+        && (!empty($viewer) && (int)($viewer->id ?? 0) !== (int)$creator->id);
+    $wmUrl = static function ($idx) use ($post, $wmEnabled) {
+        if (!$wmEnabled) return null;
+        return route('watermark.serve', ['post' => $post->id, 'idx' => $idx]);
+    };
+    $primaryImg = $wmUrl(0) ?: ($post->image ?? null);
 @endphp
 <article class="cp-card overflow-hidden">
     {{-- ── Header ───────────────────────────── --}}
@@ -154,7 +169,7 @@
         </div>
     @else
         @if($type === \App\Modules\User\Models\CreatorPost::TYPE_IMAGE && $post->image)
-            <img src="{{ $post->image }}" alt="" class="mt-3 w-full max-h-[640px] object-cover bg-slate-100">
+            <img src="{{ $primaryImg }}" alt="" class="mt-3 w-full max-h-[640px] object-cover bg-slate-100">
         @elseif($type === \App\Modules\User\Models\CreatorPost::TYPE_GALLERY && !empty($post->media['items']))
             <div class="mt-3 grid {{ count($post->media['items']) === 1 ? 'grid-cols-1' : (count($post->media['items']) === 2 ? 'grid-cols-2' : 'grid-cols-3') }} gap-1 px-1">
                 @foreach($post->media['items'] as $item)

@@ -349,6 +349,24 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('/handle',  [\App\Modules\User\Controllers\CreatorProfileController::class, 'claimHandle'])->name('handle.claim');
         });
 
+        // Task #1211 — Unified Stats home (audience + content + engagement
+        // + earnings) with CSV export. Sits next to "My Posts" so creators
+        // can land here for the "how am I doing this week?" question
+        // without paging through the deeper Monetization screens.
+        Route::prefix('stats')->name('stats.')->middleware('workspace.can:posts.view')->group(function () {
+            Route::get('/',       [\App\Modules\User\Controllers\CreatorStatsController::class, 'index'])->name('index');
+            Route::get('export',  [\App\Modules\User\Controllers\CreatorStatsController::class, 'export'])->name('export');
+        });
+
+        // Task #1211 — on-demand "Send sample now" preview for the weekly
+        // creator digest, mirroring the backlinks-digest sample pattern.
+        Route::post('creator-digest/sample', function () {
+            $user = \Illuminate\Support\Facades\Auth::user();
+            $sent = app(\App\Modules\User\Services\CreatorDigestService::class)->send($user, true);
+            return back()->with($sent ? 'success' : 'error',
+                $sent ? "Sent a sample digest to {$user->email}." : "Couldn't send a sample digest right now.");
+        })->middleware('workspace.can:posts.view')->name('creator-digest.sample');
+
         // ── Earnings & Payouts (Task #1208) ─────────────────────────
         // Workspace owner area: connect / manage payout providers and
         // toggle the 18+ adult-content flag on the profile. Owner-only

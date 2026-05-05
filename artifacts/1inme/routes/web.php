@@ -293,6 +293,42 @@ Route::prefix('ar/{alias}')->where(['alias' => '[A-Za-z0-9._-]+'])->group(functi
 Route::get('/@{handle}', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'show'])
     ->where('handle', '[A-Za-z0-9_]+')
     ->name('creator-profile.show');
+
+// Task #1211 — generated OG/share image for /@handle. Cached server-side
+// so crawler hits don't re-render every time.
+Route::get('/@{handle}/og.png', [\App\Modules\Common\Controllers\CreatorOgImageController::class, 'show'])
+    ->where('handle', '[A-Za-z0-9_]+')
+    ->name('creator-profile.og');
+
+// Task #1211 — public DMCA / IP takedown intake.
+Route::get ('/legal/dmca', [\App\Modules\Common\Controllers\DmcaController::class, 'show'])->name('legal.dmca.show');
+Route::post('/legal/dmca', [\App\Modules\Common\Controllers\DmcaController::class, 'store'])->middleware('throttle:10,60')->name('legal.dmca.store');
+
+// Task #1211 — watermarked image streamer. /watermark/p/{post}/{idx}.png
+// returns a viewer-stamped PNG when the creator has watermarking on,
+// otherwise 302s to the original URL.
+Route::get('/watermark/p/{post}/{idx}.png', [\App\Modules\Common\Controllers\WatermarkController::class, 'serve'])
+    ->whereNumber('post')->whereNumber('idx')
+    ->middleware('throttle:120,1')
+    ->name('watermark.serve');
+
+// Task #1211 — short-lived signed media URLs for paywalled posts.
+Route::get('/signed-media/p/{post}/{idx}', [\App\Modules\Common\Controllers\SignedMediaController::class, 'serve'])
+    ->whereNumber('post')->whereNumber('idx')
+    ->name('signed-media.serve');
+
+// Task #1211 — viewer-side block/report endpoints. All POSTs because they
+// mutate state; coalescing + rate-limit live inside the controllers.
+Route::post('/u/{creator}/block',  [\App\Modules\Common\Controllers\UserBlockController::class, 'toggle'])
+    ->whereNumber('creator')->middleware('throttle:30,1')->name('users.block.toggle');
+Route::post('/u/{creator}/report', [\App\Modules\Common\Controllers\UserReportController::class, 'reportUser'])
+    ->whereNumber('creator')->middleware('throttle:20,1')->name('users.report');
+Route::post('/p/{post}/report',    [\App\Modules\Common\Controllers\UserReportController::class, 'reportPost'])
+    ->whereNumber('post')->middleware('throttle:20,1')->name('posts.report');
+Route::post('/c/{comment}/report', [\App\Modules\Common\Controllers\UserReportController::class, 'reportComment'])
+    ->whereNumber('comment')->middleware('throttle:20,1')->name('comments.report');
+Route::post('/m/{message}/report', [\App\Modules\Common\Controllers\UserReportController::class, 'reportMessage'])
+    ->whereNumber('message')->middleware('throttle:20,1')->name('messages.report');
 Route::post('/@{handle}/p/{post}/react', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'react'])
     ->where(['handle' => '[A-Za-z0-9_]+', 'post' => '[0-9]+'])
     ->middleware('throttle:120,1')
@@ -344,8 +380,8 @@ Route::get('/sustainability/methodology', [\App\Modules\Common\Controllers\Carbo
 Route::get('/sustainability/badge/{link}', [\App\Modules\Common\Controllers\CarbonPublicController::class, 'badge'])
     ->whereNumber('link')->middleware('throttle:60,1')->name('public.carbon.badge');
 
-Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
-Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
+Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout).*$');
+Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout).*$');
 // ── Conversational Biolink visitor endpoints ─────────────────────
 // Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.
 Route::post('/sl/{alias}/view',            [\App\Modules\Common\Controllers\SlideEventController::class, 'view'])
