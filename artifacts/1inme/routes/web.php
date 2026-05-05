@@ -77,6 +77,16 @@ Route::prefix('community/{link}')->where(['link' => '[0-9]+'])->group(function (
 Route::get ('/viewer/dm/{link}/thread', [\App\Modules\Common\Controllers\ViewerDirectMessageController::class, 'thread'])->where('link', '[0-9]+')->name('viewer.dm.thread');
 Route::post('/viewer/dm/{link}/send',   [\App\Modules\Common\Controllers\ViewerDirectMessageController::class, 'send'])->where('link', '[0-9]+')->middleware('throttle:20,1')->name('viewer.dm.send');
 
+// Paid DMs (Task #1210): profile-scoped DM endpoints (/@handle Message
+// button), per-attachment unlock checkout, and in-DM tipping. The
+// access probe is fast/cheap so it deliberately skips the per-IP send
+// throttle that protects the send endpoint from spam.
+Route::get ('/viewer/dm/profile/{handle}/access',     [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'access'])->name('viewer.profile-dm.access');
+Route::get ('/viewer/dm/profile/{handle}/thread',     [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'thread'])->name('viewer.profile-dm.thread');
+Route::post('/viewer/dm/profile/{handle}/send',       [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'send'])->middleware('throttle:30,1')->name('viewer.profile-dm.send');
+Route::post('/viewer/dm/attachments/{attachment}/unlock', [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'unlockAttachment'])->whereNumber('attachment')->middleware('throttle:30,1')->name('viewer.dm.attachment.unlock');
+Route::post('/viewer/dm/threads/{conversation}/tip',  [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'tip'])->whereNumber('conversation')->middleware('throttle:20,1')->name('viewer.dm.tip');
+
 // ---- AI Companion public chat endpoint + embed bundle / iframe ----
 // Public, auth-free. Origin checks are enforced inside the controller
 // for the `embed` placement; biolink + inbox bypass that gate because

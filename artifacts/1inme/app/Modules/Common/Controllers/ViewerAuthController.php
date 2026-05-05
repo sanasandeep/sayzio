@@ -147,6 +147,12 @@ class ViewerAuthController extends Controller
         Follow::create(['follower_id' => $me->id, 'creator_id' => $creatorId, 'created_at' => now()]);
         $creator->increment('followers_count');
 
+        // Paid DMs (Task #1210): fire any welcome-message rules the
+        // creator has configured for new followers.
+        try {
+            app(\App\Services\Dm\DmDispatcher::class)->triggerNewFollower($creator, $me);
+        } catch (\Throwable $e) { /* swallow — welcome rules must never block follow */ }
+
         // Always store an in-app notification; email only if opted in.
         UserNotification::create([
             'user_id' => $creator->id,

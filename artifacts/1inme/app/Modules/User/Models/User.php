@@ -38,6 +38,9 @@ class User extends Authenticatable
         'adult_content_enabled', 'adult_content_enabled_at',
         'age_verified_at',
         'adult_flag_suspended_at', 'adult_flag_suspended_reason', 'adult_flag_suspended_by',
+        // Paid DMs (Task #1210).
+        'dm_access_mode', 'dm_pay_price_cents', 'dm_pay_currency',
+        'dm_min_tier_id', 'dm_read_receipts_enabled',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -77,8 +80,25 @@ class User extends Authenticatable
             'adult_content_enabled_at'     => 'datetime',
             'age_verified_at'              => 'datetime',
             'adult_flag_suspended_at'      => 'datetime',
+            // Paid DMs (Task #1210).
+            'dm_pay_price_cents'           => 'integer',
+            'dm_min_tier_id'               => 'integer',
+            'dm_read_receipts_enabled'     => 'boolean',
         ];
     }
+
+    /** Allowed DM access modes — see Task #1210. */
+    public const DM_MODE_OPEN   = 'open';
+    public const DM_MODE_SUBS   = 'subs';
+    public const DM_MODE_PAID   = 'paid';
+    public const DM_MODE_CLOSED = 'closed';
+
+    public const DM_MODES = [
+        self::DM_MODE_OPEN   => 'Open — anyone signed in can DM me',
+        self::DM_MODE_SUBS   => 'Subscribers only',
+        self::DM_MODE_PAID   => 'Pay to message — first message costs a fee',
+        self::DM_MODE_CLOSED => 'Closed — DMs disabled',
+    ];
 
     /**
      * Convenience: per the policy, a creator is publicly tagged 18+

@@ -168,6 +168,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
         Route::post('/auth/logout',[AuthController::class, 'logout']);
 
+        // ── Paid DMs (Task #1210) ───────────────────────────────
+        // Mobile-facing wrappers around the same controller methods
+        // the web modal uses. Mounted under /api/v1 (Sanctum Bearer,
+        // CSRF-exempt by design) so native clients don't have to deal
+        // with cookie-based session auth or CSRF headers. The web
+        // surface keeps using the cookie-authed /viewer/dm/* routes.
+        Route::get ('/dm/profile/{handle}/access',          [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'access']);
+        Route::get ('/dm/profile/{handle}/thread',          [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'thread']);
+        Route::post('/dm/profile/{handle}/send',            [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'send'])->middleware('throttle:30,1');
+        Route::post('/dm/attachments/{attachment}/unlock',  [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'unlockAttachment'])->whereNumber('attachment')->middleware('throttle:30,1');
+        Route::post('/dm/threads/{conversation}/tip',       [\App\Modules\Common\Controllers\ProfileDirectMessageController::class, 'tip'])->whereNumber('conversation')->middleware('throttle:20,1');
+
         // Devices & sessions (task #1111).
         Route::get   ('/auth/sessions',                [\App\Modules\Api\Controllers\SessionsController::class, 'index']);
         Route::delete('/auth/sessions/others',         [\App\Modules\Api\Controllers\SessionsController::class, 'destroyOthers']);

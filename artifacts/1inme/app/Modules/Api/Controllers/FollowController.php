@@ -41,6 +41,14 @@ class FollowController extends Controller
             }
         });
 
+        // Paid DMs (Task #1210): only fire welcome rules on the
+        // very first follow, not on a duplicate "follow" call.
+        if ($created) {
+            try {
+                app(\App\Services\Dm\DmDispatcher::class)->triggerNewFollower($creator, $viewer);
+            } catch (\Throwable $e) { /* welcome rules must never block follow */ }
+        }
+
         return $this->ok([
             'following'       => true,
             'created'         => $created,

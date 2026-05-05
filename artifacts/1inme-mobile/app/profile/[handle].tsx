@@ -290,6 +290,19 @@ export default function CreatorProfileScreen() {
                       />
                     </View>
                   </View>
+                  {/* Paid DMs (Task #1210): Message button. */}
+                  <View style={{ marginTop: 8 }}>
+                    <Button
+                      label="✉️ Message"
+                      variant="secondary"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/dm/[handle]",
+                          params: { handle: profile.handle ?? "" },
+                        })
+                      }
+                    />
+                  </View>
                 </View>
               ) : (
                 <Button

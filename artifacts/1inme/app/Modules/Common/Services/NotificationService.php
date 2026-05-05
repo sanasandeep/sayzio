@@ -168,6 +168,28 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => false,
             ],
+            // Paid DMs (Task #1210).
+            'dm.new' => [
+                'label'          => 'New direct messages',
+                'description'    => 'When a fan sends you a DM from your profile or biolink.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
+            'dm.unlocked' => [
+                'label'          => 'DM media unlocked',
+                'description'    => 'When a fan pays to unlock a piece of locked media you sent in a DM.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
+            'dm.tip' => [
+                'label'          => 'Tips inside DMs',
+                'description'    => 'When a fan sends you a tip from inside a direct message thread.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
         ];
     }
 

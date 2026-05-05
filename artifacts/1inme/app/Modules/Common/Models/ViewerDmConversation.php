@@ -13,20 +13,30 @@ class ViewerDmConversation extends Model
     protected $table = 'viewer_dm_conversations';
 
     protected $fillable = [
-        'link_id', 'owner_user_id', 'viewer_user_id',
+        'link_id', 'source', 'owner_user_id', 'creator_user_id', 'viewer_user_id',
         'viewer_msg_count', 'owner_msg_count', 'owner_replied',
         'owner_unread_count', 'viewer_unread_count',
+        'viewer_last_read_at', 'owner_last_read_at',
+        'paid_to_message', 'paid_amount_cents', 'paid_currency', 'paid_at',
         'status', 'blocked_at', 'last_message_at',
         'last_message_preview', 'last_sender',
         'auto_reply_companion_id',
     ];
 
     protected $casts = [
-        'owner_replied'    => 'bool',
-        'blocked_at'       => 'datetime',
-        'last_message_at'  => 'datetime',
+        'owner_replied'           => 'bool',
+        'paid_to_message'         => 'bool',
+        'paid_amount_cents'       => 'int',
+        'paid_at'                 => 'datetime',
+        'blocked_at'              => 'datetime',
+        'last_message_at'         => 'datetime',
+        'viewer_last_read_at'     => 'datetime',
+        'owner_last_read_at'      => 'datetime',
         'auto_reply_companion_id' => 'int',
     ];
+
+    public const SOURCE_BIOLINK = 'biolink';
+    public const SOURCE_PROFILE = 'profile';
 
     /** Anti-spam: the very first burst from a brand-new viewer is capped. */
     public const VIEWER_INITIAL_LIMIT = 2;
@@ -39,6 +49,11 @@ class ViewerDmConversation extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_user_id');
     }
 
     public function viewer(): BelongsTo
@@ -57,9 +72,18 @@ class ViewerDmConversation extends Model
         return $this->status === 'blocked';
     }
 
-    /** True while the viewer is still in the capped "initial outreach" phase. */
+    public function isProfileScoped(): bool
+    {
+        return $this->source === self::SOURCE_PROFILE || $this->link_id === null;
+    }
+
+    /** True while the viewer is still in the capped "initial outreach" phase.
+     *  Pay-to-message threads bypass the cap once payment is recorded — the
+     *  fan paid for the right to keep messaging until the creator replies. */
     public function viewerIsThrottled(): bool
     {
+        if ($this->paid_to_message) return false;
+
         return ! $this->owner_replied
             && $this->viewer_msg_count >= self::VIEWER_INITIAL_LIMIT;
     }

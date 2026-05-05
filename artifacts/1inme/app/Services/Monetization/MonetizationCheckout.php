@@ -64,6 +64,8 @@ class MonetizationCheckout
             $sub = $this->upsertActiveSubscription($fan, $creator, $tier, $cycle, 0, null, $promo);
             $this->logEvent($creator, $fan, CreatorPaymentEvent::SOURCE_SUB, CreatorPaymentEvent::TYPE_SUB_CREATED, $sub, 0, $tier->currency);
             $this->notifyCreatorOfNewSubscriber($creator, $fan, $tier);
+            // Paid DMs (Task #1210): fire welcome rules for new subscribers.
+            try { app(\App\Services\Dm\DmDispatcher::class)->triggerNewSubscriber($creator, $fan, $tier); } catch (\Throwable $e) {}
             return [
                 'url'          => $returnUrl ?? route('creator-profile.show', ['handle' => $creator->handle ?: $creator->id]),
                 'subscription' => $sub,
@@ -235,6 +237,8 @@ class MonetizationCheckout
             'subscription' => $this->confirmSubscription($payload),
             'ppv'          => $this->confirmPpv($payload),
             'tip'          => $this->confirmTip($payload),
+            'dm_msg'       => $this->confirmDmPayToMessage($payload),
+            'dm_att'       => $this->confirmDmAttachmentUnlock($payload),
             default        => null,
         };
     }
@@ -261,6 +265,12 @@ class MonetizationCheckout
 
         $this->logEvent($creator, $fan, CreatorPaymentEvent::SOURCE_SUB, CreatorPaymentEvent::TYPE_SUB_CREATED, $sub, $sub->price_cents, $sub->currency);
         $this->notifyCreatorOfNewSubscriber($creator, $fan, $tier);
+        // Paid DMs (Task #1210): fire welcome rules for new subscribers.
+        try {
+            if ($creator && $fan) {
+                app(\App\Services\Dm\DmDispatcher::class)->triggerNewSubscriber($creator, $fan, $tier);
+            }
+        } catch (\Throwable $e) {}
 
         return [
             'url' => $p['return_url']
@@ -290,6 +300,158 @@ class MonetizationCheckout
         return [
             'url' => $p['return_url']
                 ?? route('creator-profile.show', ['handle' => $creator?->handle ?: $creator?->id]) . '#post-' . $p['post_id'],
+            'message' => 'Unlocked. Enjoy 🎉',
+        ];
+    }
+
+    /**
+     * Pay-to-message (Task #1210). One-off charge that flips the
+     * conversation's `paid_to_message` flag so the fan can keep DMing
+     * the creator until they reply.
+     */
+    public function startDmPayToMessage(
+        User $fan,
+        User $creator,
+        int $amountCents,
+        string $currency,
+        int $conversationId,
+        ?string $returnUrl = null,
+    ): array {
+        if ($fan->id === $creator->id) abort(422, 'You cannot DM yourself.');
+        if ($amountCents < 100)        abort(422, 'Minimum DM fee is $1.00.');
+        if ($amountCents > 1_000_00)   abort(422, 'Maximum DM fee is $1,000.00.');
+
+        $connection = $creator->defaultPaymentConnection()
+            ?: new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $creator->id]);
+
+        $token = Str::random(32);
+        $reference = 'dm_msg_' . $conversationId . '_' . $fan->id;
+        cache()->put($this->cacheKey('dm_msg', $conversationId, $token), [
+            'conversation_id' => $conversationId,
+            'fan_id'          => $fan->id,
+            'creator_id'      => $creator->id,
+            'amount'          => $amountCents,
+            'currency'        => $currency,
+            'return_url'      => $returnUrl,
+        ], now()->addMinutes(30));
+
+        $url = PayoutProviderRegistry::adapter($connection->provider)->createOneTimeCheckout($connection, [
+            'kind'       => 'dm_msg',
+            'reference'  => $reference,
+            'token'      => $token,
+            'amount'     => $amountCents,
+            'currency'   => $currency,
+            'fan_email'  => $fan->email,
+            'return_url' => route('checkout.return', ['kind' => 'dm_msg', 'reference' => $reference, 'token' => $token]),
+        ]);
+
+        return ['url' => $url];
+    }
+
+    /**
+     * Per-DM-attachment unlock (Task #1210). One-off charge that drops
+     * a viewer_dm_attachment_unlocks row so the fan can see the asset.
+     */
+    public function startDmAttachmentUnlock(
+        User $fan,
+        User $creator,
+        int $attachmentId,
+        int $amountCents,
+        string $currency,
+        ?string $returnUrl = null,
+    ): array {
+        if ($fan->id === $creator->id) abort(422, 'You cannot unlock your own DM media.');
+        if ($amountCents < 100)        abort(422, 'Minimum unlock is $1.00.');
+
+        $connection = $creator->defaultPaymentConnection()
+            ?: new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $creator->id]);
+
+        $token = Str::random(32);
+        $reference = 'dm_att_' . $attachmentId . '_' . $fan->id;
+        cache()->put($this->cacheKey('dm_att', $attachmentId, $token), [
+            'attachment_id' => $attachmentId,
+            'fan_id'        => $fan->id,
+            'creator_id'    => $creator->id,
+            'amount'        => $amountCents,
+            'currency'      => $currency,
+            'return_url'    => $returnUrl,
+        ], now()->addMinutes(30));
+
+        $url = PayoutProviderRegistry::adapter($connection->provider)->createOneTimeCheckout($connection, [
+            'kind'       => 'dm_att',
+            'reference'  => $reference,
+            'token'      => $token,
+            'amount'     => $amountCents,
+            'currency'   => $currency,
+            'fan_email'  => $fan->email,
+            'return_url' => route('checkout.return', ['kind' => 'dm_att', 'reference' => $reference, 'token' => $token]),
+        ]);
+
+        return ['url' => $url];
+    }
+
+    protected function confirmDmPayToMessage(array $p): array
+    {
+        $conv = \App\Modules\Common\Models\ViewerDmConversation::find($p['conversation_id']);
+        $creator = User::find($p['creator_id']);
+        $fan     = User::find($p['fan_id']);
+        if (!$conv || !$creator || !$fan) return ['url' => '/'];
+
+        if (!$conv->paid_to_message) {
+            $conv->paid_to_message    = true;
+            $conv->paid_amount_cents  = (int) $p['amount'];
+            $conv->paid_currency      = (string) $p['currency'];
+            $conv->paid_at            = now();
+            $conv->save();
+        }
+
+        $this->logEvent($creator, $fan, CreatorPaymentEvent::SOURCE_TIP, CreatorPaymentEvent::TYPE_TIP_RECEIVED, $conv, $p['amount'], $p['currency']);
+
+        // System message in the thread so both sides see the receipt.
+        try {
+            app(\App\Services\Dm\DmDispatcher::class)->send(
+                $conv, $fan, 'viewer',
+                'Paid $' . number_format($p['amount'] / 100, 2) . ' to start this conversation.',
+                [], null, false, true,
+            );
+        } catch (\Throwable $e) { Log::warning('dm_msg.system.failed', ['err' => $e->getMessage()]); }
+
+        $url = $p['return_url']
+            ?: route('creator-profile.show', ['handle' => $creator->handle ?: $creator->id]) . '#dm';
+
+        return ['url' => $url, 'message' => 'Payment received — go ahead and message ' . $creator->name . '.'];
+    }
+
+    protected function confirmDmAttachmentUnlock(array $p): array
+    {
+        $att = \App\Modules\Common\Models\ViewerDmAttachment::find($p['attachment_id']);
+        if (!$att) return ['url' => '/'];
+
+        $unlock = \App\Modules\Common\Models\ViewerDmAttachmentUnlock::firstOrCreate(
+            ['attachment_id' => $att->id, 'fan_user_id' => $p['fan_id']],
+            [
+                'creator_user_id'   => $p['creator_id'],
+                'price_cents'       => $p['amount'],
+                'currency'          => $p['currency'],
+                'gateway'           => 'preview',
+                'gateway_charge_id' => 'preview_dm_att_' . Str::random(10),
+                'unlocked_at'       => now(),
+            ],
+        );
+        $creator = User::find($p['creator_id']);
+        $fan     = User::find($p['fan_id']);
+        $conv = $att->conversation;
+        if ($creator && $fan) {
+            $this->logEvent($creator, $fan, CreatorPaymentEvent::SOURCE_PPV, CreatorPaymentEvent::TYPE_PPV_UNLOCKED, $unlock, $p['amount'], $p['currency']);
+            if ($conv) {
+                try {
+                    app(\App\Services\Dm\DmDispatcher::class)->notifyAttachmentUnlocked($creator, $fan, $att, $p['amount'], $p['currency'], $conv);
+                } catch (\Throwable $e) { Log::warning('dm_att.notify.failed', ['err' => $e->getMessage()]); }
+            }
+        }
+        return [
+            'url' => $p['return_url']
+                ?: ($conv ? route('user.inbox.dms.thread', $conv->id) : '/'),
             'message' => 'Unlocked. Enjoy 🎉',
         ];
     }
@@ -563,6 +725,14 @@ class MonetizationCheckout
         }
         if ($kind === 'tip' && count($parts) === 2) {
             return $this->cacheKey('tip', (int) $parts[1], $token);
+        }
+        if ($kind === 'dm_msg' && count($parts) >= 3) {
+            // dm_msg_{conversationId}_{fanId}
+            return $this->cacheKey('dm_msg', (int) $parts[2], $token);
+        }
+        if ($kind === 'dm_att' && count($parts) >= 3) {
+            // dm_att_{attachmentId}_{fanId}
+            return $this->cacheKey('dm_att', (int) $parts[2], $token);
         }
         return null;
     }

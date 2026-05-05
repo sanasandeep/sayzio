@@ -38,6 +38,21 @@
                 AI Companions
             </a>
         @endif
+        {{-- Paid DMs (Task #1210) — quick access to the three new
+             creator-side editors so people can find Settings,
+             Broadcasts and Welcome rules from the inbox itself. --}}
+        <a href="{{ route('user.inbox.dms.settings') }}"
+           class="px-4 py-2 rounded-xl text-sm {{ request()->routeIs('user.inbox.dms.settings*') ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10' }}">
+            <i class="fas fa-cog mr-1 opacity-70"></i> DM settings
+        </a>
+        <a href="{{ route('user.inbox.dms.broadcasts.index') }}"
+           class="px-4 py-2 rounded-xl text-sm {{ request()->routeIs('user.inbox.dms.broadcasts.*') ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10' }}">
+            <i class="fas fa-bullhorn mr-1 opacity-70"></i> Broadcasts
+        </a>
+        <a href="{{ route('user.inbox.dms.welcome.index') }}"
+           class="px-4 py-2 rounded-xl text-sm {{ request()->routeIs('user.inbox.dms.welcome.*') ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10' }}">
+            <i class="fas fa-hand-sparkles mr-1 opacity-70"></i> Welcome
+        </a>
         <div class="ml-auto">
             <a href="{{ route('user.inbox.index') }}" class="text-xs text-white/60 hover:text-white">
                 <i class="fas fa-arrow-left mr-1"></i> Form / subscriber inbox

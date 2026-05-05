@@ -1097,6 +1097,25 @@ Route::prefix('user')->name('user.')->group(function () {
                 Route::post('{conversation}/block',          [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'block'])->whereNumber('conversation')->middleware('workspace.can:inbox.edit')->name('block');
                 Route::post('{conversation}/unblock',        [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'unblock'])->whereNumber('conversation')->middleware('workspace.can:inbox.edit')->name('unblock');
                 Route::put ('{conversation}/auto-reply',     [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'setAutoReply'])->whereNumber('conversation')->middleware('workspace.can:inbox.edit')->name('auto-reply');
+
+                // Paid DMs (Task #1210): access settings, mass-message
+                // broadcasts and welcome-message rules.
+                Route::get ('settings/access',              [\App\Modules\User\Controllers\CreatorDmController::class, 'settings'])->middleware('workspace.can:inbox.view')->name('settings');
+                Route::post('settings/access',              [\App\Modules\User\Controllers\CreatorDmController::class, 'updateSettings'])->middleware('workspace.can:inbox.edit')->name('settings.update');
+
+                Route::prefix('broadcasts')->name('broadcasts.')->group(function () {
+                    Route::get ('/',              [\App\Modules\User\Controllers\CreatorDmController::class, 'broadcastsIndex'])->middleware('workspace.can:inbox.view')->name('index');
+                    Route::post('/',              [\App\Modules\User\Controllers\CreatorDmController::class, 'broadcastStore'])->middleware('workspace.can:inbox.create')->name('store');
+                    Route::post('{broadcast}/send', [\App\Modules\User\Controllers\CreatorDmController::class, 'broadcastSend'])->whereNumber('broadcast')->middleware('workspace.can:inbox.edit')->name('send');
+                    Route::delete('{broadcast}',  [\App\Modules\User\Controllers\CreatorDmController::class, 'broadcastDestroy'])->whereNumber('broadcast')->middleware('workspace.can:inbox.delete')->name('destroy');
+                });
+
+                Route::prefix('welcome')->name('welcome.')->group(function () {
+                    Route::get ('/',                 [\App\Modules\User\Controllers\CreatorDmController::class, 'welcomeIndex'])->middleware('workspace.can:inbox.view')->name('index');
+                    Route::post('/',                 [\App\Modules\User\Controllers\CreatorDmController::class, 'welcomeStore'])->middleware('workspace.can:inbox.create')->name('store');
+                    Route::post('{rule}/toggle',     [\App\Modules\User\Controllers\CreatorDmController::class, 'welcomeToggle'])->whereNumber('rule')->middleware('workspace.can:inbox.edit')->name('toggle');
+                    Route::delete('{rule}',          [\App\Modules\User\Controllers\CreatorDmController::class, 'welcomeDestroy'])->whereNumber('rule')->middleware('workspace.can:inbox.delete')->name('destroy');
+                });
             });
 
             // AI Companion as inbox participant — owners (and team
