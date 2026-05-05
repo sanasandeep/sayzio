@@ -22,7 +22,7 @@
     // just mirrors the same fields used in those expressions.
     $filterIndex = $pageTemplates->map(fn($t) => [
         'category' => $t->category,
-        'text' => strtolower(($t->name ?? '') . ' ' . ($t->description ?? '')),
+        'text' => strtolower(($t->name ?? '') . ' ' . ($t->description ?? '') . ' ' . ucfirst($t->category ?? '')),
     ])->values();
 @endphp
 <div class="max-w-6xl mx-auto" x-data="{
@@ -184,7 +184,7 @@
                     $blockCount = $topCount;
                     foreach ($summary as $s) { $blockCount += count($s['children'] ?? []); }
                 @endphp
-                <div x-show="matches('{{ $tpl->category }}', {{ \Illuminate\Support\Js::from(strtolower($tpl->name . ' ' . $tpl->description)) }})"
+                <div x-show="matches('{{ $tpl->category }}', {{ \Illuminate\Support\Js::from(strtolower($tpl->name . ' ' . $tpl->description . ' ' . ucfirst($tpl->category))) }})"
                      x-cloak
                      x-data="{ expanded: false }"
                      class="glass rounded-2xl border border-white/10 overflow-hidden hover:border-violet-500/40 transition group">
@@ -315,9 +315,8 @@
                             <h3 class="text-sm font-semibold text-white flex-1 min-w-0"
                                 x-html="highlight({{ \Illuminate\Support\Js::from($tpl->name) }})">{{ $tpl->name }}</h3>
                             <span class="shrink-0 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap text-white/55"
-                                  style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);">
-                                {{ ucfirst($tpl->category) }}
-                            </span>
+                                  style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);"
+                                  x-html="highlight({{ \Illuminate\Support\Js::from(ucfirst($tpl->category)) }})">{{ ucfirst($tpl->category) }}</span>
                         </div>
                         @if($tpl->description)
                             <p class="text-xs text-white/50 mb-2 line-clamp-2"
