@@ -403,22 +403,12 @@
                 <div class="ics-section-icon"><i class="fas fa-link"></i></div>
                 <div><h2 class="ics-section-title">Link settings</h2><p class="ics-section-sub">Control your shareable link and how it behaves when someone visits.</p></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="ics-label">Custom short link</label>
-                    <div class="ics-pill">
-                        <span class="ics-pill-suffix" style="border-left: 0; border-right: 1px solid var(--border-glass);">{{ parse_url($base, PHP_URL_HOST) }}/</span>
-                        <input type="text" name="alias" value="{{ old('alias', $link->alias) }}" pattern="[A-Za-z0-9_\-]+" class="flex-1 px-3 py-2.5 text-sm">
-                    </div>
-                    @error('alias') <p class="text-red-400 text-xs mt-1.5">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label class="ics-label">Folder <span style="color: var(--text-faint);" class="font-normal">(optional)</span></label>
-                    <select name="project_id" class="ics-input">
-                        <option value="">No folder</option>
-                        @foreach($projects as $p)<option value="{{ $p->id }}" {{ old('project_id', $link->project_id) == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>@endforeach
-                    </select>
-                </div>
+            <div class="mb-4">
+                <label class="ics-label">Folder <span style="color: var(--text-faint);" class="font-normal">(optional)</span></label>
+                <select name="project_id" class="ics-input">
+                    <option value="">No folder</option>
+                    @foreach($projects as $p)<option value="{{ $p->id }}" {{ old('project_id', $link->project_id) == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>@endforeach
+                </select>
             </div>
 
             <label class="ics-tile flex items-start gap-3 p-4 cursor-pointer">
