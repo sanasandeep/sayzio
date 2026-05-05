@@ -170,6 +170,111 @@ class UserRoleAuditTest extends TestCase
         $resp->assertDontSee('Some Past Operator');
     }
 
+    public function test_deleting_user_records_detached_rows_for_each_attached_role(): void
+    {
+        // The pivot has cascadeOnDelete(), so the DB would silently
+        // strip these rows the moment the user is gone. The model's
+        // `deleting` hook must capture them first or reviewers see an
+        // attach with no matching detach when investigating the
+        // removed admin.
+        $target = $this->makeUser(['name' => 'Doomed Dan']);
+        $roleA  = $this->makeRole('alpha');
+        $roleB  = $this->makeRole('beta');
+        $target->roles()->attach([$roleA->id, $roleB->id]);
+
+        // Sanity: clear out the 'attached' rows the controllers would
+        // normally have written so this test only asserts the new
+        // cascade-driven detach behavior.
+        UserRoleAudit::query()->where('target_user_id', $target->id)->delete();
+
+        $target->delete();
+
+        $this->assertSame(2, UserRoleAudit::where('target_user_id', $target->id)->count());
+
+        foreach ([$roleA, $roleB] as $role) {
+            $this->assertDatabaseHas('user_role_audits', [
+                'target_user_id' => $target->id,
+                'role_id'        => $role->id,
+                'role_slug'      => $role->slug,
+                'action'         => 'detached',
+                'source'         => 'user_deleted',
+            ]);
+        }
+    }
+
+    public function test_deleting_user_with_no_roles_writes_no_audit_rows(): void
+    {
+        $target = $this->makeUser(['name' => 'Lonely Lou']);
+
+        $target->delete();
+
+        $this->assertSame(0, UserRoleAudit::where('target_user_id', $target->id)->count());
+    }
+
+    public function test_deleting_role_records_detached_rows_for_each_user_that_held_it(): void
+    {
+        // Same cascade story on the role side: dropping a role nukes
+        // every pivot row for it. The Role model's `deleting` hook
+        // walks the pivot first so each affected user account gets
+        // its 'detached' counterpart written through the same logger.
+        $role = $this->makeRole('soon-gone');
+        $u1 = $this->makeUser(['name' => 'User One']);
+        $u2 = $this->makeUser(['name' => 'User Two']);
+        $u1->roles()->attach($role->id);
+        $u2->roles()->attach($role->id);
+
+        UserRoleAudit::query()->whereIn('target_user_id', [$u1->id, $u2->id])->delete();
+
+        $slugSnapshot = $role->slug;
+        $role->delete();
+
+        foreach ([$u1, $u2] as $user) {
+            $this->assertDatabaseHas('user_role_audits', [
+                'target_user_id' => $user->id,
+                'role_slug'      => $slugSnapshot,
+                'action'         => 'detached',
+                'source'         => 'role_deleted',
+            ]);
+        }
+        $this->assertSame(2, UserRoleAudit::where('source', 'role_deleted')->count());
+    }
+
+    public function test_admin_destroying_a_user_attributes_cascade_detach_to_that_admin(): void
+    {
+        // The actor on the audit row should be whoever called delete,
+        // not 'System' — back-office operators want to see who
+        // destroyed the account that took these roles with it.
+        $superRole = Role::firstOrCreate(
+            ['slug' => 'super-admin', 'guard' => 'admin'],
+            ['name' => 'Super Admin']
+        );
+        $admin = Admin::create([
+            'name'     => 'Destroyer Dana',
+            'email'    => 'dana@admin.test',
+            'password' => Hash::make('x'),
+            'role_id'  => $superRole->id,
+            'status'   => 'active',
+        ]);
+
+        $target = $this->makeUser(['name' => 'Goodbye Greg']);
+        $role   = $this->makeRole('keeper');
+        $target->roles()->attach($role->id);
+        UserRoleAudit::query()->where('target_user_id', $target->id)->delete();
+
+        $this->actingAs($admin, 'admin')
+            ->delete(route('admin.users.destroy', $target))
+            ->assertRedirect();
+
+        $row = UserRoleAudit::where('source', 'user_deleted')
+            ->where('role_id', $role->id)
+            ->firstOrFail();
+
+        $this->assertSame('detached', $row->action);
+        $this->assertSame('admin', $row->actor_guard);
+        $this->assertSame((int) $admin->id, (int) $row->actor_admin_id);
+        $this->assertSame('Destroyer Dana', $row->actor_name);
+    }
+
     public function test_admin_role_update_records_actor_on_admin_guard(): void
     {
         // Seed a super-admin Admin (role lookup is permissive — slug

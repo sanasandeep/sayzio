@@ -20,6 +20,11 @@ class UserRoleAudit extends Model
     public const SOURCE_USER_ACCESS = 'user_access';
     public const SOURCE_ADMIN       = 'admin';
     public const SOURCE_BACKFILL    = 'backfill';
+    // Auto-generated detach rows written by the model `deleting` hooks
+    // when a user account or a role is deleted, so the cascade on the
+    // `user_roles` pivot doesn't silently erase the audit trail.
+    public const SOURCE_USER_DELETED = 'user_deleted';
+    public const SOURCE_ROLE_DELETED = 'role_deleted';
 
     protected $table = 'user_role_audits';
 

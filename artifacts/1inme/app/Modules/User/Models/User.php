@@ -224,6 +224,47 @@ class User extends Authenticatable
                 // Don't ever break account creation on AI provisioning.
             }
         });
+
+        // Mirror the role-pivot cascade into the audit ledger so that
+        // deleting a user account doesn't silently drop the 'detached'
+        // rows that reviewers rely on. The `user_roles` foreign key is
+        // declared with `cascadeOnDelete()`, which means the DB will
+        // wipe pivot rows the instant the user row is gone — without
+        // this hook we'd see the original 'attached' audit but no
+        // matching 'detached' counterpart. Snapshotting BEFORE the
+        // delete fires lets `UserRoleAuditLogger` capture the role
+        // slug/name (the role record itself is still around) and the
+        // currently-authenticated actor (the admin doing the destroy).
+        // Wrapped in try/catch so an audit miss can never block the
+        // primary delete; the logger also swallows write failures.
+        static::deleting(function (User $user) {
+            try {
+                $roleIds = $user->roles()->pluck('roles.id')->all();
+                if (empty($roleIds)) {
+                    return;
+                }
+                app(\App\Modules\User\Services\UserRoleAuditLogger::class)
+                    ->recordDiff(
+                        $user,
+                        $roleIds,
+                        [],
+                        \App\Modules\User\Models\UserRoleAudit::SOURCE_USER_DELETED,
+                        request()?->ip(),
+                    );
+            } catch (\Throwable $e) {
+                // Never block user deletion on an audit failure — but
+                // log it so an outage of the audit write path is
+                // visible in operational logs instead of disappearing.
+                try {
+                    \Illuminate\Support\Facades\Log::error(
+                        'User deleting hook: failed to record cascade role-detach audit',
+                        ['target_user_id' => $user->id, 'error' => $e->getMessage()],
+                    );
+                } catch (\Throwable $ignored) {
+                    // Logger itself failed — nothing useful to do here.
+                }
+            }
+        });
     }
 
     public function followers()    { return $this->hasMany(Follow::class, 'creator_id'); }
