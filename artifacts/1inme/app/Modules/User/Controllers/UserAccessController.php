@@ -10,6 +10,7 @@ use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserAccessController extends Controller
 {
@@ -126,5 +127,75 @@ class UserAccessController extends Controller
         return redirect()
             ->route('user.access.users.index', ['q' => $request->get('q')])
             ->with('success', 'Access updated for ' . $user->name . '.');
+    }
+
+    /**
+     * Dedicated, paginated audit page covering the entire
+     * `user_role_audits` ledger. The two snapshot panels (50 most
+     * recent on User access, 20 latest per user on the admin
+     * user-detail page) are intentionally tiny — this page is the
+     * place to dig into the full history with filters and CSV export
+     * for security reviews.
+     */
+    public function audit(Request $request)
+    {
+        $filters = $this->auditFilters($request);
+
+        $audits = UserRoleAudit::query()
+            ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email', 'targetUser:id,name,email'])
+            ->filtered($filters)
+            ->orderByDesc('created_at')
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('user.access.audit', [
+            'audits'     => $audits,
+            'filters'    => $filters,
+            'roleSlugs'  => UserRoleAudit::distinctRoleSlugs(),
+            'actions'    => [
+                UserRoleAudit::ACTION_ATTACHED => 'Granted',
+                UserRoleAudit::ACTION_DETACHED => 'Revoked',
+            ],
+            'sources'    => [
+                UserRoleAudit::SOURCE_USER_ACCESS => 'User access page',
+                UserRoleAudit::SOURCE_ADMIN       => 'Back-office admin',
+            ],
+            'exportRoute' => 'user.access.audit.export',
+            'backRoute'   => 'user.access.users.index',
+        ]);
+    }
+
+    /**
+     * CSV export of the same filtered audit query the page renders.
+     * Streamed/chunked so a multi-thousand-row export doesn't blow
+     * the request memory limit.
+     */
+    public function auditExport(Request $request): StreamedResponse
+    {
+        $filters = $this->auditFilters($request);
+
+        $query = UserRoleAudit::query()->filtered($filters);
+
+        $filename = 'role-audit-' . now()->format('Ymd-His') . '.csv';
+        return UserRoleAudit::streamCsv($query, $filename);
+    }
+
+    /**
+     * Read the supported filter inputs off the request once, so the
+     * on-screen list and the CSV export reflect the exact same view.
+     *
+     * @return array{actor:string,target:string,role:string,action:string,source:string,from:string,to:string}
+     */
+    protected function auditFilters(Request $request): array
+    {
+        return [
+            'actor'  => trim((string) $request->get('actor', '')),
+            'target' => trim((string) $request->get('target', '')),
+            'role'   => trim((string) $request->get('role', '')),
+            'action' => (string) $request->get('action', ''),
+            'source' => (string) $request->get('source', ''),
+            'from'   => trim((string) $request->get('from', '')),
+            'to'     => trim((string) $request->get('to', '')),
+        ];
     }
 }

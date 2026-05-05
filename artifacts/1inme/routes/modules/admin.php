@@ -500,6 +500,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserManagementController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
+
+            // Role-change audit log (filterable + CSV export). Declared
+            // before `{user}` so the literal "role-audits" path isn't
+            // swallowed by the wildcard show route. Same gate as
+            // mutating roles, since the row-level data is the same as
+            // the existing per-user "role change history" panel.
+            Route::get('role-audits',        [UserManagementController::class, 'roleAudits'])->middleware(CheckPermission::class . ':users.edit')->name('role-audits.index');
+            Route::get('role-audits/export', [UserManagementController::class, 'roleAuditsExport'])->middleware(CheckPermission::class . ':users.edit')->name('role-audits.export');
+
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');
             Route::put('{user}', [UserManagementController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->name('update');
             Route::delete('{user}', [UserManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':users.delete')->name('destroy');

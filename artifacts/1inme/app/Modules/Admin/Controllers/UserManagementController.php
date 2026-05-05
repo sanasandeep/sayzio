@@ -10,6 +10,7 @@ use App\Modules\User\Services\ReferralService;
 use App\Services\Billing\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserManagementController extends Controller
 {
@@ -132,5 +133,72 @@ class UserManagementController extends Controller
     {
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Dedicated, paginated role-change audit page for the back-office.
+     * Mirrors `UserAccessController::audit` but lives behind the admin
+     * guard so reviewers without a web session can still pull the
+     * full ledger. Filters and CSV export use the same shared
+     * model-level helpers so the two surfaces stay in sync.
+     */
+    public function roleAudits(Request $request)
+    {
+        $filters = $this->roleAuditFilters($request);
+
+        $audits = UserRoleAudit::query()
+            ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email', 'targetUser:id,name,email'])
+            ->filtered($filters)
+            ->orderByDesc('created_at')
+            ->paginate(50)
+            ->withQueryString();
+
+        $targetUser = null;
+        if ($filters['target'] !== '' && ctype_digit($filters['target'])) {
+            $targetUser = User::query()
+                ->select('id', 'name', 'email')
+                ->find((int) $filters['target']);
+        }
+
+        return view('admin.users.role-audits', [
+            'audits'      => $audits,
+            'filters'     => $filters,
+            'roleSlugs'   => UserRoleAudit::distinctRoleSlugs(),
+            'actions'     => [
+                UserRoleAudit::ACTION_ATTACHED => 'Granted',
+                UserRoleAudit::ACTION_DETACHED => 'Revoked',
+            ],
+            'sources'     => [
+                UserRoleAudit::SOURCE_USER_ACCESS => 'User access page',
+                UserRoleAudit::SOURCE_ADMIN       => 'Back-office admin',
+            ],
+            'targetUser'  => $targetUser,
+        ]);
+    }
+
+    public function roleAuditsExport(Request $request): StreamedResponse
+    {
+        $filters = $this->roleAuditFilters($request);
+
+        $query = UserRoleAudit::query()->filtered($filters);
+
+        $filename = 'role-audit-' . now()->format('Ymd-His') . '.csv';
+        return UserRoleAudit::streamCsv($query, $filename);
+    }
+
+    /**
+     * @return array{actor:string,target:string,role:string,action:string,source:string,from:string,to:string}
+     */
+    protected function roleAuditFilters(Request $request): array
+    {
+        return [
+            'actor'  => trim((string) $request->get('actor', '')),
+            'target' => trim((string) $request->get('target', '')),
+            'role'   => trim((string) $request->get('role', '')),
+            'action' => (string) $request->get('action', ''),
+            'source' => (string) $request->get('source', ''),
+            'from'   => trim((string) $request->get('from', '')),
+            'to'     => trim((string) $request->get('to', '')),
+        ];
     }
 }

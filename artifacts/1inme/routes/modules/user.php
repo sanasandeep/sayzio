@@ -1380,6 +1380,12 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('users',                   [UserAccessController::class, 'index'])->name('users.index');
             Route::post('users/{user}/roles',      [UserAccessController::class, 'update'])->whereNumber('user')->name('users.update');
 
+            // Full role-change audit log + CSV export. Same gate as
+            // the rest of the access pages — anyone who can promote
+            // can also see who promoted whom.
+            Route::get('audit',        [UserAccessController::class, 'audit'])->name('audit.index');
+            Route::get('audit/export', [UserAccessController::class, 'auditExport'])->name('audit.export');
+
             // CRUD for the user-pool roles themselves. Lets operators
             // create/rename/delete roles and edit their permission
             // checklists from the UI instead of hand-editing seeds.

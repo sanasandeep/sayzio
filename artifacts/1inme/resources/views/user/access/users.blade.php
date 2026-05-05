@@ -13,10 +13,16 @@
                     roles are managed separately.
                 </p>
             </div>
-            <a href="{{ route('user.access.roles.index') }}"
-               class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium whitespace-nowrap">
-                <i class="fas fa-sliders mr-1"></i> Edit roles
-            </a>
+            <div class="flex items-center gap-2 flex-wrap">
+                <a href="{{ route('user.access.audit.index') }}"
+                   class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-clipboard-list mr-1"></i> Full audit log
+                </a>
+                <a href="{{ route('user.access.roles.index') }}"
+                   class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-sliders mr-1"></i> Edit roles
+                </a>
+            </div>
         </div>
     </header>
 

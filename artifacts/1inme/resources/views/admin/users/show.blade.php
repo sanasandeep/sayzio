@@ -97,15 +97,21 @@
     @if($canSeeRoleAudits)
     <div class="lg:col-span-3">
         <div class="glass rounded-2xl border border-white/10 p-6">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
                 <div>
                     <h3 class="text-white font-semibold">Role change history</h3>
                     <p class="text-xs text-white/40">Latest grants / revokes against this user.</p>
                 </div>
-                <a href="{{ route('admin.users.roles.edit', $user) }}"
-                   class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
-                    Manage roles
-                </a>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <a href="{{ route('admin.users.role-audits.index', ['target' => $user->id]) }}"
+                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
+                        <i class="fas fa-clipboard-list mr-1"></i> Full audit log
+                    </a>
+                    <a href="{{ route('admin.users.roles.edit', $user) }}"
+                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
+                        Manage roles
+                    </a>
+                </div>
             </div>
 
             @if(empty($roleAudits) || $roleAudits->isEmpty())
