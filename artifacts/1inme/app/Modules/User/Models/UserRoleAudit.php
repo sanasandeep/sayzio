@@ -19,6 +19,7 @@ class UserRoleAudit extends Model
 
     public const SOURCE_USER_ACCESS = 'user_access';
     public const SOURCE_ADMIN       = 'admin';
+    public const SOURCE_BACKFILL    = 'backfill';
 
     protected $table = 'user_role_audits';
 
