@@ -45,7 +45,7 @@
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Custom Alias</label>
                     @php
                         $defaultHost = \App\Modules\Common\Support\PlatformHosts::currentRequestHost()
-                            ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
+                            ?: \App\Modules\Common\Support\PlatformHosts::primary();
                     @endphp
                     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
                         @if(($domains ?? collect())->isNotEmpty())

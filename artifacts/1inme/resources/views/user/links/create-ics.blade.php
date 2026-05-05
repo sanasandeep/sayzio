@@ -326,7 +326,7 @@
                 <div>
                     <label class="ics-label">Custom short link</label>
                     <div class="ics-pill">
-                        <span class="ics-pill-suffix" style="border-left:0; border-right:1px solid var(--border-glass);">{{ parse_url($base, PHP_URL_HOST) }}/</span>
+                        <span class="ics-pill-suffix" style="border-left:0; border-right:1px solid var(--border-glass);">{{ \App\Modules\Common\Support\PlatformHosts::currentRequestHost() ?: \App\Modules\Common\Support\PlatformHosts::primary() }}/</span>
                         <input type="text" name="alias" value="{{ old('alias', $prefillAlias ?? '') }}" pattern="[A-Za-z0-9_\-]+" placeholder="auto" class="flex-1 px-3 py-2.5 text-sm">
                     </div>
                     @error('alias') <p class="text-red-400 text-xs mt-1.5">{{ $message }}</p> @enderror
