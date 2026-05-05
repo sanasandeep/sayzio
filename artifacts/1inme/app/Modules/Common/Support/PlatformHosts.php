@@ -6,6 +6,63 @@ use App\Modules\User\Models\Domain;
 
 class PlatformHosts
 {
+    /** @var array<string,string>|null cached parent-process env */
+    private static ?array $parentEnvCache = null;
+
+    /**
+     * Read the parent process's env via /proc/<PPID>/environ. PHP's
+     * built-in dev server (`php artisan serve`) forks worker processes
+     * that do NOT inherit the master's environment, so vars exported
+     * by the Replit runtime (REPLIT_DOMAINS, REPLIT_DEV_DOMAIN) are
+     * invisible to env() / $_SERVER / $_ENV / getenv() inside requests.
+     * The master (parent) process still has them, so we read its environ
+     * file directly as a last resort. Cached per-request.
+     *
+     * @return array<string,string>
+     */
+    private static function parentEnv(): array
+    {
+        if (self::$parentEnvCache !== null) return self::$parentEnvCache;
+        $env = [];
+        try {
+            $ppid = function_exists('posix_getppid') ? posix_getppid() : null;
+            if ($ppid && is_readable("/proc/{$ppid}/environ")) {
+                $raw = @file_get_contents("/proc/{$ppid}/environ");
+                if (is_string($raw) && $raw !== '') {
+                    foreach (explode("\0", $raw) as $line) {
+                        if ($line === '' || !str_contains($line, '=')) continue;
+                        [$k, $v] = explode('=', $line, 2);
+                        $env[$k] = $v;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            // ignore — fallback returns empty array
+        }
+        return self::$parentEnvCache = $env;
+    }
+
+    /**
+     * Robust env reader. Tries Laravel's env() first (which reads .env
+     * via the Dotenv repository), then $_SERVER / $_ENV / getenv() for
+     * normally-inherited process vars, and finally falls back to the
+     * parent process's /proc/<PPID>/environ — required because the
+     * `php artisan serve` worker processes do not inherit env vars
+     * from their master.
+     */
+    private static function readEnv(string $key, string $default = ''): string
+    {
+        $val = env($key);
+        if ($val !== null && $val !== '') return (string) $val;
+        if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return (string) $_SERVER[$key];
+        if (isset($_ENV[$key]) && $_ENV[$key] !== '') return (string) $_ENV[$key];
+        $g = getenv($key);
+        if ($g !== false && $g !== '') return (string) $g;
+        $parent = self::parentEnv();
+        if (isset($parent[$key]) && $parent[$key] !== '') return $parent[$key];
+        return $default;
+    }
+
     /**
      * Normalise a host for comparison: lowercase, strip port, trim.
      * Returns null when there's nothing usable.
@@ -34,10 +91,10 @@ class PlatformHosts
         $appHost = self::normalize(parse_url((string) config('app.url'), PHP_URL_HOST) ?: null);
         if ($appHost) $hosts[] = $appHost;
 
-        $devDomain = self::normalize(env('REPLIT_DEV_DOMAIN'));
+        $devDomain = self::normalize(self::readEnv('REPLIT_DEV_DOMAIN'));
         if ($devDomain) $hosts[] = $devDomain;
 
-        $deployedDomains = (string) env('REPLIT_DOMAINS', '');
+        $deployedDomains = self::readEnv('REPLIT_DOMAINS', '');
         if ($deployedDomains !== '') {
             foreach (explode(',', $deployedDomains) as $d) {
                 $n = self::normalize($d);
@@ -82,7 +139,7 @@ class PlatformHosts
      */
     public static function primary(): string
     {
-        $deployed = (string) env('REPLIT_DOMAINS', '');
+        $deployed = self::readEnv('REPLIT_DOMAINS', '');
         if ($deployed !== '') {
             foreach (explode(',', $deployed) as $d) {
                 $n = self::normalize($d);
@@ -90,7 +147,7 @@ class PlatformHosts
             }
         }
 
-        $dev = self::normalize(env('REPLIT_DEV_DOMAIN'));
+        $dev = self::normalize(self::readEnv('REPLIT_DEV_DOMAIN'));
         if ($dev && !self::isLoopback($dev)) return $dev;
 
         $app = self::normalize(parse_url((string) config('app.url'), PHP_URL_HOST) ?: null);
