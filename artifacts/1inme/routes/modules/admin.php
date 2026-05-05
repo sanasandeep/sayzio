@@ -506,6 +506,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{user}/impersonate', [UserManagementController::class, 'impersonate'])->middleware(CheckPermission::class . ':users.impersonate')->name('impersonate');
             Route::post('stop-impersonation', [UserManagementController::class, 'stopImpersonation'])->name('stop-impersonation');
             Route::post('{user}/wallet/adjust', [UserManagementController::class, 'adjustWallet'])->middleware(CheckPermission::class . ':users.edit')->name('wallet.adjust');
+            Route::get ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'edit'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.edit');
+            Route::put ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.update');
         });
     });
 });

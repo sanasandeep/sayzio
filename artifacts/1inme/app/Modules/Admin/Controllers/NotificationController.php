@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Models\Role;
 use App\Modules\Common\Models\NotificationBroadcast;
 use App\Modules\Common\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -16,9 +17,13 @@ class NotificationController extends Controller
     {
         $broadcasts = NotificationBroadcast::orderByDesc('id')->paginate(20);
         $plans      = Plan::orderBy('sort_order')->get(['id', 'slug', 'name']);
+        $roles      = Role::query()
+            ->where('guard', 'web')
+            ->orderBy('name')
+            ->get(['id', 'slug', 'name']);
         $catalog    = NotificationService::catalog();
 
-        return view('admin.notifications.index', compact('broadcasts', 'plans', 'catalog'));
+        return view('admin.notifications.index', compact('broadcasts', 'plans', 'roles', 'catalog'));
     }
 
     public function send(Request $request, NotificationService $svc)

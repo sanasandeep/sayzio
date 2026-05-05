@@ -82,13 +82,13 @@ class AccountMergeService
         if ($primary->id === $secondary->id) {
             throw new \InvalidArgumentException('Cannot merge an account into itself.');
         }
-        // Defence in depth: refuse for the super-admin role and for any
-        // future role that contains "admin" (e.g. an "admin" or
-        // "billing_admin" role added later). Merging an admin account
-        // can elevate a regular user to admin via the data move and is
-        // explicitly out of scope for this user-initiated flow.
+        // Defence in depth: refuse for any user holding any role on the
+        // user pool (which is what the user-side roles & permissions
+        // system reserves for elevated accounts). Merging an admin
+        // account can elevate a regular user to admin via the data move
+        // and is explicitly out of scope for this user-initiated flow.
         foreach ([$primary, $secondary] as $u) {
-            if ($u->isSuperAdmin() || (is_string($u->role) && str_contains(strtolower($u->role), 'admin'))) {
+            if ($u->roles()->exists()) {
                 throw new \RuntimeException('Admin accounts cannot be merged.');
             }
         }

@@ -287,11 +287,20 @@ class AuthController extends Controller
                 'name' => 'Demo User',
                 'email' => 'demo@1inme.com',
                 'password' => Hash::make('password'),
-                'role' => 'super_admin',
                 'plan_id' => $freePlan?->id,
                 'status' => 'active',
                 'email_verified_at' => now(),
             ]);
+        }
+
+        // Demo accounts get the user-admin role so the platform-admin
+        // sidebar items are reachable end-to-end during demos.
+        $userAdminRoleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        if ($userAdminRoleId) {
+            $user->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            $user->flushPermissionCache();
         }
 
         Auth::login($user);

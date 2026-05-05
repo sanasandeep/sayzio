@@ -79,9 +79,10 @@ class UploadPolicy
         $extensions = array_values(array_unique(array_map('strtolower', $base['extensions'] ?? [])));
         $multiple   = (bool) ($base['multiple'] ?? false);
 
-        // Super admins get an effectively unlimited upload policy: 10 GB cap
-        // (well above any reverse-proxy upload limit) and no extension filter.
-        if ($user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+        // Holders of `user.files.access_any` get an effectively unlimited
+        // upload policy: 10 GB cap (well above any reverse-proxy upload
+        // limit) and no extension filter.
+        if ($user && method_exists($user, 'hasPermission') && $user->hasPermission('user.files.access_any')) {
             return [
                 'key'        => $key,
                 'label'      => $base['label'] ?? $key,

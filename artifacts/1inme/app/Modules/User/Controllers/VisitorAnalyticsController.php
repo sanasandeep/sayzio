@@ -15,7 +15,7 @@ class VisitorAnalyticsController extends Controller
 {
     public function index(Request $request, Link $link)
     {
-        abort_unless($link->user_id === auth()->id() || auth()->user()->isSuperAdmin(), 403);
+        abort_unless($link->user_id === auth()->id() || auth()->user()->hasPermission('user.analytics.view_any'), 403);
 
         $period = (int) $request->query('days', 30);
         $since = now()->subDays($period);
@@ -162,7 +162,7 @@ class VisitorAnalyticsController extends Controller
 
     public function nfcHistory(Request $request, Link $link)
     {
-        abort_unless($link->user_id === auth()->id() || auth()->user()->isSuperAdmin(), 403);
+        abort_unless($link->user_id === auth()->id() || auth()->user()->hasPermission('user.analytics.view_any'), 403);
 
         $writes = NfcWrite::where('link_id', $link->id)
             ->orderByDesc('id')

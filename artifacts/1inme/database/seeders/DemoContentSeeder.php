@@ -40,13 +40,19 @@ class DemoContentSeeder extends Seeder
             [
                 'name'     => 'Demo User',
                 'password' => Hash::make('password'),
-                'role'     => 'super_admin',
             ]
         );
 
-        if (($user->role ?? null) !== 'super_admin') {
-            $user->forceFill(['role' => 'super_admin'])->save();
+        // Make the demo account a user-admin so the demo experience
+        // shows the platform-administration sidebar items end-to-end.
+        $userAdminRoleId = DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        if ($userAdminRoleId) {
+            $user->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            $user->flushPermissionCache();
         }
+
         if (! $user->is_demo) {
             $user->forceFill(['is_demo' => true])->save();
         }

@@ -225,9 +225,15 @@ class BackfillImageReoptimizationTest extends TestCase
             'password'          => Hash::make('x'),
             'status'            => 'active',
             'handle'            => 'h' . Str::random(6),
-            'role'              => 'super_admin',
             'email_verified_at' => now(),
         ]);
+        $userAdminRoleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        if ($userAdminRoleId) {
+            $u->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            $u->flushPermissionCache();
+        }
         return $u;
     }
 

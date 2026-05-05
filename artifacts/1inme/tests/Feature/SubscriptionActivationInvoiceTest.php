@@ -97,7 +97,7 @@ class SubscriptionActivationInvoiceTest extends TestCase
         $this->assertSame(0, Invoice::where('user_id', $user->id)->count());
     }
 
-    public function test_activate_endpoint_allows_super_admin_and_creates_invoice(): void
+    public function test_activate_endpoint_allows_user_admin_and_creates_invoice(): void
     {
         $plan = Plan::create([
             'name' => 'Pro', 'slug' => 'pro-' . Str::random(4), 'description' => 'Pro',
@@ -112,7 +112,13 @@ class SubscriptionActivationInvoiceTest extends TestCase
         ]);
 
         $admin = $this->makeUser();
-        $admin->forceFill(['role' => 'super_admin'])->save();
+        $userAdminRoleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        if ($userAdminRoleId) {
+            $admin->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            $admin->flushPermissionCache();
+        }
 
         $response = $this->actingAs($admin)->post('/user/upgrade/activate', [
             'user_id'     => $buyer->id,

@@ -62,7 +62,7 @@ class VaultClient extends Model
     {
         if ($this->visibility !== 'private') return true;
         if ((int) $workspace->owner_user_id === (int) $user->id) return true;
-        if ($user->isSuperAdmin()) return true;
+        if ($user->hasPermission('user.vault.access_any')) return true;
         return (int) $this->created_by_user_id === (int) $user->id;
     }
 }

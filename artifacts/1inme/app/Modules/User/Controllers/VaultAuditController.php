@@ -12,7 +12,7 @@ class VaultAuditController extends Controller
     {
         $user = $request->user();
         $ws = app('current_workspace');
-        $isAdmin = $user->isSuperAdmin()
+        $isAdmin = $user->hasPermission('user.vault.access_any')
             || (int) $ws->owner_user_id === (int) $user->id
             || $user->canInWorkspace($ws, 'vault.delete');
 

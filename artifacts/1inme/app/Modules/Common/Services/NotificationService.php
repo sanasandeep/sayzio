@@ -335,7 +335,16 @@ class NotificationService
                 break;
             case 'role':
                 if (!$value) return collect();
-                $q->where('role', $value);
+                // `role` targets a user-pool role slug from the
+                // `roles` table joined via the `user_roles` pivot.
+                $q->whereExists(function ($sub) use ($value) {
+                    $sub->select(DB::raw(1))
+                        ->from('user_roles as ur')
+                        ->join('roles as r', 'r.id', '=', 'ur.role_id')
+                        ->whereColumn('ur.user_id', 'users.id')
+                        ->where('r.guard', 'web')
+                        ->where('r.slug', $value);
+                });
                 break;
             case 'country':
                 if (!$value) return collect();

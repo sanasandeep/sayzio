@@ -63,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.owner'   => \App\Modules\User\Middleware\RequireWorkspaceOwner::class,
             'workspace.2fa'     => \App\Modules\User\Middleware\EnsureTwoFactorPolicy::class,
             'portal.session'    => \App\Modules\User\Middleware\ResolvePortalSession::class,
+            'user.can'          => \App\Modules\User\Middleware\UserPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

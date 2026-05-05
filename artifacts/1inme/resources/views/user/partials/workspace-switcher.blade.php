@@ -77,7 +77,7 @@
 
         @php
             $isOwnerOrAdmin = (int) $currentWs->owner_user_id === auth()->id()
-                || (auth()->user()->isSuperAdmin())
+                || (auth()->user()->hasPermission('user.workspaces.access_any'))
                 || (optional(auth()->user()->membershipFor($currentWs))->role === 'admin');
         @endphp
         @if($isOwnerOrAdmin)

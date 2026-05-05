@@ -36,13 +36,13 @@ class WorkspaceAuditController extends Controller
             abort(403);
         }
 
-        $isOwner      = (int) $ws->owner_user_id === (int) $user->id;
-        $isSuperAdmin = $user->isSuperAdmin();
-        $isWsAdmin    = optional($user->membershipFor($ws))->role === 'admin';
+        $isOwner       = (int) $ws->owner_user_id === (int) $user->id;
+        $isPlatformAny = $user->hasPermission('user.workspaces.access_any');
+        $isWsAdmin     = optional($user->membershipFor($ws))->role === 'admin';
 
         $allowed = $ownerOnly
-            ? ($isOwner || $isSuperAdmin)
-            : ($isOwner || $isSuperAdmin || $isWsAdmin);
+            ? ($isOwner || $isPlatformAny)
+            : ($isOwner || $isPlatformAny || $isWsAdmin);
 
         abort_unless(
             $allowed,
@@ -172,7 +172,7 @@ class WorkspaceAuditController extends Controller
         $ws = $event->workspace;
         abort_unless($ws, 404, 'Workspace not found.');
 
-        $allowed = $user->isSuperAdmin()
+        $allowed = $user->hasPermission('user.workspaces.access_any')
             || (int) $ws->owner_user_id === (int) $user->id
             || (optional($user->membershipFor($ws))->role === 'admin');
         abort_unless($allowed, 403, 'You are no longer an owner or admin of this workspace.');

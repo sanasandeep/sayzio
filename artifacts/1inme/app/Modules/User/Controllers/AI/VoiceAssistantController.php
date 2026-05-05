@@ -111,8 +111,11 @@ class VoiceAssistantController extends Controller
 
     protected function isAdmin($user): bool
     {
-        return (bool) ($user->is_admin ?? false)
-            || (string) ($user->role ?? '') === 'admin'
-            || (string) ($user->role ?? '') === 'super_admin';
+        if (!$user) return false;
+        if (!empty($user->is_admin)) return true;
+        if (method_exists($user, 'hasPermission') && $user->hasPermission('user.platform.admin')) {
+            return true;
+        }
+        return false;
     }
 }

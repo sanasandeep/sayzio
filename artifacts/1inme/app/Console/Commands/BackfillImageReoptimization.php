@@ -83,7 +83,8 @@ class BackfillImageReoptimization extends Command
             // one alert per two consecutive bad runs by default.
             'cooldown_hours' => 48,
             // Optional explicit recipients; comma/space/semicolon separated.
-            // When empty, every super_admin with a verified email is mailed.
+            // When empty, every user holding `user.ops_alerts.receive`
+            // with a verified email is mailed.
             'emails'         => '',
             // Set by an admin via the AppSetting store right before they
             // opt a brand-new context into the upload-time pipeline (or
@@ -379,8 +380,9 @@ class BackfillImageReoptimization extends Command
      * should be a no-op. So if a run shrinks more than the configured
      * threshold of files, that's a signal the upload-time `compress_image`
      * pipeline regressed (or a new image surface was added without
-     * opting in). Notify super_admins (in-app + email) and include the
-     * per-context breakdown so the offending upload path is obvious.
+     * opting in). Notify operators with `user.ops_alerts.receive`
+     * (in-app + email) and include the per-context breakdown so the
+     * offending upload path is obvious.
      *
      * Suppressed by, in order:
      *   - the `--no-alert` CLI flag (used for the expected one-off
@@ -463,7 +465,7 @@ class BackfillImageReoptimization extends Command
                  . "Suspect upload paths: {$contextList}.";
         $url     = route('admin.dashboard');
 
-        $admins = User::query()->where('role', 'super_admin')->get();
+        $admins = User::query()->withPermission('user.ops_alerts.receive')->get();
 
         $inAppDelivered = 0;
         foreach ($admins as $u) {
@@ -490,8 +492,9 @@ class BackfillImageReoptimization extends Command
         }
 
         // Email fan-out: explicit list if the admin configured one,
-        // otherwise every super_admin with a verified email. Re-validate
-        // each address defensively in case the setting was hand-edited.
+        // otherwise every operator with `user.ops_alerts.receive` and
+        // a verified email. Re-validate each address defensively in
+        // case the setting was hand-edited.
         $explicit = [];
         foreach (preg_split('/[\s,;]+/', (string) ($cfg['emails'] ?? '')) ?: [] as $p) {
             $p = strtolower(trim((string) $p));

@@ -134,8 +134,15 @@ class CheckoutFlowTest extends TestCase
 
         $admin = User::create([
             'name' => 'Ops', 'email' => 'ops'.Str::random(5).'@e.com',
-            'password' => bcrypt('secret'), 'role' => 'super_admin',
+            'password' => bcrypt('secret'),
         ]);
+        $userAdminRoleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        if ($userAdminRoleId) {
+            $admin->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            $admin->flushPermissionCache();
+        }
 
         // The admin approval queue is under admin.* routes whose controller
         // middleware expects the admin guard; we invoke the controller

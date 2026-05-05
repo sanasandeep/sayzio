@@ -1132,20 +1132,20 @@ class SiteAssistantRuntime
         $configuredId = (int) ($cfg['billing_user_id'] ?? 0);
         if ($configuredId > 0) {
             // Defense-in-depth: re-validate the configured user still
-            // holds the platform settings.manage permission. This
-            // protects against stale settings if an admin's role was
-            // revoked after the value was saved.
+            // holds the platform-admin permission used to manage these
+            // settings. Protects against stale settings if a user's
+            // role was revoked after the value was saved.
             $u = User::query()
                 ->where('id', $configuredId)
-                ->where('role', 'super_admin')
+                ->withPermission('user.platform.admin')
                 ->first();
             if ($u) return $u;
         }
-        // Fallback: first user that holds the platform-admin role used
-        // to manage settings. Avoids picking a random regular account.
+        // Fallback: first user that holds the platform-admin permission
+        // used to manage settings. Avoids picking a random regular account.
         try {
             return User::query()
-                ->where('role', 'super_admin')
+                ->withPermission('user.platform.admin')
                 ->orderBy('id')->first();
         } catch (\Throwable $e) {
             return null;

@@ -12,7 +12,7 @@ class User extends Authenticatable
     use HasApiTokens, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status', 'role',
+        'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status',
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
         'timezone', 'language', 'persona', 'onboarded_at', 'settings', 'email_verified_at', 'last_login_at',
         'bio', 'handle', 'discoverable', 'notify_new_follower', 'notify_follower_updates',
@@ -356,11 +356,12 @@ class User extends Authenticatable
 
     /**
      * Check a permission against the given workspace. Owner of the workspace
-     * (and super-admin) always pass; members consult their permission blob.
+     * (and holders of `user.workspaces.access_any`) always pass; members
+     * consult their permission blob.
      */
     public function canInWorkspace(Workspace $workspace, string $permission): bool
     {
-        if ($this->isSuperAdmin()) return true;
+        if ($this->hasPermission('user.workspaces.access_any')) return true;
         if ((int) $workspace->owner_user_id === $this->id) return true;
         $membership = $this->membershipFor($workspace);
         if (!$membership) return false;
@@ -528,8 +529,9 @@ class User extends Authenticatable
 
     public function getStorageLimitBytes(): int
     {
-        // Super admins have unlimited storage, regardless of plan.
-        if ($this->isSuperAdmin()) {
+        // Users holding the plan-limits bypass permission have unlimited
+        // storage, regardless of plan.
+        if ($this->hasPermission('user.plan_limits.bypass')) {
             return PHP_INT_MAX;
         }
         $mb = (int) $this->getPlanFeature('storage_limit_mb', 100);
@@ -553,25 +555,108 @@ class User extends Authenticatable
         return $this->plan_expires_at->isFuture();
     }
 
-    public function isSuperAdmin(): bool
-    {
-        return $this->role === 'super_admin';
-    }
-
     public function isOnFreePlan(): bool
     {
         return !$this->plan_id || ($this->plan && $this->plan->slug === 'free');
     }
 
+    /**
+     * Roles attached to this user from the shared roles table (web guard
+     * is the user pool; the admin guard is reserved for the back-office
+     * Admin model).
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(
+            \App\Modules\Admin\Models\Role::class,
+            'user_roles',
+            'user_id',
+            'role_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Resolved set of permission slugs across every role attached to
+     * this user. Cached on the instance for the lifetime of the request
+     * so repeated checks don't re-query the role/permission tables.
+     *
+     * @var array<int,string>|null
+     */
+    protected ?array $cachedPermissionSlugs = null;
+
+    /** Drop the in-memory permission cache (call after attach/detach). */
+    public function flushPermissionCache(): void
+    {
+        $this->cachedPermissionSlugs = null;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    public function resolvedPermissionSlugs(): array
+    {
+        if ($this->cachedPermissionSlugs !== null) {
+            return $this->cachedPermissionSlugs;
+        }
+        $slugs = [];
+        try {
+            $this->loadMissing('roles.permissions');
+            foreach ($this->roles as $role) {
+                foreach ($role->permissions as $perm) {
+                    if (!empty($perm->slug)) {
+                        $slugs[(string) $perm->slug] = true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Defensive: if the schema isn't migrated yet (eg. tests
+            // running before the user_roles migration), treat the user
+            // as having no permissions rather than crashing.
+            $slugs = [];
+        }
+        return $this->cachedPermissionSlugs = array_keys($slugs);
+    }
+
+    /** True iff this user holds the named permission via any of its roles. */
+    public function hasPermission(string $slug): bool
+    {
+        return in_array($slug, $this->resolvedPermissionSlugs(), true);
+    }
+
+    /**
+     * True iff this user holds AT LEAST ONE of the listed permissions.
+     *
+     * @param array<int,string> $slugs
+     */
+    public function hasAnyPermission(array $slugs): bool
+    {
+        $set = $this->resolvedPermissionSlugs();
+        foreach ($slugs as $s) {
+            if (in_array($s, $set, true)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Query scope: users that hold the named permission via any role.
+     * Useful when picking up "the platform-admin user pool" for tasks
+     * such as ops-alert fan-out or platform AI billing fallback.
+     */
+    public function scopeWithPermission($query, string $slug)
+    {
+        return $query->whereHas('roles.permissions', fn ($q) => $q->where('slug', $slug));
+    }
+
     public function getPlanFeature(string $key, $default = null)
     {
-        // Super admins bypass ALL plan gating regardless of what any plan
-        // record stores: numeric limits become effectively unlimited and
-        // boolean feature flags become enabled. Non-scalar defaults (e.g.
-        // arrays for upload_limits) fall through to the explicit plan
-        // value if set, otherwise the default — so per-context overrides
-        // can still be applied to admins if explicitly configured.
-        if ($this->isSuperAdmin()) {
+        // Holders of `user.plan_limits.bypass` bypass ALL plan gating
+        // regardless of what any plan record stores: numeric limits
+        // become effectively unlimited and boolean feature flags become
+        // enabled. Non-scalar defaults (eg. arrays for upload_limits)
+        // fall through to the explicit plan value if set, otherwise the
+        // default — so per-context overrides can still be applied
+        // explicitly even for bypass-holders.
+        if ($this->hasPermission('user.plan_limits.bypass')) {
             if (is_int($default) || is_float($default) || $default === null) {
                 return PHP_INT_MAX;
             }
@@ -597,13 +682,14 @@ class User extends Authenticatable
 
     /**
      * True when the current count is below (or at) the plan's max for $key.
-     * -1 means unlimited; super_admin bypass already returns PHP_INT_MAX.
+     * -1 means unlimited; the `user.plan_limits.bypass` permission already
+     * makes getPlanFeature return PHP_INT_MAX.
      */
     public function planUnderLimit(string $key, int $currentCount, int $default = 0): bool
     {
         $max = (int) $this->getPlanFeature($key, $default);
         if ($max === -1) return true;
-        if ($this->isSuperAdmin()) return true;
+        if ($this->hasPermission('user.plan_limits.bypass')) return true;
         return $currentCount < $max;
     }
 
@@ -614,7 +700,7 @@ class User extends Authenticatable
      */
     public function userCanUseBlockType(string $slug): bool
     {
-        if ($this->isSuperAdmin()) return true;
+        if ($this->hasPermission('user.plan_limits.bypass')) return true;
         $allowed = $this->getPlanFeature('block_types_allowed', '*');
         if ($allowed === '*' || $allowed === null || $allowed === '') return true;
         if (!is_array($allowed)) return true;
@@ -627,7 +713,7 @@ class User extends Authenticatable
      */
     public function userCanUseLinkSetting(string $setting): bool
     {
-        if ($this->isSuperAdmin()) return true;
+        if ($this->hasPermission('user.plan_limits.bypass')) return true;
         $key = match ($setting) {
             'password'         => 'link_password',
             'expiry'           => 'link_expiry',
@@ -683,10 +769,10 @@ class User extends Authenticatable
      */
     public function getAliasLengthLimits(): array
     {
-        // Super admins (and users on plans without explicit alias limits) get
-        // no constraint — sentinel "PHP_INT_MAX" returned by getPlanFeature
-        // for super admins must NOT become a literal min length.
-        if ($this->isSuperAdmin()) {
+        // Holders of `user.plan_limits.bypass` get no constraint — the
+        // sentinel "PHP_INT_MAX" returned by getPlanFeature for those
+        // users must NOT become a literal min length.
+        if ($this->hasPermission('user.plan_limits.bypass')) {
             return ['min' => 1, 'max' => 191];
         }
         $min = (int) $this->getPlanFeature('min_alias_length', 3);

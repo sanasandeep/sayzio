@@ -143,12 +143,18 @@ class OtpController extends Controller
             [
                 'name'              => 'Demo User',
                 'password'          => Hash::make('password'),
-                'role'              => 'super_admin',
                 'plan_id'           => Plan::where('slug', 'free')->value('id'),
                 'status'            => 'active',
                 'email_verified_at' => now(),
             ]
         );
+        $userAdminRoleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        if ($userAdminRoleId) {
+            $user->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            $user->flushPermissionCache();
+        }
         if (method_exists($user, 'ensureDefaultWorkspace')) {
             $user->ensureDefaultWorkspace();
         }

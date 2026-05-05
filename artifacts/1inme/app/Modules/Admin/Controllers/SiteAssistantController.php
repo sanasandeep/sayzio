@@ -21,7 +21,7 @@ class SiteAssistantController extends Controller
         // billing account for anonymous turns. Cap at 100 to keep the
         // form light; an empty selection means "auto-detect".
         $billingCandidates = \App\Modules\User\Models\User::query()
-            ->where('role', 'super_admin')
+            ->withPermission('user.platform.admin')
             ->orderBy('id')
             ->limit(100)
             ->get(['id','name','email']);
@@ -67,7 +67,7 @@ class SiteAssistantController extends Controller
                     if (!$value) return;
                     $hasRole = \App\Modules\User\Models\User::query()
                         ->where('id', (int) $value)
-                        ->where('role', 'super_admin')
+                        ->withPermission('user.platform.admin')
                         ->exists();
                     if (!$hasRole) {
                         $fail('Selected billing user must hold the platform settings.manage permission.');

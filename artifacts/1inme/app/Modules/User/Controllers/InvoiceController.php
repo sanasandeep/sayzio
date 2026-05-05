@@ -14,7 +14,13 @@ class InvoiceController extends Controller
     public function pdf(Invoice $invoice): Response
     {
         $user = Auth::user();
-        abort_unless($user && ($user->id === $invoice->user_id || method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()), 403);
+        abort_unless(
+            $user && (
+                $user->id === $invoice->user_id
+                || (method_exists($user, 'hasPermission') && $user->hasPermission('user.invoices.view_any'))
+            ),
+            403
+        );
 
         $pdf = InvoiceService::renderPdf($invoice);
         $filename = preg_replace('/[^A-Za-z0-9._-]/', '_', $invoice->number) . '.pdf';

@@ -41,7 +41,7 @@ class TeamController extends Controller
     protected function isOwnerOrAdmin(?User $user, ?Workspace $ws): bool
     {
         if (!$user || !$ws) return false;
-        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) return true;
+        if (method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any')) return true;
         if ((int) $ws->owner_user_id === (int) $user->id) return true;
         $m = $user->membershipFor($ws);
         return $m && $m->role === 'admin';

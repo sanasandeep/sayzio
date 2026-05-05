@@ -115,7 +115,7 @@ class CheckSiteAssistantCutoffs extends Command
         }
 
         $admins = User::query()
-            ->where('role', 'super_admin')
+            ->withPermission('user.ops_alerts.receive')
             ->get();
 
         $subject = "Site Assistant cut-off alert: {$abandonRate}% abandon rate (last 24h)";
@@ -220,7 +220,7 @@ class CheckSiteAssistantCutoffs extends Command
     private function dispatchRecovery(array $cfg, int $abandonRate, int $threshold, int $total, int $retried): void
     {
         $admins = User::query()
-            ->where('role', 'super_admin')
+            ->withPermission('user.ops_alerts.receive')
             ->get();
 
         $subject = "Site Assistant cut-off recovered: {$abandonRate}% abandon rate (last 24h)";

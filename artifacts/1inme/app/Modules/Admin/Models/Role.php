@@ -17,4 +17,9 @@ class Role extends Model
     {
         return $this->hasMany(Admin::class);
     }
+
+    public function users()
+    {
+        return $this->belongsToMany(\App\Modules\User\Models\User::class, 'user_roles');
+    }
 }

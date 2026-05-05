@@ -26,7 +26,7 @@ use App\Modules\User\Controllers\GoogleContactsAccountController;
 use App\Modules\User\Controllers\DialerController;
 use App\Modules\User\Controllers\VerificationController;
 use App\Modules\User\Middleware\CheckPlanLimit;
-use App\Modules\User\Middleware\SuperAdmin;
+use App\Modules\User\Controllers\UserAccessController;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
 
@@ -1360,12 +1360,24 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('methodology',          [\App\Modules\User\Controllers\CarbonController::class, 'methodology'])->name('methodology');
         });
 
-        Route::middleware(SuperAdmin::class)->group(function () {
+        Route::middleware('user.can:user.plans.manage')->group(function () {
             Route::resource('plans', PlanManagementController::class)->except(['show']);
+        });
+
+        Route::middleware('user.can:user.verifications.review')->group(function () {
             Route::get('verification-admin', [VerificationController::class, 'adminIndex'])->name('verification.admin');
             Route::get('verification-admin/{verificationRequest}', [VerificationController::class, 'adminReview'])->name('verification.admin.review');
             Route::post('verification-admin/{verificationRequest}/approve', [VerificationController::class, 'adminApprove'])->name('verification.admin.approve');
             Route::post('verification-admin/{verificationRequest}/reject', [VerificationController::class, 'adminReject'])->name('verification.admin.reject');
+        });
+
+        // Self-service "who has admin powers on the user side" page. Gated
+        // by the `user.roles.manage` permission so only operators that
+        // already hold the user-admin role (or anyone explicitly given
+        // user.roles.manage) can promote/demote others.
+        Route::middleware('user.can:user.roles.manage')->prefix('access')->name('access.')->group(function () {
+            Route::get ('users',                   [UserAccessController::class, 'index'])->name('users.index');
+            Route::post('users/{user}/roles',      [UserAccessController::class, 'update'])->whereNumber('user')->name('users.update');
         });
     });
 });

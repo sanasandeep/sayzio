@@ -307,9 +307,10 @@ class UserFileController extends Controller
             }
 
             // Enforce the same mime/extension allowlist as direct uploads.
-            // Skip for super admins (matches createFromUpload behavior).
-            $isSuperAdmin = method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
-            if (!$isSuperAdmin) {
+            // Skip for holders of `user.files.access_any` (matches the
+            // createFromUpload bypass behaviour).
+            $skipAllowlist = method_exists($user, 'hasPermission') && $user->hasPermission('user.files.access_any');
+            if (!$skipAllowlist) {
                 $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION) ?: '');
                 if (!in_array($mime, UserFile::getAllAllowedMimes(), true)) {
                     return response()->json(['success' => false, 'error' => 'File type not allowed.'], 422);

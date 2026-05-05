@@ -63,9 +63,9 @@ class LinkAliasController extends Controller
             return $this->respond($request, false, "'{$alias}' is a reserved name and cannot be used.", 422);
         }
 
-        // Admin-managed banned names list. Super admins bypass this check
-        // to mirror the existing super-admin bypass pattern elsewhere.
-        if (!($user->isSuperAdmin() ?? false) && \App\Modules\Admin\Services\BannedNameChecker::isBanned($alias)) {
+        // Admin-managed banned names list. Holders of
+        // `user.banned_names.bypass` skip this check.
+        if (!$user->hasPermission('user.banned_names.bypass') && \App\Modules\Admin\Services\BannedNameChecker::isBanned($alias)) {
             return $this->respond($request, false, "This name is reserved and can't be used.", 422);
         }
 

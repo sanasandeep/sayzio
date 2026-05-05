@@ -35,10 +35,20 @@ class AiMindIngestor
 
         // The owner's account is who pays for embeddings. The platform
         // mind has no owner; embeddings for the seeded default mind use
-        // the first admin we can find, falling back to skipping spend.
-        $payer = $mind->user_id
-            ? User::find($mind->user_id)
-            : User::where('role', 'super_admin')->orderBy('id')->first();
+        // the first user that holds `user.ai_minds.manage_platform`.
+        // If no such user exists yet (fresh install / pre-seed run),
+        // fall back to the oldest user on the platform so embeddings
+        // can still be charged to a real account instead of silently
+        // skipping spend.
+        if ($mind->user_id) {
+            $payer = User::find($mind->user_id);
+        } else {
+            $payer = User::query()
+                ->withPermission('user.ai_minds.manage_platform')
+                ->orderBy('id')
+                ->first()
+                ?? User::query()->orderBy('id')->first();
+        }
 
         $source->forceFill([
             'status' => AiMindSource::STATUS_PROCESSING,

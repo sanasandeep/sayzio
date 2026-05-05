@@ -64,7 +64,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | HMAC-SHA256 key used by POST /webhooks/billing/activate to verify
-    | payment-gateway signatures. When unset, only super_admin can invoke
+    | payment-gateway signatures. When unset, only holders of the
+    | `user.subscriptions.activate_manually` permission can invoke
     | the authenticated activation endpoint.
     |
     */

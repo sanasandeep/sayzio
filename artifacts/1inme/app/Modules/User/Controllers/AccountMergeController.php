@@ -80,7 +80,7 @@ class AccountMergeController extends Controller
         if (!$secondary || $secondary->id === $primary->id) {
             return redirect()->route('user.merge.start')->with('error', 'The other account could not be found.');
         }
-        if ($secondary->isSuperAdmin() || $primary->isSuperAdmin()) {
+        if ($secondary->roles()->exists() || $primary->roles()->exists()) {
             session()->forget('merge_secondary_id');
             return redirect()->route('user.merge.start')->with('error', 'Admin accounts cannot be merged.');
         }

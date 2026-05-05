@@ -40,7 +40,7 @@ class TeamController extends Controller
     {
         $user = $request->user();
         if (!$user) return false;
-        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) return true;
+        if (method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any')) return true;
         if ((int) $ws->owner_user_id === (int) $user->id) return true;
         $m = $user->membershipFor($ws);
         return $m && $m->role === 'admin' && !$m->isSuspended();
@@ -93,7 +93,7 @@ class TeamController extends Controller
 
         $approvalCfg = $ws->postApprovalConfig();
         $isOwner = (int) $ws->owner_user_id === (int) $request->user()->id
-                   || (method_exists($request->user(), 'isSuperAdmin') && $request->user()->isSuperAdmin());
+                   || (method_exists($request->user(), 'hasPermission') && $request->user()->hasPermission('user.workspaces.access_any'));
 
         // 2FA compliance: per-member status + policy snapshot. Shown in
         // a side panel on the team page so owners can spot stragglers.

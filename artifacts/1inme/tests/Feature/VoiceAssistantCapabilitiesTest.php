@@ -84,7 +84,13 @@ class VoiceAssistantCapabilitiesTest extends TestCase
 
     public function test_admin_only_tools_appear_for_admin_callers(): void
     {
-        $admin = $this->makeUser('adm', ['role' => 'admin']);
+        $admin = $this->makeUser('adm');
+        $userAdminRoleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        $this->assertNotNull($userAdminRoleId, 'user-admin role must be seeded for this test');
+        $admin->roles()->syncWithoutDetaching([$userAdminRoleId]);
+        $admin->flushPermissionCache();
 
         $resp = $this->actingAs($admin)->getJson(route('user.ai.voice.capabilities'));
 

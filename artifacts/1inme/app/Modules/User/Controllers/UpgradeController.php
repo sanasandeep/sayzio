@@ -135,7 +135,8 @@ class UpgradeController extends Controller
         // Authorization: this endpoint represents a verified payment-success
         // signal and must not be callable by ordinary users for their own
         // account (entitlement escalation). Accepted callers:
-        //   1. super_admin (manual grant / ops tool), OR
+        //   1. holder of `user.subscriptions.activate_manually` (manual
+        //      grant / ops tool), OR
         //   2. a signed gateway webhook carrying a valid HMAC of the
         //      (user_id|plan_id|cycle|gateway_ref) tuple, signed with
         //      config('billing.activation_secret').
@@ -151,8 +152,10 @@ class UpgradeController extends Controller
         ) : null;
         $hasValidSignature = $expected && !empty($data['signature'])
             && hash_equals($expected, (string) $data['signature']);
-        $isSuperAdmin = $actor && method_exists($actor, 'isSuperAdmin') && $actor->isSuperAdmin();
-        if (!$isSuperAdmin && !$hasValidSignature) {
+        $canActivateManually = $actor
+            && method_exists($actor, 'hasPermission')
+            && $actor->hasPermission('user.subscriptions.activate_manually');
+        if (!$canActivateManually && !$hasValidSignature) {
             if ($isWebhook) {
                 return response()->json(['error' => 'invalid signature'], 403);
             }

@@ -83,7 +83,7 @@
     @endunless
 
     {{-- Add source --}}
-    @if(!$isPlatform || auth()->user()->isSuperAdmin())
+    @if(!$isPlatform || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold">Add a source</h3>
@@ -188,7 +188,7 @@
                             </p>
                         </div>
                         <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded {{ $statusColor[$s->status] ?? 'bg-white/10 text-white/60' }}">{{ $s->status }}</span>
-                        @if(!$isPlatform || auth()->user()->isSuperAdmin())
+                        @if(!$isPlatform || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
                         <form method="POST" action="{{ route('user.minds.sources.refresh', [$mind, $s]) }}">@csrf
                             <button class="text-xs text-white/60 hover:text-white px-2 py-1" title="Re-ingest"><i class="fas fa-rotate"></i></button>
                         </form>

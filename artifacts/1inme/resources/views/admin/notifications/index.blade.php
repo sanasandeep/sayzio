@@ -56,8 +56,8 @@
 
                     <template x-if="kind === 'role'">
                         <select name="target_value" class="theme-input w-full">
-                            @foreach(['user', 'super_admin'] as $r)
-                                <option value="{{ $r }}" @selected(old('target_value') === $r)>{{ $r }}</option>
+                            @foreach($roles as $r)
+                                <option value="{{ $r->slug }}" @selected(old('target_value') === $r->slug)>{{ $r->name }}</option>
                             @endforeach
                         </select>
                     </template>

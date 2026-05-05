@@ -26,8 +26,8 @@ class WorkspaceSecurityController extends Controller
     {
         $ws = app('current_workspace');
         $user = $request->user();
-        $isSuper = $user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
-        abort_unless($isSuper || (int) $ws->owner_user_id === (int) $user->id,
+        $isPlatformAny = $user && method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any');
+        abort_unless($isPlatformAny || (int) $ws->owner_user_id === (int) $user->id,
             403, 'Only the workspace owner can change security settings.');
         return $ws;
     }

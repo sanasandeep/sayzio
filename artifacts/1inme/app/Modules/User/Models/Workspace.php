@@ -119,7 +119,7 @@ class Workspace extends Model
     public function userCanApprovePosts(?User $user): bool
     {
         if (!$user) return false;
-        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) return true;
+        if (method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any')) return true;
         if ((int) $this->owner_user_id === (int) $user->id) return true;
         if (!$this->postApprovalEnabled()) return false;
         $m = $user->membershipFor($this);

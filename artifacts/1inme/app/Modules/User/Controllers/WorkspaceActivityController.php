@@ -25,7 +25,7 @@ class WorkspaceActivityController extends Controller
         $user = $request->user();
         $isAdmin = false;
         if ($user) {
-            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            if (method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any')) {
                 $isAdmin = true;
             } elseif ((int) $ws->owner_user_id === (int) $user->id) {
                 $isAdmin = true;

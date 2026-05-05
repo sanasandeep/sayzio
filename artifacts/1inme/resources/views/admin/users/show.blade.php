@@ -34,6 +34,12 @@
                     </button>
                 </form>
             </div>
+            <div class="mt-3">
+                <a href="{{ route('admin.users.roles.edit', $user) }}"
+                   class="block w-full text-center px-4 py-2 bg-violet-500/10 text-violet-300 rounded-xl text-sm font-medium hover:bg-violet-500/20 transition">
+                    <i class="fas fa-user-shield mr-1"></i> Manage roles
+                </a>
+            </div>
         </div>
     </div>
 

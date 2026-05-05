@@ -421,11 +421,18 @@ class AccountMergeTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_admin_role_cannot_be_merged_even_if_not_super_admin(): void
+    public function test_users_holding_any_user_pool_role_cannot_be_merged(): void
     {
         $primary = $this->makeUser(['email' => 'p@example.com']);
-        // A non-super "admin" role should still be refused.
-        $admin   = $this->makeUser(['email' => 'a@example.com', 'role' => 'admin']);
+        // Any role attached on the user pool — even a custom one — must
+        // refuse the merge to avoid privilege escalation via data move.
+        $admin   = $this->makeUser(['email' => 'a@example.com']);
+        $roleId = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('slug', 'user-admin')->where('guard', 'web')
+            ->value('id');
+        $this->assertNotNull($roleId, 'user-admin role must be seeded for this test');
+        $admin->roles()->syncWithoutDetaching([$roleId]);
+        $admin->flushPermissionCache();
         $this->expectException(\RuntimeException::class);
         (new AccountMergeService())->merge($primary->fresh(), $admin->fresh(), 'primary');
     }

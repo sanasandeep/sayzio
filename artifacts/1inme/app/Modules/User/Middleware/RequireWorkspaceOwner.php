@@ -30,7 +30,7 @@ class RequireWorkspaceOwner
             abort(403, 'No active workspace.');
         }
 
-        if ($user->isSuperAdmin() || (int) $ws->owner_user_id === $user->id) {
+        if ($user->hasPermission('user.workspaces.access_any') || (int) $ws->owner_user_id === $user->id) {
             return $next($request);
         }
 

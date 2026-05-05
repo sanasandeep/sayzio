@@ -119,8 +119,9 @@ protected $fillable = [
         $uploadKey        = $options['upload_key'] ?? null;
         $policyExtensions = null;
 
-        // Super admins bypass the global mime/extension allowlist as well.
-        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+        // Holders of `user.files.access_any` bypass the global
+        // mime/extension allowlist as well.
+        if (method_exists($user, 'hasPermission') && $user->hasPermission('user.files.access_any')) {
             $enforceAllowlist = false;
         }
 

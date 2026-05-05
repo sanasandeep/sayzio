@@ -9,14 +9,14 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Validation rule rejecting values that match an entry in the admin-
- * managed banned-names list (case-insensitive). Mirrors the existing
- * super-admin bypass pattern: a signed-in super admin can still claim
- * any name regardless of the list, consistent with how plan limits
- * and storage caps are bypassed for them today.
+ * managed banned-names list (case-insensitive). Holders of the
+ * `user.banned_names.bypass` permission can still claim any name
+ * regardless of the list, mirroring how the plan-limit and storage
+ * caps are bypassed for them.
  */
 class NotBannedName implements ValidationRule
 {
-    public function __construct(private bool $bypassForSuperAdmin = true)
+    public function __construct(private bool $allowBypass = true)
     {
     }
 
@@ -26,9 +26,9 @@ class NotBannedName implements ValidationRule
         $str = (string) $value;
         if (trim($str) === '') return;
 
-        if ($this->bypassForSuperAdmin) {
+        if ($this->allowBypass) {
             $user = Auth::user();
-            if ($user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            if ($user && method_exists($user, 'hasPermission') && $user->hasPermission('user.banned_names.bypass')) {
                 return;
             }
         }

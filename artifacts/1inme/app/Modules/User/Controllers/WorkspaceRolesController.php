@@ -24,7 +24,7 @@ class WorkspaceRolesController extends Controller
         $ws = app('current_workspace');
         $user = $request->user();
         $isOwner = (int) $ws->owner_user_id === (int) $user->id
-            || (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin());
+            || (method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any'));
         $isAdmin = !$isOwner && optional($user->membershipFor($ws))->role === 'admin';
         abort_unless($isOwner || $isAdmin,
                      403, 'Only the workspace owner or an Admin can edit roles.');

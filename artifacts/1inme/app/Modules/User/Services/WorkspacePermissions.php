@@ -186,12 +186,15 @@ class WorkspacePermissions
         return null;
     }
 
-    /** True if the active user is the owner (or super-admin) of the active workspace. */
+    /**
+     * True if the active user is the owner of the active workspace, or
+     * holds the `user.workspaces.access_any` permission.
+     */
     public static function userIsOwner(): bool
     {
         $user = auth()->user();
         if (!$user) return false;
-        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) return true;
+        if (method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any')) return true;
         $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
         if (!$ws) return false;
         return (int) $ws->owner_user_id === (int) $user->id;
