@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Rsvp;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -13,39 +14,57 @@ class RsvpController extends Controller
 {
     public function index(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
         $rsvps = $link->rsvps()->orderByDesc('created_at')->paginate(50);
 
         $counts = [
-            'yes'   => $link->rsvps()->where('response', 'yes')->sum('plus_ones')
-                       + $link->rsvps()->where('response', 'yes')->count(),
+            'yes'   => $link->rsvps()->where('response', 'yes')->where('status', '!=', 'cancelled')
+                       ->sum(DB::raw('plus_ones + 1')),
             'maybe' => $link->rsvps()->where('response', 'maybe')->count(),
             'no'    => $link->rsvps()->where('response', 'no')->count(),
+            'waitlist' => $link->rsvps()->where('status', 'waitlist')->count(),
             'total' => $link->rsvps()->count(),
         ];
 
-        return view('user.links.rsvps', compact('link', 'rsvps', 'counts'));
+        $s = (array) ($link->settings ?? []);
+        $rsvpSettings = (array) ($s['rsvp_settings'] ?? []);
+
+        return view('user.links.rsvps', compact('link', 'rsvps', 'counts', 'rsvpSettings'));
     }
 
     public function export(Request $request, Link $link): StreamedResponse
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
         $filename = 'rsvps-' . $link->alias . '-' . now()->format('Ymd-His') . '.csv';
+        $s = (array) ($link->settings ?? []);
+        $questions = collect((array)($s['rsvp_settings']['questions'] ?? []))->pluck('label')->all();
 
-        return response()->streamDownload(function () use ($link) {
+        return response()->streamDownload(function () use ($link, $questions) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Name', 'Email', 'Phone', 'Response', 'Plus ones', 'Message', 'Source', 'Submitted at']);
-            $link->rsvps()->orderBy('created_at')->chunk(500, function ($rows) use ($out) {
+            $headers = ['Name', 'Email', 'Phone', 'Company', 'Role', 'Response', 'Status',
+                        'Plus ones', 'Occurrences', 'Message', 'Source', 'Submitted at'];
+            foreach ($questions as $q) $headers[] = 'Q: ' . $q;
+            fputcsv($out, $headers);
+
+            $link->rsvps()->orderBy('created_at')->chunk(500, function ($rows) use ($out, $questions) {
                 foreach ($rows as $r) {
-                    fputcsv($out, [
-                        $r->name, $r->email, $r->phone, $r->response,
-                        $r->plus_ones, $r->message, $r->source,
+                    $row = [
+                        $r->name, $r->email, $r->phone, $r->company, $r->role,
+                        $r->response, $r->status,
+                        $r->plus_ones,
+                        is_array($r->occurrences) ? implode('; ', $r->occurrences) : '',
+                        $r->message, $r->source,
                         $r->created_at?->toDateTimeString(),
-                    ]);
+                    ];
+                    foreach ($questions as $q) {
+                        $val = $r->answers[$q] ?? null;
+                        $row[] = is_array($val) ? implode(', ', $val) : (string) ($val ?? '');
+                    }
+                    fputcsv($out, $row);
                 }
             });
             fclose($out);
@@ -54,21 +73,30 @@ class RsvpController extends Controller
 
     public function destroy(Request $request, Link $link, Rsvp $rsvp)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($rsvp->link_id !== $link->id, 404);
         $rsvp->delete();
         return back()->with('success', 'RSVP removed.');
     }
 
     /**
-     * Erase every RSVP tied to a single guest (by email) across ALL
-     * Event Invite links owned by the current creator. Mirrors the
-     * poll-vote eraser for GDPR-style takedown requests. RSVPs only
-     * carry an email, so that's the matching identifier.
+     * Promote a waitlisted RSVP to confirmed. Owner-driven action that
+     * runs after a confirmed guest cancels and frees a seat.
      */
+    public function promote(Request $request, Link $link, Rsvp $rsvp)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($rsvp->link_id !== $link->id, 404);
+        if ($rsvp->status !== 'waitlist') {
+            return back()->with('error', 'That RSVP is not on the waitlist.');
+        }
+        $rsvp->update(['status' => 'confirmed']);
+        return back()->with('success', "Promoted {$rsvp->name} from the waitlist.");
+    }
+
     public function eraseVoter(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
         $data = $request->validate([
@@ -76,9 +104,8 @@ class RsvpController extends Controller
         ]);
 
         $needle = trim($data['identifier']);
-        $creatorId = $request->user()->id;
+        $creatorId = workspace_owner_id();
 
-        // Reach across every workspace owned by this creator.
         $ownedLinkIds = Link::query()->withoutGlobalScope('workspace')
             ->where('user_id', $creatorId)
             ->where('type', 'ics')

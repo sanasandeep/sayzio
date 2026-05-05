@@ -24,6 +24,18 @@
     </div>
     @endif
 
+    @php
+        $hasBrokenSync = $accounts->contains(function ($a) {
+            return $a->last_sync_status === 'error' || $a->last_sync_error;
+        });
+    @endphp
+    @if($hasBrokenSync)
+    <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.30); color: #f59e0b;">
+        <i class="fas fa-triangle-exclamation mr-1.5"></i>
+        One or more calendars are disconnected or returned an error on the last sync. Reconnect or hit "Sync" below to retry. Pushed event invites won't update until this is fixed.
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Connect a calendar --}}
         <div class="lg:col-span-1">
@@ -48,6 +60,25 @@
                     <i class="fas fa-arrow-right text-xs opacity-50"></i>
                 </a>
             </div>
+
+            {{-- Workspace-owner-only auto-sync default. --}}
+            @if($accounts->where('push_enabled', true)->isNotEmpty())
+                <div class="card-premium p-5 mt-5">
+                    <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);"><i class="fas fa-bolt mr-1 text-violet-400"></i> Auto-sync new events</h3>
+                    <p class="text-xs mb-3" style="color: var(--text-muted);">Pick a default calendar — every new Event Invite link you create will automatically save to it in "Keep in sync" mode.</p>
+                    <form method="POST" action="{{ route('user.calendar.auto-sync') }}">
+                        @csrf
+                        <select name="account_id" class="w-full px-3 py-2.5 rounded-xl text-sm" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);" onchange="this.form.submit()">
+                            <option value="">— Off (don't push by default) —</option>
+                            @foreach($accounts->where('push_enabled', true) as $a)
+                                <option value="{{ $a->id }}" {{ (int)($autoSyncAccountId ?? 0) === (int)$a->id ? 'selected' : '' }}>
+                                    {{ $a->providerLabel() }} · {{ $a->display_name ?: $a->external_account_id }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+            @endif
         </div>
 
         {{-- Connected accounts --}}
@@ -83,9 +114,18 @@
                                     <td class="py-3">
                                         <div class="font-semibold" style="color: var(--text-primary);">{{ $a->display_name ?: $a->external_account_id }}</div>
                                         <div class="text-xs" style="color: var(--text-muted);">{{ $a->external_account_id }}</div>
+                                        @if((int)($autoSyncAccountId ?? 0) === (int)$a->id)
+                                            <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(124,58,237,.18);color:#a78bfa">Default sync target</span>
+                                        @endif
                                     </td>
                                     <td class="py-3 text-xs" style="color: var(--text-muted);">
                                         {{ $a->last_synced_at ? $a->last_synced_at->diffForHumans() : 'Never' }}
+                                        @if($a->last_sync_status === 'error' || $a->last_sync_error)
+                                            <div class="text-[11px] mt-0.5" style="color:#f59e0b">
+                                                <i class="fas fa-triangle-exclamation mr-0.5"></i>
+                                                {{ \Illuminate\Support\Str::limit($a->last_sync_error ?: 'Last sync failed', 60) }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="py-3">
                                         <form method="POST" action="{{ route('user.calendar.update', $a) }}" class="flex flex-col gap-1.5">

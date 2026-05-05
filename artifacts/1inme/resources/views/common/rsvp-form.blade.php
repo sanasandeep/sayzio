@@ -26,10 +26,10 @@
     <div class="rsvp-header">
         <div class="small opacity-75 mb-1"><i class="fas fa-calendar-alt me-1"></i> You're invited to</div>
         <h1 class="h3 fw-bold mb-2">{{ $link->title }}</h1>
-        @if($link->icsData)
+        @if($link->icsData && $link->icsData->start_date)
             <div class="small">
                 <i class="far fa-clock me-1"></i>
-                {{ \Carbon\Carbon::parse($link->icsData->starts_at)->format('D, M j Y · g:i A') }}
+                {{ $link->icsData->start_date->setTimezone(new \DateTimeZone($link->icsData->timezone ?: 'UTC'))->format('D, M j Y · g:i A') }}
                 @if($link->icsData->location) · <i class="fas fa-map-marker-alt ms-1 me-1"></i>{{ $link->icsData->location }}@endif
             </div>
         @endif

@@ -140,6 +140,16 @@ Schedule::command('subscriptions:renew-due')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: email confirmed RSVP guests N hours before each event
+// occurrence. The window is configured per event in
+// `link.settings.rsvp_settings.reminder_hours_before` (default 24h, set
+// to 0 to disable). Idempotent — each (rsvp_id, occurrence) pair is
+// recorded in the cache to suppress duplicate sends.
+Schedule::command('events:send-rsvp-reminders')
+    ->hourlyAt(15)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 5 minutes: probe Link Insurance-enabled destinations and run
 // failover/restore. The command itself filters by each link's chosen
 // cadence (5/15/30/60/240 min) so a 30-min cadence link only actually

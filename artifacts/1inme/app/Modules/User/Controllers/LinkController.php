@@ -2230,6 +2230,27 @@ class LinkController extends Controller
         $linkLabel = $link->title ?: ($link->alias ?: $link->long_url ?: ('Link #'.$link->id));
         $alias     = $link->alias;
 
+        // If this is a "Keep in sync" event invite that was pushed to a
+        // connected calendar, remove the upstream copy too so the guest's
+        // calendar reflects the cancellation.
+        try {
+            $s = (array) ($link->settings ?? []);
+            if ($link->type === 'ics'
+                && ($s['calendar_sync_mode'] ?? 'off') === 'keep_in_sync'
+                && !empty($s['push_calendar_account_id'])) {
+                $account = \App\Modules\User\Models\CalendarAccount::where('id', $s['push_calendar_account_id'])
+                    ->where('user_id', $link->user_id)->first();
+                if ($account) {
+                    app(\App\Modules\User\Services\Calendar\CalendarSyncService::class)
+                        ->deletePushedLink($account, $link);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Calendar push-delete on link delete failed', [
+                'link' => $linkId, 'err' => $e->getMessage(),
+            ]);
+        }
+
         $link->delete();
 
         \App\Modules\User\Services\WorkspaceActivityRecorder::record(

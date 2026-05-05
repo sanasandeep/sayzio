@@ -45,6 +45,8 @@ class User extends Authenticatable
         'mute_words', 'watermark_settings',
         'country_block_list', 'country_allow_list',
         'dmca_email', 'creator_digest_last_sent_at',
+        // Default Calendar account that "Keep in sync" event invites push to (Task #1233).
+        'auto_sync_calendar_account_id',
     ];
 
     protected $hidden = ['password', 'remember_token'];

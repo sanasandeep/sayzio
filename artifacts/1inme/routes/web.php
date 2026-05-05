@@ -381,7 +381,7 @@ Route::get('/sustainability/badge/{link}', [\App\Modules\Common\Controllers\Carb
     ->whereNumber('link')->middleware('throttle:60,1')->name('public.carbon.badge');
 
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout).*$');
-Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout).*$');
+Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout)[^/]+$');
 // ── Conversational Biolink visitor endpoints ─────────────────────
 // Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.
 Route::post('/sl/{alias}/view',            [\App\Modules\Common\Controllers\SlideEventController::class, 'view'])
@@ -415,8 +415,11 @@ Route::post('/biolink/{link}/appeal', [\App\Modules\Common\Controllers\BiolinkRe
     ->middleware('auth')
     ->name('biolink.appeal')
     ->where('link', '[0-9]+');
-Route::post('/{alias}', [RedirectController::class, 'handle'])->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
+Route::post('/{alias}', [RedirectController::class, 'handle'])->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks)[^/]+$');
 Route::get('/{alias}/b/{blockId}', [RedirectController::class, 'handleBlockClick'])->name('redirect.block')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/download', [RedirectController::class, 'rawFileDownload'])->name('redirect.file.raw')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/rsvp',  [RedirectController::class, 'rsvpForm'])->name('redirect.rsvp.form')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('redirect.rsvp.submit')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
+Route::get ('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'show'])->name('redirect.rsvp.manage')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
+Route::post('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'update'])->name('redirect.rsvp.manage.update')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
+Route::post('/{alias}/rsvp/manage/{token}/cancel', [\App\Modules\Common\Controllers\RsvpManageController::class, 'cancel'])->name('redirect.rsvp.manage.cancel')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');

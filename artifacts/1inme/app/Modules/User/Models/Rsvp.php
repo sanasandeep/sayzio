@@ -3,6 +3,7 @@
 namespace App\Modules\User\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Rsvp extends Model
 {
@@ -11,19 +12,46 @@ class Rsvp extends Model
     protected $fillable = [
         'link_id', 'name', 'email', 'phone', 'response', 'plus_ones',
         'message', 'source', 'source_block_id', 'ip_address', 'user_agent',
+        'status', 'occurrences', 'answers', 'company', 'role', 'manage_token',
     ];
 
     protected function casts(): array
     {
         return [
-            'plus_ones' => 'integer',
+            'plus_ones'   => 'integer',
+            'occurrences' => 'array',
+            'answers'     => 'array',
         ];
     }
 
     public const RESPONSES = ['yes' => 'Going', 'maybe' => 'Maybe', 'no' => 'Not going'];
+    public const STATUSES  = ['confirmed' => 'Confirmed', 'waitlist' => 'Waitlist', 'cancelled' => 'Cancelled'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $r) {
+            if (empty($r->status)) $r->status = 'confirmed';
+            if (empty($r->manage_token)) $r->manage_token = Str::random(40);
+        });
+    }
 
     public function link()
     {
         return $this->belongsTo(Link::class);
+    }
+
+    public function manageUrl(): string
+    {
+        return url('/' . $this->link->alias . '/rsvp/manage/' . $this->manage_token);
+    }
+
+    /**
+     * Total seats this RSVP is consuming when the guest is "going".
+     * Includes the guest themselves.
+     */
+    public function seatsConsumed(): int
+    {
+        if ($this->response !== 'yes' || $this->status === 'cancelled') return 0;
+        return 1 + max(0, (int) $this->plus_ones);
     }
 }

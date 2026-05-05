@@ -996,7 +996,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/rsvps',                    [RsvpController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.rsvps.index');
         Route::get('links/{link}/rsvps/export',             [RsvpController::class, 'export'])->middleware('workspace.can:followers.view')->name('links.rsvps.export');
         Route::delete('links/{link}/rsvps/{rsvp}',          [RsvpController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.rsvps.destroy');
+        Route::post  ('links/{link}/rsvps/{rsvp}/promote',  [RsvpController::class, 'promote'])->middleware('workspace.can:followers.edit')->name('links.rsvps.promote');
         Route::post  ('links/{link}/rsvps/erase-voter',     [RsvpController::class, 'eraseVoter'])->middleware('workspace.can:followers.edit')->name('links.rsvps.erase-voter');
+        Route::post  ('settings/auto-sync-calendar',        [\App\Modules\User\Controllers\CalendarAccountController::class, 'updateAutoSync'])->middleware('workspace.owner')->name('calendar.auto-sync');
 
         // ===== Poll votes (per biolink-block) — followers feature.
         Route::get('links/{link}/blocks/{block}/poll-votes',          [PollVoteController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.poll-votes.index');

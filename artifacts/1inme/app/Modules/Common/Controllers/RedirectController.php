@@ -1119,10 +1119,26 @@ class RedirectController extends Controller
     {
         $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'ics') abort(404);
-        if (empty(($link->settings ?? [])['rsvp_enabled'])) abort(404);
+        $s = (array) ($link->settings ?? []);
+        if (empty($s['rsvp_enabled'])) abort(404);
 
-        $allowPlusOnes = !empty(($link->settings ?? [])['rsvp_allow_plus_ones']);
-        $collectPhone  = !empty(($link->settings ?? [])['rsvp_collect_phone']);
+        $allowPlusOnes = !empty($s['rsvp_allow_plus_ones']);
+        $collectPhone  = !empty($s['rsvp_collect_phone']);
+        $rsvpSettings  = (array) ($s['rsvp_settings'] ?? []);
+
+        // Closed-deadline guard — rendered on the form too, but a client
+        // could still POST so re-check here.
+        if (!empty($rsvpSettings['deadline'])) {
+            try {
+                $deadline = new \DateTime($rsvpSettings['deadline']);
+                if ($deadline < new \DateTime()) {
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'RSVPs are closed for this event.'], 422);
+                    }
+                    return back()->withErrors(['response' => 'RSVPs are closed for this event.']);
+                }
+            } catch (\Throwable $e) {}
+        }
 
         $rules = [
             'name'      => ['required', 'string', 'max:120'],
@@ -1130,9 +1146,65 @@ class RedirectController extends Controller
             'response'  => ['required', 'in:yes,no,maybe'],
             'plus_ones' => ['nullable', 'integer', 'min:0', 'max:20'],
             'message'   => ['nullable', 'string', 'max:1000'],
+            'occurrences'   => ['nullable', 'array', 'max:50'],
+            'occurrences.*' => ['string', 'max:64'],
+            'answers'       => ['nullable', 'array', 'max:50'],
         ];
         if ($collectPhone) $rules['phone'] = ['nullable', 'string', 'max:40'];
+        if (!empty($rsvpSettings['collect_company'])) $rules['company'] = ['nullable', 'string', 'max:191'];
+        if (!empty($rsvpSettings['collect_role']))    $rules['role']    = ['nullable', 'string', 'max:191'];
         $data = $request->validate($rules);
+
+        // Validate per-question constraints (required / select range).
+        $questions = (array) ($rsvpSettings['questions'] ?? []);
+        $answersIn = (array) ($data['answers'] ?? []);
+        $cleanAnswers = [];
+        $errs = [];
+        foreach ($questions as $q) {
+            $label = trim((string) ($q['label'] ?? ''));
+            if ($label === '') continue;
+            $val = $answersIn[$label] ?? null;
+            $required = !empty($q['required']);
+            $isEmpty = is_array($val) ? empty($val) : (trim((string) $val) === '');
+            if ($required && $isEmpty) {
+                $errs["answers.$label"] = "“{$label}” is required.";
+                continue;
+            }
+            if ($isEmpty) continue;
+            if (is_array($val)) {
+                $val = array_values(array_filter(array_map('strval', $val), fn ($x) => $x !== ''));
+                if (!empty($val)) $cleanAnswers[$label] = array_slice($val, 0, 20);
+            } else {
+                $cleanAnswers[$label] = mb_substr(trim((string) $val), 0, 1000);
+            }
+        }
+        if ($errs) {
+            if ($request->wantsJson()) return response()->json(['success' => false, 'errors' => $errs], 422);
+            return back()->withErrors($errs)->withInput();
+        }
+
+        // Capacity / waitlist enforcement — re-tally seats consumed by
+        // confirmed "yes" RSVPs and bump this submission to the waitlist
+        // if it would push us past the cap.
+        $status = 'confirmed';
+        $cap = isset($rsvpSettings['capacity']) ? (int) $rsvpSettings['capacity'] : 0;
+        $seatsThisRsvp = $data['response'] === 'yes' ? (1 + ($allowPlusOnes ? (int)($data['plus_ones'] ?? 0) : 0)) : 0;
+        if ($cap > 0 && $seatsThisRsvp > 0) {
+            $usedSeats = (int) \App\Modules\User\Models\Rsvp::query()
+                ->where('link_id', $link->id)
+                ->where('response', 'yes')
+                ->where('status', 'confirmed')
+                ->sum(\DB::raw('plus_ones + 1'));
+            if (($usedSeats + $seatsThisRsvp) > $cap) {
+                if (empty($rsvpSettings['waitlist_enabled'])) {
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'This event is full.'], 422);
+                    }
+                    return back()->withErrors(['response' => 'This event is full.']);
+                }
+                $status = 'waitlist';
+            }
+        }
 
         $rsvp = \App\Modules\User\Models\Rsvp::create([
             'link_id'         => $link->id,
@@ -1140,11 +1212,17 @@ class RedirectController extends Controller
             'name'            => $data['name'],
             'email'           => $data['email'] ?? null,
             'phone'           => $data['phone'] ?? null,
+            'company'         => $data['company'] ?? null,
+            'role'            => $data['role'] ?? null,
             'response'        => $data['response'],
+            'status'          => $status,
             'plus_ones'       => $allowPlusOnes ? (int)($data['plus_ones'] ?? 0) : 0,
             'message'         => $data['message'] ?? null,
             'source'          => $request->input('_source', 'event_page'),
-            'meta'            => ['ip' => $request->ip(), 'ua' => substr((string)$request->userAgent(), 0, 250)],
+            'occurrences'     => !empty($data['occurrences']) ? array_values($data['occurrences']) : null,
+            'answers'         => $cleanAnswers ?: null,
+            'ip_address'      => $request->ip(),
+            'user_agent'      => substr((string) $request->userAgent(), 0, 250),
         ]);
 
         // Account-level forwarding rules — fan out to the owner's email/webhook
@@ -1155,6 +1233,25 @@ class RedirectController extends Controller
                 ->dispatchForRsvp($link->user_id, $rsvp);
         } catch (\Throwable $e) {
             logger()->warning('Inbox forwarder (rsvp) failed: ' . $e->getMessage());
+        }
+
+        // Confirmation + organizer notify (best-effort, swallow failures).
+        try {
+            if ($rsvp->email && ($rsvpSettings['send_confirmation'] ?? true)) {
+                \Mail::to($rsvp->email)->send(new \App\Mail\EventRsvpConfirmationMail($link, $rsvp));
+            }
+        } catch (\Throwable $e) {
+            logger()->warning('RSVP confirmation email failed: ' . $e->getMessage());
+        }
+        try {
+            if (($rsvpSettings['notify_owner'] ?? true)) {
+                $ownerEmail = $link->user?->email;
+                if ($ownerEmail) {
+                    \Mail::to($ownerEmail)->send(new \App\Mail\EventRsvpNotifyOwnerMail($link, $rsvp));
+                }
+            }
+        } catch (\Throwable $e) {
+            logger()->warning('RSVP notify-owner email failed: ' . $e->getMessage());
         }
 
         $request->session()->put('rsvp_submitted_' . $link->id, true);
@@ -1169,8 +1266,18 @@ class RedirectController extends Controller
         }
 
         if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Thanks for your RSVP!']);
+            return response()->json([
+                'success'    => true,
+                'message'    => $status === 'waitlist'
+                    ? 'You\'re on the waitlist — we\'ll email you the moment a spot opens.'
+                    : 'Thanks for your RSVP!',
+                'status'     => $status,
+                'manage_url' => $rsvp->manageUrl(),
+            ]);
         }
-        return redirect()->route('redirect.rsvp.form', $alias)->with('success', 'Thanks for your RSVP!');
+        return redirect()->route('redirect.rsvp.manage', [$alias, $rsvp->manage_token])
+            ->with('success', $status === 'waitlist'
+                ? 'You\'re on the waitlist — we\'ll email you the moment a spot opens.'
+                : 'Thanks for your RSVP!');
     }
 }

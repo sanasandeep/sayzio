@@ -27,11 +27,46 @@ class CalendarAccountController extends Controller
             ->orderByDesc('id')->get();
 
         $googleConfigured = (new GoogleCalendarProvider())->isConfigured();
+        $owner = workspace_owner();
+        $autoSyncAccountId = $owner?->auto_sync_calendar_account_id;
 
         return view('user.settings.calendar', [
-            'accounts'         => $accounts,
-            'googleConfigured' => $googleConfigured,
+            'accounts'          => $accounts,
+            'googleConfigured'  => $googleConfigured,
+            'autoSyncAccountId' => $autoSyncAccountId,
         ]);
+    }
+
+    /**
+     * Toggle the workspace owner's "default sync target" — every newly
+     * created Event Invite link auto-attaches to this account in
+     * keep_in_sync mode unless the user picks something else at save
+     * time. Owner-only.
+     */
+    public function updateAutoSync(Request $request)
+    {
+        $data = $request->validate([
+            'account_id' => ['nullable', 'integer'],
+        ]);
+        $owner = workspace_owner();
+        abort_unless($owner, 403);
+
+        $accountId = null;
+        if (!empty($data['account_id'])) {
+            $exists = CalendarAccount::where('id', $data['account_id'])
+                ->where('user_id', $owner->id)
+                ->where('push_enabled', true)
+                ->exists();
+            if (!$exists) {
+                return back()->with('error', 'That calendar is not connected or push is disabled.');
+            }
+            $accountId = (int) $data['account_id'];
+        }
+
+        $owner->forceFill(['auto_sync_calendar_account_id' => $accountId])->save();
+        return back()->with('success', $accountId
+            ? 'New event invites will sync to this calendar by default.'
+            : 'Auto-sync turned off — new invites won\'t push anywhere unless you pick a target.');
     }
 
     /**
