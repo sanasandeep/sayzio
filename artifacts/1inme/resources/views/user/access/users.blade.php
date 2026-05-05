@@ -4,12 +4,20 @@
 @section('content')
 <div class="max-w-4xl mx-auto p-4 lg:p-6 space-y-5">
     <header class="flex flex-col gap-1">
-        <h1 class="text-xl font-semibold text-white">User access</h1>
-        <p class="text-sm text-white/50">
-            Promote or demote other users on the user pool. Roles listed
-            here are scoped to the user-facing app — back-office admin
-            roles are managed separately.
-        </p>
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+                <h1 class="text-xl font-semibold text-white">User access</h1>
+                <p class="text-sm text-white/50">
+                    Promote or demote other users on the user pool. Roles listed
+                    here are scoped to the user-facing app — back-office admin
+                    roles are managed separately.
+                </p>
+            </div>
+            <a href="{{ route('user.access.roles.index') }}"
+               class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium whitespace-nowrap">
+                <i class="fas fa-sliders mr-1"></i> Edit roles
+            </a>
+        </div>
     </header>
 
     @if(session('success'))

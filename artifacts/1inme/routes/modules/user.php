@@ -26,6 +26,7 @@ use App\Modules\User\Controllers\GoogleContactsAccountController;
 use App\Modules\User\Controllers\DialerController;
 use App\Modules\User\Controllers\VerificationController;
 use App\Modules\User\Middleware\CheckPlanLimit;
+use App\Modules\User\Controllers\RoleManagementController;
 use App\Modules\User\Controllers\UserAccessController;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
@@ -1378,6 +1379,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::middleware('user.can:user.roles.manage')->prefix('access')->name('access.')->group(function () {
             Route::get ('users',                   [UserAccessController::class, 'index'])->name('users.index');
             Route::post('users/{user}/roles',      [UserAccessController::class, 'update'])->whereNumber('user')->name('users.update');
+
+            // CRUD for the user-pool roles themselves. Lets operators
+            // create/rename/delete roles and edit their permission
+            // checklists from the UI instead of hand-editing seeds.
+            Route::get   ('roles',              [RoleManagementController::class, 'index'])->name('roles.index');
+            Route::get   ('roles/create',       [RoleManagementController::class, 'create'])->name('roles.create');
+            Route::post  ('roles',              [RoleManagementController::class, 'store'])->name('roles.store');
+            Route::get   ('roles/{role}/edit',  [RoleManagementController::class, 'edit'])->whereNumber('role')->name('roles.edit');
+            Route::put   ('roles/{role}',       [RoleManagementController::class, 'update'])->whereNumber('role')->name('roles.update');
+            Route::delete('roles/{role}',       [RoleManagementController::class, 'destroy'])->whereNumber('role')->name('roles.destroy');
         });
     });
 });
