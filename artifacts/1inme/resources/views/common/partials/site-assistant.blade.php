@@ -915,12 +915,26 @@ window.__SA_CHROME = {
   // same bottom corner — physically covering the launcher and stealing
   // its clicks. We watch for the consent host and lift the launcher (and
   // its open panel) above the card so the launcher stays clickable.
-  // Modal/takeover layouts use a centered card + full-screen backdrop
-  // that deliberately blocks the page until the visitor chooses, and the
-  // corner launcher doesn't physically overlap that centered card, so we
-  // leave those untouched.
+  //
+  // Two distinct defences are needed and the second was the regression:
+  //   1. A *physical* nudge (saComputeBottom) moves the launcher's bottom
+  //      offset up so it no longer sits underneath a bottom-corner card.
+  //   2. A *stacking* lift (saApplyOffset) raises the launcher above the
+  //      consent host's z-index whenever the host is present. Without it,
+  //      modal/takeover layouts render a full-screen `.cc-backdrop`
+  //      (pointer-events:auto, z ~2.1B) that blankets the whole viewport —
+  //      including the corner — and eats every launcher click even though
+  //      the centered card never physically overlaps the corner. Raising
+  //      the launcher above the host lets the button poke through, while
+  //      the wrapper stays pointer-events:none so the backdrop keeps
+  //      blocking the rest of the page (consent behaviour is unchanged).
   var SA_BASE_BOTTOM = 24;
   var SA_PANEL_GAP = 66; // matches the default 90px panel bottom (24 + 66)
+  // Sits just above the consent host (z-index 2147483600) yet below the
+  // signed-32-bit ceiling, so the launcher button reliably out-stacks the
+  // backdrop while the host is up, and falls back to the stylesheet's
+  // default (99999) once the banner is gone.
+  var SA_Z_OVER_COOKIE = '2147483646';
   var saSide = (pos === 'sa-pos-left') ? 'left' : 'right';
   var ccCardRO = null;
 
@@ -951,6 +965,17 @@ window.__SA_CHROME = {
   }
 
   function saApplyOffset(){
+    // Stacking lift: while the consent host is on the page, out-stack it
+    // (and its full-screen backdrop) so the launcher button — and an open
+    // panel — stay clickable across every layout, including modal/takeover.
+    // When the banner is dismissed we clear the inline value so the launcher
+    // drops back to the stylesheet default and never leaves a stray overlay
+    // hovering above the rest of the UI.
+    var hostUp = !!document.querySelector('.cc-host');
+    var z = hostUp ? SA_Z_OVER_COOKIE : '';
+    if (launcherWrap.style.zIndex !== z) launcherWrap.style.zIndex = z;
+    if (panel.style.zIndex !== z) panel.style.zIndex = z;
+
     var bottom = saComputeBottom();
     var bpx = bottom + 'px';
     if (launcherWrap.style.bottom !== bpx) launcherWrap.style.bottom = bpx;
