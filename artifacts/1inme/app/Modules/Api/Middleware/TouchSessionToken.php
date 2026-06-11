@@ -4,6 +4,7 @@ namespace App\Modules\Api\Middleware;
 
 use App\Modules\Common\Services\GeoIpService;
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -29,10 +30,11 @@ class TouchSessionToken
             $token = null;
         }
 
-        // Transient personal access tokens (no DB row) and web session
-        // guards both surface as something other than the Sanctum
-        // model — skip them.
-        if (!$token || !method_exists($token, 'getKey')) {
+        // Transient personal access tokens (no DB row), web session
+        // guards, and test mocks (e.g. Sanctum::actingAs) all surface as
+        // something other than a persistable Eloquent model — skip them so
+        // we never call forceFill()->save() on a non-model.
+        if (!$token instanceof Model) {
             return $response;
         }
 

@@ -9,7 +9,6 @@ use App\Modules\User\Services\WorkspacePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
@@ -62,7 +61,7 @@ class PendingThanksApiTest extends TestCase
         $user = $this->makeUser();
         $ws   = $user->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
         $resp = $this->getJson('/api/v1/me/pending-thanks?workspace_id=' . $ws->id);
 
         $resp->assertOk();
@@ -77,7 +76,7 @@ class PendingThanksApiTest extends TestCase
         $user = $this->makeUser();
         $ws   = $user->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
         $items = [$this->thankItem(['id' => 'a']), $this->thankItem(['id' => 'b'])];
         $this->putJson('/api/v1/me/pending-thanks?workspace_id=' . $ws->id, [
             'items'         => $items,
@@ -97,7 +96,7 @@ class PendingThanksApiTest extends TestCase
         $user = $this->makeUser();
         $ws   = $user->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
 
         // The /api/* exception handler wraps validation errors under
         // `error.details.<field>` instead of Laravel's default
@@ -130,7 +129,7 @@ class PendingThanksApiTest extends TestCase
         $user = $this->makeUser();
         $ws   = $user->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
 
         $items = [
             $this->thankItem(['id' => 'dup', 'body' => 'first wins']),
@@ -155,7 +154,7 @@ class PendingThanksApiTest extends TestCase
         $user = $this->makeUser();
         $ws   = $user->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
 
         $base = (int) (now()->getPreciseTimestamp(3)) - 60_000;
         $items = [];
@@ -186,7 +185,7 @@ class PendingThanksApiTest extends TestCase
         $user = $this->makeUser();
         $ws   = $user->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
 
         $items = [];
         for ($i = 0; $i < 501; $i++) {
@@ -204,7 +203,7 @@ class PendingThanksApiTest extends TestCase
         $user = $this->makeUser();
         $ws   = $user->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
         $nowMs = (int) (now()->getPreciseTimestamp(3));
         $thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
@@ -240,7 +239,7 @@ class PendingThanksApiTest extends TestCase
         ]);
         $ws->save();
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
         $resp = $this->getJson('/api/v1/me/pending-thanks?workspace_id=' . $ws->id);
 
         $resp->assertOk();
@@ -255,7 +254,7 @@ class PendingThanksApiTest extends TestCase
         $userB = $this->makeUser();
         $wsB   = $userB->ownedWorkspaces()->first();
 
-        Sanctum::actingAs($userA, ['*']);
+        $this->withToken($userA->createToken('test')->plainTextToken);
 
         $this->getJson('/api/v1/me/pending-thanks?workspace_id=' . $wsB->id)
             ->assertForbidden();
@@ -284,7 +283,7 @@ class PendingThanksApiTest extends TestCase
             'permissions'  => WorkspacePermissions::roleActions()['editor'] ?? [],
         ]);
 
-        Sanctum::actingAs($member, ['*']);
+        $this->withToken($member->createToken('test')->plainTextToken);
         $this->putJson('/api/v1/me/pending-thanks?workspace_id=' . $ws->id, [
             'items' => [$this->thankItem(['id' => 'team-1'])],
         ])->assertOk()

@@ -14,7 +14,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\Sanctum;
 use Mockery;
 use Tests\TestCase;
 
@@ -178,7 +177,7 @@ class VoiceAssistantApiTest extends TestCase
             ['content' => 'Hello from mobile.', 'tool_calls' => [], 'credits_spent' => 8],
         ]);
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
 
         $resp = $this->postJson('/api/v1/ai/voice/turn', [
             'audio' => $this->fakeAudio(),
@@ -216,7 +215,7 @@ class VoiceAssistantApiTest extends TestCase
 
         // Mobile capabilities — controller passes isMobile=true to the
         // registry, so the mobile-only NFC tool MUST surface.
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
         $mobile = $this->getJson('/api/v1/ai/voice/capabilities');
         $mobile->assertOk();
 
@@ -265,7 +264,7 @@ class VoiceAssistantApiTest extends TestCase
             ],
         ]);
 
-        Sanctum::actingAs($user, ['*']);
+        $this->withToken($user->createToken('test')->plainTextToken);
 
         $first = $this->postJson('/api/v1/ai/voice/turn', [
             'audio' => $this->fakeAudio(),
