@@ -148,6 +148,7 @@ class LinkController extends Controller
             'projects' => $projects,
             'pixels' => $pixels,
             'domains' => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
         ]);
@@ -165,6 +166,7 @@ class LinkController extends Controller
         return view('user.links.create-biolink', [
             'projects' => $projects,
             'domains'  => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
         ]);
@@ -2088,7 +2090,9 @@ class LinkController extends Controller
         // can show "Opens in YouTube on mobile" etc.
         $detectedApp = $link->type === 'url' ? AppLinkResolver::resolve($link->long_url) : null;
 
-        return view('user.links.edit', compact('link', 'projects', 'pixels', 'domains', 'detectedApp'));
+        $defaultDomainId = $domains->firstWhere('is_primary', true)?->id;
+
+        return view('user.links.edit', compact('link', 'projects', 'pixels', 'domains', 'detectedApp', 'defaultDomainId'));
     }
 
     public function update(Request $request, Link $link)

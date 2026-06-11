@@ -6,13 +6,14 @@ namespace App\Modules\User\Models;
 use App\Modules\User\Concerns\BelongsToWorkspace;
 use App\Modules\Admin\Models\Plan;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Domain extends Model
 {
     
     use BelongsToWorkspace;
 protected $fillable = [
-        'user_id', 'domain', 'type', 'is_verified', 'is_active',
+        'user_id', 'domain', 'type', 'is_verified', 'is_active', 'is_primary',
         'verification_token', 'cname_target', 'verified_at',
         'dns_status', 'dns_last_checked_at', 'dns_last_target',
         'dns_drift_started_at', 'dns_drift_notified_at',
@@ -28,6 +29,7 @@ protected $fillable = [
         return [
             'is_verified'                    => 'boolean',
             'is_active'                      => 'boolean',
+            'is_primary'                     => 'boolean',
             'verified_at'                    => 'datetime',
             'dns_last_checked_at'            => 'datetime',
             'dns_drift_started_at'           => 'datetime',
@@ -59,6 +61,40 @@ protected $fillable = [
     public function isGlobal(): bool
     {
         return $this->user_id === null;
+    }
+
+    /**
+     * Mark this global domain as the platform-wide primary, clearing the
+     * flag on every other global domain so exactly one is primary at a
+     * time. Only a global domain (no owning user) can ever be primary.
+     */
+    public function makePrimary(): void
+    {
+        if (!$this->isGlobal()) {
+            throw new \InvalidArgumentException('Only global domains can be marked primary.');
+        }
+
+        DB::transaction(function () {
+            static::query()
+                ->whereNull('user_id')
+                ->where('id', '!=', $this->id)
+                ->where('is_primary', true)
+                ->update(['is_primary' => false]);
+
+            $this->forceFill(['is_primary' => true])->save();
+        });
+    }
+
+    /**
+     * The admin-chosen primary global domain, if one is set. Used to
+     * pre-select the default host in user create/edit flows.
+     */
+    public static function primary(): ?self
+    {
+        return static::query()
+            ->whereNull('user_id')
+            ->where('is_primary', true)
+            ->first();
     }
 
     /**

@@ -51,6 +51,9 @@
                     @else
                         <span class="text-amber-400 text-[10px] ml-1">unverified</span>
                     @endif
+                    @if($d->is_primary)
+                        <span class="inline-flex items-center text-violet-300 text-[10px] ml-1 px-1.5 py-0.5 rounded" style="background: rgba(124,58,237,0.12); border:1px solid rgba(124,58,237,0.3);"><i class="fas fa-star mr-1 text-[8px]"></i>primary</span>
+                    @endif
                 </div>
                 <input type="text" name="cname_target" value="{{ $d->cname_target }}" class="col-span-3 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
                 <select name="plan_ids[]" multiple class="col-span-3 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary); min-height: 60px;">
@@ -62,9 +65,14 @@
                     <input type="checkbox" name="is_active" value="1" @checked($d->is_active)> Active
                 </label>
                 <button type="submit" class="col-span-1 px-3 py-1.5 rounded-md text-xs bg-emerald-600 hover:bg-emerald-700 text-white">Save</button>
-                <div class="col-span-1 flex items-center gap-1">
+                <div class="col-span-1 flex flex-wrap items-center gap-1">
                     @if(!$d->is_verified)
                         <button type="submit" form="vfy-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-violet-600 hover:bg-violet-700 text-white" title="Check CNAME via DNS">Verify</button>
+                    @endif
+                    @if($d->is_primary)
+                        <span class="px-2 py-1.5 rounded-md text-xs bg-violet-500/15 text-violet-300 border border-violet-500/30" title="This is the platform default domain"><i class="fas fa-star mr-1 text-[9px]"></i>Primary</span>
+                    @else
+                        <button type="submit" form="primary-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-white/5 text-white/70 hover:bg-violet-500/20 hover:text-violet-200 border border-white/10" title="Make this the platform default domain">Make primary</button>
                     @endif
                     <button type="submit" form="del-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30" onclick="return window.themedConfirmAction(this, {title: 'Remove this domain?', message: 'Links bound to it will lose their host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">Del</button>
                 </div>
@@ -73,6 +81,9 @@
             @if(!$d->is_verified)
                 <form id="vfy-{{ $d->id }}" method="POST" action="{{ route('admin.domains.verify', $d) }}">@csrf</form>
             @endif
+            @unless($d->is_primary)
+                <form id="primary-{{ $d->id }}" method="POST" action="{{ route('admin.domains.primary', $d) }}">@csrf</form>
+            @endunless
         @empty
             <p class="text-xs" style="color: var(--text-faint);">No global domains yet. Add one above to make it selectable on link create/edit.</p>
         @endforelse

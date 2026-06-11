@@ -109,6 +109,15 @@ class DomainController extends Controller
         return back()->with('success', "Domain {$domain->domain} verified.");
     }
 
+    public function makePrimary(Domain $domain)
+    {
+        abort_unless($domain->isGlobal(), 403);
+
+        $domain->makePrimary();
+
+        return back()->with('success', "{$domain->domain} is now the primary global domain.");
+    }
+
     public function destroy(Domain $domain)
     {
         abort_unless($domain->isGlobal(), 403);

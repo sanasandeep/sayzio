@@ -49,10 +49,11 @@
                     @endphp
                     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
                         @if(($domains ?? collect())->isNotEmpty())
+                            @php $selectedDomainId = old('domain_id', $defaultDomainId ?? ''); @endphp
                             <select name="domain_id" class="bg-white/5 px-2 py-2.5 text-xs text-white/70 border-r border-white/10 outline-none max-w-[180px]">
-                                <option value="" class="bg-[#0d0818]">{{ $defaultHost }}/</option>
+                                <option value="" {{ (string) $selectedDomainId === '' ? 'selected' : '' }} class="bg-[#0d0818]">{{ $defaultHost }}/</option>
                                 @foreach($domains as $d)
-                                    <option value="{{ $d->id }}" {{ old('domain_id') == $d->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $d->domain }}/</option>
+                                    <option value="{{ $d->id }}" {{ (string) $selectedDomainId === (string) $d->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $d->domain }}/</option>
                                 @endforeach
                             </select>
                         @else

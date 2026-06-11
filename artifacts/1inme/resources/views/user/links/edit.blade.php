@@ -144,10 +144,11 @@
             @if(($domains ?? collect())->isNotEmpty() || $link->domain_id)
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1">Custom Domain</label>
+                @php $selectedDomainId = old('domain_id', $link->domain_id ?? ($defaultDomainId ?? '')); @endphp
                 <select name="domain_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40">
-                    <option value="">{{ \App\Modules\Common\Support\PlatformHosts::currentRequestHost() ?: \App\Modules\Common\Support\PlatformHosts::primary() }} (default)</option>
+                    <option value="" {{ (string) $selectedDomainId === '' ? 'selected' : '' }}>{{ \App\Modules\Common\Support\PlatformHosts::currentRequestHost() ?: \App\Modules\Common\Support\PlatformHosts::primary() }} (default)</option>
                     @foreach($domains as $d)
-                        <option value="{{ $d->id }}" {{ old('domain_id', $link->domain_id) == $d->id ? 'selected' : '' }}>{{ $d->domain }}</option>
+                        <option value="{{ $d->id }}" {{ (string) $selectedDomainId === (string) $d->id ? 'selected' : '' }}>{{ $d->domain }}</option>
                     @endforeach
                 </select>
                 @error('domain_id') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror

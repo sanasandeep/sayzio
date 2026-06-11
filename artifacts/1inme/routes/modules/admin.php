@@ -123,6 +123,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/', [AdminDomainController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
             Route::put('{domain}', [AdminDomainController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{domain}/verify', [AdminDomainController::class, 'verify'])->middleware(CheckPermission::class . ':settings.manage')->name('verify');
+            Route::post('{domain}/primary', [AdminDomainController::class, 'makePrimary'])->middleware(CheckPermission::class . ':settings.manage')->name('primary');
             Route::delete('{domain}', [AdminDomainController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
