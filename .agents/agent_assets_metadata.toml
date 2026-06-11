@@ -467,3 +467,9 @@ id = "CGoetzbjUmyiNalwLQdFz"
 uri = "file://.local/prod_orphan_cleanup.txt"
 type = "text"
 title = "Production orphan-type cleanup SQL (paste into prod DB, then re-publish)"
+
+[[outputs]]
+id = "92SNGcmskTzogIreXbskh"
+uri = "file://.local/outputs/1INME.pptx"
+type = "slides"
+title = "1INME.pptx"
