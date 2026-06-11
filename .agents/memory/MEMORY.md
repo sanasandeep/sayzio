@@ -1,2 +1,3 @@
 - [Sanctum API feature tests](sanctum-api-tests.md) — `Sanctum::actingAs` breaks the TouchSessionToken middleware; auth API tests must use a real Bearer token.
 - [Consent backdrop vs launcher stacking](cookie-consent-vs-launcher-stacking.md) — a bottom-corner widget must out-stack the consent host (z ~2.1B), not just dodge its card, or the modal/takeover backdrop eats its clicks.
+- [Alpine x-transition leave bug](alpine-x-transition-leave-bug.md) — `x-transition` shorthand on `x-show` panels can open but never set `display:none` on leave; use enter-only directives.

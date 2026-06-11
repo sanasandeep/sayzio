@@ -1,12 +1,16 @@
 @php
     $useModal    = $useModal ?? false;
+    // When true the header overlays page content (used by the home page so its
+    // hero/aurora treatment is preserved). Otherwise it sticks in normal flow.
+    $fixed       = $fixed ?? false;
     $homeUrl     = route('home');
     // On the home page, "Pricing" should anchor-scroll to the in-page section.
     // On every other page, it should navigate to the dedicated /pricing page.
     $pricingHref = request()->routeIs('home') ? '#pricing' : route('site.pricing');
 @endphp
-<div x-data="{ mobileOpen:false, openMenu:null {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }">
-<nav class="sticky top-0 inset-x-0 z-40 bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5">
+<div x-data="{ mobileOpen:false, openMenu:null {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }"
+     @keydown.escape.window="openMenu=null; mobileOpen=false">
+<nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
             {{-- Brand --}}
@@ -26,8 +30,11 @@
                             class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-violet-400 rounded-lg whitespace-nowrap">
                         Product <i class="fas fa-chevron-down text-[10px] opacity-70" :class="openMenu === 'product' ? 'rotate-180' : ''"></i>
                     </button>
-                    <div x-show="openMenu === 'product'" x-cloak x-transition.opacity.duration.150ms
-                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 p-2 z-50">
+                    <div x-show="openMenu === 'product'" x-cloak
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 p-2 z-[60]">
                         <a href="{{ route('site.features') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-bolt text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Features</span><span class="block text-xs text-gray-500">Everything 1INME can do</span></span>
@@ -91,8 +98,11 @@
                             class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-violet-400 rounded-lg whitespace-nowrap">
                         Solutions <i class="fas fa-chevron-down text-[10px] opacity-70" :class="openMenu === 'solutions' ? 'rotate-180' : ''"></i>
                     </button>
-                    <div x-show="openMenu === 'solutions'" x-cloak x-transition.opacity.duration.150ms
-                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 p-2 z-50">
+                    <div x-show="openMenu === 'solutions'" x-cloak
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 p-2 z-[60]">
                         <a href="{{ route('site.services') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-bullseye text-pink-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Use cases</span><span class="block text-xs text-gray-500">For creators, brands, agencies &amp; teams</span></span>
