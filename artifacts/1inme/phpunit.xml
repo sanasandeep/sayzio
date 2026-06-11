@@ -18,6 +18,21 @@
         </include>
     </source>
     <php>
+        <!--
+            Raise the CLI memory ceiling for the suite. PHPUnit runs every
+            test in a single long-lived PHP process, so each test's fresh
+            Laravel app boot (route registration, container, config) adds to
+            the resident footprint. Under the stock 128M limit the process
+            exhausts memory partway through route registration (routes/
+            modules/user.php is ~1.4k lines), which aborts mid-file: earlier
+            GET routes register but later POST routes for the same URI do
+            not, so requests like POST /user/links/{id}/slides surface a
+            spurious 405 Method Not Allowed (or the whole run dies before
+            later tests, e.g. SlidesModeEndToEndTest, even execute). A higher
+            ceiling lets the full Feature suite register all routes and run
+            to completion deterministically.
+        -->
+        <ini name="memory_limit" value="1024M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
