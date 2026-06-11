@@ -37,7 +37,7 @@
                             <select name="domain_id" class="bg-white/5 px-2 py-2.5 text-xs text-white/70 border-r border-white/10 outline-none max-w-[180px]">
                                 <option value="" {{ (string) $selectedDomainId === '' ? 'selected' : '' }} class="bg-[#0d0818]">{{ $defaultHost }}/</option>
                                 @foreach($domains as $d)
-                                    <option value="{{ $d->id }}" {{ (string) $selectedDomainId === (string) $d->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $d->domain }}/</option>
+                                    <option value="{{ $d->id }}" {{ (string) $selectedDomainId === (string) $d->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $d->domain }}/{{ (isset($defaultDomainId) && (string) $defaultDomainId === (string) $d->id) ? ' (default)' : '' }}</option>
                                 @endforeach
                             </select>
                         @else
