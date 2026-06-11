@@ -3,6 +3,7 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Support\PlatformHosts;
 use App\Modules\User\Models\Domain;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -17,6 +18,49 @@ class DomainController extends Controller
     {
         $items = Domain::where('user_id', $request->user()->id)->orderBy('domain')->get();
         return $this->ok(['items' => $items->map(fn ($d) => $this->transform($d))->all()]);
+    }
+
+    /**
+     * Domains the caller can attach a link to — their own verified+active
+     * domains plus admin-global domains tagged for their plan — together
+     * with the admin-chosen primary global domain and the platform's env
+     * default host. Mirrors the web create/edit link form so the mobile
+     * flows can pre-select the same default. Also reports whether the
+     * caller may set the platform primary (admin only).
+     */
+    public function available(Request $request)
+    {
+        $user  = $request->user();
+        $items = Domain::availableTo($user)->get();
+
+        $primary = $items->firstWhere(fn ($d) => $d->isGlobal() && $d->is_primary);
+
+        return $this->ok([
+            'items'             => $items->map(fn ($d) => $this->transform($d))->all(),
+            'primary_domain_id' => $primary?->id,
+            'default_host'      => PlatformHosts::primary(),
+            'can_manage'        => (bool) $user->hasPermission('settings.manage'),
+        ]);
+    }
+
+    /**
+     * Mark a global domain as the platform-wide primary. Admin-only:
+     * gated behind the same `settings.manage` permission as the web
+     * admin "Make primary" control. Only global (admin-owned) domains
+     * can ever be primary.
+     */
+    public function makePrimary(Request $request, int $id)
+    {
+        $user = $request->user();
+        if (!$user->hasPermission('settings.manage')) {
+            return $this->fail('You are not allowed to change the platform domain.', 403, 'forbidden');
+        }
+
+        $domain = Domain::whereNull('user_id')->find($id);
+        if (!$domain) return $this->notFound('Global domain not found');
+
+        $domain->makePrimary();
+        return $this->ok(['domain' => $this->transform($domain->fresh())]);
     }
 
     public function store(Request $request)
@@ -63,6 +107,8 @@ class DomainController extends Controller
             'type'               => $d->type,
             'is_verified'        => (bool) $d->is_verified,
             'is_active'          => (bool) $d->is_active,
+            'is_primary'         => (bool) $d->is_primary,
+            'is_global'          => $d->isGlobal(),
             'verification_token' => $d->verification_token,
             'cname_target'       => $d->cname_target,
             'verified_at'        => optional($d->verified_at)->toIso8601String(),

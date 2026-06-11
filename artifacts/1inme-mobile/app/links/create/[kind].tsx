@@ -1,10 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DomainPicker } from "@/components/DomainPicker";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { listAvailableDomains } from "@/lib/api/domains";
 import { createLink } from "@/lib/api/links";
 import { metaForKind, type LinkKind } from "@/lib/linkKinds";
 
@@ -33,6 +36,22 @@ export default function CreateLinkScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const domainsQ = useQuery({
+    queryKey: ["domains-available"],
+    queryFn: listAvailableDomains,
+  });
+  const [domainId, setDomainId] = useState<number | null>(null);
+  const [domainTouched, setDomainTouched] = useState(false);
+
+  // Pre-select the admin-chosen primary global domain once it loads,
+  // unless the user has already picked one. Falls back to the env
+  // default host (domainId === null) when no primary is configured.
+  useEffect(() => {
+    if (domainTouched) return;
+    const primary = domainsQ.data?.primary_domain_id ?? null;
+    if (primary !== null) setDomainId(primary);
+  }, [domainsQ.data?.primary_domain_id, domainTouched]);
+
   async function onSubmit() {
     setError(null);
     setBusy(true);
@@ -42,6 +61,7 @@ export default function CreateLinkScreen() {
         type: meta.apiType,
         title: title || null,
         alias: alias || undefined,
+        domain_id: domainId,
       };
 
       if (meta.kind === "url") {
@@ -106,6 +126,16 @@ export default function CreateLinkScreen() {
           placeholder="leave blank to auto-generate"
           autoCapitalize="none"
           autoCorrect={false}
+        />
+
+        <DomainPicker
+          value={domainId}
+          onChange={(id) => {
+            setDomainTouched(true);
+            setDomainId(id);
+          }}
+          data={domainsQ.data}
+          loading={domainsQ.isLoading}
         />
 
         {meta.kind === "url" ? (

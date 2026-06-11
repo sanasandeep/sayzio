@@ -16,6 +16,8 @@ export type Link = {
   seo_title: string | null;
   seo_description: string | null;
   seo_image: string | null;
+  domain_id: number | null;
+  domain: string | null;
   short_url: string;
   created_at: string | null;
   updated_at: string | null;
@@ -64,6 +66,7 @@ export async function createLink(payload: {
   settings?: Record<string, unknown>;
   seo_title?: string | null;
   seo_description?: string | null;
+  domain_id?: number | null;
 }): Promise<Link> {
   const res = await apiFetch<{ data: { link: Link } }>(`/links`, {
     method: "POST",
@@ -84,6 +87,7 @@ export async function updateLink(
     settings: Record<string, unknown>;
     seo_title: string | null;
     seo_description: string | null;
+    domain_id: number | null;
   }>,
 ): Promise<Link> {
   const res = await apiFetch<{ data: { link: Link } }>(`/links/${id}`, {

@@ -22,7 +22,9 @@ import { useColors } from "@/hooks/useColors";
 import {
   addDomain,
   deleteDomain,
+  listAvailableDomains,
   listDomains,
+  makePrimaryDomain,
   type Domain,
 } from "@/lib/api/domains";
 
@@ -34,6 +36,22 @@ export default function DomainsScreen() {
   const [error, setError] = useState<string | undefined>();
 
   const q = useQuery({ queryKey: ["domains"], queryFn: listDomains });
+  const availQ = useQuery({
+    queryKey: ["domains-available"],
+    queryFn: listAvailableDomains,
+  });
+
+  const setPrimary = useMutation({
+    mutationFn: (id: number) => makePrimaryDomain(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["domains-available"] }),
+    onError: (e: any) =>
+      Alert.alert("Couldn't update", e?.message ?? "Please try again."),
+  });
+
+  const globalDomains = (availQ.data?.items ?? []).filter((d) => d.is_global);
+  const canManage = availQ.data?.can_manage ?? false;
+  const defaultHost = availQ.data?.default_host ?? null;
+  const hasPrimary = globalDomains.some((d) => d.is_primary);
 
   const add = useMutation({
     mutationFn: () => addDomain(host.trim().toLowerCase()),
@@ -87,6 +105,47 @@ export default function DomainsScreen() {
           data={q.data ?? []}
           keyExtractor={(d) => String(d.id)}
           contentContainerStyle={{ padding: 20, gap: 10 }}
+          ListHeaderComponent={
+            globalDomains.length > 0 || defaultHost ? (
+              <View style={{ gap: 10, marginBottom: 18 }}>
+                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                  Platform domains
+                </Text>
+                {defaultHost && !hasPrimary ? (
+                  <Text style={[styles.cname, { color: colors.mutedForeground }]}>
+                    New links default to {defaultHost}.
+                  </Text>
+                ) : null}
+                {globalDomains.map((d) => (
+                  <View
+                    key={d.id}
+                    style={[
+                      styles.row,
+                      { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                    ]}
+                  >
+                    <View style={[styles.iconWrap, { backgroundColor: colors.primary + "1c" }]}>
+                      <Feather name="server" size={18} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={[styles.host, { color: colors.foreground }]} numberOfLines={1}>
+                        {d.domain}
+                      </Text>
+                      {d.is_primary ? (
+                        <View style={[styles.badge, { alignSelf: "flex-start", backgroundColor: colors.primary + "33" }]}>
+                          <Text style={[styles.badgeText, { color: colors.primary }]}>primary</Text>
+                        </View>
+                      ) : canManage ? (
+                        <Pressable onPress={() => setPrimary.mutate(d.id)} disabled={setPrimary.isPending}>
+                          <Text style={[styles.cname, { color: colors.primary }]}>Make primary</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <View
               style={[
@@ -201,6 +260,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   host: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
+  sectionLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   badgeText: {
     fontFamily: "SpaceGrotesk_600SemiBold",

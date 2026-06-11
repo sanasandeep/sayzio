@@ -16,9 +16,11 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DomainPicker } from "@/components/DomainPicker";
 import { NfcWriteSheet } from "@/components/NfcWriteSheet";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { listAvailableDomains } from "@/lib/api/domains";
 import {
   deleteLink,
   duplicateLink,
@@ -78,6 +80,12 @@ export default function EditLinkScreen() {
   const [seoDesc, setSeoDesc] = useState("");
   const [visibility, setVisibility] = useState<Link["visibility"]>("public");
   const [active, setActive] = useState(true);
+  const [domainId, setDomainId] = useState<number | null>(null);
+
+  const domainsQ = useQuery({
+    queryKey: ["domains-available"],
+    queryFn: listAvailableDomains,
+  });
   // Per-biolink privacy controls (task #1114). Defaults are
   // privacy-respecting so a brand-new biolink is GDPR-safe; existing
   // pages keep whatever the creator already saved.
@@ -102,6 +110,7 @@ export default function EditLinkScreen() {
     setSeoDesc(l.seo_description ?? "");
     setVisibility(l.visibility);
     setActive(l.is_active);
+    setDomainId(l.domain_id ?? null);
     const privacy = readPrivacy(l.settings ?? null);
     setPrivacyHide(privacy.hide_public_visitor_counts ?? true);
     setPrivacyNoRef(privacy.disable_referrer_logging ?? true);
@@ -130,6 +139,7 @@ export default function EditLinkScreen() {
         seo_description: seoDesc || null,
         visibility,
         is_active: active,
+        domain_id: domainId,
       };
       if (isBiolink) {
         const existing: SettingsRecord = (q.data?.settings ??
@@ -361,6 +371,12 @@ export default function EditLinkScreen() {
               autoCapitalize="none"
             />
           ) : null}
+          <DomainPicker
+            value={domainId}
+            onChange={setDomainId}
+            data={domainsQ.data}
+            loading={domainsQ.isLoading}
+          />
         </View>
 
         <View style={styles.section}>

@@ -56,7 +56,9 @@ class LinkResource
             'seo_title'       => $l->seo_title,
             'seo_description' => $l->seo_description,
             'seo_image'       => $l->seo_image,
-            'short_url'       => url('/' . $l->alias),
+            'domain_id'       => $l->domain_id,
+            'domain'          => $l->domain?->domain,
+            'short_url'       => $l->getShortUrl(),
             'auto_pixel'      => $autoPixel,
             'pixel_fires'     => [
                 'count'     => $pixelFiresCount,

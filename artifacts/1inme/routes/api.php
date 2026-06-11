@@ -424,9 +424,11 @@ Route::prefix('v1')->group(function () {
         Route::put('/me/pending-thanks', [\App\Modules\Api\Controllers\PendingThankController::class, 'update']);
 
         // Custom domains
-        Route::get   ('/domains',        [DomainController::class, 'index']);
-        Route::post  ('/domains',        [DomainController::class, 'store']);
-        Route::delete('/domains/{id}',   [DomainController::class, 'destroy'])->whereNumber('id');
+        Route::get   ('/domains',             [DomainController::class, 'index']);
+        Route::get   ('/domains/available',   [DomainController::class, 'available']);
+        Route::post  ('/domains',             [DomainController::class, 'store']);
+        Route::post  ('/domains/{id}/primary',[DomainController::class, 'makePrimary'])->whereNumber('id');
+        Route::delete('/domains/{id}',        [DomainController::class, 'destroy'])->whereNumber('id');
 
         // Splash pages
         Route::get   ('/splash-pages',        [SplashPageController::class, 'index']);

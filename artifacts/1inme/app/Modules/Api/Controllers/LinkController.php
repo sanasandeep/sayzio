@@ -6,6 +6,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\LinkResource;
 use App\Modules\User\Controllers\LinkController as UserLinkController;
 use App\Modules\User\Models\AbVariant;
+use App\Modules\User\Models\Domain;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\BlockAnalyticsAggregator;
 use Illuminate\Http\Request;
@@ -19,9 +20,27 @@ class LinkController extends Controller
 {
     use ApiResponses;
 
+    /**
+     * Validation closure constraining domain_id to a domain the caller
+     * can actually attach: their own verified+active domains plus
+     * admin-global active domains tagged for their plan (or untagged
+     * globals open to every plan). Mirrors the web LinkController rule so
+     * mobile-created links honour the same allow-list.
+     */
+    protected function availableDomainRule($user): \Closure
+    {
+        return function ($attribute, $value, $fail) use ($user) {
+            if (empty($value)) return;
+            $allowed = Domain::availableTo($user)->pluck('id')->all();
+            if (!in_array((int) $value, $allowed, true)) {
+                $fail('That domain is not available on your plan.');
+            }
+        };
+    }
+
     public function index(Request $request)
     {
-        $q = Link::where('user_id', $request->user()->id);
+        $q = Link::where('user_id', $request->user()->id)->with('domain');
 
         if ($type = $request->string('type')->toString()) {
             $q->where('type', $type);
@@ -60,6 +79,11 @@ class LinkController extends Controller
             'seo_description' => ['nullable', 'string', 'max:500'],
             'expires_at' => ['nullable', 'date'],
             'settings'   => ['nullable', 'array'],
+            // Custom/global domain to host this short link on. Optional —
+            // when omitted the link uses the platform default host. The
+            // mobile create flow pre-selects the admin-chosen primary
+            // global domain, matching the web form.
+            'domain_id'  => ['nullable', $this->availableDomainRule($request->user())],
             // Workspace tagging from the browser extension's workspace
             // selector. Optional — older clients (mobile) and
             // single-workspace accounts simply omit it. Persisted on the
@@ -93,6 +117,7 @@ class LinkController extends Controller
             'seo_title'  => $data['seo_title'] ?? null,
             'seo_description' => $data['seo_description'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
+            'domain_id'  => $data['domain_id'] ?? null,
         ];
 
         if ($workspaceId !== null) {
@@ -125,7 +150,7 @@ class LinkController extends Controller
 
     public function show(Request $request, int $id)
     {
-        $link = Link::where('user_id', $request->user()->id)->find($id);
+        $link = Link::where('user_id', $request->user()->id)->with('domain')->find($id);
         if (!$link) return $this->notFound('Link not found');
         return $this->ok(['link' => LinkResource::toArray($link)]);
     }
@@ -146,6 +171,7 @@ class LinkController extends Controller
             'expires_at' => ['sometimes', 'nullable', 'date'],
             'settings'   => ['sometimes', 'nullable', 'array'],
             'auto_pixel' => ['sometimes', 'boolean'],
+            'domain_id'  => ['sometimes', 'nullable', $this->availableDomainRule($request->user())],
         ]);
 
         if (array_key_exists('settings', $data)) {
