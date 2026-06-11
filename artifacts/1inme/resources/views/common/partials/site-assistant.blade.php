@@ -35,7 +35,12 @@
   position:fixed;bottom:24px;z-index:99999;width:68px;height:68px;
   /* Idle state: shrink the whole widget + fade aura/ring/sparkles together */
   transform:scale(.6);transform-origin:bottom right;opacity:.65;
-  transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .25s ease, bottom .3s ease;
+  /* The wrapper is purely a positioning shell — its layout box, the decorative
+     aura/ring pseudo-elements, and the idle scale() padding must NOT swallow
+     clicks. Only the actual button (and the live tooltip) are interactive, so
+     the clickable hit area always matches the visible launcher. */
+  pointer-events:none;
 }
 .sa-launcher-wrap.sa-pos-right{right:24px}
 .sa-launcher-wrap.sa-pos-left{left:24px;transform-origin:bottom left}
@@ -78,6 +83,7 @@
   border-radius:30px 30px 8px 30px; /* chat-tag: tail bottom-left, points toward content */
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;border:0;color:#fff;z-index:2;overflow:hidden;
+  pointer-events:auto; /* re-enable clicks on the button itself (wrap is none) */
   background:
     radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 45%),
     conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#a855f7 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg);
@@ -902,6 +908,78 @@ window.__SA_CHROME = {
   window.addEventListener('pagehide', function(){
     if(tooltipTimer){ clearTimeout(tooltipTimer); tooltipTimer=null; }
   });
+
+  // ── Keep clear of the cookie-consent banner ───────────────────
+  // The consent host renders at a far higher z-index than the launcher
+  // and, in bottom corner/pill/banner layouts, parks its card in the
+  // same bottom corner — physically covering the launcher and stealing
+  // its clicks. We watch for the consent host and lift the launcher (and
+  // its open panel) above the card so the launcher stays clickable.
+  // Modal/takeover layouts use a centered card + full-screen backdrop
+  // that deliberately blocks the page until the visitor chooses, and the
+  // corner launcher doesn't physically overlap that centered card, so we
+  // leave those untouched.
+  var SA_BASE_BOTTOM = 24;
+  var SA_PANEL_GAP = 66; // matches the default 90px panel bottom (24 + 66)
+  var saSide = (pos === 'sa-pos-left') ? 'left' : 'right';
+  var ccCardRO = null;
+
+  function saComputeBottom(){
+    var host = document.querySelector('.cc-host');
+    if (!host) return SA_BASE_BOTTOM;
+    var layout = host.getAttribute('data-layout') || '';
+    if (layout === 'modal' || layout === 'takeover') return SA_BASE_BOTTOM;
+    var card = host.querySelector('.cc-card');
+    if (!card) return SA_BASE_BOTTOM;
+    var r = card.getBoundingClientRect();
+    if (!r.width || !r.height) return SA_BASE_BOTTOM;
+    var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    // Generous launcher footprint (button grows to ~68px on hover) + breathing room.
+    var pad = 88;
+    var ll, lr;
+    if (saSide === 'right') { lr = vw - SA_BASE_BOTTOM; ll = lr - pad; }
+    else { ll = SA_BASE_BOTTOM; lr = ll + pad; }
+    var lt = vh - SA_BASE_BOTTOM - pad; // launcher top edge
+    var lb = vh - SA_BASE_BOTTOM;       // launcher bottom edge
+    var overlapX = r.right > ll && r.left < lr;
+    var overlapY = r.bottom > lt && r.top < lb;
+    if (!(overlapX && overlapY)) return SA_BASE_BOTTOM;
+    var lifted = Math.round(vh - r.top) + 14;
+    // Never push the launcher off the top of the viewport.
+    return Math.max(SA_BASE_BOTTOM, Math.min(lifted, vh - 80));
+  }
+
+  function saApplyOffset(){
+    var bottom = saComputeBottom();
+    var bpx = bottom + 'px';
+    if (launcherWrap.style.bottom !== bpx) launcherWrap.style.bottom = bpx;
+    // Keep the open panel sitting just above the (possibly lifted) launcher.
+    // On mobile the stylesheet pins the panel with !important, so this inline
+    // value is ignored there — which is the behaviour we want.
+    var ppx = (bottom + SA_PANEL_GAP) + 'px';
+    if (panel.style.bottom !== ppx) panel.style.bottom = ppx;
+  }
+
+  function saWatchCookieCard(){
+    if (ccCardRO) { try { ccCardRO.disconnect(); } catch(e){} ccCardRO = null; }
+    if (typeof ResizeObserver === 'undefined') return;
+    var card = document.querySelector('.cc-host .cc-card');
+    if (!card) return;
+    try {
+      ccCardRO = new ResizeObserver(function(){ saApplyOffset(); });
+      ccCardRO.observe(card);
+    } catch(e){}
+  }
+
+  saApplyOffset();
+  saWatchCookieCard();
+  try {
+    new MutationObserver(function(){ saApplyOffset(); saWatchCookieCard(); })
+      .observe(document.body, { childList: true });
+  } catch(e){}
+  window.addEventListener('resize', saApplyOffset, { passive: true });
+
   scheduleTooltip(true);
 })();
 </script>
