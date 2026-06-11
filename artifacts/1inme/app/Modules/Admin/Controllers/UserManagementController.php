@@ -54,40 +54,67 @@ class UserManagementController extends Controller
         // permission required to mutate roles). We skip the query
         // entirely for read-only viewers so the data never reaches
         // the response body — the view also hides the panel.
+        //
+        // Same simple filter inputs (date range, actor, role, action,
+        // source) the per-user back-office roles page exposes — kept
+        // in sync via the shared shape so the panel's CSV export
+        // download matches what the reviewer is looking at.
         $admin = Auth::guard('admin')->user();
         $canSeeRoleAudits = $admin && $admin->hasPermission('users.edit');
 
-        // Optional `?audit_source=` chip filter; normalise once so the
-        // same value seeds the query and the view's chip highlight.
-        $auditSource = UserRoleAudit::normaliseSourceFilter($request->get('audit_source'));
-
-        // Optional `?audit_range=` preset chip plus free-form
-        // `?audit_from=` / `?audit_to=` from/to inputs. Same wiring
-        // pattern as the source filter — normalise the preset, leave
-        // from/to as raw strings the view echoes back into inputs.
-        $auditRange = UserRoleAudit::normaliseRangePreset($request->get('audit_range'));
-        $auditFrom  = trim((string) $request->get('audit_from', ''));
-        $auditTo    = trim((string) $request->get('audit_to', ''));
+        $auditFilters = $this->panelAuditFilters($request);
 
         $roleAudits = $canSeeRoleAudits
             ? UserRoleAudit::query()
                 ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email'])
                 ->where('target_user_id', $user->id)
-                ->bySourceFilter($auditSource)
-                ->betweenDates($auditRange, $auditFrom, $auditTo)
+                ->bySourceFilter(UserRoleAudit::normaliseSourceFilter($auditFilters['audit_source']))
+                ->betweenDates(
+                    UserRoleAudit::normaliseRangePreset($auditFilters['audit_range']),
+                    $auditFilters['audit_from'],
+                    $auditFilters['audit_to'],
+                )
+                ->filtered([
+                    'actor'  => $auditFilters['actor'],
+                    'role'   => $auditFilters['role'],
+                    'action' => $auditFilters['action'],
+                ])
                 ->orderByDesc('created_at')
                 ->limit(20)
                 ->get()
             : collect();
 
-        $auditFilters      = UserRoleAudit::sourceFilters();
-        $auditRangeFilters = UserRoleAudit::rangeFilters();
+        $auditRoleSlugs = $canSeeRoleAudits ? UserRoleAudit::distinctRoleSlugs() : [];
+        $auditActions   = UserRoleAudit::actionLabels();
+        $auditSources   = UserRoleAudit::sourceFilters();
+        $auditRanges    = UserRoleAudit::rangeFilters();
 
         return view('admin.users.show', compact(
             'user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions',
-            'roleAudits', 'auditSource', 'auditFilters',
-            'auditRange', 'auditFrom', 'auditTo', 'auditRangeFilters'
+            'roleAudits', 'auditFilters', 'auditRoleSlugs', 'auditActions',
+            'auditSources', 'auditRanges'
         ));
+    }
+
+    /**
+     * Filter inputs the role-change panel on the user-detail page
+     * exposes. Mirrors the shape used by `UserRoleController` so the
+     * "Export CSV" link can pass the same query string straight
+     * through to the per-user export endpoint.
+     *
+     * @return array{actor:string,role:string,action:string,source:string,from:string,to:string}
+     */
+    protected function panelAuditFilters(Request $request): array
+    {
+        return [
+            'actor'        => trim((string) $request->get('actor', '')),
+            'role'         => trim((string) $request->get('role', '')),
+            'action'       => (string) $request->get('action', ''),
+            'audit_source' => (string) ($request->get('audit_source', '') ?? ''),
+            'audit_range'  => (string) ($request->get('audit_range', '') ?? ''),
+            'audit_from'   => trim((string) $request->get('audit_from', '')),
+            'audit_to'     => trim((string) $request->get('audit_to', '')),
+        ];
     }
 
     public function adjustWallet(Request $request, User $user, WalletService $wallets)
@@ -184,14 +211,8 @@ class UserManagementController extends Controller
             'audits'      => $audits,
             'filters'     => $filters,
             'roleSlugs'   => UserRoleAudit::distinctRoleSlugs(),
-            'actions'     => [
-                UserRoleAudit::ACTION_ATTACHED => 'Granted',
-                UserRoleAudit::ACTION_DETACHED => 'Revoked',
-            ],
-            'sources'     => [
-                UserRoleAudit::SOURCE_USER_ACCESS => 'User access page',
-                UserRoleAudit::SOURCE_ADMIN       => 'Back-office admin',
-            ],
+            'actions'     => UserRoleAudit::actionLabels(),
+            'sources'     => UserRoleAudit::sourceLabels(),
             'targetUser'  => $targetUser,
         ]);
     }

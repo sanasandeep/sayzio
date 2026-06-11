@@ -23,41 +23,45 @@ class UserRoleController extends Controller
 
         $assigned = $user->roles()->pluck('roles.id')->all();
 
-        // Optional `?audit_source=` chip filter; normalise once so the
-        // same value seeds the query and the view's chip highlight.
-        $auditSource = UserRoleAudit::normaliseSourceFilter($request->get('audit_source'));
-
-        // Optional `?audit_range=` preset chip plus free-form
-        // `?audit_from=` / `?audit_to=` from/to inputs. Same wiring
-        // pattern as the source filter — normalise the preset, leave
-        // from/to as raw strings the view echoes back into inputs.
-        $auditRange = UserRoleAudit::normaliseRangePreset($request->get('audit_range'));
-        $auditFrom  = trim((string) $request->get('audit_from', ''));
-        $auditTo    = trim((string) $request->get('audit_to', ''));
-
         // Per-user role-change history. Surfaced to anyone with
         // `users.edit` (the existing route guard) so back-office
         // operators can see who promoted/demoted this user before.
+        //
+        // The panel exposes the same simple filter controls as the
+        // self-service "User access" page (date range, actor, role,
+        // action, source) so reviewers can narrow a per-user history
+        // before exporting. The "target" filter is implicit here —
+        // the query is already scoped to `$user`.
+        $auditFilters = $this->panelFilters($request);
+
         $audits = UserRoleAudit::query()
             ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email'])
             ->where('target_user_id', $user->id)
-            ->bySourceFilter($auditSource)
-            ->betweenDates($auditRange, $auditFrom, $auditTo)
+            ->bySourceFilter(UserRoleAudit::normaliseSourceFilter($auditFilters['audit_source']))
+            ->betweenDates(
+                UserRoleAudit::normaliseRangePreset($auditFilters['audit_range']),
+                $auditFilters['audit_from'],
+                $auditFilters['audit_to'],
+            )
+            ->filtered([
+                'actor'  => $auditFilters['actor'],
+                'role'   => $auditFilters['role'],
+                'action' => $auditFilters['action'],
+            ])
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();
 
         return view('admin.users.roles', [
-            'user'              => $user,
-            'roles'             => $roles,
-            'assigned'          => $assigned,
-            'audits'            => $audits,
-            'auditSource'       => $auditSource,
-            'auditFilters'      => UserRoleAudit::sourceFilters(),
-            'auditRange'        => $auditRange,
-            'auditFrom'         => $auditFrom,
-            'auditTo'           => $auditTo,
-            'auditRangeFilters' => UserRoleAudit::rangeFilters(),
+            'user'           => $user,
+            'roles'          => $roles,
+            'assigned'       => $assigned,
+            'audits'         => $audits,
+            'auditFilters'   => $auditFilters,
+            'auditRoleSlugs' => UserRoleAudit::distinctRoleSlugs(),
+            'auditActions'   => UserRoleAudit::actionLabels(),
+            'auditSources'   => UserRoleAudit::sourceFilters(),
+            'auditRanges'    => UserRoleAudit::rangeFilters(),
         ]);
     }
 
@@ -112,19 +116,58 @@ class UserRoleController extends Controller
      * panel on `admin.users.{show,roles.edit}` and never leaks rows
      * for accounts the operator might not be looking at.
      *
+     * Honours the same filter inputs the panel exposes (date range,
+     * actor, role, action, source) so the download mirrors exactly
+     * what the reviewer is looking at on screen.
+     *
      * Gated by the `users.edit` permission at the route layer, the
      * same check the timeline panel itself uses.
      */
     public function export(Request $request, User $user, UserRoleAuditCsvExporter $exporter): StreamedResponse
     {
+        $filters = $this->panelFilters($request);
+
         $filename = 'role-change-audit-user-' . $user->id . '-' . date('Ymd-His') . '.csv';
 
-        $query = UserRoleAudit::query()->where('target_user_id', $user->id);
+        $query = UserRoleAudit::query()
+            ->where('target_user_id', $user->id)
+            ->bySourceFilter(UserRoleAudit::normaliseSourceFilter($filters['audit_source']))
+            ->betweenDates(
+                UserRoleAudit::normaliseRangePreset($filters['audit_range']),
+                $filters['audit_from'],
+                $filters['audit_to'],
+            )
+            ->filtered([
+                'actor'  => $filters['actor'],
+                'role'   => $filters['role'],
+                'action' => $filters['action'],
+            ]);
 
         return $exporter->streamResponse($query, $filename, [
             'scope'          => UserRoleAuditExport::SCOPE_SINGLE_USER,
             'target_user_id' => $user->id,
             'request'        => $request,
         ]);
+    }
+
+    /**
+     * Filter inputs surfaced by the role-change panel on the
+     * back-office user pages. Mirrors the shape the user-access
+     * panel uses so the same view partials and CSV exporter can be
+     * reused without controller-level branching.
+     *
+     * @return array{actor:string,role:string,action:string,source:string,from:string,to:string}
+     */
+    protected function panelFilters(Request $request): array
+    {
+        return [
+            'actor'        => trim((string) $request->get('actor', '')),
+            'role'         => trim((string) $request->get('role', '')),
+            'action'       => (string) $request->get('action', ''),
+            'audit_source' => (string) ($request->get('audit_source', '') ?? ''),
+            'audit_range'  => (string) ($request->get('audit_range', '') ?? ''),
+            'audit_from'   => trim((string) $request->get('audit_from', '')),
+            'audit_to'     => trim((string) $request->get('audit_to', '')),
+        ];
     }
 }

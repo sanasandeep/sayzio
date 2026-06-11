@@ -323,7 +323,7 @@ class UserRoleAudit extends Model
         }
 
         $source = (string) ($f['source'] ?? '');
-        if (in_array($source, [self::SOURCE_USER_ACCESS, self::SOURCE_ADMIN], true)) {
+        if ($source !== '' && array_key_exists($source, self::sourceLabels())) {
             $query->where('source', $source);
         }
 
@@ -346,6 +346,42 @@ class UserRoleAudit extends Model
         }
 
         return $query;
+    }
+
+    /**
+     * Human-readable labels for every supported `action` value.
+     * Single source of truth for the dropdowns rendered on the
+     * dedicated audit page and the smaller per-page filter panels.
+     *
+     * @return array<string, string>
+     */
+    public static function actionLabels(): array
+    {
+        return [
+            self::ACTION_ATTACHED => 'Granted',
+            self::ACTION_DETACHED => 'Revoked',
+        ];
+    }
+
+    /**
+     * Human-readable labels for every supported `source` value,
+     * including the synthetic "backfill" and cascade-detach rows.
+     * Used both to populate the source filter dropdown and to
+     * validate which source values the `Filtered` scope honours,
+     * so adding a new constant in one place automatically lights it
+     * up across every audit surface.
+     *
+     * @return array<string, string>
+     */
+    public static function sourceLabels(): array
+    {
+        return [
+            self::SOURCE_USER_ACCESS  => 'User access page',
+            self::SOURCE_ADMIN        => 'Back-office admin',
+            self::SOURCE_BACKFILL     => 'Backfill',
+            self::SOURCE_USER_DELETED => 'User deleted (cascade)',
+            self::SOURCE_ROLE_DELETED => 'Role deleted (cascade)',
+        ];
     }
 
     /**

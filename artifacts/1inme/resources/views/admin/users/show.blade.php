@@ -95,6 +95,10 @@
     @endphp
 
     @if($canSeeRoleAudits)
+    @php
+        $hasAuditFilter = collect($auditFilters ?? [])->filter(fn ($v) => $v !== '' && $v !== null)->isNotEmpty();
+        $exportParams   = array_merge(['user' => $user->id], $auditFilters ?? []);
+    @endphp
     <div class="lg:col-span-3">
         <div class="glass rounded-2xl border border-white/10 p-6">
             <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
@@ -107,9 +111,9 @@
                        class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
                         <i class="fas fa-clipboard-list mr-1"></i> Full audit log
                     </a>
-                    <a href="{{ route('admin.users.roles.audit.export', $user) }}"
+                    <a href="{{ route('admin.users.roles.audit.export', $exportParams) }}"
                        class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 whitespace-nowrap"
-                       title="Download the full role-change history for {{ $user->name }} as CSV — not just the rows shown here.">
+                       title="Download the role-change history for {{ $user->name }} matching the filters below as CSV.">
                         <i class="fas fa-file-csv mr-1"></i> Export CSV
                     </a>
                     <a href="{{ route('admin.users.roles.edit', $user) }}"
@@ -119,97 +123,83 @@
                 </div>
             </div>
 
-            @php
-                $auditRange        = $auditRange        ?? null;
-                $auditFrom         = $auditFrom         ?? '';
-                $auditTo           = $auditTo           ?? '';
-                $auditRangeFilters = $auditRangeFilters ?? [];
-                $hasAuditFilter    = !empty($auditSource ?? null) || !empty($auditRange) || $auditFrom !== '' || $auditTo !== '';
-            @endphp
-
-            {{-- Source chip filter. Each chip is a plain link that
-                 sets/clears `?audit_source=` while preserving the
-                 active date range, so source × range combinations
-                 are shareable URLs. --}}
-            <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-source-filter">
-                <span class="text-xs text-white/40 mr-1">Source:</span>
-                <a href="{{ route('admin.users.show', array_filter(['user' => $user->id, 'audit_range' => $auditRange, 'audit_from' => $auditFrom, 'audit_to' => $auditTo])) }}"
-                   data-source="all"
-                   class="px-2.5 py-1 rounded-full text-xs border
-                       {{ empty($auditSource ?? null)
-                           ? 'bg-white/15 text-white border-white/20'
-                           : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
-                    All
-                </a>
-                @foreach(($auditFilters ?? []) as $filterValue => $filterLabel)
-                    <a href="{{ route('admin.users.show', array_filter(['user' => $user->id, 'audit_source' => $filterValue, 'audit_range' => $auditRange, 'audit_from' => $auditFrom, 'audit_to' => $auditTo])) }}"
-                       data-source="{{ $filterValue }}"
-                       class="px-2.5 py-1 rounded-full text-xs border
-                           {{ ($auditSource ?? null) === $filterValue
-                               ? 'bg-white/15 text-white border-white/20'
-                               : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
-                        {{ $filterLabel }}
-                    </a>
-                @endforeach
-            </div>
-
-            {{-- Date-range preset chips + custom from/to picker.
-                 Presets preserve the source filter and any explicit
-                 from/to via query params; the custom form is a tiny
-                 GET so submitting it round-trips through the
-                 controller and the URL stays the source of truth. --}}
-            <div class="flex flex-wrap items-center gap-2 mb-3" data-testid="audit-range-filter">
-                <span class="text-xs text-white/40 mr-1">Range:</span>
-                @foreach($auditRangeFilters as $rangeValue => $rangeLabel)
-                    @php
-                        $isAllChip = ($rangeValue === \App\Modules\User\Models\UserRoleAudit::RANGE_ALL);
-                        $isActive  = $isAllChip
-                            ? (empty($auditRange) && $auditFrom === '' && $auditTo === '')
-                            : ($auditRange === $rangeValue);
-                        // Preset chips preserve the custom from/to so a
-                        // reviewer can intersect "last 7 days" with a
-                        // hand-picked window — the model scope composes
-                        // preset and explicit endpoints as an AND.
-                        $params    = array_filter([
-                            'user'         => $user->id,
-                            'audit_source' => $auditSource ?? null,
-                            'audit_range'  => $isAllChip ? null : $rangeValue,
-                            'audit_from'   => $auditFrom !== '' ? $auditFrom : null,
-                            'audit_to'     => $auditTo   !== '' ? $auditTo   : null,
-                        ]);
-                    @endphp
-                    <a href="{{ route('admin.users.show', $params) }}"
-                       data-range="{{ $rangeValue }}"
-                       class="px-2.5 py-1 rounded-full text-xs border
-                           {{ $isActive
-                               ? 'bg-white/15 text-white border-white/20'
-                               : 'bg-white/[0.02] text-white/60 border-white/10 hover:bg-white/10' }}">
-                        {{ $rangeLabel }}
-                    </a>
-                @endforeach
-                <form method="GET" action="{{ route('admin.users.show', $user) }}" class="flex items-center gap-1 ml-1" data-testid="audit-range-custom">
-                    @if(!empty($auditSource ?? null))
-                        <input type="hidden" name="audit_source" value="{{ $auditSource }}">
-                    @endif
-                    {{-- Carry the active preset through so submitting
-                         a custom from/to intersects with it instead of
-                         silently clearing it. --}}
-                    @if(!empty($auditRange))
-                        <input type="hidden" name="audit_range" value="{{ $auditRange }}">
-                    @endif
-                    <input type="date" name="audit_from" value="{{ $auditFrom }}"
-                           class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80"
-                           aria-label="From date">
-                    <span class="text-xs text-white/40">→</span>
-                    <input type="date" name="audit_to" value="{{ $auditTo }}"
-                           class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/80"
-                           aria-label="To date">
+            {{-- Filter controls. Drive both the rendered list and the
+                 "Export CSV" link above. All filter state lives in the
+                 URL (GET) so a filtered view of this user's history is
+                 shareable. Source, range preset and from/to use the
+                 `audit_*` query params; actor/role/action use their own. --}}
+            <form method="GET" action="{{ route('admin.users.show', $user) }}"
+                  class="rounded-xl border border-white/5 bg-white/[0.02] p-3 mb-4 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Actor</span>
+                        <input type="text" name="actor" value="{{ $auditFilters['actor'] ?? '' }}"
+                               placeholder="Name, email, or id"
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                    </label>
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Role</span>
+                        <select name="role"
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            <option value="">Any role</option>
+                            @foreach(($auditRoleSlugs ?? []) as $slug)
+                                <option value="{{ $slug }}" @selected(($auditFilters['role'] ?? '') === $slug)>{{ $slug }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</span>
+                        <select name="action"
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            <option value="">Any action</option>
+                            @foreach(($auditActions ?? []) as $value => $label)
+                                <option value="{{ $value }}" @selected(($auditFilters['action'] ?? '') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Source</span>
+                        <select name="audit_source"
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            <option value="">Any source</option>
+                            @foreach(($auditSources ?? []) as $value => $label)
+                                <option value="{{ $value }}" @selected(($auditFilters['audit_source'] ?? '') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Range</span>
+                        <select name="audit_range" data-testid="audit-range-filter"
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            <option value="">All time</option>
+                            @foreach(($auditRanges ?? []) as $value => $label)
+                                @continue($value === \App\Modules\User\Models\UserRoleAudit::RANGE_ALL)
+                                <option value="{{ $value }}" @selected(($auditFilters['audit_range'] ?? '') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">From</span>
+                        <input type="date" name="audit_from" value="{{ $auditFilters['audit_from'] ?? '' }}"
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                    </label>
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">To</span>
+                        <input type="date" name="audit_to" value="{{ $auditFilters['audit_to'] ?? '' }}"
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                    </label>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
                     <button type="submit"
-                            class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 text-xs">
-                        Apply
+                            class="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 text-xs font-medium">
+                        <i class="fas fa-filter mr-1"></i> Apply filters
                     </button>
-                </form>
-            </div>
+                    @if($hasAuditFilter)
+                        <a href="{{ route('admin.users.show', $user) }}"
+                           class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs">Clear filters</a>
+                    @endif
+                </div>
+            </form>
 
             @if(empty($roleAudits) || $roleAudits->isEmpty())
                 <p class="text-sm text-white/40">
