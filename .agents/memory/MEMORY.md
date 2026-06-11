@@ -1,0 +1,1 @@
+- [Sanctum API feature tests](sanctum-api-tests.md) — `Sanctum::actingAs` breaks the TouchSessionToken middleware; auth API tests must use a real Bearer token.
