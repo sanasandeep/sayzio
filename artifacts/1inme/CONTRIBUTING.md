@@ -94,6 +94,48 @@ cd artifacts/1inme
 php artisan test
 ```
 
+### Sharded runner (bounded memory for the full suite)
+
+`php artisan test` runs **every** test in one long-lived PHP process. Each test
+boots a fresh Laravel app (~1.4k lines of routes) and builds cyclic object
+graphs, so resident memory grows roughly linearly across the run. As the app
+keeps adding routes and tests, that single process eventually approaches the
+`memory_limit` ceiling in [`phpunit.xml`](phpunit.xml).
+
+The durable fix is **process isolation**: split the suite across several
+short-lived phpunit processes ("shards") so peak memory is bounded by the
+*largest shard*, not the whole suite — no matter how many tests are added.
+
+```bash
+cd artifacts/1inme
+composer test:sharded                      # default: 4 shards
+php scripts/run-sharded-tests.php --shards=6
+php scripts/run-sharded-tests.php --dry-run # print the shard plan, run nothing
+```
+
+How it stays fast despite multiple processes:
+
+- The `migrate:fresh` (224 migrations against remote Postgres — the slow part)
+  is run **once**, by the first shard, on the shared `1inme_testing` database.
+- Every later shard is launched with `SHARDED_TEST_SKIP_MIGRATION=1`, which
+  [`tests/bootstrap.php`](tests/bootstrap.php) uses to tell Laravel's
+  `RefreshDatabase` trait the schema already exists, so those shards skip
+  migrating and only wrap each test in a transaction (rolled back per test, so
+  the shared database stays clean across shards).
+- Because shards run sequentially against the one database, there is **no**
+  per-worker database creation/migration cost — the reason `paratest` was not
+  viable in this environment.
+
+Test files are spread across shards with a largest-first greedy heuristic
+(file size as a duration proxy) to keep shards balanced. The runner streams each
+shard's output live and exits non-zero if **any** shard failed, printing the
+failing shard numbers.
+
+Use `php artisan test` for everyday single-class iteration
+(`php artisan test --filter=SomeTest`); reach for `composer test:sharded` when
+running the whole suite, in CI, or whenever the single-process run gets close to
+the memory ceiling.
+
 ### One-time local setup
 
 The suite uses `RefreshDatabase`, which **drops and re-creates every table** in

@@ -58,6 +58,10 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:sharded": [
+            "@php artisan config:clear --ansi",
+            "@php scripts/run-sharded-tests.php"
+        ],
         "lint:views": [
             "@php artisan test --filter=BladeViewsCompileTest"
         ],

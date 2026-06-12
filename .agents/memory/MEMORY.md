@@ -1,3 +1,4 @@
+- [Sharded PHPUnit runner](sharded-test-runner.md) — `composer test:sharded` bounds test memory by running shards; migrate once on shard 1, skip on the rest via SHARDED_TEST_SKIP_MIGRATION.
 - [Sanctum API feature tests](sanctum-api-tests.md) — `Sanctum::actingAs` breaks the TouchSessionToken middleware; auth API tests must use a real Bearer token.
 - [Consent backdrop vs launcher stacking](cookie-consent-vs-launcher-stacking.md) — a bottom-corner widget must out-stack the consent host (z ~2.1B), not just dodge its card, or the modal/takeover backdrop eats its clicks.
 - [Alpine x-transition leave bug](alpine-x-transition-leave-bug.md) — `x-transition` shorthand on `x-show` panels can open but never set `display:none` on leave; use enter-only directives.

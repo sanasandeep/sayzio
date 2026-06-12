@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
 >
     <testsuites>
@@ -41,6 +41,15 @@
             1024M workaround to 512M (still ~2x headroom). If this is ever hit
             again as the app grows, prefer process isolation (sharding the run
             into multiple sequential phpunit processes) over raising it further.
+
+            Process isolation IS now available: `composer test:sharded` (see
+            scripts/run-sharded-tests.php) splits the suite across several
+            short-lived phpunit processes so peak memory is bounded by the
+            largest shard, not the whole suite, regardless of how many tests
+            are added. A single `migrate:fresh` is shared across all shards via
+            tests/bootstrap.php, so the slow migration is paid only once. Use
+            the sharded runner whenever the single-process run gets close to
+            this ceiling again.
         -->
         <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
