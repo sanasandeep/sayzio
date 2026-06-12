@@ -107,7 +107,24 @@
     </div>
 @endif
 
-<div x-data="{ tab: '{{ !empty($channelFilter) ? 'traffic' : 'overview' }}' }">
+<div x-data="{
+        tab: '{{ !empty($channelFilter) ? 'traffic' : 'overview' }}',
+        channelForced: {{ !empty($channelFilter) ? 'true' : 'false' }},
+        tabs: ['overview', 'traffic', 'growth'],
+        init() {
+            // A ?channel= filter always wins and pins the Traffic tab.
+            if (!this.channelForced) {
+                try {
+                    const saved = localStorage.getItem('1inme_dashboard_tab');
+                    if (saved && this.tabs.includes(saved)) this.tab = saved;
+                } catch (e) {}
+            }
+            // Remember the user's last-selected tab for next time.
+            this.$watch('tab', (val) => {
+                try { localStorage.setItem('1inme_dashboard_tab', val); } catch (e) {}
+            });
+        }
+    }">
 
     {{-- Dashboard view tabs — split the long scroll into calmer, focused views. --}}
     <div class="dash-tabs mb-6" role="tablist" aria-label="Dashboard views">
