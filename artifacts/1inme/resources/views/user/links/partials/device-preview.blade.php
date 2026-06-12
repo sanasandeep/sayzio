@@ -223,6 +223,81 @@
         line-height: 1.4;
     }
     .device-screen.preview-expired .preview-expired-banner { display: flex; }
+
+    /* ── Full-screen pop-out preview ─────────────────────────────────────── */
+    .preview-popout-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483600; /* above the dashboard chrome & most widgets */
+        display: flex;
+        flex-direction: column;
+        background: rgba(8, 5, 16, 0.92);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    .preview-popout-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 16px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--border-glass);
+        background: var(--bg-glass);
+    }
+    .preview-popout-bar-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .preview-popout-bar-group[data-grow] { flex: 1; justify-content: center; }
+    .preview-popout-res {
+        font-size: 11px;
+        color: var(--text-faint);
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        letter-spacing: 0.5px;
+        margin-left: 6px;
+        white-space: nowrap;
+    }
+    .preview-popout-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 9px;
+        border-radius: 9999px;
+        font-size: 10px;
+        font-weight: 600;
+        background: rgba(245,158,11,0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245,158,11,0.3);
+    }
+    .preview-popout-stage {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        overflow: hidden;
+    }
+    .preview-popout-frame {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.18);
+        background: #000;
+    }
+    .preview-popout-frame .device-screen {
+        width: 100%;
+        height: 100%;
+    }
+    #previewPopoutIframe {
+        transform-origin: top left;
+        border: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
     .preview-expired-banner .preview-expired-title {
         font-size: 13px;
         font-weight: 600;
@@ -266,6 +341,14 @@
         </button>
         <button type="button" @click="previewMode = 'desktop'; switchPreviewMode('desktop')" class="device-switcher-btn" :class="previewMode === 'desktop' ? 'active' : ''" title="Desktop">
             <i class="fas fa-desktop"></i>
+        </button>
+        <span class="mx-0.5" style="width:1px; height:20px; background: var(--border-glass);"></span>
+        {{-- Pop out the current preview into a full-screen overlay so desktop /
+             tablet-landscape pages are readable at a comfortable scale. Opens
+             on whatever device mode is currently selected and reuses the same
+             signed/draft/simulate-aware URL via _currentPreviewSrc(). --}}
+        <button type="button" onclick="openPreviewPopout()" class="device-switcher-btn" title="Open full-screen preview">
+            <i class="fas fa-up-right-and-down-left-from-center"></i>
         </button>
     </div>
 
@@ -413,6 +496,64 @@
     </div>
 </div>
 
+{{-- ───────────────────────────────────────────────────────────────────────
+     Full-screen pop-out preview overlay.
+
+     The in-editor sidebar preview scales a wide (1440px desktop / 1024px
+     tablet-landscape) page into a ~400px column, so its text is tiny. This
+     overlay re-hosts the SAME signed/draft/simulate-aware preview URL in a
+     near-fullscreen stage, fit-scaled to both width and height, so desktop
+     and tablet-landscape pages are readable at a comfortable size. It has its
+     own device switcher and reuses _currentPreviewSrc(), so draft pushes,
+     simulate-as overrides and signed-URL refreshes keep flowing into it.
+     ─────────────────────────────────────────────────────────────────────── --}}
+<div id="previewPopoutOverlay" class="preview-popout-overlay" style="display:none;" aria-hidden="true">
+    <div class="preview-popout-bar">
+        <div class="preview-popout-bar-group">
+            <i class="fas fa-eye" style="color: var(--text-faint); font-size: 12px;"></i>
+            <span style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Full-screen preview</span>
+            <span id="previewPopoutDraftPill" class="preview-popout-pill hidden">
+                <i class="fas fa-circle text-[6px]"></i> Unsaved
+            </span>
+        </div>
+        <div class="preview-popout-bar-group">
+            <button type="button" data-popout-mode="phone" onclick="setPopoutMode('phone')" class="device-switcher-btn" title="Phone">
+                <i class="fas fa-mobile-alt"></i>
+            </button>
+            <button type="button" data-popout-mode="tablet" onclick="setPopoutMode('tablet')" class="device-switcher-btn" title="Tablet Portrait">
+                <i class="fas fa-tablet-alt"></i>
+            </button>
+            <button type="button" data-popout-mode="tablet-land" onclick="setPopoutMode('tablet-land')" class="device-switcher-btn" title="Tablet Landscape">
+                <i class="fas fa-tablet-alt" style="transform: rotate(-90deg);"></i>
+            </button>
+            <button type="button" data-popout-mode="desktop" onclick="setPopoutMode('desktop')" class="device-switcher-btn" title="Desktop">
+                <i class="fas fa-desktop"></i>
+            </button>
+            <span id="previewPopoutLabel" class="preview-popout-res"></span>
+        </div>
+        <div class="preview-popout-bar-group">
+            <a id="previewPopoutNewTab" href="#" target="_blank" rel="noopener" class="device-switcher-btn" title="Open in new tab (native size)">
+                <i class="fas fa-up-right-from-square"></i>
+            </a>
+            <button type="button" onclick="closePreviewPopout()" class="device-switcher-btn" title="Close (Esc)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div id="previewPopoutStage" class="preview-popout-stage">
+        <div id="previewPopoutFrame" class="preview-popout-frame">
+            <div id="previewPopoutScreen" class="device-screen" style="background:#000; overflow:hidden; position:relative;">
+                <iframe id="previewPopoutIframe" title="Full-screen biolink preview"></iframe>
+                <div class="preview-expired-banner">
+                    <div class="preview-expired-title">Preview session expired</div>
+                    <div class="preview-expired-msg">Your editor has been open for a while. Reload to refresh the preview.</div>
+                    <button type="button" onclick="refreshPreviewSignedUrl(true)">Reload preview</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @php
     // Owner-scoped, signed preview URL. The RedirectController honours
     // `?_preview=1` + a valid Laravel signature as proof of ownership so the
@@ -516,6 +657,8 @@ function _setExpiredBanner(show) {
         if (!screen) return;
         screen.classList.toggle('preview-expired', !!show);
     });
+    var ps = document.getElementById('previewPopoutScreen');
+    if (ps) ps.classList.toggle('preview-expired', !!show);
 }
 
 // Mint a fresh signed URL via the editor endpoint. When `forceReloadAll` is
@@ -543,6 +686,7 @@ function refreshPreviewSignedUrl(forceReloadAll) {
                     _reloadIframe(f);
                 }
             });
+            if (_isPopoutOpen()) _reloadPopoutIframe();
         }
         return true;
     }).catch(function(err) {
@@ -624,6 +768,7 @@ function previewSimulator() {
                     f.dataset.previewStale = '1';
                 }
             });
+            if (_isPopoutOpen()) _reloadPopoutIframe();
         },
         clear() {
             this.simDevice = '';
@@ -787,6 +932,10 @@ function pushDraftPreview(form, opts) {
                     f.dataset.previewStale = '1';
                 }
             });
+            // Pop-out is always visible while open, so keep it live.
+            if (_isPopoutOpen()) _reloadPopoutIframe();
+            var pill = document.getElementById('previewPopoutDraftPill');
+            if (pill) pill.classList.remove('hidden');
         }
     }).catch(function() { /* silent — keep editing */ });
 }
@@ -837,6 +986,105 @@ function _hideDraftBadge() {
     badge.classList.add('hidden');
 }
 
+// ----------------------------------------------------------------------------
+// Full-screen pop-out preview. Re-hosts _currentPreviewSrc() in a large stage
+// so wide (desktop / tablet-landscape) pages are legible. It has its own device
+// mode (_popoutMode) independent of the sidebar, fit-scales the iframe to both
+// the available width AND height, and is kept in sync with draft/sim/signed-URL
+// refreshes via the hooks added below.
+// ----------------------------------------------------------------------------
+var _popoutMode = 'phone';
+var _popoutResLabels = {
+    phone:        'iPhone 15 · 375 × 812',
+    tablet:       'iPad · 768 × 1024',
+    'tablet-land': 'iPad Landscape · 1024 × 768',
+    desktop:      'MacBook · 1440 × 900'
+};
+
+function _isPopoutOpen() {
+    var o = document.getElementById('previewPopoutOverlay');
+    return !!o && o.style.display !== 'none';
+}
+
+function _scalePopoutIframe() {
+    if (!_isPopoutOpen()) return;
+    var vp = _deviceViewports[_popoutMode];
+    if (!vp) return;
+    var stage = document.getElementById('previewPopoutStage');
+    var frame = document.getElementById('previewPopoutFrame');
+    var iframe = document.getElementById('previewPopoutIframe');
+    if (!stage || !frame || !iframe) return;
+    var pad = 8; // breathing room inside the stage padding
+    var availW = Math.max(1, stage.clientWidth - pad);
+    var availH = Math.max(1, stage.clientHeight - pad);
+    // Fit to both axes; never upscale past native (keeps text crisp). Even at
+    // 1:1 a 1440px desktop page is far larger than the ~400px sidebar column.
+    var scale = Math.min(availW / vp.w, availH / vp.h, 1);
+    frame.style.width  = Math.round(vp.w * scale) + 'px';
+    frame.style.height = Math.round(vp.h * scale) + 'px';
+    iframe.style.width  = vp.w + 'px';
+    iframe.style.height = vp.h + 'px';
+    iframe.style.transform = 'scale(' + scale + ')';
+}
+
+function _syncPopoutModeButtons() {
+    document.querySelectorAll('[data-popout-mode]').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.popoutMode === _popoutMode);
+    });
+    var label = document.getElementById('previewPopoutLabel');
+    if (label) label.textContent = _popoutResLabels[_popoutMode] || '';
+}
+
+function _reloadPopoutIframe() {
+    var iframe = document.getElementById('previewPopoutIframe');
+    if (!iframe) return;
+    iframe.src = _currentPreviewSrc();
+    var link = document.getElementById('previewPopoutNewTab');
+    if (link) link.href = _currentPreviewSrc();
+}
+
+function setPopoutMode(mode) {
+    if (!_deviceViewports[mode]) return;
+    _popoutMode = mode;
+    _syncPopoutModeButtons();
+    // Same URL across modes — only the iframe's logical size changes, which
+    // re-triggers the page's responsive layout. No reload needed.
+    _scalePopoutIframe();
+}
+
+function openPreviewPopout() {
+    var overlay = document.getElementById('previewPopoutOverlay');
+    if (!overlay) return;
+    // Open on whatever device mode the sidebar is currently showing.
+    _popoutMode = _activePreviewMode || 'phone';
+    // Mirror the sidebar's draft state into the pop-out pill.
+    var pill = document.getElementById('previewPopoutDraftPill');
+    if (pill) pill.classList.toggle('hidden', !_draftActive);
+    overlay.style.display = 'flex';
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    _syncPopoutModeButtons();
+    _reloadPopoutIframe();
+    // Scale once layout has settled (stage now has real dimensions).
+    requestAnimationFrame(function() { requestAnimationFrame(_scalePopoutIframe); });
+}
+
+function closePreviewPopout() {
+    var overlay = document.getElementById('previewPopoutOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    // Drop the iframe so it stops being reloaded by draft/refresh loops while
+    // hidden, and to free the embedded page.
+    var iframe = document.getElementById('previewPopoutIframe');
+    if (iframe) iframe.src = 'about:blank';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && _isPopoutOpen()) closePreviewPopout();
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     _schedulePreviewRefresh();
     _ensureIframeLoaded('phone');
@@ -849,7 +1097,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 window.addEventListener('resize', function() {
     clearTimeout(window._resizeScaleTimer);
-    window._resizeScaleTimer = setTimeout(_scaleDeviceIframes, 150);
+    window._resizeScaleTimer = setTimeout(function() {
+        _scaleDeviceIframes();
+        _scalePopoutIframe();
+    }, 150);
 });
 
 // Tab-return safety net: if the laptop was asleep / tab was hidden long
