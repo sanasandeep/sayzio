@@ -90,6 +90,49 @@ Optional bearer token honored for visibility checks (see `/biolinks/{alias}`).
 | GET    | `/discovery/creators`                 | Paginated discoverable creators. `q?`.   |
 | GET    | `/discovery/creators/{handle}`        | Public profile by handle.                |
 
+## QR Studio (own resources only)
+
+QR codes mirror the web builder pipeline exactly: the same design sanitizer
+(`QrCodeDesignSanitizer`) and type registry (`QrCodeTypeRegistry`) validate and
+normalise every payload, so the API and UI never diverge. Every QR object
+includes an `encoded` field — the exact string a scanner will read (the attached
+link's short URL when `link_id` is set, otherwise the registry-built payload
+string).
+
+| Method      | Path                  | Description                                                                                  |
+| ----------- | --------------------- | -------------------------------------------------------------------------------------------- |
+| GET         | `/qr-codes`           | List your QR codes (newest first). Returns `{items: QrCode[]}`.                               |
+| GET         | `/qr-codes/catalog`   | Shared design catalog: `dots`, `outer_eyes`, `inner_eyes`, `frames`, `fonts`, `types`, `presets` (30+ templates), `default_design`. |
+| POST        | `/qr-codes`           | Create. Body: `name`, `type`, `payload?`, `design?`, `link_id?`, `project_id?`. Returns `{qr_code}`. |
+| POST        | `/qr-codes/bulk`      | Bulk create (max 500). Body: `{items: [...]}`. Each item validated independently; the whole batch is rejected (422 with per-index `details`) if any item is invalid. Returns `{items, count}`. |
+| GET         | `/qr-codes/{id}`      | Show single QR you own.                                                                       |
+| PUT / PATCH | `/qr-codes/{id}`      | Partial update (name, type, payload, design, link_id, project_id).                            |
+| DELETE      | `/qr-codes/{id}`      | Delete.                                                                                       |
+
+`type` is one of the registry types: `text`, `url`, `phone`, `sms`, `email`,
+`whatsapp`, `facetime`, `location`, `wifi`, `event`, `vcard`, `crypto`,
+`paypal`, `upi`, `epc`, `pix`. Type-specific `payload` rules are enforced unless
+the QR is link-backed (`link_id` set), in which case the QR encodes the link.
+
+`design` accepts the full builder vocabulary, including per-corner eyes:
+`eyes_per_corner` (bool) plus `eye_corners` (array of 3 — TL/TR/BL — each with
+`outer_shape`, `outer_color`, `inner_shape`, `inner_color`). Unknown keys are
+dropped by the sanitizer.
+
+**Scan analytics:** attach a trackable link to a QR (`link_id`). Scans then flow
+through the standard link-click pipeline (geo, device, browser, OS, heatmap) and
+are available on the link's analytics page — no separate QR tracking table is
+required, and the printed code keeps working even if you change the link later.
+
+```bash
+# Create a styled QR from a preset template
+PRESET=$(curl -s $BASE/qr-codes/catalog -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json' \
+  | jq '.data.presets[0].design')
+curl -X POST $BASE/qr-codes -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json' \
+  -d "{\"name\":\"Launch\",\"type\":\"url\",\"payload\":{\"url\":\"https://1inme.com\"},\"design\":$PRESET}"
+```
+
 ## Health
 
 | Method | Path        | Description                                  |

@@ -177,6 +177,31 @@
                     <div class="mt-3 text-center text-[11px] break-all" style="color: var(--text-muted);">
                         <span x-text="encodedPreview"></span>
                     </div>
+
+                    {{-- Live scannability checker --}}
+                    <div class="mt-4 qr-section" x-show="scan">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-semibold uppercase tracking-wider" style="color: var(--text-faint);">
+                                <i class="fas fa-bullseye"></i> Scannability
+                            </span>
+                            <span class="text-xs font-bold" :style="`color:${scanColor()}`">
+                                <span x-text="scan ? scan.score : ''"></span><span style="opacity:.5">/100</span>
+                                <span class="ml-1 uppercase text-[10px]" x-text="scan ? scan.level : ''"></span>
+                            </span>
+                        </div>
+                        <div class="h-1.5 rounded-full overflow-hidden mb-2" style="background: var(--bg-glass-input);">
+                            <div class="h-full rounded-full transition-all" :style="`width:${scan?scan.score:0}%; background:${scanColor()}`"></div>
+                        </div>
+                        <ul class="space-y-1">
+                            <template x-for="(issue, i) in (scan ? scan.issues : [])" :key="i">
+                                <li class="text-[10px] flex gap-1.5 items-start" :style="`color:${issueColor(issue.level)}`">
+                                    <i class="fas mt-0.5"
+                                       :class="issue.level==='error'?'fa-times-circle':issue.level==='warn'?'fa-exclamation-triangle':'fa-info-circle'"></i>
+                                    <span x-text="issue.text"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -184,7 +209,7 @@
             <div class="lg:col-span-4 space-y-4">
                 <div class="card-premium p-2">
                     <div class="flex border-b" style="border-color: var(--border-glass);">
-                        @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More'] as $k => $lbl)
+                        @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More','export'=>'Export'] as $k => $lbl)
                             <button type="button" @click="tab = '{{ $k }}'"
                                     class="qr-tab" :class="tab === '{{ $k }}' ? 'active' : ''">{{ $lbl }}</button>
                         @endforeach
@@ -240,6 +265,50 @@
                                 </div>
                             </div>
                         @endforeach
+
+                        {{-- Per-corner eye styling (TL / TR / BL) --}}
+                        <div class="qr-section">
+                            <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold cursor-pointer mb-1" style="color: var(--text-secondary);">
+                                <input type="checkbox" x-model="design.eyes_per_corner"
+                                       @change="if (design.eyes_per_corner) seedCornersFromGlobal(); render()">
+                                Style each corner separately
+                            </label>
+                            <p class="text-[10px] mb-2" style="color: var(--text-faint);">
+                                Off = all three eyes share the shapes/colors above (apply to all).
+                            </p>
+                            <div x-show="design.eyes_per_corner" x-cloak class="space-y-3">
+                                @php $cornerLabels = ['Top-left','Top-right','Bottom-left']; @endphp
+                                @foreach($cornerLabels as $ci => $clabel)
+                                    <div class="rounded-lg p-2" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                                        <div class="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">{{ $clabel }}</div>
+                                        <div class="grid grid-cols-2 gap-1.5">
+                                            <select x-model="design.eye_corners[{{ $ci }}].outer_style" @change="render()"
+                                                    class="px-1.5 py-1 text-[11px] rounded outline-none" style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                                @foreach($catalog['outerEyes'] as $grp => $ids)
+                                                    <optgroup label="{{ $grp }}">
+                                                        @foreach($ids as $id)<option value="{{ $id }}">{{ $id }}</option>@endforeach
+                                                    </optgroup>
+                                                @endforeach
+                                            </select>
+                                            <select x-model="design.eye_corners[{{ $ci }}].inner_style" @change="render()"
+                                                    class="px-1.5 py-1 text-[11px] rounded outline-none" style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                                @foreach($catalog['innerEyes'] as $grp => $ids)
+                                                    <optgroup label="{{ $grp }}">
+                                                        @foreach($ids as $id)<option value="{{ $id }}">{{ $id }}</option>@endforeach
+                                                    </optgroup>
+                                                @endforeach
+                                            </select>
+                                            <label class="flex items-center gap-1 text-[10px]" style="color: var(--text-muted);">
+                                                Outer <input type="color" x-model="design.eye_corners[{{ $ci }}].outer_color" @input="render()" class="w-7 h-7 rounded cursor-pointer">
+                                            </label>
+                                            <label class="flex items-center gap-1 text-[10px]" style="color: var(--text-muted);">
+                                                Inner <input type="color" x-model="design.eye_corners[{{ $ci }}].inner_color" @input="render()" class="w-7 h-7 rounded cursor-pointer">
+                                            </label>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
 
                     {{-- COLORS tab --}}
@@ -427,6 +496,74 @@
                             </label>
                         </div>
                     </div>
+
+                    {{-- EXPORT tab --}}
+                    <div x-show="tab === 'export'" x-cloak class="p-3 space-y-3">
+                        <div class="qr-section">
+                            <div class="text-[11px] font-semibold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Standard export</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" @click="downloadPng()" class="px-3 py-2 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary); border: 1px solid var(--border-glass);"><i class="fas fa-image"></i> PNG</button>
+                                <button type="button" @click="downloadSvg()" class="px-3 py-2 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary); border: 1px solid var(--border-glass);"><i class="fas fa-bezier-curve"></i> SVG (vector)</button>
+                            </div>
+                        </div>
+
+                        <div class="qr-section">
+                            <div class="text-[11px] font-semibold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Print-ready</div>
+                            <div class="grid grid-cols-3 gap-2 mb-2">
+                                <label class="text-[10px]" style="color: var(--text-muted);">Size (mm)
+                                    <input type="number" min="10" max="500" step="1" x-model.number="print.sizeMm"
+                                           class="w-full mt-0.5 px-2 py-1 text-xs rounded outline-none text-center font-mono" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                </label>
+                                <label class="text-[10px]" style="color: var(--text-muted);">DPI
+                                    <select x-model.number="print.dpi" class="w-full mt-0.5 px-1 py-1 text-xs rounded outline-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                        <option :value="150">150</option>
+                                        <option :value="300">300</option>
+                                        <option :value="600">600</option>
+                                    </select>
+                                </label>
+                                <label class="text-[10px]" style="color: var(--text-muted);">Bleed (mm)
+                                    <input type="number" min="0" max="20" step="1" x-model.number="print.bleedMm"
+                                           class="w-full mt-0.5 px-2 py-1 text-xs rounded outline-none text-center font-mono" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                </label>
+                            </div>
+                            <p class="text-[10px] mb-2" style="color: var(--text-faint);">
+                                ≈ <span class="font-mono" x-text="Math.round(print.sizeMm/25.4*print.dpi)"></span>px raster at <span x-text="print.dpi"></span> DPI.
+                            </p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" @click="downloadPdf()" :disabled="exporting"
+                                        class="px-3 py-2 text-xs rounded-lg font-semibold" style="background: var(--accent); color: #fff;">
+                                    <i class="fas fa-file-pdf"></i> <span x-text="exporting ? 'Working…' : 'PDF'"></span>
+                                </button>
+                                <button type="button" @click="downloadPrintPng()" :disabled="exporting"
+                                        class="px-3 py-2 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary); border: 1px solid var(--border-glass);">
+                                    <i class="fas fa-print"></i> Hi-res PNG
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="qr-section">
+                            <div class="text-[11px] font-semibold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Bulk generation</div>
+                            <p class="text-[10px] mb-2" style="color: var(--text-faint);">
+                                Upload a CSV with a <code>data</code> (or <code>url</code>) column and optional <code>name</code> column. Each row is rendered with the current design and zipped.
+                            </p>
+                            <div class="flex items-center gap-2 mb-2">
+                                <label class="text-[10px]" style="color: var(--text-muted);">Format
+                                    <select x-model="bulkFormat" class="ml-1 px-1.5 py-1 text-[11px] rounded outline-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                        <option value="png">PNG</option>
+                                        <option value="svg">SVG</option>
+                                    </select>
+                                </label>
+                                <label class="px-2 py-1.5 text-[11px] rounded cursor-pointer" style="background: var(--bg-glass-hover); color: var(--text-primary); border: 1px solid var(--border-glass);">
+                                    <i class="fas fa-file-csv"></i> Choose CSV
+                                    <input type="file" class="hidden" accept=".csv,text/csv" @change="bulkGenerate($event)" :disabled="bulkBusy">
+                                </label>
+                            </div>
+                            <div x-show="bulkBusy" class="h-1.5 rounded-full overflow-hidden" style="background: var(--bg-glass-input);">
+                                <div class="h-full rounded-full" :style="`width:${bulkProgress}%; background: var(--accent);`"></div>
+                            </div>
+                            <p x-show="bulkBusy" class="text-[10px] mt-1" style="color: var(--text-muted);">Generating… <span x-text="bulkProgress"></span>%</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -435,6 +572,8 @@
 
 {{-- qrcode-generator from CDN; QrStudio engine reads window.qrcode --}}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="{{ asset('js/qr-studio/engine.js') }}?v={{ filemtime(public_path('js/qr-studio/engine.js')) }}"></script>
 
 <script>
@@ -548,6 +687,12 @@ function qrBuilder() {
         matrix: null,
         matrixKey: '',
         lastPresetId: null,
+        scan: null,
+        exporting: false,
+        print: { sizeMm: 50, dpi: 300, bleedMm: 3 },
+        bulkFormat: 'png',
+        bulkBusy: false,
+        bulkProgress: 0,
 
         init() {
             this.$watch('payload', () => this.scheduleResolve(), { deep: true });
@@ -604,6 +749,11 @@ function qrBuilder() {
                 this.lastResult = result;
                 const t = document.getElementById('qrTarget');
                 if (t) t.innerHTML = result.svg;
+                try {
+                    if (typeof window.QrStudio.analyzeScannability === 'function') {
+                        this.scan = window.QrStudio.analyzeScannability(opts);
+                    }
+                } catch (e) { this.scan = null; }
             }, 60);
         },
 
@@ -617,6 +767,11 @@ function qrBuilder() {
                 dotShape: d.dot_style,
                 outerEyeShape: d.corner_square_style,
                 innerEyeShape: d.corner_dot_style,
+                eyesPerCorner: !!d.eyes_per_corner,
+                corners: (d.eye_corners || []).map(c => ({
+                    outerShape: c.outer_style, innerShape: c.inner_style,
+                    outerColor: c.outer_color, innerColor: c.inner_color,
+                })),
                 fgColor: d.fg_color,
                 bgColor: d.bg_color,
                 transparentBg: !!d.transparent_bg,
@@ -713,6 +868,145 @@ function qrBuilder() {
                 if (!preload.ok) alert('Some logos could not be embedded for download (CORS): ' + Object.keys(preload.errors).join(', '));
                 window.QrStudio.downloadSvg(result.svg, 'qr-code.svg');
             } catch (e) { alert('SVG download failed: ' + e.message); }
+        },
+
+        // ---- Per-corner eye helpers ----
+        seedCornersFromGlobal() {
+            const base = () => ({
+                outer_style: this.design.corner_square_style,
+                inner_style: this.design.corner_dot_style,
+                outer_color: this.design.corner_square_color,
+                inner_color: this.design.corner_dot_color,
+            });
+            this.design.eye_corners = [base(), base(), base()];
+        },
+
+        // ---- Scannability UI helpers ----
+        scanColor() {
+            const s = this.scan ? this.scan.score : 0;
+            if (s >= 85) return '#16a34a';
+            if (s >= 70) return '#65a30d';
+            if (s >= 50) return '#d97706';
+            return '#dc2626';
+        },
+        issueColor(level) {
+            return level === 'error' ? '#dc2626' : level === 'warn' ? '#d97706' : 'var(--text-faint)';
+        },
+
+        // ---- Print-ready export ----
+        async downloadPdf() {
+            if (this.exporting) return;
+            this.exporting = true;
+            try {
+                const { result, preload } = await this._renderForExport();
+                if (!preload.ok) alert('Some logos could not be embedded (CORS): ' + Object.keys(preload.errors).join(', '));
+                const ratio = result.height / result.width;
+                const pxPerMm = this.print.dpi / 25.4;
+                const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), result.width);
+                const dataUrl = await window.QrStudio.toPngDataUrl(result.svg, result.width, result.height, Math.max(1, qrPx / result.width));
+                const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+                if (!jsPDFCtor) { alert('PDF library failed to load.'); return; }
+                const drawW = this.print.sizeMm;
+                const drawH = this.print.sizeMm * ratio;
+                const bleed = this.print.bleedMm || 0;
+                const pageW = drawW + bleed * 2;
+                const pageH = drawH + bleed * 2;
+                const pdf = new jsPDFCtor({ orientation: pageW >= pageH ? 'landscape' : 'portrait', unit: 'mm', format: [pageW, pageH] });
+                pdf.addImage(dataUrl, 'PNG', bleed, bleed, drawW, drawH);
+                pdf.save('qr-code.pdf');
+            } catch (e) { alert('PDF export failed: ' + e.message); }
+            finally { this.exporting = false; }
+        },
+        async downloadPrintPng() {
+            if (this.exporting) return;
+            this.exporting = true;
+            try {
+                const { result, preload } = await this._renderForExport();
+                if (!preload.ok) alert('Some logos could not be embedded (CORS): ' + Object.keys(preload.errors).join(', '));
+                const pxPerMm = this.print.dpi / 25.4;
+                const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), result.width);
+                const dataUrl = await window.QrStudio.toPngDataUrl(result.svg, result.width, result.height, Math.max(1, qrPx / result.width));
+                window.QrStudio.downloadDataUrl(dataUrl, 'qr-code-' + this.print.dpi + 'dpi.png');
+            } catch (e) { alert('Hi-res PNG export failed: ' + e.message); }
+            finally { this.exporting = false; }
+        },
+
+        // ---- Bulk CSV generation ----
+        splitCsvLine(line) {
+            const out = []; let cur = ''; let q = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (q) {
+                    if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+                    else cur += ch;
+                } else {
+                    if (ch === '"') q = true;
+                    else if (ch === ',') { out.push(cur); cur = ''; }
+                    else cur += ch;
+                }
+            }
+            out.push(cur);
+            return out;
+        },
+        parseCsv(text) {
+            const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+            if (!lines.length) return [];
+            let start = 0, dataIdx = 0, nameIdx = -1;
+            const header = this.splitCsvLine(lines[0]).map(c => c.toLowerCase().trim());
+            const dataCols = ['data', 'url', 'content', 'value', 'text', 'link'];
+            const nameCols = ['name', 'label', 'filename', 'title'];
+            if (header.some(c => dataCols.includes(c) || nameCols.includes(c))) {
+                const di = header.findIndex(c => dataCols.includes(c));
+                dataIdx = di >= 0 ? di : 0;
+                nameIdx = header.findIndex(c => nameCols.includes(c));
+                start = 1;
+            }
+            const out = [];
+            for (let i = start; i < lines.length; i++) {
+                const cols = this.splitCsvLine(lines[i]);
+                const data = (cols[dataIdx] || '').trim();
+                if (!data) continue;
+                out.push({ data, name: nameIdx >= 0 ? (cols[nameIdx] || '').trim() : '' });
+            }
+            return out;
+        },
+        async bulkGenerate(ev) {
+            const file = ev.target.files && ev.target.files[0];
+            if (!file) return;
+            if (this.bulkBusy) return;
+            if (typeof JSZip === 'undefined') { alert('Bulk library failed to load.'); ev.target.value = ''; return; }
+            try {
+                const rows = this.parseCsv(await file.text());
+                if (!rows.length) { alert('No usable rows found. Include a "data" or "url" column.'); ev.target.value = ''; return; }
+                if (rows.length > 1000) { alert('Limit is 1000 rows per batch.'); ev.target.value = ''; return; }
+                this.bulkBusy = true; this.bulkProgress = 0;
+                const zip = new JSZip();
+                const used = {};
+                const target = Math.max(this.design.size || 800, 400);
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    let name = (row.name || ('qr-' + (i + 1))).replace(/[^a-z0-9_\-]+/gi, '-').replace(/^-+|-+$/g, '') || ('qr-' + (i + 1));
+                    used[name] = (used[name] || 0) + 1;
+                    if (used[name] > 1) name = name + '-' + used[name];
+                    const opts = this.engineOpts(row.data);
+                    try { await window.QrStudio.preloadLogos(opts); } catch (e) {}
+                    const result = window.QrStudio.render(opts);
+                    if (this.bulkFormat === 'svg') {
+                        zip.file(name + '.svg', result.svg);
+                    } else {
+                        const dataUrl = await window.QrStudio.toPngDataUrl(result.svg, result.width, result.height, Math.max(1, target / result.width));
+                        zip.file(name + '.png', dataUrl.split(',')[1], { base64: true });
+                    }
+                    this.bulkProgress = Math.round(((i + 1) / rows.length) * 100);
+                    await new Promise(r => setTimeout(r, 0));
+                }
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'qr-bulk.zip'; document.body.appendChild(a); a.click(); a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) { alert('Bulk generation failed: ' + e.message); }
+            finally { this.bulkBusy = false; ev.target.value = ''; }
         },
     };
 }

@@ -438,10 +438,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/splash-pages/{id}',   [SplashPageController::class, 'destroy'])->whereNumber('id');
 
         // QR codes
-        Route::get   ('/qr-codes',       [QrCodeController::class, 'index']);
-        Route::post  ('/qr-codes',       [QrCodeController::class, 'store']);
-        Route::get   ('/qr-codes/{id}',  [QrCodeController::class, 'show'])->whereNumber('id');
-        Route::delete('/qr-codes/{id}',  [QrCodeController::class, 'destroy'])->whereNumber('id');
+        Route::get   ('/qr-codes',          [QrCodeController::class, 'index']);
+        Route::get   ('/qr-codes/catalog',  [QrCodeController::class, 'catalog']);
+        Route::post  ('/qr-codes',          [QrCodeController::class, 'store']);
+        Route::post  ('/qr-codes/bulk',     [QrCodeController::class, 'bulk']);
+        Route::get   ('/qr-codes/{id}',     [QrCodeController::class, 'show'])->whereNumber('id');
+        Route::put   ('/qr-codes/{id}',     [QrCodeController::class, 'update'])->whereNumber('id');
+        Route::patch ('/qr-codes/{id}',     [QrCodeController::class, 'update'])->whereNumber('id');
+        Route::delete('/qr-codes/{id}',     [QrCodeController::class, 'destroy'])->whereNumber('id');
 
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);

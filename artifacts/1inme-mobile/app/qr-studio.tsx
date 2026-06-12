@@ -6,7 +6,7 @@ export default function QrStudioScreen() {
       title="QR studio"
       iconName="grid"
       blurb="Advanced QR code styles, frames and content types beyond the simple generator."
-      webPath="/user/qr-codes/builder"
+      webPath="/user/qr-codes/create"
       features={[
         "Wi-Fi, vCard, calendar, geolocation and more",
         "Custom colors, logo and corner styles",

@@ -381,6 +381,8 @@
       dropShadow = false,
       frame = { template: 'none' },
       fontFamily = 'Inter',
+      eyesPerCorner = false,
+      corners: cornerCfgs = null,   // [TL, TR, BL] each {outerShape, innerShape, outerColor, innerColor}
     } = opts;
 
     const n = matrix.n;
@@ -418,17 +420,19 @@
       }
     }
 
-    // Eyes: 3 corner regions
+    // Eyes: 3 corner regions (TL, TR, BL). When per-corner styling is enabled
+    // each corner may override the global shape/color; otherwise a single
+    // combined path is used (which preserves the global eye gradients).
     const outerFn = OUTER[outerEyeShape] || OUTER['square'];
     const innerFn = INNER[innerEyeShape] || INNER['square'];
-    const eyeCorners = [
+    const eyePositions = [
       [margin, margin],                       // TL (col, row)
       [n - 7 + margin, margin],               // TR
       [margin, n - 7 + margin],               // BL
     ];
     let outerPath = '';
     let innerPath = '';
-    eyeCorners.forEach(([cm, rm]) => {
+    eyePositions.forEach(([cm, rm]) => {
       const ex = cm * modulePx, ey = rm * modulePx;
       outerPath += outerFn(ex, ey, modulePx);
       innerPath += innerFn(ex + 2 * modulePx, ey + 2 * modulePx, modulePx);
@@ -457,6 +461,27 @@
     const innerFill = grad(eyeInnerGradient, 'g_ieye') || cornerDotColor || fgColor;
     const bgFill = transparentBg ? 'transparent' : (grad(bgGradient, 'g_bg') || bgColor);
 
+    // Per-corner eye markup (solid colors, one path pair per corner) takes
+    // precedence over the combined path. Falls back to global shape/color.
+    let eyesSvg;
+    if (eyesPerCorner && Array.isArray(cornerCfgs) && cornerCfgs.length) {
+      eyesSvg = '';
+      eyePositions.forEach(([cm, rm], i) => {
+        const cfg = cornerCfgs[i] || cornerCfgs[0] || {};
+        const of = OUTER[cfg.outerShape] || outerFn;
+        const inf = INNER[cfg.innerShape] || innerFn;
+        const ex = cm * modulePx, ey = rm * modulePx;
+        const ofill = cfg.outerColor || cornerSquareColor || fgColor;
+        const ifill = cfg.innerColor || cornerDotColor || fgColor;
+        eyesSvg += `<path d="${of(ex, ey, modulePx)}" fill="${ofill}" fill-rule="evenodd"/>`;
+        eyesSvg += `<path d="${inf(ex + 2 * modulePx, ey + 2 * modulePx, modulePx)}" fill="${ifill}"/>`;
+      });
+    } else {
+      eyesSvg =
+        `<path d="${outerPath}" fill="${outerFill}" fill-rule="evenodd"/>` +
+        `<path d="${innerPath}" fill="${innerFill}"/>`;
+    }
+
     const filterDef = dropShadow
       ? `<filter id="qrshadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="${modulePx * 0.15}" stdDeviation="${modulePx * 0.2}" flood-opacity="0.35"/></filter>`
       : '';
@@ -475,8 +500,7 @@
       bgImg +
       `<g${shadowAttr}>` +
         `<path d="${dotPath}" fill="${dotFill}"/>` +
-        `<path d="${outerPath}" fill="${outerFill}" fill-rule="evenodd"/>` +
-        `<path d="${innerPath}" fill="${innerFill}"/>` +
+        eyesSvg +
       `</g>` +
       ctImg +
       fgImg +
@@ -486,7 +510,9 @@
     const frameImpl = FRAMES[frame.template] || FRAMES['none'];
     const composed = frameImpl({ qrSvgInner: innerSvg, qrSize: innerSize, frame, fontFamily, defs });
 
-    const fullDefs = (composed.defs || defs).concat(filterDef ? [filterDef] : []);
+    // Merge: QR-side defs (gradients) MUST be preserved even when a frame
+    // supplies its own defs, otherwise gradient fills break in preview/export.
+    const fullDefs = defs.concat(composed.defs || []).concat(filterDef ? [filterDef] : []);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${composed.width} ${composed.height}" width="${composed.width}" height="${composed.height}"><defs>${fullDefs.join('')}</defs>${composed.body}</svg>`;
     return { svg, width: composed.width, height: composed.height };
   }
@@ -1073,6 +1099,90 @@
     } catch (e) { return ''; }
   }
 
+  // ---------------- Scannability analysis ----------------
+  function _luminance(hex) {
+    const h = String(hex || '#000000').replace('#', '');
+    if (h.length < 6) return 0;
+    const r = parseInt(h.slice(0, 2), 16) / 255;
+    const g = parseInt(h.slice(2, 4), 16) / 255;
+    const b = parseInt(h.slice(4, 6), 16) / 255;
+    const lin = c => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }
+  function _contrastRatio(a, b) {
+    const la = _luminance(a), lb = _luminance(b);
+    const hi = Math.max(la, lb), lo = Math.min(la, lb);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  const RISKY_DOTS = new Set([
+    'star4', 'star5', 'star6', 'star8', 'sparkle', 'cross-pattee', 'plus', 'x-mark',
+    'dash-h', 'dash-v', 'flower', 'flower6', 'gear', 'kite', 'heart',
+  ]);
+
+  // Heuristic scannability checker. Returns { score 0-100, level, contrast, issues[] }.
+  function analyzeScannability(opts) {
+    opts = opts || {};
+    const issues = [];
+    let score = 100;
+    const fg = (opts.gradient && opts.gradient.enabled) ? opts.gradient.from : opts.fgColor;
+    const bg = opts.transparentBg
+      ? '#ffffff'
+      : ((opts.bgGradient && opts.bgGradient.enabled) ? opts.bgGradient.from : opts.bgColor);
+
+    const contrast = _contrastRatio(fg, bg);
+    if (contrast < 2.5) {
+      issues.push({ level: 'error', text: `Very low contrast (${contrast.toFixed(1)}:1). Scanners will likely fail — aim for at least 4.5:1.` });
+      score -= 45;
+    } else if (contrast < 4.5) {
+      issues.push({ level: 'warn', text: `Low contrast (${contrast.toFixed(1)}:1). Increase the difference between dots and background.` });
+      score -= 20;
+    }
+    if (_luminance(fg) > _luminance(bg)) {
+      issues.push({ level: 'warn', text: 'Light modules on a dark background. Most scanners expect dark-on-light — test carefully.' });
+      score -= 10;
+    }
+    if (opts.transparentBg) {
+      issues.push({ level: 'warn', text: 'Transparent background — make sure it sits on a light, plain surface when printed.' });
+      score -= 8;
+    }
+    const margin = (opts.margin == null) ? 4 : opts.margin;
+    if (margin < 4) {
+      const bad = margin < 2;
+      issues.push({ level: bad ? 'error' : 'warn', text: 'Quiet zone below 4 modules. Add clear space around the code.' });
+      score -= bad ? 20 : 10;
+    }
+    const ec = opts.errorCorrection || 'M';
+    const budget = ({ L: 0.07, M: 0.15, Q: 0.25, H: 0.30 })[ec] || 0.15;
+    const logo = opts.logos && opts.logos.center;
+    if (logo && logo.url && logo.show) {
+      const cover = Math.pow(Math.max(0.05, Math.min(0.5, logo.size || 0.25)), 2);
+      if (cover > budget) {
+        issues.push({ level: 'error', text: `Center logo covers ~${Math.round(cover * 100)}% of the code, but ${ec}-level correction only tolerates ~${Math.round(budget * 100)}%. Shrink the logo or raise error correction to H.` });
+        score -= 30;
+      } else if (cover > budget * 0.7) {
+        issues.push({ level: 'warn', text: `Center logo is close to the ${ec}-level limit. Consider raising error correction to H.` });
+        score -= 12;
+      }
+      if (ec !== 'H') {
+        issues.push({ level: 'info', text: 'Using a center logo — error correction H gives the most reliable scans.' });
+      }
+    }
+    if (ec === 'L') {
+      issues.push({ level: 'warn', text: 'Low error correction (L). Use M or higher for print/outdoor use.' });
+      score -= 8;
+    }
+    if (RISKY_DOTS.has(opts.dotShape)) {
+      issues.push({ level: 'warn', text: `Decorative module shape "${opts.dotShape}" reduces clarity. Test on several phones or pick a fuller shape.` });
+      score -= 8;
+    }
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    const level = score >= 85 ? 'great' : score >= 65 ? 'ok' : score >= 40 ? 'risky' : 'bad';
+    if (!issues.length) {
+      issues.push({ level: 'info', text: 'No problems detected. Always do a real scan test before printing at scale.' });
+    }
+    return { score, level, contrast, issues };
+  }
+
   global.QrStudio = {
     DOTS, OUTER_EYES: OUTER, INNER_EYES: INNER, FRAMES,
     CATALOG,
@@ -1083,5 +1193,6 @@
     toPngDataUrl,
     downloadSvg, downloadDataUrl,
     thumbDot, thumbOuter, thumbInner, thumbFrame,
+    analyzeScannability,
   };
 })(window);

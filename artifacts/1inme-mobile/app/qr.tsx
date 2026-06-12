@@ -11,6 +11,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -23,8 +24,10 @@ import { useColors } from "@/hooks/useColors";
 import {
   createQrCode,
   deleteQrCode,
+  getQrCatalog,
   listQrCodes,
   type QrCode,
+  type QrPreset,
 } from "@/lib/api/qr";
 
 const TYPES = [
@@ -40,9 +43,11 @@ export default function QrScreen() {
   const [name, setName] = useState("");
   const [type, setType] = useState<string>("url");
   const [value, setValue] = useState("");
+  const [preset, setPreset] = useState<QrPreset | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const q = useQuery({ queryKey: ["qr-codes"], queryFn: listQrCodes });
+  const catalog = useQuery({ queryKey: ["qr-catalog"], queryFn: getQrCatalog, staleTime: 5 * 60 * 1000 });
 
   const create = useMutation({
     mutationFn: () =>
@@ -50,11 +55,13 @@ export default function QrScreen() {
         name: name.trim(),
         type,
         payload: type === "url" ? { url: value } : type === "wifi" ? { ssid: value } : { text: value },
+        design: preset?.design,
       }),
     onSuccess: () => {
       setShowNew(false);
       setName("");
       setValue("");
+      setPreset(null);
       setErrors({});
       qc.invalidateQueries({ queryKey: ["qr-codes"] });
     },
@@ -201,6 +208,40 @@ export default function QrScreen() {
               autoCorrect={false}
               placeholder={TYPES.find((t) => t.value === type)?.placeholder}
             />
+            {(catalog.data?.presets?.length ?? 0) > 0 && (
+              <View style={{ gap: 8 }}>
+                <Text style={[styles.sub, { color: colors.mutedForeground }]}>TEMPLATE</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {catalog.data!.presets.map((p) => {
+                    const active = preset?.id === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        onPress={() => setPreset(active ? null : p)}
+                        style={[
+                          styles.presetChip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.card,
+                            borderColor: active ? colors.primary : colors.border,
+                            borderRadius: colors.radius - 4,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: "SpaceGrotesk_600SemiBold",
+                            fontSize: 12,
+                            color: active ? colors.primaryForeground : colors.foreground,
+                          }}
+                        >
+                          {p.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Button label="Cancel" variant="outline" onPress={() => setShowNew(false)} style={{ flex: 1 }} />
               <Button
@@ -232,6 +273,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     alignItems: "center",
+    borderWidth: 1,
+  },
+  presetChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     borderWidth: 1,
   },
 });
