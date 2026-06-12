@@ -31,6 +31,12 @@ class MarketingEventController extends Controller
             'plan_free',
             'plan_paid',
         ],
+        'landing_home_cta' => [
+            'hero',
+            'audience',
+            'how_it_works',
+            'final_cta',
+        ],
     ];
 
     public function track(Request $request): JsonResponse

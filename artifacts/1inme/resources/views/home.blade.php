@@ -27,6 +27,23 @@
         } catch(e) {}
     </script>
     <script>
+        // Fire-and-forget marketing-CTA tracking shared by every home-page
+        // "Sign up free" button so we can see which placement converts.
+        window.trackMarketingEvent = function (source, target) {
+            try {
+                var url = '{{ route('marketing-events.track') }}';
+                var data = new FormData();
+                data.append('source', source);
+                data.append('target', target);
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon(url, data);
+                } else {
+                    fetch(url, { method: 'POST', body: data, keepalive: true, credentials: 'same-origin' });
+                }
+            } catch (e) { /* fire-and-forget */ }
+        };
+    </script>
+    <script>
         // Sync with site-wide theme preference (also toggled via Cmd/Ctrl+I).
         (function(){
             var pref = null;
@@ -2426,7 +2443,7 @@
                     <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
                     <h3 class="relative text-xl font-bold mb-3 leading-snug">{!! $a['title'] !!}</h3>
                     <p class="relative text-sm text-gray-400 leading-relaxed mb-6 flex-1">{!! $a['desc'] !!}</p>
-                    <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
+                    <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','audience'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
                         {{ $a['cta'] }} <i class="aud-arrow fas fa-arrow-right text-[10px]" style="animation-delay:{{ $i * 0.3 }}s;"></i>
                     </button>
                 </article>
@@ -2512,7 +2529,7 @@
                     <div class="text-xs text-gray-400 mt-0.5">Free Forever plan · Upgrade only when you outgrow it.</div>
                 </div>
                 <div class="relative flex flex-wrap items-center gap-3 shrink-0">
-                    <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
+                    <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','how_it_works'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
                         Start free — no card <i class="fas fa-arrow-right text-xs"></i>
                     </button>
                     <a href="{{ route('site.how-it-works') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
@@ -4195,7 +4212,7 @@
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">
-                    <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap">
+                    <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','final_cta'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap">
                         Sign up free <i class="fas fa-arrow-right text-xs"></i>
                     </button>
                     <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-bold whitespace-nowrap">

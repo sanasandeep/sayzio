@@ -30,10 +30,17 @@ class MarketingEventStatsController extends Controller
             'plan_free'        => 'Plan CTA — Free tier',
             'plan_paid'        => 'Plan CTA — Paid tier',
         ],
+        'landing_home_cta' => [
+            'hero'         => 'Hero — "Make mine free"',
+            'audience'     => 'Audience cards CTA',
+            'how_it_works' => 'How it works — "Start free — no card"',
+            'final_cta'    => 'Closing section — "Sign up free"',
+        ],
     ];
 
     private const SOURCE_LABELS = [
         'landing_pricing_teaser' => 'Landing pricing teaser',
+        'landing_home_cta'       => 'Landing home CTAs',
     ];
 
     public function index(Request $request)
