@@ -19,20 +19,30 @@
     </source>
     <php>
         <!--
-            Raise the CLI memory ceiling for the suite. PHPUnit runs every
-            test in a single long-lived PHP process, so each test's fresh
-            Laravel app boot (route registration, container, config) adds to
-            the resident footprint. Under the stock 128M limit the process
-            exhausts memory partway through route registration (routes/
-            modules/user.php is ~1.4k lines), which aborts mid-file: earlier
-            GET routes register but later POST routes for the same URI do
-            not, so requests like POST /user/links/{id}/slides surface a
-            spurious 405 Method Not Allowed (or the whole run dies before
-            later tests, e.g. SlidesModeEndToEndTest, even execute). A higher
-            ceiling lets the full Feature suite register all routes and run
-            to completion deterministically.
+            CLI memory ceiling for the suite. PHPUnit runs every test in a
+            single long-lived PHP process, so each test's fresh Laravel app
+            boot (route registration of the ~1.4k-line routes/modules/user.php,
+            container, config) plus the cyclic object graphs a test creates
+            (request/response, Eloquent models) add to the resident footprint.
+            Under the stock 128M limit the process exhausts memory partway
+            through route registration, aborting mid-file: earlier GET routes
+            register but later POST routes for the same URI do not, so requests
+            like POST /user/links/{id}/slides surface a spurious 405 Method Not
+            Allowed (or the run dies before later tests, e.g.
+            SlidesModeEndToEndTest, even execute).
+
+            The durable mitigation lives in tests/TestCase::tearDown(), which
+            forces gc_collect_cycles() after each test. That reclaims the cyclic
+            garbage immediately instead of waiting for PHP's automatic collector
+            to fill its root buffer, lowering both the resident baseline and the
+            per-test growth slope (~50% reduction in peak growth on the
+            boot+request lifecycle). With that in place the full Feature suite
+            peaks well under this ceiling, so it was lowered from the temporary
+            1024M workaround to 512M (still ~2x headroom). If this is ever hit
+            again as the app grows, prefer process isolation (sharding the run
+            into multiple sequential phpunit processes) over raising it further.
         -->
-        <ini name="memory_limit" value="1024M"/>
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
