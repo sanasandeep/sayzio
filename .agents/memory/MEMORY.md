@@ -3,3 +3,4 @@
 - [Consent backdrop vs launcher stacking](cookie-consent-vs-launcher-stacking.md) — a bottom-corner widget must out-stack the consent host (z ~2.1B), not just dodge its card, or the modal/takeover backdrop eats its clicks.
 - [Alpine x-transition leave bug](alpine-x-transition-leave-bug.md) — `x-transition` shorthand on `x-show` panels can open but never set `display:none` on leave; use enter-only directives.
 - [Laravel API proxy shadow](laravel-api-proxy-shadow.md) — `localhost:80/api/v1/...` hits the Express api-server, not 1inme Laravel; test Laravel API on `localhost:5000`.
+- [Biolink editor preview scaling](biolink-editor-preview-scaling.md) — editor preview legibility = iframe scaled by frame width, capped by a height budget; fix in the editor partial, never bump public-page fonts.

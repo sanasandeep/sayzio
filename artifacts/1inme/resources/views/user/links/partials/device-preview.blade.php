@@ -22,8 +22,18 @@
         box-shadow: 0 0 12px rgba(124,58,237,0.1);
     }
 
+    /* Cohesive preview "shell": groups the device switcher, the simulate
+       controls and the phone frame into one panel so the controls read as
+       attached to the device instead of floating detached above it. */
+    .device-preview-root {
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        border-radius: 22px;
+        padding: 14px 14px 18px;
+    }
+
     .device-frame-phone {
-        width: 280px;
+        width: 320px;
         margin: 0 auto;
     }
     @media (min-width: 1024px) {
@@ -31,8 +41,12 @@
             position: sticky;
             top: 12px;
         }
+        /* Render the phone as large as the available height allows (down to a
+           readable floor) so block text never collapses to one word per line.
+           The iframe is scaled to this width, so a bigger frame == bigger,
+           legible text. */
         .device-preview-root .device-frame-phone {
-            width: min(280px, max(200px, calc((100vh - 120px) * 375 / 812)));
+            width: min(360px, max(300px, calc((100vh - 96px) * 375 / 812)));
         }
     }
     /* Activate the side-by-side editor layout (form | device preview) a bit
@@ -51,7 +65,7 @@
             top: 12px;
         }
         .device-preview-root .device-frame-phone {
-            width: min(260px, max(180px, calc((100vh - 120px) * 375 / 812)));
+            width: min(340px, max(280px, calc((100vh - 96px) * 375 / 812)));
         }
     }
     .device-frame-phone .device-screen {
@@ -73,7 +87,7 @@
 
     .device-frame-tablet {
         width: 100%;
-        max-width: 420px;
+        max-width: 480px;
         margin: 0 auto;
     }
     .device-frame-tablet .device-screen {

@@ -795,12 +795,13 @@ $catColors = [
                     </div>
                     </div>
                     @empty
-                    <div class="py-16 text-center">
+                    <div class="flex flex-col items-center justify-center text-center rounded-2xl px-6 py-12 lg:min-h-[420px]"
+                         style="grid-column: span 12; background: var(--bg-glass); border: 1px dashed var(--border-glass);">
                         <div class="empty-state-icon">
                             <i class="fas fa-layer-group text-3xl text-violet-400"></i>
                         </div>
                         <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No blocks yet</h3>
-                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);">Start from a curated template, or add blocks one at a time.</p>
+                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);">Start from a curated template, or add blocks one at a time. Your live preview updates instantly on the right.</p>
                         <div class="flex items-center justify-center gap-2 flex-wrap">
                             <a href="{{ route('user.links.templates.picker', $link) }}" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
                                 <i class="fas fa-layer-group text-xs"></i> Browse templates
