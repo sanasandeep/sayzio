@@ -163,6 +163,35 @@
             opacity: 1;
         }
 
+        /* Collapsible sidebar groups — condense the long tail into scannable headers */
+        .sidebar-group-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-faint);
+            transition: color .18s ease;
+        }
+        .sidebar-group-toggle:hover { color: var(--text-muted); }
+        .sidebar-group-toggle:focus-visible {
+            outline: 2px solid rgba(124,58,237,0.5);
+            outline-offset: 2px;
+            border-radius: 6px;
+        }
+        .sidebar-group-toggle .grp-chevron {
+            font-size: 9px;
+            transition: transform .2s ease;
+            flex-shrink: 0;
+        }
+        .sidebar-group-toggle[aria-expanded="true"] .grp-chevron { transform: rotate(180deg); }
+        @media (prefers-reduced-motion: reduce) {
+            .sidebar-group-toggle,
+            .sidebar-group-toggle .grp-chevron { transition: none; }
+        }
+
         .header-v2 {
             transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -502,7 +531,7 @@
                 ];
             @endphp
             <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
-                {{-- ========== OVERVIEW ========== --}}
+                {{-- ========== TOP LEVEL — most-used destinations stay visible ========== --}}
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"
                    style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
@@ -510,21 +539,6 @@
                     <span class="nav-label">Dashboard</span>
                     <span class="sidebar-tooltip">Dashboard</span>
                 </a>
-                <a href="{{ route('user.notifications.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"
-                   style="--nav-tint:#fbbf24; --nav-tint-soft:rgba(251,191,36,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
-                    <span class="nav-label">Notifications
-                        @php $__unread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
-                        @if($__unread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-rose-500 text-white">{{ $__unread }}</span>@endif
-                    </span>
-                    <span class="sidebar-tooltip">Notifications</span>
-                </a>
-
-                {{-- ========== LINKS & PAGES ========== --}}
-                @if($__can['links_view'] || $__can['links_create'] || $__can['inbox_view'])
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links &amp; Pages</div>
-
                 @if($__can['links_view'])
                 <a href="{{ route('user.links.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"
@@ -543,77 +557,96 @@
                     <span class="sidebar-tooltip">Create Link</span>
                 </a>
                 @endif
-                @if($__can['links_view'])
-                <a href="{{ route('user.qr-codes.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"
-                   style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div>
-                    <span class="nav-label">QR Codes</span>
-                    <span class="sidebar-tooltip">QR Codes</span>
+                <a href="{{ route('user.notifications.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"
+                   style="--nav-tint:#fbbf24; --nav-tint-soft:rgba(251,191,36,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
+                    <span class="nav-label">Notifications
+                        @php $__unread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
+                        @if($__unread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-rose-500 text-white">{{ $__unread }}</span>@endif
+                    </span>
+                    <span class="sidebar-tooltip">Notifications</span>
                 </a>
-                @endif
                 @if($__can['inbox_view'])
-                <a href="{{ route('user.forms.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.forms.*') ? 'active' : '' }}"
-                   style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div>
-                    <span class="nav-label">Forms</span>
-                    <span class="sidebar-tooltip">Forms</span>
+                <a href="{{ route('user.inbox.unified.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.inbox.unified.*') ? 'active' : '' }}"
+                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
+                    <span class="nav-label">Inbox
+                        @php $__topInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
+                        @if($__topInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__topInbox > 99 ? '99+' : $__topInbox }}</span>@endif
+                    </span>
+                    <span class="sidebar-tooltip">Inbox 2.0 — triaged across forms, DMs &amp; sponsorships</span>
                 </a>
                 @endif
-                @if($__can['links_view'])
-                <a href="{{ route('user.backlinks.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.backlinks.*') ? 'active' : '' }}"
-                   style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
-                    <span class="nav-label">Backlinks</span>
-                    <span class="sidebar-tooltip">Backlinks</span>
-                </a>
-                @endif
-                @if($__can['links_view'])
-                <a href="{{ route('user.splash-pages.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"
-                   style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div>
-                    <span class="nav-label">Intros</span>
-                    <span class="sidebar-tooltip">Intros</span>
-                </a>
-                @endif
-                @endif
-
-                @if($__can['tasks_view'])
-                <a href="{{ route('user.tasks.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.tasks.*') ? 'active' : '' }}"
-                   style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div>
-                    <span class="nav-label">Tasks</span>
-                    <span class="sidebar-tooltip">Task Boards</span>
+                @if($__can['posts_view'])
+                <a href="{{ route('user.stats.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
+                    <span class="nav-label">Stats</span>
+                    <span class="sidebar-tooltip">Stats</span>
                 </a>
                 @endif
 
-                @if($__can['vault_view'])
-                <a href="{{ route('user.vault.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.vault.*') ? 'active' : '' }}"
-                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-vault"></i></div>
-                    <span class="nav-label">Vault</span>
-                    <span class="sidebar-tooltip">Workspace Vault</span>
-                </a>
+                {{-- ========== LINKS & PAGES (collapsible) ========== --}}
+                @if($__can['links_view'] || $__can['inbox_view'])
+                @php $grpLinksActive = request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') || request()->routeIs('user.forms.*') || request()->routeIs('user.backlinks.*') || request()->routeIs('user.splash-pages.*'); @endphp
+                <div x-data="{ open: {{ $grpLinksActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>Links &amp; Pages</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                        @if($__can['links_view'])
+                        <a href="{{ route('user.qr-codes.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"
+                           style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div>
+                            <span class="nav-label">QR Codes</span>
+                            <span class="sidebar-tooltip">QR Codes</span>
+                        </a>
+                        @endif
+                        @if($__can['inbox_view'])
+                        <a href="{{ route('user.forms.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.forms.*') ? 'active' : '' }}"
+                           style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div>
+                            <span class="nav-label">Forms</span>
+                            <span class="sidebar-tooltip">Forms</span>
+                        </a>
+                        @endif
+                        @if($__can['links_view'])
+                        <a href="{{ route('user.backlinks.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.backlinks.*') ? 'active' : '' }}"
+                           style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
+                            <span class="nav-label">Backlinks</span>
+                            <span class="sidebar-tooltip">Backlinks</span>
+                        </a>
+                        <a href="{{ route('user.splash-pages.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"
+                           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div>
+                            <span class="nav-label">Intros</span>
+                            <span class="sidebar-tooltip">Intros</span>
+                        </a>
+                        @endif
+                    </div>
+                </div>
                 @endif
 
-                @if($__can['files_view'])
-                <a href="{{ route('user.cloud-files.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"
-                   style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-cloud"></i></div>
-                    <span class="nav-label">Files</span>
-                    <span class="sidebar-tooltip">Cloud Files</span>
-                </a>
-                @endif
-
-                {{-- ========== AI ========== --}}
+                {{-- ========== AI (collapsible) ========== --}}
                 @if(\App\Services\AI\AiEngineSettings::isEnabled())
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">AI</div>
+                @php $grpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*') || request()->routeIs('user.ai-credits.*'); @endphp
+                <div x-data="{ open: {{ $grpAiActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>AI</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
                 <a href="{{ route('user.ai.mind.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.ai.mind.*') ? 'active' : '' }}"
                    style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
@@ -672,23 +705,21 @@
                     <span class="nav-label">AI Credits</span>
                     <span class="sidebar-tooltip">AI Credits</span>
                 </a>
+                    </div>
+                </div>
                 @endif
 
-                {{-- ========== AUDIENCE ========== --}}
+                {{-- ========== AUDIENCE (collapsible) ========== --}}
                 @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'])
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</div>
-
+                @php $grpAudienceActive = request()->routeIs('user.inbox.*') || request()->routeIs('user.subscribers.*') || request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') || request()->routeIs('user.posts.*') || request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') || request()->routeIs('user.monetization.*') || request()->routeIs('user.feed.*'); @endphp
+                <div x-data="{ open: {{ $grpAudienceActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>Audience</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
                 @if($__can['inbox_view'])
-                <a href="{{ route('user.inbox.unified.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.inbox.unified.*') ? 'active' : '' }}"
-                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
-                    <span class="nav-label">Inbox
-                        @php $__inboxUnread = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
-                        @if($__inboxUnread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__inboxUnread > 99 ? '99+' : $__inboxUnread }}</span>@endif
-                    </span>
-                    <span class="sidebar-tooltip">Inbox 2.0 — triaged across forms, DMs &amp; sponsorships</span>
-                </a>
                 <a href="{{ route('user.inbox.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.inbox.index') || (request()->routeIs('user.inbox.*') && !request()->routeIs('user.inbox.unified.*')) ? 'active' : '' }}"
                    style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
@@ -721,13 +752,6 @@
                     <span class="nav-label">My Posts</span>
                     <span class="sidebar-tooltip">My Posts</span>
                 </a>
-                <a href="{{ route('user.stats.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"
-                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
-                    <span class="nav-label">Stats</span>
-                    <span class="sidebar-tooltip">Stats</span>
-                </a>
                 <a href="{{ route('user.payouts.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"
                    style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -750,12 +774,20 @@
                     <span class="sidebar-tooltip">Feed</span>
                 </a>
                 @endif
+                    </div>
+                </div>
                 @endif
 
-                {{-- ========== MARKETING ========== --}}
+                {{-- ========== MARKETING (collapsible) ========== --}}
                 @if($__can['links_view'] || $__can['stats_view'] || $__can['settings_view'] || $__can['referrals_view'])
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing</div>
-
+                @php $grpMarketingActive = request()->routeIs('user.social-proofs.*') || request()->routeIs('user.pixels.*') || request()->routeIs('user.social-accounts.*') || request()->routeIs('user.integrations.*') || request()->routeIs('user.domains.*') || request()->routeIs('user.referrals.*'); @endphp
+                <div x-data="{ open: {{ $grpMarketingActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>Marketing</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
                 @if($__can['links_view'])
                 <a href="{{ route('user.social-proofs.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"
@@ -806,52 +838,48 @@
                     <span class="sidebar-tooltip">Referrals</span>
                 </a>
                 @endif
+                    </div>
+                </div>
                 @endif
 
-                {{-- ========== CONTACTS ========== --}}
-                @if($__can['settings_view'])
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Contacts</div>
-
-                <a href="{{ route('user.contacts.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"
-                   style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div>
-                    <span class="nav-label">Contacts</span>
-                    <span class="sidebar-tooltip">Contacts</span>
-                </a>
-                <a href="{{ route('user.dialer.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"
-                   style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-phone"></i></div>
-                    <span class="nav-label">Dialer</span>
-                    <span class="sidebar-tooltip">Dialer</span>
-                </a>
-                @endif
-
-                {{-- ========== CALENDAR ========== --}}
-                @if($__can['settings_view'])
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Calendar</div>
-
-                <a href="{{ route('user.events.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"
-                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div>
-                    <span class="nav-label">Events</span>
-                    <span class="sidebar-tooltip">Events calendar</span>
-                </a>
-                <a href="{{ route('user.calendar.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"
-                   style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div>
-                    <span class="nav-label">Calendar Sync</span>
-                    <span class="sidebar-tooltip">Calendar Sync</span>
+                {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
+                @if($__can['tasks_view'] || $__can['vault_view'] || $__can['files_view'] || $__can['links_view'] || $__can['settings_view'])
+                @php $grpWorkspaceActive = request()->routeIs('user.tasks.*') || request()->routeIs('user.vault.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') || request()->routeIs('user.projects.*') || request()->routeIs('user.resume.*') || request()->routeIs('user.files.*') || request()->routeIs('user.contacts.*') || request()->routeIs('user.dialer.*') || request()->routeIs('user.events.*') || request()->routeIs('user.calendar.*'); @endphp
+                <div x-data="{ open: {{ $grpWorkspaceActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>Workspace &amp; Tools</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                @if($__can['tasks_view'])
+                <a href="{{ route('user.tasks.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.tasks.*') ? 'active' : '' }}"
+                   style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div>
+                    <span class="nav-label">Tasks</span>
+                    <span class="sidebar-tooltip">Task Boards</span>
                 </a>
                 @endif
-
-                {{-- ========== WORKSPACE ========== --}}
+                @if($__can['vault_view'])
+                <a href="{{ route('user.vault.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.vault.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-vault"></i></div>
+                    <span class="nav-label">Vault</span>
+                    <span class="sidebar-tooltip">Workspace Vault</span>
+                </a>
+                @endif
+                @if($__can['files_view'])
+                <a href="{{ route('user.cloud-files.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"
+                   style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-cloud"></i></div>
+                    <span class="nav-label">Files</span>
+                    <span class="sidebar-tooltip">Cloud Files</span>
+                </a>
+                @endif
                 @if($__can['links_view'])
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Workspace</div>
-
                 <a href="{{ route('user.projects.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"
                    style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -874,11 +902,50 @@
                     <span class="sidebar-tooltip">Files</span>
                 </a>
                 @endif
-
-                {{-- ========== ACCOUNT ========== --}}
                 @if($__can['settings_view'])
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
+                <a href="{{ route('user.contacts.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"
+                   style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div>
+                    <span class="nav-label">Contacts</span>
+                    <span class="sidebar-tooltip">Contacts</span>
+                </a>
+                <a href="{{ route('user.dialer.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"
+                   style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-phone"></i></div>
+                    <span class="nav-label">Dialer</span>
+                    <span class="sidebar-tooltip">Dialer</span>
+                </a>
+                <a href="{{ route('user.events.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div>
+                    <span class="nav-label">Events</span>
+                    <span class="sidebar-tooltip">Events calendar</span>
+                </a>
+                <a href="{{ route('user.calendar.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"
+                   style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div>
+                    <span class="nav-label">Calendar Sync</span>
+                    <span class="sidebar-tooltip">Calendar Sync</span>
+                </a>
+                @endif
+                    </div>
+                </div>
+                @endif
 
+                {{-- ========== ACCOUNT (collapsible) ========== --}}
+                @if($__can['settings_view'])
+                @php $grpAccountActive = (request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*')) || request()->routeIs('user.profile.*') || request()->routeIs('user.settings.sessions.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-credits.*'); @endphp
+                <div x-data="{ open: {{ $grpAccountActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>Account</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
                 <a href="{{ route('user.verification.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*') ? 'active' : '' }}"
                    style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
@@ -925,6 +992,8 @@
                     <span class="sidebar-tooltip">AI Credits</span>
                 </a>
                 @endif
+                    </div>
+                </div>
                 @endif
 
                 @php
@@ -935,9 +1004,15 @@
                     $__hasAnyAdmin = $__canPlans || $__canVerify || $__canRoles;
                 @endphp
                 @if($__hasAnyAdmin)
-                {{-- ========== ADMINISTRATION ========== --}}
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Administration</div>
-
+                {{-- ========== ADMINISTRATION (collapsible) ========== --}}
+                @php $grpAdminActive = request()->routeIs('user.plans.*') || request()->routeIs('user.verification.admin*') || request()->routeIs('user.access.*'); @endphp
+                <div x-data="{ open: {{ $grpAdminActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>Administration</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
                 @if($__canPlans)
                 <a href="{{ route('user.plans.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"
@@ -965,6 +1040,8 @@
                     <span class="sidebar-tooltip">User access</span>
                 </a>
                 @endif
+                    </div>
+                </div>
                 @endif
             </nav>
 

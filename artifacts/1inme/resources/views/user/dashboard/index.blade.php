@@ -1,6 +1,48 @@
 @extends('user.layouts.app')
 @section('title', 'Dashboard')
 
+@push('styles')
+<style>
+    .dash-tabs {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 14px;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-subtle);
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    .dash-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all .2s ease;
+    }
+    .dash-tab:hover { color: var(--text-primary); background: var(--bg-glass-hover); }
+    .dash-tab:focus-visible { outline: 2px solid rgba(124,58,237,0.5); outline-offset: 2px; }
+    .dash-tab-active {
+        color: #fff;
+        background: linear-gradient(135deg, #7c3aed, #a78bfa);
+        box-shadow: 0 4px 14px rgba(124,58,237,0.28);
+    }
+    .dash-tab-active:hover { color: #fff; }
+    @media (prefers-reduced-motion: reduce) {
+        .dash-tab { transition: none; }
+    }
+</style>
+@endpush
+
 @section('content')
 @php
     $hour = now()->hour;
@@ -65,6 +107,29 @@
     </div>
 @endif
 
+<div x-data="{ tab: '{{ !empty($channelFilter) ? 'traffic' : 'overview' }}' }">
+
+    {{-- Dashboard view tabs — split the long scroll into calmer, focused views. --}}
+    <div class="dash-tabs mb-6" role="tablist" aria-label="Dashboard views">
+        <button type="button" role="tab"
+                @click="tab = 'overview'" :aria-selected="tab === 'overview' ? 'true' : 'false'"
+                class="dash-tab" :class="tab === 'overview' ? 'dash-tab-active' : ''">
+            <i class="fas fa-gauge-high text-[11px]"></i> Overview
+        </button>
+        <button type="button" role="tab"
+                @click="tab = 'traffic'" :aria-selected="tab === 'traffic' ? 'true' : 'false'"
+                class="dash-tab" :class="tab === 'traffic' ? 'dash-tab-active' : ''">
+            <i class="fas fa-chart-pie text-[11px]"></i> Traffic
+        </button>
+        <button type="button" role="tab"
+                @click="tab = 'growth'" :aria-selected="tab === 'growth' ? 'true' : 'false'"
+                class="dash-tab" :class="tab === 'growth' ? 'dash-tab-active' : ''">
+            <i class="fas fa-arrow-trend-up text-[11px]"></i> Growth
+        </button>
+    </div>
+
+    {{-- ===================== OVERVIEW TAB (part 1: stat tiles) ===================== --}}
+    <div x-show="tab === 'overview'" x-cloak role="tabpanel">
 <div class="grid grid-cols-2 md:grid-cols-5 gap-5 mb-8">
     {{-- Plan widget: name + price resolved via PricingResolver so the
          user sees their billing-country currency (₹ for IN, $ otherwise).
@@ -137,6 +202,11 @@
         </div>
     </div>
 </div>
+    </div>
+    {{-- /OVERVIEW TAB (part 1) --}}
+
+    {{-- ===================== GROWTH TAB ===================== --}}
+    <div x-show="tab === 'growth'" x-cloak role="tabpanel">
 
 {{-- Backlink radar at-a-glance: how many new pages around the web have
      linked back to one of this creator's properties in the last 7 days.
@@ -191,6 +261,11 @@
         </div>
     </a>
 @endif
+    </div>
+    {{-- /GROWTH TAB --}}
+
+    {{-- ===================== TRAFFIC TAB ===================== --}}
+    <div x-show="tab === 'traffic'" x-cloak role="tabpanel">
 
 {{-- ===================== WORKSPACE-WIDE CHANNEL BREAKDOWN =====================
      Rolls every link's click log up into a single "what share of my traffic
@@ -257,7 +332,11 @@
         @endif
     </div>
 </div>
+    </div>
+    {{-- /TRAFFIC TAB --}}
 
+    {{-- ===================== OVERVIEW TAB (part 2: recent links + quick actions) ===================== --}}
+    <div x-show="tab === 'overview'" x-cloak role="tabpanel">
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2">
         <div class="card-premium overflow-hidden">
@@ -430,5 +509,9 @@
             </div>
         </div>
     </div>
+</div>
+    </div>
+    {{-- /OVERVIEW TAB (part 2) --}}
+
 </div>
 @endsection
