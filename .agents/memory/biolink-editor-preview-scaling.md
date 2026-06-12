@@ -10,3 +10,5 @@ The biolink editor's live device preview (`resources/views/user/links/partials/d
 **Why:** do NOT "fix legibility" by bumping font sizes in `common/biolink.blade.php` — that's the public visitor page and would change what real visitors see. Legibility must be solved purely in the editor partial by scaling the iframe up.
 
 **How to apply:** when the preview looks tiny, adjust the `.device-frame-phone` width caps / height-budget subtrahend in the editor partial; never touch public page typography.
+
+**Manual zoom layer:** there is also a manual zoom slider (50–100%, 100% == auto-fit baseline). It applies a SECOND `transform: scale()` to the whole `.device-frame-*` wrapper, composing on top of the per-iframe fit transform — do not fold zoom into `_scaleSingleIframe` (the iframe) or you get blank space inside the device screen. At exactly 100% the inline transform is cleared so it doesn't clobber Alpine's `x-transition` enter scale. Persisted per-tab via `sessionStorage._previewZoom` like the simulate-as controls.

@@ -22,6 +22,50 @@
         box-shadow: 0 0 12px rgba(124,58,237,0.1);
     }
 
+    /* Manual zoom control — lets creators trade "see the whole device" for
+       "read the text" on top of the automatic fit (100% == auto-fit baseline,
+       lower values shrink the whole device frame so a tall device fits a short
+       editor viewport). */
+    .preview-zoom-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 108px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--border-glass);
+        outline: none;
+        cursor: pointer;
+    }
+    .preview-zoom-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 13px; height: 13px;
+        border-radius: 50%;
+        background: #a78bfa;
+        border: 1px solid rgba(167,139,250,0.5);
+        box-shadow: 0 0 6px rgba(124,58,237,0.4);
+        cursor: pointer;
+    }
+    .preview-zoom-slider::-moz-range-thumb {
+        width: 13px; height: 13px;
+        border-radius: 50%;
+        background: #a78bfa;
+        border: 1px solid rgba(167,139,250,0.5);
+        box-shadow: 0 0 6px rgba(124,58,237,0.4);
+        cursor: pointer;
+    }
+    .preview-zoom-reset {
+        padding: 1px 7px;
+        border-radius: 6px;
+        font-size: 9px;
+        color: #a78bfa;
+        background: rgba(124,58,237,0.12);
+        border: 1px solid rgba(124,58,237,0.25);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .preview-zoom-reset:hover { background: rgba(124,58,237,0.2); }
+
     /* Cohesive preview "shell": groups the device switcher, the simulate
        controls and the phone frame into one panel so the controls read as
        attached to the device instead of floating detached above it. */
@@ -225,6 +269,23 @@
         </button>
     </div>
 
+    {{-- Manual zoom — rescales the visible device frame on top of the
+         automatic ResizeObserver fit. 100% is the auto-fit baseline; dragging
+         below 100% shrinks the whole device so a tall frame fits a short
+         editor viewport. Persisted per-tab in sessionStorage like the
+         "Simulate as" controls. --}}
+    <div class="flex items-center justify-center gap-2 mb-3 text-[10px]"
+         x-data="previewZoom()" x-init="restore()">
+        <i class="fas fa-magnifying-glass-minus text-[10px]" style="color: var(--text-faint);" title="Zoom out"></i>
+        <input type="range" min="50" max="100" step="5"
+               x-model.number="zoom" @input="apply()"
+               class="preview-zoom-slider"
+               aria-label="Preview zoom" title="Preview zoom">
+        <i class="fas fa-magnifying-glass-plus text-[10px]" style="color: var(--text-faint);" title="Zoom in"></i>
+        <span class="tabular-nums" style="color: var(--text-muted); min-width: 30px; text-align: right;" x-text="zoom + '%'"></span>
+        <button type="button" @click="set(100)" x-show="zoom !== 100" x-cloak class="preview-zoom-reset" title="Reset to auto-fit">Fit</button>
+    </div>
+
     {{-- "Simulate as" controls — let creators preview their per-block geo
          and device targeting rules without spoofing headers or VPN-hopping.
          The chosen sim values get appended as `_sim_country` / `_sim_device`
@@ -388,6 +449,10 @@ var _activePreviewMode = 'phone';
 // survives accidental page reloads but doesn't leak across tabs.
 var _simDevice = '';
 var _simCountry = '';
+// Manual zoom factor applied on top of the automatic fit (1 == 100% auto-fit
+// baseline; 0.5 == half-size so a tall device fits a short editor viewport).
+// Persisted per-tab in sessionStorage like the simulate-as controls.
+var _previewZoom = 1;
 var _deviceViewports = {
     phone:        { w: 375, h: 812 },
     tablet:       { w: 768, h: 1024 },
@@ -409,6 +474,26 @@ function _scaleSingleIframe(iframe) {
 
 function _scaleDeviceIframes() {
     document.querySelectorAll('.preview-iframe').forEach(_scaleSingleIframe);
+}
+
+// Apply the manual zoom factor to every device frame wrapper. This scales the
+// whole device (chrome + screen + already-fitted iframe) uniformly, so it
+// composes cleanly with the per-iframe ResizeObserver fit. At 100% the inline
+// transform is cleared entirely so the x-transition enter animation is left
+// untouched.
+function _applyZoom() {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('.device-frame-phone, .device-frame-tablet, .device-frame-tablet-land, .device-frame-desktop').forEach(function(el) {
+        if (_previewZoom === 1) {
+            el.style.transform = '';
+            el.style.transition = '';
+            el.style.transformOrigin = '';
+        } else {
+            el.style.transformOrigin = 'top center';
+            el.style.transition = reduce ? '' : 'transform 0.2s ease';
+            el.style.transform = 'scale(' + _previewZoom + ')';
+        }
+    });
 }
 
 // Per-screen ResizeObserver: re-scale the moment the device-screen actually
@@ -602,6 +687,42 @@ function switchPreviewMode(mode) {
     // width 0 before its container animated in. Stale iframes are reloaded
     // on activation rather than on every edit (cheaper, no flash).
     _ensureIframeLoaded(mode);
+    // Re-assert the manual zoom on the freshly shown frame (x-transition may
+    // have settled the inline transform back to its enter value).
+    _applyZoom();
+}
+
+// Alpine component backing the manual zoom slider. Mirrors previewSimulator's
+// sessionStorage persistence so the zoom survives a tab-local refresh but
+// doesn't leak across tabs.
+function previewZoom() {
+    return {
+        zoom: 100,
+        restore() {
+            try {
+                var z = parseInt(sessionStorage.getItem('_previewZoom') || '100', 10);
+                if (!isNaN(z) && z >= 50 && z <= 100) this.zoom = z;
+            } catch (e) { /* sessionStorage disabled (private mode) — no-op */ }
+            _previewZoom = this.zoom / 100;
+            _applyZoom();
+        },
+        apply() {
+            var z = parseInt(this.zoom, 10);
+            if (isNaN(z)) z = 100;
+            z = Math.max(50, Math.min(100, Math.round(z / 5) * 5));
+            this.zoom = z;
+            _previewZoom = z / 100;
+            try {
+                if (z === 100) sessionStorage.removeItem('_previewZoom');
+                else sessionStorage.setItem('_previewZoom', String(z));
+            } catch (e) { /* ignore */ }
+            _applyZoom();
+        },
+        set(z) {
+            this.zoom = z;
+            this.apply();
+        },
+    };
 }
 
 function refreshPreview() {
