@@ -563,44 +563,15 @@ $catColors = [
 ];
 @endphp
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
-    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks', 'showModeSelector' => true])
 
-    @include('user.links.partials.mode-selector', ['link' => $link])
-
-    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div class="flex items-center gap-3 flex-wrap">
-            <button type="button" onclick="focusBlockPalette()" class="add-block-btn">
-                <span class="add-block-icon"><i class="fas fa-plus text-[11px]"></i></span>
-                <span>Add block</span>
-            </button>
-        </div>
+    <div class="flex items-center justify-end mb-4">
         <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
             <i class="fas fa-layer-group text-[10px] opacity-70"></i>
             <span><strong data-block-count>{{ $blocks->count() }}</strong> blocks</span>
         </span>
     </div>
     <style>
-        .add-block-btn {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 7px 18px 7px 8px;
-            font-size: 12px; font-weight: 600; color: #fff;
-            letter-spacing: 0.01em;
-            border-radius: 9999px; border: 1px solid rgba(167,139,250,0.45);
-            background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 55%, #67e8f9 130%);
-            box-shadow: 0 10px 30px -10px rgba(124,58,237,0.55), 0 4px 14px -4px rgba(103,232,249,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
-            transition: transform .18s ease, box-shadow .25s ease, filter .25s ease;
-        }
-        .add-block-btn:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.08);
-            box-shadow: 0 14px 36px -10px rgba(124,58,237,0.7), 0 6px 18px -4px rgba(103,232,249,0.45), inset 0 1px 0 rgba(255,255,255,0.3);
-        }
-        .add-block-icon {
-            width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
-            background: rgba(255,255,255,0.18); border-radius: 9999px;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
-        }
-        .add-block-icon i { font-size: 9px; }
         .block-count-chip {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 6px 12px; border-radius: 9999px;
@@ -612,11 +583,6 @@ $catColors = [
             -webkit-backdrop-filter: blur(14px) saturate(140%);
         }
         .block-count-chip strong { color: var(--text-primary); font-weight: 700; }
-        html.light-mode .add-block-btn {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            border-color: rgba(124,58,237,0.35);
-            box-shadow: 0 6px 18px -6px rgba(124,58,237,0.45);
-        }
         /* Sticky behavior now lives inside the device-preview partial so
            it works on every page that includes it (editor, appearance, etc.). */
 

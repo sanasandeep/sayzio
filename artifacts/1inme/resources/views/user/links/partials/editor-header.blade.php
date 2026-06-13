@@ -29,31 +29,47 @@
 ])
 
 @if(!($hideEditorTabs ?? false))
-<div class="editor-tabs inline-flex items-center gap-1 mb-6 p-1 rounded-full">
-    <a href="{{ route('user.links.blocks.editor', $link) }}"
-       class="editor-tab no-underline {{ $activeMainTab === 'blocks' ? 'is-active' : '' }}">
-        <i class="fas fa-th-large text-[10px]"></i>
-        <span>Blocks</span>
-    </a>
-    <a href="{{ route('user.links.settings.appearance', $link) }}"
-       class="editor-tab no-underline {{ $activeMainTab === 'settings' ? 'is-active' : '' }}">
-        <i class="fas fa-cog text-[10px]"></i>
-        <span>Settings</span>
-    </a>
-    <a href="{{ route('user.links.conversational.editor', $link) }}"
-       class="editor-tab no-underline {{ $activeMainTab === 'conversational' ? 'is-active' : '' }}">
-        <i class="fas fa-comments text-[10px]"></i>
-        <span>Conversational</span>
-    </a>
-    <a href="{{ route('user.links.slides.editor', $link) }}"
-       class="editor-tab no-underline {{ $activeMainTab === 'slides' ? 'is-active' : '' }}">
-        <i class="fas fa-images text-[10px]"></i>
-        <span>Slides</span>
-    </a>
+<div class="editor-tabs-row mb-6">
+    <div class="editor-tabs inline-flex items-center gap-1 p-1 rounded-full">
+        <a href="{{ route('user.links.blocks.editor', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'blocks' ? 'is-active' : '' }}">
+            <i class="fas fa-th-large text-[10px]"></i>
+            <span>Blocks</span>
+        </a>
+        <a href="{{ route('user.links.settings.appearance', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'settings' ? 'is-active' : '' }}">
+            <i class="fas fa-cog text-[10px]"></i>
+            <span>Settings</span>
+        </a>
+        <a href="{{ route('user.links.conversational.editor', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'conversational' ? 'is-active' : '' }}">
+            <i class="fas fa-comments text-[10px]"></i>
+            <span>Conversational</span>
+        </a>
+        <a href="{{ route('user.links.slides.editor', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'slides' ? 'is-active' : '' }}">
+            <i class="fas fa-images text-[10px]"></i>
+            <span>Slides</span>
+        </a>
+    </div>
+    @if($showModeSelector ?? false)
+        @include('user.links.partials.mode-selector', ['link' => $link, 'inline' => true])
+    @endif
 </div>
 @endif
 <style>
+    .editor-tabs-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
     .editor-tabs {
+        max-width: 100%;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
         background: var(--bg-glass-input);
         border: 1px solid var(--border-glass);
         backdrop-filter: blur(16px) saturate(140%);
@@ -72,7 +88,13 @@
         border-radius: 9999px;
         transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
     }
+    .editor-tabs::-webkit-scrollbar { display: none; }
+    .editor-tab { flex: 0 0 auto; }
     .editor-tab:hover { color: var(--text-primary); }
+    @media (max-width: 640px) {
+        .editor-tabs-row { gap: 8px; }
+        .editor-tab { padding: 7px 13px; }
+    }
     .editor-tab.is-active {
         color: #fff;
         background: linear-gradient(135deg, rgba(167,139,250,0.95), rgba(103,232,249,0.85));

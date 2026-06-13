@@ -16,7 +16,7 @@
     ];
 @endphp
 
-<div class="mode-selector-bar mb-4">
+<div class="mode-selector-bar {{ ($inline ?? false) ? '' : 'mb-4' }}">
     <span class="mode-selector-label">
         <i class="fas fa-eye text-[10px]"></i>
         Display mode

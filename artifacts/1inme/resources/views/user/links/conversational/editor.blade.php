@@ -163,15 +163,13 @@
 </style>
 
 <div class="max-w-7xl mx-auto">
-    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'conversational'])
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'conversational', 'showModeSelector' => true])
 
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <a href="{{ route('user.links.conversational.analytics', $link) }}" class="cv-btn cv-btn-outline no-underline">
             <i class="fas fa-chart-line"></i> Funnel analytics
         </a>
     </div>
-
-    @include('user.links.partials.mode-selector', ['link' => $link])
 
     <div class="cv-builder">
         <div>
