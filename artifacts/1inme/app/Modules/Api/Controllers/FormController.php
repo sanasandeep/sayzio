@@ -41,8 +41,20 @@ class FormController extends Controller
             'template' => 'nullable|in:contact,lead,survey,registration,feedback,blank',
         ]);
 
+        // The sanctum API path doesn't run SetActiveWorkspace, so without an
+        // explicit assignment the new form lands with workspace_id = null and
+        // is hidden from the workspace-scoped web Forms list. Derive the user's
+        // workspace WITHOUT binding `current_workspace` — binding would also
+        // activate the BelongsToWorkspace read-side global scope, which would
+        // make Form::uniqueSlug() workspace-scoped and break global slug
+        // uniqueness required by the public /f/{slug} route. The stateless
+        // sanctum request has no session, so this matches WorkspaceContext's
+        // own fallback (first accessible → lazily-created personal workspace).
+        $ws = $request->user()->accessibleWorkspaces()->first()
+            ?? $request->user()->ensureDefaultWorkspace();
+
         $template = $data['template'] ?? 'contact';
-        $form = $request->user()->forms()->create([
+        $form = $request->user()->forms()->make([
             'slug'          => Form::uniqueSlug($data['title']),
             'title'         => $data['title'],
             'fields'        => $this->templateFields($template),
@@ -51,6 +63,10 @@ class FormController extends Controller
             'notifications' => Form::defaultNotifications(),
             'is_active'     => true,
         ]);
+        if ($ws) {
+            $form->workspace_id = $ws->id;
+        }
+        $form->save();
 
         return $this->created(['form' => $this->transform($form)]);
     }

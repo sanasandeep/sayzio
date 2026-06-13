@@ -97,7 +97,17 @@ class SocialAccountController extends Controller
             'type'      => ['required', 'string', Rule::in(array_keys(SocialProof::TYPES))],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $p = SocialProof::create([
+        // The sanctum API path doesn't run SetActiveWorkspace, so without an
+        // explicit assignment the new proof lands with workspace_id = null and
+        // is hidden from the workspace-scoped web Buzz list. Derive the user's
+        // workspace WITHOUT binding `current_workspace` (binding would also
+        // activate the BelongsToWorkspace read-side global scope for the rest
+        // of the request). The stateless sanctum request has no session, so
+        // this matches WorkspaceContext's own fallback.
+        $ws = $request->user()->accessibleWorkspaces()->first()
+            ?? $request->user()->ensureDefaultWorkspace();
+
+        $p = new SocialProof([
             'user_id'   => $request->user()->id,
             'name'      => $data['name'],
             'type'      => $data['type'],
@@ -107,6 +117,10 @@ class SocialAccountController extends Controller
             'settings'  => [],
             'notifications' => [SocialProof::newNotification($data['type'], $data['name'])],
         ]);
+        if ($ws) {
+            $p->workspace_id = $ws->id;
+        }
+        $p->save();
         return $this->created(['proof' => $this->transformProof($p)]);
     }
 
