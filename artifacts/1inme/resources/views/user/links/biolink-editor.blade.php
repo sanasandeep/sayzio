@@ -979,7 +979,23 @@ function biolinkEditor() {
         // Per-category collapse state for the grouped "Add blocks" palette.
         // Empty => every section starts expanded. Search / a specific tab
         // force sections open so matches are never hidden behind a collapse.
+        // Persisted to localStorage per user+biolink so power users keep
+        // their collapsed sections across reloads (loaded in init()).
         paletteCollapsed: {},
+        paletteCollapsedKey: 'biolink:paletteCollapsed:{{ auth()->id() }}:{{ $link->id }}',
+        loadPaletteCollapsed() {
+            try {
+                var raw = window.localStorage.getItem(this.paletteCollapsedKey);
+                if (!raw) return;
+                var saved = JSON.parse(raw);
+                if (saved && typeof saved === 'object') this.paletteCollapsed = saved;
+            } catch (e) { /* storage blocked or corrupt — fall back to all-expanded */ }
+        },
+        savePaletteCollapsed() {
+            try {
+                window.localStorage.setItem(this.paletteCollapsedKey, JSON.stringify(this.paletteCollapsed));
+            } catch (e) { /* storage blocked / full — non-fatal */ }
+        },
         paletteSectionLabels: @json($paletteSectionLabels ?? []),
         paletteSearchTerm() { return (this.paletteSearch || '').trim().toLowerCase(); },
         paletteSectionOpen(cat) {
@@ -989,6 +1005,7 @@ function biolinkEditor() {
         },
         togglePaletteSection(cat) {
             this.paletteCollapsed[cat] = !this.paletteCollapsed[cat];
+            this.savePaletteCollapsed();
         },
         paletteSectionVisible(cat) {
             if (this.paletteCategory !== 'all' && this.paletteCategory !== cat) return false;
@@ -1094,6 +1111,7 @@ function biolinkEditor() {
         },
         init() {
             var self = this;
+            this.loadPaletteCollapsed();
             window.addEventListener('open-edit-drawer', function(e) {
                 self.editingBlockId = e.detail.id;
             });
