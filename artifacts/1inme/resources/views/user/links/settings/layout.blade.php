@@ -82,6 +82,10 @@
 
                 @include('user.links.partials.settings-footer', ['link' => $link])
             </form>
+
+            <div class="mt-6">
+                @include('user.links.partials.experiment-panel', ['link' => $link])
+            </div>
         </div>
 
         <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">

@@ -157,6 +157,7 @@
 @if($__activeExp)
 <script>
 (function(){
+    if (window.__abResultsPoll) { clearInterval(window.__abResultsPoll); window.__abResultsPoll = null; }
     var url = @json(route('user.links.experiment.results', $link));
     function refresh(){
         fetch(url, {headers:{'Accept':'application/json'}, credentials:'same-origin'})
@@ -185,7 +186,7 @@
             })
             .catch(function(){});
     }
-    setInterval(refresh, 8000);
+    window.__abResultsPoll = setInterval(refresh, 8000);
 })();
 </script>
 @endif

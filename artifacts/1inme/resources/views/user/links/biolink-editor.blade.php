@@ -567,8 +567,6 @@ $catColors = [
 
     @include('user.links.partials.mode-selector', ['link' => $link])
 
-    @include('user.links.partials.experiment-panel', ['link' => $link])
-
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div class="flex items-center gap-3 flex-wrap">
             <button type="button" onclick="focusBlockPalette()" class="add-block-btn">
