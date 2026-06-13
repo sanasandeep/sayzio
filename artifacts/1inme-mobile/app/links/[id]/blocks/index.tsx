@@ -1013,15 +1013,42 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
     case "heading":
       return (
         <View style={{ width: "100%", alignItems: "center", gap: 1 }}>
-          <View
-            style={{
-              backgroundColor: bg,
-              height: h,
-              width: "100%",
-              borderRadius: 2,
-            }}
-          />
-          {cell.sub ? (
+          {cell.text ? (
+            <Text
+              numberOfLines={1}
+              style={{
+                width: "100%",
+                color: "rgba(255,255,255,0.92)",
+                fontSize: 7,
+                fontWeight: "700",
+                textAlign: "center",
+              }}
+            >
+              {cell.text}
+            </Text>
+          ) : (
+            <View
+              style={{
+                backgroundColor: bg,
+                height: h,
+                width: "100%",
+                borderRadius: 2,
+              }}
+            />
+          )}
+          {cell.sub && cell.sub_text ? (
+            <Text
+              numberOfLines={1}
+              style={{
+                width: "100%",
+                color: "rgba(255,255,255,0.55)",
+                fontSize: 5.5,
+                textAlign: "center",
+              }}
+            >
+              {cell.sub_text}
+            </Text>
+          ) : cell.sub ? (
             <View
               style={{
                 backgroundColor: bg,
@@ -1035,6 +1062,24 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
       );
     case "text_lines": {
       const lines = Math.max(cell.lines ?? 2, 1);
+      if (cell.text) {
+        return (
+          <View
+            style={{ width: "100%", minHeight: h, justifyContent: "center" }}
+          >
+            <Text
+              numberOfLines={lines}
+              style={{
+                color: "rgba(255,255,255,0.62)",
+                fontSize: 5.5,
+                lineHeight: 7,
+              }}
+            >
+              {cell.text}
+            </Text>
+          </View>
+        );
+      }
       return (
         <View
           style={{
@@ -1068,10 +1113,24 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
             borderRadius: 999,
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "flex-end",
+            justifyContent: "center",
+            gap: 2,
             paddingHorizontal: 4,
           }}
         >
+          {cell.text ? (
+            <Text
+              numberOfLines={1}
+              style={{
+                color: "rgba(255,255,255,0.95)",
+                fontSize: 5.5,
+                fontWeight: "600",
+                flexShrink: 1,
+              }}
+            >
+              {cell.text}
+            </Text>
+          ) : null}
           {cell.icon ? (
             <View
               style={{
@@ -1096,40 +1155,109 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
             gap: 5,
           }}
         >
-          <View
-            style={{
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              backgroundColor: bg,
-            }}
-          />
+          {cell.img ? (
+            <Image
+              source={{ uri: cell.img }}
+              style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+              }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View
+              style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                backgroundColor: bg,
+              }}
+            />
+          )}
           <View style={{ flex: 1, gap: 2 }}>
-            <View
-              style={{
-                backgroundColor: "rgba(255,255,255,0.55)",
-                height: 4,
-                width: "70%",
-                borderRadius: 2,
-              }}
-            />
-            <View
-              style={{
-                backgroundColor: "rgba(255,255,255,0.30)",
-                height: 3,
-                width: "50%",
-                borderRadius: 2,
-              }}
-            />
+            {cell.text ? (
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: "rgba(255,255,255,0.85)",
+                  fontSize: 5.5,
+                  fontWeight: "600",
+                }}
+              >
+                {cell.text}
+              </Text>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.55)",
+                  height: 4,
+                  width: "70%",
+                  borderRadius: 2,
+                }}
+              />
+            )}
+            {cell.sub_text ? (
+              <Text
+                numberOfLines={1}
+                style={{ color: "rgba(255,255,255,0.45)", fontSize: 5 }}
+              >
+                {cell.sub_text}
+              </Text>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.30)",
+                  height: 3,
+                  width: "50%",
+                  borderRadius: 2,
+                }}
+              />
+            )}
           </View>
         </View>
       );
     }
-    case "media":
-      // The builder emits CSS `linear-gradient(...)` strings for image/
-      // video/audio/pdf cells (matches web). Render them via
-      // `expo-linear-gradient` here so the mobile thumbnail shows the
-      // same colourful media block instead of a flat patch.
+    case "media": {
+      // The builder emits a real placeholder image URL (`img`) plus a CSS
+      // `linear-gradient(...)` background for image/video/audio/pdf cells
+      // (matches web). Prefer the real image; fall back to the gradient
+      // (via `expo-linear-gradient`) and finally a flat patch so the
+      // mobile thumbnail mirrors the web preview.
+      const playOverlay = cell.play ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="play" size={11} color="rgba(255,255,255,0.95)" />
+        </View>
+      ) : null;
+      if (cell.img) {
+        return (
+          <View
+            style={{
+              width: "100%",
+              height: h,
+              borderRadius: 3,
+              overflow: "hidden",
+            }}
+          >
+            <Image
+              source={{ uri: cell.img }}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+            />
+            {playOverlay}
+          </View>
+        );
+      }
       if (parsed.kind === "gradient") {
         const { start, end } = gradientPoints(parsed.angle);
         return (
@@ -1137,8 +1265,15 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
             colors={parsed.colors as [string, string, ...string[]]}
             start={start}
             end={end}
-            style={{ width: "100%", minHeight: h, borderRadius: 3 }}
-          />
+            style={{
+              width: "100%",
+              minHeight: h,
+              height: h,
+              borderRadius: 3,
+            }}
+          >
+            {playOverlay}
+          </LinearGradient>
         );
       }
       return (
@@ -1146,11 +1281,15 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
           style={{
             width: "100%",
             minHeight: h,
+            height: h,
             backgroundColor: bg,
             borderRadius: 3,
           }}
-        />
+        >
+          {playOverlay}
+        </View>
       );
+    }
     case "dot_row": {
       const dots = Math.max(cell.dots ?? 5, 1);
       return (
@@ -1204,16 +1343,37 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
             style={{
               alignSelf: "center",
               backgroundColor: cell.btn_bg ?? "rgba(139,92,246,0.85)",
-              height: 5,
-              width: "60%",
+              minHeight: 7,
+              width: "70%",
               borderRadius: 999,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 4,
+              paddingVertical: 1,
             }}
-          />
+          >
+            {cell.text ? (
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: "rgba(255,255,255,0.95)",
+                  fontSize: 5,
+                  fontWeight: "600",
+                }}
+              >
+                {cell.text}
+              </Text>
+            ) : null}
+          </View>
         </View>
       );
     }
     case "list_rows": {
       const lines = Math.max(cell.lines ?? 3, 1);
+      const items =
+        Array.isArray(cell.items) && cell.items.length
+          ? cell.items.slice(0, lines)
+          : Array.from({ length: lines }, () => null);
       return (
         <View
           style={{
@@ -1223,7 +1383,7 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
             gap: 3,
           }}
         >
-          {Array.from({ length: lines }).map((_, i) => (
+          {items.map((item, i) => (
             <View
               key={i}
               style={{
@@ -1240,14 +1400,27 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
                   backgroundColor: bg,
                 }}
               />
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: bg,
-                  height: 2.5,
-                  borderRadius: 2,
-                }}
-              />
+              {item ? (
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    flex: 1,
+                    color: "rgba(255,255,255,0.62)",
+                    fontSize: 5.5,
+                  }}
+                >
+                  {item}
+                </Text>
+              ) : (
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: bg,
+                    height: 2.5,
+                    borderRadius: 2,
+                  }}
+                />
+              )}
             </View>
           ))}
         </View>

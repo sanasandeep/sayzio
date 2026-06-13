@@ -37,6 +37,16 @@ export type PreviewLayoutCell = {
   dots?: number;
   sub?: boolean;
   btn_bg?: string;
+  /** Real placeholder copy for text-like shapes (heading, pill, form button). */
+  text?: string;
+  /** Secondary line for heading/avatar shapes. */
+  sub_text?: string;
+  /** Short sample strings for list rows. */
+  items?: string[];
+  /** Absolute URL of a real placeholder image for media/avatar shapes. */
+  img?: string;
+  /** Overlay a play glyph on media cells (video/audio). */
+  play?: boolean;
 };
 
 export type CardTemplate = {
