@@ -99,8 +99,7 @@
         x-transition.opacity
         @keydown.escape.window="close()"
         @click.self="close()"
-        class="fixed inset-0 z-[120] flex items-start justify-center px-4 pt-[12vh] pb-8 overflow-y-auto"
-        style="background: rgba(7,7,15,0.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
+        class="gsm-backdrop fixed inset-0 z-[120] flex items-start justify-center px-4 pt-[12vh] pb-8 overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-label="Search 1INME"
@@ -110,13 +109,12 @@
             x-transition:enter="transition duration-200 ease-out"
             x-transition:enter-start="opacity-0 scale-95 translate-y-2"
             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-            class="w-full max-w-xl rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
-            style="background: linear-gradient(180deg, rgba(20,20,32,0.96), rgba(13,13,20,0.98));"
+            class="gsm-panel w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl"
             @click.stop
         >
             {{-- Search input --}}
-            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/10">
-                <i class="fa-solid fa-magnifying-glass text-gray-500 text-sm"></i>
+            <div class="gsm-divider flex items-center gap-3 px-4 py-3 border-b">
+                <i class="gsm-icon-muted fa-solid fa-magnifying-glass text-sm"></i>
                 <input
                     x-ref="searchInput"
                     x-model="query"
@@ -125,18 +123,18 @@
                     @keydown.enter.prevent="goToSelection()"
                     type="text"
                     placeholder="{{ $__isLoggedIn ? 'Search your workspace…' : 'Search 1INME…' }}"
-                    class="flex-1 bg-transparent border-0 outline-none text-white placeholder-gray-500 text-sm"
+                    class="gsm-search-input flex-1 bg-transparent border-0 outline-none text-sm"
                     autocomplete="off"
                     spellcheck="false"
                 >
-                <kbd class="hidden sm:inline-flex items-center px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400">ESC</kbd>
+                <kbd class="gsm-kbd hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold">ESC</kbd>
             </div>
 
             {{-- Results --}}
             <div class="max-h-[55vh] overflow-y-auto p-2" x-ref="resultsBox">
                 @php $__flatIndex = 0; @endphp
                 @foreach($__shortcutGroups as $__group)
-                    <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 group-block" data-group="{{ $__group[0] }}">
+                    <div class="gsm-group-header px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider group-block" data-group="{{ $__group[0] }}">
                         {{ $__group[0] }}
                     </div>
                     @foreach($__group[1] as $__item)
@@ -144,15 +142,15 @@
                             href="{{ $__item[1] }}"
                             data-search-name="{{ Str::lower($__item[0] . ' ' . $__group[0]) }}"
                             data-index="{{ $__flatIndex }}"
-                            :class="selected === {{ $__flatIndex }} ? 'bg-white/10 border-white/15' : 'border-transparent hover:bg-white/5'"
-                            class="search-row flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm text-gray-200 transition cursor-pointer"
+                            :class="selected === {{ $__flatIndex }} ? 'is-selected' : ''"
+                            class="gsm-row search-row flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition cursor-pointer"
                             @mouseenter="selected = {{ $__flatIndex }}"
                         >
-                            <span class="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[12px]" style="color:#1bd4d9">
+                            <span class="gsm-row-icon w-7 h-7 rounded-lg flex items-center justify-center text-[12px]">
                                 <i class="{{ $__item[2] }}"></i>
                             </span>
                             <span class="flex-1 truncate">{{ $__item[0] }}</span>
-                            <i class="fa-solid fa-arrow-turn-down-left text-[10px] text-gray-600 rotate-90 hidden sm:inline"></i>
+                            <i class="gsm-icon-faint fa-solid fa-arrow-turn-down-left text-[10px] rotate-90 hidden sm:inline"></i>
                         </a>
                         @php $__flatIndex++; @endphp
                     @endforeach
@@ -160,19 +158,19 @@
 
                 <div
                     x-show="visibleCount === 0"
-                    class="px-3 py-10 text-center text-sm text-gray-500"
+                    class="gsm-empty px-3 py-10 text-center text-sm"
                 >
                     <i class="fa-regular fa-face-frown text-2xl mb-2 block opacity-60"></i>
-                    No matches for “<span class="text-gray-300" x-text="query"></span>”
+                    No matches for “<span class="gsm-empty-query" x-text="query"></span>”
                 </div>
             </div>
 
             {{-- Footer hint --}}
-            <div class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-white/10 text-[11px] text-gray-500 bg-black/30 flex-wrap">
+            <div class="gsm-footer flex items-center justify-between gap-3 px-4 py-2.5 border-t text-[11px] flex-wrap">
                 <div class="flex items-center gap-3 flex-wrap">
-                    <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300 text-[10px]">↑</kbd><kbd class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300 text-[10px]">↓</kbd> navigate</span>
-                    <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300 text-[10px]">↵</kbd> open</span>
-                    <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300 text-[10px]">⌘ I</kbd> theme</span>
+                    <span class="inline-flex items-center gap-1"><kbd class="gsm-kbd px-1.5 py-0.5 rounded text-[10px]">↑</kbd><kbd class="gsm-kbd px-1.5 py-0.5 rounded text-[10px]">↓</kbd> navigate</span>
+                    <span class="inline-flex items-center gap-1"><kbd class="gsm-kbd px-1.5 py-0.5 rounded text-[10px]">↵</kbd> open</span>
+                    <span class="inline-flex items-center gap-1"><kbd class="gsm-kbd px-1.5 py-0.5 rounded text-[10px]">⌘ I</kbd> theme</span>
                 </div>
                 <span class="hidden sm:inline">{{ $__isLoggedIn ? '✨ Logged in as ' . e($__user->name ?? $__user->email ?? 'you') : 'Sign in for personalised search' }}</span>
             </div>

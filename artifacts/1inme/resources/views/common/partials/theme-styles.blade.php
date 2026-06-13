@@ -809,6 +809,71 @@
     .force-dark-logo .brand-logo--dark  { display: inline-block !important; }
     html.light-mode .force-dark-logo .brand-logo--light { display: none !important; }
     html.light-mode .force-dark-logo .brand-logo--dark  { display: inline-block !important; }
+
+    /* ===== Global search / command palette modal (theme-aware) =====
+       Replaces hardcoded dark colors with the shared light-mode-aware tokens
+       so the modal is legible in both themes. Dark defaults below match the
+       previous hardcoded values; html.light-mode overrides supply readable
+       light surfaces where a single token can't cover both themes. */
+    .gsm-backdrop {
+        background: rgba(7,7,15,0.78);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    html.light-mode .gsm-backdrop { background: var(--overlay-bg); }
+
+    .gsm-panel {
+        background: linear-gradient(180deg, rgba(20,20,32,0.96), rgba(13,13,20,0.98));
+        border: 1px solid var(--border-glass);
+    }
+    html.light-mode .gsm-panel {
+        background: var(--bg-card);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .gsm-divider { border-color: var(--border-glass); }
+
+    .gsm-search-input { color: var(--text-primary); }
+    .gsm-search-input::placeholder { color: var(--text-dimmed); opacity: 1; }
+
+    .gsm-icon-muted { color: var(--text-dimmed); }
+    .gsm-icon-faint { color: var(--text-faint); }
+
+    .gsm-group-header { color: var(--text-dimmed); }
+
+    .gsm-row { color: var(--text-secondary); border-color: transparent; }
+    .gsm-row:hover { background: var(--bg-glass-hover); }
+    .gsm-row.is-selected {
+        background: var(--bg-glass-input-focus);
+        border-color: var(--border-glass-light);
+    }
+    html.light-mode .gsm-row.is-selected {
+        background: var(--c-primary-soft);
+        border-color: var(--border-glass-light);
+    }
+
+    .gsm-row-icon {
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        color: #1bd4d9;
+    }
+    html.light-mode .gsm-row-icon { color: var(--accent); }
+
+    .gsm-kbd {
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        color: var(--text-muted);
+    }
+
+    .gsm-footer {
+        color: var(--text-dimmed);
+        border-color: var(--border-glass);
+        background: rgba(0,0,0,0.30);
+    }
+    html.light-mode .gsm-footer { background: var(--bg-glass-hover); }
+
+    .gsm-empty { color: var(--text-dimmed); }
+    .gsm-empty-query { color: var(--text-secondary); }
 </style>
 <script>
 (function(){
