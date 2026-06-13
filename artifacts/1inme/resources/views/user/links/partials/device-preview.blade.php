@@ -88,9 +88,11 @@
         /* Render the phone as large as the available height allows (down to a
            readable floor) so block text never collapses to one word per line.
            The iframe is scaled to this width, so a bigger frame == bigger,
-           legible text. */
+           legible text. The scroll container is <main>, whose visible viewport
+           excludes the 64px in-app header, so subtract it (160 = 64 header + the
+           96px top offset + control/padding budget) to keep the frame in view. */
         .device-preview-root .device-frame-phone {
-            width: min(360px, max(300px, calc((100vh - 96px) * 375 / 812)));
+            width: min(360px, max(300px, calc((100vh - 160px) * 375 / 812)));
         }
     }
     /* Activate the side-by-side editor layout (form | device preview) a bit
@@ -109,7 +111,7 @@
             top: 12px;
         }
         .device-preview-root .device-frame-phone {
-            width: min(340px, max(280px, calc((100vh - 96px) * 375 / 812)));
+            width: min(340px, max(280px, calc((100vh - 160px) * 375 / 812)));
         }
     }
     .device-frame-phone .device-screen {
