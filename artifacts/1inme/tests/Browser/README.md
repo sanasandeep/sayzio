@@ -29,3 +29,13 @@ fixture exists), then drives a real browser against the public alias.
   slides render, the active-slide class moves on `ArrowRight` /
   `ArrowLeft` and on a synthesized swipe-left gesture, and the inline
   `/sl/{alias}/view` tracker pings during navigation.
+- `biolink-editor-palette-dnd.spec.ts` — task #1340. Seeds a biolink at
+  alias `e2e-editor-dnd` (divider, spacer, and a card with one paragraph
+  child) and logs in as the demo user, then drives the real palette-drop
+  pipeline through production-safe `window.__editorTest` hooks (armed only
+  when `window.__E2E__` is set). Asserts a palette tile drops at the top,
+  between blocks, at the end, and inside a Card Container (verifying
+  position and parent); that card-type tiles are rejected inside a Card
+  Container; and that `prefers-reduced-motion` disables the drop
+  animation. All tests share one logged-in browser context because the
+  `demo-login` route is rate-limited.

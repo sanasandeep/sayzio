@@ -2085,6 +2085,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var _storeUrl = '{{ route("user.links.blocks.store", $link) }}';
     var _prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var _dropAnim = _prefersReducedMotion ? 0 : 250;
+    var _topSortable = null;
+    var _cardSortables = {};
+
+    // Whether a palette clone (or real block) of the given drag element is
+    // allowed to land inside a Card Container's child list. Cards can't nest
+    // in cards. Kept as a named predicate so the put rule is unit-testable.
+    function cardPutAllows(dragEl) {
+        if (dragEl.dataset && dragEl.dataset.blockType === 'card') return false;
+        var inner = dragEl.querySelector && dragEl.querySelector('.card-container-block');
+        return !(dragEl.classList.contains('card-container-block') || inner);
+    }
 
     // Create a real block from a palette drop, then place it at the exact drop
     // index. We append via the existing store() flow (reusing BlockDefaults
@@ -2173,7 +2184,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (el) {
-        new Sortable(el, {
+        _topSortable = new Sortable(el, {
             handle: '.handle, .child-handle',
             animation: _dropAnim,
             ghostClass: 'sortable-ghost',
@@ -2216,7 +2227,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function initCardChildSortable(childList) {
         var cardId = parseInt(childList.dataset.cardId);
-        new Sortable(childList, {
+        _cardSortables[cardId] = new Sortable(childList, {
             handle: '.child-handle, .handle',
             animation: _dropAnim,
             ghostClass: 'sortable-ghost',
@@ -2224,9 +2235,7 @@ document.addEventListener('DOMContentLoaded', function() {
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
             group: { name: 'blocks', pull: true, put: function(to, from, dragEl) {
                 // Block cards (real or palette 'card' clones) can't nest in a card.
-                if (dragEl.dataset && dragEl.dataset.blockType === 'card') return false;
-                var inner = dragEl.querySelector && dragEl.querySelector('.card-container-block');
-                return !(dragEl.classList.contains('card-container-block') || inner);
+                return cardPutAllows(dragEl);
             }},
             draggable: '.child-block-card, .block-card, .block-card-wrapper',
             onAdd: function(evt) {
@@ -2295,6 +2304,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.card-child-list').forEach(function(c) { c.classList.remove('palette-dragging'); });
             }
         });
+    }
+
+    // ── Test-only hooks ────────────────────────────────────────────────────
+    // Enabled only when a Playwright init script sets window.__E2E__ before
+    // page scripts run; production never sets the flag, so this stays inert.
+    // Native HTML5 drag-and-drop is unreliable to drive headless, so the
+    // browser test exercises the real palette-drop pipeline (handlePaletteDrop
+    // → paletteCreateBlock → store/reorder) and the real put/animation config
+    // deterministically through these handles.
+    if (window.__E2E__) {
+        window.__editorTest = {
+            dropAnim: _dropAnim,
+            prefersReducedMotion: _prefersReducedMotion,
+            topAnimation: _topSortable ? _topSortable.options.animation : null,
+            cardIds: function() { return Object.keys(_cardSortables); },
+            cardAnimation: function(cardId) {
+                var s = _cardSortables[cardId];
+                return s ? s.options.animation : null;
+            },
+            // Mirror SortableJS's card-list put gate for a palette clone of
+            // `type` (e.g. a 'card' tile must be rejected inside a card).
+            canDropInCard: function(type) {
+                return cardPutAllows({
+                    dataset: { blockType: type },
+                    classList: { contains: function() { return false; } },
+                    querySelector: function() { return null; }
+                });
+            },
+            // Clone a palette tile, insert it into the target list at `index`
+            // (counting only real block cards), then run the real drop handler
+            // — exactly what SortableJS's onAdd does after a manual drag. Pass
+            // parentCardId to drop into a Card Container, or null for top level.
+            simulatePaletteDrop: function(type, parentCardId, index) {
+                var tile = document.querySelector('.palette-block-item[data-block-type="' + type + '"]');
+                if (!tile) throw new Error('No palette tile for type: ' + type);
+                var clone = tile.cloneNode(true);
+                var listEl, parentId, cardSel;
+                if (parentCardId) {
+                    listEl = document.querySelector('.card-child-list[data-card-id="' + parentCardId + '"]');
+                    parentId = parentCardId;
+                    cardSel = ':scope > .child-block-card';
+                } else {
+                    listEl = document.getElementById('blockList');
+                    parentId = null;
+                    cardSel = ':scope > .block-card-wrapper';
+                }
+                if (!listEl) throw new Error('No drop list found');
+                var cards = listEl.querySelectorAll(cardSel);
+                if (typeof index === 'number' && index < cards.length) {
+                    listEl.insertBefore(clone, cards[index]);
+                } else {
+                    listEl.appendChild(clone);
+                }
+                return handlePaletteDrop({ item: clone }, listEl, parentId);
+            }
+        };
+        window.dispatchEvent(new CustomEvent('editor-test-ready'));
     }
 });
 </script>
