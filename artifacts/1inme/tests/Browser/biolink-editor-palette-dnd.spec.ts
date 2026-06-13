@@ -145,8 +145,10 @@ async function topLevelLabels(page: Page): Promise<string[]> {
 }
 
 /**
- * Run a palette drop through the real onAdd pipeline, waiting for the
- * controller round-trip + the page reload the editor performs on success.
+ * Run a palette drop through the real onAdd pipeline. The editor inserts the
+ * new block in place (no page reload), so wait for the controller round-trip to
+ * land: a fresh block card appears in the target list and the "Block added"
+ * success toast is shown.
  */
 async function dropPalette(
   page: Page,
@@ -154,24 +156,31 @@ async function dropPalette(
   parentCardId: number | null,
   index: number,
 ): Promise<void> {
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: "domcontentloaded" }),
-    page.evaluate(
-      ([t, p, i]) =>
-        (
-          window as unknown as {
-            __editorTest: {
-              simulatePaletteDrop: (
-                type: string,
-                parent: number | null,
-                index: number,
-              ) => boolean;
-            };
-          }
-        ).__editorTest.simulatePaletteDrop(t as string, p as number | null, i as number),
-      [type, parentCardId, index] as const,
-    ),
-  ]);
+  const cardSelector = parentCardId
+    ? `.card-child-list[data-card-id="${parentCardId}"] > .child-block-card`
+    : "#blockList > .block-card-wrapper";
+  const before = await page.locator(cardSelector).count();
+
+  await page.evaluate(
+    ([t, p, i]) =>
+      (
+        window as unknown as {
+          __editorTest: {
+            simulatePaletteDrop: (
+              type: string,
+              parent: number | null,
+              index: number,
+            ) => boolean;
+          };
+        }
+      ).__editorTest.simulatePaletteDrop(t as string, p as number | null, i as number),
+    [type, parentCardId, index] as const,
+  );
+
+  // The in-place insert adds exactly one real block card to the target list…
+  await expect(page.locator(cardSelector)).toHaveCount(before + 1);
+  // …and a success toast confirms the persisted creation.
+  await expect(page.getByText("Block added").last()).toBeVisible();
 }
 
 test.describe("biolink editor — palette drag-and-drop block creation", () => {
