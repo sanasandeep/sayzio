@@ -1587,6 +1587,38 @@ function SpecialPanel(props: SpecialPanelProps) {
   const items = q.data?.items ?? [];
   const cats = q.data?.categories ?? {};
 
+  // The same handful of placeholder assets (avatars, covers, documents)
+  // repeat across every template's mini-blueprint. Collect their unique
+  // URLs once so we can warm Expo's image cache when the gallery opens —
+  // otherwise each tile triggers its own network fetch and media/avatar
+  // cells flash blank while the picker is scrolled.
+  const previewImageUrls = useMemo(() => {
+    const urls = new Set<string>();
+    for (const t of items) {
+      for (const row of t.preview_layout ?? []) {
+        for (const cell of row) {
+          if (cell.img) urls.add(cell.img);
+        }
+      }
+    }
+    return Array.from(urls);
+  }, [items]);
+
+  // Track which URLs we've already asked Expo to prefetch so re-renders
+  // (search, tab switches) don't re-issue the same requests.
+  const prefetchedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!visible || mode !== "templates") return;
+    for (const url of previewImageUrls) {
+      if (prefetchedRef.current.has(url)) continue;
+      prefetchedRef.current.add(url);
+      // Fire-and-forget: a failed prefetch just falls back to lazy load.
+      Image.prefetch(url).catch(() => {
+        prefetchedRef.current.delete(url);
+      });
+    }
+  }, [visible, mode, previewImageUrls]);
+
   const visibleItems = useMemo(() => {
     let list = activeCat === "all" ? items : items.filter((t) => t.category === activeCat);
     const term = search.trim().toLowerCase();
