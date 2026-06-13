@@ -2411,7 +2411,7 @@
         @endif
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="{{ asset('js/vendor/alpine.min.js') }}" defer></script>
     <script>
     // Live poll component: posts the picked option to the JSON poll-vote
     // endpoint and then fetches the aggregated tallies so viewers see

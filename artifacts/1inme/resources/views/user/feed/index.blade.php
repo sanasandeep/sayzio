@@ -11,7 +11,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}"><title>My Feed - {{ config('app.name') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <style>:root{--text-primary:#0f172a;--text-muted:#475569;--text-faint:#94a3b8;--bg-card:#fff;--border-soft:#e2e8f0;}</style>
     </head><body class="bg-slate-50">
 @endif
