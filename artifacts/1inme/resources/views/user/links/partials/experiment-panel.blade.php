@@ -12,6 +12,27 @@
     $__lastExp = $link->biolinkExperiments()->orderByDesc('id')->first();
 @endphp
 
+<style>
+    #ab-test-panel .ab-input {
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        color: var(--text-primary, inherit);
+    }
+    #ab-test-panel .ab-input:focus {
+        background: var(--bg-glass-input-focus);
+        border-color: var(--border-glass-light);
+        outline: none;
+    }
+    #ab-test-panel .ab-ghost-btn {
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        color: var(--text-primary, inherit);
+    }
+    #ab-test-panel .ab-ghost-btn:hover {
+        background: var(--bg-glass-input-focus);
+        border-color: var(--border-glass-light);
+    }
+</style>
 <div id="ab-test-panel"
      class="rounded-2xl border p-4 mb-4"
      style="background:linear-gradient(135deg, rgba(124,58,237,0.06), rgba(6,182,212,0.04)); border-color:var(--border-glass);">
@@ -34,10 +55,10 @@
         @if($__activeExp)
             <form method="POST" action="{{ route('user.links.experiment.stop', $link) }}" class="flex items-center gap-2">
                 @csrf
-                <button type="submit" name="winner" value="a" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/15 hover:bg-white/5">
+                <button type="submit" name="winner" value="a" class="ab-ghost-btn px-3 py-1.5 text-xs font-semibold rounded-lg">
                     Stop &amp; promote A
                 </button>
-                <button type="submit" name="winner" value="b" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/15 hover:bg-white/5">
+                <button type="submit" name="winner" value="b" class="ab-ghost-btn px-3 py-1.5 text-xs font-semibold rounded-lg">
                     Stop &amp; promote B
                 </button>
                 <button type="submit" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-red-400 hover:bg-red-500/10">
@@ -67,7 +88,7 @@
                 <select name="stop_condition" id="ab-stop-condition"
                         onchange="document.getElementById('ab-sample').style.display=this.value==='sample_size'?'flex':'none';
                                   document.getElementById('ab-end').style.display=this.value==='end_date'?'flex':'none';"
-                        class="bg-white/5 border border-white/15 rounded px-2 py-1.5 text-xs">
+                        class="ab-input rounded px-2 py-1.5 text-xs">
                     <option value="manual">I stop it manually</option>
                     <option value="sample_size">Reach a visitor count</option>
                     <option value="end_date">Reach a date</option>
@@ -76,12 +97,12 @@
             <label id="ab-sample" class="text-[11px] theme-text-muted flex flex-col gap-1" style="display:none;">
                 <span>Total visits across A+B (min 50)</span>
                 <input type="number" name="stop_sample_size" min="50" max="1000000" value="400"
-                       class="bg-white/5 border border-white/15 rounded px-2 py-1.5 text-xs w-32">
+                       class="ab-input rounded px-2 py-1.5 text-xs w-32">
             </label>
             <label id="ab-end" class="text-[11px] theme-text-muted flex flex-col gap-1" style="display:none;">
                 <span>End date</span>
                 <input type="datetime-local" name="stop_end_date"
-                       class="bg-white/5 border border-white/15 rounded px-2 py-1.5 text-xs">
+                       class="ab-input rounded px-2 py-1.5 text-xs">
             </label>
             <button type="submit"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-500 text-white">
