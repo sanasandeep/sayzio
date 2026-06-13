@@ -29,6 +29,21 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // `php artisan serve` spawns a child `php -S` process to handle requests
+        // and, by default, only forwards a small allowlist of env vars to it
+        // (ServeCommand::$passthroughVariables) — every other $_ENV var is
+        // explicitly unset in the child. Our DB credentials (notably the secret
+        // DB_PASSWORD, which is injected via the Replit secrets manager rather
+        // than .env) would therefore be missing in the child, causing
+        // "fe_sendauth: no password supplied". Forward the DB_* variables so the
+        // request-handling process can connect to the (external AWS RDS) Postgres.
+        if (class_exists(\Illuminate\Foundation\Console\ServeCommand::class)) {
+            \Illuminate\Foundation\Console\ServeCommand::$passthroughVariables = array_values(array_unique(array_merge(
+                \Illuminate\Foundation\Console\ServeCommand::$passthroughVariables,
+                ['DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'DB_SSLMODE'],
+            )));
+        }
+
         \Illuminate\Support\Facades\View::composer(
             array_keys(\App\Modules\Common\Services\BlogCtaComposer::VIEW_TO_SLUG),
             \App\Modules\Common\Services\BlogCtaComposer::class

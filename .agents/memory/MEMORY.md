@@ -8,3 +8,5 @@
 - [Sanctum API no workspace binding](api-workspace-scope.md) — API path doesn't run SetActiveWorkspace, so BelongsToWorkspace creates land with workspace_id=null; index still returns them (scope skipped), but web list won't.
 - [Palette DnD spec no-reload](palette-dnd-test-no-reload.md) — palette drops insert in-place (no reload), so biolink-editor-palette-dnd.spec's waitForNavigation times out independent of palette markup changes.
 - [Template preview blueprint](template-preview-layout.md) — TemplatePreviewLayoutBuilder feeds 3 surfaces; row cap is per-call (gallery 10, page/mobile 6); variable heights live in card markup; admin template CRUD already exists.
+- [artisan serve env passthrough](artisan-serve-env-passthrough.md) — `php artisan serve` child php -S strips all env vars except ServeCommand::$passthroughVariables; add DB_* there or get "no password supplied" 500s (parent tinker still works).
+- [drizzle-kit + SSL RDS quirks](drizzle-rds-ssl-and-schema.md) — discrete creds (not URL) for force_ssl RDS; `push` drops any schema not declared via pgSchema; bulk-load dumps as one node-pg query; cross-region latency (~251ms/query) is inherent not a bug.

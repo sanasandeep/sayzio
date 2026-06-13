@@ -1,16 +1,30 @@
 import { defineConfig } from "drizzle-kit";
 import path from "path";
+import { resolveConnection } from "./src/connection";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
-}
+// Mirror the runtime pool: external hosts such as AWS RDS are wired through the
+// shared DB_* components and require SSL (TLS without CA verification).
+//
+// We pass discrete credentials (not a URL) whenever they're available because
+// drizzle-kit ignores an explicit `ssl` option when a connection URL is
+// supplied, which makes it connect without TLS and get rejected by RDS's
+// `force_ssl`.
+const { connectionString, host, port, database, user, password, ssl } =
+  resolveConnection();
 
 export default defineConfig({
   schema: path.join(__dirname, "./src/schema/index.ts"),
   dialect: "postgresql",
-  dbCredentials: {
-    url: process.env.DATABASE_URL,
-  },
+  dbCredentials: connectionString
+    ? { url: connectionString, ...(ssl ? { ssl } : {}) }
+    : {
+        host: host!,
+        port: port!,
+        database: database!,
+        user: user!,
+        password: password!,
+        ...(ssl ? { ssl } : {}),
+      },
   // The Laravel `1inme` artifact shares this Postgres database and owns
   // every real table in the `public` schema (managed via `php artisan
   // migrate`). Without this filter, drizzle-kit introspects every
