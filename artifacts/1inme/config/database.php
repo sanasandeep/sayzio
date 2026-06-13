@@ -97,6 +97,14 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Reuse the (slow, ~3s) SSL handshake across requests. With
+            // `php artisan serve` (single-process php -S) and on a deployed
+            // server alike, a persistent PDO connection is kept warm in the
+            // worker, so only the first request pays the TLS/connect cost.
+            // Hugely reduces page latency when the DB is in a distant region.
+            'options' => filter_var(env('DB_PERSISTENT', true), FILTER_VALIDATE_BOOLEAN)
+                ? [PDO::ATTR_PERSISTENT => true]
+                : [],
         ],
 
         'sqlsrv' => [

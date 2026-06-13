@@ -10,3 +10,4 @@
 - [Template preview blueprint](template-preview-layout.md) — TemplatePreviewLayoutBuilder feeds 3 surfaces; row cap is per-call (gallery 10, page/mobile 6); variable heights live in card markup; admin template CRUD already exists.
 - [artisan serve env passthrough](artisan-serve-env-passthrough.md) — `php artisan serve` child php -S strips all env vars except ServeCommand::$passthroughVariables; add DB_* there or get "no password supplied" 500s (parent tinker still works).
 - [drizzle-kit + SSL RDS quirks](drizzle-rds-ssl-and-schema.md) — discrete creds (not URL) for force_ssl RDS; `push` drops any schema not declared via pgSchema; bulk-load dumps as one node-pg query; cross-region latency (~251ms/query) is inherent not a bug.
+- [Distant-DB dev preview perf](distant-db-dev-perf.md) — far RDS makes dev preview time out (looks like a DB error); fix = local file cache (not database cache) + persistent PDO + PHP_CLI_SERVER_WORKERS with `--no-reload`.

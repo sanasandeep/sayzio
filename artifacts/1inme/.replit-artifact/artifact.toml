@@ -9,7 +9,7 @@ name = "web"
 paths = ["/"]
 
 [services.development]
-run = "cd /home/runner/workspace/artifacts/1inme && php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000"
+run = "cd /home/runner/workspace/artifacts/1inme && PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"
 
 [services.development.env]
 PORT = "5000"
@@ -24,6 +24,7 @@ args = ["sh", "-c", '''cd artifacts/1inme && { php artisan migrate --force 2>&1 
 PORT = "5000"
 APP_ENV = "production"
 APP_DEBUG = "false"
+DB_PERSISTENT = "false"
 
 [services.production.health.startup]
 path = "/"
