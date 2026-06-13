@@ -387,6 +387,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/forms/{id}/submissions',             [FormController::class, 'submissions'])->whereNumber('id');
         Route::get('/forms/{id}/submissions.csv',         [FormController::class, 'exportSubmissions'])->whereNumber('id');
 
+        // Biolink AI Companions (read-only list for the block editor's
+        // "AI" picker — full CRUD lives on web).
+        Route::get('/ai-companions',                      [\App\Modules\Api\Controllers\AiCompanionController::class, 'index']);
+
         // Inbox (DM threads on owned biolinks)
         Route::get   ('/inbox/threads',                   [InboxController::class, 'threads']);
         Route::get   ('/inbox/conversations',             [InboxController::class, 'conversations']);

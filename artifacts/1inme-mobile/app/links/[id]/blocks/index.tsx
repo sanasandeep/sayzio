@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type ComponentProps,
+  type ReactNode,
 } from "react";
 import {
   ActivityIndicator,
@@ -45,6 +46,9 @@ import {
   type CardTemplateChildSummary,
   type PreviewLayoutCell,
 } from "@/lib/api/cardTemplates";
+import { listForms } from "@/lib/api/forms";
+import { listSocialProofs } from "@/lib/api/socialProofs";
+import { listBiolinkCompanions } from "@/lib/api/aiCompanions";
 
 function confirm(title: string, msg: string, onYes: () => void) {
   if (Platform.OS === "web") {
@@ -80,7 +84,16 @@ export default function BlocksScreen() {
   const [picker, setPicker] = useState(false);
   const [paletteSearch, setPaletteSearch] = useState("");
   const [paletteCategory, setPaletteCategory] = useState("all");
-  const [cardGallery, setCardGallery] = useState(false);
+  // The "Templates, forms & more" panel — a single inline picker with
+  // Cards / Forms / Buzz / AI tabs, mirroring the web editor's special
+  // panel. `specialMode` controls which tab it opens on.
+  const [specialOpen, setSpecialOpen] = useState(false);
+  const [specialMode, setSpecialMode] = useState<SpecialMode>("templates");
+
+  function openSpecial(mode: SpecialMode) {
+    setSpecialMode(mode);
+    setSpecialOpen(true);
+  }
 
   const catalogQ = useQuery({
     queryKey: ["block-catalog"],
@@ -108,13 +121,24 @@ export default function BlocksScreen() {
     return () => clearTimeout(t);
   }, [highlightId, order]);
 
+  // In-place cache helpers — mirror the web editor, which injects the
+  // returned block HTML into the list instead of reloading the whole
+  // editor. On mobile the equivalent is patching the React Query cache
+  // directly rather than invalidating + refetching.
+  function appendBlockToCache(b: Block) {
+    qc.setQueryData<Block[]>(["blocks", id], (old) =>
+      old ? [...old, b] : [b],
+    );
+  }
+
   const create = useMutation({
     mutationFn: (type: string) => createBlock(id, { type, settings: {} }),
     onSuccess: (b) => {
-      qc.invalidateQueries({ queryKey: ["blocks", id] });
+      appendBlockToCache(b);
       setPicker(false);
       setPaletteSearch("");
       setPaletteCategory("all");
+      setHighlightId(b.id);
       router.push(`/links/${id}/blocks/${b.id}` as any);
     },
   });
@@ -151,17 +175,31 @@ export default function BlocksScreen() {
   const toggle = useMutation({
     mutationFn: (b: Block) =>
       updateBlock(id, b.id, { is_active: !b.is_active }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
+    onSuccess: (updated) =>
+      qc.setQueryData<Block[]>(["blocks", id], (old) =>
+        old ? old.map((b) => (b.id === updated.id ? updated : b)) : old,
+      ),
+    // Server rejected the toggle — pull the truth back so the switch
+    // doesn't drift from reality.
+    onError: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
   });
 
   const remove = useMutation({
     mutationFn: (blockId: number) => deleteBlock(id, blockId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
+    onSuccess: (_res, blockId) =>
+      qc.setQueryData<Block[]>(["blocks", id], (old) =>
+        old
+          ? old.filter((b) => b.id !== blockId && b.parent_id !== blockId)
+          : old,
+      ),
+    onError: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
   });
 
   const persistOrder = useMutation({
     mutationFn: (ids: number[]) => reorderBlocks(id, ids),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
+    // The optimistic order is already written to the cache in `move()`;
+    // only re-sync from the server if the persist failed.
+    onError: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
   });
 
   function move(idx: number, dir: -1 | 1) {
@@ -170,6 +208,7 @@ export default function BlocksScreen() {
     if (j < 0 || j >= next.length) return;
     [next[idx], next[j]] = [next[j], next[idx]];
     setOrder(next);
+    qc.setQueryData<Block[]>(["blocks", id], next);
     persistOrder.mutate(next.map((b) => b.id));
   }
 
@@ -194,8 +233,8 @@ export default function BlocksScreen() {
               <View style={{ gap: 8 }}>
                 <Button label="Add a block" onPress={() => setPicker(true)} />
                 <Button
-                  label="Browse card templates"
-                  onPress={() => setCardGallery(true)}
+                  label="Templates, forms & more"
+                  onPress={() => openSpecial("templates")}
                 />
               </View>
             }
@@ -289,9 +328,9 @@ export default function BlocksScreen() {
             })}
             <Button label="Add a block" onPress={() => setPicker(true)} />
             <Button
-              label="Browse card templates"
+              label="Templates, forms & more"
               variant="ghost"
-              onPress={() => setCardGallery(true)}
+              onPress={() => openSpecial("templates")}
             />
           </View>
         )}
@@ -402,10 +441,10 @@ export default function BlocksScreen() {
               <ScrollView contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
                 {paletteCategory === "all" && paletteSearch.trim() === "" ? (
                   <Pressable
-                    key="card-templates"
+                    key="special-panel"
                     onPress={() => {
                       setPicker(false);
-                      setCardGallery(true);
+                      openSpecial("templates");
                     }}
                     style={({ pressed }) => [
                       styles.kindRow,
@@ -422,7 +461,7 @@ export default function BlocksScreen() {
                       <Text
                         style={[styles.kindLabel, { color: colors.foreground }]}
                       >
-                        Card templates
+                        Templates, forms & more
                       </Text>
                     </View>
                     <Text
@@ -431,7 +470,7 @@ export default function BlocksScreen() {
                         { color: colors.mutedForeground },
                       ]}
                     >
-                      Pre-designed card layouts you can drop in and edit.
+                      Card templates, forms, Buzz campaigns & AI companions.
                     </Text>
                   </Pressable>
                 ) : null}
@@ -507,17 +546,28 @@ export default function BlocksScreen() {
         </View>
       </Modal>
 
-      <CardTemplatesGallery
-        visible={cardGallery}
+      <SpecialPanel
+        visible={specialOpen}
+        mode={specialMode}
+        onModeChange={setSpecialMode}
         linkId={id}
         insertAfter={order.length > 0 ? order[order.length - 1].id : null}
-        onClose={() => setCardGallery(false)}
+        onClose={() => setSpecialOpen(false)}
         onPreview={(t) => setPreviewTpl(t)}
         onApplied={(blockId) => {
+          // Card templates create a parent card plus child blocks in one
+          // shot; the apply endpoint only returns the new parent id, so
+          // this is the one path that still refetches to pull the whole
+          // sub-tree in (the single-block pickers patch the cache in place).
           qc.invalidateQueries({ queryKey: ["blocks", id] });
-          setCardGallery(false);
+          setSpecialOpen(false);
           setPreviewTpl(null);
           setHighlightId(blockId);
+        }}
+        onInserted={(b) => {
+          appendBlockToCache(b);
+          setSpecialOpen(false);
+          setHighlightId(b.id);
         }}
         previewTpl={previewTpl}
         clearPreview={() => setPreviewTpl(null)}
@@ -526,13 +576,24 @@ export default function BlocksScreen() {
   );
 }
 
-type GalleryProps = {
+// The four inline-palette tabs the special panel exposes, matching the
+// web editor's special panel (Cards / Forms / Buzz / AI).
+type SpecialMode = "templates" | "forms" | "buzz" | "ai";
+
+type SpecialPanelProps = {
   visible: boolean;
+  mode: SpecialMode;
+  onModeChange: (m: SpecialMode) => void;
   linkId: number;
   insertAfter: number | null;
   onClose: () => void;
   onPreview: (t: CardTemplate) => void;
+  // Card templates create a parent + children, so the parent re-syncs the
+  // whole list from the server given just the new parent id.
   onApplied: (blockId: number) => void;
+  // Forms / Buzz / AI insert a single block; hand the full block back so
+  // the parent can patch it straight into the cache.
+  onInserted: (block: Block) => void;
   previewTpl: CardTemplate | null;
   clearPreview: () => void;
 };
@@ -1135,25 +1196,56 @@ function chipsFromChildren(
   return Array.from(groups.values());
 }
 
-function CardTemplatesGallery(props: GalleryProps) {
+function SpecialPanel(props: SpecialPanelProps) {
   const colors = useColors();
   const {
     visible,
+    mode,
+    onModeChange,
     linkId,
     insertAfter,
     onClose,
     onPreview,
     onApplied,
+    onInserted,
     previewTpl,
     clearPreview,
   } = props;
 
   const [activeCat, setActiveCat] = useState<string>("all");
+  const [search, setSearch] = useState("");
+
+  // Reset the search box whenever the user switches tabs so a query
+  // typed on one tab doesn't silently hide everything on the next.
+  useEffect(() => {
+    setSearch("");
+  }, [mode]);
 
   const q = useQuery({
     queryKey: ["card-templates", linkId],
     queryFn: () => listCardTemplates(linkId),
-    enabled: visible && Number.isFinite(linkId),
+    enabled: visible && mode === "templates" && Number.isFinite(linkId),
+    staleTime: 60_000,
+  });
+
+  const formsQ = useQuery({
+    queryKey: ["special-forms"],
+    queryFn: listForms,
+    enabled: visible && mode === "forms",
+    staleTime: 60_000,
+  });
+
+  const buzzQ = useQuery({
+    queryKey: ["special-buzz"],
+    queryFn: listSocialProofs,
+    enabled: visible && mode === "buzz",
+    staleTime: 60_000,
+  });
+
+  const aiQ = useQuery({
+    queryKey: ["special-ai"],
+    queryFn: listBiolinkCompanions,
+    enabled: visible && mode === "ai",
     staleTime: 60_000,
   });
 
@@ -1166,13 +1258,29 @@ function CardTemplatesGallery(props: GalleryProps) {
     onSuccess: (res) => onApplied(res.block_id),
   });
 
+  // Forms / Buzz / AI all resolve to a single block; the settings payload
+  // is passed verbatim to the API, matching the web special panel.
+  const insert = useMutation({
+    mutationFn: (payload: { type: string; settings: Record<string, unknown> }) =>
+      createBlock(linkId, payload),
+    onSuccess: (b) => onInserted(b),
+  });
+
   const items = q.data?.items ?? [];
   const cats = q.data?.categories ?? {};
 
   const visibleItems = useMemo(() => {
-    if (activeCat === "all") return items;
-    return items.filter((t) => t.category === activeCat);
-  }, [items, activeCat]);
+    let list = activeCat === "all" ? items : items.filter((t) => t.category === activeCat);
+    const term = search.trim().toLowerCase();
+    if (term) {
+      list = list.filter(
+        (t) =>
+          t.name.toLowerCase().includes(term) ||
+          (t.description ?? "").toLowerCase().includes(term),
+      );
+    }
+    return list;
+  }, [items, activeCat, search]);
 
   const catOptions = useMemo(() => {
     const used = new Set(items.map((t) => t.category));
@@ -1183,6 +1291,42 @@ function CardTemplatesGallery(props: GalleryProps) {
         .map(([key, label]) => ({ key, label })),
     ];
   }, [items, cats]);
+
+  const formItems = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = formsQ.data?.items ?? [];
+    if (!term) return list;
+    return list.filter((f) => f.title.toLowerCase().includes(term));
+  }, [formsQ.data, search]);
+
+  const buzzItems = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = buzzQ.data?.items ?? [];
+    if (!term) return list;
+    return list.filter(
+      (s) =>
+        s.name.toLowerCase().includes(term) ||
+        s.type_label.toLowerCase().includes(term),
+    );
+  }, [buzzQ.data, search]);
+
+  const aiItems = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = aiQ.data?.items ?? [];
+    if (!term) return list;
+    return list.filter((c) => c.name.toLowerCase().includes(term));
+  }, [aiQ.data, search]);
+
+  const MODE_TABS: Array<{
+    key: SpecialMode;
+    label: string;
+    icon: ComponentProps<typeof Feather>["name"];
+  }> = [
+    { key: "templates", label: "Cards", icon: "layers" },
+    { key: "forms", label: "Forms", icon: "file-text" },
+    { key: "buzz", label: "Buzz", icon: "volume-2" },
+    { key: "ai", label: "AI", icon: "cpu" },
+  ];
 
   return (
     <Modal
@@ -1200,14 +1344,155 @@ function CardTemplatesGallery(props: GalleryProps) {
         >
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-              Card templates
+              Templates, forms & more
             </Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Feather name="x" size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>
 
-          {q.isLoading ? (
+          {/* Mode tab bar — Cards / Forms / Buzz / AI, mirroring the web
+              special panel's pill tabs. */}
+          <View style={styles.modeTabs}>
+            {MODE_TABS.map((t) => {
+              const active = t.key === mode;
+              return (
+                <Pressable
+                  key={t.key}
+                  onPress={() => onModeChange(t.key)}
+                  style={[
+                    styles.modeTab,
+                    {
+                      backgroundColor: active ? colors.primary : colors.card,
+                      borderColor: active ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={t.icon}
+                    size={13}
+                    color={active ? "#fff" : colors.foreground}
+                  />
+                  <Text
+                    style={{
+                      color: active ? "#fff" : colors.foreground,
+                      fontSize: 12,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                    }}
+                  >
+                    {t.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Shared search box across all tabs. */}
+          <View
+            style={[
+              styles.searchBox,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Feather name="search" size={14} color={colors.mutedForeground} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={
+                mode === "templates"
+                  ? "Search templates"
+                  : mode === "forms"
+                    ? "Search forms"
+                    : mode === "buzz"
+                      ? "Search Buzz campaigns"
+                      : "Search AI companions"
+              }
+              placeholderTextColor={colors.mutedForeground}
+              style={{
+                flex: 1,
+                color: colors.foreground,
+                fontFamily: "SpaceGrotesk_400Regular",
+                fontSize: 13,
+                padding: 0,
+              }}
+            />
+            {search ? (
+              <Pressable onPress={() => setSearch("")} hitSlop={8}>
+                <Feather name="x" size={14} color={colors.mutedForeground} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          {mode === "forms" ? (
+            <SpecialList
+              query={formsQ}
+              empty="You don't have any forms yet. Create one from the Forms screen first."
+              filteredCount={formItems.length}
+              inserting={insert.isPending}
+            >
+              {formItems.map((f) => (
+                <SpecialRow
+                  key={f.id}
+                  icon="file-text"
+                  title={f.title}
+                  subtitle={`${f.fields.length} field${f.fields.length === 1 ? "" : "s"}${f.is_active ? "" : " · inactive"}`}
+                  disabled={insert.isPending}
+                  onPress={() =>
+                    insert.mutate({
+                      type: "form",
+                      settings: { form_id: f.id, height: 600 },
+                    })
+                  }
+                />
+              ))}
+            </SpecialList>
+          ) : mode === "buzz" ? (
+            <SpecialList
+              query={buzzQ}
+              empty="You don't have any Buzz campaigns yet. Create one from the Buzz screen first."
+              filteredCount={buzzItems.length}
+              inserting={insert.isPending}
+            >
+              {buzzItems.map((s) => (
+                <SpecialRow
+                  key={s.id}
+                  icon="volume-2"
+                  title={s.name}
+                  subtitle={`${s.type_label}${s.is_active ? "" : " · inactive"}`}
+                  disabled={insert.isPending}
+                  onPress={() =>
+                    insert.mutate({
+                      type: "social_proof",
+                      settings: { social_proof_id: s.id },
+                    })
+                  }
+                />
+              ))}
+            </SpecialList>
+          ) : mode === "ai" ? (
+            <SpecialList
+              query={aiQ}
+              empty="You don't have any AI companions set for biolink placement yet."
+              filteredCount={aiItems.length}
+              inserting={insert.isPending}
+            >
+              {aiItems.map((c) => (
+                <SpecialRow
+                  key={c.id}
+                  icon="cpu"
+                  title={c.name}
+                  subtitle={c.is_disabled ? "Disabled" : "AI companion"}
+                  disabled={insert.isPending}
+                  onPress={() =>
+                    insert.mutate({
+                      type: "ai_companion",
+                      settings: { companion_id: c.id },
+                    })
+                  }
+                />
+              ))}
+            </SpecialList>
+          ) : q.isLoading ? (
             <View style={styles.center}>
               <ActivityIndicator color={colors.primary} />
             </View>
@@ -1633,6 +1918,118 @@ function CardTemplatesGallery(props: GalleryProps) {
   );
 }
 
+// Shared loading/error/empty wrapper for the Forms / Buzz / AI tabs so
+// each picker shares the same states without repeating boilerplate.
+function SpecialList(props: {
+  query: { isLoading: boolean; isError: boolean; refetch: () => void };
+  empty: string;
+  filteredCount: number;
+  inserting: boolean;
+  children: ReactNode;
+}) {
+  const colors = useColors();
+  const { query, empty, filteredCount, inserting, children } = props;
+
+  if (query.isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+  if (query.isError) {
+    return (
+      <View style={[styles.center, { gap: 10 }]}>
+        <Text style={{ color: colors.destructive, paddingHorizontal: 16 }}>
+          Couldn't load this list.
+        </Text>
+        <Button label="Retry" onPress={() => query.refetch()} />
+      </View>
+    );
+  }
+  return (
+    <ScrollView contentContainerStyle={{ gap: 8, paddingBottom: 24 }}>
+      {inserting ? (
+        <View style={styles.insertingHint}>
+          <ActivityIndicator color={colors.primary} size="small" />
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+            Adding block…
+          </Text>
+        </View>
+      ) : null}
+      {filteredCount === 0 ? (
+        <Text
+          style={{
+            color: colors.mutedForeground,
+            textAlign: "center",
+            padding: 24,
+            fontSize: 13,
+            fontFamily: "SpaceGrotesk_400Regular",
+          }}
+        >
+          {empty}
+        </Text>
+      ) : (
+        children
+      )}
+    </ScrollView>
+  );
+}
+
+// A single tappable row in the Forms / Buzz / AI pickers.
+function SpecialRow(props: {
+  icon: ComponentProps<typeof Feather>["name"];
+  title: string;
+  subtitle: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  const { icon, title, subtitle, disabled, onPress } = props;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.specialRow,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+          opacity: pressed ? 0.85 : disabled ? 0.6 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.specialRowIcon,
+          {
+            backgroundColor: colors.primary + "18",
+            borderColor: colors.primary + "33",
+          },
+        ]}
+      >
+        <Feather name={icon} size={16} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text
+          numberOfLines={1}
+          style={[styles.rowTitle, { color: colors.foreground }]}
+        >
+          {title}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[styles.rowSub, { color: colors.mutedForeground }]}
+        >
+          {subtitle}
+        </Text>
+      </View>
+      <Feather name="plus" size={18} color={colors.primary} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   body: { padding: 20, gap: 14, paddingBottom: 40 },
@@ -1735,6 +2132,48 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
+  },
+  modeTabs: { flexDirection: "row", gap: 6 },
+  modeTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  specialRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderWidth: 1,
+  },
+  specialRowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  insertingHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 6,
   },
   tplCard: {
     borderWidth: 1,
