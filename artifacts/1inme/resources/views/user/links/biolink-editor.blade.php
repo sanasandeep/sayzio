@@ -648,10 +648,20 @@ $catColors = [
             -webkit-backdrop-filter: blur(16px) saturate(140%);
         }
         .palette-head { padding: 14px 14px 8px; flex-shrink: 0; }
-        .palette-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+        .palette-tabs {
+            display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 10px;
+            overflow-x: auto; overflow-y: hidden; padding-bottom: 5px;
+            scrollbar-width: thin; scrollbar-color: var(--border-glass) transparent;
+            -webkit-overflow-scrolling: touch;
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+                    mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+        }
+        .palette-tabs::-webkit-scrollbar { height: 4px; }
+        .palette-tabs::-webkit-scrollbar-track { background: transparent; }
+        .palette-tabs::-webkit-scrollbar-thumb { background: var(--border-glass); border-radius: 4px; }
         .palette-tab {
-            padding: 4px 9px; font-size: 10px; font-weight: 600;
-            border-radius: 7px; white-space: nowrap; cursor: pointer;
+            padding: 4px 10px; font-size: 10px; font-weight: 600;
+            border-radius: 7px; white-space: nowrap; cursor: pointer; flex-shrink: 0;
             color: var(--text-faint); background: transparent; border: 1px solid transparent;
             transition: all 0.2s;
         }
@@ -662,11 +672,11 @@ $catColors = [
         }
         .palette-body {
             flex: 1; overflow-y: auto; padding: 6px 10px 10px;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start;
+            display: flex; flex-direction: column; gap: 4px;
         }
         .palette-block-item {
-            display: flex; align-items: center; gap: 8px;
-            padding: 8px; border-radius: 10px; cursor: grab;
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 11px; border-radius: 10px; cursor: grab;
             text-align: left; width: 100%;
             background: transparent; border: 1px solid var(--border-glass);
             transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
@@ -682,8 +692,8 @@ $catColors = [
             display: flex; align-items: center; justify-content: center; font-size: 11px;
         }
         .palette-block-label {
-            font-size: 10.5px; font-weight: 600; color: var(--text-primary);
-            line-height: 1.15; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            font-size: 11.5px; font-weight: 600; color: var(--text-primary);
+            line-height: 1.2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .palette-foot { flex-shrink: 0; padding: 8px 10px; border-top: 1px solid var(--border-glass); }
 
