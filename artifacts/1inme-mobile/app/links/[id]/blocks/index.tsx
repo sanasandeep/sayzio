@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -66,6 +67,7 @@ import {
   createBiolinkCompanion,
   createAiPersona,
 } from "@/lib/api/aiCompanions";
+import { getProfile } from "@/lib/api/profile";
 
 function confirm(title: string, msg: string, onYes: () => void) {
   if (Platform.OS === "web") {
@@ -117,6 +119,58 @@ export default function BlocksScreen() {
     queryFn: getBlockCatalog,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Whose biolink is this — used to key the persisted palette-collapse
+  // state per user (so a shared device doesn't leak one account's
+  // collapsed sections to another). Reuses the app-wide cached profile.
+  const profileQ = useQuery({
+    queryKey: ["profile"],
+    queryFn: getProfile,
+    staleTime: Infinity,
+  });
+
+  // Per-category collapse state for the grouped "Add block" palette,
+  // mirroring the web editor. Empty => every section starts expanded.
+  // Search or a specific category tab force sections open so matches are
+  // never hidden behind a collapse. Persisted to AsyncStorage per
+  // user+biolink so the state survives app restarts.
+  const [paletteCollapsed, setPaletteCollapsed] = useState<
+    Record<string, boolean>
+  >({});
+  const paletteCollapsedKey = `biolink:paletteCollapsed:${
+    profileQ.data?.id ?? "anon"
+  }:${id}`;
+  const paletteCollapsedReady = profileQ.isSuccess || profileQ.isError;
+  useEffect(() => {
+    if (!paletteCollapsedReady) return;
+    let alive = true;
+    AsyncStorage.getItem(paletteCollapsedKey)
+      .then((raw) => {
+        if (!alive || !raw) return;
+        const saved = JSON.parse(raw);
+        if (saved && typeof saved === "object") {
+          setPaletteCollapsed(saved as Record<string, boolean>);
+        }
+      })
+      .catch(() => {
+        /* storage blocked or corrupt — fall back to all-expanded */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [paletteCollapsedKey, paletteCollapsedReady]);
+
+  function togglePaletteSection(cat: string) {
+    setPaletteCollapsed((prev) => {
+      const next = { ...prev, [cat]: !prev[cat] };
+      AsyncStorage.setItem(paletteCollapsedKey, JSON.stringify(next)).catch(
+        () => {
+          /* storage blocked / full — non-fatal */
+        },
+      );
+      return next;
+    });
+  }
   const [previewTpl, setPreviewTpl] = useState<CardTemplate | null>(null);
   // After applying a card template (or any other insert) we want to
   // jump the editor list to the new block and pulse-highlight it so the
@@ -187,6 +241,27 @@ export default function BlocksScreen() {
     });
   }, [paletteTypes, paletteCategory, paletteSearch]);
 
+  // The grouped, collapsible layout used when no search is active and the
+  // "All" tab is selected. Categories keep the catalog's order; a section
+  // only shows if it actually has types.
+  const groupedPalette = useMemo(() => {
+    const byCat = new Map<string, BlockCatalogType[]>();
+    for (const t of paletteTypes) {
+      const arr = byCat.get(t.category);
+      if (arr) arr.push(t);
+      else byCat.set(t.category, [t]);
+    }
+    return paletteCategories
+      .filter((c) => byCat.has(c.key))
+      .map((c) => ({ key: c.key, label: c.label, items: byCat.get(c.key)! }));
+  }, [paletteTypes, paletteCategories]);
+
+  // Grouped/collapsible only makes sense in the unfiltered "All" view —
+  // a search or a specific category tab force everything open (flat),
+  // matching the web editor's force-open behaviour.
+  const paletteGrouped =
+    paletteCategory === "all" && paletteSearch.trim() === "";
+
   const toggle = useMutation({
     mutationFn: (b: Block) =>
       updateBlock(id, b.id, { is_active: !b.is_active }),
@@ -222,6 +297,51 @@ export default function BlocksScreen() {
     qc.setQueryData<Block[]>(["blocks", id], next);
     persistOrder.mutate(orderIds(next));
   }
+
+  // A single block tile in the "Add block" palette. Shared by the
+  // grouped (collapsible) and flat (search / single-category) layouts.
+  const renderPaletteTile = (t: BlockCatalogType) => (
+    <Pressable
+      key={t.type}
+      onPress={() => onPaletteTap(t)}
+      style={({ pressed }) => [
+        styles.paletteTile,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+          opacity: pressed ? 0.85 : t.locked ? 0.6 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.paletteIcon,
+          {
+            backgroundColor: colors.primary + "18",
+            borderColor: colors.primary + "33",
+          },
+        ]}
+      >
+        <Feather
+          name={t.locked ? "lock" : featherFor(t.icon)}
+          size={16}
+          color={colors.primary}
+        />
+      </View>
+      <Text
+        numberOfLines={2}
+        style={[styles.paletteLabel, { color: colors.foreground }]}
+      >
+        {t.label}
+      </Text>
+      {t.locked ? (
+        <Text style={[styles.paletteLocked, { color: colors.mutedForeground }]}>
+          Upgrade
+        </Text>
+      ) : null}
+    </Pressable>
+  );
 
   if (q.isLoading) {
     return (
@@ -450,7 +570,7 @@ export default function BlocksScreen() {
               </View>
             ) : (
               <ScrollView contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
-                {paletteCategory === "all" && paletteSearch.trim() === "" ? (
+                {paletteGrouped ? (
                   <Pressable
                     key="special-panel"
                     onPress={() => {
@@ -486,71 +606,72 @@ export default function BlocksScreen() {
                   </Pressable>
                 ) : null}
 
-                <View style={styles.paletteGrid}>
-                  {filteredPalette.map((t) => (
-                    <Pressable
-                      key={t.type}
-                      onPress={() => onPaletteTap(t)}
-                      style={({ pressed }) => [
-                        styles.paletteTile,
-                        {
-                          backgroundColor: colors.card,
-                          borderColor: colors.border,
-                          borderRadius: colors.radius,
-                          opacity: pressed ? 0.85 : t.locked ? 0.6 : 1,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.paletteIcon,
-                          {
-                            backgroundColor: colors.primary + "18",
-                            borderColor: colors.primary + "33",
-                          },
-                        ]}
-                      >
-                        <Feather
-                          name={t.locked ? "lock" : featherFor(t.icon)}
-                          size={16}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <Text
-                        numberOfLines={2}
-                        style={[
-                          styles.paletteLabel,
-                          { color: colors.foreground },
-                        ]}
-                      >
-                        {t.label}
-                      </Text>
-                      {t.locked ? (
-                        <Text
+                {paletteGrouped ? (
+                  groupedPalette.map((g) => {
+                    const open = !paletteCollapsed[g.key];
+                    return (
+                      <View key={g.key} style={{ gap: 8 }}>
+                        <Pressable
+                          onPress={() => togglePaletteSection(g.key)}
+                          accessibilityRole="button"
+                          accessibilityState={{ expanded: open }}
                           style={[
-                            styles.paletteLocked,
-                            { color: colors.mutedForeground },
+                            styles.paletteSectionHeader,
+                            { borderColor: colors.border },
                           ]}
                         >
-                          Upgrade
-                        </Text>
-                      ) : null}
-                    </Pressable>
-                  ))}
-                </View>
+                          <Text
+                            style={[
+                              styles.paletteSectionTitle,
+                              { color: colors.foreground },
+                            ]}
+                          >
+                            {g.label}
+                          </Text>
+                          <View style={styles.paletteSectionMeta}>
+                            <Text
+                              style={{
+                                color: colors.mutedForeground,
+                                fontSize: 12,
+                              }}
+                            >
+                              {g.items.length}
+                            </Text>
+                            <Feather
+                              name={open ? "chevron-up" : "chevron-down"}
+                              size={16}
+                              color={colors.mutedForeground}
+                            />
+                          </View>
+                        </Pressable>
+                        {open ? (
+                          <View style={styles.paletteGrid}>
+                            {g.items.map((t) => renderPaletteTile(t))}
+                          </View>
+                        ) : null}
+                      </View>
+                    );
+                  })
+                ) : (
+                  <>
+                    <View style={styles.paletteGrid}>
+                      {filteredPalette.map((t) => renderPaletteTile(t))}
+                    </View>
 
-                {filteredPalette.length === 0 ? (
-                  <Text
-                    style={{
-                      color: colors.mutedForeground,
-                      textAlign: "center",
-                      fontSize: 13,
-                      paddingVertical: 24,
-                    }}
-                  >
-                    No blocks match &ldquo;{paletteSearch.trim()}&rdquo;.
-                  </Text>
-                ) : null}
+                    {filteredPalette.length === 0 ? (
+                      <Text
+                        style={{
+                          color: colors.mutedForeground,
+                          textAlign: "center",
+                          fontSize: 13,
+                          paddingVertical: 24,
+                        }}
+                      >
+                        No blocks match &ldquo;{paletteSearch.trim()}&rdquo;.
+                      </Text>
+                    ) : null}
+                  </>
+                )}
               </ScrollView>
             )}
           </View>
@@ -2613,6 +2734,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+  },
+  paletteSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    borderBottomWidth: 1,
+  },
+  paletteSectionTitle: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  paletteSectionMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   paletteTile: {
     width: "31.5%",
