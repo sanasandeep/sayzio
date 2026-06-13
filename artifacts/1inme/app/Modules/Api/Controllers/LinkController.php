@@ -104,7 +104,10 @@ class LinkController extends Controller
         }
 
         $settingsPayload = $data['settings'] ?? [];
-        $workspaceId     = $data['workspace_id'] ?? null;
+        // Fall back to the user's active workspace when the caller (e.g. the
+        // mobile app) doesn't pass one, so the link isn't created with
+        // workspace_id = null and hidden from the workspace-scoped web list.
+        $workspaceId     = $this->resolveWorkspaceId($request->user(), $data['workspace_id'] ?? null);
 
         $attrs = [
             'user_id'    => $request->user()->id,
@@ -120,12 +123,11 @@ class LinkController extends Controller
             'domain_id'  => $data['domain_id'] ?? null,
         ];
 
-        if ($workspaceId !== null) {
-            if (Schema::hasColumn('links', 'workspace_id')) {
-                $attrs['workspace_id'] = (int) $workspaceId;
-            } else {
-                $settingsPayload['workspace_id'] = (int) $workspaceId;
-            }
+        // workspace_id is not mass-assignable; when the column doesn't exist
+        // we stash it under settings, otherwise it's set on the model below.
+        $hasWorkspaceColumn = Schema::hasColumn('links', 'workspace_id');
+        if ($workspaceId !== null && !$hasWorkspaceColumn) {
+            $settingsPayload['workspace_id'] = (int) $workspaceId;
         }
 
         // Auto-pixel default: if the caller didn't specify, derive from
@@ -137,13 +139,17 @@ class LinkController extends Controller
             if (array_key_exists('auto_pixel', $data)) {
                 $attrs['auto_pixel'] = (bool) $data['auto_pixel'];
             } else {
-                $attrs['auto_pixel'] = $this->workspaceHasPixels($workspaceId ?? ($attrs['workspace_id'] ?? null));
+                $attrs['auto_pixel'] = $this->workspaceHasPixels($workspaceId);
             }
         }
 
         $attrs['settings'] = $settingsPayload;
 
-        $link = Link::create($attrs);
+        $link = new Link($attrs);
+        if ($workspaceId !== null && $hasWorkspaceColumn) {
+            $link->workspace_id = (int) $workspaceId;
+        }
+        $link->save();
 
         return $this->created(['link' => LinkResource::toArray($link)]);
     }
@@ -468,12 +474,15 @@ class LinkController extends Controller
             $alias = Str::lower(Str::random(7));
         }
 
+        // Fall back to the user's active workspace when the caller doesn't
+        // pass one, so mobile-created links aren't hidden from the web list.
+        $workspaceId = $data['workspace_id'] ?? $this->activeWorkspaceId($user);
         $settings = ['smart_rules' => $rules];
-        if (!empty($data['workspace_id'])) {
+        if (!empty($workspaceId)) {
             if (Schema::hasColumn('links', 'workspace_id')) {
                 // attached below via $attrs
             } else {
-                $settings['workspace_id'] = (int) $data['workspace_id'];
+                $settings['workspace_id'] = (int) $workspaceId;
             }
         }
 
@@ -486,11 +495,12 @@ class LinkController extends Controller
             'is_active' => true,
             'settings'  => $settings,
         ];
-        if (!empty($data['workspace_id']) && Schema::hasColumn('links', 'workspace_id')) {
-            $attrs['workspace_id'] = (int) $data['workspace_id'];
+        // workspace_id is not mass-assignable; set it directly after build.
+        $link = new Link($attrs);
+        if (!empty($workspaceId) && Schema::hasColumn('links', 'workspace_id')) {
+            $link->workspace_id = (int) $workspaceId;
         }
-
-        $link = Link::create($attrs);
+        $link->save();
         return $this->created(['link' => LinkResource::toArray($link)]);
     }
 
@@ -607,11 +617,14 @@ class LinkController extends Controller
             'created_at'        => now()->toIso8601String(),
             'winner_variant_id' => null,
         ]];
-        if ($data['workspace_id'] ?? null) {
+        // Fall back to the user's active workspace when the caller doesn't
+        // pass one, so mobile-created links aren't hidden from the web list.
+        $workspaceId = $data['workspace_id'] ?? $this->activeWorkspaceId($user);
+        if ($workspaceId) {
             if (Schema::hasColumn('links', 'workspace_id')) {
-                $linkExtra = ['workspace_id' => (int) $data['workspace_id']];
+                $linkExtra = ['workspace_id' => (int) $workspaceId];
             } else {
-                $settings['workspace_id'] = (int) $data['workspace_id'];
+                $settings['workspace_id'] = (int) $workspaceId;
                 $linkExtra = [];
             }
         } else {
@@ -624,7 +637,8 @@ class LinkController extends Controller
         $firstUrl = $data['variants'][0]['url'];
 
         $link = DB::transaction(function () use ($user, $alias, $data, $settings, $linkExtra, $firstUrl) {
-            $link = Link::create(array_merge([
+            // workspace_id is not mass-assignable; set it directly after build.
+            $link = new Link([
                 'user_id'    => $user->id,
                 'type'       => 'url',
                 'alias'      => $alias,
@@ -633,7 +647,11 @@ class LinkController extends Controller
                 'visibility' => 'public',
                 'is_active'  => true,
                 'settings'   => $settings,
-            ], $linkExtra));
+            ]);
+            if (!empty($linkExtra['workspace_id'])) {
+                $link->workspace_id = (int) $linkExtra['workspace_id'];
+            }
+            $link->save();
 
             foreach ($data['variants'] as $i => $v) {
                 AbVariant::create([

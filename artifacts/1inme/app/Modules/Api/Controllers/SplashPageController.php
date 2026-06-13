@@ -43,10 +43,12 @@ class SplashPageController extends Controller
                 ->exists();
             if (!$owns) return $this->forbidden('You do not own that project');
         }
-        $s = SplashPage::create(array_merge($data, [
+        $s = new SplashPage(array_merge($data, [
             'user_id'       => $request->user()->id,
             'auto_redirect' => (bool) ($data['auto_redirect'] ?? false),
         ]));
+        $s->workspace_id = $this->activeWorkspaceId($request->user());
+        $s->save();
         return $this->created(['splash_page' => $this->transform($s)]);
     }
 

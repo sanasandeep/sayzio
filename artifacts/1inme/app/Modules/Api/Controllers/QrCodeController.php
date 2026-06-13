@@ -53,7 +53,9 @@ class QrCodeController extends Controller
         } catch (ValidationException $e) {
             return $this->fail('Validation failed', 422, 'validation_error', $e->errors());
         }
-        $q = QrCode::create(array_merge($attrs, ['user_id' => $request->user()->id]));
+        $q = new QrCode(array_merge($attrs, ['user_id' => $request->user()->id]));
+        $q->workspace_id = $this->activeWorkspaceId($request->user());
+        $q->save();
         return $this->created(['qr_code' => $this->transform($q)]);
     }
 
@@ -106,9 +108,13 @@ class QrCodeController extends Controller
             return $this->fail('One or more items are invalid', 422, 'validation_error', $errors);
         }
 
+        $wsId = $this->activeWorkspaceId($request->user());
         $created = [];
         foreach ($prepared as $attrs) {
-            $created[] = $this->transform(QrCode::create(array_merge($attrs, ['user_id' => $request->user()->id])));
+            $q = new QrCode(array_merge($attrs, ['user_id' => $request->user()->id]));
+            $q->workspace_id = $wsId;
+            $q->save();
+            $created[] = $this->transform($q);
         }
         return $this->created(['items' => $created, 'count' => count($created)]);
     }

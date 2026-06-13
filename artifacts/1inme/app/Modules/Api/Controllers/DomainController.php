@@ -80,7 +80,7 @@ class DomainController extends Controller
             return $this->fail('This domain is already claimed on 1INME.', 409, 'domain_taken');
         }
 
-        $d = Domain::create([
+        $d = new Domain([
             'user_id'            => $request->user()->id,
             'domain'             => strtolower($data['domain']),
             'type'               => $data['type'] ?? 'custom',
@@ -88,6 +88,8 @@ class DomainController extends Controller
             'is_active'          => false,
             'verification_token' => Str::random(40),
         ]);
+        $d->workspace_id = $this->activeWorkspaceId($request->user());
+        $d->save();
         return $this->created(['domain' => $this->transform($d)]);
     }
 

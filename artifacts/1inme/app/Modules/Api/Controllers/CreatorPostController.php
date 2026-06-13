@@ -57,7 +57,7 @@ class CreatorPostController extends Controller
             return $this->fail('A text post must have a body.', 422);
         }
 
-        $p = CreatorPost::create([
+        $p = new CreatorPost([
             'user_id'      => $request->user()->id,
             'title'        => $data['title'] ?? null,
             'body'         => (string) ($data['body'] ?? ''),
@@ -67,6 +67,10 @@ class CreatorPostController extends Controller
             'scheduled_at' => $scheduledAt,
             'published_at' => $isFuture ? null : now(),
         ]);
+        // workspace_id is not mass-assignable, so set it directly so the post
+        // isn't created with workspace_id = null and hidden from the web list.
+        $p->workspace_id = $this->activeWorkspaceId($request->user());
+        $p->save();
 
         // posts_count is kept in sync by the CreatorPost model's saved()
         // hook (covers web, API, scheduler, and approval workflow).

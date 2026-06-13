@@ -31,11 +31,13 @@ class FollowController extends Controller
         DB::transaction(function () use ($viewer, $creator, &$created) {
             $exists = Follow::where('follower_id', $viewer->id)->where('creator_id', $creator->id)->exists();
             if (!$exists) {
-                Follow::create([
+                $f = new Follow([
                     'follower_id' => $viewer->id,
                     'creator_id'  => $creator->id,
                     'created_at'  => now(),
                 ]);
+                $f->workspace_id = $this->activeWorkspaceId($viewer);
+                $f->save();
                 $creator->increment('followers_count');
                 $created = true;
             }

@@ -86,8 +86,9 @@ class ContactController extends Controller
 
         $data = $v->normalized;
 
-        $contact = DB::transaction(function () use ($data, $userId) {
-            $c = Contact::create([
+        $wsId = $this->activeWorkspaceId($request->user());
+        $contact = DB::transaction(function () use ($data, $userId, $wsId) {
+            $c = new Contact([
                 'user_id'      => $userId,
                 'display_name' => $data['display_name'] ?? null,
                 'given_name'   => $data['given_name']   ?? null,
@@ -104,6 +105,8 @@ class ContactController extends Controller
                     'kind' => 'extension',
                 ]] : null,
             ]);
+            $c->workspace_id = $wsId;
+            $c->save();
             $this->syncEmails($c, $data['emails'] ?? []);
             $this->syncPhones($c, $data['phones'] ?? []);
             return $c->fresh(['phones', 'emails']);
@@ -267,7 +270,8 @@ class ContactController extends Controller
         $userId = $request->user()->id;
         $created = 0; $updated = 0; $skipped = 0;
 
-        DB::transaction(function () use ($data, $userId, &$created, &$updated, &$skipped) {
+        $wsId = $this->activeWorkspaceId($request->user());
+        DB::transaction(function () use ($data, $userId, $wsId, &$created, &$updated, &$skipped) {
             foreach ($data['contacts'] as $row) {
                 $emails = $row['emails'] ?? [];
                 $phones = $row['phones'] ?? [];
@@ -305,13 +309,15 @@ class ContactController extends Controller
                     $this->mergePhones($existing, $phones);
                     $updated++;
                 } else {
-                    $c = Contact::create([
+                    $c = new Contact([
                         'user_id'      => $userId,
                         'display_name' => $name ?: null,
                         'given_name'   => $row['given_name']   ?? null,
                         'family_name'  => $row['family_name']  ?? null,
                         'organization' => $row['organization'] ?? null,
                     ]);
+                    $c->workspace_id = $wsId;
+                    $c->save();
                     $this->mergeEmails($c, $emails);
                     $this->mergePhones($c, $phones);
                     $created++;

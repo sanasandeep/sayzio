@@ -28,7 +28,9 @@ class ProjectController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'color'       => ['nullable', 'string', 'max:20'],
         ]);
-        $p = Project::create(array_merge($data, ['user_id' => $request->user()->id]));
+        $p = new Project(array_merge($data, ['user_id' => $request->user()->id]));
+        $p->workspace_id = $this->activeWorkspaceId($request->user());
+        $p->save();
         return $this->created(['project' => $this->transform($p)]);
     }
 

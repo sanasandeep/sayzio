@@ -178,6 +178,15 @@ class ResumeController extends Controller
             return $this->fail($e->getMessage(), 422, 'upload_failed');
         }
 
+        // The sanctum API path doesn't bind the active workspace, so the
+        // shared createFromUpload() lands the vault file with workspace_id =
+        // null and it's hidden from the workspace-scoped web file manager.
+        // workspace_id isn't mass-assignable, so set it directly.
+        if ($userFile->workspace_id === null) {
+            $userFile->workspace_id = $this->activeWorkspaceId($user);
+            $userFile->save();
+        }
+
         $sections = $resume->getMergedSections();
         $oldId    = $sections['header']['photo_user_file_id'] ?? null;
         $sections['header']['photo_user_file_id'] = $userFile->id;
