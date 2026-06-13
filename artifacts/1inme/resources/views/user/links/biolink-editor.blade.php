@@ -665,7 +665,7 @@ $catColors = [
         }
         /* Stacked (sub-lg) palette: not full viewport height, scrolls internally. */
         @media (max-width: 1023px) {
-            .palette-panel { position: static; max-height: 60vh; }
+            .palette-panel { position: relative; max-height: 60vh; min-height: 0; }
         }
 
         .palette-panel {
@@ -674,6 +674,10 @@ $catColors = [
             display: flex;
             flex-direction: column;
             max-height: calc(100vh - 24px);
+            /* Guarantee a usable height even when the block palette's category
+               sections are collapsed, so the absolute Templates overlay always
+               has room to scroll instead of collapsing to a few rows. */
+            min-height: min(580px, calc(100vh - 24px));
             background: var(--bg-glass);
             border: 1px solid var(--border-glass);
             border-radius: 18px;

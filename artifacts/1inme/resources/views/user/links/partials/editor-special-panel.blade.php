@@ -172,12 +172,14 @@
                          @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
                          :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-violet-500/50'"
                          :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : (t.description || t.name)">
-                        <div class="aspect-[4/2] flex items-center justify-center relative overflow-hidden rounded-t-xl" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
+                        <div class="relative overflow-hidden rounded-t-xl" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                             <template x-if="t.thumbnail_url">
-                                <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
+                                <div class="w-full aspect-[4/3]">
+                                    <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
+                                </div>
                             </template>
                             <template x-if="!t.thumbnail_url && (t.preview_layout || []).length">
-                                <div class="w-full h-full px-2 py-1.5 flex flex-col gap-1 justify-center">
+                                <div class="w-full px-2.5 py-2.5 flex flex-col gap-1.5" style="min-height: 64px; max-height: 340px;">
                                     <template x-for="(row, ri) in t.preview_layout" :key="ri">
                                         <div class="flex gap-1 w-full items-center">
                                             <template x-for="(cell, ci) in row" :key="ci">
@@ -305,7 +307,9 @@
                                 </div>
                             </template>
                             <template x-if="!t.thumbnail_url && !(t.preview_layout || []).length">
-                                <i class="fas fa-square-poll-vertical text-2xl text-violet-300/60"></i>
+                                <div class="aspect-[4/2] w-full flex items-center justify-center">
+                                    <i class="fas fa-square-poll-vertical text-2xl text-violet-300/60"></i>
+                                </div>
                             </template>
                             <div x-show="t.locked" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i><span x-text="t.plan_tier"></span></div>
                         </div>

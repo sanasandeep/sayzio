@@ -27,14 +27,18 @@ class TemplatePreviewLayoutBuilder
      * Group an ordered list of block-shaped items into rows of cells
      * that fit on a 12-col grid. Each item must have a `type` and may
      * carry a `settings._style.grid_span` (1..12, default 12). Items
-     * without a `type` are skipped. Capped at 6 rows so the preview
-     * never overflows the gallery card.
+     * without a `type` are skipped. Capped at `$maxRows` rows (default 6)
+     * so the preview never overflows; the web card gallery passes a higher
+     * cap so taller cards read as taller, while the page picker and mobile
+     * (which render into fixed-height strips) keep the tighter default.
      *
      * @param  array<int, array<string, mixed>>  $items
+     * @param  int  $maxRows  Maximum rows to emit (clamped to >= 1).
      * @return array<int, array<int, array<string, mixed>>>
      */
-    public function build(array $items): array
+    public function build(array $items, int $maxRows = 6): array
     {
+        $maxRows = max(1, $maxRows);
         $rows = [];
         $current = [];
         $used = 0;
@@ -51,7 +55,7 @@ class TemplatePreviewLayoutBuilder
                 $rows[] = $current;
                 $current = [];
                 $used = 0;
-                if (count($rows) >= 6) break;
+                if (count($rows) >= $maxRows) break;
             }
             $current[] = $cell;
             $used += $span;
@@ -59,10 +63,10 @@ class TemplatePreviewLayoutBuilder
                 $rows[] = $current;
                 $current = [];
                 $used = 0;
-                if (count($rows) >= 6) break;
+                if (count($rows) >= $maxRows) break;
             }
         }
-        if ($current && count($rows) < 6) {
+        if ($current && count($rows) < $maxRows) {
             $rows[] = $current;
         }
         return $rows;

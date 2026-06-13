@@ -104,7 +104,7 @@ class LinkTemplateController extends Controller
                 // gallery renders this as a thumbnail when no static
                 // thumbnail_url is set, falling back to a generic icon if
                 // the snapshot has no usable children.
-                'preview_layout' => $this->previewLayout->build($rawChildren),
+                'preview_layout' => $this->previewLayout->build($rawChildren, 10),
             ];
         });
 
