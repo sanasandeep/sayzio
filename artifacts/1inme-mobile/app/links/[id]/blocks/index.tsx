@@ -3,6 +3,13 @@ import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import {
   useEffect,
   useMemo,
@@ -1002,9 +1009,52 @@ function gradientPoints(angle: number) {
   };
 }
 
+function ShimmerOverlay({ radius = 0 }: { radius?: number }) {
+  const { scheme } = useColors();
+  const dark = scheme === "dark";
+  const base = dark ? "rgba(255,255,255,0.06)" : "rgba(15,12,30,0.07)";
+  const highlight = dark
+    ? "rgba(255,255,255,0.16)"
+    : "rgba(255,255,255,0.55)";
+  const [width, setWidth] = useState(0);
+  const progress = useSharedValue(-1);
+  useEffect(() => {
+    progress.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false,
+    );
+  }, [progress]);
+  const bandStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: progress.value * (width || 1) }],
+  }));
+  return (
+    <View
+      pointerEvents="none"
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      style={[
+        StyleSheet.absoluteFillObject,
+        { backgroundColor: base, borderRadius: radius, overflow: "hidden" },
+      ]}
+    >
+      {width > 0 ? (
+        <Animated.View style={[StyleSheet.absoluteFillObject, bandStyle]}>
+          <LinearGradient
+            colors={["transparent", highlight, "transparent"]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={{ width: "100%", height: "100%" }}
+          />
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
 function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
   const h = cell.h;
   const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const parsed = parsePreviewBg(cell.bg);
   // Always have a safe solid fallback to drop into RN `backgroundColor`
   // — even gradient cells use this for tiny inner elements (dots, lines)
@@ -1157,16 +1207,23 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
           }}
         >
           {cell.img && !imgFailed ? (
-            <Image
-              source={{ uri: cell.img }}
+            <View
               style={{
                 width: size,
                 height: size,
                 borderRadius: size / 2,
+                overflow: "hidden",
               }}
-              resizeMode="cover"
-              onError={() => setImgFailed(true)}
-            />
+            >
+              <Image
+                source={{ uri: cell.img }}
+                style={{ width: "100%", height: "100%" }}
+                resizeMode="cover"
+                onError={() => setImgFailed(true)}
+                onLoad={() => setImgLoaded(true)}
+              />
+              {!imgLoaded ? <ShimmerOverlay radius={size / 2} /> : null}
+            </View>
           ) : (
             <View
               style={{
@@ -1256,7 +1313,9 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
               style={{ width: "100%", height: "100%" }}
               resizeMode="cover"
               onError={() => setImgFailed(true)}
+              onLoad={() => setImgLoaded(true)}
             />
+            {!imgLoaded ? <ShimmerOverlay radius={3} /> : null}
             {playOverlay}
           </View>
         );
