@@ -276,14 +276,48 @@
     /* Mini visual representations of seeded block content rendered above
        the icon+label row in each gallery tile. Pointer-events disabled
        so the tile-level click handler still fires. */
+    /* Block-picker preview thumbnail tokens.
+       Skeleton fills are translucent white on the dark theme, but white-on-white
+       in light mode, so they get a dark "ink" counterpart under html.light-mode.
+       Dark values are unchanged from the original hardcoded rgba(255,255,255,...). */
+    :root {
+        --bpt-tile-bg: rgba(255,255,255,0.025);
+        --bpt-tile-border: rgba(255,255,255,0.04);
+        --bpt-skeleton: rgba(255,255,255,0.12);
+        --bpt-divider: rgba(255,255,255,0.18);
+        --bpt-dashed: rgba(255,255,255,0.2);
+        --bpt-rank-bg: rgba(255,255,255,0.15);
+        --bpt-border: rgba(255,255,255,0.1);
+        --bpt-input-bg: rgba(255,255,255,0.06);
+        --bpt-surface: rgba(255,255,255,0.05);
+        --bpt-surface-faint: rgba(255,255,255,0.04);
+        --bpt-media-bg: rgba(255,255,255,0.1);
+        --bpt-wave: rgba(255,255,255,0.3);
+        --bpt-icon-circle-bg: rgba(255,255,255,0.1);
+    }
+    html.light-mode {
+        --bpt-tile-bg: rgba(7,20,55,0.03);
+        --bpt-tile-border: rgba(7,20,55,0.10);
+        --bpt-skeleton: rgba(7,20,55,0.16);
+        --bpt-divider: rgba(7,20,55,0.20);
+        --bpt-dashed: rgba(7,20,55,0.22);
+        --bpt-rank-bg: rgba(7,20,55,0.55);
+        --bpt-border: rgba(7,20,55,0.16);
+        --bpt-input-bg: rgba(7,20,55,0.05);
+        --bpt-surface: rgba(7,20,55,0.06);
+        --bpt-surface-faint: rgba(7,20,55,0.05);
+        --bpt-media-bg: rgba(7,20,55,0.10);
+        --bpt-wave: rgba(7,20,55,0.35);
+        --bpt-icon-circle-bg: rgba(7,20,55,0.55);
+    }
     .block-preview-thumb {
         position: relative;
         height: 78px;
         margin: -2px -2px 10px -2px;
         padding: 8px 10px;
         border-radius: 8px;
-        background: rgba(255,255,255,0.025);
-        border: 1px solid rgba(255,255,255,0.04);
+        background: var(--bpt-tile-bg);
+        border: 1px solid var(--bpt-tile-border);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -293,7 +327,7 @@
         font-size: 9px;
         color: var(--text-muted);
     }
-    .bpt-line { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); }
+    .bpt-line { height: 4px; border-radius: 2px; background: var(--bpt-skeleton); }
     .bpt-line-100 { width: 100%; }
     .bpt-line-90  { width: 90%; }
     .bpt-line-80  { width: 80%; }
@@ -315,10 +349,10 @@
     }
     .bpt-pill-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
     .bpt-pill-sm { padding: 2px 6px; border-radius: 999px; font-size: 8px; font-weight: 700; }
-    .bpt-divider { height: 1px; background: rgba(255,255,255,0.18); width: 100%; }
+    .bpt-divider { height: 1px; background: var(--bpt-divider); width: 100%; }
     .bpt-spacer { font-size: 16px; text-align: center; opacity: 0.4; }
     .bpt-card {
-        border: 1px dashed rgba(255,255,255,0.2);
+        border: 1px dashed var(--bpt-dashed);
         border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px;
     }
     .bpt-list-row, .bpt-faq-row, .bpt-tl-row, .bpt-menu-row, .bpt-lb-row, .bpt-chat-row {
@@ -328,7 +362,7 @@
     .bpt-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
     .bpt-tl-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .bpt-rank {
-        width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.15);
+        width: 14px; height: 14px; border-radius: 50%; background: var(--bpt-rank-bg);
         color: white; font-size: 8px; font-weight: 700; display: flex;
         align-items: center; justify-content: center; flex-shrink: 0;
     }
@@ -336,20 +370,20 @@
     .bpt-pricing { display: flex; gap: 3px; align-items: stretch; }
     .bpt-price-col {
         flex: 1; padding: 5px 4px; border-radius: 4px;
-        border: 1px solid rgba(255,255,255,0.1); display: flex;
+        border: 1px solid var(--bpt-border); display: flex;
         flex-direction: column; align-items: center; gap: 3px;
     }
     .bpt-price-col.bpt-featured { border-width: 1.5px; transform: scale(1.05); }
     .bpt-image, .bpt-thumb, .bpt-avatar {
         background-size: cover; background-position: center;
-        background-color: rgba(255,255,255,0.1);
+        background-color: var(--bpt-media-bg);
     }
     .bpt-image { height: 100%; border-radius: 6px; }
     .bpt-thumb { aspect-ratio: 1; border-radius: 4px; }
     .bpt-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
     .bpt-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; }
     .bpt-avatar-sm { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
-        background-size: cover; background-position: center; background-color: rgba(255,255,255,0.1); }
+        background-size: cover; background-position: center; background-color: var(--bpt-media-bg); }
     .bpt-video {
         flex: 1; border-radius: 6px; position: relative;
         background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.7));
@@ -369,7 +403,7 @@
     .bpt-audio { display: flex; align-items: center; gap: 6px; }
     .bpt-wave { display: flex; align-items: center; gap: 2px; flex: 1; height: 22px; }
     .bpt-wave span {
-        flex: 1; background: rgba(255,255,255,0.3); border-radius: 1px;
+        flex: 1; background: var(--bpt-wave); border-radius: 1px;
     }
     .bpt-wave span:nth-child(1) { height: 30%; }
     .bpt-wave span:nth-child(2) { height: 70%; }
@@ -389,13 +423,13 @@
         display: flex; align-items: center; justify-content: center; font-size: 10px;
     }
     .bpt-input {
-        height: 18px; border-radius: 4px; background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.1);
+        height: 18px; border-radius: 4px; background: var(--bpt-input-bg);
+        border: 1px solid var(--bpt-border);
     }
     .bpt-input-sm { height: 14px; }
     .bpt-embed {
         flex: 1; display: flex; flex-direction: column; align-items: center;
-        justify-content: center; gap: 4px; border: 1px dashed rgba(255,255,255,0.2);
+        justify-content: center; gap: 4px; border: 1px dashed var(--bpt-dashed);
         border-radius: 6px;
     }
     .bpt-embed i { font-size: 16px; }
@@ -414,7 +448,7 @@
     .bpt-stats { display: flex; gap: 4px; justify-content: space-around; }
     .bpt-stat {
         flex: 1; padding: 4px 0; border-radius: 4px;
-        background: rgba(255,255,255,0.04); text-align: center;
+        background: var(--bpt-surface-faint); text-align: center;
     }
     .bpt-countdown { display: flex; gap: 4px; justify-content: center; }
     .bpt-countdown span {
@@ -426,7 +460,7 @@
         flex: 1; display: flex; align-items: center; justify-content: center;
     }
     .bpt-qr i { font-size: 36px; color: var(--text-primary); }
-    .bpt-poll-row { background: rgba(255,255,255,0.05); border-radius: 3px; height: 9px; overflow: hidden; }
+    .bpt-poll-row { background: var(--bpt-surface); border-radius: 3px; height: 9px; overflow: hidden; }
     .bpt-poll-bar { height: 100%; border-radius: 3px; }
     .bpt-quote { display: flex; gap: 8px; align-items: flex-start; }
     .bpt-quote i { font-size: 14px; flex-shrink: 0; margin-top: 2px; }
@@ -442,7 +476,7 @@
         flex: 1; padding: 4px 0; border-radius: 4px; text-align: center;
         font-size: 9px; font-weight: 600;
     }
-    .bpt-tab { background: rgba(255,255,255,0.05); color: var(--text-faint); }
+    .bpt-tab { background: var(--bpt-surface); color: var(--text-faint); }
     .bpt-tab-active { color: white; }
     .bpt-ticker {
         display: flex; align-items: center; gap: 6px; padding: 4px 8px;
@@ -457,7 +491,7 @@
     .bpt-lock i { font-size: 16px; }
     .bpt-bubble {
         height: 12px; border-radius: 8px;
-        background: rgba(255,255,255,0.1);
+        background: var(--bpt-media-bg);
     }
     .bpt-bubble-them { width: 60%; }
     .bpt-bubble-me { width: 50%; }

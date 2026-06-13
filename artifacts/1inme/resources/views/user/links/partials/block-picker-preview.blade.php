@@ -273,8 +273,8 @@
         @case('share')
             <div class="bpt-socials">
                 <span style="background: {{ $catColor }};"><i class="fas fa-share"></i></span>
-                <span style="background: rgba(255,255,255,0.1);"><i class="fab fa-facebook"></i></span>
-                <span style="background: rgba(255,255,255,0.1);"><i class="fab fa-twitter"></i></span>
+                <span style="background: var(--bpt-icon-circle-bg);"><i class="fab fa-facebook"></i></span>
+                <span style="background: var(--bpt-icon-circle-bg);"><i class="fab fa-twitter"></i></span>
             </div>
             @break
 
