@@ -675,14 +675,16 @@ $catColors = [
             flex-direction: column;
             /* The scroll container is <main> (the app shell pins the page at
                h-screen overflow-hidden and lets <main> scroll), so the visible
-               viewport excludes the 64px in-app header. Subtract it (plus the
-               12px top + 12px bottom gap) so the pinned panel — and the absolute
-               Templates overlay layered inside it — never run below the fold. */
-            max-height: calc(100vh - 88px);
+               viewport excludes the in-app header. Subtract its height (via the
+               shared --app-header-h var, defaulting to 4rem) plus the 12px top +
+               12px bottom gap so the pinned panel — and the absolute Templates
+               overlay layered inside it — never run below the fold. The var keeps
+               this in lockstep if the header height ever changes. */
+            max-height: calc(100vh - var(--app-header-h, 4rem) - 24px);
             /* Guarantee a usable height even when the block palette's category
                sections are collapsed, so the absolute Templates overlay always
                has room to scroll instead of collapsing to a few rows. */
-            min-height: min(580px, calc(100vh - 88px));
+            min-height: min(580px, calc(100vh - var(--app-header-h, 4rem) - 24px));
             background: var(--bg-glass);
             border: 1px solid var(--border-glass);
             border-radius: 18px;

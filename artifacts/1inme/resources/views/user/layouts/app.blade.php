@@ -26,6 +26,12 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @include('common.partials.theme-styles')
     <style>
+        /* Single source of truth for the in-app header height (matches the
+           header's Tailwind h-16 = 4rem below). Anything that needs to budget
+           around the sticky header — e.g. the biolink editor's palette panel
+           and device-preview height calcs — should reference this variable so a
+           future header-height change keeps everything in lockstep. */
+        :root { --app-header-h: 4rem; }
         .sidebar-v2 {
             transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -1085,8 +1091,8 @@
         <div class="flex-1 flex flex-col min-w-0 min-h-0 main-content-v2"
              :style="'margin-left:' + (isDesktop ? sidebarWidth : 0) + 'px'">
 
-            <header class="h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative"
-                    style="background: var(--bg-header); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--border-subtle);">
+            <header class="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative"
+                    style="height: var(--app-header-h); background: var(--bg-header); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--border-subtle);">
                 <div class="header-glow"></div>
 
                 <div class="flex items-center gap-3 min-w-0">

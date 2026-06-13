@@ -89,10 +89,12 @@
            readable floor) so block text never collapses to one word per line.
            The iframe is scaled to this width, so a bigger frame == bigger,
            legible text. The scroll container is <main>, whose visible viewport
-           excludes the 64px in-app header, so subtract it (160 = 64 header + the
-           96px top offset + control/padding budget) to keep the frame in view. */
+           excludes the in-app header, so subtract its height (via the shared
+           --app-header-h var, defaulting to 4rem) plus the 96px top offset +
+           control/padding budget to keep the frame in view. The var keeps this
+           in lockstep if the header height ever changes. */
         .device-preview-root .device-frame-phone {
-            width: min(360px, max(300px, calc((100vh - 160px) * 375 / 812)));
+            width: min(360px, max(300px, calc((100vh - var(--app-header-h, 4rem) - 96px) * 375 / 812)));
         }
     }
     /* Activate the side-by-side editor layout (form | device preview) a bit
@@ -111,7 +113,7 @@
             top: 12px;
         }
         .device-preview-root .device-frame-phone {
-            width: min(340px, max(280px, calc((100vh - 160px) * 375 / 812)));
+            width: min(340px, max(280px, calc((100vh - var(--app-header-h, 4rem) - 96px) * 375 / 812)));
         }
     }
     .device-frame-phone .device-screen {
