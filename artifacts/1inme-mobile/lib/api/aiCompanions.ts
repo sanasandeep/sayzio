@@ -18,3 +18,25 @@ export async function listBiolinkCompanions(): Promise<{
   );
   return { items: res.data.items };
 }
+
+// An enabled AI Persona — the "brain" a Companion must be wired to. A
+// Companion can only be created on the spot if the user has at least one.
+export type AiPersona = { id: number; name: string };
+
+export async function listAiPersonas(): Promise<{ items: AiPersona[] }> {
+  const res = await apiFetch<{ data: { items: AiPersona[] } }>(
+    `/ai-companions/personas`,
+  );
+  return { items: res.data.items };
+}
+
+export async function createBiolinkCompanion(payload: {
+  name: string;
+  persona_id: number;
+}): Promise<BiolinkCompanion> {
+  const res = await apiFetch<{ data: { companion: BiolinkCompanion } }>(
+    `/ai-companions`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+  return res.data.companion;
+}

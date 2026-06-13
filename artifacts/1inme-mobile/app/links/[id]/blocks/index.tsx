@@ -53,9 +53,17 @@ import {
   type CardTemplateChildSummary,
   type PreviewLayoutCell,
 } from "@/lib/api/cardTemplates";
-import { listForms } from "@/lib/api/forms";
-import { listSocialProofs } from "@/lib/api/socialProofs";
-import { listBiolinkCompanions } from "@/lib/api/aiCompanions";
+import { listForms, createForm, FORM_TEMPLATES } from "@/lib/api/forms";
+import {
+  listSocialProofs,
+  createSocialProof,
+  type ProofType,
+} from "@/lib/api/socialProofs";
+import {
+  listBiolinkCompanions,
+  listAiPersonas,
+  createBiolinkCompanion,
+} from "@/lib/api/aiCompanions";
 
 function confirm(title: string, msg: string, onYes: () => void) {
   if (Platform.OS === "web") {
@@ -1213,13 +1221,17 @@ function SpecialPanel(props: SpecialPanelProps) {
     clearPreview,
   } = props;
 
+  const qc = useQueryClient();
   const [activeCat, setActiveCat] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
-  // Reset the search box whenever the user switches tabs so a query
-  // typed on one tab doesn't silently hide everything on the next.
+  // Reset the search box (and any open create sheet) whenever the user
+  // switches tabs so a query typed on one tab doesn't silently hide
+  // everything on the next.
   useEffect(() => {
     setSearch("");
+    setCreateOpen(false);
   }, [mode]);
 
   const q = useQuery({
@@ -1427,9 +1439,11 @@ function SpecialPanel(props: SpecialPanelProps) {
           {mode === "forms" ? (
             <SpecialList
               query={formsQ}
-              empty="You don't have any forms yet. Create one from the Forms screen first."
+              empty="You don't have any forms yet. Create your first one to drop it in here."
               filteredCount={formItems.length}
               inserting={insert.isPending}
+              createLabel="Create new form"
+              onCreate={() => setCreateOpen(true)}
             >
               {formItems.map((f) => (
                 <SpecialRow
@@ -1450,9 +1464,11 @@ function SpecialPanel(props: SpecialPanelProps) {
           ) : mode === "buzz" ? (
             <SpecialList
               query={buzzQ}
-              empty="You don't have any Buzz campaigns yet. Create one from the Buzz screen first."
+              empty="You don't have any Buzz campaigns yet. Create your first one to drop it in here."
               filteredCount={buzzItems.length}
               inserting={insert.isPending}
+              createLabel="Create new campaign"
+              onCreate={() => setCreateOpen(true)}
             >
               {buzzItems.map((s) => (
                 <SpecialRow
@@ -1473,9 +1489,11 @@ function SpecialPanel(props: SpecialPanelProps) {
           ) : mode === "ai" ? (
             <SpecialList
               query={aiQ}
-              empty="You don't have any AI companions set for biolink placement yet."
+              empty="You don't have any AI companions for biolink placement yet. Create your first one to drop it in here."
               filteredCount={aiItems.length}
               inserting={insert.isPending}
+              createLabel="Create new companion"
+              onCreate={() => setCreateOpen(true)}
             >
               {aiItems.map((c) => (
                 <SpecialRow
@@ -1915,6 +1933,301 @@ function SpecialPanel(props: SpecialPanelProps) {
           <View />
         )}
       </Modal>
+
+      {mode === "forms" || mode === "buzz" || mode === "ai" ? (
+        <SpecialCreateModal
+          visible={createOpen}
+          mode={mode}
+          buzzTypes={buzzQ.data?.types ?? []}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => {
+            setCreateOpen(false);
+            const key =
+              mode === "forms"
+                ? "special-forms"
+                : mode === "buzz"
+                  ? "special-buzz"
+                  : "special-ai";
+            qc.invalidateQueries({ queryKey: [key] });
+          }}
+        />
+      ) : null}
+    </Modal>
+  );
+}
+
+// Inline "create on the spot" sheet for the Forms / Buzz / AI tabs. Lets
+// the user mint a new form / Buzz campaign / AI companion without leaving
+// the block editor; on success the parent refetches the picker so the new
+// item appears and is immediately selectable.
+function SpecialCreateModal(props: {
+  visible: boolean;
+  mode: "forms" | "buzz" | "ai";
+  buzzTypes: ProofType[];
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const colors = useColors();
+  const { visible, mode, buzzTypes, onClose, onCreated } = props;
+
+  const [name, setName] = useState("");
+  const [template, setTemplate] = useState("contact");
+  const [buzzType, setBuzzType] = useState("");
+  const [personaId, setPersonaId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setName("");
+      setTemplate("contact");
+      setBuzzType(buzzTypes[0]?.type ?? "");
+      setPersonaId(null);
+    }
+  }, [visible, mode]);
+
+  const personasQ = useQuery({
+    queryKey: ["ai-personas"],
+    queryFn: listAiPersonas,
+    enabled: visible && mode === "ai",
+    staleTime: 60_000,
+  });
+
+  // Default the persona selection to the first available one once loaded.
+  useEffect(() => {
+    if (mode === "ai" && personaId == null) {
+      const first = personasQ.data?.items?.[0];
+      if (first) setPersonaId(first.id);
+    }
+  }, [mode, personaId, personasQ.data]);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      const trimmed = name.trim();
+      if (mode === "forms") return createForm({ title: trimmed, template });
+      if (mode === "buzz") return createSocialProof({ name: trimmed, type: buzzType });
+      return createBiolinkCompanion({ name: trimmed, persona_id: personaId! });
+    },
+    onSuccess: () => onCreated(),
+  });
+
+  const title =
+    mode === "forms"
+      ? "New form"
+      : mode === "buzz"
+        ? "New Buzz campaign"
+        : "New AI companion";
+  const nameLabel = mode === "forms" ? "Form title" : "Name";
+  const personas = personasQ.data?.items ?? [];
+  const canSubmit =
+    name.trim().length > 0 &&
+    !create.isPending &&
+    (mode === "forms"
+      ? true
+      : mode === "buzz"
+        ? !!buzzType
+        : personaId != null);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.createBackdrop} onPress={onClose} />
+      <View
+        style={[
+          styles.createSheet,
+          { backgroundColor: colors.background, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.createHeader}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontFamily: "SpaceGrotesk_600SemiBold",
+              fontSize: 16,
+            }}
+          >
+            {title}
+          </Text>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Feather name="x" size={20} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={{ gap: 14, paddingBottom: 8 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={{ gap: 6 }}>
+            <Text style={[styles.createFieldLabel, { color: colors.mutedForeground }]}>
+              {nameLabel}
+            </Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder={
+                mode === "forms"
+                  ? "e.g. Contact us"
+                  : mode === "buzz"
+                    ? "e.g. Recent signups"
+                    : "e.g. Support bot"
+              }
+              placeholderTextColor={colors.mutedForeground}
+              style={[
+                styles.createInput,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  color: colors.foreground,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            />
+          </View>
+
+          {mode === "forms" ? (
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.createFieldLabel, { color: colors.mutedForeground }]}>
+                Starting template
+              </Text>
+              <View style={styles.createChips}>
+                {FORM_TEMPLATES.map((t) => {
+                  const active = template === t.value;
+                  return (
+                    <Pressable
+                      key={t.value}
+                      onPress={() => setTemplate(t.value)}
+                      style={[
+                        styles.createChip,
+                        {
+                          backgroundColor: active ? colors.primary : colors.card,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: active ? colors.primaryForeground : colors.foreground,
+                          fontFamily: "SpaceGrotesk_600SemiBold",
+                          fontSize: 12,
+                        }}
+                      >
+                        {t.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {mode === "buzz" ? (
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.createFieldLabel, { color: colors.mutedForeground }]}>
+                Campaign type
+              </Text>
+              <View style={styles.createChips}>
+                {buzzTypes.map((t) => {
+                  const active = buzzType === t.type;
+                  return (
+                    <Pressable
+                      key={t.type}
+                      onPress={() => setBuzzType(t.type)}
+                      style={[
+                        styles.createChip,
+                        {
+                          backgroundColor: active ? colors.primary : colors.card,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: active ? colors.primaryForeground : colors.foreground,
+                          fontFamily: "SpaceGrotesk_600SemiBold",
+                          fontSize: 12,
+                        }}
+                      >
+                        {t.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {mode === "ai" ? (
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.createFieldLabel, { color: colors.mutedForeground }]}>
+                Persona
+              </Text>
+              {personasQ.isLoading ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : personas.length === 0 ? (
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                    fontFamily: "SpaceGrotesk_400Regular",
+                  }}
+                >
+                  You need an AI persona first. Create one on the web, then come
+                  back to wire it into a companion here.
+                </Text>
+              ) : (
+                <View style={styles.createChips}>
+                  {personas.map((p) => {
+                    const active = personaId === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        onPress={() => setPersonaId(p.id)}
+                        style={[
+                          styles.createChip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.card,
+                            borderColor: active ? colors.primary : colors.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: active
+                              ? colors.primaryForeground
+                              : colors.foreground,
+                            fontFamily: "SpaceGrotesk_600SemiBold",
+                            fontSize: 12,
+                          }}
+                        >
+                          {p.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {create.isError ? (
+            <Text style={{ color: colors.destructive, fontSize: 12 }}>
+              {(create.error as { message?: string })?.message ||
+                "Couldn't create. Try again."}
+            </Text>
+          ) : null}
+        </ScrollView>
+
+        <View style={{ gap: 8, paddingTop: 8 }}>
+          <Button
+            label={create.isPending ? "Creating…" : "Create"}
+            onPress={() => create.mutate()}
+            disabled={!canSubmit}
+          />
+          <Button label="Cancel" variant="ghost" onPress={onClose} />
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -1926,10 +2239,13 @@ function SpecialList(props: {
   empty: string;
   filteredCount: number;
   inserting: boolean;
+  createLabel?: string;
+  onCreate?: () => void;
   children: ReactNode;
 }) {
   const colors = useColors();
-  const { query, empty, filteredCount, inserting, children } = props;
+  const { query, empty, filteredCount, inserting, createLabel, onCreate, children } =
+    props;
 
   if (query.isLoading) {
     return (
@@ -1957,6 +2273,43 @@ function SpecialList(props: {
             Adding block…
           </Text>
         </View>
+      ) : null}
+      {onCreate ? (
+        <Pressable
+          onPress={onCreate}
+          disabled={inserting}
+          style={({ pressed }) => [
+            styles.specialCreateRow,
+            {
+              borderColor: colors.primary + "55",
+              backgroundColor: colors.primary + "0F",
+              borderRadius: colors.radius,
+              opacity: pressed ? 0.85 : inserting ? 0.6 : 1,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.specialRowIcon,
+              {
+                backgroundColor: colors.primary + "18",
+                borderColor: colors.primary + "33",
+              },
+            ]}
+          >
+            <Feather name="plus" size={16} color={colors.primary} />
+          </View>
+          <Text
+            style={{
+              flex: 1,
+              color: colors.primary,
+              fontFamily: "SpaceGrotesk_600SemiBold",
+              fontSize: 14,
+            }}
+          >
+            {createLabel ?? "Create new"}
+          </Text>
+        </Pressable>
       ) : null}
       {filteredCount === 0 ? (
         <Text
@@ -2175,6 +2528,59 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingVertical: 6,
+  },
+  specialCreateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  createBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  createSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: "85%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    padding: 18,
+    gap: 12,
+  },
+  createHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  createFieldLabel: {
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  createInput: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  createChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  createChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
   },
   tplCard: {
     borderWidth: 1,

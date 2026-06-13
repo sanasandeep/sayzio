@@ -24,6 +24,27 @@ export async function listForms(): Promise<{ items: Form[] }> {
   return { items: res.data.items };
 }
 
+/** Starter templates offered when creating a form from the block editor. */
+export const FORM_TEMPLATES: { value: string; label: string }[] = [
+  { value: "contact", label: "Contact" },
+  { value: "lead", label: "Lead capture" },
+  { value: "survey", label: "Survey" },
+  { value: "registration", label: "Registration" },
+  { value: "feedback", label: "Feedback" },
+  { value: "blank", label: "Blank" },
+];
+
+export async function createForm(payload: {
+  title: string;
+  template?: string;
+}): Promise<Form> {
+  const res = await apiFetch<{ data: { form: Form } }>(`/forms`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.data.form;
+}
+
 export async function getForm(id: number): Promise<Form> {
   const res = await apiFetch<{ data: { form: Form } }>(`/forms/${id}`);
   return res.data.form;

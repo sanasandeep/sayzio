@@ -27,6 +27,69 @@ class FormController extends Controller
         return $this->ok(['form' => $this->transform($f)]);
     }
 
+    /**
+     * Create a form on the spot from the mobile block editor's special
+     * panel. Mirrors the web FormController@store: a title (and optional
+     * starter template) is enough — the new form is seeded with the
+     * template's fields plus default design/settings/notifications so it
+     * is immediately usable and selectable as a `form` block.
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'title'    => 'required|string|max:160',
+            'template' => 'nullable|in:contact,lead,survey,registration,feedback,blank',
+        ]);
+
+        $template = $data['template'] ?? 'contact';
+        $form = $request->user()->forms()->create([
+            'slug'          => Form::uniqueSlug($data['title']),
+            'title'         => $data['title'],
+            'fields'        => $this->templateFields($template),
+            'design'        => Form::defaultDesign(),
+            'settings'      => Form::defaultSettings(),
+            'notifications' => Form::defaultNotifications(),
+            'is_active'     => true,
+        ]);
+
+        return $this->created(['form' => $this->transform($form)]);
+    }
+
+    /** Starter field schema by template — mirrors web FormController. */
+    protected function templateFields(string $template): array
+    {
+        return match ($template) {
+            'lead' => [
+                ['id' => 'name', 'type' => 'text', 'label' => 'Full Name', 'required' => true],
+                ['id' => 'email', 'type' => 'email', 'label' => 'Work Email', 'required' => true],
+                ['id' => 'phone', 'type' => 'phone', 'label' => 'Phone', 'required' => false],
+                ['id' => 'company', 'type' => 'text', 'label' => 'Company', 'required' => false],
+                ['id' => 'budget', 'type' => 'select', 'label' => 'Budget', 'options' => ['< $1k', '$1k–$5k', '$5k–$25k', '$25k+'], 'required' => false],
+                ['id' => 'notes', 'type' => 'textarea', 'label' => 'Tell us about your project', 'rows' => 4],
+            ],
+            'survey' => [
+                ['id' => 'satisfaction', 'type' => 'rating', 'label' => 'How satisfied are you?', 'max' => 5, 'required' => true],
+                ['id' => 'recommend', 'type' => 'scale', 'label' => 'How likely are you to recommend us?', 'min' => 0, 'max' => 10, 'required' => true],
+                ['id' => 'comments', 'type' => 'textarea', 'label' => 'Any additional feedback?', 'rows' => 4],
+            ],
+            'registration' => [
+                ['id' => 'name', 'type' => 'text', 'label' => 'Full Name', 'required' => true],
+                ['id' => 'email', 'type' => 'email', 'label' => 'Email', 'required' => true],
+                ['id' => 'event_date', 'type' => 'date', 'label' => 'Preferred Date', 'required' => true],
+                ['id' => 'attendees', 'type' => 'number', 'label' => 'Number of Attendees', 'min' => 1, 'required' => true],
+                ['id' => 'consent', 'type' => 'consent', 'label' => 'I agree to the terms and privacy policy', 'required' => true],
+            ],
+            'feedback' => [
+                ['id' => 'rating', 'type' => 'rating', 'label' => 'Rate your experience', 'max' => 5, 'required' => true],
+                ['id' => 'category', 'type' => 'radio', 'label' => 'What is this about?', 'options' => ['Bug', 'Suggestion', 'Compliment', 'Other'], 'required' => true],
+                ['id' => 'message', 'type' => 'textarea', 'label' => 'Your message', 'required' => true, 'rows' => 4],
+                ['id' => 'email', 'type' => 'email', 'label' => 'Email (optional)', 'required' => false],
+            ],
+            'blank' => [],
+            default => Form::defaultFields(),
+        };
+    }
+
     public function submissions(Request $request, int $id)
     {
         $f = Form::where('user_id', $request->user()->id)->find($id);

@@ -381,15 +381,19 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/{id}/merge',       [ContactController::class, 'merge'])->whereNumber('id')->middleware('throttle:60,1');
         Route::delete('/contacts/{id}',             [ContactController::class, 'destroy'])->whereNumber('id');
 
-        // Forms (read-only for mobile; full CRUD lives on web)
-        Route::get('/forms',                              [FormController::class, 'index']);
+        // Forms (mobile can list + create-on-the-spot from the block
+        // editor; richer editing lives on web).
+        Route::get ('/forms',                             [FormController::class, 'index']);
+        Route::post('/forms',                             [FormController::class, 'store']);
         Route::get('/forms/{id}',                         [FormController::class, 'show'])->whereNumber('id');
         Route::get('/forms/{id}/submissions',             [FormController::class, 'submissions'])->whereNumber('id');
         Route::get('/forms/{id}/submissions.csv',         [FormController::class, 'exportSubmissions'])->whereNumber('id');
 
-        // Biolink AI Companions (read-only list for the block editor's
-        // "AI" picker — full CRUD lives on web).
-        Route::get('/ai-companions',                      [\App\Modules\Api\Controllers\AiCompanionController::class, 'index']);
+        // Biolink AI Companions: list + persona lookup + create-on-the-spot
+        // for the block editor's "AI" picker (richer editing lives on web).
+        Route::get ('/ai-companions',                     [\App\Modules\Api\Controllers\AiCompanionController::class, 'index']);
+        Route::get ('/ai-companions/personas',            [\App\Modules\Api\Controllers\AiCompanionController::class, 'personas']);
+        Route::post('/ai-companions',                     [\App\Modules\Api\Controllers\AiCompanionController::class, 'store']);
 
         // Inbox (DM threads on owned biolinks)
         Route::get   ('/inbox/threads',                   [InboxController::class, 'threads']);

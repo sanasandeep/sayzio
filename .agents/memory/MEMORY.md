@@ -5,3 +5,4 @@
 - [Laravel API proxy shadow](laravel-api-proxy-shadow.md) — `localhost:80/api/v1/...` hits the Express api-server, not 1inme Laravel; test Laravel API on `localhost:5000`.
 - [Biolink editor preview scaling](biolink-editor-preview-scaling.md) — editor preview legibility = iframe scaled by frame width, capped by a height budget; fix in the editor partial, never bump public-page fonts.
 - [Biolink block ajax gate](biolink-block-ajax-gate.md) — block store/move/apply-card return JSON only under `$request->ajax()`; feature tests must send `X-Requested-With`, not just postJson.
+- [Sanctum API no workspace binding](api-workspace-scope.md) — API path doesn't run SetActiveWorkspace, so BelongsToWorkspace creates land with workspace_id=null; index still returns them (scope skipped), but web list won't.
