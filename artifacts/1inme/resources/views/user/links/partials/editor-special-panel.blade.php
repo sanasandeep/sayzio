@@ -53,7 +53,7 @@
             <input type="text" x-model="specialSearch" placeholder="Search…" class="theme-input w-full pl-7 text-xs py-1.5">
         </div>
     </div>
-    <div class="flex-1 overflow-y-auto p-3">
+    <div class="flex-1 overflow-y-auto p-3" style="min-height:0;">
         {{-- FORMS PICKER --}}
         <div x-show="specialMode === 'forms'" x-cloak>
             @if(empty($userForms) || count($userForms) === 0)
