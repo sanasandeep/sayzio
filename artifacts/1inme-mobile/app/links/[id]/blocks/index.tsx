@@ -20,22 +20,23 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
-import { BlockPickerPreview } from "@/components/BlockPickerPreview";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import {
-  BLOCK_KINDS,
   blockKind,
   createBlock,
   deleteBlock,
+  getBlockCatalog,
   listBlocks,
   reorderBlocks,
   updateBlock,
   type Block,
+  type BlockCatalogType,
 } from "@/lib/api/blocks";
 import {
   applyCardTemplate,
@@ -77,7 +78,15 @@ export default function BlocksScreen() {
   }, [q.data]);
 
   const [picker, setPicker] = useState(false);
+  const [paletteSearch, setPaletteSearch] = useState("");
+  const [paletteCategory, setPaletteCategory] = useState("all");
   const [cardGallery, setCardGallery] = useState(false);
+
+  const catalogQ = useQuery({
+    queryKey: ["block-catalog"],
+    queryFn: getBlockCatalog,
+    staleTime: 5 * 60 * 1000,
+  });
   const [previewTpl, setPreviewTpl] = useState<CardTemplate | null>(null);
   // After applying a card template (or any other insert) we want to
   // jump the editor list to the new block and pulse-highlight it so the
@@ -104,9 +113,40 @@ export default function BlocksScreen() {
     onSuccess: (b) => {
       qc.invalidateQueries({ queryKey: ["blocks", id] });
       setPicker(false);
+      setPaletteSearch("");
+      setPaletteCategory("all");
       router.push(`/links/${id}/blocks/${b.id}` as any);
     },
   });
+
+  function onPaletteTap(t: BlockCatalogType) {
+    if (create.isPending) return;
+    if (t.locked) {
+      confirm(
+        "Upgrade to unlock",
+        `"${t.label}" is available on a higher plan. View upgrade options?`,
+        () => {
+          setPicker(false);
+          router.push("/upgrade" as any);
+        },
+      );
+      return;
+    }
+    create.mutate(t.type);
+  }
+
+  const paletteTypes = catalogQ.data?.types ?? [];
+  const paletteCategories = catalogQ.data?.categories ?? [];
+  const filteredPalette = useMemo(() => {
+    const q = paletteSearch.trim().toLowerCase();
+    return paletteTypes.filter((t) => {
+      if (paletteCategory !== "all" && t.category !== paletteCategory) {
+        return false;
+      }
+      if (q && !t.label.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [paletteTypes, paletteCategory, paletteSearch]);
 
   const toggle = useMutation({
     mutationFn: (b: Block) =>
@@ -278,64 +318,191 @@ export default function BlocksScreen() {
                 <Feather name="x" size={20} color={colors.mutedForeground} />
               </Pressable>
             </View>
-            <ScrollView contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
-              <Pressable
-                key="card-templates"
-                onPress={() => {
-                  setPicker(false);
-                  setCardGallery(true);
-                }}
-                style={({ pressed }) => [
-                  styles.kindRow,
-                  {
-                    backgroundColor: colors.primary + "22",
-                    borderColor: colors.primary,
-                    borderRadius: colors.radius,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.kindRowHead}>
-                  <Feather name="layers" size={16} color={colors.primary} />
-                  <Text
-                    style={[styles.kindLabel, { color: colors.foreground }]}
-                  >
-                    Card templates
-                  </Text>
-                </View>
-                <Text
-                  style={[styles.kindBlurb, { color: colors.mutedForeground }]}
-                >
-                  Pre-designed card layouts you can drop in and edit.
-                </Text>
-              </Pressable>
 
-              {BLOCK_KINDS.map((k) => (
-                <Pressable
-                  key={k.type}
-                  onPress={() => create.mutate(k.type)}
-                  style={({ pressed }) => [
-                    styles.kindRow,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      borderRadius: colors.radius,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  <BlockPickerPreview type={k.type} />
-                  <Text style={[styles.kindLabel, { color: colors.foreground }]}>
-                    {k.label}
-                  </Text>
-                  <Text
-                    style={[styles.kindBlurb, { color: colors.mutedForeground }]}
-                  >
-                    {k.blurb}
-                  </Text>
+            <View
+              style={[
+                styles.searchWrap,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <Feather name="search" size={14} color={colors.mutedForeground} />
+              <TextInput
+                value={paletteSearch}
+                onChangeText={setPaletteSearch}
+                placeholder="Search blocks…"
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.searchInput, { color: colors.foreground }]}
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {paletteSearch.length > 0 ? (
+                <Pressable onPress={() => setPaletteSearch("")} hitSlop={8}>
+                  <Feather name="x" size={14} color={colors.mutedForeground} />
                 </Pressable>
-              ))}
+              ) : null}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabs}
+            >
+              {[{ key: "all", label: "All" }, ...paletteCategories].map((c) => {
+                const active = paletteCategory === c.key;
+                return (
+                  <Pressable
+                    key={c.key}
+                    onPress={() => setPaletteCategory(c.key)}
+                    style={[
+                      styles.tab,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        fontSize: 12,
+                        color: active
+                          ? colors.primaryForeground
+                          : colors.mutedForeground,
+                      }}
+                    >
+                      {c.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
+
+            {catalogQ.isLoading ? (
+              <View style={{ paddingVertical: 32 }}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : catalogQ.isError ? (
+              <View style={{ paddingVertical: 24, gap: 10 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    textAlign: "center",
+                    fontSize: 13,
+                  }}
+                >
+                  Couldn&apos;t load the block palette.
+                </Text>
+                <Button label="Retry" onPress={() => catalogQ.refetch()} />
+              </View>
+            ) : (
+              <ScrollView contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
+                {paletteCategory === "all" && paletteSearch.trim() === "" ? (
+                  <Pressable
+                    key="card-templates"
+                    onPress={() => {
+                      setPicker(false);
+                      setCardGallery(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.kindRow,
+                      {
+                        backgroundColor: colors.primary + "22",
+                        borderColor: colors.primary,
+                        borderRadius: colors.radius,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={styles.kindRowHead}>
+                      <Feather name="layers" size={16} color={colors.primary} />
+                      <Text
+                        style={[styles.kindLabel, { color: colors.foreground }]}
+                      >
+                        Card templates
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.kindBlurb,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      Pre-designed card layouts you can drop in and edit.
+                    </Text>
+                  </Pressable>
+                ) : null}
+
+                <View style={styles.paletteGrid}>
+                  {filteredPalette.map((t) => (
+                    <Pressable
+                      key={t.type}
+                      onPress={() => onPaletteTap(t)}
+                      style={({ pressed }) => [
+                        styles.paletteTile,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderRadius: colors.radius,
+                          opacity: pressed ? 0.85 : t.locked ? 0.6 : 1,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.paletteIcon,
+                          {
+                            backgroundColor: colors.primary + "18",
+                            borderColor: colors.primary + "33",
+                          },
+                        ]}
+                      >
+                        <Feather
+                          name={t.locked ? "lock" : featherFor(t.icon)}
+                          size={16}
+                          color={colors.primary}
+                        />
+                      </View>
+                      <Text
+                        numberOfLines={2}
+                        style={[
+                          styles.paletteLabel,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        {t.label}
+                      </Text>
+                      {t.locked ? (
+                        <Text
+                          style={[
+                            styles.paletteLocked,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          Upgrade
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+
+                {filteredPalette.length === 0 ? (
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      textAlign: "center",
+                      fontSize: 13,
+                      paddingVertical: 24,
+                    }}
+                  >
+                    No blocks match &ldquo;{paletteSearch.trim()}&rdquo;.
+                  </Text>
+                ) : null}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -1514,6 +1681,54 @@ const styles = StyleSheet.create({
   kindRowHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   kindLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
   kindBlurb: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 10 : 4,
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+    padding: 0,
+  },
+  paletteGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  paletteTile: {
+    width: "31.5%",
+    minHeight: 92,
+    padding: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  paletteIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  paletteLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
+    textAlign: "center",
+    lineHeight: 14,
+  },
+  paletteLocked: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 9,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   tabs: { gap: 6, paddingVertical: 4, paddingRight: 8 },
   tab: {
     paddingHorizontal: 12,

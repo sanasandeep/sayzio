@@ -31,6 +31,50 @@ class BiolinkBlockController extends Controller
         return $this->ok(['items' => $items]);
     }
 
+    /**
+     * Block-type palette catalog for the mobile editor. Mirrors the web
+     * biolink-editor palette: the same category labels and the same
+     * picker-visible block types (aliases collapsed via pickerTypes(),
+     * system/verified slugs hidden). Each type carries a per-user
+     * `locked` flag derived from the same plan-gating check the web
+     * gallery uses (User::userCanUseBlockType), so the app can render
+     * locked tiles as upgrade prompts. User-scoped, not link-scoped —
+     * the catalog is identical across a user's biolinks.
+     */
+    public function catalog(Request $request)
+    {
+        $user = $request->user();
+
+        $types = [];
+        $usedCategories = [];
+        foreach (BiolinkBlock::pickerTypes() as $slug => $meta) {
+            if (!empty($meta['system']) || ($meta['category'] ?? '') === 'verified') {
+                continue;
+            }
+            $category = $meta['category'] ?? 'basic';
+            $usedCategories[$category] = true;
+            $types[] = [
+                'type'     => $slug,
+                'label'    => $meta['label'],
+                'icon'     => $meta['icon'],
+                'category' => $category,
+                'locked'   => !$user->userCanUseBlockType($slug),
+            ];
+        }
+
+        $categories = [];
+        foreach (BiolinkBlock::CATEGORIES as $key => $label) {
+            if (!empty($usedCategories[$key])) {
+                $categories[] = ['key' => $key, 'label' => $label];
+            }
+        }
+
+        return $this->ok([
+            'categories' => $categories,
+            'types'      => $types,
+        ]);
+    }
+
     public function store(Request $request, int $linkId)
     {
         $link = $this->ownedLink($request, $linkId);

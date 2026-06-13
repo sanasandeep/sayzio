@@ -115,6 +115,33 @@ export function blockKind(type: string): BlockKind | null {
   return BLOCK_KINDS.find((b) => b.type === type) ?? null;
 }
 
+// Block-type palette catalog (mirrors the web biolink-editor palette).
+// Served by GET /block-catalog — the same picker-visible block types and
+// category labels the web editor uses, with a per-user `locked` flag from
+// the plan-gating check. Icons come through as Font Awesome `fa-*` slugs.
+export type BlockCatalogCategory = {
+  key: string;
+  label: string;
+};
+
+export type BlockCatalogType = {
+  type: string;
+  label: string;
+  icon: string;
+  category: string;
+  locked: boolean;
+};
+
+export type BlockCatalog = {
+  categories: BlockCatalogCategory[];
+  types: BlockCatalogType[];
+};
+
+export async function getBlockCatalog(): Promise<BlockCatalog> {
+  const res = await apiFetch<{ data: BlockCatalog }>(`/block-catalog`);
+  return res.data;
+}
+
 export async function listBlocks(linkId: number): Promise<Block[]> {
   const res = await apiFetch<{ data: { items: Block[] } }>(
     `/links/${linkId}/blocks`,
