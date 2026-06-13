@@ -864,7 +864,16 @@
                 </a>
                 @endif
                 @if($__can['files_view'] || $__can['links_view'])
-                @php $filesHref = $__can['links_view'] ? route('user.files.index') : route('user.cloud-files.index'); @endphp
+                @php
+                    $__filesLastTab = session('files_last_tab', 'vault');
+                    if ($__filesLastTab === 'cloud' && $__can['files_view']) {
+                        $filesHref = route('user.cloud-files.index');
+                    } elseif ($__can['links_view']) {
+                        $filesHref = route('user.files.index');
+                    } else {
+                        $filesHref = route('user.cloud-files.index');
+                    }
+                @endphp
                 <a href="{{ $filesHref }}"
                    class="sidebar-link {{ request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"
                    style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -1305,7 +1314,17 @@
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ request()->routeIs('user.vault.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
                                 @endif
                                 @if($__can['files_view'] || $__can['links_view'])
-                                <a href="{{ $__can['links_view'] ? route('user.files.index') : route('user.cloud-files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-open"></i></div> <span>Files</span></a>
+                                @php
+                                    $__filesLastTab = session('files_last_tab', 'vault');
+                                    if ($__filesLastTab === 'cloud' && $__can['files_view']) {
+                                        $filesHref = route('user.cloud-files.index');
+                                    } elseif ($__can['links_view']) {
+                                        $filesHref = route('user.files.index');
+                                    } else {
+                                        $filesHref = route('user.cloud-files.index');
+                                    }
+                                @endphp
+                                <a href="{{ $filesHref }}" class="sidebar-link {{ request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-open"></i></div> <span>Files</span></a>
                                 @endif
                                 @if($__can['links_view'])
                                 <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>

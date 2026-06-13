@@ -4,6 +4,11 @@
     $canCloud = WP::userCan('files.view');
     $vaultActive = request()->routeIs('user.files.*');
     $cloudActive = request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*');
+    if ($vaultActive) {
+        session(['files_last_tab' => 'vault']);
+    } elseif ($cloudActive) {
+        session(['files_last_tab' => 'cloud']);
+    }
 @endphp
 @if($canVault || $canCloud)
 <div class="flex flex-wrap items-center gap-2 mb-5">
