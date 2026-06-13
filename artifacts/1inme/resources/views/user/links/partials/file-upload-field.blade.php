@@ -218,6 +218,15 @@ function fileUploadField_{{ $fieldId }}() {
             return 'fas fa-file';
         },
 
+        emitMeta() {
+            if (!this.fileMeta) return;
+            this.$dispatch('file-meta', {
+                name: this.fileMeta.name || '',
+                size_human: this.fileMeta.size_human || '',
+                type: this.fileMeta.type || '',
+            });
+        },
+
         replaceFile() {
             this.mode = 'upload';
             this.uploadError = null;
@@ -271,6 +280,7 @@ function fileUploadField_{{ $fieldId }}() {
                         self.value = data.file.url;
                         self.fileMeta = { name: data.file.original_name, size_human: data.file.size_human, type: data.file.type };
                         self.mode = 'url';
+                        self.emitMeta();
                         self.showUploadToast('File uploaded');
                     } else {
                         self.uploadError = data.error || 'Upload failed';
@@ -332,6 +342,7 @@ function fileUploadField_{{ $fieldId }}() {
             this.value = f.url;
             this.fileMeta = { name: f.original_name, size_human: f.size_human, type: f.type };
             this.mode = 'url';
+            this.emitMeta();
         },
 
         showUploadToast(msg) {

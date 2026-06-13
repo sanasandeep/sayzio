@@ -927,10 +927,12 @@ if (typeof window.resetPollVotes !== 'function') {
 <div><label class="{{ $labelClass }}">HTML Code</label><textarea name="settings[html]" rows="6" class="{{ $inputClass }} font-mono">{{ $s['html'] ?? '' }}</textarea></div>
 
 @elseif($block->type === 'file')
-<div class="space-y-3">
+<div class="space-y-3"
+     x-data="{ fileName: {{ json_encode($s['name'] ?? '') }}, fileSize: {{ json_encode($s['size'] ?? '') }} }"
+     @file-meta="if ($event.detail.name) fileName = $event.detail.name; if ($event.detail.size_human) fileSize = $event.detail.size_human;">
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'all', 'labelText' => 'File', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
-    <div><label class="{{ $labelClass }}">File Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">File Size</label><input type="text" name="settings[size]" value="{{ $s['size'] ?? '' }}" placeholder="e.g. 2.5 MB" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">File Name</label><input type="text" name="settings[name]" x-model="fileName" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">File Size</label><input type="text" name="settings[size]" x-model="fileSize" placeholder="e.g. 2.5 MB" class="{{ $inputClass }}"></div>
 </div>
 
 @elseif($block->type === 'external_item')
