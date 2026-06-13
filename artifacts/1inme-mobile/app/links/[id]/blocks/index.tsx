@@ -1004,6 +1004,7 @@ function gradientPoints(angle: number) {
 
 function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
   const h = cell.h;
+  const [imgFailed, setImgFailed] = useState(false);
   const parsed = parsePreviewBg(cell.bg);
   // Always have a safe solid fallback to drop into RN `backgroundColor`
   // — even gradient cells use this for tiny inner elements (dots, lines)
@@ -1155,7 +1156,7 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
             gap: 5,
           }}
         >
-          {cell.img ? (
+          {cell.img && !imgFailed ? (
             <Image
               source={{ uri: cell.img }}
               style={{
@@ -1164,6 +1165,7 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
                 borderRadius: size / 2,
               }}
               resizeMode="cover"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <View
@@ -1239,7 +1241,7 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
           <Feather name="play" size={11} color="rgba(255,255,255,0.95)" />
         </View>
       ) : null;
-      if (cell.img) {
+      if (cell.img && !imgFailed) {
         return (
           <View
             style={{
@@ -1253,6 +1255,7 @@ function BlueprintCell({ cell }: { cell: PreviewLayoutCell }) {
               source={{ uri: cell.img }}
               style={{ width: "100%", height: "100%" }}
               resizeMode="cover"
+              onError={() => setImgFailed(true)}
             />
             {playOverlay}
           </View>
