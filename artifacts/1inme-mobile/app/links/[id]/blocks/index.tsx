@@ -40,6 +40,13 @@ import {
   type BlockCatalogType,
 } from "@/lib/api/blocks";
 import {
+  appendBlock,
+  moveBlock,
+  orderIds,
+  removeBlockTree,
+  replaceBlock,
+} from "@/lib/api/blockCache";
+import {
   applyCardTemplate,
   listCardTemplates,
   type CardTemplate,
@@ -126,9 +133,7 @@ export default function BlocksScreen() {
   // editor. On mobile the equivalent is patching the React Query cache
   // directly rather than invalidating + refetching.
   function appendBlockToCache(b: Block) {
-    qc.setQueryData<Block[]>(["blocks", id], (old) =>
-      old ? [...old, b] : [b],
-    );
+    qc.setQueryData<Block[]>(["blocks", id], (old) => appendBlock(old, b));
   }
 
   const create = useMutation({
@@ -177,7 +182,7 @@ export default function BlocksScreen() {
       updateBlock(id, b.id, { is_active: !b.is_active }),
     onSuccess: (updated) =>
       qc.setQueryData<Block[]>(["blocks", id], (old) =>
-        old ? old.map((b) => (b.id === updated.id ? updated : b)) : old,
+        replaceBlock(old, updated),
       ),
     // Server rejected the toggle — pull the truth back so the switch
     // doesn't drift from reality.
@@ -188,9 +193,7 @@ export default function BlocksScreen() {
     mutationFn: (blockId: number) => deleteBlock(id, blockId),
     onSuccess: (_res, blockId) =>
       qc.setQueryData<Block[]>(["blocks", id], (old) =>
-        old
-          ? old.filter((b) => b.id !== blockId && b.parent_id !== blockId)
-          : old,
+        removeBlockTree(old, blockId),
       ),
     onError: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
   });
@@ -203,13 +206,11 @@ export default function BlocksScreen() {
   });
 
   function move(idx: number, dir: -1 | 1) {
-    const next = order.slice();
-    const j = idx + dir;
-    if (j < 0 || j >= next.length) return;
-    [next[idx], next[j]] = [next[j], next[idx]];
+    const next = moveBlock(order, idx, dir);
+    if (!next) return;
     setOrder(next);
     qc.setQueryData<Block[]>(["blocks", id], next);
-    persistOrder.mutate(next.map((b) => b.id));
+    persistOrder.mutate(orderIds(next));
   }
 
   if (q.isLoading) {
