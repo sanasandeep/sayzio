@@ -29,9 +29,17 @@
     html.light-mode .tpl-prev-shimmer::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent); }
     @keyframes tpl-prev-shimmer-sweep { 100% { transform: translateX(100%); } }
     @media (prefers-reduced-motion: reduce) { .tpl-prev-shimmer::after { animation: none; } }
+    /* The flex layout MUST live in CSS, not inline, because Alpine's x-show
+       toggles visibility by removing the element's inline `display` property
+       when shown — which would strip an inline `display:flex` and revert this
+       div to `display:block`, collapsing the flex column so the scroll body's
+       `flex:1` stops bounding and the template list grows to full height and
+       can't scroll. Declaring it here means x-show's `display:''` reverts to
+       this rule (flex), keeping the header + scrollable body layout intact. */
+    .special-panel { display: flex; flex-direction: column; }
 </style>
 <div class="special-panel" x-show="specialOpen" x-cloak
-     style="position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; background:var(--bg-sidebar); backdrop-filter:blur(24px) saturate(1.3); -webkit-backdrop-filter:blur(24px) saturate(1.3);"
+     style="position:absolute; inset:0; z-index:5; background:var(--bg-sidebar); backdrop-filter:blur(24px) saturate(1.3); -webkit-backdrop-filter:blur(24px) saturate(1.3);"
      @keydown.escape.window="specialOpen = false">
     <div class="px-3 pt-3 pb-2 flex-shrink-0" style="border-bottom:1px solid var(--border-glass);">
         <div class="flex items-center justify-between mb-2">

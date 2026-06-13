@@ -663,10 +663,13 @@ $catColors = [
             #editorLayout { grid-template-columns: minmax(0, 3.1fr) minmax(0, 5fr) minmax(0, 4fr); }
             #editorPaletteCol { grid-column: auto; order: 0; }
         }
-        /* Stacked (sub-lg) palette: not full viewport height, scrolls internally. */
-        @media (max-width: 1023px) {
-            .palette-panel { position: relative; max-height: 60vh; min-height: 0; }
-        }
+        /* Stacked (sub-lg) palette: not full viewport height, scrolls internally.
+           Use a DEFINITE height (not max-height) so the absolute Templates
+           overlay inside it — and that overlay's flex scroll body — resolve a
+           bounded height and scroll instead of growing to full content.
+           NOTE: this override is declared AFTER the base .palette-panel rule
+           below so it actually wins the cascade (equal specificity → source
+           order decides); otherwise the base sticky/height would override it. */
 
         .palette-panel {
             position: sticky;
@@ -680,17 +683,27 @@ $catColors = [
                12px bottom gap so the pinned panel — and the absolute Templates
                overlay layered inside it — never run below the fold. The var keeps
                this in lockstep if the header height ever changes. */
-            max-height: calc(100vh - var(--app-header-h, 4rem) - 24px);
-            /* Guarantee a usable height even when the block palette's category
-               sections are collapsed, so the absolute Templates overlay always
-               has room to scroll instead of collapsing to a few rows. */
-            min-height: min(580px, calc(100vh - var(--app-header-h, 4rem) - 24px));
+            /* A DEFINITE height (not just max-height) is required here: the
+               Templates overlay is position:absolute; inset:0 inside this panel,
+               and its flex scroll body only resolves a bounded height — and thus
+               scrolls — when this containing block has a definite height. With
+               only max-height/min-height (height:auto) the overlay's body grows
+               to its full content height and is clipped by overflow:hidden,
+               which is what broke scrolling on every Templates tab. This also
+               guarantees room when the block palette's sections are collapsed. */
+            height: calc(100vh - var(--app-header-h, 4rem) - 24px);
             background: var(--bg-glass);
             border: 1px solid var(--border-glass);
             border-radius: 18px;
             overflow: hidden;
             backdrop-filter: blur(16px) saturate(140%);
             -webkit-backdrop-filter: blur(16px) saturate(140%);
+        }
+        /* Stacked (sub-lg): palette flows in-page (not sticky) at a fixed 60vh
+           so it — and the absolute Templates overlay inside it — stay bounded
+           and scroll internally. Declared after the base rule so it wins. */
+        @media (max-width: 1023px) {
+            .palette-panel { position: relative; height: 60vh; max-height: none; min-height: 0; }
         }
         .palette-head { padding: 14px 14px 8px; flex-shrink: 0; }
         .palette-tabs {
