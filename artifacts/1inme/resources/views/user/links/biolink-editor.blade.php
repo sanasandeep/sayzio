@@ -232,7 +232,12 @@
         display: flex;
         gap: 2px;
         overflow-x: auto;
-        padding: 0 20px;
+        /* Bottom padding gives the category chips breathing room before the
+           template grid. It lives in this shorthand (not a `pb-*` utility on the
+           element) because this rule's `padding` shorthand would otherwise reset
+           padding-bottom to 0 and override an equal-specificity utility class. */
+        padding: 0 20px 14px;
+        margin-bottom: 4px;
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -1125,8 +1130,15 @@ function biolinkEditor() {
                 : this.cardTemplates;
             return filtered.slice(0, this.cardTemplatesLimit);
         },
+        _cardReqId: 0,
         loadCardTemplates(force) {
             if (!force && (this.cardTemplatesLoaded || this.cardTemplatesLoading)) return;
+            // Guard against out-of-order responses: rapid category-chip switching
+            // fires overlapping fetches with no cancellation, so a slower earlier
+            // response could land after a newer one and overwrite the grid with
+            // stale (or empty) data — which looked like "All sometimes shows no
+            // templates / no scroll". Only the latest request may mutate state.
+            var reqId = ++this._cardReqId;
             this.cardTemplatesLoading = true;
             this.cardTemplatesLimit = 24;
             var params = new URLSearchParams();
@@ -1136,12 +1148,13 @@ function biolinkEditor() {
             fetch(url, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(d => {
+                    if (reqId !== this._cardReqId) return;
                     this.cardTemplates = d.items || [];
                     if (d.categories) this.cardCategories = d.categories;
                     this.cardTemplatesLoaded = true;
                 })
-                .catch(() => { showToast('Failed to load templates', 'error'); })
-                .finally(() => { this.cardTemplatesLoading = false; });
+                .catch(() => { if (reqId === this._cardReqId) showToast('Failed to load templates', 'error'); })
+                .finally(() => { if (reqId === this._cardReqId) this.cardTemplatesLoading = false; });
         },
         applyCardTemplate(id) {
             var fd = new FormData();

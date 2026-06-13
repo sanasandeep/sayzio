@@ -169,7 +169,7 @@
 
         {{-- CARD TEMPLATES --}}
         <div x-show="specialMode === 'templates'" x-cloak>
-            <div class="gallery-tabs pb-3" x-show="Object.keys(cardCategories).length">
+            <div class="gallery-tabs" x-show="Object.keys(cardCategories).length">
                 <button class="gallery-tab" :class="cardCategory === 'all' ? 'active' : ''" @click="cardCategory = 'all'; loadCardTemplates(true)">All</button>
                 <template x-for="(label, key) in cardCategories" :key="key">
                     <button class="gallery-tab" :class="cardCategory === key ? 'active' : ''" @click="cardCategory = key; loadCardTemplates(true)" x-text="label"></button>
