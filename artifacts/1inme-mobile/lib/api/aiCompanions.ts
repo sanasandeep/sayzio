@@ -40,3 +40,18 @@ export async function createBiolinkCompanion(payload: {
   );
   return res.data.companion;
 }
+
+// Mint a minimal AI Persona (name + optional base instructions) on the
+// spot so a Companion can be built fully self-serve on mobile. Every
+// other persona knob falls back to the same defaults the web "blank"
+// template uses; richer editing still lives on the web.
+export async function createAiPersona(payload: {
+  name: string;
+  system_prompt?: string;
+}): Promise<AiPersona> {
+  const res = await apiFetch<{ data: { persona: AiPersona } }>(
+    `/ai-companions/personas`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+  return res.data.persona;
+}

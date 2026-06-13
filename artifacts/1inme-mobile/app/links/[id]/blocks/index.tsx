@@ -64,6 +64,7 @@ import {
   listBiolinkCompanions,
   listAiPersonas,
   createBiolinkCompanion,
+  createAiPersona,
 } from "@/lib/api/aiCompanions";
 
 function confirm(title: string, msg: string, onYes: () => void) {
@@ -1981,6 +1982,9 @@ function SpecialCreateModal(props: {
   const [template, setTemplate] = useState("contact");
   const [buzzType, setBuzzType] = useState("");
   const [personaId, setPersonaId] = useState<number | null>(null);
+  const [showPersonaForm, setShowPersonaForm] = useState(false);
+  const [personaName, setPersonaName] = useState("");
+  const [personaPrompt, setPersonaPrompt] = useState("");
 
   useEffect(() => {
     if (visible) {
@@ -1988,6 +1992,9 @@ function SpecialCreateModal(props: {
       setTemplate("contact");
       setBuzzType(buzzTypes[0]?.type ?? "");
       setPersonaId(null);
+      setShowPersonaForm(false);
+      setPersonaName("");
+      setPersonaPrompt("");
     }
   }, [visible, mode]);
 
@@ -2005,6 +2012,33 @@ function SpecialCreateModal(props: {
       if (first) setPersonaId(first.id);
     }
   }, [mode, personaId, personasQ.data]);
+
+  // Open the inline create form automatically when the user has no
+  // personas yet, so the "AI" tab is never a dead-end on mobile.
+  useEffect(() => {
+    if (
+      mode === "ai" &&
+      !personasQ.isLoading &&
+      (personasQ.data?.items?.length ?? 0) === 0
+    ) {
+      setShowPersonaForm(true);
+    }
+  }, [mode, personasQ.isLoading, personasQ.data]);
+
+  const createPersona = useMutation({
+    mutationFn: async () =>
+      createAiPersona({
+        name: personaName.trim(),
+        system_prompt: personaPrompt.trim() || undefined,
+      }),
+    onSuccess: async (persona) => {
+      await personasQ.refetch();
+      setPersonaId(persona.id);
+      setShowPersonaForm(false);
+      setPersonaName("");
+      setPersonaPrompt("");
+    },
+  });
 
   const create = useMutation({
     mutationFn: async () => {
@@ -2032,6 +2066,8 @@ function SpecialCreateModal(props: {
       : mode === "buzz"
         ? !!buzzType
         : personaId != null);
+  const canCreatePersona =
+    personaName.trim().length > 0 && !createPersona.isPending;
 
   return (
     <Modal
@@ -2172,7 +2208,7 @@ function SpecialCreateModal(props: {
               </Text>
               {personasQ.isLoading ? (
                 <ActivityIndicator color={colors.primary} />
-              ) : personas.length === 0 ? (
+              ) : personas.length === 0 && !showPersonaForm ? (
                 <Text
                   style={{
                     color: colors.mutedForeground,
@@ -2180,10 +2216,10 @@ function SpecialCreateModal(props: {
                     fontFamily: "SpaceGrotesk_400Regular",
                   }}
                 >
-                  You need an AI persona first. Create one on the web, then come
-                  back to wire it into a companion here.
+                  You don&apos;t have an AI persona yet. Create one below to wire
+                  it into your companion.
                 </Text>
-              ) : (
+              ) : personas.length > 0 ? (
                 <View style={styles.createChips}>
                   {personas.map((p) => {
                     const active = personaId === p.id;
@@ -2213,6 +2249,126 @@ function SpecialCreateModal(props: {
                       </Pressable>
                     );
                   })}
+                </View>
+              ) : null}
+
+              {!showPersonaForm ? (
+                <Pressable
+                  onPress={() => setShowPersonaForm(true)}
+                  style={{ paddingVertical: 4 }}
+                  hitSlop={6}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      fontSize: 13,
+                    }}
+                  >
+                    + New persona
+                  </Text>
+                </Pressable>
+              ) : (
+                <View
+                  style={{
+                    gap: 10,
+                    marginTop: 4,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                    backgroundColor: colors.card,
+                  }}
+                >
+                  <View style={{ gap: 6 }}>
+                    <Text
+                      style={[
+                        styles.createFieldLabel,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      Persona name
+                    </Text>
+                    <TextInput
+                      value={personaName}
+                      onChangeText={setPersonaName}
+                      placeholder="e.g. Friendly support agent"
+                      placeholderTextColor={colors.mutedForeground}
+                      style={[
+                        styles.createInput,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                          color: colors.foreground,
+                          borderRadius: colors.radius,
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  <View style={{ gap: 6 }}>
+                    <Text
+                      style={[
+                        styles.createFieldLabel,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      Base instructions (optional)
+                    </Text>
+                    <TextInput
+                      value={personaPrompt}
+                      onChangeText={setPersonaPrompt}
+                      placeholder="e.g. You are a helpful assistant for my biolink visitors. Keep replies short and friendly."
+                      placeholderTextColor={colors.mutedForeground}
+                      multiline
+                      numberOfLines={4}
+                      style={[
+                        styles.createInput,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                          color: colors.foreground,
+                          borderRadius: colors.radius,
+                          minHeight: 88,
+                          textAlignVertical: "top",
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  {createPersona.isError ? (
+                    <Text style={{ color: colors.destructive, fontSize: 12 }}>
+                      {(createPersona.error as { message?: string })?.message ||
+                        "Couldn't create persona. Try again."}
+                    </Text>
+                  ) : null}
+
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label={
+                          createPersona.isPending
+                            ? "Creating…"
+                            : "Create persona"
+                        }
+                        onPress={() => createPersona.mutate()}
+                        disabled={!canCreatePersona}
+                      />
+                    </View>
+                    {personas.length > 0 ? (
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          label="Cancel"
+                          variant="ghost"
+                          onPress={() => {
+                            setShowPersonaForm(false);
+                            setPersonaName("");
+                            setPersonaPrompt("");
+                          }}
+                        />
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
               )}
             </View>

@@ -5,10 +5,14 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\AiCompanion;
 use App\Modules\User\Models\AiPersonaAgent;
+use App\Modules\User\Models\AiPersonaAgentVersion;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\CompanionSettings;
+use App\Services\AI\PersonaSettings;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AiCompanionController extends Controller
 {
@@ -114,5 +118,97 @@ class AiCompanionController extends Controller
             'name'        => $companion->name,
             'is_disabled' => (bool) $companion->is_disabled,
         ]]);
+    }
+
+    /**
+     * Create a minimal AI Persona on the spot from the mobile block
+     * editor, so a Companion can be built fully self-serve without
+     * hopping to the web persona builder. Only name + base instructions
+     * (system_prompt) are collected — every other knob falls back to the
+     * same sensible defaults the web "blank" template uses. Mirrors
+     * PersonasController@createPersonaFromConfig (caps, default model,
+     * initial version row) but trimmed to the two fields mobile asks for.
+     */
+    public function storePersona(Request $request)
+    {
+        if (!AiEngineSettings::isEnabled()) {
+            return $this->fail('AI Personas are not available right now.', 422, 'ai_disabled');
+        }
+
+        $user = $request->user();
+        $caps = PersonaSettings::caps();
+
+        if (AiPersonaAgent::where('user_id', $user->id)->count() >= $caps['max_personas_per_user']) {
+            return $this->fail(
+                "You have reached the {$caps['max_personas_per_user']}-persona limit.",
+                422,
+                'persona_limit',
+            );
+        }
+
+        $data = $request->validate([
+            'name'           => 'required|string|max:120',
+            'system_prompt'  => "nullable|string|max:{$caps['max_system_prompt_chars']}",
+        ]);
+
+        $persona = DB::transaction(function () use ($user, $data) {
+            $allowed = collect(AiPersonaAgent::ACTIONS)->keys()
+                ->mapWithKeys(fn ($k) => [$k => false])
+                ->all();
+
+            $persona = AiPersonaAgent::create([
+                'user_id'           => $user->id,
+                'slug'              => null,
+                'name'              => $data['name'],
+                'system_prompt'     => trim((string) ($data['system_prompt'] ?? '')) !== ''
+                    ? $data['system_prompt']
+                    : 'You are a helpful assistant.',
+                'tone_preset'       => 'friendly',
+                'model'             => $this->pickDefaultModel(),
+                'temperature_x100'  => 50,
+                'max_tokens'        => 600,
+                'languages'         => [],
+                'allowed_actions'   => $allowed,
+                'fallback_behavior' => 'clarify',
+                'starter_questions' => [],
+                'use_default_mind'  => true,
+            ]);
+            $persona->slug = Str::slug($persona->name) . '-' . $persona->id;
+            $persona->save();
+
+            $this->writeInitialVersion($persona);
+
+            return $persona;
+        });
+
+        return $this->created(['persona' => [
+            'id'   => (int) $persona->id,
+            'name' => $persona->name,
+        ]]);
+    }
+
+    /** Write the initial version row and point the persona at it. */
+    protected function writeInitialVersion(AiPersonaAgent $persona): void
+    {
+        $version = AiPersonaAgentVersion::create([
+            'persona_id'         => $persona->id,
+            'revision'           => 1,
+            'config'             => $persona->snapshotConfig(),
+            'summary'            => 'Initial version',
+            'created_by_user_id' => $persona->user_id,
+            'created_at'         => now(),
+        ]);
+        $persona->forceFill(['active_version_id' => $version->id])->save();
+    }
+
+    /** First admin-enabled chat model, falling back to gpt-4o-mini. */
+    protected function pickDefaultModel(): string
+    {
+        foreach (AiEngineSettings::models() as $m) {
+            if (!empty($m['enabled']) && ($m['kind'] ?? '') === 'chat') {
+                return $m['name'];
+            }
+        }
+        return 'gpt-4o-mini';
     }
 }

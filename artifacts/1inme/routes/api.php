@@ -393,6 +393,7 @@ Route::prefix('v1')->group(function () {
         // for the block editor's "AI" picker (richer editing lives on web).
         Route::get ('/ai-companions',                     [\App\Modules\Api\Controllers\AiCompanionController::class, 'index']);
         Route::get ('/ai-companions/personas',            [\App\Modules\Api\Controllers\AiCompanionController::class, 'personas']);
+        Route::post('/ai-companions/personas',            [\App\Modules\Api\Controllers\AiCompanionController::class, 'storePersona']);
         Route::post('/ai-companions',                     [\App\Modules\Api\Controllers\AiCompanionController::class, 'store']);
 
         // Inbox (DM threads on owned biolinks)
