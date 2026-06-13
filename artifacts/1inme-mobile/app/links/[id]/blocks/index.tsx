@@ -41,6 +41,7 @@ import {
 } from "@/lib/api/blocks";
 import {
   appendBlock,
+  insertBlockTree,
   moveBlock,
   orderIds,
   removeBlockTree,
@@ -563,15 +564,20 @@ export default function BlocksScreen() {
         insertAfter={order.length > 0 ? order[order.length - 1].id : null}
         onClose={() => setSpecialOpen(false)}
         onPreview={(t) => setPreviewTpl(t)}
-        onApplied={(blockId) => {
+        onApplied={(blocks) => {
           // Card templates create a parent card plus child blocks in one
-          // shot; the apply endpoint only returns the new parent id, so
-          // this is the one path that still refetches to pull the whole
-          // sub-tree in (the single-block pickers patch the cache in place).
-          qc.invalidateQueries({ queryKey: ["blocks", id] });
+          // shot. The apply endpoint returns the whole freshly-created
+          // sub-tree (parent first, then children), so we patch it into
+          // the cache in place — just like the single-block pickers —
+          // instead of refetching the entire list.
+          const afterId =
+            order.length > 0 ? order[order.length - 1].id : null;
+          qc.setQueryData<Block[]>(["blocks", id], (old) =>
+            insertBlockTree(old, blocks, afterId),
+          );
           setSpecialOpen(false);
           setPreviewTpl(null);
-          setHighlightId(blockId);
+          setHighlightId(blocks[0]?.id ?? null);
         }}
         onInserted={(b) => {
           appendBlockToCache(b);
@@ -597,9 +603,10 @@ type SpecialPanelProps = {
   insertAfter: number | null;
   onClose: () => void;
   onPreview: (t: CardTemplate) => void;
-  // Card templates create a parent + children, so the parent re-syncs the
-  // whole list from the server given just the new parent id.
-  onApplied: (blockId: number) => void;
+  // Card templates create a parent + children; the apply endpoint returns
+  // the whole freshly-created sub-tree (parent first, then children) so the
+  // parent can patch it straight into the cache like the single-block flows.
+  onApplied: (blocks: Block[]) => void;
   // Forms / Buzz / AI insert a single block; hand the full block back so
   // the parent can patch it straight into the cache.
   onInserted: (block: Block) => void;
@@ -1268,7 +1275,7 @@ function SpecialPanel(props: SpecialPanelProps) {
         template_id: templateId,
         insert_after: insertAfter,
       }),
-    onSuccess: (res) => onApplied(res.block_id),
+    onSuccess: (res) => onApplied(res.blocks),
   });
 
   // Forms / Buzz / AI all resolve to a single block; the settings payload

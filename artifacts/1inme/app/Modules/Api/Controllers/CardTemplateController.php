@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Admin\Models\CardTemplate;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Services\TemplateService;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\TemplateContentSummarizer;
 use App\Modules\User\Services\TemplatePreviewLayoutBuilder;
@@ -111,11 +112,47 @@ class CardTemplateController extends Controller
             $tabId,
         );
 
+        // Return the full freshly-created sub-tree (parent card first, then
+        // its children) so the mobile editor can patch its list in place
+        // instead of refetching everything. The parent has a null parent_id
+        // so it sorts ahead of its children; children follow by sort_order.
+        $tree = BiolinkBlock::where('link_id', $link->id)
+            ->where(function ($w) use ($block) {
+                $w->where('id', $block->id)->orWhere('parent_id', $block->id);
+            })
+            ->orderByRaw('(parent_id is not null) asc, sort_order asc')
+            ->get();
+
         return response()->json([
             'data' => [
                 'block_id' => $block->id,
+                'blocks'   => $tree->map(fn ($b) => $this->serializeBlock($b))->all(),
             ],
         ]);
+    }
+
+    /**
+     * Serialize a block into the same shape the blocks index endpoint
+     * (BiolinkBlockController@transform) returns, so the mobile editor can
+     * fold the applied sub-tree straight into its `blocks` cache.
+     */
+    private function serializeBlock(BiolinkBlock $b): array
+    {
+        return [
+            'id'          => $b->id,
+            'link_id'     => $b->link_id,
+            'type'        => $b->type,
+            'sort_order'  => $b->sort_order,
+            'parent_id'   => $b->parent_id,
+            'is_active'   => (bool) $b->is_active,
+            'settings'    => $b->settings,
+            'start_date'  => optional($b->start_date)->toIso8601String(),
+            'end_date'    => optional($b->end_date)->toIso8601String(),
+            'max_clicks'  => $b->max_clicks,
+            'click_count' => (int) ($b->click_count ?? 0),
+            'created_at'  => optional($b->created_at)->toIso8601String(),
+            'updated_at'  => optional($b->updated_at)->toIso8601String(),
+        ];
     }
 
     private function isLocked(?string $required, ?string $userPlan): bool

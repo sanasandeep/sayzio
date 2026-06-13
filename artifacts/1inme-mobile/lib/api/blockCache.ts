@@ -21,6 +21,28 @@ export function appendBlock(
 }
 
 /**
+ * Insert a freshly-applied sub-tree (a card parent followed by its child
+ * blocks) into the list right after the block with id `afterId`. Used by
+ * the card-template apply flow, which creates a parent + children in one
+ * shot — patching them in keeps the editor in sync without a full refetch.
+ *
+ * When `afterId` is null (or not found), the sub-tree is appended to the
+ * end, matching where the apply endpoint places a card inserted after the
+ * last top-level block. A missing list becomes the sub-tree itself.
+ */
+export function insertBlockTree(
+  old: Block[] | undefined,
+  blocks: Block[],
+  afterId: number | null,
+): Block[] {
+  if (!old) return [...blocks];
+  if (blocks.length === 0) return old;
+  const idx = afterId == null ? -1 : old.findIndex((b) => b.id === afterId);
+  if (idx < 0) return [...old, ...blocks];
+  return [...old.slice(0, idx + 1), ...blocks, ...old.slice(idx + 1)];
+}
+
+/**
  * Replace a single block in place by id (used after a toggle or any
  * single-block update). Leaves the list untouched if the cache is empty.
  */

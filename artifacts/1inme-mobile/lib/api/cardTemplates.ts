@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import type { Block } from "@/lib/api/blocks";
 
 export type CardTemplateChildSummary = {
   type: string;
@@ -73,16 +74,18 @@ export async function applyCardTemplate(
     insert_after?: number | null;
     tab_id?: string | null;
   },
-): Promise<{ block_id: number }> {
+): Promise<{ block_id: number; blocks: Block[] }> {
   const body: Record<string, unknown> = { template_id: payload.template_id };
   if (payload.insert_after != null) body.insert_after = payload.insert_after;
   if (payload.tab_id != null) body.tab_id = payload.tab_id;
-  const res = await apiFetch<{ data: { block_id: number } }>(
-    `/links/${linkId}/card-templates/apply`,
-    {
-      method: "POST",
-      body: JSON.stringify(body),
-    },
-  );
+  // The apply endpoint returns the full freshly-created sub-tree (parent
+  // card first, then its children) so the editor can patch its block list
+  // in place instead of refetching everything.
+  const res = await apiFetch<{
+    data: { block_id: number; blocks: Block[] };
+  }>(`/links/${linkId}/card-templates/apply`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
   return res.data;
 }

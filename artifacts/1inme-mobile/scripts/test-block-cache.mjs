@@ -54,6 +54,7 @@ function extractFn(name) {
 
 const NAMES = [
   "appendBlock",
+  "insertBlockTree",
   "replaceBlock",
   "removeBlockTree",
   "moveBlock",
@@ -68,15 +69,22 @@ const js = stripped
   .replace(/:\s*Block\[\]/g, "")
   .replace(/:\s*Block\b/g, "")
   .replace(/:\s*number\[\]/g, "")
+  .replace(/:\s*number\s*\|\s*null/g, "")
   .replace(/:\s*number\b/g, "")
   .replace(/:\s*-1\s*\|\s*1/g, "")
   .replace(/export function/g, "function");
 
 // eslint-disable-next-line no-new-func
-const { appendBlock, replaceBlock, removeBlockTree, moveBlock, orderIds } =
-  new Function(
-    `${js}; return { appendBlock, replaceBlock, removeBlockTree, moveBlock, orderIds };`,
-  )();
+const {
+  appendBlock,
+  insertBlockTree,
+  replaceBlock,
+  removeBlockTree,
+  moveBlock,
+  orderIds,
+} = new Function(
+  `${js}; return { appendBlock, insertBlockTree, replaceBlock, removeBlockTree, moveBlock, orderIds };`,
+)();
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -123,6 +131,45 @@ console.log("[test-block-cache] pure helpers");
 assert.deepEqual(ids(appendBlock([block(1), block(2)], block(3))), [1, 2, 3]);
 assert.deepEqual(ids(appendBlock(undefined, block(9))), [9]);
 ok("appendBlock appends to the end (and seeds an empty cache)");
+
+// insertBlockTree — the card-template apply sub-tree (parent + children)
+{
+  const subtree = [
+    block(10, { type: "card" }),
+    block(11, { parent_id: 10 }),
+    block(12, { parent_id: 10 }),
+  ];
+  // Inserted after the last existing block (afterId = 2) — the typical
+  // "card appended at the end of the list" case.
+  assert.deepEqual(
+    ids(insertBlockTree([block(1), block(2)], subtree, 2)),
+    [1, 2, 10, 11, 12],
+  );
+  // Inserted after a middle block keeps the sub-tree contiguous.
+  assert.deepEqual(
+    ids(insertBlockTree([block(1), block(2), block(3)], subtree, 1)),
+    [1, 10, 11, 12, 2, 3],
+  );
+  // afterId null → appended to the end.
+  assert.deepEqual(
+    ids(insertBlockTree([block(1)], subtree, null)),
+    [1, 10, 11, 12],
+  );
+  // Unknown afterId → also appended (never drops the sub-tree).
+  assert.deepEqual(
+    ids(insertBlockTree([block(1)], subtree, 999)),
+    [1, 10, 11, 12],
+  );
+  // Empty cache becomes the sub-tree itself.
+  assert.deepEqual(ids(insertBlockTree(undefined, subtree, null)), [10, 11, 12]);
+  // Empty sub-tree is a no-op.
+  assert.deepEqual(ids(insertBlockTree([block(1)], [], 1)), [1]);
+  // The originals are never mutated in place.
+  const seed = [block(1), block(2)];
+  insertBlockTree(seed, subtree, 2);
+  assert.deepEqual(ids(seed), [1, 2]);
+}
+ok("insertBlockTree splices the parent+children sub-tree in (contiguous, no mutation)");
 
 // replaceBlock
 {
@@ -208,6 +255,30 @@ ok("add → cache gets the new block appended and it becomes the highlight");
   assert.equal(highlightId, 7);
 }
 ok("special-panel insert → block appended in place and highlighted");
+
+// --- applying a card template patches the sub-tree in (onApplied) --------
+{
+  const qc = freshClient([block(1), block(2)]);
+  let highlightId = null;
+
+  // apply.onSuccess(res) -> onApplied(res.blocks): the endpoint returns the
+  // freshly-created sub-tree (parent first, then children); the editor
+  // splices it after the last existing block and highlights the parent.
+  const applied = [
+    block(20, { type: "card", sort_order: 2 }),
+    block(21, { parent_id: 20, sort_order: 0 }),
+    block(22, { parent_id: 20, sort_order: 1 }),
+  ];
+  const afterId = 2; // order[order.length - 1].id
+  qc.setQueryData(KEY, (old) => insertBlockTree(old, applied, afterId));
+  highlightId = applied[0].id;
+
+  assert.deepEqual(ids(qc.getQueryData(KEY)), [1, 2, 20, 21, 22]);
+  assert.equal(highlightId, 20, "the new card parent becomes the highlight");
+  // No refetch needed — the cache is fresh, not invalidated.
+  assert.equal(qc.getQueryState(KEY).isInvalidated, false);
+}
+ok("card-template apply → sub-tree patched in place (no refetch) and parent highlighted");
 
 // --- toggling active state (toggle.onSuccess) ----------------------------
 {
@@ -300,13 +371,18 @@ assert.ok(
   onErrorCount >= 3,
   `expected >=3 onError invalidate handlers, found ${onErrorCount}`,
 );
-// Card-template apply re-syncs (it creates a parent + children sub-tree).
+// Card-template apply now patches the returned sub-tree in place via
+// insertBlockTree instead of invalidating + refetching the whole list.
 assert.ok(
-  /onApplied=\{\(blockId\)\s*=>\s*\{[\s\S]*?invalidateQueries\(\{\s*queryKey:\s*\["blocks", id\]\s*\}\)/.test(
+  /onApplied=\{\(blocks\)\s*=>\s*\{[\s\S]*?insertBlockTree\(old, blocks, afterId\)/.test(
     editorSrc,
   ),
-  "card-template apply should invalidate to pull in the new sub-tree",
+  "card-template apply should patch the sub-tree in place via insertBlockTree",
 );
-ok("editor wires the shared helpers and keeps the onError/apply re-sync");
+assert.ok(
+  !/onApplied=\{\(blocks\)\s*=>\s*\{[\s\S]*?invalidateQueries/.test(editorSrc),
+  "card-template apply should no longer invalidate the whole list",
+);
+ok("editor wires the shared helpers, patches the apply sub-tree, keeps onError re-sync");
 
 console.log(`\n[test-block-cache] all ${passed} checks passed`);
