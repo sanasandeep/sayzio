@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Tracking')
+@section('title', 'Pixel')
 
 @section('content')
 @php
@@ -10,8 +10,8 @@
 @endphp
 <div class="flex items-center justify-between mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-white">Tracking</h1>
-        <p class="text-white/40 text-sm mt-1">Manage your trackers for retargeting</p>
+        <h1 class="text-2xl font-bold text-white">Pixel</h1>
+        <p class="text-white/40 text-sm mt-1">Manage your tracking pixels for retargeting</p>
     </div>
     @if($__canEdit)
     <a href="{{ route('user.pixels.create') }}" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">

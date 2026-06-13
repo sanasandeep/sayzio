@@ -720,13 +720,6 @@
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
                 @if($__can['inbox_view'])
-                <a href="{{ route('user.inbox.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.inbox.index') || (request()->routeIs('user.inbox.*') && !request()->routeIs('user.inbox.unified.*')) ? 'active' : '' }}"
-                   style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div>
-                    <span class="nav-label">Inbox (classic)</span>
-                    <span class="sidebar-tooltip">Classic per-source inbox</span>
-                </a>
                 <a href="{{ route('user.subscribers.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"
                    style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -802,8 +795,8 @@
                    class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"
                    style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
-                    <span class="nav-label">Tracking</span>
-                    <span class="sidebar-tooltip">Tracking</span>
+                    <span class="nav-label">Pixel</span>
+                    <span class="sidebar-tooltip">Pixel</span>
                 </a>
                 @endif
                 @if($__can['settings_view'])
@@ -870,13 +863,14 @@
                     <span class="sidebar-tooltip">Workspace Vault</span>
                 </a>
                 @endif
-                @if($__can['files_view'])
-                <a href="{{ route('user.cloud-files.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"
+                @if($__can['files_view'] || $__can['links_view'])
+                @php $filesHref = $__can['links_view'] ? route('user.files.index') : route('user.cloud-files.index'); @endphp
+                <a href="{{ $filesHref }}"
+                   class="sidebar-link {{ request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"
                    style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-cloud"></i></div>
+                    <div class="nav-icon-wrap"><i class="fas fa-folder-open"></i></div>
                     <span class="nav-label">Files</span>
-                    <span class="sidebar-tooltip">Cloud Files</span>
+                    <span class="sidebar-tooltip">Files — your vault &amp; cloud library</span>
                 </a>
                 @endif
                 @if($__can['links_view'])
@@ -893,13 +887,6 @@
                     <div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div>
                     <span class="nav-label">Resume / Portfolio</span>
                     <span class="sidebar-tooltip">Resume / Portfolio</span>
-                </a>
-                <a href="{{ route('user.files.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"
-                   style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
-                    <span class="nav-label">My Files</span>
-                    <span class="sidebar-tooltip">Files</span>
                 </a>
                 @endif
                 @if($__can['settings_view'])
@@ -1257,7 +1244,6 @@
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 @if($__can['inbox_view'])
-                                <a href="{{ route('user.inbox.index') }}" class="sidebar-link {{ request()->routeIs('user.inbox.index') || (request()->routeIs('user.inbox.*') && !request()->routeIs('user.inbox.unified.*')) ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div> <span>Inbox (classic)</span></a>
                                 <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Leads</span></a>
                                 @endif
                                 @if($__can['followers_view'])
@@ -1288,7 +1274,7 @@
                                 <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Buzz</span></a>
                                 @endif
                                 @if($__can['stats_view'])
-                                <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Tracking</span></a>
+                                <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixel</span></a>
                                 @endif
                                 @if($__can['settings_view'])
                                 <a href="{{ route('user.social-accounts.index') }}" class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div> <span>Connected Accounts</span></a>
@@ -1318,13 +1304,12 @@
                                 @if($__can['vault_view'])
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ request()->routeIs('user.vault.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
                                 @endif
-                                @if($__can['files_view'])
-                                <a href="{{ route('user.cloud-files.index') }}" class="sidebar-link {{ request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud"></i></div> <span>Files</span></a>
+                                @if($__can['files_view'] || $__can['links_view'])
+                                <a href="{{ $__can['links_view'] ? route('user.files.index') : route('user.cloud-files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-open"></i></div> <span>Files</span></a>
                                 @endif
                                 @if($__can['links_view'])
                                 <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
                                 <a href="{{ route('user.resume.editor') }}" class="sidebar-link {{ request()->routeIs('user.resume.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div> <span>Resume / Portfolio</span></a>
-                                <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
                                 @endif
                                 @if($__can['settings_view'])
                                 <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span></a>

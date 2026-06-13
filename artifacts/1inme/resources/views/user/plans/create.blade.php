@@ -115,7 +115,7 @@
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
-                        @foreach(['custom_domains' => 'Custom Domains', 'qr_customization' => 'QR Customization', 'pixels' => 'Tracking', 'utm_params' => 'UTM Parameters', 'link_protection' => 'Link Protection', 'seo_settings' => 'SEO Settings', 'teams' => 'Teams', 'ecommerce' => 'E-Commerce', 'custom_forms' => 'Custom Forms', 'custom_branding' => 'Custom Branding', 'custom_favicon' => 'Custom Favicon', 'custom_code' => 'Custom CSS/JS'] as $key => $label)
+                        @foreach(['custom_domains' => 'Custom Domains', 'qr_customization' => 'QR Customization', 'pixels' => 'Pixel', 'utm_params' => 'UTM Parameters', 'link_protection' => 'Link Protection', 'seo_settings' => 'SEO Settings', 'teams' => 'Teams', 'ecommerce' => 'E-Commerce', 'custom_forms' => 'Custom Forms', 'custom_branding' => 'Custom Branding', 'custom_favicon' => 'Custom Favicon', 'custom_code' => 'Custom CSS/JS'] as $key => $label)
                         <label class="flex items-center gap-2 text-xs p-2.5 rounded-lg cursor-pointer transition-all"
                                style="color: var(--text-muted); border: 1px solid transparent;"
                                onmouseover="this.style.background='var(--bg-glass-hover)'; this.style.borderColor='var(--border-subtle)'"

@@ -2,6 +2,7 @@
 @section('title', 'My Files')
 
 @section('content')
+@include('user.files._top-tabs')
 @include('user.partials._plan_lock', ['feature' => 'files', 'kind' => 'flag', 'label' => 'File hosting'])
 <div x-data="fileManager()" x-init="init()">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">

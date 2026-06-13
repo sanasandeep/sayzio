@@ -36,7 +36,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
     <input type="hidden" :name="'{{ $fieldName }}'" x-model="value" x-ref="hiddenInput">
 
     <div x-show="mode === 'url'" x-cloak>
-        <input type="url" x-model="value" placeholder="https://..." class="{{ $inputClass ?? 'theme-input w-full' }}">
+        <input type="url" x-model="value" @input="fileMeta = null" placeholder="https://..." class="{{ $inputClass ?? 'theme-input w-full' }}">
     </div>
 
     <div x-show="mode === 'upload'" x-cloak>
@@ -118,9 +118,8 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
         </div>
     </div>
 
-    @if($previewable)
     <template x-if="value && !uploading">
-        <div class="mt-2 rounded-xl overflow-hidden relative group" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+        <div class="mt-2 rounded-xl overflow-hidden" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
             @if($acceptTypes === 'image')
             <img :src="value" class="w-full max-h-32 object-contain" alt="Preview" x-on:error="$el.style.display='none'">
             @elseif($acceptTypes === 'video')
@@ -128,12 +127,28 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
             @elseif($acceptTypes === 'audio')
             <audio :src="value" controls class="w-full"></audio>
             @endif
-            <button type="button" @click="value = ''" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white/60 hover:text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                <i class="fas fa-times"></i>
-            </button>
+
+            {{-- Current-file summary: shown for every file type so non-previewable
+                 files (PDF/doc/etc.) still clearly show what's attached. --}}
+            <div class="flex items-center gap-2.5 p-2.5" @if($previewable) style="border-top: 1px solid var(--border-subtle);" @endif>
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: var(--bg-glass-input);">
+                    <i class="text-base text-violet-300" :class="currentIcon()"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="text-xs font-medium truncate" style="color: var(--text-primary);" x-text="currentName()" :title="currentName()"></div>
+                    <div class="text-[10px]" style="color: var(--text-faint);" x-text="currentMeta() || 'Attached'"></div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" @click="replaceFile()" class="text-[10px] px-2.5 py-1.5 rounded-lg font-medium text-violet-300 hover:bg-violet-500/10 transition-colors" title="Replace this file">
+                        <i class="fas fa-arrows-rotate mr-1"></i>Replace
+                    </button>
+                    <button type="button" @click="removeFile()" class="w-7 h-7 rounded-lg text-white/40 hover:text-rose-300 hover:bg-rose-500/10 flex items-center justify-center transition-colors" title="Remove file">
+                        <i class="fas fa-trash-can text-xs"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </template>
-    @endif
 </div>
 
 <script>
@@ -141,6 +156,7 @@ function fileUploadField_{{ $fieldId }}() {
     return {
         mode: '{{ $currentValue ? "url" : "upload" }}',
         value: '{{ $currentValue }}',
+        fileMeta: null,
         dragging: false,
         uploading: false,
         uploadProgress: 0,
@@ -157,6 +173,60 @@ function fileUploadField_{{ $fieldId }}() {
             this.$watch('mode', (val) => {
                 if (val === 'browse' && this.browseFiles.length === 0) this.loadFiles();
             });
+        },
+
+        fileExt() {
+            var n = (this.fileMeta && this.fileMeta.name) ? this.fileMeta.name : this.value;
+            if (!n) return '';
+            n = n.split('?')[0].split('#')[0];
+            var i = n.lastIndexOf('.');
+            return i >= 0 ? n.slice(i + 1).toLowerCase() : '';
+        },
+
+        currentName() {
+            if (this.fileMeta && this.fileMeta.name) return this.fileMeta.name;
+            if (!this.value) return '';
+            try {
+                var u = this.value.split('?')[0].split('#')[0];
+                var parts = u.split('/');
+                var base = parts[parts.length - 1] || u;
+                return decodeURIComponent(base) || 'Current file';
+            } catch (e) { return 'Current file'; }
+        },
+
+        currentMeta() {
+            var parts = [];
+            var ext = this.fileExt();
+            if (ext) parts.push(ext.toUpperCase());
+            if (this.fileMeta && this.fileMeta.size_human) parts.push(this.fileMeta.size_human);
+            return parts.join(' · ');
+        },
+
+        currentIcon() {
+            var t = this.fileMeta && this.fileMeta.type;
+            if (t === 'image') return 'fas fa-image';
+            if (t === 'video') return 'fas fa-film';
+            if (t === 'audio') return 'fas fa-music';
+            var ext = this.fileExt();
+            if (['jpg','jpeg','png','gif','webp','svg'].indexOf(ext) !== -1) return 'fas fa-image';
+            if (['mp4','webm','ogg','mov'].indexOf(ext) !== -1) return 'fas fa-film';
+            if (['mp3','wav','aac','m4a'].indexOf(ext) !== -1) return 'fas fa-music';
+            if (ext === 'pdf') return 'fas fa-file-pdf';
+            if (['doc','docx'].indexOf(ext) !== -1) return 'fas fa-file-word';
+            if (['xls','xlsx'].indexOf(ext) !== -1) return 'fas fa-file-excel';
+            if (['ppt','pptx'].indexOf(ext) !== -1) return 'fas fa-file-powerpoint';
+            return 'fas fa-file';
+        },
+
+        replaceFile() {
+            this.mode = 'upload';
+            this.uploadError = null;
+        },
+
+        removeFile() {
+            this.value = '';
+            this.fileMeta = null;
+            this.mode = 'upload';
         },
 
         async loadQuota() {
@@ -199,6 +269,7 @@ function fileUploadField_{{ $fieldId }}() {
                     var data = JSON.parse(xhr.responseText);
                     if (data.success && data.file) {
                         self.value = data.file.url;
+                        self.fileMeta = { name: data.file.original_name, size_human: data.file.size_human, type: data.file.type };
                         self.mode = 'url';
                         self.showUploadToast('File uploaded');
                     } else {
@@ -259,6 +330,7 @@ function fileUploadField_{{ $fieldId }}() {
 
         selectFile(f) {
             this.value = f.url;
+            this.fileMeta = { name: f.original_name, size_human: f.size_human, type: f.type };
             this.mode = 'url';
         },
 
