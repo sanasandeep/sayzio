@@ -623,8 +623,176 @@ $catColors = [
         }
     </style>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div class="lg:col-span-7 xl:col-span-7">
+    <style>
+        /* ── Page-builder layout: palette | canvas | device preview ──────────
+           A bespoke grid (rather than Tailwind col-span utilities) so the
+           persistent block palette can sit alongside the canvas without
+           colliding with the shared device-preview partial's responsive
+           overrides. Below 900px everything stacks; 900–1023px shows
+           canvas + preview; the palette appears at lg+ where there's room. */
+        #editorLayout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+        #editorPaletteCol { display: none; }
+        #editorPreviewCol { display: none; }
+        @media (min-width: 900px) {
+            #editorLayout { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+            #editorPreviewCol { display: block; }
+        }
+        @media (min-width: 1024px) {
+            #editorLayout { grid-template-columns: minmax(0, 3.1fr) minmax(0, 5fr) minmax(0, 4fr); }
+            #editorPaletteCol { display: block; }
+        }
+
+        .palette-panel {
+            position: sticky;
+            top: 12px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 24px);
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 18px;
+            overflow: hidden;
+            backdrop-filter: blur(16px) saturate(140%);
+            -webkit-backdrop-filter: blur(16px) saturate(140%);
+        }
+        .palette-head { padding: 14px 14px 8px; flex-shrink: 0; }
+        .palette-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+        .palette-tab {
+            padding: 4px 9px; font-size: 10px; font-weight: 600;
+            border-radius: 7px; white-space: nowrap; cursor: pointer;
+            color: var(--text-faint); background: transparent; border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .palette-tab:hover { color: var(--text-muted); background: var(--bg-glass-hover); }
+        .palette-tab.active {
+            color: white; background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            box-shadow: 0 2px 10px rgba(124,58,237,0.3);
+        }
+        .palette-body {
+            flex: 1; overflow-y: auto; padding: 6px 10px 10px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start;
+        }
+        .palette-block-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px; border-radius: 10px; cursor: grab;
+            text-align: left; width: 100%;
+            background: transparent; border: 1px solid var(--border-glass);
+            transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
+        }
+        .palette-block-item:hover {
+            border-color: rgba(124,58,237,0.35);
+            background: rgba(124,58,237,0.06);
+            transform: translateY(-1px);
+        }
+        .palette-block-item:active { cursor: grabbing; }
+        .palette-block-icon {
+            width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 11px;
+        }
+        .palette-block-label {
+            font-size: 10.5px; font-weight: 600; color: var(--text-primary);
+            line-height: 1.15; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .palette-foot { flex-shrink: 0; padding: 8px 10px; border-top: 1px solid var(--border-glass); }
+
+        /* Drop affordance: the palette ghost rendered inside the canvas / card
+           becomes a highlighted insertion bar showing where the block lands. */
+        .palette-block-item.palette-drop-ghost {
+            grid-column: span 12;
+            height: 44px; min-height: 44px; opacity: 1;
+            justify-content: center;
+            border: 2px dashed rgba(124,58,237,0.6);
+            background: rgba(124,58,237,0.1);
+            border-radius: 12px;
+            box-shadow: 0 0 0 4px rgba(124,58,237,0.06);
+        }
+        .palette-block-item.palette-drop-ghost .palette-block-label { color: #a78bfa; }
+        .palette-block-item.sortable-drag {
+            opacity: 0.95;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+            border-color: rgba(124,58,237,0.4);
+        }
+        /* Highlight valid drop containers while dragging a palette block. */
+        #blockList.palette-dragging,
+        .card-child-list.palette-dragging {
+            outline: 2px dashed rgba(124,58,237,0.25);
+            outline-offset: 4px;
+            border-radius: 12px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .palette-block-item, .palette-tab { transition: none !important; }
+            .palette-block-item:hover { transform: none; }
+        }
+    </style>
+
+    <div id="editorLayout">
+        {{-- BLOCK PALETTE (persistent drag source) --}}
+        <div id="editorPaletteCol">
+            <div class="palette-panel">
+                <div class="palette-head">
+                    <h3 class="text-sm font-bold gradient-text">Add blocks</h3>
+                    <p class="text-[10px] mt-0.5" style="color: var(--text-faint);"><i class="fas fa-hand-pointer mr-1"></i>Drag onto your page — or click to add</p>
+                    <div class="relative mt-2.5">
+                        <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
+                        <input type="text" x-model="paletteSearch" placeholder="Search blocks…" class="theme-input w-full pl-7 text-xs py-1.5" aria-label="Search blocks">
+                    </div>
+                    <div class="palette-tabs">
+                        <button type="button" class="palette-tab" :class="paletteCategory === 'all' ? 'active' : ''" @click="paletteCategory = 'all'">All</button>
+                        @foreach($blockCategories as $catKey => $catLabel)
+                        <button type="button" class="palette-tab" :class="paletteCategory === '{{ $catKey }}' ? 'active' : ''" @click="paletteCategory = '{{ $catKey }}'">{{ $catLabel }}</button>
+                        @endforeach
+                    </div>
+                </div>
+                <div id="paletteList" class="palette-body">
+                    @foreach($blockTypes as $typeKey => $typeInfo)
+                        @if(!empty($typeInfo['system']) || ($typeInfo['category'] ?? '') === 'verified') @continue @endif
+                        @php
+                            $pCatColor = $catColors[$typeInfo['category']] ?? '#8b5cf6';
+                            $pLocked = !auth()->user()->userCanUseBlockType($typeKey);
+                        @endphp
+                        @if($pLocked)
+                            <a href="{{ route('user.upgrade') }}"
+                               class="palette-block-locked palette-block-item"
+                               style="cursor: pointer; opacity: 0.6;"
+                               title="Upgrade your plan to unlock this block"
+                               x-show="(paletteCategory === 'all' || paletteCategory === '{{ $typeInfo['category'] }}') && (paletteSearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(paletteSearch.toLowerCase()))"
+                               x-cloak>
+                                <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
+                                    <i class="fas fa-lock" style="color: {{ $pCatColor }};"></i>
+                                </span>
+                                <span class="palette-block-label">{{ $typeInfo['label'] }}</span>
+                            </a>
+                        @else
+                            <button type="button"
+                                    class="palette-block-item"
+                                    data-block-type="{{ $typeKey }}"
+                                    onclick="paletteClickAdd('{{ $typeKey }}')"
+                                    title="Drag onto the canvas, or click to add"
+                                    x-show="(paletteCategory === 'all' || paletteCategory === '{{ $typeInfo['category'] }}') && (paletteSearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(paletteSearch.toLowerCase()))"
+                                    x-cloak>
+                                <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
+                                    <i class="fas {{ $typeInfo['icon'] }}" style="color: {{ $pCatColor }};"></i>
+                                </span>
+                                <span class="palette-block-label">{{ $typeInfo['label'] }}</span>
+                            </button>
+                        @endif
+                    @endforeach
+                </div>
+                <div class="palette-foot">
+                    <button type="button" @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="w-full py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-violet-500/10" style="border: 1px dashed rgba(124,58,237,0.3); color: #a78bfa;">
+                        <i class="fas fa-grip text-[9px]"></i> Templates, forms &amp; more
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- CANVAS --}}
+        <div id="editorCanvasCol">
 
             {{-- BLOCKS --}}
                 @if($blocks->count())
@@ -801,7 +969,7 @@ $catColors = [
                             <i class="fas fa-layer-group text-3xl text-violet-400"></i>
                         </div>
                         <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No blocks yet</h3>
-                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);">Start from a curated template, or add blocks one at a time. Your live preview updates instantly on the right.</p>
+                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);"><span class="hidden lg:inline">Drag a block from the palette on the left onto this canvas, or start from a curated template.</span><span class="lg:hidden">Start from a curated template, or add blocks one at a time.</span> Your live preview updates instantly.</p>
                         <div class="flex items-center justify-center gap-2 flex-wrap">
                             <a href="{{ route('user.links.templates.picker', $link) }}" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
                                 <i class="fas fa-layer-group text-xs"></i> Browse templates
@@ -816,7 +984,7 @@ $catColors = [
         </div>
 
         {{-- DEVICE PREVIEW --}}
-        <div class="lg:col-span-5 xl:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
+        <div id="editorPreviewCol" class="lg:self-stretch lg:h-full">
             @include('user.links.partials.device-preview', ['link' => $link])
         </div>
     </div>
@@ -1328,6 +1496,8 @@ function biolinkEditor() {
         gallerySearch: '',
         galleryCategory: 'all',
         galleryMode: 'blocks',
+        paletteSearch: '',
+        paletteCategory: 'all',
         cardTemplates: [],
         cardCategories: {},
         cardCategory: 'all',
@@ -1825,6 +1995,14 @@ function ajaxAddBlock(type, url, parentId) {
     }).catch(function() { showToast('Failed to add block', 'error'); });
 }
 
+// Click-to-add fallback for palette block tiles — appends to the end of the
+// top-level list (no insert position), reusing the existing store() flow.
+function paletteClickAdd(type) {
+    _insertAfterId = null;
+    _cardGalleryParentId = null;
+    ajaxAddBlock(type, '{{ route("user.links.blocks.store", $link) }}', null);
+}
+
 function ajaxAddBlockWithSettings(type, settings, url) {
     var fd = new FormData();
     fd.append('type', type);
@@ -1904,6 +2082,74 @@ document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById('blockList');
     var _moveUrl = '{{ route("user.links.blocks.move", [$link, "__ID__"]) }}';
     var _reorderUrl = '{{ route("user.links.blocks.reorder", $link) }}';
+    var _storeUrl = '{{ route("user.links.blocks.store", $link) }}';
+    var _prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var _dropAnim = _prefersReducedMotion ? 0 : 250;
+
+    // Create a real block from a palette drop, then place it at the exact drop
+    // index. We append via the existing store() flow (reusing BlockDefaults
+    // placeholder seeding) and, when the level has other siblings, follow up
+    // with a reorder so the block lands precisely where it was dropped — then
+    // reload to render it with all its controls / child sortables, matching the
+    // existing add / move / reorder behaviour.
+    function paletteCreateBlock(type, parentId, orderIds) {
+        var fd = new FormData();
+        fd.append('type', type);
+        fd.append('_token', _csrfToken());
+        if (parentId) fd.append('parent_id', parentId);
+        return fetch(_storeUrl, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
+            body: fd
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (!data || !data.success) {
+                showToast((data && data.error) || 'Failed to add block', 'error');
+                location.reload();
+                return;
+            }
+            showToast('Block added', 'success');
+            var newId = data.block && data.block.id;
+            if (orderIds && orderIds.length > 1 && newId) {
+                var finalIds = orderIds.map(function(x) { return x === 'NEW' ? newId : x; });
+                fetch(_reorderUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' },
+                    body: JSON.stringify({ blocks: finalIds })
+                }).then(function() { location.reload(); }).catch(function() { location.reload(); });
+            } else {
+                location.reload();
+            }
+        }).catch(function() { showToast('Failed to add block', 'error'); location.reload(); });
+    }
+
+    // Detect a palette clone landing in a list (top-level canvas or a card
+    // child list) and turn it into a real block creation. Returns true when it
+    // handled the drop so the existing move-block logic is skipped.
+    function handlePaletteDrop(evt, listEl, parentId) {
+        var item = evt.item;
+        if (!item || !item.classList || !item.classList.contains('palette-block-item')) return false;
+        var type = item.dataset ? item.dataset.blockType : null;
+        // Build the level's ordered ids with a 'NEW' marker at the drop slot,
+        // counting only real block cards (skips the dropped clone, empty-state
+        // hints, insert buttons, etc.).
+        var order = [];
+        var kids = listEl.children;
+        for (var i = 0; i < kids.length; i++) {
+            var k = kids[i];
+            if (k === item) { order.push('NEW'); continue; }
+            if (!k.classList) continue;
+            if (k.classList.contains('block-card-wrapper') || k.classList.contains('child-block-card')) {
+                var id = parseInt(k.dataset.blockId);
+                if (id) order.push(id);
+            }
+        }
+        // Hide (don't remove) the clone so SortableJS's own end handlers can
+        // still reference it without throwing; the reload replaces the DOM.
+        item.style.display = 'none';
+        if (!type) { location.reload(); return true; }
+        paletteCreateBlock(type, parentId, order);
+        return true;
+    }
 
     function reorderList(container, selector) {
         var ids = [];
@@ -1929,7 +2175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (el) {
         new Sortable(el, {
             handle: '.handle, .child-handle',
-            animation: 250,
+            animation: _dropAnim,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
@@ -1941,6 +2187,7 @@ document.addEventListener('DOMContentLoaded', function() {
             draggable: '.block-card-wrapper',
             filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-btn',
             onAdd: function(evt) {
+                if (handlePaletteDrop(evt, el, null)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);
                 doMoveBlock(blockId, null).then(function(data) {
                     if (data.success) {
@@ -1971,13 +2218,19 @@ document.addEventListener('DOMContentLoaded', function() {
         var cardId = parseInt(childList.dataset.cardId);
         new Sortable(childList, {
             handle: '.child-handle, .handle',
-            animation: 200,
+            animation: _dropAnim,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-            group: { name: 'blocks', pull: true, put: true },
+            group: { name: 'blocks', pull: true, put: function(to, from, dragEl) {
+                // Block cards (real or palette 'card' clones) can't nest in a card.
+                if (dragEl.dataset && dragEl.dataset.blockType === 'card') return false;
+                var inner = dragEl.querySelector && dragEl.querySelector('.card-container-block');
+                return !(dragEl.classList.contains('card-container-block') || inner);
+            }},
             draggable: '.child-block-card, .block-card, .block-card-wrapper',
             onAdd: function(evt) {
+                if (handlePaletteDrop(evt, childList, cardId)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);
                 var hasCard = evt.item.querySelector && evt.item.querySelector('.card-container-block');
                 if (evt.item.classList.contains('card-container-block') || hasCard) {
@@ -2019,6 +2272,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.querySelectorAll('.card-child-list').forEach(initCardChildSortable);
+
+    // Persistent block-type palette — a clone source. Dragging an item drops a
+    // clone into the canvas / a card child list, which the onAdd handlers above
+    // turn into a real block at the drop position. Click-to-add is the fallback.
+    var paletteEl = document.getElementById('paletteList');
+    if (paletteEl) {
+        new Sortable(paletteEl, {
+            group: { name: 'blocks', pull: 'clone', put: false },
+            sort: false,
+            animation: _dropAnim,
+            draggable: '.palette-block-item',
+            ghostClass: 'palette-drop-ghost',
+            dragClass: 'sortable-drag',
+            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            onStart: function() {
+                if (el) el.classList.add('palette-dragging');
+                document.querySelectorAll('.card-child-list').forEach(function(c) { c.classList.add('palette-dragging'); });
+            },
+            onEnd: function() {
+                if (el) el.classList.remove('palette-dragging');
+                document.querySelectorAll('.card-child-list').forEach(function(c) { c.classList.remove('palette-dragging'); });
+            }
+        });
+    }
 });
 </script>
 @endsection
