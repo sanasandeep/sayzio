@@ -695,6 +695,34 @@ $catColors = [
             font-size: 11.5px; font-weight: 600; color: var(--text-primary);
             line-height: 1.2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
+        /* Collapsible category section headers inside the palette body. The
+           header is a direct child of #paletteList but is NOT a
+           .palette-block-item, so SortableJS ignores it as a drag source. */
+        .palette-section-header {
+            display: flex; align-items: center; gap: 7px; width: 100%;
+            padding: 9px 6px 5px; margin-top: 2px;
+            background: transparent; border: none; cursor: pointer; text-align: left;
+            color: var(--text-faint);
+            transition: color 0.18s;
+        }
+        .palette-section-header:first-child { margin-top: 0; }
+        .palette-section-header:hover { color: var(--text-muted); }
+        .palette-section-chevron {
+            font-size: 9px; width: 9px; flex-shrink: 0;
+            transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        .palette-section-header[aria-expanded="true"] .palette-section-chevron { transform: rotate(90deg); }
+        .palette-section-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .palette-section-title {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+            flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .palette-section-count {
+            font-size: 9px; font-weight: 600; color: var(--text-faint);
+            background: var(--bg-glass-hover); border: 1px solid var(--border-glass);
+            border-radius: 999px; padding: 1px 6px; flex-shrink: 0; line-height: 1.4;
+        }
+        .palette-empty-note { padding: 22px 8px; text-align: center; font-size: 11px; color: var(--text-faint); }
         .palette-foot { flex-shrink: 0; padding: 8px 10px; border-top: 1px solid var(--border-glass); }
 
         /* Drop affordance: the palette ghost rendered inside the canvas / card
@@ -722,7 +750,7 @@ $catColors = [
             border-radius: 12px;
         }
         @media (prefers-reduced-motion: reduce) {
-            .palette-block-item, .palette-tab { transition: none !important; }
+            .palette-block-item, .palette-tab, .palette-section-header, .palette-section-chevron { transition: none !important; }
             .palette-block-item:hover { transform: none; }
         }
     </style>
@@ -745,40 +773,77 @@ $catColors = [
                         @endforeach
                     </div>
                 </div>
+                @php
+                    // Group palette tiles under their category so the body can
+                    // render collapsible section headers. Order follows
+                    // CATEGORIES; same filtering as before (drop system/verified).
+                    $paletteGroups = [];
+                    foreach ($blockCategories as $gCatKey => $gCatLabel) { $paletteGroups[$gCatKey] = []; }
+                    foreach ($blockTypes as $gTypeKey => $gTypeInfo) {
+                        if (!empty($gTypeInfo['system']) || ($gTypeInfo['category'] ?? '') === 'verified') { continue; }
+                        $gCat = $gTypeInfo['category'] ?? 'basic';
+                        if (!array_key_exists($gCat, $paletteGroups)) { $paletteGroups[$gCat] = []; }
+                        $paletteGroups[$gCat][$gTypeKey] = $gTypeInfo;
+                    }
+                    $paletteGroups = array_filter($paletteGroups, fn ($g) => count($g) > 0);
+                    // Lowercased labels per section drive search-aware header visibility in Alpine.
+                    $paletteSectionLabels = [];
+                    foreach ($paletteGroups as $gCat => $gTypes) {
+                        $paletteSectionLabels[$gCat] = array_values(array_map(fn ($t) => strtolower($t['label']), $gTypes));
+                    }
+                @endphp
                 <div id="paletteList" class="palette-body">
-                    @foreach($blockTypes as $typeKey => $typeInfo)
-                        @if(!empty($typeInfo['system']) || ($typeInfo['category'] ?? '') === 'verified') @continue @endif
-                        @php
-                            $pCatColor = $catColors[$typeInfo['category']] ?? '#8b5cf6';
-                            $pLocked = !auth()->user()->userCanUseBlockType($typeKey);
-                        @endphp
-                        @if($pLocked)
-                            <a href="{{ route('user.upgrade') }}"
-                               class="palette-block-locked palette-block-item"
-                               style="cursor: pointer; opacity: 0.6;"
-                               title="Upgrade your plan to unlock this block"
-                               x-show="(paletteCategory === 'all' || paletteCategory === '{{ $typeInfo['category'] }}') && (paletteSearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(paletteSearch.toLowerCase()))"
-                               x-cloak>
-                                <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
-                                    <i class="fas fa-lock" style="color: {{ $pCatColor }};"></i>
-                                </span>
-                                <span class="palette-block-label">{{ $typeInfo['label'] }}</span>
-                            </a>
-                        @else
-                            <button type="button"
-                                    class="palette-block-item"
-                                    data-block-type="{{ $typeKey }}"
-                                    onclick="paletteClickAdd('{{ $typeKey }}')"
-                                    title="Drag onto the canvas, or click to add"
-                                    x-show="(paletteCategory === 'all' || paletteCategory === '{{ $typeInfo['category'] }}') && (paletteSearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(paletteSearch.toLowerCase()))"
-                                    x-cloak>
-                                <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
-                                    <i class="fas {{ $typeInfo['icon'] }}" style="color: {{ $pCatColor }};"></i>
-                                </span>
-                                <span class="palette-block-label">{{ $typeInfo['label'] }}</span>
-                            </button>
-                        @endif
+                    @foreach($paletteGroups as $catKey => $catTypes)
+                        @php $secColor = $catColors[$catKey] ?? '#8b5cf6'; @endphp
+                        <button type="button"
+                                class="palette-section-header"
+                                x-show="paletteSectionVisible('{{ $catKey }}')"
+                                :aria-expanded="paletteSectionOpen('{{ $catKey }}') ? 'true' : 'false'"
+                                @click="togglePaletteSection('{{ $catKey }}')"
+                                title="Toggle {{ $blockCategories[$catKey] ?? $catKey }}"
+                                x-cloak>
+                            <i class="fas fa-chevron-right palette-section-chevron"></i>
+                            <span class="palette-section-dot" style="background: {{ $secColor }};"></span>
+                            <span class="palette-section-title">{{ $blockCategories[$catKey] ?? ucfirst($catKey) }}</span>
+                            <span class="palette-section-count">{{ count($catTypes) }}</span>
+                        </button>
+                        @foreach($catTypes as $typeKey => $typeInfo)
+                            @php
+                                $pCatColor = $catColors[$typeInfo['category']] ?? '#8b5cf6';
+                                $pLocked = !auth()->user()->userCanUseBlockType($typeKey);
+                            @endphp
+                            @if($pLocked)
+                                <a href="{{ route('user.upgrade') }}"
+                                   class="palette-block-locked palette-block-item"
+                                   style="cursor: pointer; opacity: 0.6;"
+                                   title="Upgrade your plan to unlock this block"
+                                   x-show="paletteItemVisible('{{ $catKey }}', '{{ strtolower($typeInfo['label']) }}')"
+                                   x-cloak>
+                                    <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
+                                        <i class="fas fa-lock" style="color: {{ $pCatColor }};"></i>
+                                    </span>
+                                    <span class="palette-block-label">{{ $typeInfo['label'] }}</span>
+                                </a>
+                            @else
+                                <button type="button"
+                                        class="palette-block-item"
+                                        data-block-type="{{ $typeKey }}"
+                                        onclick="paletteClickAdd('{{ $typeKey }}')"
+                                        title="Drag onto the canvas, or click to add"
+                                        x-show="paletteItemVisible('{{ $catKey }}', '{{ strtolower($typeInfo['label']) }}')"
+                                        x-cloak>
+                                    <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
+                                        <i class="fas {{ $typeInfo['icon'] }}" style="color: {{ $pCatColor }};"></i>
+                                    </span>
+                                    <span class="palette-block-label">{{ $typeInfo['label'] }}</span>
+                                </button>
+                            @endif
+                        @endforeach
                     @endforeach
+                    <div class="palette-empty-note" x-show="!paletteAnyVisible()" x-cloak>
+                        <i class="fas fa-search mb-1.5 block opacity-60"></i>
+                        No blocks match your search.
+                    </div>
                 </div>
                 <div class="palette-foot">
                     <button type="button" @click="openSpecialPanel()" class="w-full py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-violet-500/10" style="border: 1px dashed rgba(124,58,237,0.3); color: #a78bfa;">
@@ -911,6 +976,39 @@ function biolinkEditor() {
         cardParentId: null,
         paletteSearch: '',
         paletteCategory: 'all',
+        // Per-category collapse state for the grouped "Add blocks" palette.
+        // Empty => every section starts expanded. Search / a specific tab
+        // force sections open so matches are never hidden behind a collapse.
+        paletteCollapsed: {},
+        paletteSectionLabels: @json($paletteSectionLabels ?? []),
+        paletteSearchTerm() { return (this.paletteSearch || '').trim().toLowerCase(); },
+        paletteSectionOpen(cat) {
+            if (this.paletteSearchTerm() !== '') return true;
+            if (this.paletteCategory !== 'all') return true;
+            return !this.paletteCollapsed[cat];
+        },
+        togglePaletteSection(cat) {
+            this.paletteCollapsed[cat] = !this.paletteCollapsed[cat];
+        },
+        paletteSectionVisible(cat) {
+            if (this.paletteCategory !== 'all' && this.paletteCategory !== cat) return false;
+            var term = this.paletteSearchTerm();
+            if (term === '') return true;
+            var labels = this.paletteSectionLabels[cat] || [];
+            return labels.some(function(l) { return l.includes(term); });
+        },
+        paletteItemVisible(cat, label) {
+            if (this.paletteCategory !== 'all' && this.paletteCategory !== cat) return false;
+            var term = this.paletteSearchTerm();
+            if (term !== '' && !label.includes(term)) return false;
+            return this.paletteSectionOpen(cat);
+        },
+        paletteAnyVisible() {
+            var self = this;
+            return Object.keys(this.paletteSectionLabels).some(function(cat) {
+                return self.paletteSectionVisible(cat);
+            });
+        },
         cardTemplates: [],
         cardCategories: {},
         cardCategory: 'all',
