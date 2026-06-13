@@ -565,7 +565,15 @@ $catColors = [
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks', 'showModeSelector' => true])
 
-    <div class="flex items-center justify-end mb-4">
+    <div class="flex items-center justify-end gap-2 mb-4">
+        <button type="button" id="deleteAllBlocksBtn"
+                onclick="ajaxDeleteAllBlocks(this)"
+                class="delete-all-btn"
+                style="{{ $blocks->count() ? '' : 'display:none;' }}"
+                title="Delete all blocks">
+            <i class="fas fa-trash-alt text-[10px]"></i>
+            <span>Delete all</span>
+        </button>
         <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
             <i class="fas fa-layer-group text-[10px] opacity-70"></i>
             <span><strong data-block-count>{{ $blocks->count() }}</strong> blocks</span>
@@ -583,6 +591,21 @@ $catColors = [
             -webkit-backdrop-filter: blur(14px) saturate(140%);
         }
         .block-count-chip strong { color: var(--text-primary); font-weight: 700; }
+        .delete-all-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 9999px;
+            font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+            color: #ef4444; cursor: pointer;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.32);
+            transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+        }
+        .delete-all-btn:hover {
+            background: rgba(239,68,68,0.16);
+            border-color: rgba(239,68,68,0.5);
+            transform: translateY(-1px);
+        }
+        .delete-all-btn:disabled { opacity: 0.55; pointer-events: none; }
         /* Sticky behavior now lives inside the device-preview partial so
            it works on every page that includes it (editor, appearance, etc.). */
 
@@ -1572,6 +1595,31 @@ function ajaxDeleteBlock(btn, url, blockId) {
                     showToast(data.error || 'Failed to delete', 'error');
                 }
             }).catch(function() { btn.disabled = false; showToast('Failed to delete', 'error'); });
+        }
+    });
+}
+
+function ajaxDeleteAllBlocks(btn) {
+    window.themedConfirm({
+        title: 'Delete all blocks?',
+        message: 'This permanently removes every block on this page. Verified blocks are kept. This cannot be undone.',
+        confirmText: 'Delete all',
+        confirmIcon: 'fa-trash-alt',
+        iconClass: 'fa-trash-alt',
+        onConfirm: function () {
+            btn.disabled = true;
+            fetch(@json(route('user.links.blocks.bulkDestroy', $link)), {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' }
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data && data.success) {
+                    showToast((data.deleted || 0) + ' block(s) deleted', 'success');
+                    setTimeout(function() { window.location.reload(); }, 400);
+                } else {
+                    btn.disabled = false;
+                    showToast((data && data.error) || 'Failed to delete blocks', 'error');
+                }
+            }).catch(function() { btn.disabled = false; showToast('Failed to delete blocks', 'error'); });
         }
     });
 }

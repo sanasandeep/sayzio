@@ -739,6 +739,46 @@ class BiolinkBlockController extends Controller
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block deleted.');
     }
 
+    public function bulkDestroy(Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+
+        // Verified blocks (verified_heading / verified_avatar) are protected and
+        // must survive a "delete all" just like they survive a single delete.
+        // Because the parent_id FK is ON DELETE CASCADE, we must also spare any
+        // card that contains a verified block — otherwise deleting the card would
+        // cascade-delete the verified child, contradicting the UI promise that
+        // verified blocks are kept. Cards cannot nest in cards, so sparing the
+        // direct parent (one level) is sufficient.
+        $verified = $link->biolinkBlocks()
+            ->whereIn('type', ['verified_heading', 'verified_avatar'])
+            ->get(['id', 'parent_id']);
+        $protectedIds = $verified->pluck('id')
+            ->merge($verified->pluck('parent_id')->filter())
+            ->unique()
+            ->all();
+
+        $deletable = $link->biolinkBlocks()
+            ->when($protectedIds, fn ($q) => $q->whereNotIn('id', $protectedIds))
+            ->get();
+
+        $deleted = 0;
+        foreach ($deletable as $block) {
+            $this->recordBlockActivity('biolink.block.delete', $link, $block);
+            $block->delete();
+            $deleted++;
+        }
+
+        $remaining = $link->biolinkBlocks()->count();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'deleted' => $deleted, 'remaining' => $remaining]);
+        }
+
+        return redirect()->route('user.links.blocks.editor', $link)
+            ->with('success', $deleted ? "Deleted {$deleted} block(s)." : 'No blocks to delete.');
+    }
+
     public function reorder(Request $request, Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
