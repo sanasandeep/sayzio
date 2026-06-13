@@ -324,7 +324,28 @@ class BiolinkBlockController extends Controller
         $this->recordBlockActivity('biolink.block.create', $link, $block);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'block' => $block]);
+            $block->load('children');
+            $viewData = [
+                'link'        => $link,
+                'blockTypes'  => BiolinkBlock::TYPES,
+                'catColors'   => BiolinkBlock::CATEGORY_COLORS,
+                'pollTallies' => [],
+            ];
+
+            $payload = [
+                'success'      => true,
+                'block'        => $block,
+                'insert_after' => $request->input('insert_after'),
+            ];
+
+            if ($parentId) {
+                $payload['parent_id']  = $parentId;
+                $payload['child_html'] = view('user.links.partials.block-child-card', array_merge($viewData, ['child' => $block]))->render();
+            } else {
+                $payload['html'] = view('user.links.partials.block-card', array_merge($viewData, ['block' => $block]))->render();
+            }
+
+            return response()->json($payload);
         }
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block added.');
@@ -785,7 +806,23 @@ class BiolinkBlockController extends Controller
             }
         }
 
-        return response()->json(['success' => true, 'block' => $block->fresh()]);
+        $fresh = $block->fresh();
+        $fresh->load('children');
+        $viewData = [
+            'link'        => $link,
+            'blockTypes'  => BiolinkBlock::TYPES,
+            'catColors'   => BiolinkBlock::CATEGORY_COLORS,
+            'pollTallies' => [],
+        ];
+
+        $payload = ['success' => true, 'block' => $fresh, 'parent_id' => $newParentId];
+        if ($newParentId) {
+            $payload['child_html'] = view('user.links.partials.block-child-card', array_merge($viewData, ['child' => $fresh]))->render();
+        } else {
+            $payload['html'] = view('user.links.partials.block-card', array_merge($viewData, ['block' => $fresh]))->render();
+        }
+
+        return response()->json($payload);
     }
 
     public function toggleActive(Link $link, BiolinkBlock $block)

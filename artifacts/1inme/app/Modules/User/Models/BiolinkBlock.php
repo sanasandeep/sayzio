@@ -149,6 +149,20 @@ class BiolinkBlock extends Model
         'identity'        => 'Identity',
     ];
 
+    /**
+     * Accent colour per block category, shared by the editor canvas, the
+     * block-card partials and any controller that renders a block card for
+     * in-place insertion. Superset of CATEGORIES (covers legacy/system
+     * categories like `files`/`verified`) so lookups never miss.
+     */
+    public const CATEGORY_COLORS = [
+        'basic' => '#8b5cf6', 'media' => '#ec4899', 'social' => '#3b82f6',
+        'music' => '#10b981', 'video_platforms' => '#ef4444', 'contact' => '#f59e0b',
+        'interactive' => '#06b6d4', 'business' => '#f97316', 'utility' => '#6366f1',
+        'layout' => '#8b5cf6', 'integrations' => '#14b8a6', 'files' => '#64748b',
+        'maps' => '#22c55e', 'identity' => '#8b5cf6',
+    ];
+
     public const TYPES = [
         // ── Essentials ────────────────────────────────────────────────
         'link'             => ['label' => 'Link Button',         'icon' => 'fa-link',                       'category' => 'basic'],

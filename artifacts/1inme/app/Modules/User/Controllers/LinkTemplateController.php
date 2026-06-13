@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Modules\Admin\Models\CardTemplate;
 use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\Admin\Services\TemplateService;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\TemplateContentSummarizer;
 use App\Modules\User\Services\TemplatePreviewLayoutBuilder;
@@ -159,7 +160,21 @@ class LinkTemplateController extends Controller
         $block = $this->templates->applyCardToLink($link, $tpl->snapshot, $validated['insert_after'] ?? null, $tabId);
 
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true, 'block_id' => $block->id]);
+            $block->load('children');
+            $html = view('user.links.partials.block-card', [
+                'block'       => $block,
+                'link'        => $link,
+                'blockTypes'  => BiolinkBlock::TYPES,
+                'catColors'   => BiolinkBlock::CATEGORY_COLORS,
+                'pollTallies' => [],
+            ])->render();
+
+            return response()->json([
+                'success'      => true,
+                'block_id'     => $block->id,
+                'html'         => $html,
+                'insert_after' => $validated['insert_after'] ?? null,
+            ]);
         }
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Card template added.');
     }

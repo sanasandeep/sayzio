@@ -228,23 +228,6 @@
         .edit-modal { max-width: 100%; height: 100vh; max-height: 100vh; border-radius: 0; }
     }
 
-    .gallery-modal {
-        position: fixed; inset: 0; z-index: 60;
-        display: flex; align-items: center; justify-content: center;
-        background: rgba(0,0,0,0.6);
-        backdrop-filter: blur(8px);
-    }
-    .gallery-inner {
-        width: 90vw; max-width: 900px;
-        max-height: 85vh;
-        border-radius: 1.5rem;
-        background: var(--bg-sidebar);
-        backdrop-filter: blur(40px) saturate(1.4);
-        border: 1px solid var(--border-subtle);
-        box-shadow: 0 24px 80px rgba(0,0,0,0.5);
-        display: flex; flex-direction: column;
-        overflow: hidden;
-    }
     .gallery-tabs {
         display: flex;
         gap: 2px;
@@ -549,17 +532,15 @@ $catColors = [
 
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div class="flex items-center gap-3 flex-wrap">
-            <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="add-block-btn">
+            <button type="button" onclick="focusBlockPalette()" class="add-block-btn">
                 <span class="add-block-icon"><i class="fas fa-plus text-[11px]"></i></span>
                 <span>Add block</span>
             </button>
         </div>
-        @if($blocks->count())
-        <span class="block-count-chip">
+        <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
             <i class="fas fa-layer-group text-[10px] opacity-70"></i>
-            <span><strong>{{ $blocks->count() }}</strong> blocks</span>
+            <span><strong data-block-count>{{ $blocks->count() }}</strong> blocks</span>
         </span>
-        @endif
     </div>
     <style>
         .add-block-btn {
@@ -636,7 +617,9 @@ $catColors = [
             gap: 1.5rem;
             align-items: start;
         }
-        #editorPaletteCol { display: none; }
+        /* Below lg the palette stacks full-width above the canvas (adding blocks
+           is palette-driven now, so it must stay reachable on every size). */
+        #editorPaletteCol { display: block; grid-column: 1 / -1; order: -1; }
         #editorPreviewCol { display: none; }
         @media (min-width: 900px) {
             #editorLayout { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
@@ -644,7 +627,11 @@ $catColors = [
         }
         @media (min-width: 1024px) {
             #editorLayout { grid-template-columns: minmax(0, 3.1fr) minmax(0, 5fr) minmax(0, 4fr); }
-            #editorPaletteCol { display: block; }
+            #editorPaletteCol { grid-column: auto; order: 0; }
+        }
+        /* Stacked (sub-lg) palette: not full viewport height, scrolls internally. */
+        @media (max-width: 1023px) {
+            .palette-panel { position: static; max-height: 60vh; }
         }
 
         .palette-panel {
@@ -784,10 +771,11 @@ $catColors = [
                     @endforeach
                 </div>
                 <div class="palette-foot">
-                    <button type="button" @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="w-full py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-violet-500/10" style="border: 1px dashed rgba(124,58,237,0.3); color: #a78bfa;">
+                    <button type="button" @click="openSpecialPanel()" class="w-full py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-violet-500/10" style="border: 1px dashed rgba(124,58,237,0.3); color: #a78bfa;">
                         <i class="fas fa-grip text-[9px]"></i> Templates, forms &amp; more
                     </button>
                 </div>
+                @include('user.links.partials.editor-special-panel', ['link' => $link, 'userForms' => $userForms ?? [], 'userBuzz' => $userBuzz ?? [], 'userCompanions' => $userCompanions ?? []])
             </div>
         </div>
 
@@ -795,176 +783,16 @@ $catColors = [
         <div id="editorCanvasCol">
 
             {{-- BLOCKS --}}
-                @if($blocks->count())
-                <div class="flex items-center mb-3">
+                <div id="reorderHint" class="flex items-center mb-3" style="{{ $blocks->count() ? '' : 'display:none;' }}">
                     <p class="text-xs" style="color: var(--text-faint);"><i class="fas fa-grip-vertical mr-1"></i> Drag to reorder blocks</p>
                 </div>
-                @endif
 
                 <div id="blockList" class="grid gap-2" style="grid-template-columns: repeat(12, 1fr); padding-right: 16px;">
-                    @forelse($blocks as $block)
-                    @php
-                        $s = $block->settings ?? [];
-                        $typeInfo = $blockTypes[$block->type] ?? ['label' => ucfirst($block->type), 'icon' => 'fa-cube'];
-                        $catColor = $catColors[$typeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
-                    @endphp
-                    @php $curSpan = intval($s['_style']['grid_span'] ?? 12) ?: 12; @endphp
-                    <div class="block-card-wrapper" data-block-id="{{ $block->id }}" style="grid-column: span {{ $curSpan }}">
-                    <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block after this">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <div class="block-card {{ $block->type === 'card' ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}">
-                        <div class="flex items-center gap-2 p-3">
-                            <div class="drag-handle handle">
-                                <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
-                                <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
-                                <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
-                            </div>
-
-                            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}12; border: 1px solid {{ $catColor }}25;">
-                                <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>
-                            </div>
-
-                            <div class="flex-1 min-w-0 ml-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</span>
-                                    @if(!$block->is_active)
-                                    <span class="editor-pill-badge editor-pill-badge--hidden text-[9px] px-2 py-0.5 rounded-full">HIDDEN</span>
-                                    @endif
-                                    <span class="grid-span-badge editor-pill-badge editor-pill-badge--span text-[10px] px-2 py-0.5 rounded-md" style="{{ $curSpan >= 12 ? 'display:none;' : '' }}" data-span-badge="{{ $block->id }}">{{ $curSpan }}/12</span>
-                                </div>
-                                <div class="block-preview-content mt-0.5">
-                                    @if($block->type === 'card')
-                                        <i class="fas fa-layer-group text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $block->children->count() }} block(s) inside{{ !empty($s['title']) ? ' — ' . $s['title'] : '' }}
-                                    @elseif(in_array($block->type, ['link', 'link_big']))
-                                        <i class="fas fa-globe text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? $s['url'] ?? 'No URL set' }}
-                                    @elseif(in_array($block->type, ['heading', 'heading_logo']))
-                                        <i class="fas fa-font text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? 'No text' }}
-                                    @elseif($block->type === 'paragraph' || $block->type === 'paragraph_rich')
-                                        {{ \Illuminate\Support\Str::limit($s['text'] ?? $s['html'] ?? 'No content', 60) }}
-                                    @elseif($block->type === 'socials' || $block->type === 'socials_multi' || $block->type === 'socials_custom')
-                                        <i class="fas fa-users text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ count($s['platforms'] ?? []) }} platforms connected
-                                    @elseif(in_array($block->type, ['faq', 'faq_v2']))
-                                        <i class="fas fa-list text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ count($s['items'] ?? []) }} questions
-                                    @elseif($block->type === 'image')
-                                        <i class="fas fa-image text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['alt'] ?? ($s['url'] ? 'Image' : 'No image set') }}
-                                    @elseif(in_array($block->type, ['video', 'header_video', 'youtube']))
-                                        <i class="fas fa-play text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['url'] ?? $s['video_id'] ?? 'No video' }}
-                                    @elseif($block->type === 'cta_button')
-                                        <i class="fas fa-hand-pointer text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? 'Button' }}
-                                    @elseif($block->type === 'spacer')
-                                        <i class="fas fa-arrows-alt-v text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['height'] ?? 20 }}px
-                                    @elseif($block->type === 'divider')
-                                        <i class="fas fa-minus text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ ucfirst($s['style'] ?? 'solid') }} line
-                                    @elseif($block->type === 'poll')
-                                        <i class="fas fa-square-poll-vertical text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ \Illuminate\Support\Str::limit($s['question'] ?? $s['title'] ?? 'Poll', 60) }}
-                                    @else
-                                        {{ ucfirst(str_replace('_', ' ', $block->type)) }} block
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="flex items-center gap-1 flex-shrink-0">
-                                <button class="block-action-btn edit-btn" title="Edit" onclick="openEditDrawer({{ $block->id }})">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="block-action-btn toggle-btn" title="{{ $block->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $block]) }}', {{ $block->id }})">
-                                    <i class="fas {{ $block->is_active ? 'fa-eye' : 'fa-eye-slash' }}"></i>
-                                </button>
-                                <button class="block-action-btn delete-btn" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $block]) }}', {{ $block->id }})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        @if($block->type === 'poll')
-                            @include('user.links.partials.poll-results-panel', ['block' => $block, 'tally' => $pollTallies[$block->id] ?? null])
-                        @endif
-
-                        @if($block->type === 'card')
-                        <div class="card-children-area px-3 pb-3" x-data="{ cardExpanded: true }">
-                            <div class="rounded-xl overflow-hidden" style="border: 1px dashed var(--border-glass); background: rgba(124,58,237,0.02);">
-                                <button type="button" @click="cardExpanded = !cardExpanded" class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold transition-colors hover:bg-white/[0.02]" style="color: var(--text-faint); background: rgba(124,58,237,0.04);">
-                                    <span><i class="fas fa-cubes mr-1"></i> Child Blocks ({{ $block->children->count() }})</span>
-                                    <i class="fas fa-chevron-down transition-transform text-[8px]" :class="cardExpanded ? 'rotate-180' : ''"></i>
-                                </button>
-                                <div x-show="cardExpanded" x-collapse>
-                                    <div class="card-child-list p-2 space-y-1" data-card-id="{{ $block->id }}" style="min-height: 32px;">
-                                        @forelse($block->children as $child)
-                                        @php
-                                            $cs = $child->settings ?? [];
-                                            $cTypeInfo = $blockTypes[$child->type] ?? ['label' => ucfirst($child->type), 'icon' => 'fa-cube'];
-                                            $cCatColor = $catColors[$cTypeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
-                                            $childSpan = intval($cs['_style']['grid_span'] ?? 12) ?: 12;
-                                        @endphp
-                                        <div class="child-block-card rounded-lg transition-all hover:bg-white/[0.03]" data-block-id="{{ $child->id }}" style="border: 1px solid var(--border-glass);">
-                                            <div class="flex items-center gap-2 p-2">
-                                                <div class="child-handle cursor-grab" style="color: var(--text-faint);">
-                                                    <i class="fas fa-grip-vertical text-[9px]"></i>
-                                                </div>
-                                                <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background: {{ $cCatColor }}10;">
-                                                    <i class="fas {{ $cTypeInfo['icon'] }} text-[9px]" style="color: {{ $cCatColor }};"></i>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <span class="text-[11px] font-semibold" style="color: var(--text-primary);">{{ $cTypeInfo['label'] }}</span>
-                                                    @if(!$child->is_active)<span class="editor-pill-badge editor-pill-badge--hidden text-[9px] px-1.5 py-0.5 rounded-full ml-1">HIDDEN</span>@endif
-                                                    <span class="editor-pill-badge editor-pill-badge--span text-[9px] px-1.5 py-0.5 rounded-md ml-1" style="{{ $childSpan >= 12 ? 'display:none;' : '' }}" data-child-span-badge="{{ $child->id }}">{{ $childSpan }}/12</span>
-                                                </div>
-                                                <div class="flex items-center gap-0.5 flex-shrink-0">
-                                                    <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="openEditDrawer({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>
-                                                    <button class="block-action-btn toggle-btn" style="width:22px;height:22px;" title="{{ $child->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $child]) }}', {{ $child->id }})"><i class="fas {{ $child->is_active ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size:8px;"></i></button>
-                                                    <button class="block-action-btn delete-btn" style="width:22px;height:22px;" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-trash" style="font-size:8px;"></i></button>
-                                                </div>
-                                            </div>
-                                            @if($child->type === 'poll')
-                                                @include('user.links.partials.poll-results-panel', ['block' => $child, 'tally' => $pollTallies[$child->id] ?? null, 'compact' => true])
-                                            @endif
-                                            <div class="child-span-row px-2 pb-1.5">
-                                                <div class="flex items-center gap-1">
-                                                    <span class="text-[8px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-0.5"></i>Width</span>
-                                                    <div class="flex gap-[2px] flex-1">
-                                                        @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $spanVal => $spanLabel)
-                                                        <button type="button" class="child-span-btn text-[8px] font-bold px-1 py-0.5 rounded transition-all {{ $childSpan == $spanVal ? 'active' : '' }}"
-                                                                onclick="setChildGridSpan({{ $child->id }}, {{ $spanVal }}, this)"
-                                                                title="{{ $spanLabel }} width">{{ $spanLabel }}</button>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @empty
-                                        <div class="card-empty-hint text-center py-3">
-                                            <p class="text-[10px]" style="color: var(--text-dimmed);">Drag blocks here or click + below</p>
-                                        </div>
-                                        @endforelse
-                                    </div>
-                                    <div class="px-2 pb-2">
-                                        <button type="button" class="w-full py-1.5 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all hover:bg-violet-500/10" style="border: 1px dashed rgba(124,58,237,0.3); color: #a78bfa;" onclick="openCardGallery({{ $block->id }})">
-                                            <i class="fas fa-plus text-[8px]"></i> Add block to card
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-
-                        <div class="grid-span-row px-3 pb-2" data-span-row="{{ $block->id }}">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-1"></i>Width</span>
-                                <div class="flex gap-[3px] flex-1">
-                                    @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $spanVal => $spanLabel)
-                                    <button type="button" class="span-btn text-[9px] font-bold px-1.5 py-0.5 rounded transition-all {{ $curSpan == $spanVal ? 'active' : '' }}"
-                                            onclick="setGridSpan({{ $block->id }}, {{ $spanVal }}, this)"
-                                            title="{{ $spanLabel }} width ({{ $spanVal }}/12 columns)">{{ $spanLabel }}</button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                    @empty
-                    <div class="flex flex-col items-center justify-center text-center rounded-2xl px-6 py-12 lg:min-h-[420px]"
-                         style="grid-column: span 12; background: var(--bg-glass); border: 1px dashed var(--border-glass);">
+                    @foreach($blocks as $block)
+                    @include('user.links.partials.block-card', ['block' => $block, 'link' => $link, 'blockTypes' => $blockTypes, 'catColors' => $catColors, 'pollTallies' => $pollTallies ?? []])
+                    @endforeach
+                    <div id="blockListEmpty" class="flex flex-col items-center justify-center text-center rounded-2xl px-6 py-12 lg:min-h-[420px]"
+                         style="grid-column: span 12; background: var(--bg-glass); border: 1px dashed var(--border-glass); {{ $blocks->count() ? 'display:none;' : '' }}">
                         <div class="empty-state-icon">
                             <i class="fas fa-layer-group text-3xl text-violet-400"></i>
                         </div>
@@ -974,12 +802,11 @@ $catColors = [
                             <a href="{{ route('user.links.templates.picker', $link) }}" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
                                 <i class="fas fa-layer-group text-xs"></i> Browse templates
                             </a>
-                            <button @click="showGallery = true" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <button type="button" onclick="focusBlockPalette()" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #10b981, #059669);">
                                 <i class="fas fa-plus text-xs"></i> Add a block
                             </button>
                         </div>
                     </div>
-                    @endforelse
                 </div>
         </div>
 
@@ -1025,434 +852,6 @@ $catColors = [
         </div>
     </div>
 
-    {{-- BLOCK GALLERY --}}
-    <template x-if="showGallery">
-        <div class="gallery-modal" x-transition.opacity @click.self="showGallery = false">
-            <div class="gallery-inner" @click.stop>
-                <div class="p-5 pb-0 flex-shrink-0">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h2 class="text-lg font-bold gradient-text">Block Gallery</h2>
-                            <p class="text-[10px] mt-0.5" style="color: var(--text-faint);" x-show="_cardGalleryParentId" x-cloak><i class="fas fa-layer-group mr-1"></i>Adding to card container</p>
-                            <p class="text-[10px] mt-0.5" style="color: var(--text-faint);" x-show="_insertAfterId" x-cloak><i class="fas fa-arrow-down mr-1"></i>Inserting after selected block</p>
-                        </div>
-                        <button @click="showGallery = false" class="block-action-btn" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="flex items-center gap-1 mb-3 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
-                        <button @click="galleryMode = 'blocks'" :class="galleryMode === 'blocks' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-th-large mr-1"></i>Blocks</button>
-                        <button @click="galleryMode = 'templates'; loadCardTemplates();" :class="galleryMode === 'templates' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-layer-group mr-1"></i>Card Templates</button>
-                        <button @click="galleryMode = 'forms'" :class="galleryMode === 'forms' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-clipboard-list mr-1"></i>Forms</button>
-                        <button @click="galleryMode = 'buzz'" :class="galleryMode === 'buzz' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-bell mr-1"></i>Buzz</button>
-                        <button @click="galleryMode = 'companions'" :class="galleryMode === 'companions' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-robot mr-1"></i>AI</button>
-                    </div>
-                    <div class="relative mb-4">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
-                        <input type="text" x-model="gallerySearch" placeholder="Search…" class="theme-input w-full pl-9">
-                    </div>
-                    <div class="gallery-tabs pb-3" x-show="galleryMode === 'blocks'">
-                        <button class="gallery-tab" :class="galleryCategory === 'all' ? 'active' : ''" @click="galleryCategory = 'all'">All</button>
-                        @foreach($blockCategories as $catKey => $catLabel)
-                        <button class="gallery-tab" :class="galleryCategory === '{{ $catKey }}' ? 'active' : ''" @click="galleryCategory = '{{ $catKey }}'">{{ $catLabel }}</button>
-                        @endforeach
-                    </div>
-                </div>
-                <div class="flex-1 overflow-y-auto p-5 pt-2">
-                    {{-- BLOCKS GRID --}}
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" x-show="galleryMode === 'blocks'">
-                        @foreach($blockTypes as $typeKey => $typeInfo)
-                        @php
-                            $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6';
-                            $blockLocked = !auth()->user()->userCanUseBlockType($typeKey);
-                        @endphp
-                        @if(!empty($typeInfo['system'])) @continue @endif
-                        <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase())) && !(_cardGalleryParentId && '{{ $typeKey }}' === 'card') && '{{ $typeInfo['category'] }}' !== 'verified'"
-                             x-cloak>
-                            @if($blockLocked)
-                                <a href="{{ route('user.upgrade') }}" class="gallery-block-card opacity-60 cursor-pointer block" title="Upgrade your plan to unlock this block">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
-                                            <i class="fas fa-lock text-sm" style="color: {{ $catColor }};"></i>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</div>
-                                            <div class="text-[10px] truncate text-violet-400">Upgrade to unlock</div>
-                                        </div>
-                                    </div>
-                                </a>
-                            @else
-                                <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}', _cardGalleryParentId)">
-                                    @include('user.links.partials.block-picker-preview', ['type' => $typeKey, 'typeInfo' => $typeInfo, 'catColor' => $catColor])
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
-                                            <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</div>
-                                            <div class="text-[10px] truncate" style="color: var(--text-faint);">{{ ucfirst(str_replace('_', ' ', $typeInfo['category'])) }}</div>
-                                        </div>
-                                    </div>
-                                </button>
-                            @endif
-                        </div>
-                        @endforeach
-                    </div>
-
-                    {{-- FORMS PICKER --}}
-                    <div x-show="galleryMode === 'forms'" x-cloak>
-                        @if(empty($userForms) || count($userForms) === 0)
-                            <div class="text-center py-10">
-                                <i class="fas fa-clipboard-list text-2xl mb-2" style="color: var(--text-faint);"></i>
-                                <p class="text-sm mb-3" style="color: var(--text-muted);">You haven't created any forms yet.</p>
-                                <a href="{{ route('user.forms.index') }}" class="inline-block text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold"><i class="fas fa-plus mr-1"></i>Create your first form</a>
-                            </div>
-                        @else
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            @foreach($userForms as $f)
-                            <div x-show="gallerySearch === '' || '{{ strtolower(addslashes($f['title'])) }}'.includes(gallerySearch.toLowerCase())">
-                                <button type="button" class="gallery-block-card w-full text-left" onclick="ajaxAddBlockWithSettings('form', {form_id: {{ $f['id'] }}, height: 600}, '{{ route('user.links.blocks.store', $link) }}')">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.20);">
-                                            <i class="fas fa-clipboard-list text-sm" style="color: #8b5cf6;"></i>
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $f['title'] }}</div>
-                                            <div class="text-[10px] truncate flex items-center gap-1" style="color: var(--text-faint);">
-                                                <span>{{ $f['slug'] }}</span>
-                                                @if(!$f['is_active'])<span class="px-1 py-0 rounded bg-red-500/15 text-red-300 text-[8px]">Inactive</span>@endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
-                            @endforeach
-                        </div>
-                        <div class="text-center mt-4">
-                            <a href="{{ route('user.forms.index') }}" class="text-[11px] text-violet-400 hover:text-violet-300"><i class="fas fa-cog mr-1"></i>Manage all forms</a>
-                        </div>
-                        @endif
-                    </div>
-
-                    {{-- BUZZ PICKER --}}
-                    <div x-show="galleryMode === 'buzz'" x-cloak>
-                        @if(empty($userBuzz) || count($userBuzz) === 0)
-                            <div class="text-center py-10">
-                                <i class="fas fa-bell text-2xl mb-2" style="color: var(--text-faint);"></i>
-                                <p class="text-sm mb-3" style="color: var(--text-muted);">No Buzz campaigns yet.</p>
-                                <a href="{{ route('user.social-proofs.index') }}" class="inline-block text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold"><i class="fas fa-plus mr-1"></i>Create your first campaign</a>
-                            </div>
-                        @else
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            @foreach($userBuzz as $b)
-                            <div x-show="gallerySearch === '' || '{{ strtolower(addslashes($b['name'])) }}'.includes(gallerySearch.toLowerCase())">
-                                <button type="button" class="gallery-block-card w-full text-left" onclick="ajaxAddBlockWithSettings('social_proof', {social_proof_id: {{ $b['id'] }}}, '{{ route('user.links.blocks.store', $link) }}')">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.20);">
-                                            <i class="fas fa-bell text-sm" style="color: #f43f5e;"></i>
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $b['name'] }}</div>
-                                            <div class="text-[10px] truncate flex items-center gap-1" style="color: var(--text-faint);">
-                                                <span>{{ str_replace('_', ' ', $b['type']) }}</span>
-                                                @if(!$b['is_active'])<span class="px-1 py-0 rounded bg-red-500/15 text-red-300 text-[8px]">Inactive</span>@endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
-                            @endforeach
-                        </div>
-                        <div class="text-center mt-4">
-                            <a href="{{ route('user.social-proofs.index') }}" class="text-[11px] text-violet-400 hover:text-violet-300"><i class="fas fa-cog mr-1"></i>Manage all campaigns</a>
-                        </div>
-                        @endif
-                    </div>
-
-                    {{-- AI COMPANIONS --}}
-                    <div x-show="galleryMode === 'companions'" x-cloak>
-                        @if(empty($userCompanions) || count($userCompanions) === 0)
-                            <div class="text-center py-10">
-                                <i class="fas fa-robot text-2xl mb-2" style="color: var(--text-faint);"></i>
-                                <p class="text-sm mb-3" style="color: var(--text-muted);">No biolink AI Companions yet.</p>
-                                <a href="{{ route('user.ai-companions.create') }}?placement=biolink" class="inline-block text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold"><i class="fas fa-plus mr-1"></i>Create your first Companion</a>
-                            </div>
-                        @else
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                @foreach($userCompanions as $c)
-                                    <div x-show="gallerySearch === '' || '{{ strtolower(addslashes($c['name'])) }}'.includes(gallerySearch.toLowerCase())">
-                                        <button type="button" class="gallery-block-card w-full text-left" onclick="ajaxAddBlockWithSettings('ai_companion', {companion_id: {{ $c['id'] }}}, '{{ route('user.links.blocks.store', $link) }}')">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.20);">
-                                                    <i class="fas fa-robot text-sm" style="color: #8b5cf6;"></i>
-                                                </div>
-                                                <div class="min-w-0 flex-1">
-                                                    <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $c['name'] }}</div>
-                                                    <div class="text-[10px] truncate flex items-center gap-1" style="color: var(--text-faint);">
-                                                        <span class="font-mono">{{ $c['public_id'] }}</span>
-                                                        @if($c['is_disabled'])<span class="px-1 py-0 rounded bg-red-500/15 text-red-300 text-[8px]">Disabled</span>@endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    </div>
-                                @endforeach
-                            </div>
-                            <div class="text-center mt-4">
-                                <a href="{{ route('user.ai-companions.index') }}" class="text-[11px] text-violet-400 hover:text-violet-300"><i class="fas fa-cog mr-1"></i>Manage all Companions</a>
-                            </div>
-                        @endif
-                    </div>
-
-                    {{-- CARD TEMPLATES --}}
-                    <div x-show="galleryMode === 'templates'" x-cloak>
-                        <div class="gallery-tabs pb-3" x-show="Object.keys(cardCategories).length">
-                            <button class="gallery-tab" :class="cardCategory === 'all' ? 'active' : ''" @click="cardCategory = 'all'; loadCardTemplates(true)">All</button>
-                            <template x-for="(label, key) in cardCategories" :key="key">
-                                <button class="gallery-tab" :class="cardCategory === key ? 'active' : ''" @click="cardCategory = key; loadCardTemplates(true)" x-text="label"></button>
-                            </template>
-                        </div>
-                        <div x-show="cardTemplatesLoading" class="text-center py-10" style="color: var(--text-faint);">
-                            <i class="fas fa-spinner fa-spin text-xl"></i>
-                        </div>
-                        <div x-show="!cardTemplatesLoading && cardTemplates.length === 0" class="text-center py-10">
-                            <i class="fas fa-layer-group text-2xl mb-2" style="color: var(--text-faint);"></i>
-                            <p class="text-sm" style="color: var(--text-muted);">No matching card templates.</p>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="!cardTemplatesLoading">
-                            <template x-for="t in visibleCardTemplates()" :key="t.id">
-                                <div class="relative rounded-xl border overflow-visible transition cursor-pointer group" style="border-color: var(--border-glass); background: rgba(124,58,237,0.02);"
-                                     x-data="{ expanded: false }"
-                                     @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
-                                     :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-violet-500/50'"
-                                     :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : (t.description || t.name)">
-                                    <div class="aspect-[4/2] flex items-center justify-center relative overflow-hidden rounded-t-xl" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
-                                        <template x-if="t.thumbnail_url">
-                                            <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
-                                        </template>
-                                        {{-- Auto-generated mini blueprint of the card layout. Each row is a
-                                             flex row whose children flex-grow proportional to their grid_span,
-                                             so column counts and image position match the real card. Each
-                                             cell's `shape` hint drives a small mock (avatar circle, pill
-                                             button, stacked input lines, etc.) so the tile communicates the
-                                             card's actual contents at a glance instead of looking like every
-                                             other tile. Falls back to a generic coloured tile for unknown
-                                             shapes so future block types never render blank. --}}
-                                        <template x-if="!t.thumbnail_url && (t.preview_layout || []).length">
-                                            <div class="w-full h-full px-2 py-1.5 flex flex-col gap-1 justify-center">
-                                                <template x-for="(row, ri) in t.preview_layout" :key="ri">
-                                                    <div class="flex gap-1 w-full items-center">
-                                                        <template x-for="(cell, ci) in row" :key="ci">
-                                                            <div class="flex items-center justify-center"
-                                                                 :style="'flex: ' + cell.span + ' 0 0;'">
-                                                                {{-- heading: solid bar, optionally with a shorter sub-line --}}
-                                                                <template x-if="cell.shape === 'heading'">
-                                                                    <div class="w-full flex flex-col gap-[2px] items-center">
-                                                                        <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px;'"></div>
-                                                                        <template x-if="cell.sub">
-                                                                            <div class="rounded-[2px]" :style="'background: ' + cell.bg + '; height: ' + Math.max(cell.h - 6, 4) + 'px; width: 55%;'"></div>
-                                                                        </template>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- text_lines: stack of N thin paragraph lines, last one shorter --}}
-                                                                <template x-if="cell.shape === 'text_lines'">
-                                                                    <div class="w-full flex flex-col gap-[2px] justify-center" :style="'min-height: ' + cell.h + 'px;'">
-                                                                        <template x-for="i in (cell.lines || 2)" :key="i">
-                                                                            <div class="rounded-[2px]" :style="'background: ' + cell.bg + '; height: 3px; width: ' + (i === (cell.lines || 2) ? '60%' : '100%') + ';'"></div>
-                                                                        </template>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- pill: rounded full-radius button with arrow glyph --}}
-                                                                <template x-if="cell.shape === 'pill'">
-                                                                    <div class="w-full rounded-full flex items-center justify-end px-1.5 text-white/85"
-                                                                         :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
-                                                                        <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 6px;"></i>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- avatar: circle on the left + 2 stacked lines on the right --}}
-                                                                <template x-if="cell.shape === 'avatar'">
-                                                                    <div class="w-full flex items-center gap-1.5" :style="'min-height: ' + cell.h + 'px;'">
-                                                                        <div class="rounded-full flex items-center justify-center text-white/90 shrink-0"
-                                                                             :style="'background: ' + cell.bg + '; width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
-                                                                            <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 7px;"></i>
-                                                                        </div>
-                                                                        <div class="flex-1 flex flex-col gap-[2px] min-w-0">
-                                                                            <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.55); height: 4px; width: 70%;'"></div>
-                                                                            <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.30); height: 3px; width: 50%;'"></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- media: gradient block with centred media glyph --}}
-                                                                <template x-if="cell.shape === 'media'">
-                                                                    <div class="w-full rounded-[3px] flex items-center justify-center text-white/85"
-                                                                         :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
-                                                                        <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 11px;"></i>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- dot_row: row of small circular icon dots --}}
-                                                                <template x-if="cell.shape === 'dot_row'">
-                                                                    <div class="w-full flex items-center justify-center gap-1" :style="'min-height: ' + cell.h + 'px;'">
-                                                                        <template x-for="i in (cell.dots || 5)" :key="i">
-                                                                            <div class="rounded-full" :style="'background: ' + cell.bg + '; width: 5px; height: 5px;'"></div>
-                                                                        </template>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- form: stacked input-line shapes with a small button at the bottom --}}
-                                                                <template x-if="cell.shape === 'form'">
-                                                                    <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
-                                                                        <template x-for="i in (cell.lines || 1)" :key="i">
-                                                                            <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: 5px;'"></div>
-                                                                        </template>
-                                                                        <div class="rounded-full mx-auto" :style="'background: ' + (cell.btn_bg || 'rgba(139,92,246,0.85)') + '; height: 6px; width: 60%;'"></div>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- list_rows: stack of small dot + line rows --}}
-                                                                <template x-if="cell.shape === 'list_rows'">
-                                                                    <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
-                                                                        <template x-for="i in (cell.lines || 3)" :key="i">
-                                                                            <div class="flex items-center gap-1 w-full">
-                                                                                <div class="rounded-full shrink-0" :style="'background: ' + cell.bg + '; width: 3px; height: 3px;'"></div>
-                                                                                <div class="rounded-[2px] flex-1" :style="'background: ' + cell.bg + '; height: 3px;'"></div>
-                                                                            </div>
-                                                                        </template>
-                                                                    </div>
-                                                                </template>
-                                                                {{-- hairline: thin horizontal line --}}
-                                                                <template x-if="cell.shape === 'hairline'">
-                                                                    <div class="w-full rounded-[2px]" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px;'"></div>
-                                                                </template>
-                                                                {{-- spacer: empty gap --}}
-                                                                <template x-if="cell.shape === 'spacer'">
-                                                                    <div class="w-full" :style="'min-height: ' + cell.h + 'px;'"></div>
-                                                                </template>
-                                                                {{-- badge: short narrow chip --}}
-                                                                <template x-if="cell.shape === 'badge'">
-                                                                    <div class="rounded-full mx-auto" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px; width: 50%;'"></div>
-                                                                </template>
-                                                                {{-- tile: default coloured rect with optional centred icon --}}
-                                                                <template x-if="!cell.shape || cell.shape === 'tile'">
-                                                                    <div class="w-full rounded-[3px] flex items-center justify-center text-white/70"
-                                                                         :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
-                                                                        <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 8px;"></i>
-                                                                    </div>
-                                                                </template>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </template>
-                                        {{-- Final fallback: snapshot had no usable children (or future block
-                                             type with no palette entry) — keep the original generic icon so
-                                             the card never renders blank. --}}
-                                        <template x-if="!t.thumbnail_url && !(t.preview_layout || []).length">
-                                            <i class="fas fa-square-poll-vertical text-2xl text-violet-300/60"></i>
-                                        </template>
-                                        <div x-show="t.locked" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i><span x-text="t.plan_tier"></span></div>
-                                    </div>
-                                    <div class="p-3">
-                                        {{-- Title row: name on the left, small subtle category pill on the
-                                             right so the most useful info (the title and the chip list below)
-                                             is the most prominent. --}}
-                                        <div class="flex items-start justify-between gap-2 mb-1.5">
-                                            <div class="text-xs font-semibold flex-1 min-w-0" style="color: var(--text-primary);" x-text="t.name"></div>
-                                            <span class="shrink-0 text-[8.5px] uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap"
-                                                  style="color: var(--text-faint); background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass);"
-                                                  x-text="t.category_label || t.category"></span>
-                                        </div>
-                                        {{-- Primary "what's inside" caption: small icon-tagged chips
-                                             (icon + short label like 'Avatar', '2 Buttons') built from the
-                                             children summary. Same height regardless of how many chips fit
-                                             so the gallery grid stays aligned. --}}
-                                        <div class="flex flex-wrap gap-1 min-h-[18px]"
-                                             x-data="{
-                                                chips() {
-                                                    const groups = new Map();
-                                                    for (const c of (t.children || [])) {
-                                                        const key = c.type;
-                                                        if (!groups.has(key)) {
-                                                            groups.set(key, { icon: c.icon || 'fa-cube', label: c.label, count: 0 });
-                                                        }
-                                                        groups.get(key).count += 1;
-                                                    }
-                                                    return Array.from(groups.values());
-                                                }
-                                             }">
-                                            <template x-if="(t.children || []).length">
-                                                <template x-for="(chip, i) in chips().slice(0, 3)" :key="i">
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-medium"
-                                                          style="background: rgba(139,92,246,0.10); color: var(--text-primary); border: 1px solid rgba(139,92,246,0.18);">
-                                                        <i :class="'fas ' + chip.icon" class="text-violet-400" style="font-size: 8px;"></i>
-                                                        <span x-text="chip.count > 1 ? (chip.count + ' ' + chip.label + 's') : chip.label"></span>
-                                                    </span>
-                                                </template>
-                                            </template>
-                                            <template x-if="(t.children || []).length && chips().length > 3">
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9.5px] font-semibold text-violet-400/90"
-                                                      x-text="'+' + (chips().length - 3) + ' more'"></span>
-                                            </template>
-                                            <template x-if="!(t.children || []).length">
-                                                <span class="text-[10px]" style="color: var(--text-muted);" x-text="(t.children_count || 0) + ' blocks'"></span>
-                                            </template>
-                                        </div>
-                                        {{-- Mobile-only "what's inside" toggle. Desktop uses the hover popover below. --}}
-                                        <button type="button"
-                                                class="sm:hidden mt-2 text-[10px] text-violet-400 hover:text-violet-300"
-                                                x-show="(t.children || []).length"
-                                                @click.stop="expanded = !expanded"
-                                                x-text="expanded ? 'Hide details' : 'See what\'s inside'"></button>
-                                    </div>
-
-                                    {{-- Hover popover (desktop) — full ordered block list with key field previews. --}}
-                                    <div class="hidden sm:block absolute left-0 right-0 top-full mt-1 z-30 opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:opacity-100 hover:visible transition rounded-lg border shadow-xl p-2.5"
-                                         @click.stop
-                                         style="background: rgba(20,16,32,0.97); border-color: var(--border-glass); backdrop-filter: blur(8px);"
-                                         x-show="(t.children || []).length"
-                                         x-cloak>
-                                        <div class="text-[10px] uppercase tracking-wide mb-1.5" style="color: var(--text-faint);">What's inside</div>
-                                        <ul class="space-y-1 max-h-56 overflow-y-auto">
-                                            <template x-for="(c, i) in (t.children || [])" :key="i">
-                                                <li class="flex items-start gap-2 text-[11px]" style="color: var(--text-primary);">
-                                                    <i :class="'fas ' + (c.icon || 'fa-cube')" class="text-violet-400 mt-0.5 w-3 text-center"></i>
-                                                    <span class="flex-1 min-w-0">
-                                                        <span class="font-semibold" x-text="c.label"></span>
-                                                        <template x-if="c.preview">
-                                                            <span style="color: var(--text-muted);" x-text="' — ' + c.preview"></span>
-                                                        </template>
-                                                    </span>
-                                                </li>
-                                            </template>
-                                        </ul>
-                                    </div>
-
-                                    {{-- Mobile expanded list — same content, inline (tap-to-toggle). --}}
-                                    <div class="sm:hidden px-3 pb-3 -mt-1" x-show="expanded" x-cloak @click.stop>
-                                        <ul class="space-y-1 pt-2 border-t" style="border-color: var(--border-glass);">
-                                            <template x-for="(c, i) in (t.children || [])" :key="i">
-                                                <li class="flex items-start gap-2 text-[11px]" style="color: var(--text-primary);">
-                                                    <i :class="'fas ' + (c.icon || 'fa-cube')" class="text-violet-400 mt-0.5 w-3 text-center"></i>
-                                                    <span class="flex-1 min-w-0">
-                                                        <span class="font-semibold" x-text="c.label"></span>
-                                                        <template x-if="c.preview">
-                                                            <span style="color: var(--text-muted);" x-text="' — ' + c.preview"></span>
-                                                        </template>
-                                                    </span>
-                                                </li>
-                                            </template>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                        <div class="text-center mt-4" x-show="!cardTemplatesLoading && visibleCardTemplates().length < cardTemplates.length">
-                            <button type="button" @click="cardTemplatesLimit += 24" class="text-[11px] text-violet-400 hover:text-violet-300">
-                                Show more (<span x-text="cardTemplates.length - cardTemplatesLimit"></span> left)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </template>
-
     <div class="reorder-toast" id="reorderToast"><i class="fas fa-check-circle mr-2"></i>Order saved</div>
 </div>
 
@@ -1492,10 +891,14 @@ $catColors = [
 <script>
 function biolinkEditor() {
     return {
-        showGallery: false,
-        gallerySearch: '',
-        galleryCategory: 'all',
-        galleryMode: 'blocks',
+        // Inline "Templates, forms & more" panel (replaces the old gallery modal).
+        specialOpen: false,
+        specialMode: 'templates',
+        specialSearch: '',
+        // Pending-insert context, mirrored into the global vars the add
+        // handlers read. Drives the palette "inserting after / into card" banner.
+        insertAfterId: null,
+        cardParentId: null,
         paletteSearch: '',
         paletteCategory: 'all',
         cardTemplates: [],
@@ -1506,8 +909,34 @@ function biolinkEditor() {
         cardTemplatesLoaded: false,
         _cardSearchTimer: null,
         editingBlockId: null,
+        openSpecialPanel(mode) {
+            this.specialMode = mode || 'templates';
+            this.specialOpen = true;
+            if (this.specialMode === 'templates') this.loadCardTemplates();
+        },
+        // Set/clear the pending-insert target. Keeps the legacy global vars in
+        // sync so ajaxAddBlock / ajaxAddBlockWithSettings / applyCardTemplate
+        // pick the right position.
+        beginInsert(afterId) {
+            this.insertAfterId = afterId;
+            this.cardParentId = null;
+            _insertAfterId = afterId;
+            _cardGalleryParentId = null;
+        },
+        beginCardInsert(cardId) {
+            this.insertAfterId = null;
+            this.cardParentId = cardId;
+            _insertAfterId = null;
+            _cardGalleryParentId = cardId;
+        },
+        cancelInsert() {
+            this.insertAfterId = null;
+            this.cardParentId = null;
+            _insertAfterId = null;
+            _cardGalleryParentId = null;
+        },
         visibleCardTemplates() {
-            var q = (this.gallerySearch || '').toLowerCase();
+            var q = (this.specialSearch || '').toLowerCase();
             var filtered = q
                 ? this.cardTemplates.filter(t => (t.name + ' ' + (t.description || '')).toLowerCase().includes(q))
                 : this.cardTemplates;
@@ -1519,7 +948,7 @@ function biolinkEditor() {
             this.cardTemplatesLimit = 24;
             var params = new URLSearchParams();
             if (this.cardCategory && this.cardCategory !== 'all') params.set('category', this.cardCategory);
-            if (this.gallerySearch) params.set('q', this.gallerySearch);
+            if (this.specialSearch) params.set('q', this.specialSearch);
             var url = '{{ route('user.links.templates.cards', $link) }}' + (params.toString() ? '?' + params.toString() : '');
             fetch(url, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
@@ -1536,12 +965,18 @@ function biolinkEditor() {
             fd.append('_token', _csrfToken());
             fd.append('template_id', id);
             if (_insertAfterId) fd.append('insert_after', _insertAfterId);
+            var self = this;
             fetch('{{ route('user.links.templates.apply-card', $link) }}', {
                 method: 'POST',
                 headers: { 'Accept': 'application/json' },
                 body: fd
             }).then(r => r.json()).then(d => {
-                if (d.success) {
+                if (d.success && d.html) {
+                    window.__editorInsertBlockCard(d, {});
+                    self.specialOpen = false;
+                    self.cancelInsert();
+                    showToast('Card template added', 'success');
+                } else if (d.success) {
                     showToast('Card template added', 'success');
                     setTimeout(function() { location.reload(); }, 400);
                 } else {
@@ -1565,11 +1000,19 @@ function biolinkEditor() {
                 c.innerHTML = '';
                 _hideEditPreview();
             });
-            window.addEventListener('open-card-gallery', function() {
-                self.showGallery = true;
+            // Per-block "+" / "add to card" buttons request a pending insert
+            // and (for cards) open the templates panel.
+            window.addEventListener('editor-begin-insert', function(e) {
+                self.beginInsert(e.detail.afterId);
             });
-            self.$watch('showGallery', function(val) {
-                if (!val) { _cardGalleryParentId = null; _insertAfterId = null; }
+            window.addEventListener('editor-begin-card-insert', function(e) {
+                self.beginCardInsert(e.detail.cardId);
+            });
+            window.addEventListener('editor-clear-insert', function() {
+                self.cancelInsert();
+            });
+            window.addEventListener('editor-close-special', function() {
+                self.specialOpen = false;
             });
         },
         closeEditDrawer() {
@@ -1972,21 +1415,40 @@ function ajaxDeleteBlock(btn, url, blockId) {
     });
 }
 
+// Source of truth for the pending-insert target, read by every add handler.
+// Alpine mirrors these into insertAfterId / cardParentId to drive the banner.
 var _cardGalleryParentId = null;
 var _insertAfterId = null;
+
+// Clear the pending-insert target everywhere (globals + Alpine banner).
+function _clearInsertState() {
+    _insertAfterId = null;
+    _cardGalleryParentId = null;
+    window.dispatchEvent(new CustomEvent('editor-clear-insert'));
+}
+
+// Close the inline "Templates, forms & more" panel.
+function _closeSpecialPanel() {
+    window.dispatchEvent(new CustomEvent('editor-close-special'));
+}
 
 function ajaxAddBlock(type, url, parentId) {
     var fd = new FormData();
     fd.append('type', type);
     fd.append('_token', _csrfToken());
-    if (parentId) fd.append('parent_id', parentId);
+    var pid = parentId || _cardGalleryParentId;
+    if (pid) fd.append('parent_id', pid);
     if (_insertAfterId) fd.append('insert_after', _insertAfterId);
     fetch(url, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
         body: fd
     }).then(function(r) { return r.json(); }).then(function(data) {
-        if (data.success) {
+        if (data.success && (data.html || data.child_html)) {
+            window.__editorInsertBlockCard(data, {});
+            _clearInsertState();
+            showToast('Block added', 'success');
+        } else if (data.success) {
             showToast('Block added', 'success');
             setTimeout(function() { location.reload(); }, 400);
         } else {
@@ -1995,11 +1457,9 @@ function ajaxAddBlock(type, url, parentId) {
     }).catch(function() { showToast('Failed to add block', 'error'); });
 }
 
-// Click-to-add fallback for palette block tiles — appends to the end of the
-// top-level list (no insert position), reusing the existing store() flow.
+// Click-to-add for palette block tiles — honors any pending-insert target set
+// via the per-block "+" / "add to card" buttons (does NOT reset it here).
 function paletteClickAdd(type) {
-    _insertAfterId = null;
-    _cardGalleryParentId = null;
     ajaxAddBlock(type, '{{ route("user.links.blocks.store", $link) }}', null);
 }
 
@@ -2011,13 +1471,20 @@ function ajaxAddBlockWithSettings(type, settings, url) {
         var v = settings[k];
         fd.append('settings[' + k + ']', v === null || v === undefined ? '' : v);
     });
+    var pid = _cardGalleryParentId;
+    if (pid) fd.append('parent_id', pid);
     if (_insertAfterId) fd.append('insert_after', _insertAfterId);
     fetch(url, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
         body: fd
     }).then(function(r) { return r.json(); }).then(function(data) {
-        if (data.success) {
+        if (data.success && (data.html || data.child_html)) {
+            window.__editorInsertBlockCard(data, {});
+            _clearInsertState();
+            _closeSpecialPanel();
+            showToast('Block added', 'success');
+        } else if (data.success) {
             showToast('Block added', 'success');
             setTimeout(function() { location.reload(); }, 400);
         } else {
@@ -2026,25 +1493,28 @@ function ajaxAddBlockWithSettings(type, settings, url) {
     }).catch(function() { showToast('Failed to add block', 'error'); });
 }
 
+// "Add block to card" — set a pending card-insert target and focus the palette
+// so the next palette tile click drops the block into this card.
 function openCardGallery(cardId) {
-    _cardGalleryParentId = cardId;
-    _insertAfterId = null;
-    var el = document.querySelector('[x-data="biolinkEditor()"]');
-    if (el && el.__x) {
-        el.__x.$data.showGallery = true;
-    } else {
-        window.dispatchEvent(new CustomEvent('open-card-gallery'));
-    }
+    window.dispatchEvent(new CustomEvent('editor-begin-card-insert', { detail: { cardId: cardId } }));
+    focusBlockPalette();
 }
 
+// Per-block "+" — set a pending after-this-block target and focus the palette.
 function openInsertGallery(afterBlockId) {
-    _insertAfterId = afterBlockId;
-    _cardGalleryParentId = null;
-    var el = document.querySelector('[x-data="biolinkEditor()"]');
-    if (el && el.__x) {
-        el.__x.$data.showGallery = true;
-    } else {
-        window.dispatchEvent(new CustomEvent('open-card-gallery'));
+    window.dispatchEvent(new CustomEvent('editor-begin-insert', { detail: { afterId: afterBlockId } }));
+    focusBlockPalette();
+}
+
+// Bring the left "Add blocks" palette into view and focus its search. On small
+// screens the palette stacks above the canvas, so this scrolls to it.
+function focusBlockPalette() {
+    var col = document.getElementById('editorPaletteCol');
+    if (col) {
+        var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        try { col.scrollIntoView({ behavior: rm ? 'auto' : 'smooth', block: 'nearest' }); } catch (e) { col.scrollIntoView(); }
+        var search = col.querySelector('input[type="text"], input[type="search"]');
+        if (search) { try { search.focus({ preventScroll: true }); } catch (e) {} }
     }
 }
 
@@ -2097,68 +1567,130 @@ document.addEventListener('DOMContentLoaded', function() {
         return !(dragEl.classList.contains('card-container-block') || inner);
     }
 
-    // Create a real block from a palette drop, then place it at the exact drop
-    // index. We append via the existing store() flow (reusing BlockDefaults
-    // placeholder seeding) and, when the level has other siblings, follow up
-    // with a reorder so the block lands precisely where it was dropped — then
-    // reload to render it with all its controls / child sortables, matching the
-    // existing add / move / reorder behaviour.
-    function paletteCreateBlock(type, parentId, orderIds) {
+    // Build a DOM node from a rendered partial HTML string.
+    function _makeNode(html) {
+        var tpl = document.createElement('template');
+        tpl.innerHTML = (html || '').trim();
+        return tpl.content.firstElementChild;
+    }
+
+    // Activate a freshly-inserted node: hydrate Alpine and, for a card, wire its
+    // child sortable so blocks can be dropped inside immediately.
+    function _activateNode(node) {
+        if (!node) return;
+        if (window.Alpine && Alpine.initTree) { try { Alpine.initTree(node); } catch (e) {} }
+        var cl = node.querySelector ? node.querySelector('.card-child-list') : null;
+        if (cl) initCardChildSortable(cl);
+    }
+
+    // Keep the top-level count chip, reorder hint and empty-state in sync with
+    // the number of top-level blocks currently in the canvas.
+    function updateBlockChrome() {
+        var count = el ? el.querySelectorAll(':scope > .block-card-wrapper').length : 0;
+        var chip = document.getElementById('blockCountChip');
+        if (chip) {
+            chip.style.display = count > 0 ? '' : 'none';
+            var strong = chip.querySelector('[data-block-count]');
+            if (strong) strong.textContent = count;
+        }
+        var hint = document.getElementById('reorderHint');
+        if (hint) hint.style.display = count > 1 ? '' : 'none';
+        var empty = document.getElementById('blockListEmpty');
+        if (empty) empty.style.display = count === 0 ? '' : 'none';
+    }
+    window.__editorUpdateBlockChrome = updateBlockChrome;
+
+    function _refreshPreviewSafe() {
+        if (typeof refreshPreview === 'function') refreshPreview();
+    }
+
+    // Update a card's "Child Blocks (N)" counter from its live child list.
+    function _syncChildCount(parentId, listEl) {
+        var cc = document.querySelector('[data-card-child-count="' + parentId + '"]');
+        if (cc) cc.textContent = listEl.querySelectorAll('.child-block-card').length;
+    }
+
+    // Insert a server-rendered block in place. Handles both top-level
+    // (data.html) and into-card (data.child_html + data.parent_id) inserts,
+    // honoring data.insert_after for positioning. opts.referenceNode, when
+    // given, inserts immediately before that node (used by palette drops).
+    window.__editorInsertBlockCard = function(data, opts) {
+        opts = opts || {};
+        if (data.child_html && data.parent_id) {
+            var list = el ? el.querySelector('.card-child-list[data-card-id="' + data.parent_id + '"]') : null;
+            if (!list) { location.reload(); return; }
+            var emptyHint = list.querySelector('.card-empty-hint');
+            if (emptyHint) emptyHint.remove();
+            var cnode = _makeNode(data.child_html);
+            if (!cnode) return;
+            if (opts.referenceNode && opts.referenceNode.parentNode === list) {
+                list.insertBefore(cnode, opts.referenceNode);
+            } else if (data.insert_after) {
+                var cref = list.querySelector('.child-block-card[data-block-id="' + data.insert_after + '"]');
+                if (cref) list.insertBefore(cnode, cref.nextSibling); else list.appendChild(cnode);
+            } else {
+                list.appendChild(cnode);
+            }
+            _activateNode(cnode);
+            _syncChildCount(data.parent_id, list);
+        } else if (data.html) {
+            if (!el) { location.reload(); return; }
+            var node = _makeNode(data.html);
+            if (!node) return;
+            if (opts.referenceNode && opts.referenceNode.parentNode === el) {
+                el.insertBefore(node, opts.referenceNode);
+            } else if (data.insert_after) {
+                var ref = el.querySelector(':scope > .block-card-wrapper[data-block-id="' + data.insert_after + '"]');
+                if (ref) el.insertBefore(node, ref.nextSibling); else el.appendChild(node);
+            } else {
+                el.appendChild(node);
+            }
+            _activateNode(node);
+            updateBlockChrome();
+        }
+        _refreshPreviewSafe();
+    };
+
+    // Create a real block from a palette drop and place it where it landed
+    // (before the hidden clone), then persist the new order — all in place, no
+    // reload. Reuses the store() flow (BlockDefaults placeholder seeding).
+    function paletteCreateBlock(type, parentId, cloneEl, listEl) {
         var fd = new FormData();
         fd.append('type', type);
         fd.append('_token', _csrfToken());
         if (parentId) fd.append('parent_id', parentId);
+        var removeClone = function() { if (cloneEl && cloneEl.parentNode) cloneEl.parentNode.removeChild(cloneEl); };
         return fetch(_storeUrl, {
             method: 'POST',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
             body: fd
         }).then(function(r) { return r.json(); }).then(function(data) {
-            if (!data || !data.success) {
+            if (!data || !data.success || !(data.html || data.child_html)) {
                 showToast((data && data.error) || 'Failed to add block', 'error');
-                location.reload();
+                removeClone();
                 return;
             }
             showToast('Block added', 'success');
-            var newId = data.block && data.block.id;
-            if (orderIds && orderIds.length > 1 && newId) {
-                var finalIds = orderIds.map(function(x) { return x === 'NEW' ? newId : x; });
-                fetch(_reorderUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' },
-                    body: JSON.stringify({ blocks: finalIds })
-                }).then(function() { location.reload(); }).catch(function() { location.reload(); });
-            } else {
-                location.reload();
-            }
-        }).catch(function() { showToast('Failed to add block', 'error'); location.reload(); });
+            window.__editorInsertBlockCard(data, { referenceNode: cloneEl });
+            removeClone();
+            // Persist the resulting order for this level.
+            var sel = parentId ? '.child-block-card' : ':scope > .block-card-wrapper';
+            reorderList(listEl, sel).catch(function() {});
+            _refreshPreviewSafe();
+        }).catch(function() { showToast('Failed to add block', 'error'); removeClone(); });
     }
 
     // Detect a palette clone landing in a list (top-level canvas or a card
     // child list) and turn it into a real block creation. Returns true when it
-    // handled the drop so the existing move-block logic is skipped.
+    // handled the drop so the existing move-block logic is skipped. The clone is
+    // hidden (kept in DOM to mark the drop slot) and removed after insertion.
     function handlePaletteDrop(evt, listEl, parentId) {
         var item = evt.item;
         if (!item || !item.classList || !item.classList.contains('palette-block-item')) return false;
         var type = item.dataset ? item.dataset.blockType : null;
-        // Build the level's ordered ids with a 'NEW' marker at the drop slot,
-        // counting only real block cards (skips the dropped clone, empty-state
-        // hints, insert buttons, etc.).
-        var order = [];
-        var kids = listEl.children;
-        for (var i = 0; i < kids.length; i++) {
-            var k = kids[i];
-            if (k === item) { order.push('NEW'); continue; }
-            if (!k.classList) continue;
-            if (k.classList.contains('block-card-wrapper') || k.classList.contains('child-block-card')) {
-                var id = parseInt(k.dataset.blockId);
-                if (id) order.push(id);
-            }
-        }
-        // Hide (don't remove) the clone so SortableJS's own end handlers can
-        // still reference it without throwing; the reload replaces the DOM.
         item.style.display = 'none';
-        if (!type) { location.reload(); return true; }
-        paletteCreateBlock(type, parentId, order);
+        if (!type) { if (item.parentNode) item.parentNode.removeChild(item); return true; }
+        paletteCreateBlock(type, parentId, item, listEl);
         return true;
     }
 
@@ -2200,17 +1732,23 @@ document.addEventListener('DOMContentLoaded', function() {
             onAdd: function(evt) {
                 if (handlePaletteDrop(evt, el, null)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);
+                var fromList = evt.from;
                 doMoveBlock(blockId, null).then(function(data) {
-                    if (data.success) {
+                    if (data.success && (data.html || data.child_html)) {
+                        var node = _makeNode(data.html || data.child_html);
+                        if (node) el.insertBefore(node, evt.item);
+                        if (evt.item.parentNode) evt.item.parentNode.removeChild(evt.item);
+                        _activateNode(node);
+                        reorderList(el, ':scope > .block-card-wrapper').catch(function() {});
+                        if (fromList && fromList.dataset && fromList.dataset.cardId) _syncChildCount(fromList.dataset.cardId, fromList);
+                        updateBlockChrome();
                         showToast('Block moved out of card', 'success');
-                        reorderList(el, ':scope > .block-card-wrapper, :scope > .child-block-card').then(function() {
-                            location.reload();
-                        });
+                        _refreshPreviewSafe();
                     } else {
-                        showToast(data.error || 'Move failed', 'error');
+                        showToast((data && data.error) || 'Move failed', 'error');
                         location.reload();
                     }
-                });
+                }).catch(function() { location.reload(); });
             },
             onEnd: function(evt) {
                 if (evt.from === evt.to) {
@@ -2247,17 +1785,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     location.reload();
                     return;
                 }
+                var fromList = evt.from;
                 doMoveBlock(blockId, cardId).then(function(data) {
-                    if (data.success) {
+                    if (data.success && (data.child_html || data.html)) {
+                        var emptyHint = childList.querySelector('.card-empty-hint');
+                        if (emptyHint) emptyHint.remove();
+                        var node = _makeNode(data.child_html || data.html);
+                        if (node) childList.insertBefore(node, evt.item);
+                        if (evt.item.parentNode) evt.item.parentNode.removeChild(evt.item);
+                        _activateNode(node);
+                        reorderList(childList, '.child-block-card').catch(function() {});
+                        _syncChildCount(cardId, childList);
+                        if (fromList === el) updateBlockChrome();
+                        else if (fromList && fromList.dataset && fromList.dataset.cardId) _syncChildCount(fromList.dataset.cardId, fromList);
                         showToast('Block moved into card', 'success');
-                        reorderList(childList, '.child-block-card, .block-card, .block-card-wrapper').then(function() {
-                            location.reload();
-                        });
+                        _refreshPreviewSafe();
                     } else {
-                        showToast(data.error || 'Move failed', 'error');
+                        showToast((data && data.error) || 'Move failed', 'error');
                         location.reload();
                     }
-                });
+                }).catch(function() { location.reload(); });
             },
             onEnd: function(evt) {
                 if (evt.from === evt.to) {
