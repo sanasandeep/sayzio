@@ -20,6 +20,15 @@
     html.light-mode .tpl-prev-sub,
     html.light-mode .tpl-prev-text,
     html.light-mode .tpl-prev-list { color: rgba(7,20,55,0.55); }
+    /* Loading shimmer behind media/avatar image cells until the thumbnail
+       loads (mirrors the mobile picker's ShimmerOverlay). Sits absolutely
+       behind the <img>, so it causes no layout shift; removed on (e)load. */
+    .tpl-prev-shimmer { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; background: rgba(255,255,255,0.06); z-index: 0; }
+    .tpl-prev-shimmer::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent); animation: tpl-prev-shimmer-sweep 1.2s ease-in-out infinite; }
+    html.light-mode .tpl-prev-shimmer { background: rgba(15,12,30,0.07); }
+    html.light-mode .tpl-prev-shimmer::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent); }
+    @keyframes tpl-prev-shimmer-sweep { 100% { transform: translateX(100%); } }
+    @media (prefers-reduced-motion: reduce) { .tpl-prev-shimmer::after { animation: none; } }
 </style>
 <div class="special-panel" x-show="specialOpen" x-cloak
      style="position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; background:var(--bg-sidebar); backdrop-filter:blur(24px) saturate(1.3); -webkit-backdrop-filter:blur(24px) saturate(1.3);"
@@ -223,7 +232,10 @@
                                                     <template x-if="cell.shape === 'avatar'">
                                                         <div class="w-full flex items-center gap-1.5" :style="'min-height: ' + cell.h + 'px;'">
                                                             <template x-if="cell.img">
-                                                                <img :src="cell.img" alt="" loading="lazy" class="rounded-full object-cover shrink-0" :style="'width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
+                                                                <div class="relative rounded-full overflow-hidden shrink-0" :style="'width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
+                                                                    <div class="tpl-prev-shimmer"></div>
+                                                                    <img :src="cell.img" alt="" loading="lazy" class="relative w-full h-full object-cover" onload="this.previousElementSibling && this.previousElementSibling.remove()" onerror="this.previousElementSibling && this.previousElementSibling.remove()">
+                                                                </div>
                                                             </template>
                                                             <template x-if="!cell.img">
                                                                 <div class="rounded-full flex items-center justify-center text-white/90 shrink-0" :style="'background: ' + cell.bg + '; width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
@@ -249,7 +261,10 @@
                                                     <template x-if="cell.shape === 'media'">
                                                         <div class="w-full rounded-[3px] relative overflow-hidden flex items-center justify-center text-white/85" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px; height: ' + cell.h + 'px;'">
                                                             <template x-if="cell.img">
-                                                                <img :src="cell.img" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover">
+                                                                <div class="absolute inset-0">
+                                                                    <div class="tpl-prev-shimmer"></div>
+                                                                    <img :src="cell.img" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onload="this.previousElementSibling && this.previousElementSibling.remove()" onerror="this.previousElementSibling && this.previousElementSibling.remove()">
+                                                                </div>
                                                             </template>
                                                             <i x-show="cell.play || !cell.img" :class="'fas ' + (cell.play ? 'fa-play' : cell.icon)" class="relative" :style="'font-size: 11px;' + (cell.img ? ' text-shadow: 0 1px 3px rgba(0,0,0,0.6);' : '')"></i>
                                                         </div>

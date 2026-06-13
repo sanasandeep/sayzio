@@ -30,6 +30,15 @@
     html.light-mode .tpl-prev-sub,
     html.light-mode .tpl-prev-text,
     html.light-mode .tpl-prev-list { color: rgba(7,20,55,0.55); }
+    /* Loading shimmer behind media/avatar image cells until the thumbnail
+       loads (mirrors the mobile picker's ShimmerOverlay). Sits absolutely
+       behind the <img>, so it causes no layout shift; removed on (e)load. */
+    .tpl-prev-shimmer { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; background: rgba(255,255,255,0.06); z-index: 0; }
+    .tpl-prev-shimmer::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent); animation: tpl-prev-shimmer-sweep 1.2s ease-in-out infinite; }
+    html.light-mode .tpl-prev-shimmer { background: rgba(15,12,30,0.07); }
+    html.light-mode .tpl-prev-shimmer::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent); }
+    @keyframes tpl-prev-shimmer-sweep { 100% { transform: translateX(100%); } }
+    @media (prefers-reduced-motion: reduce) { .tpl-prev-shimmer::after { animation: none; } }
 </style>
 @php
     // Lightweight JS mirror of the templates so Alpine can compute how many
@@ -281,8 +290,11 @@
                                                     @case('avatar')
                                                         <div class="w-full flex items-center gap-1.5" style="min-height: {{ $h }}px;">
                                                             @if($imgUrl !== '')
-                                                                <img src="{{ $imgUrl }}" alt="" loading="lazy" class="rounded-full object-cover shrink-0"
-                                                                     style="width: {{ max($h - 8, 14) }}px; height: {{ max($h - 8, 14) }}px;">
+                                                                <div class="relative rounded-full overflow-hidden shrink-0" style="width: {{ max($h - 8, 14) }}px; height: {{ max($h - 8, 14) }}px;">
+                                                                    <div class="tpl-prev-shimmer"></div>
+                                                                    <img src="{{ $imgUrl }}" alt="" loading="lazy" class="relative w-full h-full object-cover"
+                                                                         onload="this.previousElementSibling && this.previousElementSibling.remove()" onerror="this.previousElementSibling && this.previousElementSibling.remove()">
+                                                                </div>
                                                             @else
                                                                 <div class="rounded-full flex items-center justify-center text-white/90 shrink-0"
                                                                      style="background: {{ $bg }}; width: {{ max($h - 8, 14) }}px; height: {{ max($h - 8, 14) }}px;">
@@ -307,7 +319,9 @@
                                                         <div class="w-full rounded-[3px] relative overflow-hidden flex items-center justify-center text-white/85"
                                                              style="background: {{ $bg }}; min-height: {{ $h }}px; height: {{ $h }}px;">
                                                             @if($imgUrl !== '')
-                                                                <img src="{{ $imgUrl }}" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover">
+                                                                <div class="tpl-prev-shimmer"></div>
+                                                                <img src="{{ $imgUrl }}" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover"
+                                                                     onload="this.previousElementSibling && this.previousElementSibling.remove()" onerror="this.previousElementSibling && this.previousElementSibling.remove()">
                                                             @endif
                                                             @if($play || $imgUrl === '')
                                                                 <i class="fas {{ $play ? 'fa-play' : $icon }} relative" style="font-size: 11px;{{ $imgUrl !== '' ? ' text-shadow: 0 1px 3px rgba(0,0,0,0.6);' : '' }}"></i>
