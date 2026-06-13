@@ -89,9 +89,9 @@
         --text-primary: #071437;
         --text-secondary: #252f4a;
         --text-muted: #4b5675;
-        --text-dimmed: #78829d;
-        --text-faint: #b5b5c3;
-        --text-label: #78829d;
+        --text-dimmed: #5e6884;
+        --text-faint: #6b7491;
+        --text-label: #5e6884;
         --sidebar-link: #4b5675;
         --sidebar-link-hover-bg: #f9f9f9;
         --sidebar-link-hover-text: #071437;

@@ -55,14 +55,14 @@
     @endif
 
     @if(!$__activeExp)
-        <p class="text-xs text-white/60 mb-3">
+        <p class="text-xs theme-text-muted mb-3">
             Snapshot the current layout as <strong>Variant A</strong>, then keep editing —
             your edits become <strong>Variant B</strong>. Visitors are split 50/50 (sticky per visitor).
         </p>
         <form method="POST" action="{{ route('user.links.experiment.start', $link) }}"
               class="flex items-end gap-2 flex-wrap">
             @csrf
-            <label class="text-[11px] text-white/60 flex flex-col gap-1">
+            <label class="text-[11px] theme-text-muted flex flex-col gap-1">
                 <span>Stop when</span>
                 <select name="stop_condition" id="ab-stop-condition"
                         onchange="document.getElementById('ab-sample').style.display=this.value==='sample_size'?'flex':'none';
@@ -73,12 +73,12 @@
                     <option value="end_date">Reach a date</option>
                 </select>
             </label>
-            <label id="ab-sample" class="text-[11px] text-white/60 flex flex-col gap-1" style="display:none;">
+            <label id="ab-sample" class="text-[11px] theme-text-muted flex flex-col gap-1" style="display:none;">
                 <span>Total visits across A+B (min 50)</span>
                 <input type="number" name="stop_sample_size" min="50" max="1000000" value="400"
                        class="bg-white/5 border border-white/15 rounded px-2 py-1.5 text-xs w-32">
             </label>
-            <label id="ab-end" class="text-[11px] text-white/60 flex flex-col gap-1" style="display:none;">
+            <label id="ab-end" class="text-[11px] theme-text-muted flex flex-col gap-1" style="display:none;">
                 <span>End date</span>
                 <input type="datetime-local" name="stop_end_date"
                        class="bg-white/5 border border-white/15 rounded px-2 py-1.5 text-xs">
@@ -98,29 +98,29 @@
                     $__ctr    = $__activeExp->ctrFor($__v);
                 @endphp
                 <div class="rounded-xl border border-white/10 p-3" style="background:rgba(255,255,255,0.03);">
-                    <div class="text-[10px] uppercase tracking-wider text-white/50 mb-1">Variant {{ strtoupper($__v) }}</div>
+                    <div class="text-[10px] uppercase tracking-wider theme-text-dimmed mb-1">Variant {{ strtoupper($__v) }}</div>
                     <div class="flex items-baseline gap-3">
                         <div>
-                            <div class="text-[10px] text-white/40">Visits</div>
+                            <div class="text-[10px] theme-text-faint">Visits</div>
                             <div class="font-bold" data-ab-stat="{{ $__v }}-visits">{{ $__visits }}</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-white/40">Clicks</div>
+                            <div class="text-[10px] theme-text-faint">Clicks</div>
                             <div class="font-bold" data-ab-stat="{{ $__v }}-clicks">{{ $__clicks }}</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-white/40">CTR</div>
+                            <div class="text-[10px] theme-text-faint">CTR</div>
                             <div class="font-bold" data-ab-stat="{{ $__v }}-ctr">{{ number_format($__ctr * 100, 1) }}%</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-white/40">Conv.</div>
+                            <div class="text-[10px] theme-text-faint">Conv.</div>
                             <div class="font-bold" data-ab-stat="{{ $__v }}-conv">{{ $__convs }}</div>
                         </div>
                     </div>
                 </div>
             @endforeach
         </div>
-        <p class="mt-2 text-[11px] text-white/50">
+        <p class="mt-2 text-[11px] theme-text-dimmed">
             Variant A is frozen at the snapshot taken when you started this test.
             Edits made to blocks below now apply to <strong>Variant B</strong>.
             @if($__activeExp->stop_condition === 'sample_size' && $__activeExp->stop_sample_size)
