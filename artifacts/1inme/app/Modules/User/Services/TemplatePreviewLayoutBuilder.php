@@ -72,21 +72,28 @@ class TemplatePreviewLayoutBuilder
      * Visual hints for a single block type in the mini preview.
      * Each cell carries:
      *   - shape: one of 'tile' (default coloured rect with icon),
-     *            'heading' (solid bar, optionally with shorter sub line),
-     *            'pill' (rounded full-radius button shape),
-     *            'avatar' (circle on left + two stacked lines on right),
-     *            'media' (gradient block with media glyph, taller),
+     *            'heading' (sample heading text, optionally with a sub line),
+     *            'pill' (rounded full-radius button with a label),
+     *            'avatar' (circular placeholder image + name lines on right),
+     *            'media' (placeholder image, taller, with optional play glyph),
      *            'dot_row' (row of small circular icon dots),
-     *            'text_lines' (stack of thin paragraph lines),
-     *            'form' (stacked input lines + a button at the bottom),
-     *            'list_rows' (stack of dot + line rows),
+     *            'text_lines' (sample paragraph text, clamped to N lines),
+     *            'form' (input lines + a labelled button),
+     *            'list_rows' (stack of dot + sample-text rows),
      *            'hairline' (1-2px line),
      *            'spacer' (transparent gap),
      *            'badge' (short narrow pill).
      *   - bg / h / icon: shared visual hints (background, height in px,
-     *     optional FA icon glyph).
+     *     optional FA icon glyph used as a fallback when no text/image).
      *   - lines / sub / dots: shape-specific extras (count of lines/dots,
      *     whether the heading has a shorter second line).
+     *   - text / sub_text: real placeholder copy for text-like shapes
+     *     (heading title, paragraph body, pill/button label, form button).
+     *   - items: short sample strings for list rows.
+     *   - img: absolute URL of a real placeholder image (from
+     *     public/block-placeholders/) for media/avatar shapes. The
+     *     renderers draw an <img> when present and fall back to the
+     *     coloured skeleton + icon otherwise.
      * Unknown types fall back to a neutral 'tile' so the preview never
      * crashes on a future block type.
      *
@@ -94,41 +101,45 @@ class TemplatePreviewLayoutBuilder
      */
     public function cellFor(string $type): array
     {
-        static $palette = [
-            // Headings — solid bar; h2/h1 templates use the same hint, the
-            // gallery isn't precise enough to differentiate sizes.
-            'heading'         => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => true],
-            'heading_logo'    => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false],
-            'verified_heading'=> ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false],
+        $img = static function (string $file): string {
+            return asset('block-placeholders/' . $file);
+        };
 
-            // Body text — N stacked thin lines.
-            'paragraph'       => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 16, 'icon' => '', 'lines' => 2],
-            'paragraph_rich'  => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3],
-            'markdown'        => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3],
-            'ticker'          => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 10, 'icon' => '', 'lines' => 1],
+        $palette = [
+            // Headings — sample title text; h2/h1 templates share the hint,
+            // the gallery isn't precise enough to differentiate sizes.
+            'heading'         => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => true,  'text' => 'Your Headline', 'sub_text' => 'A short supporting line'],
+            'heading_logo'    => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false, 'text' => 'Brand Name'],
+            'verified_heading'=> ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false, 'text' => 'Verified Name'],
 
-            // Buttons / links — rounded pill with arrow glyph at the right.
-            'link'            => ['shape' => 'pill',       'bg' => 'rgba(139,92,246,0.55)',  'h' => 12, 'icon' => 'fa-arrow-right'],
-            'link_big'        => ['shape' => 'pill',       'bg' => 'rgba(139,92,246,0.85)',  'h' => 16, 'icon' => 'fa-arrow-right'],
-            'cta_button'      => ['shape' => 'pill',       'bg' => 'rgba(139,92,246,0.85)',  'h' => 16, 'icon' => 'fa-arrow-right'],
-            'whatsapp_widget' => ['shape' => 'pill',       'bg' => 'rgba(34,197,94,0.85)',   'h' => 14, 'icon' => 'fa-comment'],
-            'whatsapp_item'   => ['shape' => 'pill',       'bg' => 'rgba(34,197,94,0.85)',   'h' => 14, 'icon' => 'fa-comment'],
-            'buy_me_coffee'   => ['shape' => 'pill',       'bg' => 'rgba(245,158,11,0.85)',  'h' => 14, 'icon' => 'fa-coffee'],
-            'patreon'         => ['shape' => 'pill',       'bg' => 'rgba(245,72,55,0.85)',   'h' => 14, 'icon' => 'fa-hand-holding-usd'],
-            'ko_fi'           => ['shape' => 'pill',       'bg' => 'rgba(244,114,182,0.85)', 'h' => 14, 'icon' => 'fa-mug-hot'],
-            'paypal'          => ['shape' => 'pill',       'bg' => 'rgba(59,130,246,0.85)',  'h' => 14, 'icon' => 'fa-credit-card'],
-            'donation'        => ['shape' => 'pill',       'bg' => 'rgba(244,63,94,0.85)',   'h' => 14, 'icon' => 'fa-heart'],
+            // Body text — real sample copy clamped to N lines.
+            'paragraph'       => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 16, 'icon' => '', 'lines' => 2, 'text' => 'A short intro about you and what you share here.'],
+            'paragraph_rich'  => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3, 'text' => 'Tell your story with rich, formatted text and a few lines of detail.'],
+            'markdown'        => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3, 'text' => 'Write anything in markdown — lists, links and more.'],
+            'ticker'          => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 10, 'icon' => '', 'lines' => 1, 'text' => 'Latest news and updates'],
 
-            // Media — gradient block with a centred media glyph, taller
-            // than other cells so the "image area" is unmistakable.
-            'image'           => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-image'],
-            'image_grid'      => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-th'],
-            'image_slider'    => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-images'],
-            'image_slider_v2' => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-images'],
-            'video'           => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.40), rgba(139,92,246,0.40))',  'h' => 28, 'icon' => 'fa-play'],
-            'header_video'    => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.40), rgba(139,92,246,0.40))',  'h' => 28, 'icon' => 'fa-play'],
-            'audio'           => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,114,182,0.40), rgba(139,92,246,0.40))','h' => 22, 'icon' => 'fa-music'],
-            'pdf_document'    => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.30), rgba(244,114,182,0.30))', 'h' => 26, 'icon' => 'fa-file-pdf'],
+            // Buttons / links — rounded pill with a real label.
+            'link'            => ['shape' => 'pill',       'bg' => 'rgba(139,92,246,0.55)',  'h' => 12, 'icon' => 'fa-arrow-right',        'text' => 'Visit my website'],
+            'link_big'        => ['shape' => 'pill',       'bg' => 'rgba(139,92,246,0.85)',  'h' => 16, 'icon' => 'fa-arrow-right',        'text' => 'Check this out'],
+            'cta_button'      => ['shape' => 'pill',       'bg' => 'rgba(139,92,246,0.85)',  'h' => 16, 'icon' => 'fa-arrow-right',        'text' => 'Get started'],
+            'whatsapp_widget' => ['shape' => 'pill',       'bg' => 'rgba(34,197,94,0.85)',   'h' => 14, 'icon' => 'fa-comment',            'text' => 'Chat on WhatsApp'],
+            'whatsapp_item'   => ['shape' => 'pill',       'bg' => 'rgba(34,197,94,0.85)',   'h' => 14, 'icon' => 'fa-comment',            'text' => 'Message me'],
+            'buy_me_coffee'   => ['shape' => 'pill',       'bg' => 'rgba(245,158,11,0.85)',  'h' => 14, 'icon' => 'fa-coffee',             'text' => 'Buy me a coffee'],
+            'patreon'         => ['shape' => 'pill',       'bg' => 'rgba(245,72,55,0.85)',   'h' => 14, 'icon' => 'fa-hand-holding-usd',   'text' => 'Become a patron'],
+            'ko_fi'           => ['shape' => 'pill',       'bg' => 'rgba(244,114,182,0.85)', 'h' => 14, 'icon' => 'fa-mug-hot',            'text' => 'Support on Ko-fi'],
+            'paypal'          => ['shape' => 'pill',       'bg' => 'rgba(59,130,246,0.85)',  'h' => 14, 'icon' => 'fa-credit-card',        'text' => 'Pay with PayPal'],
+            'donation'        => ['shape' => 'pill',       'bg' => 'rgba(244,63,94,0.85)',   'h' => 14, 'icon' => 'fa-heart',              'text' => 'Donate'],
+
+            // Media — real placeholder image, taller so the "image area"
+            // is unmistakable. The 'play' flag overlays a play glyph.
+            'image'           => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-image',    'img' => $img('image.svg')],
+            'image_grid'      => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-th',       'img' => $img('image-square.svg')],
+            'image_slider'    => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-images',   'img' => $img('image.svg')],
+            'image_slider_v2' => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(56,189,248,0.45), rgba(139,92,246,0.45))', 'h' => 28, 'icon' => 'fa-images',   'img' => $img('image.svg')],
+            'video'           => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.40), rgba(139,92,246,0.40))',  'h' => 28, 'icon' => 'fa-play',     'img' => $img('cover.svg'), 'play' => true],
+            'header_video'    => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.40), rgba(139,92,246,0.40))',  'h' => 28, 'icon' => 'fa-play',     'img' => $img('cover.svg'), 'play' => true],
+            'audio'           => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,114,182,0.40), rgba(139,92,246,0.40))','h' => 22, 'icon' => 'fa-music',    'img' => $img('cover.svg'), 'play' => true],
+            'pdf_document'    => ['shape' => 'media',      'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.30), rgba(244,114,182,0.30))', 'h' => 26, 'icon' => 'fa-file-pdf',  'img' => $img('document.svg')],
 
             // Hairlines / gaps.
             'divider'         => ['shape' => 'hairline',   'bg' => 'rgba(255,255,255,0.45)', 'h' => 2,  'icon' => ''],
@@ -143,27 +154,27 @@ class TemplatePreviewLayoutBuilder
             'badge'           => ['shape' => 'badge',      'bg' => 'rgba(245,158,11,0.85)',  'h' => 8,  'icon' => ''],
             'alert'           => ['shape' => 'tile',       'bg' => 'rgba(245,158,11,0.30)',  'h' => 12, 'icon' => 'fa-circle-info'],
 
-            // Forms — stacked input-line shapes with a button below.
-            'email_subscribe' => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)'],
-            'email_collector' => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)'],
-            'phone_collector' => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)'],
-            'contact_form'    => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 38, 'icon' => '', 'lines' => 3, 'btn_bg' => 'rgba(139,92,246,0.85)'],
-            'form'            => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 38, 'icon' => '', 'lines' => 3, 'btn_bg' => 'rgba(139,92,246,0.85)'],
-            'typeform'        => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 38, 'icon' => '', 'lines' => 3, 'btn_bg' => 'rgba(139,92,246,0.85)'],
-            'direct_message'  => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)'],
+            // Forms — stacked input-line shapes with a labelled button below.
+            'email_subscribe' => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Subscribe'],
+            'email_collector' => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Join the list'],
+            'phone_collector' => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Send'],
+            'contact_form'    => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 38, 'icon' => '', 'lines' => 3, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Submit'],
+            'form'            => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 38, 'icon' => '', 'lines' => 3, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Submit'],
+            'typeform'        => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 38, 'icon' => '', 'lines' => 3, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Submit'],
+            'direct_message'  => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Send message'],
 
-            // Profiles — circle on the left, name + sub on the right.
-            'profile_card_v1' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user'],
-            'profile_card_v2' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user'],
-            'profile_card_v3' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user'],
-            'profile_card_v4' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user'],
-            'avatar'          => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user'],
-            'verified_avatar' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user-check'],
+            // Profiles — circular placeholder image, name + sub on the right.
+            'profile_card_v1' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
+            'profile_card_v2' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
+            'profile_card_v3' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
+            'profile_card_v4' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
+            'avatar'          => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
+            'verified_avatar' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user-check', 'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
 
-            // Lists — stack of dot + line rows.
-            'list'            => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 24, 'icon' => '', 'lines' => 3],
-            'list_numbered'   => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 24, 'icon' => '', 'lines' => 3],
-            'list_pricing'    => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 28, 'icon' => '', 'lines' => 3],
+            // Lists — stack of dot + sample-text rows.
+            'list'            => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 24, 'icon' => '', 'lines' => 3, 'items' => ['First item', 'Second item', 'Third item']],
+            'list_numbered'   => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 24, 'icon' => '', 'lines' => 3, 'items' => ['First step', 'Second step', 'Third step']],
+            'list_pricing'    => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 28, 'icon' => '', 'lines' => 3, 'items' => ['Starter — $9', 'Pro — $19', 'Team — $49']],
 
             // Misc tile-shaped blocks.
             'social_proof'    => ['shape' => 'tile',       'bg' => 'rgba(255,255,255,0.10)', 'h' => 18, 'icon' => 'fa-quote-left'],

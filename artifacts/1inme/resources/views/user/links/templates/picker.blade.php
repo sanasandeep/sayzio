@@ -14,6 +14,22 @@
         border-radius: 2px;
         padding: 0 2px;
     }
+    /* Mini page-preview placeholder typography — mirrors the card-templates
+       gallery (editor-special-panel) so both previews read the same. White on
+       the dark theme; dark ink under html.light-mode where the pale thumbnail
+       background would wash white text out. Pill/button labels stay white
+       because they sit on a coloured fill. */
+    .tpl-prev-heading { font-size: 8px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-name    { font-size: 7.5px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-sub     { font-size: 6px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-text    { font-size: 6px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .tpl-prev-list    { font-size: 6px; line-height: 1.1; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-pill    { font-size: 6px; font-weight: 700; line-height: 1; }
+    html.light-mode .tpl-prev-heading,
+    html.light-mode .tpl-prev-name { color: rgba(7,20,55,0.88); }
+    html.light-mode .tpl-prev-sub,
+    html.light-mode .tpl-prev-text,
+    html.light-mode .tpl-prev-list { color: rgba(7,20,55,0.55); }
 </style>
 @php
     // Lightweight JS mirror of the templates so Alpine can compute how many
@@ -222,46 +238,80 @@
                                                 $dots  = (int) ($cell['dots']  ?? 5);
                                                 $sub   = !empty($cell['sub']);
                                                 $btnBg = $cell['btn_bg'] ?? 'rgba(139,92,246,0.85)';
+                                                $text  = $cell['text'] ?? '';
+                                                $subText = $cell['sub_text'] ?? '';
+                                                $imgUrl = $cell['img'] ?? '';
+                                                $items = is_array($cell['items'] ?? null) ? $cell['items'] : [];
+                                                $play  = !empty($cell['play']);
                                             @endphp
                                             <div class="flex items-center justify-center" style="flex: {{ $cell['span'] }} 0 0;">
                                                 @switch($shape)
                                                     @case('heading')
-                                                        <div class="w-full flex flex-col gap-[2px] items-center">
-                                                            <div class="rounded-[2px] w-full" style="background: {{ $bg }}; height: {{ $h }}px;"></div>
-                                                            @if($sub)
+                                                        <div class="w-full flex flex-col gap-[1px] items-center text-center">
+                                                            @if($text !== '')
+                                                                <div class="tpl-prev-heading w-full">{{ $text }}</div>
+                                                            @else
+                                                                <div class="rounded-[2px] w-full" style="background: {{ $bg }}; height: {{ $h }}px;"></div>
+                                                            @endif
+                                                            @if($sub && $subText !== '')
+                                                                <div class="tpl-prev-sub w-full">{{ $subText }}</div>
+                                                            @elseif($sub)
                                                                 <div class="rounded-[2px]" style="background: {{ $bg }}; height: {{ max($h - 6, 4) }}px; width: 55%;"></div>
                                                             @endif
                                                         </div>
                                                         @break
                                                     @case('text_lines')
                                                         <div class="w-full flex flex-col gap-[2px] justify-center" style="min-height: {{ $h }}px;">
-                                                            @for($i = 1; $i <= max($lines, 1); $i++)
-                                                                <div class="rounded-[2px]" style="background: {{ $bg }}; height: 3px; width: {{ $i === max($lines, 1) ? '60%' : '100%' }};"></div>
-                                                            @endfor
+                                                            @if($text !== '')
+                                                                <div class="tpl-prev-text" style="-webkit-line-clamp: {{ max($lines, 1) }};">{{ $text }}</div>
+                                                            @else
+                                                                @for($i = 1; $i <= max($lines, 1); $i++)
+                                                                    <div class="rounded-[2px]" style="background: {{ $bg }}; height: 3px; width: {{ $i === max($lines, 1) ? '60%' : '100%' }};"></div>
+                                                                @endfor
+                                                            @endif
                                                         </div>
                                                         @break
                                                     @case('pill')
-                                                        <div class="w-full rounded-full flex items-center justify-end px-1.5 text-white/85"
+                                                        <div class="w-full rounded-full flex items-center justify-center gap-1 px-1.5 text-white/95 tpl-prev-pill"
                                                              style="background: {{ $bg }}; min-height: {{ $h }}px;">
+                                                            @if($text !== '')<span class="truncate">{{ $text }}</span>@endif
                                                             @if($icon)<i class="fas {{ $icon }}" style="font-size: 6px;"></i>@endif
                                                         </div>
                                                         @break
                                                     @case('avatar')
                                                         <div class="w-full flex items-center gap-1.5" style="min-height: {{ $h }}px;">
-                                                            <div class="rounded-full flex items-center justify-center text-white/90 shrink-0"
-                                                                 style="background: {{ $bg }}; width: {{ max($h - 8, 14) }}px; height: {{ max($h - 8, 14) }}px;">
-                                                                @if($icon)<i class="fas {{ $icon }}" style="font-size: 7px;"></i>@endif
-                                                            </div>
-                                                            <div class="flex-1 flex flex-col gap-[2px] min-w-0">
-                                                                <div class="rounded-[2px]" style="background: rgba(255,255,255,0.55); height: 4px; width: 70%;"></div>
-                                                                <div class="rounded-[2px]" style="background: rgba(255,255,255,0.30); height: 3px; width: 50%;"></div>
+                                                            @if($imgUrl !== '')
+                                                                <img src="{{ $imgUrl }}" alt="" loading="lazy" class="rounded-full object-cover shrink-0"
+                                                                     style="width: {{ max($h - 8, 14) }}px; height: {{ max($h - 8, 14) }}px;">
+                                                            @else
+                                                                <div class="rounded-full flex items-center justify-center text-white/90 shrink-0"
+                                                                     style="background: {{ $bg }}; width: {{ max($h - 8, 14) }}px; height: {{ max($h - 8, 14) }}px;">
+                                                                    @if($icon)<i class="fas {{ $icon }}" style="font-size: 7px;"></i>@endif
+                                                                </div>
+                                                            @endif
+                                                            <div class="flex-1 flex flex-col gap-[1px] min-w-0">
+                                                                @if($text !== '')
+                                                                    <div class="tpl-prev-name">{{ $text }}</div>
+                                                                @else
+                                                                    <div class="rounded-[2px]" style="background: rgba(255,255,255,0.55); height: 4px; width: 70%;"></div>
+                                                                @endif
+                                                                @if($subText !== '')
+                                                                    <div class="tpl-prev-sub">{{ $subText }}</div>
+                                                                @else
+                                                                    <div class="rounded-[2px]" style="background: rgba(255,255,255,0.30); height: 3px; width: 50%;"></div>
+                                                                @endif
                                                             </div>
                                                         </div>
                                                         @break
                                                     @case('media')
-                                                        <div class="w-full rounded-[3px] flex items-center justify-center text-white/85"
-                                                             style="background: {{ $bg }}; min-height: {{ $h }}px;">
-                                                            @if($icon)<i class="fas {{ $icon }}" style="font-size: 11px;"></i>@endif
+                                                        <div class="w-full rounded-[3px] relative overflow-hidden flex items-center justify-center text-white/85"
+                                                             style="background: {{ $bg }}; min-height: {{ $h }}px; height: {{ $h }}px;">
+                                                            @if($imgUrl !== '')
+                                                                <img src="{{ $imgUrl }}" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover">
+                                                            @endif
+                                                            @if($play || $imgUrl === '')
+                                                                <i class="fas {{ $play ? 'fa-play' : $icon }} relative" style="font-size: 11px;{{ $imgUrl !== '' ? ' text-shadow: 0 1px 3px rgba(0,0,0,0.6);' : '' }}"></i>
+                                                            @endif
                                                         </div>
                                                         @break
                                                     @case('dot_row')
@@ -276,17 +326,24 @@
                                                             @for($i = 1; $i <= max($lines, 1); $i++)
                                                                 <div class="rounded-[2px] w-full" style="background: {{ $bg }}; height: 5px;"></div>
                                                             @endfor
-                                                            <div class="rounded-full mx-auto" style="background: {{ $btnBg }}; height: 6px; width: 60%;"></div>
+                                                            <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" style="background: {{ $btnBg }}; min-height: 7px; width: 70%;">
+                                                                @if($text !== '')<span class="truncate">{{ $text }}</span>@endif
+                                                            </div>
                                                         </div>
                                                         @break
                                                     @case('list_rows')
+                                                        @php $listRows = !empty($items) ? array_slice($items, 0, max($lines, 1)) : array_fill(0, max($lines, 1), null); @endphp
                                                         <div class="w-full flex flex-col gap-1 justify-center" style="min-height: {{ $h }}px;">
-                                                            @for($i = 1; $i <= max($lines, 1); $i++)
+                                                            @foreach($listRows as $item)
                                                                 <div class="flex items-center gap-1 w-full">
                                                                     <div class="rounded-full shrink-0" style="background: {{ $bg }}; width: 3px; height: 3px;"></div>
-                                                                    <div class="rounded-[2px] flex-1" style="background: {{ $bg }}; height: 3px;"></div>
+                                                                    @if($item)
+                                                                        <div class="tpl-prev-list flex-1">{{ $item }}</div>
+                                                                    @else
+                                                                        <div class="rounded-[2px] flex-1" style="background: {{ $bg }}; height: 3px;"></div>
+                                                                    @endif
                                                                 </div>
-                                                            @endfor
+                                                            @endforeach
                                                         </div>
                                                         @break
                                                     @case('hairline')

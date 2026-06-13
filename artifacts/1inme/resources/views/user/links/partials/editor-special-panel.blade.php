@@ -3,6 +3,24 @@
      full-screen block gallery modal. Generic blocks are added straight from
      the palette body; this panel only hosts the richer pickers: card
      templates, forms, Buzz (social proof) and AI companions. --}}
+{{-- Mini template-preview placeholder typography. Renders the real sample
+     text from TemplatePreviewLayoutBuilder at thumbnail scale. White on the
+     dark theme; dark "ink" under html.light-mode where the pale thumbnail
+     background would otherwise wash white text out. Pill/button labels stay
+     white in both modes because they sit on a coloured fill. --}}
+<style>
+    .tpl-prev-heading { font-size: 7px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-name    { font-size: 6.5px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-sub     { font-size: 5.5px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-text    { font-size: 5.5px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .tpl-prev-list    { font-size: 5.5px; line-height: 1.1; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-pill    { font-size: 5.5px; font-weight: 700; line-height: 1; }
+    html.light-mode .tpl-prev-heading,
+    html.light-mode .tpl-prev-name { color: rgba(7,20,55,0.88); }
+    html.light-mode .tpl-prev-sub,
+    html.light-mode .tpl-prev-text,
+    html.light-mode .tpl-prev-list { color: rgba(7,20,55,0.55); }
+</style>
 <div class="special-panel" x-show="specialOpen" x-cloak
      style="position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; background:var(--bg-sidebar); backdrop-filter:blur(24px) saturate(1.3); -webkit-backdrop-filter:blur(24px) saturate(1.3);"
      @keydown.escape.window="specialOpen = false">
@@ -165,39 +183,73 @@
                                             <template x-for="(cell, ci) in row" :key="ci">
                                                 <div class="flex items-center justify-center" :style="'flex: ' + cell.span + ' 0 0;'">
                                                     <template x-if="cell.shape === 'heading'">
-                                                        <div class="w-full flex flex-col gap-[2px] items-center">
-                                                            <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px;'"></div>
+                                                        <div class="w-full flex flex-col gap-[1px] items-center text-center">
+                                                            <template x-if="cell.text">
+                                                                <div class="tpl-prev-heading w-full" x-text="cell.text"></div>
+                                                            </template>
+                                                            <template x-if="!cell.text">
+                                                                <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px;'"></div>
+                                                            </template>
                                                             <template x-if="cell.sub">
+                                                                <template x-if="cell.sub_text">
+                                                                    <div class="tpl-prev-sub w-full" x-text="cell.sub_text"></div>
+                                                                </template>
+                                                            </template>
+                                                            <template x-if="cell.sub && !cell.sub_text">
                                                                 <div class="rounded-[2px]" :style="'background: ' + cell.bg + '; height: ' + Math.max(cell.h - 6, 4) + 'px; width: 55%;'"></div>
                                                             </template>
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'text_lines'">
                                                         <div class="w-full flex flex-col gap-[2px] justify-center" :style="'min-height: ' + cell.h + 'px;'">
-                                                            <template x-for="i in (cell.lines || 2)" :key="i">
-                                                                <div class="rounded-[2px]" :style="'background: ' + cell.bg + '; height: 3px; width: ' + (i === (cell.lines || 2) ? '60%' : '100%') + ';'"></div>
+                                                            <template x-if="cell.text">
+                                                                <div class="tpl-prev-text" :style="'-webkit-line-clamp: ' + (cell.lines || 2) + ';'" x-text="cell.text"></div>
+                                                            </template>
+                                                            <template x-if="!cell.text">
+                                                                <template x-for="i in (cell.lines || 2)" :key="i">
+                                                                    <div class="rounded-[2px]" :style="'background: ' + cell.bg + '; height: 3px; width: ' + (i === (cell.lines || 2) ? '60%' : '100%') + ';'"></div>
+                                                                </template>
                                                             </template>
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'pill'">
-                                                        <div class="w-full rounded-full flex items-center justify-end px-1.5 text-white/85" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full rounded-full flex items-center justify-center gap-1 px-1.5 text-white/95 tpl-prev-pill" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
+                                                            <span x-show="cell.text" class="truncate" x-text="cell.text"></span>
                                                             <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 6px;"></i>
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'avatar'">
                                                         <div class="w-full flex items-center gap-1.5" :style="'min-height: ' + cell.h + 'px;'">
-                                                            <div class="rounded-full flex items-center justify-center text-white/90 shrink-0" :style="'background: ' + cell.bg + '; width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
-                                                                <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 7px;"></i>
-                                                            </div>
-                                                            <div class="flex-1 flex flex-col gap-[2px] min-w-0">
-                                                                <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.55); height: 4px; width: 70%;'"></div>
-                                                                <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.30); height: 3px; width: 50%;'"></div>
+                                                            <template x-if="cell.img">
+                                                                <img :src="cell.img" alt="" loading="lazy" class="rounded-full object-cover shrink-0" :style="'width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
+                                                            </template>
+                                                            <template x-if="!cell.img">
+                                                                <div class="rounded-full flex items-center justify-center text-white/90 shrink-0" :style="'background: ' + cell.bg + '; width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
+                                                                    <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 7px;"></i>
+                                                                </div>
+                                                            </template>
+                                                            <div class="flex-1 flex flex-col gap-[1px] min-w-0">
+                                                                <template x-if="cell.text">
+                                                                    <div class="tpl-prev-name" x-text="cell.text"></div>
+                                                                </template>
+                                                                <template x-if="!cell.text">
+                                                                    <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.55); height: 4px; width: 70%;'"></div>
+                                                                </template>
+                                                                <template x-if="cell.sub_text">
+                                                                    <div class="tpl-prev-sub" x-text="cell.sub_text"></div>
+                                                                </template>
+                                                                <template x-if="!cell.sub_text">
+                                                                    <div class="rounded-[2px]" :style="'background: rgba(255,255,255,0.30); height: 3px; width: 50%;'"></div>
+                                                                </template>
                                                             </div>
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'media'">
-                                                        <div class="w-full rounded-[3px] flex items-center justify-center text-white/85" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
-                                                            <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 11px;"></i>
+                                                        <div class="w-full rounded-[3px] relative overflow-hidden flex items-center justify-center text-white/85" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px; height: ' + cell.h + 'px;'">
+                                                            <template x-if="cell.img">
+                                                                <img :src="cell.img" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover">
+                                                            </template>
+                                                            <i x-show="cell.play || !cell.img" :class="'fas ' + (cell.play ? 'fa-play' : cell.icon)" class="relative" :style="'font-size: 11px;' + (cell.img ? ' text-shadow: 0 1px 3px rgba(0,0,0,0.6);' : '')"></i>
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'dot_row'">
@@ -212,15 +264,22 @@
                                                             <template x-for="i in (cell.lines || 1)" :key="i">
                                                                 <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: 5px;'"></div>
                                                             </template>
-                                                            <div class="rounded-full mx-auto" :style="'background: ' + (cell.btn_bg || 'rgba(139,92,246,0.85)') + '; height: 6px; width: 60%;'"></div>
+                                                            <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" :style="'background: ' + (cell.btn_bg || 'rgba(139,92,246,0.85)') + '; min-height: 7px; width: 70%;'">
+                                                                <span x-show="cell.text" class="truncate" x-text="cell.text"></span>
+                                                            </div>
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'list_rows'">
                                                         <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
-                                                            <template x-for="i in (cell.lines || 3)" :key="i">
+                                                            <template x-for="(item, li) in (cell.items || [null, null, null]).slice(0, cell.lines || 3)" :key="li">
                                                                 <div class="flex items-center gap-1 w-full">
                                                                     <div class="rounded-full shrink-0" :style="'background: ' + cell.bg + '; width: 3px; height: 3px;'"></div>
-                                                                    <div class="rounded-[2px] flex-1" :style="'background: ' + cell.bg + '; height: 3px;'"></div>
+                                                                    <template x-if="item">
+                                                                        <div class="tpl-prev-list flex-1" x-text="item"></div>
+                                                                    </template>
+                                                                    <template x-if="!item">
+                                                                        <div class="rounded-[2px] flex-1" :style="'background: ' + cell.bg + '; height: 3px;'"></div>
+                                                                    </template>
                                                                 </div>
                                                             </template>
                                                         </div>
