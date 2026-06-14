@@ -3,7 +3,32 @@
 @section('page-title', 'Upgrade')
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-8">
+<style>[x-cloak]{display:none!important}</style>
+{{-- Currency flips USD/INR instantly client-side (both currencies are
+     embedded per card/addon below); the choice is persisted in the
+     background. Billing cycle still navigates server-side via links. --}}
+<div class="max-w-6xl mx-auto space-y-8"
+     x-data="{
+        currency: '{{ $currency }}',
+        switchCurrency(c){
+            if (this.currency === c) return;
+            this.currency = c;
+            const url = '{{ route('user.upgrade.switch-currency') }}';
+            const token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+            const data = new FormData();
+            data.append('currency', c);
+            data.append('_token', token);
+            try {
+                fetch(url, {
+                    method: 'POST',
+                    body: data,
+                    credentials: 'same-origin',
+                    keepalive: true,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+            } catch (e) { /* swallow — UX must not depend on persistence */ }
+        }
+     }">
     <div class="text-center space-y-2">
         <h1 class="text-3xl font-semibold text-white">Pick the plan that fits your work</h1>
         @if(!$user || !$user->country)
@@ -92,7 +117,8 @@
                 $isCurrent = $user && $user->plan_id === $plan->id;
                 $isRec = !$isCurrent && $recPlanIdInline === $plan->id;
             @endphp
-            <div class="relative rounded-2xl border {{ $isCurrent ? 'border-emerald-500/60 ring-1 ring-emerald-500/40' : ($isRec ? 'border-pink-400/60 ring-1 ring-pink-400/30' : 'border-white/10') }} bg-white/[0.02] p-6 flex flex-col">
+            <div x-data='{ prices: @json($row['prices']), taxByCur: @json($row['taxByCur']) }'
+                 class="relative rounded-2xl border {{ $isCurrent ? 'border-emerald-500/60 ring-1 ring-emerald-500/40' : ($isRec ? 'border-pink-400/60 ring-1 ring-pink-400/30' : 'border-white/10') }} bg-white/[0.02] p-6 flex flex-col">
                 @if($isRec)
                     <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-pink-500/20">
                         <i class="fas fa-wand-magic-sparkles mr-1"></i> Recommended
@@ -101,35 +127,47 @@
                 <div class="space-y-1">
                     <div class="text-xs uppercase tracking-wider text-white/40">{{ $plan->name }}</div>
                     <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-semibold text-white">{{ $row['shown']['formatted'] }}</span>
+                        <span class="text-3xl font-semibold text-white"
+                              x-text="(prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}'">{{ $row['shown']['formatted'] }}</span>
                         <span class="text-sm text-white/40">/ {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span>
                     </div>
-                    @if($cycle === 'annual' && $row['monthly']['amount_minor'] > 0)
-                        <div class="text-[11px] text-white/40">
-                            vs {{ $row['monthly']['formatted'] }}/mo billed monthly
+                    @if($cycle === 'annual')
+                        <div class="text-[11px] text-white/40"
+                             x-show="prices[currency] && prices[currency].monthly && prices[currency].monthly.amount_minor > 0" x-cloak>
+                            vs <span x-text="(prices[currency] && prices[currency].monthly && prices[currency].monthly.formatted) || '{{ $row['monthly']['formatted'] }}'">{{ $row['monthly']['formatted'] }}</span>/mo billed monthly
                         </div>
                     @endif
-                    @php $tax = $row['tax'] ?? null; @endphp
-                    @if($row['shown']['amount_minor'] > 0)
-                        @if($tax && !empty($tax['tax_breakdown']))
-                            <div class="mt-2 text-[11px] text-white/55 space-y-0.5 border-t border-white/5 pt-2">
-                                @foreach($tax['tax_breakdown'] as $line)
-                                    <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $currency) }}</span></div>
-                                @endforeach
-                                <div class="flex justify-between font-medium text-white/85 pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $tax['grand_total_minor'], $currency) }}</span></div>
-                            </div>
-                            @if(!empty($tax['reverse_charge_note']))
-                                <div class="mt-1 text-[10px] uppercase tracking-wider text-amber-300/80">{{ $tax['reverse_charge_note'] }}</div>
-                            @endif
-                        @elseif($tax)
-                            <div class="mt-2 text-[11px] text-emerald-300/80">No tax applies for {{ $tax['place_of_supply'] ?? 'your region' }}.</div>
-                        @else
-                            <div class="mt-2 text-[11px] text-white/40">+ taxes as applicable —
-                                <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">add billing address</a>
-                                to see exact tax.
+                    {{-- Tax / fineprint per currency, toggled by Alpine. Both currencies
+                         are pre-rendered so the instant switch stays accurate for
+                         buyers with a billing address. --}}
+                    @foreach(['USD','INR'] as $cur)
+                        @php
+                            $cPrice = $row['prices'][$cur][$cycle] ?? null;
+                            $cTax   = $row['taxByCur'][$cur][$cycle] ?? null;
+                        @endphp
+                        @if(($cPrice['amount_minor'] ?? 0) > 0)
+                            <div x-show="currency==='{{ $cur }}'" x-cloak>
+                                @if($cTax && !empty($cTax['tax_breakdown']))
+                                    <div class="mt-2 text-[11px] text-white/55 space-y-0.5 border-t border-white/5 pt-2">
+                                        @foreach($cTax['tax_breakdown'] as $line)
+                                            <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
+                                        @endforeach
+                                        <div class="flex justify-between font-medium text-white/85 pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $cTax['grand_total_minor'], $cur) }}</span></div>
+                                    </div>
+                                    @if(!empty($cTax['reverse_charge_note']))
+                                        <div class="mt-1 text-[10px] uppercase tracking-wider text-amber-300/80">{{ $cTax['reverse_charge_note'] }}</div>
+                                    @endif
+                                @elseif($cTax)
+                                    <div class="mt-2 text-[11px] text-emerald-300/80">No tax applies for {{ $cTax['place_of_supply'] ?? 'your region' }}.</div>
+                                @else
+                                    <div class="mt-2 text-[11px] text-white/40">+ taxes as applicable —
+                                        <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">add billing address</a>
+                                        to see exact tax.
+                                    </div>
+                                @endif
                             </div>
                         @endif
-                    @endif
+                    @endforeach
                     <p class="text-sm text-white/50 mt-2 min-h-[2.5rem]">{{ $plan->description }}</p>
                 </div>
 
@@ -214,23 +252,34 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($addons as $row)
                 @php $a = $row['model']; @endphp
-                <div class="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <div x-data='{ prices: @json($row['prices']), taxByCur: @json($row['taxByCur']) }'
+                     class="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                     <div class="flex items-baseline justify-between gap-3">
                         <div class="font-medium text-white">{{ $a->name }}</div>
-                        <div class="text-sm text-white/80 whitespace-nowrap">{{ $row['shown']['formatted'] }}<span class="text-xs text-white/40"> / {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></div>
+                        <div class="text-sm text-white/80 whitespace-nowrap"><span x-text="(prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}'">{{ $row['shown']['formatted'] }}</span><span class="text-xs text-white/40"> / {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></div>
                     </div>
                     @if($a->description)<p class="text-xs text-white/50 mt-1">{{ $a->description }}</p>@endif
-                    @php $atax = $row['tax'] ?? null; @endphp
-                    @if($row['shown']['amount_minor'] > 0 && $atax && !empty($atax['tax_breakdown']))
-                        <div class="mt-2 text-[11px] text-white/55 space-y-0.5 border-t border-white/5 pt-2">
-                            @foreach($atax['tax_breakdown'] as $line)
-                                <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $currency) }}</span></div>
-                            @endforeach
-                            <div class="flex justify-between font-medium text-white/85 pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $atax['grand_total_minor'], $currency) }}</span></div>
-                        </div>
-                    @elseif($row['shown']['amount_minor'] > 0 && !$atax)
-                        <div class="mt-2 text-[10px] text-white/40">+ taxes as applicable</div>
-                    @endif
+                    {{-- Per-currency tax fineprint, toggled by Alpine. --}}
+                    @foreach(['USD','INR'] as $cur)
+                        @php
+                            $cPrice = $row['prices'][$cur][$cycle] ?? null;
+                            $cTax   = $row['taxByCur'][$cur][$cycle] ?? null;
+                        @endphp
+                        @if(($cPrice['amount_minor'] ?? 0) > 0)
+                            <div x-show="currency==='{{ $cur }}'" x-cloak>
+                                @if($cTax && !empty($cTax['tax_breakdown']))
+                                    <div class="mt-2 text-[11px] text-white/55 space-y-0.5 border-t border-white/5 pt-2">
+                                        @foreach($cTax['tax_breakdown'] as $line)
+                                            <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
+                                        @endforeach
+                                        <div class="flex justify-between font-medium text-white/85 pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $cTax['grand_total_minor'], $cur) }}</span></div>
+                                    </div>
+                                @else
+                                    <div class="mt-2 text-[10px] text-white/40">+ taxes as applicable</div>
+                                @endif
+                            </div>
+                        @endif
+                    @endforeach
                     <div class="text-[10px] uppercase tracking-wider text-white/30 mt-2">{{ str_replace('_',' ',$a->type) }}</div>
                 </div>
             @endforeach

@@ -2,11 +2,19 @@
     Visible badge that tells the visitor which currency they're seeing
     and (when applicable) why it was auto-picked, alongside a switcher.
 
+    The switcher is now instant: it flips the currency client-side with
+    NO page reload by calling `switchCurrency('USD'|'INR')` and reading
+    the reactive `currency` value — both supplied by the enclosing
+    Alpine `x-data` scope (see /user/upgrade and the landing teaser).
+    The host scope pings its persistence route in the background, so
+    this partial no longer needs `$switchRoute`.
+
     Required vars:
-      - $currency        : 'USD' | 'INR'
+      - $currency        : 'USD' | 'INR'  (server default for no-JS / first paint)
       - $currencySource  : PricingResolver::SOURCE_* constant
       - $user            : ?User  (for country-bound copy)
-      - $switchRoute     : route name to POST currency to (e.g. 'upgrade.public.switch-currency')
+    Requires the host page to define Alpine `currency` (string) and
+    `switchCurrency(c)` in an ancestor x-data scope.
     Optional:
       - $compact (bool)  : tighter layout for embedded contexts
 --}}
@@ -52,8 +60,10 @@
             <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">change</a>
         </span>
     @else
-        <form method="POST" action="{{ route($switchRoute) }}" class="inline-flex items-center gap-1">
-            @csrf
+        {{-- Instant client-side switch — no page reload. `currency` and
+             `switchCurrency()` come from the host page's Alpine scope; the
+             host pings its persistence route in the background. --}}
+        <div class="inline-flex items-center gap-1">
             <span class="text-[11px] text-gray-500">
                 @if($isAuto)
                     Not where you live? Switch:
@@ -61,14 +71,16 @@
                     Switch:
                 @endif
             </span>
-            <button type="submit" name="currency" value="USD"
-                    class="px-2.5 py-0.5 text-[11px] rounded-l-full border border-white/10 {{ $currency === 'USD' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}"
-                    aria-pressed="{{ $currency === 'USD' ? 'true' : 'false' }}"
+            <button type="button" @click="switchCurrency('USD')"
+                    :class="currency === 'USD' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'"
+                    :aria-pressed="currency === 'USD' ? 'true' : 'false'"
+                    class="px-2.5 py-0.5 text-[11px] rounded-l-full border border-white/10 transition-colors motion-reduce:transition-none"
                     aria-label="Show prices in US dollars">USD ($)</button>
-            <button type="submit" name="currency" value="INR"
-                    class="px-2.5 py-0.5 text-[11px] rounded-r-full border border-white/10 border-l-0 {{ $currency === 'INR' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}"
-                    aria-pressed="{{ $currency === 'INR' ? 'true' : 'false' }}"
+            <button type="button" @click="switchCurrency('INR')"
+                    :class="currency === 'INR' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'"
+                    :aria-pressed="currency === 'INR' ? 'true' : 'false'"
+                    class="px-2.5 py-0.5 text-[11px] rounded-r-full border border-white/10 border-l-0 transition-colors motion-reduce:transition-none"
                     aria-label="Show prices in Indian rupees">INR (₹)</button>
-        </form>
+        </div>
     @endif
 </div>

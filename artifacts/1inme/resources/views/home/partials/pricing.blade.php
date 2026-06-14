@@ -2,6 +2,27 @@
 <section id="pricing" class="py-20 lg:py-24 relative overflow-hidden"
     x-data="{
         billing: 'monthly',
+        currency: '{{ $currency ?? 'USD' }}',
+        switchCurrency(c){
+            if (this.currency === c) return;
+            this.currency = c;
+            // Persist the choice (session + cookie + profile) in the
+            // background — the UI has already re-rendered, so we never block.
+            const url = '{{ route('upgrade.public.switch-currency') }}';
+            const token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+            const data = new FormData();
+            data.append('currency', c);
+            data.append('_token', token);
+            try {
+                fetch(url, {
+                    method: 'POST',
+                    body: data,
+                    credentials: 'same-origin',
+                    keepalive: true,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+            } catch (e) { /* swallow — UX must not depend on persistence */ }
+        },
         trackMarketingEvent(target){
             const url = '{{ route('marketing-events.track') }}';
             const data = new FormData();
@@ -226,11 +247,13 @@
                         </div>
 
                         @if($cheapestPaid)
-                            <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20">
+                            <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20"
+                                 x-data='{ cheapest: @json($cheapestPaid['prices'] ?? []) }'>
                                 <div class="leading-tight">
                                     <div class="text-[10px] uppercase tracking-wider font-bold text-white/70">Plans starting from</div>
                                     <div class="flex items-baseline gap-1">
-                                        <span class="text-2xl font-extrabold">{{ $cheapestPaid['monthly']['formatted'] }}</span>
+                                        <span class="text-2xl font-extrabold"
+                                              x-text="(cheapest[currency] && cheapest[currency].monthly && cheapest[currency].monthly.formatted) || '{{ $cheapestPaid['monthly']['formatted'] }}'">{{ $cheapestPaid['monthly']['formatted'] }}</span>
                                         <span class="text-xs text-white/70">/mo</span>
                                     </div>
                                 </div>

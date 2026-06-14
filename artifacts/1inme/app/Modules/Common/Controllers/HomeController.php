@@ -74,6 +74,14 @@ class HomeController extends Controller
                         $currency,
                     );
                 }
+                // Both-currency monthly prices so the landing teaser's
+                // currency switcher flips USD/INR instantly client-side
+                // (no page reload) — mirroring /pricing and /user/upgrade.
+                $pricesByCur = [];
+                foreach (['USD', 'INR'] as $cur) {
+                    $pricesByCur[$cur] = ['monthly' => PricingResolver::priceForCurrency($p, $cur, 'monthly')];
+                }
+
                 return [
                     'name'        => $p->name,
                     'description' => $p->description,
@@ -83,6 +91,7 @@ class HomeController extends Controller
                     'monthly'     => $monthly,
                     'annual_teaser' => $annualTeaser,
                     'tax'         => $tax,
+                    'prices'      => $pricesByCur,
                 ];
             });
 
@@ -104,6 +113,10 @@ class HomeController extends Controller
                 'monthly'     => ['amount_minor' => 0, 'currency' => $fallbackCurrency, 'formatted' => 'FREE'],
                 'annual_teaser' => null,
                 'tax'         => null,
+                'prices'      => [
+                    'USD' => ['monthly' => ['amount_minor' => 0, 'currency' => 'USD', 'formatted' => 'FREE']],
+                    'INR' => ['monthly' => ['amount_minor' => 0, 'currency' => 'INR', 'formatted' => 'FREE']],
+                ],
             ]);
         }
         if (!$hasPaid) {
@@ -116,6 +129,10 @@ class HomeController extends Controller
                 'monthly'     => ['amount_minor' => 900, 'currency' => $fallbackCurrency, 'formatted' => PricingResolver::money(900, $fallbackCurrency)],
                 'annual_teaser' => null,
                 'tax'         => null,
+                'prices'      => [
+                    'USD' => ['monthly' => ['amount_minor' => 900, 'currency' => 'USD', 'formatted' => PricingResolver::money(900, 'USD')]],
+                    'INR' => ['monthly' => ['amount_minor' => 900, 'currency' => 'INR', 'formatted' => PricingResolver::money(900, 'INR')]],
+                ],
             ]);
         }
         $plans = $plans->values();

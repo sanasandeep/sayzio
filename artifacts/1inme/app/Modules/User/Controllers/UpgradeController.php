@@ -45,41 +45,72 @@ class UpgradeController extends Controller
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
 
-        $taxFor = function ($priced) use ($billing, $currency, $hasAddress) {
-            if (!$hasAddress || (int) $priced['amount_minor'] === 0) {
+        // Currency-aware tax helper. The upgrade page now flips USD/INR
+        // instantly client-side (no reload), so every price-bearing element
+        // needs both currencies — and their matching tax breakdowns —
+        // pre-computed and embedded in the Alpine payload.
+        $currencies = ['USD', 'INR'];
+        $taxFor = function (int $amountMinor, string $cur) use ($billing, $hasAddress) {
+            if (!$hasAddress || $amountMinor === 0) {
                 return null;
             }
             return TaxCalculator::calculate(
-                [['label' => 'Plan', 'amount_minor' => (int) $priced['amount_minor']]],
+                [['label' => 'Plan', 'amount_minor' => $amountMinor]],
                 [
                     'country'     => $billing->country,
                     'region'      => $billing->region,
                     'tax_id'      => $billing->tax_id,
                     'tax_id_kind' => $billing->tax_id_kind,
                 ],
-                $currency,
+                $cur,
             );
         };
 
-        $plansPriced = $plans->map(function ($p) use ($user, $cycle, $taxFor) {
+        $plansPriced = $plans->map(function ($p) use ($user, $cycle, $currency, $currencies, $taxFor) {
             $monthly = PricingResolver::priceFor($p, $user, 'monthly');
             $annual  = PricingResolver::priceFor($p, $user, 'annual');
             $shown   = $cycle === 'annual' ? $annual : $monthly;
+
+            $prices = [];
+            $taxByCur = [];
+            foreach ($currencies as $cur) {
+                $m = PricingResolver::priceForCurrency($p, $cur, 'monthly');
+                $a = PricingResolver::priceForCurrency($p, $cur, 'annual');
+                $prices[$cur] = ['monthly' => $m, 'annual' => $a];
+                $taxByCur[$cur] = [
+                    'monthly' => $taxFor((int) ($m['amount_minor'] ?? 0), $cur),
+                    'annual'  => $taxFor((int) ($a['amount_minor'] ?? 0), $cur),
+                ];
+            }
+
             return [
-                'model'   => $p,
-                'monthly' => $monthly,
-                'annual'  => $annual,
-                'shown'   => $shown,
-                'tax'     => $taxFor($shown),
+                'model'    => $p,
+                'monthly'  => $monthly,
+                'annual'   => $annual,
+                'shown'    => $shown,
+                'tax'      => $taxFor((int) $shown['amount_minor'], $currency),
+                'prices'   => $prices,
+                'taxByCur' => $taxByCur,
             ];
         });
 
-        $addonsPriced = $addons->map(function ($a) use ($user, $cycle, $taxFor) {
+        $addonsPriced = $addons->map(function ($a) use ($user, $cycle, $currency, $currencies, $taxFor) {
             $shown = PricingResolver::priceFor($a, $user, $cycle);
+
+            $prices = [];
+            $taxByCur = [];
+            foreach ($currencies as $cur) {
+                $priced = PricingResolver::priceForCurrency($a, $cur, $cycle);
+                $prices[$cur] = [$cycle => $priced];
+                $taxByCur[$cur] = [$cycle => $taxFor((int) ($priced['amount_minor'] ?? 0), $cur)];
+            }
+
             return [
-                'model'  => $a,
-                'shown'  => $shown,
-                'tax'    => $taxFor($shown),
+                'model'    => $a,
+                'shown'    => $shown,
+                'tax'      => $taxFor((int) $shown['amount_minor'], $currency),
+                'prices'   => $prices,
+                'taxByCur' => $taxByCur,
             ];
         });
 
