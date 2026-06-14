@@ -82,13 +82,19 @@ class PlansAndAddonsSeeder extends Seeder
             }
 
             // Always converge the default plan attachments so a partial or
-            // manually-edited prior seed gets healed on rerun. We use
-            // syncWithoutDetaching so any extra plans an admin attached
-            // by hand are preserved.
+            // manually-edited prior seed gets healed on rerun. We only attach
+            // pairs that aren't already linked (after de-duping the resolved
+            // plan IDs), so any extra plans an admin attached by hand are
+            // preserved and a populated pivot table never triggers a
+            // duplicate-key crash on re-run.
             if ($appliesTo) {
-                $planIds = Plan::whereIn('slug', $appliesTo)->pluck('id')->all();
+                $planIds = Plan::whereIn('slug', $appliesTo)->pluck('id')->unique()->all();
                 if ($planIds) {
-                    $addon->plans()->syncWithoutDetaching($planIds);
+                    $alreadyAttached = $addon->plans()->pluck('plans.id')->all();
+                    $toAttach = array_values(array_diff($planIds, $alreadyAttached));
+                    if ($toAttach) {
+                        $addon->plans()->attach($toAttach);
+                    }
                 }
             }
 
