@@ -61,6 +61,14 @@ re-reconcile from scratch even right after you finished; it is not your prior wo
 regressing, it is another agent churning the shared DB. Just re-run the reconciler to
 convergence (it handles run-vs-orphan idempotently regardless of the mixed state).
 
+**A concurrent `migrate:fresh` can drop the `migrations` table itself**, not just wipe
+its rows — then any reconcile/log INSERT fails with `42P01 relation "migrations" does
+not exist`. Fix: run `php artisan migrate:install` to recreate the empty ledger table,
+then re-run the reconciler. Also: the ledger row count can climb ABOVE the on-disk file
+count (e.g. 279 rows vs 231 files) because concurrent agents insert their own rows;
+trust `migrate:status | grep -c Pending` (against the real migrator) over the raw
+`migrations` count to judge convergence.
+
 **Note:** transient `42P01 does not exist` / `42P07 already exists` lines in
 `storage/logs/laravel.log` during the migration window are expected (a page hit a
 table before its migration ran, or a reconcile pass hit an orphan). Only errors
