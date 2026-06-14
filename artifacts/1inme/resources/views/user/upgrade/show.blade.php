@@ -286,5 +286,26 @@
         </div>
     </div>
     @endif
+
+    {{-- ───── Coins → AI credits ───── --}}
+    @if($wallet_enabled)
+    <div class="space-y-3 pt-4">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h2 class="text-xl font-semibold text-white">
+                    <i class="fas fa-coins text-amber-300"></i> Coins &amp; AI credits
+                </h2>
+                <p class="text-sm text-white/50">
+                    Top up coins to cover API overage, activate paid add-ons, and fund AI credits for the features below.
+                </p>
+            </div>
+            <a href="{{ route('user.wallet.buy') }}"
+               class="px-4 py-2 bg-amber-400 text-[#1e2330] rounded-xl text-sm font-bold hover:bg-amber-300 transition shadow-lg shadow-amber-500/20 whitespace-nowrap">
+                Buy coins
+            </a>
+        </div>
+        @include('public.pricing._ai_credit_uses')
+    </div>
+    @endif
 </div>
 @endsection

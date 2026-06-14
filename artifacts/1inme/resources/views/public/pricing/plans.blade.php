@@ -721,6 +721,8 @@
                 </p>
             </div>
 
+            @include('public.pricing._ai_credit_uses')
+
             @if(!$wallet_enabled)
                 <div class="max-w-2xl mx-auto rounded-2xl border border-amber-400/20 bg-amber-400/5 p-6 text-amber-200 text-center">
                     <i class="fas fa-coins text-2xl float-coin mb-2 block"></i>

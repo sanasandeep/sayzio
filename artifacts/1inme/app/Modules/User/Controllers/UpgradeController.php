@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\BillingAddress;
+use App\Services\Billing\WalletService;
 use App\Services\BillingCyclePreference;
 use App\Services\PlanRecommender;
 use App\Services\PricingResolver;
@@ -126,6 +127,7 @@ class UpgradeController extends Controller
             'hasAddress' => $hasAddress,
             'billing'    => $billing,
             'recommendation' => $recommendation,
+            'wallet_enabled' => WalletService::isEnabled(),
         ]);
     }
 
