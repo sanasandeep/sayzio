@@ -69,6 +69,8 @@ export default function CreateLinkScreen() {
         payload.long_url = longUrl;
       } else if (meta.kind === "biolink") {
         // biolink uses no long_url; blocks built next
+      } else if (meta.kind === "ai_chat") {
+        // ai_chat uses no long_url; persona/greeting configured next
       } else if (meta.kind === "file") {
         if (!fileUrl) throw new Error("Please enter the file URL");
         payload.long_url = fileUrl;
@@ -95,6 +97,8 @@ export default function CreateLinkScreen() {
 
       if (meta.kind === "biolink") {
         router.replace(`/links/${link.id}/blocks` as any);
+      } else if (meta.kind === "ai_chat") {
+        router.replace(`/links/${link.id}/ai-chat` as any);
       } else {
         router.replace(`/links/${link.id}/edit` as any);
       }
@@ -229,7 +233,11 @@ export default function CreateLinkScreen() {
         ) : null}
 
         <Button
-          label={meta.kind === "biolink" ? "Create & open editor" : "Create link"}
+          label={
+            meta.kind === "biolink" || meta.kind === "ai_chat"
+              ? "Create & open editor"
+              : "Create link"
+          }
           onPress={onSubmit}
           loading={busy}
         />

@@ -69,7 +69,7 @@ class LinkController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat'])],
             'alias'      => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
             'title'      => ['nullable', 'string', 'max:200'],
             'long_url'   => ['nullable', 'url', 'max:2048'],

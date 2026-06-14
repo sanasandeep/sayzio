@@ -280,6 +280,13 @@ export default function EditLinkScreen() {
               onPress={() => router.push(`/links/${id}/blocks` as any)}
             />
           ) : null}
+          {meta.kind === "ai_chat" ? (
+            <ActionTile
+              icon="message-circle"
+              label="AI Chat"
+              onPress={() => router.push(`/links/${id}/ai-chat` as any)}
+            />
+          ) : null}
           <ActionTile
             icon="copy"
             label="Duplicate"

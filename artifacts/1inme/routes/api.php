@@ -263,6 +263,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/links/{id}',    [LinkController::class, 'show'])->whereNumber('id');
         Route::patch('/links/{id}',  [LinkController::class, 'update'])->whereNumber('id');
         Route::delete('/links/{id}', [LinkController::class, 'destroy'])->whereNumber('id');
+
+        // Full-page AI chat link editor (links.type = ai_chat). Mirrors
+        // the web user.links.ai-chat.{editor,save} routes, reusing the AI
+        // Companion infra via the shared AiChatPageManager.
+        Route::get ('/links/{id}/ai-chat', [\App\Modules\Api\Controllers\AiChatController::class, 'show'])->whereNumber('id');
+        Route::put ('/links/{id}/ai-chat', [\App\Modules\Api\Controllers\AiChatController::class, 'save'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics/blocks/{blockId}', [LinkController::class, 'blockAnalytics'])->whereNumber('id')->whereNumber('blockId');
         Route::post  ('/links/{id}/reset',     [LinkController::class, 'reset'])->whereNumber('id');
