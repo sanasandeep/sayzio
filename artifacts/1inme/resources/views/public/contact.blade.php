@@ -203,8 +203,13 @@
                 </div>
             @endif
         </div>
-        <div class="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden flex flex-col">
-            <div class="aspect-[4/3] w-full bg-white/5 relative">
+        <div class="map-card overflow-hidden flex flex-col" data-anim="fade-up">
+            <span class="map-card__glow" aria-hidden="true"></span>
+            <div class="map-card__viewport flex-1 min-h-[320px] w-full bg-white/5">
+                <span class="map-card__corner map-card__corner--tl" aria-hidden="true"></span>
+                <span class="map-card__corner map-card__corner--tr" aria-hidden="true"></span>
+                <span class="map-card__corner map-card__corner--bl" aria-hidden="true"></span>
+                <span class="map-card__corner map-card__corner--br" aria-hidden="true"></span>
                 <div id="contact-map"
                      role="region"
                      aria-label="Map of {{ $mapTitle }}"
@@ -224,10 +229,13 @@
                     </noscript>
                 </div>
             </div>
-            <div class="px-4 py-3 flex items-center justify-between text-xs text-gray-400">
-                <span>{{ $mapLabel ?: 'Find us on OpenStreetMap' }}</span>
-                <a href="{{ $mapLargerUrl }}" target="_blank" rel="noopener" class="text-violet-300 hover:text-violet-200">
-                    View larger map <i class="fas fa-up-right-from-square ml-1 text-[10px]"></i>
+            <div class="map-card__footer px-4 py-3 flex items-center justify-between text-xs text-gray-300">
+                <span class="inline-flex items-center gap-1.5">
+                    <i class="fas fa-location-dot text-violet-300/80 text-[11px]"></i>
+                    {{ $mapLabel ?: 'Find us on OpenStreetMap' }}
+                </span>
+                <a href="{{ $mapLargerUrl }}" target="_blank" rel="noopener" class="map-card__footer-link font-semibold">
+                    View larger map <i class="fas fa-up-right-from-square map-card__footer-arrow text-[10px]"></i>
                 </a>
             </div>
         </div>
@@ -315,22 +323,97 @@
 @endsection
 
 @push('head')
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-      integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
-      crossorigin="anonymous" referrerpolicy="no-referrer" />
+{{-- Leaflet is self-hosted (public/css/vendor + public/js/vendor) to avoid the
+     brittle CDN Subresource-Integrity mismatch that previously blocked the map. --}}
+<link rel="stylesheet" href="{{ asset('css/vendor/leaflet.min.css') }}" />
 <style>
+    /* ---- Map card shell ---------------------------------------------------- */
+    .map-card {
+        position: relative;
+        border-radius: 1.25rem;
+        background:
+            linear-gradient(180deg, rgba(124,58,237,0.10), rgba(255,255,255,0.02)) padding-box,
+            linear-gradient(135deg, rgba(167,139,250,0.55), rgba(124,58,237,0.10) 45%, rgba(255,255,255,0.08)) border-box;
+        border: 1px solid transparent;
+        box-shadow:
+            0 1px 0 rgba(255,255,255,0.06) inset,
+            0 24px 60px -30px rgba(124,58,237,0.55),
+            0 18px 50px -28px rgba(0,0,0,0.7);
+        transition: transform .45s cubic-bezier(.2,.7,.2,1), box-shadow .45s cubic-bezier(.2,.7,.2,1);
+    }
+    .map-card:hover {
+        transform: translateY(-4px);
+        box-shadow:
+            0 1px 0 rgba(255,255,255,0.08) inset,
+            0 30px 70px -28px rgba(124,58,237,0.7),
+            0 22px 60px -26px rgba(0,0,0,0.75);
+    }
+    .map-card__glow {
+        position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
+        background: radial-gradient(120% 120% at 50% -10%, rgba(167,139,250,0.18), transparent 55%);
+        opacity:0; transition: opacity .45s ease;
+    }
+    .map-card:hover .map-card__glow { opacity:1; }
+    .map-card__viewport {
+        position:relative; overflow:hidden;
+        border-radius: 1.1rem 1.1rem 0 0;
+    }
+    /* Sheen sweep that crosses the map once on hover. */
+    .map-card__viewport::after {
+        content:""; position:absolute; top:0; bottom:0; left:-60%; width:45%;
+        background: linear-gradient(100deg, transparent, rgba(255,255,255,0.10), transparent);
+        transform: skewX(-18deg); pointer-events:none; z-index:500; opacity:0;
+    }
+    .map-card:hover .map-card__viewport::after {
+        animation: map-sheen 1.1s ease forwards;
+    }
+    @keyframes map-sheen {
+        0%   { left:-60%; opacity:0; }
+        15%  { opacity:1; }
+        100% { left:130%; opacity:0; }
+    }
+    /* Corner gradient accents framing the live map. */
+    .map-card__corner {
+        position:absolute; width:30px; height:30px; z-index:500; pointer-events:none;
+        border-color: rgba(167,139,250,0.65); border-style:solid; border-width:0;
+    }
+    .map-card__corner--tl { top:10px; left:10px; border-top-width:2px; border-left-width:2px; border-top-left-radius:8px; }
+    .map-card__corner--tr { top:10px; right:10px; border-top-width:2px; border-right-width:2px; border-top-right-radius:8px; }
+    .map-card__corner--bl { bottom:10px; left:10px; border-bottom-width:2px; border-left-width:2px; border-bottom-left-radius:8px; }
+    .map-card__corner--br { bottom:10px; right:10px; border-bottom-width:2px; border-right-width:2px; border-bottom-right-radius:8px; }
+    .map-card__footer {
+        position:relative;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(124,58,237,0.06));
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .map-card__footer-link {
+        display:inline-flex; align-items:center; gap:.35rem;
+        color:#c4b5fd; transition: color .2s ease, transform .2s ease;
+    }
+    .map-card__footer-link:hover { color:#ddd6fe; }
+    .map-card__footer-link:hover .map-card__footer-arrow { transform: translate(2px,-2px); }
+    .map-card__footer-arrow { transition: transform .2s ease; }
+
+    /* ---- Leaflet theming --------------------------------------------------- */
     #contact-map { background:#1e2330; }
     .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
+    /* Tiles tinted slightly toward the brand palette so OSM blends with the UI. */
+    .map-card .leaflet-tile-pane { filter: saturate(0.92) brightness(0.94) contrast(1.02); }
     .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
     .leaflet-control-attribution a { color:#a78bfa !important; }
+    .leaflet-control-zoom { border:none !important; box-shadow:0 8px 24px -12px rgba(0,0,0,0.8) !important; }
     .leaflet-control-zoom a {
-        background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important;
+        background:rgba(30,35,48,0.92) !important; color:#fff !important;
+        border-color:rgba(255,255,255,0.12) !important;
+        backdrop-filter: blur(8px); transition: background .2s ease, color .2s ease;
     }
+    .leaflet-control-zoom a:first-child { border-top-left-radius:10px; border-top-right-radius:10px; }
+    .leaflet-control-zoom a:last-child { border-bottom-left-radius:10px; border-bottom-right-radius:10px; }
     .leaflet-control-zoom a:hover { background:#7c3aed !important; }
     .brand-marker {
         width:34px; height:44px; position:relative;
         filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45));
+        animation: brand-marker-drop .55s cubic-bezier(.2,1.3,.4,1) both;
     }
     .brand-marker svg { width:100%; height:100%; display:block; }
     .brand-marker .pulse {
@@ -339,23 +422,42 @@
         background:rgba(124,58,237,0.55);
         animation: brand-marker-pulse 1.8s ease-out infinite;
     }
+    .brand-marker .pulse.pulse--delay { animation-delay:.9s; }
     @keyframes brand-marker-pulse {
         0% { transform:scale(0.6); opacity:0.9; }
-        100% { transform:scale(2.2); opacity:0; }
+        100% { transform:scale(2.6); opacity:0; }
+    }
+    @keyframes brand-marker-drop {
+        0% { transform: translateY(-18px) scale(0.7); opacity:0; }
+        100% { transform: translateY(0) scale(1); opacity:1; }
     }
     .brand-popup .leaflet-popup-content-wrapper {
-        background:#1e2330; color:#fff; border:1px solid rgba(255,255,255,0.1);
-        border-radius:12px;
+        background:linear-gradient(180deg, #232838, #1a1e2b); color:#fff;
+        border:1px solid rgba(167,139,250,0.30);
+        border-radius:14px; box-shadow:0 18px 40px -20px rgba(124,58,237,0.7);
     }
-    .brand-popup .leaflet-popup-tip { background:#1e2330; border:1px solid rgba(255,255,255,0.1); }
-    .brand-popup .leaflet-popup-content { margin:10px 14px; font-size:13px; }
+    .brand-popup .leaflet-popup-tip { background:#1c2030; border:1px solid rgba(167,139,250,0.30); }
+    .brand-popup .leaflet-popup-content { margin:11px 15px; font-size:13px; line-height:1.45; }
+    .brand-popup .leaflet-popup-content .bp-eyebrow {
+        display:flex; align-items:center; gap:.4rem; font-size:10px; letter-spacing:.08em;
+        text-transform:uppercase; color:#a78bfa; margin-bottom:3px; font-weight:600;
+    }
+    .brand-popup a.leaflet-popup-close-button { color:#9ca3af !important; }
+    .brand-popup a.leaflet-popup-close-button:hover { color:#fff !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .map-card, .map-card:hover { transition:none; transform:none; }
+        .map-card__viewport::after,
+        .map-card:hover .map-card__viewport::after { animation:none; opacity:0; }
+        .brand-marker { animation:none; }
+        .brand-marker .pulse { animation:none; opacity:0; }
+        .map-card__footer-link, .map-card__footer-arrow { transition:none; }
+    }
 </style>
 @endpush
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
-        integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<script src="{{ asset('js/vendor/leaflet.min.js') }}" defer></script>
 <script>
 (function(){
     function init(){
@@ -392,17 +494,22 @@
 
         var icon = L.divIcon({
             className: '',
-            html: '<div class="brand-marker"><span class="pulse"></span>' + pinSvg + '</div>',
+            html: '<div class="brand-marker"><span class="pulse"></span><span class="pulse pulse--delay"></span>' + pinSvg + '</div>',
             iconSize: [34, 44],
             iconAnchor: [17, 44],
-            popupAnchor: [0, -40]
+            popupAnchor: [0, -42]
         });
 
         var marker = L.marker([lat, lng], { icon: icon, title: label || '1INME' }).addTo(map);
         if (label) {
-            marker.bindPopup('<strong>' + label.replace(/[<>&]/g, function(c){
+            var safeLabel = label.replace(/[<>&]/g, function(c){
                 return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];
-            }) + '</strong>', { className: 'brand-popup' });
+            });
+            marker.bindPopup(
+                '<span class="bp-eyebrow"><i class="fas fa-location-dot"></i> 1INME</span>' +
+                '<strong>' + safeLabel + '</strong>',
+                { className: 'brand-popup' }
+            ).openPopup();
         }
 
         setTimeout(function(){ map.invalidateSize(); }, 100);

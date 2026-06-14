@@ -15,5 +15,6 @@
 - [Laravel migrate orphans on distant RDS](laravel-migrate-orphans.md) — killed `migrate` runs leave applied-but-unrecorded migrations (commit happens before the log INSERT); loop migrate + reconcile idempotency failures into the migrations table until 0 pending.
 - [Isolated env un-migrated 1inme DB](isolated-env-unmigrated-db.md) — fresh task envs start dozens of migrations behind; app 500s on missing tables (e.g. app_settings) until you background-migrate; no 1inme_testing DB so RefreshDatabase can't run locally.
 - [Alpine CDN single-point-of-failure](cdn-alpine-spof.md) — 1inme nav/menus/buttons are pure Alpine; loading it from a floating CDN range caused intermittent dead clicks. Self-host pinned at public/js/vendor/alpine.min.js.
+- [CDN SRI breaks vendored libs](cdn-sri-vendored-libs.md) — cdnjs SRI hashes drift and silently block scripts; self-host pinned in public/{js,css}/vendor (Leaflet, Alpine), no integrity attrs.
 - [Expo Router typed-route regen](expo-router-typed-routes.md) — adding a screen breaks router.push typecheck until the expo dev server rewrites .expo/types/router.d.ts; restart the expo workflow, don't cast.
 - [Site layout meta description](site-layout-meta-description.md) — plain <meta description> falls back to $shareDescription; model-less marketing pages just pass $shareTitle/$shareDescription.
