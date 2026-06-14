@@ -74,6 +74,7 @@ class SitePageController extends Controller
         $rules = [
             'title' => 'required|string|max:200',
             'meta_description' => 'nullable|string|max:500',
+            'meta_keywords' => 'nullable|string|max:500',
             'intro' => 'nullable|string|max:2000',
             'last_updated_at' => 'nullable|date',
             'show_toc' => 'nullable|boolean',
@@ -309,6 +310,7 @@ class SitePageController extends Controller
         $payload = [
             'title' => $data['title'],
             'meta_description' => $data['meta_description'] ?? null,
+            'meta_keywords' => $data['meta_keywords'] ?? null,
             'sections' => $sections,
             'cta_label' => $data['cta_label'] ?? null,
             'cta_url' => $data['cta_url'] ?? null,
@@ -365,6 +367,7 @@ class SitePageController extends Controller
         return [
             'title'            => (string) $page->title,
             'meta_description' => (string) ($page->meta_description ?? ''),
+            'meta_keywords'    => (string) ($page->meta_keywords ?? ''),
             'intro'            => (string) ($page->intro ?? ''),
             'last_updated_at'  => $page->last_updated_at ? $page->last_updated_at->toDateString() : null,
             'show_toc'         => (bool) ($page->show_toc ?? true),

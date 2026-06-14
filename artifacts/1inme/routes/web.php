@@ -177,9 +177,9 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::get('/ai-agent',           fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-agent'))->name('site.ai-agent');
     Route::get('/ai-widget',          fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-widget'))->name('site.ai-widget');
     Route::get('/ai-voice-assistant', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-voice-assistant'))->name('site.ai-voice-assistant');
-    Route::view('/docs/api', 'public.api-docs')->name('site.api-docs');
+    Route::view('/docs/api', 'public.api-docs', ['seoKey' => 'api-docs'])->name('site.api-docs');
     // Standalone marketing page for the Résumé / Portfolio Builder module.
-    Route::view('/resume-builder', 'public.resume-builder')->name('site.resume-builder');
+    Route::view('/resume-builder', 'public.resume-builder', ['seoKey' => 'resume-builder'])->name('site.resume-builder');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
     // Competitor comparison "vs" landing pages. Data driven by ComparisonContent.
     Route::get('/compare', [\App\Modules\Common\Controllers\SitePageController::class, 'compareIndex'])->name('site.compare.index');
@@ -193,9 +193,9 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::get('/for/{persona}', [\App\Modules\Common\Controllers\SitePageController::class, 'useCase'])
         ->where('persona', implode('|', \App\Modules\Common\Support\SitePagesContent::useCaseSlugs()))
         ->name('site.use-case');
-    Route::view('/analytics',    'public.analytics')   ->name('site.analytics');
-    Route::view('/audience',     'public.audience')    ->name('site.audience');
-    Route::view('/integrations', 'public.integrations')->name('site.integrations');
+    Route::view('/analytics',    'public.analytics',    ['seoKey' => 'analytics'])   ->name('site.analytics');
+    Route::view('/audience',     'public.audience',     ['seoKey' => 'audience'])    ->name('site.audience');
+    Route::view('/integrations', 'public.integrations', ['seoKey' => 'integrations'])->name('site.integrations');
     Route::get('/pricing',          [\App\Modules\Common\Controllers\PricingPagesController::class, 'plans'])   ->name('site.pricing');
     // Lightweight AJAX target the /pricing Alpine toggle pings whenever
     // the visitor flips Monthly ↔ Annual. The page itself doesn't

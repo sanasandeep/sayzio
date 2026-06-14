@@ -159,6 +159,14 @@
             @if($isServices)
                 <p class="mt-1 text-[11px] text-white/40">Doubles as the hero subtitle on the public /services page.</p>
             @endif
+            @error('meta_description')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Meta keywords</label>
+            <input type="text" name="meta_keywords" value="{{ old('meta_keywords', $page->meta_keywords) }}" placeholder="comma, separated, keywords" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+            <p class="mt-1 text-[11px] text-white/40">Comma-separated keywords for the page's <code>&lt;meta name="keywords"&gt;</code> tag. Leave blank to use the seeded default.</p>
+            @error('meta_keywords')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
         </div>
 
         @if($isPolicy)

@@ -100,6 +100,7 @@ class PricingPagesController extends Controller
         $recommendation = PlanRecommender::for($user, $plans);
 
         return view('public.pricing.plans', [
+            'seoKey'        => 'pricing',
             'plans'         => $rows,
             'cycle'         => $cycle,
             'currency'      => $currency,
@@ -149,6 +150,7 @@ class PricingPagesController extends Controller
         ])->keyBy('slug');
 
         return view('public.pricing.features', [
+            'seoKey'   => 'premium-features',
             'grouped'  => $grouped,
             'planMeta' => $planMeta,
         ]);

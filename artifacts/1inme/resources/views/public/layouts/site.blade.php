@@ -4,8 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', $page->title ?? '1INME') — {{ config('app.name', '1INME') }}</title>
-    <meta name="description" content="{{ $page->meta_description ?? ($shareDescription ?? '') }}">
+    @php
+        $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView([
+            'seoKey'           => $seoKey ?? null,
+            'page'             => $page ?? null,
+            'yieldTitle'       => trim($__env->yieldContent('title')) ?: null,
+            'shareTitle'       => $shareTitle ?? null,
+            'shareDescription' => $shareDescription ?? null,
+        ]);
+    @endphp
+    <title>{{ $__seo['title'] }} — {{ config('app.name', '1INME') }}</title>
+    <meta name="description" content="{{ $__seo['description'] }}">
+    @if(($__seo['keywords'] ?? '') !== '')
+        <meta name="keywords" content="{{ $__seo['keywords'] }}">
+    @endif
     @include('common.partials.default-icons')
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')

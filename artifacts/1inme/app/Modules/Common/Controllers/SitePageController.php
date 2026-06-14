@@ -185,6 +185,7 @@ class SitePageController extends Controller
         $competitors = ComparisonContent::index();
 
         return view('public.compare.index', [
+            'seoKey'           => 'compare-index',
             'competitors'      => $competitors,
             'total'            => ComparisonContent::totalFeatures(),
             'ourScore'         => ComparisonContent::scores()['ours'] ?? 0,
@@ -205,6 +206,7 @@ class SitePageController extends Controller
         abort_if($data === null, 404);
 
         return view('public.compare.show', [
+            'seoKey'           => 'compare-' . $competitor,
             'competitor'       => $data,
             'shareTitle'       => ComparisonContent::shareTitle($data),
             'shareDescription' => ComparisonContent::shareDescription($data),

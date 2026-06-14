@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SitePageRevision extends Model
 {
     protected $fillable = [
-        'site_page_id', 'slug', 'title', 'meta_description', 'intro',
+        'site_page_id', 'slug', 'title', 'meta_description', 'meta_keywords', 'intro',
         'last_updated_at', 'show_toc', 'sections', 'extra', 'cta_label', 'cta_url',
         'summary', 'editor_id', 'editor_type', 'editor_name',
     ];
@@ -68,6 +68,7 @@ class SitePageRevision extends Model
             'slug'            => $page->slug,
             'title'           => ($previousState['title'] ?? '') !== '' ? $previousState['title'] : null,
             'meta_description'=> ($previousState['meta_description'] ?? '') !== '' ? $previousState['meta_description'] : null,
+            'meta_keywords'   => ($previousState['meta_keywords'] ?? '') !== '' ? $previousState['meta_keywords'] : null,
             'intro'           => ($previousState['intro'] ?? '') !== '' ? $previousState['intro'] : null,
             'last_updated_at' => $previousState['last_updated_at'] ?? null,
             'show_toc'        => (bool) ($previousState['show_toc'] ?? true),
@@ -93,7 +94,7 @@ class SitePageRevision extends Model
             return 'Initial version.';
         }
         $changes = [];
-        foreach (['title', 'meta_description', 'intro', 'cta_label', 'cta_url'] as $field) {
+        foreach (['title', 'meta_description', 'meta_keywords', 'intro', 'cta_label', 'cta_url'] as $field) {
             if ((string)($prev[$field] ?? '') !== (string)($next[$field] ?? '')) {
                 $changes[] = str_replace('_', ' ', $field);
             }

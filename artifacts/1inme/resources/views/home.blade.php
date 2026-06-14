@@ -4,8 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>1INME — One link to everything.</title>
-    <meta name="description" content="1INME is the all-in-one link platform: drag-and-drop biolinks, short links, dynamic QR codes, live geographic analytics, a Performance Coach, follower system, forms, social proof and more.">
+    @php
+        $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'home']);
+    @endphp
+    <title>{{ $__seo['title'] }} — {{ config('app.name', '1INME') }}</title>
+    <meta name="description" content="{{ $__seo['description'] }}">
+    @if(($__seo['keywords'] ?? '') !== '')
+        <meta name="keywords" content="{{ $__seo['keywords'] }}">
+    @endif
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')
     <script src="https://cdn.tailwindcss.com"></script>

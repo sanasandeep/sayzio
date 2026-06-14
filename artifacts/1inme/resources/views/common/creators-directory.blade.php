@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>Creators - {{ config('app.name') }}</title>
+@php
+    $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'creators']);
+@endphp
+<title>{{ $__seo['title'] }} — {{ config('app.name') }}</title>
+<meta name="description" content="{{ $__seo['description'] }}">
+@if(($__seo['keywords'] ?? '') !== '')
+<meta name="keywords" content="{{ $__seo['keywords'] }}">
+@endif
+@include('public.partials.marketing-share-meta')
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
