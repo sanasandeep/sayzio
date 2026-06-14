@@ -418,10 +418,39 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         return host;
     }
 
+    // A bottom-pinned, non-fullscreen prompt (banner / inline / bottom-* corner
+    // or pill) renders a fixed card that sits on top of whatever page content —
+    // including footer links — scrolls underneath it. Modal/takeover layouts are
+    // deliberately full-screen blockers, so they're excluded here.
+    function bottomPinned() {
+        const liveLayout   = state.layoutOverride   || cfg.layout;
+        const livePosition = String(state.positionOverride || cfg.position || '');
+        if (liveLayout === 'modal' || liveLayout === 'takeover') return false;
+        if (liveLayout === 'inline') return true;
+        return livePosition.indexOf('bottom') === 0;
+    }
+    // Reserve space at the bottom of the page equal to the prompt's footprint so
+    // the footer (and any other bottom content) scrolls clear of the fixed card
+    // and stays clickable while the prompt is visible.
+    function updateFooterReserve() {
+        if (!state.host || !bottomPinned()) { document.body.style.paddingBottom = ''; return; }
+        requestAnimationFrame(function(){
+            if (!state.host || !bottomPinned()) { document.body.style.paddingBottom = ''; return; }
+            const h = state.host.getBoundingClientRect().height || 0;
+            document.body.style.paddingBottom = h > 0 ? (Math.ceil(h) + 'px') : '';
+        });
+    }
+
     function show() {
         if (state.host) return;
         state.host = buildHost();
         document.body.appendChild(state.host);
+        updateFooterReserve();
+        if (!state.reserveListener) {
+            state.reserveListener = function(){ updateFooterReserve(); };
+            window.addEventListener('resize', state.reserveListener, { passive: true });
+            window.addEventListener('orientationchange', state.reserveListener, { passive: true });
+        }
         if (cfg.scrollAcceptance) {
             const onScroll = function(){
                 if (window.scrollY > 80) {
@@ -434,6 +463,12 @@ window.__cookieConsent = window.__cookieConsent || (function(){
     }
     function hide() {
         if (state.host) { state.host.remove(); state.host = null; }
+        document.body.style.paddingBottom = '';
+        if (state.reserveListener) {
+            window.removeEventListener('resize', state.reserveListener);
+            window.removeEventListener('orientationchange', state.reserveListener);
+            state.reserveListener = null;
+        }
     }
 
     function init() {
