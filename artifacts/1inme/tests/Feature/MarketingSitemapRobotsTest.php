@@ -100,7 +100,7 @@ class MarketingSitemapRobotsTest extends TestCase
         $res->assertOk();
         $res->assertHeader('Content-Type', 'text/plain; charset=UTF-8');
 
-        $res->assertSee('Sitemap: ' . url('/sitemap.xml'), false);
+        $res->assertSee('Sitemap: ' . url('/sitemap_index.xml'), false);
         $res->assertSee('Disallow: /user/', false);
         $res->assertSee('Disallow: /admin/', false);
         $res->assertSee('Disallow: /api/', false);
