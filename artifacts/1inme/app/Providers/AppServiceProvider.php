@@ -40,7 +40,14 @@ class AppServiceProvider extends ServiceProvider
         if (class_exists(\Illuminate\Foundation\Console\ServeCommand::class)) {
             \Illuminate\Foundation\Console\ServeCommand::$passthroughVariables = array_values(array_unique(array_merge(
                 \Illuminate\Foundation\Console\ServeCommand::$passthroughVariables,
+                // DB credentials (DB_PASSWORD etc.) are injected via the Replit
+                // secrets manager, not .env, so the child must inherit them.
                 ['DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'DB_SSLMODE'],
+                // WhatsApp Cloud API delivery credentials are likewise Replit
+                // secrets. Without forwarding them the child process reads them
+                // as absent and OtpService::sendWhatsApp() silently stays in
+                // "preview mode" (logs the code) even after they're configured.
+                ['WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_TEMPLATE_NAME', 'WHATSAPP_TEMPLATE_LANG', 'WHATSAPP_GRAPH_VERSION'],
             )));
         }
 
