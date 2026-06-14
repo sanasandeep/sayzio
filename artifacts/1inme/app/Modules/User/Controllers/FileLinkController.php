@@ -35,6 +35,21 @@ class FileLinkController extends Controller
         return config('filesystems.default') === 's3' ? 's3' : 'user_files';
     }
 
+    /**
+     * Return a structured JSON error envelope for API/automation clients, or
+     * fall back to the web form's redirect-back-with-flash behaviour for
+     * browser sessions. Keeps the two call sites below in lockstep so the
+     * upload flow never hands an HTML redirect to a JSON consumer.
+     */
+    private function uploadError(Request $request, string $message, int $status = 422)
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['error' => ['message' => $message]], $status);
+        }
+
+        return back()->withInput()->with('error', $message);
+    }
+
     public function store(Request $request)
     {
         $maxFileSizeMb = (int) workspace_owner()->getPlanFeature('max_file_size_mb', 5);
@@ -72,7 +87,7 @@ class FileLinkController extends Controller
                 'upload_key'        => 'link.file_share',
             ]);
         } catch (\RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
+            return $this->uploadError($request, $e->getMessage());
         }
 
         $alias = ($validated['alias'] ?? null) ?: Link::generateAlias();
@@ -83,7 +98,7 @@ class FileLinkController extends Controller
         $settings = [];
         if ($request->boolean('open_in_app')) {
             if (!workspace_owner()->userCanUseLinkSetting('deep_link')) {
-                return back()->withInput()->with('error', 'The "deep link" link setting isn\'t available on your current plan. Upgrade to enable it.');
+                return $this->uploadError($request, 'The "deep link" link setting isn\'t available on your current plan. Upgrade to enable it.', 403);
             }
             // Only persist the flag when files on this disk could actually
             // resolve to a known app. Otherwise it would be a silent no-op,

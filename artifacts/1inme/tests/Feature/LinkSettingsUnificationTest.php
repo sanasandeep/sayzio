@@ -355,6 +355,45 @@ class LinkSettingsUnificationTest extends TestCase
         $this->assertNotEmpty($link->alias);
     }
 
+    public function test_file_create_returns_json_error_when_plan_gate_hit(): void
+    {
+        $u = $this->user($this->plan([
+            'max_links' => 100, 'link_deep_link' => false,
+            'max_file_size_mb' => 10, 'storage_limit_mb' => 100,
+        ]));
+
+        // Automation client (Accept: application/json) hitting the deep-link
+        // plan gate must get a structured JSON error, not an HTML redirect.
+        $resp = $this->actingAs($u)->postJson('/user/links-file', [
+            'alias' => 'fj' . substr(Str::random(8), 0, 8), 'title' => 'File J',
+            'file' => $this->fakeUpload(),
+            'open_in_app' => 1,
+        ]);
+
+        $resp->assertStatus(403);
+        $resp->assertJsonPath('error.message', 'The "deep link" link setting isn\'t available on your current plan. Upgrade to enable it.');
+        $this->assertSame(0, $u->links()->where('type', 'file')->count());
+    }
+
+    public function test_file_create_returns_json_error_when_file_too_large(): void
+    {
+        $u = $this->user($this->plan([
+            'max_links' => 100, 'link_deep_link' => true,
+            'max_file_size_mb' => 1, 'storage_limit_mb' => 100,
+        ]));
+
+        Storage::fake('user_files');
+        // 2 MB upload against a 1 MB per-file plan limit -> validation 422.
+        $resp = $this->actingAs($u)->postJson('/user/links-file', [
+            'alias' => 'fk' . substr(Str::random(8), 0, 8), 'title' => 'File K',
+            'file' => UploadedFile::fake()->create('big.bin', 2048),
+        ]);
+
+        $resp->assertStatus(422);
+        $resp->assertJsonStructure(['errors' => ['file']]);
+        $this->assertSame(0, $u->links()->where('type', 'file')->count());
+    }
+
     // ===== (d) interstitialMode()/previewPageEnabled() per type =====
 
     public function test_preview_page_enabled_for_url_type_via_settings(): void
