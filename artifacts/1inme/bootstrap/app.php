@@ -88,6 +88,26 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect()->route('user.ai-credits.show')->with('error', $msg);
         });
 
+        // Developer-experience safety net for a fundamentally un-migrated DB.
+        // When a query fails because a core table does not exist (Postgres
+        // undefined_table 42P01 / SQLite/MySQL "no such table"), show one
+        // clear "run migrations" page instead of a raw stack trace on every
+        // route. Gated to non-production so genuine production errors are
+        // never masked; API/JSON clients still get the standard envelope below.
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, \Illuminate\Http\Request $request) {
+            if (app()->environment('production')) {
+                return null;
+            }
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+            if (!\App\Modules\Common\Support\DatabaseErrors::isMissingTable($e)) {
+                return null;
+            }
+
+            return response()->view('setup-required', [], 503);
+        });
+
         // Standardize JSON error envelope for /api/* routes.
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
             if (!$request->is('api/*')) {
