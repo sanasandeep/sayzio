@@ -50,6 +50,56 @@
         </div>
     @endif
 
+    {{-- Live usage meter --}}
+    <div class="rounded-2xl p-5 mb-4" style="background: var(--surface, rgba(255,255,255,0.03)); border: 1px solid var(--border, rgba(255,255,255,0.08));">
+        <div class="flex items-center justify-between gap-3 mb-2">
+            <div class="text-sm font-semibold" style="color: var(--text);">
+                <i class="fas fa-gauge-high text-violet-400 mr-1.5"></i>API usage this period
+            </div>
+            <div class="text-[11px]" style="color: var(--text-muted);">
+                Resets {{ $periodReset->format('M j, Y') }} · {{ $daysLeft }} {{ \Illuminate\Support\Str::plural('day', $daysLeft) }} left
+            </div>
+        </div>
+
+        @if($unlimited)
+            <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-bold" style="color: var(--text);">{{ number_format($callsUsed) }}</span>
+                <span class="text-sm" style="color: var(--text-muted);">calls · <span class="font-semibold text-violet-400">Unlimited</span> allowance</span>
+            </div>
+        @else
+            @php
+                $barColor = $percentUsed >= 100 ? '#ef4444' : ($percentUsed >= 80 ? '#f59e0b' : '#7c3aed');
+            @endphp
+            <div class="flex items-baseline justify-between gap-2 mb-2">
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold" style="color: var(--text);">{{ number_format($callsUsed) }}</span>
+                    <span class="text-sm" style="color: var(--text-muted);">of {{ number_format($allowance) }} calls</span>
+                </div>
+                <span class="text-sm font-bold" style="color: {{ $barColor }};">{{ $percentUsed }}%</span>
+            </div>
+            <div class="h-2.5 w-full rounded-full overflow-hidden" style="background: var(--surface-2, rgba(255,255,255,0.06));">
+                <div class="h-full rounded-full transition-all" style="width: {{ $percentUsed }}%; background: {{ $barColor }};"></div>
+            </div>
+            @if($percentUsed >= 100)
+                <p class="text-[11px] mt-2" style="color: #f87171;">
+                    <i class="fas fa-triangle-exclamation mr-1"></i>
+                    You've used your full allowance. Extra calls
+                    @if($overageCalls > 0)
+                        ({{ number_format($overageCalls) }} so far) are
+                    @else
+                        will be
+                    @endif
+                    paid with coins@if(!$walletEnabled), but coin top-ups are disabled so they'll be rejected@endif.
+                </p>
+            @elseif($percentUsed >= 80)
+                <p class="text-[11px] mt-2" style="color: #fbbf24;">
+                    <i class="fas fa-circle-exclamation mr-1"></i>
+                    You're approaching your monthly allowance.
+                </p>
+            @endif
+        @endif
+    </div>
+
     {{-- Usage snapshot --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div class="rounded-2xl p-4" style="background: var(--surface, rgba(255,255,255,0.03)); border: 1px solid var(--border, rgba(255,255,255,0.08));">

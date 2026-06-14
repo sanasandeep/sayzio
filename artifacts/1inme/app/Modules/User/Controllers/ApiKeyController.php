@@ -48,11 +48,27 @@ class ApiKeyController extends Controller
             ->where('period', ApiUsageCounter::currentPeriod())
             ->first();
 
+        $callsUsed = (int) ($counter->calls_used ?? 0);
+
+        // The metering period is a calendar month, so it resets at the
+        // start of next month (see ApiUsageCounter::currentPeriod()).
+        $periodReset = now()->startOfMonth()->addMonth();
+        $daysLeft = (int) ceil(now()->floatDiffInDays($periodReset));
+
+        // Percent of the included allowance consumed (capped at 100 for the
+        // bar; overage is surfaced separately). Unlimited plans show no bar.
+        $percentUsed = (!$unlimited && $allowance > 0)
+            ? min(100, (int) round(($callsUsed / $allowance) * 100))
+            : 0;
+
         return view('user.api-keys.index', [
             'keys'         => $keys,
             'allowance'    => $allowance,
             'unlimited'    => $unlimited,
-            'callsUsed'    => (int) ($counter->calls_used ?? 0),
+            'callsUsed'    => $callsUsed,
+            'percentUsed'  => $percentUsed,
+            'periodReset'  => $periodReset,
+            'daysLeft'     => $daysLeft,
             'overageCalls' => (int) ($counter->overage_calls ?? 0),
             'coinsSpent'   => (int) ($counter->coins_spent ?? 0),
             'rate'         => (int) $user->getPlanFeature('api_rate_per_min', 0),
