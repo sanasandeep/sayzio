@@ -86,6 +86,11 @@
     .cc-btn { border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; line-height: 1.2; }
 
     .cc-cats { margin: 4px 0 12px; display: grid; gap: 8px; max-height: 250px; overflow-y: auto; }
+    /* The collapsed category list uses the `hidden` attribute; `display:grid`
+       above would otherwise defeat it and lay the list out (≈250px) inside the
+       banner, ballooning its height and the body footer-reserve. Keep `hidden`
+       authoritative so the reserve matches the *visible* prompt. */
+    .cc-cats[hidden] { display: none; }
     .cc-cat { padding: 10px 12px; border: 1px solid var(--cc-border, rgba(0,0,0,0.08)); border-radius: 10px; }
     .cc-cat-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
     .cc-cat-name { font-size: 13px; font-weight: 600; }
@@ -408,6 +413,9 @@ window.__cookieConsent = window.__cookieConsent || (function(){
                 card.querySelector('.cc-cats').hidden = false;
                 t.hidden = true;
                 card.querySelector('[data-act="save"]').hidden = false;
+                // The prompt just grew taller (categories revealed) — re-measure
+                // so the body footer-reserve keeps the footer clear of the card.
+                updateFooterReserve();
             } else if (act === 'save') {
                 const o = defaultConsents();
                 card.querySelectorAll('input[data-cat]').forEach(i => { o[i.getAttribute('data-cat')] = i.checked; });
