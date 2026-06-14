@@ -131,6 +131,14 @@
                             <i class="fas fa-gift text-pink-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Referrals</span><span class="block text-xs text-gray-500">Reward fans who spread the word</span></span>
                         </a>
+                        <div class="my-1 border-t border-white/5"></div>
+                        <div class="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
+                        @foreach(\App\Modules\Common\Support\SitePagesContent::useCaseMeta() as $__ucSlug => $__ucMeta)
+                            <a href="{{ route('site.use-case', $__ucSlug) }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                                <i class="fas {{ $__ucMeta['icon'] }} text-pink-400 mt-1"></i>
+                                <span><span class="block text-sm font-semibold text-white">{{ $__ucMeta['eyebrow'] }}</span><span class="block text-xs text-gray-500">{{ $__ucMeta['nav_desc'] ?? $__ucMeta['tagline'] }}</span></span>
+                            </a>
+                        @endforeach
                     </div>
                 </div>
 
@@ -208,6 +216,11 @@
             <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Buzz</a>
             <a href="{{ route('site.features') }}#cat-events" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Events &amp; RSVPs</a>
             <a href="{{ route('site.features') }}#cat-referrals" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Referrals</a>
+
+            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
+            @foreach(\App\Modules\Common\Support\SitePagesContent::useCaseMeta() as $__ucSlug => $__ucMeta)
+                <a href="{{ route('site.use-case', $__ucSlug) }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">{{ $__ucMeta['eyebrow'] }}</a>
+            @endforeach
 
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Company</div>
             <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>

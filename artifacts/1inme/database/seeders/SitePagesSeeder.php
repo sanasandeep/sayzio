@@ -171,6 +171,26 @@ class SitePagesSeeder extends Seeder
             ]);
         }
 
+        // "1INME for X" use-case landing pages. Title/meta/sections/cta follow
+        // the usual seed defaults, but the editable hero chrome, featured
+        // features and FAQ (extra.use_case) are only seeded when missing so
+        // admin edits are never clobbered on a re-seed.
+        foreach (SitePagesContent::useCasesDefault() as $slug => $data) {
+            $persona = \Illuminate\Support\Str::after($slug, 'for-');
+            $page = SitePage::firstOrNew(['slug' => $slug]);
+            $page->title            = $data['title'];
+            $page->meta_description = $data['meta_description'] ?? null;
+            $page->sections         = $data['sections'];
+            $page->cta_label        = $data['cta_label'] ?? null;
+            $page->cta_url          = $data['cta_url'] ?? null;
+            $existingExtra = is_array($page->extra) ? $page->extra : [];
+            if (empty($existingExtra['use_case']) || !is_array($existingExtra['use_case'])) {
+                $existingExtra['use_case'] = SitePagesContent::useCaseExtraDefault($persona);
+            }
+            $page->extra = $existingExtra;
+            $page->save();
+        }
+
         // Policy pages: insert if missing; otherwise only append default
         // sections that don't already exist (matched by stable id), so we
         // never overwrite an admin-edited body.

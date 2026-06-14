@@ -94,6 +94,37 @@
     </div>
 </section>
 
+{{-- 1INME FOR… — deep-dive persona pages --}}
+<section class="pb-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10" data-anim="fade-up">
+            <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-300 mb-3">1INME for…</div>
+            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Pick the page built for <span class="grad-text">how you work</span>.</h2>
+            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Tailored walk-throughs for the people who get the most out of 1INME — each with the exact features that matter to them.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
+            @foreach(\App\Modules\Common\Support\SitePagesContent::useCaseMeta() as $__svcSlug => $__svcMeta)
+                <a href="{{ route('site.use-case', $__svcSlug) }}"
+                   class="group relative bg-white/[0.03] border border-white/10 rounded-2xl p-6 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                   style="--accent: {{ $__svcMeta['accent'] }};"
+                   onmouseover="this.style.borderColor='{{ $__svcMeta['accent'] }}66'" onmouseout="this.style.borderColor=''">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20"
+                         style="background:radial-gradient(circle, {{ $__svcMeta['accent'] }}, transparent 70%);"></div>
+                    <div class="relative w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4"
+                         style="background: linear-gradient(135deg, {{ $__svcMeta['accent'] }}, #7c3aed);">
+                        <i class="fas {{ $__svcMeta['icon'] }} text-lg"></i>
+                    </div>
+                    <h3 class="relative text-lg font-bold text-white">{{ $__svcMeta['eyebrow'] }}</h3>
+                    <p class="relative mt-2 text-sm text-gray-400 leading-relaxed">{{ $__svcMeta['tagline'] }}</p>
+                    <div class="relative mt-4 inline-flex items-center gap-1.5 text-sm font-semibold" style="color: {{ $__svcMeta['accent'] }};">
+                        Explore <i class="fas fa-arrow-right text-xs group-hover:translate-x-0.5 transition"></i>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    </div>
+</section>
+
 {{-- USE CASE GRID --}}
 <section class="pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

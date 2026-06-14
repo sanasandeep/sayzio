@@ -590,6 +590,313 @@ class SitePagesContent
     }
 
     /**
+     * The persona slugs that power the dedicated "1INME for X" use-case
+     * landing pages mounted at /for/{persona}. The SitePage row for each
+     * persona is stored under "for-{slug}" (see useCasesDefault) so it
+     * never collides with other page slugs like "creators-feed".
+     */
+    public static function useCaseSlugs(): array
+    {
+        return ['creators', 'agencies', 'coaches', 'musicians', 'small-business'];
+    }
+
+    /**
+     * Marketing-only metadata for each use-case page, kept in code (like
+     * the AI suite's $aiMeta) so the shared blade, the /services overview
+     * and the site nav stay in lockstep via shared persona slugs. The
+     * editable copy (title, meta_description, sections, cta) lives on the
+     * SitePage row; this holds the hero eyebrow/tagline/icon/accent and
+     * the "featured feature" anchors that deep-link into /features.
+     */
+    public static function useCaseMeta(): array
+    {
+        return [
+            'creators' => [
+                'eyebrow'  => 'For creators',
+                'tagline'  => 'One link that turns followers into a living.',
+                'icon'     => 'fa-wand-magic-sparkles',
+                'accent'   => '#7c3aed',
+                'nav_desc' => 'Monetise your audience from one link',
+                'features' => [
+                    ['label' => 'Drag & drop biolink builder', 'icon' => 'fa-square-share-nodes', 'anchor' => 'cat-biolink'],
+                    ['label' => 'Live audience analytics',      'icon' => 'fa-chart-line',        'anchor' => 'cat-analytics'],
+                    ['label' => 'Followers & creators feed',    'icon' => 'fa-stream',            'anchor' => 'cat-feed'],
+                    ['label' => 'Sell products & take tips',     'icon' => 'fa-bag-shopping',      'anchor' => 'cat-biolink'],
+                ],
+            ],
+            'agencies' => [
+                'eyebrow'  => 'For agencies',
+                'tagline'  => 'Run every client from one tidy dashboard.',
+                'icon'     => 'fa-briefcase',
+                'accent'   => '#1bd4d9',
+                'nav_desc' => 'Workspaces, roles & client reporting',
+                'features' => [
+                    ['label' => 'Workspaces per client',     'icon' => 'fa-people-group', 'anchor' => 'cat-workspaces'],
+                    ['label' => 'Roles & permissions',       'icon' => 'fa-user-shield',  'anchor' => 'cat-workspaces'],
+                    ['label' => 'Per-link analytics & CSV',  'icon' => 'fa-chart-line',   'anchor' => 'cat-analytics'],
+                    ['label' => 'One-click social plumbing', 'icon' => 'fa-plug',         'anchor' => 'cat-integrations'],
+                ],
+            ],
+            'coaches' => [
+                'eyebrow'  => 'For coaches',
+                'tagline'  => 'Fill your calendar while you focus on clients.',
+                'icon'     => 'fa-chalkboard-user',
+                'accent'   => '#e94e8c',
+                'nav_desc' => 'Bookings, lead capture & follow-ups',
+                'features' => [
+                    ['label' => 'Forms & lead capture',     'icon' => 'fa-clipboard-list', 'anchor' => 'cat-subscribers'],
+                    ['label' => 'Calendar booking links',   'icon' => 'fa-calendar-check', 'anchor' => 'cat-calendar'],
+                    ['label' => 'Broadcasts & follow-ups',  'icon' => 'fa-paper-plane',    'anchor' => 'cat-subscribers'],
+                    ['label' => 'Contacts & CRM dialer',    'icon' => 'fa-address-book',   'anchor' => 'cat-crm'],
+                ],
+            ],
+            'musicians' => [
+                'eyebrow'  => 'For musicians',
+                'tagline'  => 'Every release, every platform, one smart link.',
+                'icon'     => 'fa-music',
+                'accent'   => '#ff8a3c',
+                'nav_desc' => 'Smart links for drops, tours & fans',
+                'features' => [
+                    ['label' => 'Music & video embeds',     'icon' => 'fa-compact-disc',  'anchor' => 'cat-biolink'],
+                    ['label' => 'Schedule drops to the minute', 'icon' => 'fa-clock',     'anchor' => 'cat-scheduling'],
+                    ['label' => 'Events, RSVPs & tickets',  'icon' => 'fa-calendar-day',  'anchor' => 'cat-events'],
+                    ['label' => 'Grow & message your fans', 'icon' => 'fa-users',         'anchor' => 'cat-feed'],
+                ],
+            ],
+            'small-business' => [
+                'eyebrow'  => 'For small business',
+                'tagline'  => 'Your whole storefront behind one link.',
+                'icon'     => 'fa-store',
+                'accent'   => '#34d399',
+                'nav_desc' => 'A storefront, bookings & reviews',
+                'features' => [
+                    ['label' => 'Products, payments & tips', 'icon' => 'fa-bag-shopping',  'anchor' => 'cat-biolink'],
+                    ['label' => 'Dynamic QR for print',      'icon' => 'fa-qrcode',        'anchor' => 'cat-qr'],
+                    ['label' => 'Forms & contact capture',   'icon' => 'fa-clipboard-list','anchor' => 'cat-subscribers'],
+                    ['label' => 'Reviews & social proof',    'icon' => 'fa-bullhorn',      'anchor' => 'cat-buzz'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Editable default content for each "1INME for X" landing page. Keyed
+     * by the SitePage slug ("for-{persona}") so the seeder and migration
+     * can iterate it. Each entry follows the standard SitePage shape
+     * (title, meta_description, sections, cta_label, cta_url); the hero
+     * chrome and feature anchors come from useCaseMeta().
+     */
+    public static function useCasesDefault(): array
+    {
+        return [
+            'for-creators' => [
+                'title' => '1INME for Creators',
+                'meta_description' => 'The link-in-bio built for creators — a drag-and-drop page, live audience analytics, a followers feed, and built-in ways to sell, tip and grow. Free forever.',
+                'cta_label' => 'Start my creator page free',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'One link for every platform', 'body' => "Drop a single 1INME link in your Instagram, TikTok, YouTube and X bios. Send fans to your latest video, your shop, your newsletter and your DMs from one beautiful page — and repoint it the moment your priorities change."],
+                    ['heading' => 'Built to convert, not just list links', 'body' => "Stack blocks for video, music, products, tips, donations and forms. Pin your latest drop to the top, schedule blocks to appear for a launch, and let the Performance Coach flag the dead links quietly killing your clicks."],
+                    ['heading' => 'Own your audience', 'body' => "Turn anonymous visitors into followers and contacts you actually control — no algorithm in the middle. Post updates to your followers feed, capture emails with a form, and reach everyone again whenever you want."],
+                    ['heading' => 'Get paid for what you make', 'body' => "Sell digital products, take tips, accept donations and link your store right inside your page. Money goes straight to you — 1INME takes a 0% platform fee, you only ever pay your processor."],
+                    ['heading' => 'See what actually lands', 'body' => "Live analytics show which posts, links and platforms drive real engagement, with a map of where your fans are. Walk into every brand deal with proof, not a hunch."],
+                    ['heading' => 'Free forever, upgrade when you blow up', 'body' => "Start on a genuinely useful free plan with no credit card. When your audience takes off, unlock custom domains, deeper analytics, and the AI suite that answers fans for you 24/7."],
+                ],
+            ],
+            'for-agencies' => [
+                'title' => '1INME for Agencies',
+                'meta_description' => 'Manage every client from one dashboard — isolated workspaces, granular roles, per-link analytics and white-glove reporting. The link platform agencies run on.',
+                'cta_label' => 'Set up my agency workspace',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'A clean workspace for every client', 'body' => "Spin up an isolated workspace per brand or client — its own biolinks, short links, analytics, contacts and billing, fully separated from the rest. Switch between them in a click without logging in and out."],
+                    ['heading' => 'Invite the team, lock down access', 'body' => "Bring in teammates, freelancers and clients with the right role — Owner, Admin, Editor or Viewer. Decide who can publish pages, repoint links, see contacts or touch billing, and every change is attributed to the person who made it."],
+                    ['heading' => 'Reporting clients actually read', 'body' => "Per-link and per-workspace analytics make monthly reporting trivial. Export clean CSVs, show a live map of clicks, and prove the value of every campaign without stitching together five tools."],
+                    ['heading' => 'Onboard a client in minutes', 'body' => "One-click social integrations, ready-made templates and bulk link tools get a new client live the same afternoon. Expired tokens reconnect themselves, so you spend time on strategy, not plumbing."],
+                    ['heading' => 'Bill the way you work', 'body' => "Each workspace carries its own plan, invoices and payment method, so you can bill clients separately or roll everything into one. Upgrade only the workspaces that need more."],
+                    ['heading' => 'An API to fit your stack', 'body' => "A clean REST API and webhooks for every important event let you wire 1INME into the dashboards and automations your agency already runs."],
+                ],
+            ],
+            'for-coaches' => [
+                'title' => '1INME for Coaches',
+                'meta_description' => 'Turn your bio into a booking machine — capture leads with forms, share booking links, and follow up automatically. The link-in-bio for coaches and consultants.',
+                'cta_label' => 'Build my coaching page free',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'Turn visitors into booked calls', 'body' => "Lead with your offer, drop in a booking link, and let visitors grab a real slot without the back-and-forth. Your page does the qualifying so your calendar fills with the right people."],
+                    ['heading' => 'Capture every lead', 'body' => "Embed forms with conditional logic right on your page — discovery calls, intake questionnaires, waitlists. Every submission lands in your contacts, tagged and ready, so no enquiry slips through the cracks."],
+                    ['heading' => 'Follow up without the busywork', 'body' => "Send email and SMS follow-ups to the right segment, schedule nurture sequences, and reach past clients when a new cohort opens — all from the same place your contacts already live."],
+                    ['heading' => 'Look like the expert you are', 'body' => "Add testimonials, results, an about block and your best content so first-time visitors trust you fast. Light and dark themes keep it polished on every device."],
+                    ['heading' => 'Sell programs and sessions', 'body' => "Offer paid sessions, packages and digital resources straight from your page. Take payment up front, with 1INME charging a 0% platform fee — you only pay your processor."],
+                    ['heading' => 'Let AI handle the first reply', 'body' => "On paid plans, an AI chatbot trained on your services answers common questions, qualifies leads and books calls for you — even while you're in a session."],
+                ],
+            ],
+            'for-musicians' => [
+                'title' => '1INME for Musicians',
+                'meta_description' => 'Send fans to every platform with one smart link — stream the new single, watch the video, grab tickets and join the list. The link-in-bio built for artists.',
+                'cta_label' => 'Make my artist link free',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'Every platform, one smart link', 'body' => "Stop choosing which streaming service to link. One 1INME page sends each fan to Spotify, Apple Music, YouTube, SoundCloud and the rest — plus your store, your tour dates and your socials."],
+                    ['heading' => 'Drop releases on cue', 'body' => "Schedule blocks to go live the exact minute your single, album or video lands — hands-free, across every time zone. Pin the new release to the top and let older drops slide down."],
+                    ['heading' => 'Sell out the room', 'body' => "List shows with RSVPs, ticket links and automatic reminders so fans actually turn up. Sell merch, vinyl and digital downloads from the same page."],
+                    ['heading' => 'Turn listeners into a fanbase', 'body' => "Collect followers and emails you own, post updates to your feed, and message everyone when the next drop is coming — no algorithm deciding who hears about it."],
+                    ['heading' => 'Look the part', 'body' => "Embed players, videos and visuals so your page feels like an extension of the record, not a list of buttons. Dark mode by default, light when you want it."],
+                    ['heading' => 'See where your fans are', 'body' => "Live analytics with a map show which cities are streaming and clicking — so you know where to tour and where to push the next campaign."],
+                ],
+            ],
+            'for-small-business' => [
+                'title' => '1INME for Small Business',
+                'meta_description' => 'Your whole storefront behind one link — show products, take payments and bookings, capture leads and collect reviews. The link-in-bio for small businesses.',
+                'cta_label' => 'Create my business page free',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'A storefront without the website headache', 'body' => "Get a clean, professional page with your products, services, hours, location and contact details in minutes — no developers, no hosting bills, no monthly maintenance."],
+                    ['heading' => 'Take orders, payments and bookings', 'body' => "Sell products, accept payments and tips, and let customers book appointments right from your page. 1INME charges a 0% platform fee, so you only ever pay your processor."],
+                    ['heading' => 'Bridge offline to online', 'body' => "Put a dynamic QR code on your window, menu, packaging or flyers. Because the destination is editable, the same printed code can point to a new offer any time — no reprinting."],
+                    ['heading' => 'Capture and keep customers', 'body' => "Collect emails and phone numbers with forms, store them in your contacts, and send offers and updates with email and SMS broadcasts to bring people back."],
+                    ['heading' => 'Build trust fast', 'body' => "Show reviews, testimonials and live social proof so first-time visitors feel confident buying or booking with you."],
+                    ['heading' => 'Free to start, simple to grow', 'body' => "Launch on the free plan with no credit card. Add a custom domain, deeper analytics and the AI tools that answer customers for you as the business grows."],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Per-persona FAQ entries for each use-case landing page. Keyed by
+     * persona slug (not the "for-" SitePage slug). Returns a list of
+     * {q, a} rows used by the shared use-case blade. A small common set
+     * is appended so every persona answers the universal questions.
+     */
+    public static function useCaseFaqs(string $slug): array
+    {
+        $common = [
+            ['q' => 'Is there really a free plan?', 'a' => 'Yes — the Free plan gives you a biolink page, short links and QR codes forever, with no credit card and no trial countdown. Upgrade only when you want custom domains, deeper analytics or the AI suite.'],
+            ['q' => 'Can I use my own domain?', 'a' => 'Yes. On paid plans you can connect a custom domain so your page lives at your own web address instead of a 1inme.com link.'],
+            ['q' => 'How long does it take to set up?', 'a' => 'Most people publish a polished page in well under ten minutes. Pick a template, drag in your blocks, and share one link everywhere — no design or coding skills needed.'],
+            ['q' => 'Will it work on every device?', 'a' => 'Yes. Every page is mobile-first and renders cleanly in both light and dark mode, on phones, tablets and desktops.'],
+        ];
+        $extra = [
+            'creators' => [
+                ['q' => 'How do I get paid?', 'a' => 'Sell products, take tips and accept donations directly from your page. 1INME charges a 0% platform fee — payments go straight to you through your connected processor, so you only pay their fee.'],
+                ['q' => 'Can I keep my followers if I leave a platform?', 'a' => 'Yes. Followers and email contacts you capture on 1INME are yours — you can post to them and export them any time, no algorithm in the middle.'],
+            ],
+            'agencies' => [
+                ['q' => 'Can I keep clients separated?', 'a' => 'Yes. Each client gets an isolated workspace with its own pages, analytics, contacts and billing. Teammates only see the workspaces you add them to.'],
+                ['q' => 'Can I bill clients separately?', 'a' => 'Yes. Every workspace carries its own plan, invoices and payment method, so you can bill each client directly or consolidate — your call.'],
+                ['q' => 'Is there an API for our own tooling?', 'a' => 'Yes. A clean REST API plus webhooks for every important event let you plug 1INME into the dashboards and automations your agency already runs.'],
+            ],
+            'coaches' => [
+                ['q' => 'Can clients book a call from my page?', 'a' => 'Yes. Add a booking link and visitors can grab a real slot straight from your page. Forms capture intake details into your contacts so you arrive prepared.'],
+                ['q' => 'Can I follow up automatically?', 'a' => 'Yes. Send email and SMS follow-ups to segmented contacts and schedule nurture sequences without leaving 1INME.'],
+            ],
+            'musicians' => [
+                ['q' => 'Does it link to every streaming service?', 'a' => 'Yes. Add Spotify, Apple Music, YouTube, SoundCloud, Tidal and more so each fan lands on the platform they already use — from one link.'],
+                ['q' => 'Can I schedule a release to go live automatically?', 'a' => 'Yes. Schedule blocks to appear at the exact minute your single, album or video drops, across every time zone, hands-free.'],
+            ],
+            'small-business' => [
+                ['q' => 'Can customers pay or book directly?', 'a' => 'Yes. Sell products, take payments and tips, and let customers book appointments right from your page. 1INME charges a 0% platform fee — you only pay your processor.'],
+                ['q' => 'Can I reuse a printed QR code?', 'a' => 'Yes. Your QR code is dynamic — point it at a new offer or page any time without reprinting the flyer, menu or packaging.'],
+            ],
+        ];
+        return array_merge($extra[$slug] ?? [], $common);
+    }
+
+    /**
+     * The editable "use_case" payload stored on a "for-{persona}" SitePage
+     * row under extra.use_case. Seeds the admin editor and the public page
+     * with the hero chrome (eyebrow/tagline/icon/accent/nav_desc), the
+     * featured-feature cards and the persona FAQ — all of which become
+     * admin-editable with no redeploy. Built from useCaseMeta() and
+     * useCaseFaqs() so code remains the single source of defaults.
+     */
+    public static function useCaseExtraDefault(string $persona): array
+    {
+        $m = self::useCaseMeta()[$persona] ?? [];
+        return [
+            'eyebrow'  => (string) ($m['eyebrow'] ?? ''),
+            'tagline'  => (string) ($m['tagline'] ?? ''),
+            'icon'     => (string) ($m['icon'] ?? 'fa-star'),
+            'accent'   => (string) ($m['accent'] ?? '#7c3aed'),
+            'nav_desc' => (string) ($m['nav_desc'] ?? ''),
+            'features' => array_values(array_map(static function ($f) {
+                return [
+                    'label'  => (string) ($f['label'] ?? ''),
+                    'icon'   => (string) ($f['icon'] ?? 'fa-circle-dot'),
+                    'anchor' => (string) ($f['anchor'] ?? ''),
+                ];
+            }, (array) ($m['features'] ?? []))),
+            'faqs'     => array_values(array_map(static function ($q) {
+                return ['q' => (string) ($q['q'] ?? ''), 'a' => (string) ($q['a'] ?? '')];
+            }, self::useCaseFaqs($persona))),
+        ];
+    }
+
+    /**
+     * Sanitise an admin-submitted extra.use_case payload for a use-case
+     * page into the canonical shape persisted on the SitePage row. Blank
+     * hero fields fall back to the persona default; features and FAQ rows
+     * are trimmed, length-capped, de-blanked and bounded so the public
+     * blade always receives a clean, predictable structure.
+     */
+    public static function normalizeUseCaseExtra(array $input, string $persona): array
+    {
+        $defaults = self::useCaseExtraDefault($persona);
+        $clean = static fn ($v, int $max): string => mb_substr(trim((string) $v), 0, $max);
+
+        $accent = trim((string) ($input['accent'] ?? ''));
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $accent)) {
+            $accent = $defaults['accent'];
+        }
+
+        $features = [];
+        foreach ((array) ($input['features'] ?? []) as $f) {
+            if (!is_array($f)) {
+                continue;
+            }
+            $label = $clean($f['label'] ?? '', 120);
+            if ($label === '') {
+                continue;
+            }
+            $anchor = preg_replace('/[^a-z0-9\-]/i', '', (string) ($f['anchor'] ?? ''));
+            $features[] = [
+                'label'  => $label,
+                'icon'   => $clean($f['icon'] ?? '', 60) ?: 'fa-circle-dot',
+                'anchor' => mb_substr((string) $anchor, 0, 60),
+            ];
+            if (count($features) >= 8) {
+                break;
+            }
+        }
+
+        $faqs = [];
+        foreach ((array) ($input['faqs'] ?? []) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $q = $clean($row['q'] ?? '', 300);
+            $a = $clean($row['a'] ?? '', 2000);
+            if ($q === '' && $a === '') {
+                continue;
+            }
+            $faqs[] = ['q' => $q, 'a' => $a];
+            if (count($faqs) >= 30) {
+                break;
+            }
+        }
+
+        return [
+            'eyebrow'  => $clean($input['eyebrow'] ?? '', 60) ?: $defaults['eyebrow'],
+            'tagline'  => $clean($input['tagline'] ?? '', 200),
+            'icon'     => $clean($input['icon'] ?? '', 60) ?: $defaults['icon'],
+            'accent'   => $accent,
+            'nav_desc' => $clean($input['nav_desc'] ?? '', 160) ?: $defaults['nav_desc'],
+            'features' => $features,
+            'faqs'     => $faqs,
+        ];
+    }
+
+    /**
      * AI suite category card for the dedicated /features page. Returned
      * separately so the migration that backfills the AI suite onto the
      * existing features SitePage can append it idempotently without

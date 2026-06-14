@@ -375,6 +375,8 @@
             @include('admin.site-pages.partials.about-editor', ['page' => $page])
         @elseif($page->slug === 'contact')
             @include('admin.site-pages.partials.contact-editor', ['page' => $page])
+        @elseif(\Illuminate\Support\Str::startsWith($page->slug, 'for-') && in_array(\Illuminate\Support\Str::after($page->slug, 'for-'), \App\Modules\Common\Support\SitePagesContent::useCaseSlugs(), true))
+            @include('admin.site-pages.partials.use-case-editor', ['page' => $page])
         @endif
 
         @php

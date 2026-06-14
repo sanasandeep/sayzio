@@ -237,6 +237,27 @@ class SitePageController extends Controller
             $rules['extra.messages.email_invalid']       = 'nullable|string|max:200';
             $rules['extra.messages.rate_limited']        = 'nullable|string|max:200';
         }
+        $isUseCase = str_starts_with($slug, 'for-')
+            && in_array(substr($slug, 4), SitePagesContent::useCaseSlugs(), true);
+        if ($isUseCase) {
+            // Hero chrome + featured-feature cards + persona FAQ, all stored
+            // under extra.use_case. Validation is lenient (string/length only);
+            // normalizeUseCaseExtra() enforces the canonical shape, colour
+            // format and per-list caps before persisting.
+            $rules['extra.use_case']               = 'nullable|array';
+            $rules['extra.use_case.eyebrow']       = 'nullable|string|max:60';
+            $rules['extra.use_case.tagline']       = 'nullable|string|max:200';
+            $rules['extra.use_case.icon']          = 'nullable|string|max:60';
+            $rules['extra.use_case.accent']        = 'nullable|string|max:7';
+            $rules['extra.use_case.nav_desc']      = 'nullable|string|max:160';
+            $rules['extra.use_case.features']            = 'nullable|array|max:8';
+            $rules['extra.use_case.features.*.label']    = 'nullable|string|max:120';
+            $rules['extra.use_case.features.*.icon']     = 'nullable|string|max:60';
+            $rules['extra.use_case.features.*.anchor']   = 'nullable|string|max:60';
+            $rules['extra.use_case.faqs']          = 'nullable|array|max:30';
+            $rules['extra.use_case.faqs.*.q']      = 'nullable|string|max:300';
+            $rules['extra.use_case.faqs.*.a']      = 'nullable|string|max:2000';
+        }
         if ($slug === 'services') {
             $rules['sections.*.tagline']   = 'nullable|string|max:200';
             $rules['sections.*.icon']      = 'nullable|string|max:60';
@@ -301,6 +322,15 @@ class SitePageController extends Controller
             $payload['extra'] = SitePagesContent::normalizeAboutExtra((array) ($data['extra'] ?? []));
         } elseif ($slug === 'contact') {
             $payload['extra'] = SitePagesContent::normalizeContactExtra((array) ($data['extra'] ?? []));
+        } elseif ($isUseCase) {
+            // Merge the sanitised use_case payload into the existing extra so
+            // it composes with the shared blog_block block below.
+            $existingExtra = is_array($page->extra) ? $page->extra : [];
+            $existingExtra['use_case'] = SitePagesContent::normalizeUseCaseExtra(
+                (array) ($data['extra']['use_case'] ?? []),
+                substr($slug, 4)
+            );
+            $payload['extra'] = $existingExtra;
         }
         // Persist the optional Related-blog-posts block on any site page.
         // Lives under extra.blog_block so it composes with about/contact extras.

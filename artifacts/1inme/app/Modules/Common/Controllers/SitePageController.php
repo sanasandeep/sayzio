@@ -213,6 +213,65 @@ class SitePageController extends Controller
     }
 
     /**
+     * Dedicated "1INME for X" use-case landing page. Mirrors the AI product
+     * slug pattern: the route constrains $persona to a known slug, the
+     * editable copy lives on the "for-{persona}" SitePage row, and the
+     * hero chrome / feature anchors / FAQ come from SitePagesContent.
+     */
+    public function useCase(string $persona)
+    {
+        abort_unless(in_array($persona, SitePagesContent::useCaseSlugs(), true), 404);
+
+        $pageSlug = 'for-' . $persona;
+        $defaults = SitePagesContent::useCasesDefault()[$pageSlug] ?? [];
+        $page = SitePage::firstOrCreate(
+            ['slug' => $pageSlug],
+            [
+                'title'            => $defaults['title'] ?? ('1INME for ' . ucfirst($persona)),
+                'meta_description' => $defaults['meta_description'] ?? null,
+                'sections'         => $defaults['sections'] ?? [],
+                'cta_label'        => $defaults['cta_label'] ?? null,
+                'cta_url'          => $defaults['cta_url'] ?? null,
+                'extra'            => ['use_case' => SitePagesContent::useCaseExtraDefault($persona)],
+            ]
+        );
+
+        // Hero chrome, featured features and the FAQ are admin-editable: read
+        // them from the SitePage's extra.use_case payload, falling back to the
+        // code defaults whenever a field (or the whole payload) is absent so
+        // rows seeded before extra.use_case existed still render correctly.
+        $metaDefaults = SitePagesContent::useCaseMeta()[$persona] ?? [];
+        $extra = is_array($page->extra) ? $page->extra : [];
+        $uc = is_array($extra['use_case'] ?? null) ? $extra['use_case'] : [];
+        $meta = [
+            'eyebrow'  => $uc['eyebrow']  ?? ($metaDefaults['eyebrow']  ?? ''),
+            'tagline'  => $uc['tagline']  ?? ($metaDefaults['tagline']  ?? ''),
+            'icon'     => $uc['icon']     ?? ($metaDefaults['icon']     ?? 'fa-star'),
+            'accent'   => $uc['accent']   ?? ($metaDefaults['accent']   ?? '#7c3aed'),
+            'nav_desc' => $uc['nav_desc'] ?? ($metaDefaults['nav_desc'] ?? ''),
+            'features' => isset($uc['features']) && is_array($uc['features'])
+                ? $uc['features']
+                : ($metaDefaults['features'] ?? []),
+        ];
+        $faqs = isset($uc['faqs']) && is_array($uc['faqs'])
+            ? $uc['faqs']
+            : SitePagesContent::useCaseFaqs($persona);
+
+        $testimonials = (array) AppSetting::get('marketing_features_testimonials', []);
+        if (empty($testimonials)) {
+            $testimonials = SitePagesContent::testimonialsDefault();
+        }
+
+        return view('public.use-case', [
+            'page'         => $page,
+            'persona'      => $persona,
+            'meta'         => $meta,
+            'faqs'         => $faqs,
+            'testimonials' => $testimonials,
+        ]);
+    }
+
+    /**
      * Public-facing change history for a policy page. Shows the date and
      * a short summary of each saved revision so visitors can see how the
      * page has changed over time.

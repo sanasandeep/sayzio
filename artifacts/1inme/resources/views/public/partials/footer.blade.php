@@ -48,6 +48,12 @@
                 <li><a href="{{ route('site.features') }}#cat-events" class="hover:text-white transition-colors">Events &amp; RSVPs</a></li>
                 <li><a href="{{ route('site.features') }}#cat-referrals" class="hover:text-white transition-colors">Referral program</a></li>
             </ul>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-300 mt-6 mb-4">1INME for…</div>
+            <ul class="space-y-2.5 text-gray-400">
+                @foreach(\App\Modules\Common\Support\SitePagesContent::useCaseMeta() as $__fucSlug => $__fucMeta)
+                    <li><a href="{{ route('site.use-case', $__fucSlug) }}" class="hover:text-white transition-colors">{{ $__fucMeta['eyebrow'] }}</a></li>
+                @endforeach
+            </ul>
         </div>
         {{-- Resources --}}
         <div>
