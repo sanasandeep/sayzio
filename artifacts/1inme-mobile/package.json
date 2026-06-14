@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:icon-fonts": "node scripts/check-icon-fonts.mjs",
     "test:citation-href": "node scripts/test-citation-href.mjs",
-    "test:block-cache": "node scripts/test-block-cache.mjs"
+    "test:block-cache": "node scripts/test-block-cache.mjs",
+    "test:login-auth-config": "node scripts/test-login-auth-config.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
