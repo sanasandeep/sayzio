@@ -180,6 +180,19 @@
                     @elseif(is_array($features['block_types_allowed'] ?? null))
                         <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ count($features['block_types_allowed']) }} biolink block types</span></li>
                     @endif
+                    @if(!empty($features['api_access']))
+                        @php
+                            $apiCalls = (int) ($features['api_calls_monthly'] ?? 0);
+                            $apiRate  = (int) ($features['api_rate_per_min'] ?? 0);
+                        @endphp
+                        <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>Developer API access</span></li>
+                        @if($apiCalls !== 0)
+                            <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $apiCalls === -1 ? 'Unlimited' : number_format($apiCalls) }} API calls / month</span></li>
+                        @endif
+                        @if($apiRate !== 0)
+                            <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $apiRate === -1 ? 'Unlimited' : number_format($apiRate) }} API rate (calls / min)</span></li>
+                        @endif
+                    @endif
                 </ul>
                 @endif
 
