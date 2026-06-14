@@ -397,8 +397,19 @@
     /* ---- Leaflet theming --------------------------------------------------- */
     #contact-map { background:#1e2330; }
     .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
-    /* Tiles tinted slightly toward the brand palette so OSM blends with the UI. */
-    .map-card .leaflet-tile-pane { filter: saturate(0.92) brightness(0.94) contrast(1.02); }
+    /* In light mode the loading backdrop should read light too. */
+    html.light-mode #contact-map { background:#e6e9f0; }
+    html.light-mode .leaflet-container { background:#e6e9f0 !important; }
+    /* Tile theming follows the active site theme (toggling .light-mode on <html>).
+       Dark mode: invert + hue-rotate the light OSM raster so it reads as a dark map.
+       Light mode: keep tiles light with a subtle brand-leaning tint. */
+    .map-card .leaflet-tile-pane {
+        filter: invert(1) hue-rotate(180deg) brightness(0.94) contrast(0.9) saturate(0.85);
+        transition: filter .4s ease;
+    }
+    html.light-mode .map-card .leaflet-tile-pane {
+        filter: saturate(0.92) brightness(0.98) contrast(1.02);
+    }
     .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
     .leaflet-control-attribution a { color:#a78bfa !important; }
     .leaflet-control-zoom { border:none !important; box-shadow:0 8px 24px -12px rgba(0,0,0,0.8) !important; }
@@ -452,6 +463,7 @@
         .brand-marker { animation:none; }
         .brand-marker .pulse { animation:none; opacity:0; }
         .map-card__footer-link, .map-card__footer-arrow { transition:none; }
+        .map-card .leaflet-tile-pane { transition:none; }
     }
 </style>
 @endpush
