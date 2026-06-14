@@ -1,6 +1,6 @@
 ---
 name: External CDN single-point-of-failure for Alpine.js
-description: Why marketing/auth/dashboard nav menus and buttons intermittently die on the 1inme Laravel app, and the self-host fix.
+description: Self-hosting Alpine on the 1inme Laravel app — a reliability hardening, NOT the fix for the "menus don't work" complaint (that was the cookie-consent wall; see consent-backdrop-blocks-nav.md).
 ---
 
 # Alpine.js (and other CDN libs) as an intermittent-failure source
@@ -12,8 +12,15 @@ If Alpine fails to load, every one of those silently stops responding — with N
 console error (the script just never arrived). Plain `<a href>` links still
 navigate, so the symptom reads as "menus and buttons don't work, sometimes."
 
-**Root cause of the intermittent failures:** Alpine was loaded from an external
-CDN with a floating version range —
+**IMPORTANT — this was NOT the cause of the recurring "menu clicks not working"
+complaint.** That symptom was the full-page cookie-consent modal backdrop eating
+all clicks (see `consent-backdrop-blocks-nav.md`). Alpine was verified fully
+booted (`window.Alpine` object, `[x-cloak]`=0, nav `_x_dataStack` bound) while
+the menus still "didn't work." Don't chase Alpine/CDN first for that symptom —
+check `document.elementFromPoint()` over the nav for an overlay before anything.
+
+**Self-host is still worth keeping (reliability hardening):** Alpine was loaded
+from an external CDN with a floating version range —
 `https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js` (and one file used
 `//unpkg.com/alpinejs`). A floating `@3.x.x` adds a redirect/version-resolution
 lookup, and any CDN slowness/throttle/block leaves Alpine uninitialized.

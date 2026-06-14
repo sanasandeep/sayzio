@@ -52,7 +52,7 @@ class CookieConsentConfig
             'geo_countries'       => [],        // ISO codes when geo_scope === 'custom'
             'scroll_acceptance'   => false,
             'block_until_consent' => true,
-            'layout'              => 'modal',
+            'layout'              => 'banner',
             'position'            => 'bottom-center',
             'size'                => 'default', // 'compact' | 'default' | 'wide'
             'max_width'           => 440,       // px clamp for non-takeover layouts
