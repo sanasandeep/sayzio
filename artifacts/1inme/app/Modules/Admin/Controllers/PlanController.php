@@ -251,6 +251,7 @@ class PlanController extends Controller
             'features.max_leads'               => 'nullable|integer|min:-1',
             'features.max_events'              => 'nullable|integer|min:-1',
             'features.ai_credits_monthly'      => 'nullable|integer|min:-1',
+            'features.api_calls_monthly'       => 'nullable|integer|min:-1',
             'features.api_rate_per_min'        => 'nullable|integer|min:-1',
             'features.signup_bonus_days'       => 'nullable|integer|min:0|max:3650',
             'features.referrer_free_days'      => 'nullable|integer|min:0|max:3650',

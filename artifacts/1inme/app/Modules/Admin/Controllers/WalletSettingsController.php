@@ -21,8 +21,9 @@ class WalletSettingsController extends Controller
     public function edit()
     {
         return view('admin.wallet-settings.edit', [
-            'enabled' => WalletService::isEnabled(),
-            'rates'   => WalletService::rates(),
+            'enabled'          => WalletService::isEnabled(),
+            'rates'            => WalletService::rates(),
+            'apiOveragePerCoin' => WalletService::apiOverageCallsPerCoin(),
         ]);
     }
 
@@ -33,6 +34,7 @@ class WalletSettingsController extends Controller
             'rates'   => 'array',
             'rates.USD' => 'nullable|numeric|min:0.0001',
             'rates.INR' => 'nullable|numeric|min:0.0001',
+            'api_overage_calls_per_coin' => 'nullable|integer|min:1',
         ]);
 
         AppSetting::put(WalletService::FEATURE_KEY, $request->boolean('enabled'));
@@ -46,6 +48,9 @@ class WalletSettingsController extends Controller
             }
         }
         AppSetting::put(WalletService::RATE_KEY, $rates);
+
+        $overage = (int) ($data['api_overage_calls_per_coin'] ?? WalletService::API_OVERAGE_DEFAULT);
+        AppSetting::put(WalletService::API_OVERAGE_KEY, $overage > 0 ? $overage : WalletService::API_OVERAGE_DEFAULT);
 
         return redirect()->route('admin.wallet-settings.edit')
             ->with('success', 'Wallet settings saved.');

@@ -339,6 +339,12 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::delete('settings/sessions/{id}',            [\App\Modules\User\Controllers\SessionManagerController::class, 'destroy'])
                 ->where('id', '[A-Za-z0-9:_\-]+')
                 ->name('settings.sessions.destroy');
+
+            // Developer API keys (task #1393). Gated behind the `api_access`
+            // plan feature inside the controller.
+            Route::get   ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
+            Route::post  ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'store'])->middleware('throttle:20,1')->name('api-keys.store');
+            Route::delete('api-keys/{key}',      [\App\Modules\User\Controllers\ApiKeyController::class, 'destroy'])->whereNumber('key')->name('api-keys.destroy');
         });
 
         // Creator Profile editor (Task #1207). Lives next to the regular

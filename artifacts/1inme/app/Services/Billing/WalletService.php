@@ -28,12 +28,27 @@ use Illuminate\Support\Facades\Mail;
  */
 class WalletService
 {
-    public const FEATURE_KEY = 'wallet.enabled';
-    public const RATE_KEY    = 'wallet.coin_rates';
+    public const FEATURE_KEY      = 'wallet.enabled';
+    public const RATE_KEY         = 'wallet.coin_rates';
+    public const API_OVERAGE_KEY  = 'wallet.api_overage_calls_per_coin';
+
+    /** Default included-allowance overage rate: 1 coin buys this many API calls. */
+    public const API_OVERAGE_DEFAULT = 100;
 
     public static function isEnabled(): bool
     {
         return (bool) AppSetting::get(self::FEATURE_KEY, false);
+    }
+
+    /**
+     * How many extra API calls 1 coin buys once a user exceeds their plan's
+     * monthly included allowance. Admin-configurable on the Wallet settings
+     * screen. Always >= 1.
+     */
+    public static function apiOverageCallsPerCoin(): int
+    {
+        $v = (int) AppSetting::get(self::API_OVERAGE_KEY, self::API_OVERAGE_DEFAULT);
+        return $v > 0 ? $v : self::API_OVERAGE_DEFAULT;
     }
 
     /** Coins-per-currency-unit map, e.g. ['USD' => 100, 'INR' => 1]. */

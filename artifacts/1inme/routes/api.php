@@ -164,7 +164,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/onboarding/slides', [OnboardingSlideController::class, 'index']);
 
     // ── Authenticated ───────────────────────────────────────────────
-    Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class])->group(function () {
+    Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class, \App\Modules\Api\Middleware\MeterApiUsage::class])->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
         Route::post('/auth/logout',[AuthController::class, 'logout']);
 

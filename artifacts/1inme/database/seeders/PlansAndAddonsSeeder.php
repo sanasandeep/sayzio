@@ -204,6 +204,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => false,
                     'ab_tests' => false,
                     'ab_max_variants' => 0,
+                    // Developer API (Free: no programmatic access)
+                    'api_access' => false,
+                    'api_calls_monthly' => 0,
+                    'api_rate_per_min' => 0,
                 ],
             ],
             [
@@ -265,6 +269,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => true,
                     'ab_tests' => true,
                     'ab_max_variants' => 2,
+                    // Developer API
+                    'api_access' => true,
+                    'api_calls_monthly' => 1000,
+                    'api_rate_per_min' => 60,
                 ],
             ],
             [
@@ -327,6 +335,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => true,
                     'ab_tests' => true,
                     'ab_max_variants' => 3,
+                    // Developer API
+                    'api_access' => true,
+                    'api_calls_monthly' => 25000,
+                    'api_rate_per_min' => 120,
                 ],
             ],
             [
@@ -388,6 +400,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => true,
                     'ab_tests' => true,
                     'ab_max_variants' => 4,
+                    // Developer API
+                    'api_access' => true,
+                    'api_calls_monthly' => 250000,
+                    'api_rate_per_min' => 300,
                 ],
             ],
             [
@@ -452,6 +468,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => true,
                     'ab_tests' => true,
                     'ab_max_variants' => 4,
+                    // Developer API (Enterprise: unlimited calls)
+                    'api_access' => true,
+                    'api_calls_monthly' => -1,
+                    'api_rate_per_min' => 300,
                 ],
             ],
         ];

@@ -418,6 +418,16 @@
                                 </li>
                             @endif
                         @endforeach
+                        @if(!empty($features['api_access']))
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
+                                <span>
+                                    @php $apiCalls = (int) ($features['api_calls_monthly'] ?? 0); @endphp
+                                    {{ $apiCalls === -1 ? 'Unlimited' : number_format($apiCalls) }} API calls / month
+                                    @if($apiCalls !== -1)<span class="text-gray-500">(coin top-up beyond)</span>@endif
+                                </span>
+                            </li>
+                        @endif
                         @foreach([
                             'creator_profile_public' => 'Public creator profile',
                             'calendar_sync' => 'Calendar sync',
@@ -528,6 +538,11 @@
                     ['vaults',                   'Credential vault',        'bool'],
                     ['creator_profile_public',   'Public creator profile',  'bool'],
                 ],
+                'Developer API' => [
+                    ['api_access',               'API access',              'bool'],
+                    ['api_calls_monthly',        'API calls / month',       'number'],
+                    ['api_rate_per_min',         'API rate (calls / min)',  'number'],
+                ],
             ];
             $colTpl = 'minmax(180px, 1.4fr) repeat(' . count($plans) . ', minmax(120px, 1fr))';
             $renderCell = function ($plan, $key, $kind) {
@@ -600,11 +615,12 @@
                 <div class="text-xs font-bold uppercase tracking-[.2em] text-amber-300 mb-2">
                     <i class="fas fa-coins"></i> Top up with coins
                 </div>
-                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">No subscription? Just grab some coins.</h2>
+                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Out of API calls? Just grab some coins.</h2>
                 <p class="text-gray-400 mt-2">
-                    Coins activate paid add-ons on demand — perfect for one-off campaigns,
-                    NFC tag batches, AI credit top-ups or activating a single feature without
-                    committing to a plan.
+                    Every plan includes a monthly API-call allowance. When you go over it,
+                    coins automatically top up the extra calls — no overage bill, no hard stop.
+                    Coins also activate paid add-ons on demand — one-off campaigns,
+                    NFC tag batches or AI credit top-ups — without committing to a higher plan.
                 </p>
             </div>
 

@@ -36,6 +36,17 @@
         </div>
     </div>
 
+    <div class="glass rounded-2xl border border-white/10 p-6">
+        <h3 class="text-white font-semibold mb-1">API overage rate</h3>
+        <p class="text-[11px] text-white/40 mb-4">When a user exceeds their plan's monthly included API-call allowance, extra calls are paid with coins. This sets how many API calls <span class="text-white/70">1 coin</span> buys.</p>
+        <div class="max-w-xs">
+            <label class="block text-xs text-white/60 mb-1">API calls per coin</label>
+            <input type="number" step="1" min="1" name="api_overage_calls_per_coin" value="{{ $apiOveragePerCoin ?? 100 }}"
+                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
+            <p class="text-[11px] text-white/30 mt-1">e.g. 100 means a user spends 1 coin for each block of 100 extra API calls.</p>
+        </div>
+    </div>
+
     <button class="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Save settings</button>
 </form>
 @endsection

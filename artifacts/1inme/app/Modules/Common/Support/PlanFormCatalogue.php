@@ -65,6 +65,7 @@ class PlanFormCatalogue
             ['key' => 'max_leads',            'label' => 'Max leads',               'default' => 0,   'module' => null,                 'hint' => 'Lead-capture entries collected.'],
             ['key' => 'max_events',           'label' => 'Max events',              'default' => 0,   'module' => null,                 'hint' => 'Event listings / calendar entries.'],
             ['key' => 'ai_credits_monthly',   'label' => 'AI credits / month',      'default' => 0,   'module' => 'module_ai_suite',    'hint' => 'Monthly token / credit budget for AI features.'],
+            ['key' => 'api_calls_monthly',    'label' => 'API calls / month',       'default' => 0,   'module' => null,                 'hint' => 'Monthly included API-call allowance for API keys. Calls beyond this are paid with coins (admin-set overage rate). -1 = unlimited.'],
             ['key' => 'api_rate_per_min',     'label' => 'API requests / minute',   'default' => 0,   'module' => null,                 'hint' => 'Per-user rate limit for the public API.'],
         ];
     }

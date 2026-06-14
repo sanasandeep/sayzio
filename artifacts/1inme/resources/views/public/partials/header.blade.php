@@ -132,7 +132,6 @@
 
                 <a href="{{ route('site.features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Features</a>
                 <a href="{{ $pricingHref }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Pricing</a>
-                <a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Coins</a>
                 <a href="{{ route('site.premium-features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Premium</a>
                 <a href="{{ route('site.about') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">About</a>
                 <a href="{{ route('site.contact') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Contact</a>
@@ -207,7 +206,6 @@
 
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Company</div>
             <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
-            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Coin packages</a>
             <a href="{{ route('site.premium-features') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Premium features</a>
             <a href="{{ route('site.about') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">About</a>
             <a href="{{ route('site.contact') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Contact</a>
