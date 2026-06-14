@@ -29,3 +29,13 @@ explicit overrides to the LOCAL helium PG: `DB_HOST=helium DB_PORT=5432
 DB_DATABASE=1inme_testing DB_USERNAME=postgres DB_PASSWORD=password DB_SSLMODE=disable
 DB_URL= php artisan test --filter=...`. (2) `.env` already points at helium (the
 local Replit PG, same as the `PG*` vars); that is the safe test target.
+
+Fastest path when helium `1inme_testing` is empty/incomplete: clone the dev DB
+schema instead of running `migrate:fresh` (233 migrations × slow = minutes, and a
+foreground 120s timeout kills it mid-run leaving orphans). Do
+`pg_dump -d heliumdb --no-owner --no-privileges` then load into a freshly
+`DROP SCHEMA public CASCADE; CREATE SCHEMA public` testing DB, and run the suite
+with `SHARDED_TEST_SKIP_MIGRATION=1` so RefreshDatabase reuses that schema and only
+wraps each test in a transaction. Use phpunit directly (`vendor/bin/phpunit`), not
+`artisan test`, when iterating — artisan buffers all output and shows NOTHING if the
+process is killed by a timeout, whereas phpunit streams progress.
