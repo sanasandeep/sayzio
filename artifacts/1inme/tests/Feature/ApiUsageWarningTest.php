@@ -121,6 +121,44 @@ class ApiUsageWarningTest extends TestCase
         $this->assertNotNull($counter->overage_unavailable_notified_at);
     }
 
+    public function test_custom_warning_threshold_fires_earlier(): void
+    {
+        // Allowance 10 with a 50% threshold → near-limit warning at 5 calls.
+        [$user, $token] = $this->makeUserWithAllowance(10);
+        $user->forceFill(['api_usage_warning_threshold' => 50])->save();
+
+        // Calls 1–4: under 50%, no warning yet.
+        for ($i = 0; $i < 4; $i++) {
+            $this->hit($token)->assertOk();
+        }
+        $this->assertCount(0, $this->warnings($user));
+
+        // Call 5: used hits 5 (50%) → the near-limit warning fires with the
+        // user's chosen threshold recorded.
+        $this->hit($token)->assertOk();
+        $w = $this->warnings($user);
+        $this->assertCount(1, $w);
+        $this->assertEquals(50, $w[0]->data['threshold']);
+    }
+
+    public function test_unset_threshold_falls_back_to_80(): void
+    {
+        // No threshold set → defaults to 80% (column default).
+        [$user, $token] = $this->makeUserWithAllowance(5);
+
+        // Calls 1–3: under 80%, no warning.
+        for ($i = 0; $i < 3; $i++) {
+            $this->hit($token)->assertOk();
+        }
+        $this->assertCount(0, $this->warnings($user));
+
+        // Call 4 (80%): near-limit warning fires at 80.
+        $this->hit($token)->assertOk();
+        $w = $this->warnings($user);
+        $this->assertCount(1, $w);
+        $this->assertEquals(80, $w[0]->data['threshold']);
+    }
+
     public function test_unlimited_allowance_never_warns(): void
     {
         // -1 = unlimited.

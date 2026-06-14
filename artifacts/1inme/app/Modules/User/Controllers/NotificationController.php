@@ -117,9 +117,18 @@ class NotificationController extends Controller
         $hour    = (int) $request->input('backlink_digest_preferred_hour', $user->backlink_digest_preferred_hour ?? 9);
         if ($weekday < 1 || $weekday > 7) $weekday = 1;
         if ($hour < 0 || $hour > 23) $hour = 9;
+
+        // Developer API near-limit warning threshold (percent). Only a fixed
+        // set of choices is allowed; anything else falls back to 80%.
+        $apiWarnThreshold = (int) $request->input('api_usage_warning_threshold', $user->api_usage_warning_threshold ?? 80);
+        if (!in_array($apiWarnThreshold, [50, 75, 80, 90], true)) {
+            $apiWarnThreshold = 80;
+        }
+
         $user->forceFill([
             'backlink_digest_preferred_weekday' => $weekday,
             'backlink_digest_preferred_hour'    => $hour,
+            'api_usage_warning_threshold'       => $apiWarnThreshold,
         ])->save();
 
         return back()->with('success', 'Preferences saved.');

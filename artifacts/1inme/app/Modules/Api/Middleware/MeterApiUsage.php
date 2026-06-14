@@ -76,6 +76,15 @@ class MeterApiUsage
         $allowance = (int) $user->getPlanFeature('api_calls_monthly', 0);
         $unlimited = $allowance < 0 || $allowance === PHP_INT_MAX;
 
+        // Per-user near-limit warning threshold (percent). Developers can
+        // pick an earlier heads-up (e.g. 50%) or a later/quieter one from
+        // their notification preferences. Falls back to 80% when unset, and
+        // is clamped to a sane range so the 100% alert stays unconditional.
+        $warnThresholdPct = (int) ($user->api_usage_warning_threshold ?? 80);
+        if ($warnThresholdPct < 1 || $warnThresholdPct > 99) {
+            $warnThresholdPct = 80;
+        }
+
         $callsPerCoin = WalletService::apiOverageCallsPerCoin();
         $wallet = app(WalletService::class);
 
@@ -113,7 +122,7 @@ class MeterApiUsage
                 if ($unlimited || ($counter->calls_used + 1) <= $allowance) {
                     $counter->forceFill(['calls_used' => $counter->calls_used + 1])->save();
                     if (!$unlimited) {
-                        $this->stampThresholdWarnings($counter, $allowance, $callsPerCoin, $notes);
+                        $this->stampThresholdWarnings($counter, $allowance, $callsPerCoin, $warnThresholdPct, $notes);
                     }
                     return null;
                 }
@@ -177,13 +186,18 @@ class MeterApiUsage
     }
 
     /**
-     * Queue (at most one of) the 80%/100% allowance warnings, stamping
-     * the matching dedup column on the counter under the row lock so
-     * each warning fires only once per period.
+     * Queue (at most one of) the near-limit / 100% allowance warnings,
+     * stamping the matching dedup column on the counter under the row lock
+     * so each warning fires only once per period.
      *
+     * The near-limit warning fires at the user's chosen percentage of the
+     * allowance ($warnThresholdPct, default 80). The 100% warning is
+     * unconditional.
+     *
+     * @param int $warnThresholdPct Near-limit warning percentage (1–99).
      * @param array<int, array{type:string, subject:string, body:string, data:array<string,mixed>}> $notes
      */
-    private function stampThresholdWarnings(ApiUsageCounter $counter, int $allowance, int $callsPerCoin, array &$notes): void
+    private function stampThresholdWarnings(ApiUsageCounter $counter, int $allowance, int $callsPerCoin, int $warnThresholdPct, array &$notes): void
     {
         if ($allowance <= 0) {
             return; // No included allowance → percentage warnings are meaningless.
@@ -215,9 +229,10 @@ class MeterApiUsage
             return;
         }
 
-        // 80% — crossed the warning threshold but still within allowance.
-        $threshold80 = (int) ceil($allowance * 0.8);
-        if ($used >= $threshold80 && $used < $allowance && !$counter->warned_80_at) {
+        // Near-limit — crossed the user's chosen warning threshold but
+        // still within allowance.
+        $thresholdCalls = (int) ceil($allowance * ($warnThresholdPct / 100));
+        if ($used >= $thresholdCalls && $used < $allowance && !$counter->warned_80_at) {
             $pct       = (int) round($used / $allowance * 100);
             $remaining = max(0, $allowance - $used);
             $notes[] = [
@@ -227,7 +242,7 @@ class MeterApiUsage
                     . " included API calls this period ({$pct}%). " . number_format($remaining)
                     . " calls remain before overage billing kicks in. Consider upgrading your plan or topping up coins.",
                 'data'    => [
-                    'threshold'  => 80,
+                    'threshold'  => $warnThresholdPct,
                     'period'     => $counter->period,
                     'allowance'  => $allowance,
                     'calls_used' => $used,

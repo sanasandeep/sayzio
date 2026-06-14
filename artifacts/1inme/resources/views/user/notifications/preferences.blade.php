@@ -214,6 +214,24 @@
         })();
         </script>
 
+        @php
+            $apiWarnThreshold = (int) old('api_usage_warning_threshold', $user->api_usage_warning_threshold ?? 80);
+            $apiWarnChoices = [50, 75, 80, 90];
+            if (!in_array($apiWarnThreshold, $apiWarnChoices, true)) $apiWarnThreshold = 80;
+        @endphp
+        <div class="px-4 py-4" style="border-top:1px solid var(--border-soft);">
+            <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);">Developer API usage warning</div>
+            <p class="text-xs mb-3" style="color: var(--text-muted);">Get a heads-up as your monthly API-key calls approach your plan's included allowance. Pick how early the near-limit warning fires. You'll always be alerted at 100% and if calls start being rejected.</p>
+            <div class="flex flex-wrap items-center gap-3">
+                <label class="text-xs" style="color: var(--text-muted);">Warn me at</label>
+                <select name="api_usage_warning_threshold" class="px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, var(--bg-card)); border:1px solid var(--border-soft); color: var(--text-primary);">
+                    @foreach($apiWarnChoices as $pct)
+                        <option value="{{ $pct }}" {{ $apiWarnThreshold === $pct ? 'selected' : '' }}>{{ $pct }}% of allowance</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
         <div class="px-4 py-4 flex items-center justify-between" style="border-top:1px solid var(--border-soft);">
             <p class="text-xs" style="color: var(--text-faint);">Push delivery rolls out with the next mobile release.</p>
             <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white">
