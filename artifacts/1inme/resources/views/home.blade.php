@@ -2362,6 +2362,22 @@
 {{-- ============================ NAV ============================ --}}
 @include('public.partials.header', ['useModal' => true, 'fixed' => true])
 
+{{-- Relationship band — only on a non-primary global domain. Sits directly
+     below the (fixed) menu, explaining how this sub-brand domain relates to
+     the primary domain. Hidden entirely on the primary domain. --}}
+@php $__rel = \App\Modules\Common\Support\DomainBranding::relationship(); @endphp
+@if($__rel)
+<div class="relative z-30 pt-16 border-b border-white/10 bg-white/[0.04] backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-center justify-center gap-x-3 gap-y-1 text-center">
+        <span class="text-sm text-gray-200">{{ $__rel['blurb'] }}</span>
+        <a href="{{ $__rel['primary_url'] }}"
+           class="inline-flex items-center gap-1 text-sm font-semibold text-violet-300 hover:text-violet-200 whitespace-nowrap">
+            Visit {{ $__rel['primary_domain'] }} <i class="fas fa-arrow-right text-[10px]"></i>
+        </a>
+    </div>
+</div>
+@endif
+
 {{-- Scroll-spy strip removed: it duplicated the Product menu in the header.
      The home page now matches all other marketing pages, which use a sticky
      sidebar TOC (features, faqs, policy) instead of a horizontal sub-nav. --}}

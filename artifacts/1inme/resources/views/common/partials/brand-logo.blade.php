@@ -14,22 +14,17 @@
     $href    = $href    ?? null;
     $alt     = $alt     ?? config('app.name', '1INME');
 
+    // Host-aware: on a non-primary global domain these resolve to that
+    // domain's own logos; everywhere else they are the platform logos.
+    $__brand = \App\Modules\Common\Support\DomainBranding::logos();
+
     if ($variant === 'icon') {
-        $url = \App\Modules\Admin\Models\AppSetting::get(
-            'brand_icon_url',
-            '/branding/icon.jpg'
-        );
+        $url = $__brand['icon'];
         $tag = '<img src="' . e($url) . '" alt="' . e($alt) . '" class="' . e($height) . ' w-auto rounded-lg object-cover">';
         echo $href ? '<a href="' . e($href) . '" class="inline-flex items-center">' . $tag . '</a>' : $tag;
     } else {
-        $lightUrl = \App\Modules\Admin\Models\AppSetting::get(
-            'brand_logo_light_url',
-            '/branding/logo-light.png'
-        );
-        $darkUrl = \App\Modules\Admin\Models\AppSetting::get(
-            'brand_logo_dark_url',
-            '/branding/logo-dark.png'
-        );
+        $lightUrl = $__brand['logo_light'];
+        $darkUrl  = $__brand['logo_dark'];
 @endphp
 @if($href)<a href="{{ $href }}" class="inline-flex items-center">@endif
     <img src="{{ $lightUrl }}" alt="{{ $alt }}" class="brand-logo brand-logo--light {{ $height }} w-auto">

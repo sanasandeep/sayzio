@@ -6,10 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\Domain;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class DomainController extends Controller
 {
+    /**
+     * Per-domain branding upload slots, mirroring BrandingController:
+     * column => [form field, allowed mimes, max KB].
+     */
+    private const LOGO_SLOTS = [
+        'brand_logo_light_url' => ['logo_light', ['png', 'jpg', 'jpeg', 'webp', 'svg'], 4096],
+        'brand_logo_dark_url'  => ['logo_dark',  ['png', 'jpg', 'jpeg', 'webp', 'svg'], 4096],
+        'brand_icon_url'       => ['icon',       ['png', 'jpg', 'jpeg', 'webp', 'ico'], 1024],
+    ];
+
     public function index()
     {
         $domains = Domain::whereNull('user_id')
@@ -33,7 +44,8 @@ class DomainController extends Controller
             'plan_ids'    => 'nullable|array',
             'plan_ids.*'  => 'exists:plans,id',
             'is_active'   => 'nullable|boolean',
-        ]);
+            'relationship_blurb' => 'nullable|string|max:500',
+        ] + $this->logoUploadRules());
 
         // Global domains start UNVERIFIED. Admins must point a CNAME (or
         // configure DNS to terminate at this app's edge) and then click
@@ -48,9 +60,11 @@ class DomainController extends Controller
             'verified_at'        => null,
             'verification_token' => Str::random(32),
             'type'               => 'redirect',
+            'relationship_blurb' => $data['relationship_blurb'] ?? null,
         ]);
 
         $domain->plans()->sync($data['plan_ids'] ?? []);
+        $this->storeLogoUploads($request, $domain);
 
         return redirect()->route('admin.domains.index')
             ->with('success', "Global domain {$domain->domain} added.");
@@ -65,15 +79,58 @@ class DomainController extends Controller
             'plan_ids'     => 'nullable|array',
             'plan_ids.*'   => 'exists:plans,id',
             'is_active'    => 'nullable|boolean',
-        ]);
+            'relationship_blurb' => 'nullable|string|max:500',
+        ] + $this->logoUploadRules());
 
         $domain->update([
-            'cname_target' => $data['cname_target'] ?? null,
-            'is_active'    => $request->boolean('is_active'),
+            'cname_target'       => $data['cname_target'] ?? null,
+            'is_active'          => $request->boolean('is_active'),
+            'relationship_blurb' => $data['relationship_blurb'] ?? null,
         ]);
         $domain->plans()->sync($data['plan_ids'] ?? []);
+        $this->storeLogoUploads($request, $domain);
 
         return back()->with('success', 'Domain updated.');
+    }
+
+    /** Validation rules for the three optional per-domain logo uploads. */
+    private function logoUploadRules(): array
+    {
+        $rules = [];
+        foreach (self::LOGO_SLOTS as [$field, $mimes, $max]) {
+            $rules[$field] = ['nullable', 'file', 'mimes:' . implode(',', $mimes), 'max:' . $max];
+        }
+        return $rules;
+    }
+
+    /**
+     * Move any uploaded per-domain logos into public/branding/domains/{id}
+     * and persist their public URLs onto the domain row. Slots without a
+     * new upload are left untouched.
+     */
+    private function storeLogoUploads(Request $request, Domain $domain): void
+    {
+        $relDir = 'branding/domains/' . $domain->id;
+        $publicDir = public_path($relDir);
+        $updates = [];
+
+        foreach (self::LOGO_SLOTS as $column => [$field, , ]) {
+            if (!$request->hasFile($field)) {
+                continue;
+            }
+            if (!File::isDirectory($publicDir)) {
+                File::makeDirectory($publicDir, 0755, true);
+            }
+            $file = $request->file($field);
+            $ext = strtolower($file->getClientOriginalExtension());
+            $name = $field . '-' . time() . '.' . $ext;
+            $file->move($publicDir, $name);
+            $updates[$column] = '/' . $relDir . '/' . $name;
+        }
+
+        if (!empty($updates)) {
+            $domain->update($updates);
+        }
     }
 
     public function verify(Request $request, Domain $domain)

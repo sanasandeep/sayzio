@@ -18,7 +18,17 @@ protected $fillable = [
         'dns_status', 'dns_last_checked_at', 'dns_last_target',
         'dns_drift_started_at', 'dns_drift_notified_at',
         'dns_unverified_warning_sent_at',
+        'brand_logo_light_url', 'brand_logo_dark_url', 'brand_icon_url',
+        'relationship_blurb',
     ];
+
+    /** True when this global domain has at least one custom logo uploaded. */
+    public function hasCustomBranding(): bool
+    {
+        return !empty($this->brand_logo_light_url)
+            || !empty($this->brand_logo_dark_url)
+            || !empty($this->brand_icon_url);
+    }
 
     public const DNS_STATUS_HEALTHY    = 'healthy';
     public const DNS_STATUS_DRIFTING   = 'drifting';

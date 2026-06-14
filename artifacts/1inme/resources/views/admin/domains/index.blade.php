@@ -19,7 +19,7 @@
     {{-- Add new global domain --}}
     <div class="rounded-2xl p-6 mb-6" style="background: var(--bg-card); border:1px solid var(--border-strong);">
         <h2 class="text-base font-semibold mb-4" style="color: var(--text-primary);">Add Global Domain</h2>
-        <form method="POST" action="{{ route('admin.domains.store') }}" class="grid grid-cols-1 md:grid-cols-12 gap-3">
+        <form method="POST" action="{{ route('admin.domains.store') }}" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-12 gap-3">
             @csrf
             <input type="text" name="domain" placeholder="links.example.com" required
                    class="md:col-span-3 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
@@ -35,6 +35,17 @@
             </label>
             <button type="submit" class="md:col-span-1 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white">Add</button>
             <p class="md:col-span-12 text-[11px]" style="color: var(--text-faint);">Hold Ctrl/Cmd to tag multiple plans. Leave blank to allow every plan to use this domain.</p>
+            <div class="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 mt-1" style="border-top:1px solid var(--border-subtle);">
+                <label class="text-[11px] flex flex-col gap-1" style="color: var(--text-muted);">Light logo
+                    <input type="file" name="logo_light" accept="image/*" class="text-[11px]" style="color: var(--text-primary);"></label>
+                <label class="text-[11px] flex flex-col gap-1" style="color: var(--text-muted);">Dark logo
+                    <input type="file" name="logo_dark" accept="image/*" class="text-[11px]" style="color: var(--text-primary);"></label>
+                <label class="text-[11px] flex flex-col gap-1" style="color: var(--text-muted);">Icon
+                    <input type="file" name="icon" accept="image/*,.ico" class="text-[11px]" style="color: var(--text-primary);"></label>
+            </div>
+            <textarea name="relationship_blurb" rows="2" maxlength="500" placeholder="Landing-page relationship blurb (optional). e.g. “sayzio.app is part of 1in.me.” Leave blank for a sensible default."
+                      class="md:col-span-12 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);"></textarea>
+            <p class="md:col-span-12 text-[11px]" style="color: var(--text-faint);">Per-domain logos &amp; the relationship blurb only apply to non-primary global domains. Blank slots fall back to the platform logo.</p>
         </form>
     </div>
 
@@ -42,7 +53,7 @@
     <div class="rounded-2xl p-6 mb-6" style="background: var(--bg-card); border:1px solid var(--border-strong);">
         <h2 class="text-base font-semibold mb-4" style="color: var(--text-primary);">Global Domains ({{ $domains->count() }})</h2>
         @forelse($domains as $d)
-            <form method="POST" action="{{ route('admin.domains.update', $d) }}" class="grid grid-cols-12 gap-3 items-center py-3" style="border-top:1px solid var(--border-subtle);">
+            <form method="POST" action="{{ route('admin.domains.update', $d) }}" enctype="multipart/form-data" class="grid grid-cols-12 gap-3 items-center py-3" style="border-top:1px solid var(--border-subtle);">
                 @csrf @method('PUT')
                 <div class="col-span-3 text-sm font-mono" style="color: var(--text-primary);">
                     {{ $d->domain }}
@@ -65,7 +76,38 @@
                     <input type="checkbox" name="is_active" value="1" @checked($d->is_active)> Active
                 </label>
                 <button type="submit" class="col-span-1 px-3 py-1.5 rounded-md text-xs bg-emerald-600 hover:bg-emerald-700 text-white">Save</button>
-                <div class="col-span-1 flex flex-wrap items-center gap-1">
+
+                {{-- Per-domain sub-branding (non-primary domains use these logos site-wide). --}}
+                @if($d->is_primary)
+                    <p class="col-span-12 text-[11px]" style="color: var(--text-faint);">This is the primary domain — it always uses the platform logo and shows no relationship section.</p>
+                @else
+                    <div class="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        @php
+                            $__slots = [
+                                ['logo_light', 'Light logo', $d->brand_logo_light_url, 'bg-white'],
+                                ['logo_dark',  'Dark logo',  $d->brand_logo_dark_url,  'bg-slate-800'],
+                                ['icon',       'Icon',       $d->brand_icon_url,       'bg-white'],
+                            ];
+                        @endphp
+                        @foreach($__slots as [$__field, $__label, $__cur, $__bg])
+                            <div class="flex items-center gap-2">
+                                <div class="w-12 h-9 rounded-md flex items-center justify-center shrink-0 {{ $__bg }}" style="border:1px solid var(--border-subtle);">
+                                    @if($__cur)
+                                        <img src="{{ $__cur }}" alt="{{ $__label }}" class="max-h-7 max-w-[44px] object-contain">
+                                    @else
+                                        <i class="fas fa-image text-[11px]" style="color: var(--text-faint);"></i>
+                                    @endif
+                                </div>
+                                <label class="text-[11px] flex flex-col gap-0.5 min-w-0" style="color: var(--text-muted);">{{ $__label }}
+                                    <input type="file" name="{{ $__field }}" accept="image/*{{ $__field === 'icon' ? ',.ico' : '' }}" class="text-[11px] max-w-[150px]" style="color: var(--text-primary);"></label>
+                            </div>
+                        @endforeach
+                    </div>
+                    <textarea name="relationship_blurb" rows="2" maxlength="500" placeholder="Relationship blurb shown on this domain's landing page. Leave blank for a sensible default."
+                              class="col-span-12 px-3 py-2 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">{{ $d->relationship_blurb }}</textarea>
+                @endif
+
+                <div class="col-span-12 flex flex-wrap items-center gap-1">
                     @if(!$d->is_verified)
                         <button type="submit" form="vfy-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-violet-600 hover:bg-violet-700 text-white" title="Check CNAME via DNS">Verify</button>
                     @endif

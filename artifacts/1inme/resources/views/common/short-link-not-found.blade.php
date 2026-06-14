@@ -24,10 +24,7 @@
 
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="inline-flex items-center justify-center mb-6">
-            <img src="/branding/logo-light.png" alt="1IN.ME"
-                 class="brand-logo brand-logo--light h-10 w-auto">
-            <img src="/branding/logo-dark.png"  alt="1IN.ME"
-                 class="brand-logo brand-logo--dark h-10 w-auto">
+            @include('common.partials.brand-logo', ['height' => 'h-10', 'alt' => '1IN.ME'])
         </div>
 
         <div class="text-xs uppercase tracking-[0.3em] text-violet-400 mb-3">Error 404</div>
