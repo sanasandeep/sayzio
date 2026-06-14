@@ -174,7 +174,7 @@
                 @foreach($categories as $i => $cat)
                     <section id="cat-{{ $cat['id'] }}" data-spy-target class="feature-cat-card bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-10 scroll-mt-24" data-anim="fade-up">
                         <div class="flex items-start gap-4 mb-6">
-                            <div class="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 border border-violet-400/30 flex items-center justify-center">
+                            <div class="shrink-0 w-12 h-12 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
                                 <i class="fas {{ $cat['icon'] }} text-violet-300 text-lg"></i>
                             </div>
                             <div class="min-w-0">

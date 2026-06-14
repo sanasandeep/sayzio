@@ -1,7 +1,7 @@
 @extends('public.layouts.site')
 @section('content')
 <section class="relative pt-16 pb-10 lg:pt-20 lg:pb-12 overflow-hidden">
-    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%);"></div>
+    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(124,58,237,.06);"></div>
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <a href="/{{ $page->slug }}" class="text-xs text-violet-400 hover:underline">
             <i class="fas fa-arrow-left mr-1"></i>Back to {{ $page->title }}

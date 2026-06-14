@@ -85,7 +85,7 @@
                     <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="Diagram of the 1INME setup flow">
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
                         <i class="fas fa-check"></i>
                     </div>
                     <div>
@@ -111,7 +111,7 @@
                 <div class="{{ $reverse ? 'lg:order-2' : '' }}" data-anim="{{ $reverse ? 'fade-left' : 'fade-right' }}">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="text-5xl font-bold grad-text leading-none">{{ $step['n'] }}</span>
-                        <div class="h-px flex-1 bg-gradient-to-r from-violet-500/40 to-transparent"></div>
+                        <div class="h-px flex-1 bg-violet-500/30"></div>
                         <i class="fas {{ $step['icon'] }} text-violet-300"></i>
                     </div>
                     <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{{ $step['title'] }}</h2>

@@ -23,7 +23,7 @@
 <section class="pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-4 md:grid-cols-3">
         {{-- Email newsletter --}}
-        <div class="bg-gradient-to-br from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/20 rounded-2xl p-6 flex flex-col">
+        <div class="bg-violet-500/10 border border-violet-400/20 rounded-2xl p-6 flex flex-col">
             <div class="flex items-center gap-3 mb-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500/20 text-violet-200">
                     <i class="fas fa-envelope-open-text"></i>
@@ -65,7 +65,7 @@
         </div>
 
         {{-- WhatsApp Channel --}}
-        <div class="bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
+        <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
             <div class="flex items-center gap-3 mb-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-200">
                     <i class="fab fa-whatsapp"></i>
@@ -91,7 +91,7 @@
         </div>
 
         {{-- WhatsApp DM --}}
-        <div class="bg-gradient-to-br from-emerald-500/15 via-lime-500/10 to-transparent border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
+        <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
             <div class="flex items-center gap-3 mb-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-200">
                     <i class="fas fa-comments"></i>

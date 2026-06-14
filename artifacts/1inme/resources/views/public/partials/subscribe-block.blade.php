@@ -43,7 +43,7 @@
 
         <div class="grid grid-cols-1 {{ $__sbGridCols }} gap-4">
             {{-- Card 1: Email newsletter --}}
-            <div class="bg-gradient-to-br from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/20 rounded-2xl p-6 flex flex-col">
+            <div class="bg-violet-500/10 border border-violet-400/20 rounded-2xl p-6 flex flex-col">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500/20 text-violet-200">
                         <i class="fas fa-envelope-open-text"></i>
@@ -87,7 +87,7 @@
 
             @if($__sbHasWaChan)
                 {{-- Card 2: WhatsApp Channel --}}
-                <div class="bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
+                <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-200">
                             <i class="fab fa-whatsapp"></i>
@@ -110,7 +110,7 @@
 
             @if($__sbHasWaDm)
                 {{-- Card 3: WhatsApp DM --}}
-                <div class="bg-gradient-to-br from-emerald-500/15 via-lime-500/10 to-transparent border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
+                <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-200">
                             <i class="fas fa-comments"></i>

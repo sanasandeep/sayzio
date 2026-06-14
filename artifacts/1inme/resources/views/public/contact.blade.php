@@ -331,10 +331,8 @@
     .map-card {
         position: relative;
         border-radius: 1.25rem;
-        background:
-            linear-gradient(180deg, rgba(124,58,237,0.10), rgba(255,255,255,0.02)) padding-box,
-            linear-gradient(135deg, rgba(167,139,250,0.55), rgba(124,58,237,0.10) 45%, rgba(255,255,255,0.08)) border-box;
-        border: 1px solid transparent;
+        background: rgba(124,58,237,0.06);
+        border: 1px solid rgba(167,139,250,0.30);
         box-shadow:
             0 1px 0 rgba(255,255,255,0.06) inset,
             0 24px 60px -30px rgba(124,58,237,0.55),
@@ -350,7 +348,7 @@
     }
     .map-card__glow {
         position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
-        background: radial-gradient(120% 120% at 50% -10%, rgba(167,139,250,0.18), transparent 55%);
+        background: rgba(167,139,250,0.10);
         opacity:0; transition: opacity .45s ease;
     }
     .map-card:hover .map-card__glow { opacity:1; }
@@ -361,7 +359,7 @@
     /* Sheen sweep that crosses the map once on hover. */
     .map-card__viewport::after {
         content:""; position:absolute; top:0; bottom:0; left:-60%; width:45%;
-        background: linear-gradient(100deg, transparent, rgba(255,255,255,0.10), transparent);
+        background: rgba(255,255,255,0.06);
         transform: skewX(-18deg); pointer-events:none; z-index:500; opacity:0;
     }
     .map-card:hover .map-card__viewport::after {
@@ -383,7 +381,7 @@
     .map-card__corner--br { bottom:10px; right:10px; border-bottom-width:2px; border-right-width:2px; border-bottom-right-radius:8px; }
     .map-card__footer {
         position:relative;
-        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(124,58,237,0.06));
+        background: rgba(124,58,237,0.05);
         border-top: 1px solid rgba(255,255,255,0.08);
     }
     .map-card__footer-link {
@@ -443,7 +441,7 @@
         100% { transform: translateY(0) scale(1); opacity:1; }
     }
     .brand-popup .leaflet-popup-content-wrapper {
-        background:linear-gradient(180deg, #232838, #1a1e2b); color:#fff;
+        background:#1e2230; color:#fff;
         border:1px solid rgba(167,139,250,0.30);
         border-radius:14px; box-shadow:0 18px 40px -20px rgba(124,58,237,0.7);
     }

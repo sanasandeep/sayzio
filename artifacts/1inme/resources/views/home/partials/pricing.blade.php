@@ -90,8 +90,8 @@
                 @php $featured = false; $f = $plan['features']; @endphp
                 <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#7c3aed]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
                     {{-- Animated background blobs --}}
-                    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: radial-gradient(circle, var(--c2), transparent 70%); animation: floatA 9s ease-in-out infinite;"></div>
-                    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: radial-gradient(circle, var(--c4), transparent 70%); animation: floatB 11s ease-in-out infinite;"></div>
+                    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: #7c3aed; animation: floatA 9s ease-in-out infinite;"></div>
+                    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: #a855f7; animation: floatB 11s ease-in-out infinite;"></div>
                     {{-- Sparkles --}}
                     <span class="free-spark" style="top:14%;left:82%; animation-delay:0s"></span>
                     <span class="free-spark" style="top:46%;left:6%;  animation-delay:1.4s"></span>
@@ -107,9 +107,9 @@
                         <div class="mb-4 flex items-center gap-4 flex-wrap">
                             <div class="free-pill-wrap relative inline-flex">
                                 {{-- Pulsing glow halo --}}
-                                <span class="absolute -inset-2 rounded-3xl opacity-40 blur-xl pointer-events-none" style="background: linear-gradient(135deg, var(--c1), var(--c2), var(--c3), var(--c4)); animation: pulseDot 2.4s ease-in-out infinite;"></span>
+                                <span class="absolute -inset-2 rounded-3xl opacity-40 blur-xl pointer-events-none" style="background: #7c3aed; animation: pulseDot 2.4s ease-in-out infinite;"></span>
                                 {{-- The actual pill --}}
-                                <span class="relative inline-flex items-center px-5 py-2 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: linear-gradient(135deg, var(--c2), var(--c3) 50%, var(--c4)); letter-spacing: 0.05em;">
+                                <span class="relative inline-flex items-center px-5 py-2 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: #7c3aed; letter-spacing: 0.05em;">
                                     FREE
                                     <i class="fas fa-sparkles ml-1.5 text-xs" style="animation: wiggle 2s ease-in-out infinite;"></i>
                                 </span>
@@ -213,7 +213,7 @@
                 <a href="{{ route('site.pricing') }}"
                    @click="trackMarketingEvent('plan_paid')"
                    class="lift group relative block rounded-3xl p-8 pt-9 text-white shadow-2xl shadow-[#7c3aed]/40 hover:shadow-[#7c3aed]/60 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                   style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));">
+                   style="background: #7c3aed;">
                     {{-- Ambient blobs --}}
                     <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none" style="animation: floatA 10s ease-in-out infinite;"></div>
                     <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" style="animation: floatB 12s ease-in-out infinite;"></div>

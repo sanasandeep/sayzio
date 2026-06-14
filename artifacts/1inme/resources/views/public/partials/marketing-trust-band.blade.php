@@ -25,7 +25,7 @@
                     <div class="flex -space-x-2" aria-hidden="true">
                         @foreach(['#7c3aed', '#1bd4d9', '#e94e8c', '#ff8a3c'] as $c)
                             <span class="w-7 h-7 rounded-full border-2 border-white/30"
-                                  style="background: linear-gradient(135deg, {{ $c }}, rgba(255,255,255,.18));"></span>
+                                  style="background: {{ $c }};"></span>
                         @endforeach
                     </div>
                     <div class="text-xs sm:text-sm leading-tight">

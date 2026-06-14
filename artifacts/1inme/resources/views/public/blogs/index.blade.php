@@ -13,7 +13,7 @@
 
 @section('content')
 <section class="relative pt-20 pb-12 overflow-hidden">
-    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%);"></div>
+    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(124,58,237,.06);"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 text-center">
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-violet-400">{{ $settings['hero_eyebrow'] }}</p>
         <h1 class="mt-3 text-4xl sm:text-5xl font-bold tracking-tight">{{ $settings['hero_heading'] }}</h1>

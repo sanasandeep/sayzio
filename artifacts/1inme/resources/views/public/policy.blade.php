@@ -6,7 +6,7 @@
     $lastUpdated = $page->last_updated_at;
 @endphp
 <section class="relative pt-16 pb-10 lg:pt-24 lg:pb-12 overflow-hidden">
-    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%);"></div>
+    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(124,58,237,.06);"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{{ $page->title }}</h1>
         @if($lastUpdated || ($hasHistory ?? false))
@@ -76,7 +76,7 @@
                 @php
                     $contactEmail = \App\Modules\Admin\Models\AppSetting::get('contact_recipient_email');
                 @endphp
-                <div class="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl p-6 sm:p-8">
+                <div class="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-6 sm:p-8">
                     <h3 class="text-lg font-semibold text-white mb-2">Questions about this policy?</h3>
                     <p class="text-sm text-gray-300 mb-4">
                         We're happy to clarify anything you read on this page. Reach out and a real person on our team will get back to you.

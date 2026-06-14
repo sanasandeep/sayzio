@@ -131,7 +131,7 @@
             <div class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent text-center px-5">
                 <div class="bg-white/95 backdrop-blur rounded-2xl p-5 max-w-sm shadow-xl">
                     <div class="flex items-center justify-center w-11 h-11 rounded-full mx-auto mb-2"
-                         style="background: linear-gradient(135deg, #8b5cf6, #d946ef); color: white;">
+                         style="background: #7c3aed; color: white;">
                         <i class="fas fa-lock"></i>
                     </div>
                     @if($needsSub)

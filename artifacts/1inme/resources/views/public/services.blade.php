@@ -25,7 +25,6 @@
             'tagline' => 'Grow with live numbers',
             'desc' => 'You want to stop guessing. See what’s landing the moment it happens, fix what’s slipping in a single tap, and walk into every sponsor conversation with proof instead of a hunch.',
             'icon' => 'fa-chart-line',
-            'tint' => 'from-cyan-400 to-violet-500',
             'cta_label' => 'Explore the analytics suite',
             'cta_url' => route('site.analytics'),
         ],
@@ -34,7 +33,6 @@
             'tagline' => 'Own your follower list',
             'desc' => 'You want a direct line to your people — one no algorithm can throttle and no platform can take away. Reach them whenever you choose, and carry them with you wherever you go next.',
             'icon' => 'fa-users',
-            'tint' => 'from-pink-400 to-violet-500',
             'cta_label' => 'Explore audience tools',
             'cta_url' => route('site.audience'),
         ],
@@ -43,7 +41,6 @@
             'tagline' => 'Schedule drops, run events, reward fans',
             'desc' => 'You live for launch day. Set drops live at the perfect minute hands-free, fill the room with RSVPs and automatic reminders, and reward the fans who actually bring you new signups.',
             'icon' => 'fa-calendar-day',
-            'tint' => 'from-emerald-400 to-cyan-500',
             'cta_label' => 'See events &amp; referrals',
             'cta_url' => route('site.features') . '#cat-events',
         ],
@@ -52,7 +49,6 @@
             'tagline' => 'One-click social on every network',
             'desc' => 'You manage a lot of accounts and have zero time for broken plumbing. Onboard a client in minutes, let expired tokens reconnect themselves, and always know which networks are live at a glance.',
             'icon' => 'fa-plug',
-            'tint' => 'from-violet-500 to-pink-500',
             'cta_label' => 'See integrations',
             'cta_url' => route('site.integrations'),
         ],
@@ -109,9 +105,9 @@
                    style="--accent: {{ $__svcMeta['accent'] }};"
                    onmouseover="this.style.borderColor='{{ $__svcMeta['accent'] }}66'" onmouseout="this.style.borderColor=''">
                     <div class="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20"
-                         style="background:radial-gradient(circle, {{ $__svcMeta['accent'] }}, transparent 70%);"></div>
+                         style="background: {{ $__svcMeta['accent'] }};"></div>
                     <div class="relative w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4"
-                         style="background: linear-gradient(135deg, {{ $__svcMeta['accent'] }}, #7c3aed);">
+                         style="background: {{ $__svcMeta['accent'] }};">
                         <i class="fas {{ $__svcMeta['icon'] }} text-lg"></i>
                     </div>
                     <h3 class="relative text-lg font-bold text-white">{{ $__svcMeta['eyebrow'] }}</h3>
@@ -135,7 +131,7 @@
                         <img src="{{ $images[$i % count($images)] }}" alt="{{ $uc['title'] ?? '1INME use case' }}">
                     </div>
                     <div class="relative flex-1 flex flex-col p-6 sm:p-7">
-                        <div class="absolute -top-7 left-6 w-12 h-12 rounded-xl bg-gradient-to-br {{ $uc['tint'] }} border border-white/15 flex items-center justify-center text-white text-lg shadow-2xl">
+                        <div class="absolute -top-7 left-6 w-12 h-12 rounded-xl bg-[#7c3aed] border border-white/15 flex items-center justify-center text-white text-lg shadow-2xl">
                             <i class="fas {{ $uc['icon'] }}"></i>
                         </div>
                         <h2 class="mt-4 text-xl font-bold text-white">{{ $uc['title'] }}</h2>

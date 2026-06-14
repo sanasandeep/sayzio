@@ -82,12 +82,12 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10] flex items-center justify-center"
-                     style="background:linear-gradient(135deg, {{ $meta['accent'] }}33, rgba(255,255,255,.02));">
+                     style="background:{{ $meta['accent'] }}1f;">
                     <i class="fas {{ $meta['icon'] }} text-[120px] opacity-80" style="color: {{ $meta['accent'] }};"></i>
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                         style="background:linear-gradient(135deg, {{ $meta['accent'] }}, #1bd4d9);">
+                         style="background: {{ $meta['accent'] }};">
                         <i class="fas fa-bolt"></i>
                     </div>
                     <div>
@@ -112,9 +112,9 @@
             @foreach($sections as $i => $s)
                 <article class="glass rounded-3xl p-7 lift relative overflow-hidden" data-anim="fade-up" data-stagger>
                     <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20"
-                         style="background:radial-gradient(circle, {{ $meta['accent'] }}, transparent 70%);"></div>
+                         style="background: {{ $meta['accent'] }};"></div>
                     <div class="relative w-11 h-11 rounded-2xl flex items-center justify-center mb-4 text-white"
-                         style="background: linear-gradient(135deg, {{ $meta['accent'] }}, #7c3aed); box-shadow: 0 12px 30px -12px {{ $meta['accent'] }};">
+                         style="background: {{ $meta['accent'] }}; box-shadow: 0 12px 30px -12px {{ $meta['accent'] }};">
                         <i class="fas fa-circle-check"></i>
                     </div>
                     @if($s['heading'] !== '')
@@ -144,7 +144,7 @@
                 @if(!$om) @continue @endif
                 <a href="{{ route('site.' . $otherSlug) }}" class="group glass rounded-2xl p-5 lift block">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white mb-3"
-                         style="background: linear-gradient(135deg, {{ $om['accent'] }}, #7c3aed);">
+                         style="background: {{ $om['accent'] }};">
                         <i class="fas {{ $om['icon'] }}"></i>
                     </div>
                     <div class="text-sm font-bold text-white">{{ $om['eyebrow'] }}</div>

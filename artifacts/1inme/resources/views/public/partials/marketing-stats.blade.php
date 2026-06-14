@@ -7,9 +7,7 @@
 @endphp
 @if($__stats->count())
 <section class="py-14 lg:py-20 relative overflow-hidden">
-    <div class="absolute inset-0 -z-10 opacity-60" style="background:
-        radial-gradient(40rem 24rem at 15% 0%, rgba(124,58,237,.18), transparent 60%),
-        radial-gradient(40rem 24rem at 85% 100%, rgba(27,212,217,.16), transparent 60%);"></div>
+    <div class="absolute inset-0 -z-10 opacity-60" style="background: rgba(124,58,237,.06);"></div>
 
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
@@ -37,7 +35,7 @@
                             <div class="relative inline-flex items-center justify-center mb-2 sm:mb-3 md:mb-4">
                                 <div class="absolute inset-0 rounded-xl sm:rounded-2xl blur-xl opacity-60 group-hover:opacity-90 transition" style="background: {{ $stat->color }};"></div>
                                 <div class="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/15"
-                                     style="background: linear-gradient(135deg, {{ $stat->color }}, rgba(124,58,237,.85)); box-shadow: 0 12px 36px -12px {{ $stat->color }};">
+                                     style="background: {{ $stat->color }}; box-shadow: 0 12px 36px -12px {{ $stat->color }};">
                                     <i class="fas {{ $stat->icon }} text-white text-sm sm:text-base md:text-lg"></i>
                                 </div>
                             </div>
@@ -48,7 +46,7 @@
                                       data-duration="1600">{{ $hasNumeric ? '0' : $stat->value }}</span><span class="text-white/80">{{ $stat->suffix }}</span>
                             </div>
                             <div class="mt-1.5 sm:mt-2 text-[10px] sm:text-xs md:text-sm text-gray-400 uppercase tracking-wider leading-tight">{{ $stat->label }}</div>
-                            <div class="mx-auto mt-2 sm:mt-3 h-1 w-10 sm:w-14 md:w-16 rounded-full" style="background: linear-gradient(90deg, {{ $stat->color }}, transparent);"></div>
+                            <div class="mx-auto mt-2 sm:mt-3 h-1 w-10 sm:w-14 md:w-16 rounded-full" style="background: {{ $stat->color }};"></div>
                         </div>
                     @endforeach
                 </div>

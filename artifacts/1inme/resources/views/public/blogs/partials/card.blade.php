@@ -4,7 +4,7 @@
             <img src="{{ $post->cover_image }}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
         </div>
     @else
-        <div class="aspect-[16/9] flex items-center justify-center" style="background:linear-gradient(135deg, rgba(124,58,237,.25), rgba(56,189,248,.18));">
+        <div class="aspect-[16/9] flex items-center justify-center" style="background:rgba(124,58,237,.18);">
             <i class="fas fa-feather-pointed text-3xl text-white/40"></i>
         </div>
     @endif

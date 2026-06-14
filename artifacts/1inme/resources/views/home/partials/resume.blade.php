@@ -4,10 +4,7 @@
     .rb-wrap { position: relative; }
     .rb-mesh::before {
         content:""; position:absolute; inset:-20%;
-        background:
-            radial-gradient(40% 40% at 18% 22%, rgba(124,58,237,.18), transparent 60%),
-            radial-gradient(38% 38% at 82% 28%, rgba(27,212,217,.16), transparent 60%),
-            radial-gradient(45% 45% at 50% 90%, rgba(233,78,140,.16), transparent 60%);
+        background: rgba(124,58,237,.06);
         filter: blur(40px); pointer-events:none; z-index:0;
         animation: rbMesh 14s ease-in-out infinite alternate;
     }
@@ -42,7 +39,7 @@
     }
     .rb-paper-head {
         padding: 22px 22px 16px; color: #fff;
-        background: linear-gradient(135deg, #7c3aed 0%, #e94e8c 60%, #ff8a3c 100%);
+        background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
         position: relative; overflow: hidden;
     }
     .rb-paper-head::before {
@@ -51,7 +48,7 @@
     }
     .rb-avatar {
         width: 52px; height: 52px; border-radius: 50%;
-        background: linear-gradient(135deg, #1bd4d9, #7c3aed);
+        background: linear-gradient(135deg, #a855f7, #7c3aed);
         display:flex; align-items:center; justify-content:center;
         color:#fff; font-weight:800; font-size: 20px;
         box-shadow: 0 6px 18px -4px rgba(0,0,0,.45);
@@ -59,7 +56,7 @@
     .rb-bar { height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; position: relative; }
     .rb-bar > span {
         position:absolute; left:0; top:0; bottom:0; border-radius: inherit;
-        background: linear-gradient(90deg, #7c3aed, #1bd4d9);
+        background: linear-gradient(90deg, #7c3aed, #a855f7);
         animation: rbFill 2.6s ease-out forwards;
         transform-origin: left center;
         width: var(--rb-w, 70%);
@@ -119,7 +116,7 @@
         width: 44px; height: 44px; border-radius: 14px;
         display:flex; align-items:center; justify-content:center; flex-shrink:0;
         color: #fff; box-shadow: 0 12px 28px -10px var(--rb-c, #7c3aed);
-        background: linear-gradient(135deg, var(--rb-c, #7c3aed), #1bd4d9);
+        background: var(--rb-c, #7c3aed);
         position: relative;
     }
     .rb-feat-icon::after {

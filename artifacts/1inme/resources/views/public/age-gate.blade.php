@@ -8,7 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-950 to-rose-950 min-h-screen text-slate-100 flex items-center justify-center px-4 py-10">
+<body class="bg-slate-950 min-h-screen text-slate-100 flex items-center justify-center px-4 py-10">
     <div class="max-w-lg w-full bg-slate-900/80 backdrop-blur border border-white/10 rounded-2xl shadow-2xl p-8 text-center">
         <div class="inline-flex w-14 h-14 rounded-full bg-rose-600/20 text-rose-300 items-center justify-center mb-5">
             <i class="fas fa-shield-halved text-2xl"></i>

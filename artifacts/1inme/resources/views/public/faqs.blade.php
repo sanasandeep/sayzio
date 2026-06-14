@@ -37,8 +37,8 @@
     .faq-cat-link .count { font-size: 11px; opacity: .55; font-weight: 600; }
     .faq-chip { padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); color: #d1d5db; cursor: pointer; transition: all .2s ease; }
     .faq-chip:hover { color: #fff; background: rgba(255,255,255,.08); }
-    .faq-chip.is-active { background: linear-gradient(135deg, #7c3aed, #ec4899); color: #fff; border-color: transparent; box-shadow: 0 8px 24px -10px rgba(124,58,237,.6); }
-    mark.faq-hl { background: linear-gradient(120deg, rgba(236,72,153,.35), rgba(124,58,237,.35)); color: #fff; padding: 0 2px; border-radius: 3px; }
+    .faq-chip.is-active { background: #7c3aed; color: #fff; border-color: transparent; box-shadow: 0 8px 24px -10px rgba(124,58,237,.6); }
+    mark.faq-hl { background: rgba(124,58,237,.28); color: #fff; padding: 0 2px; border-radius: 3px; }
 </style>
 @endpush
 

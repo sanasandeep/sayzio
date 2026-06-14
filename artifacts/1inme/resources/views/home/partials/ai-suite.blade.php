@@ -63,9 +63,9 @@
         opacity: .35; pointer-events: none;
         animation: aiBlobFloat 18s ease-in-out infinite;
     }
-    .ai-suite-v2 .ai-bg-blob-a { top: -120px; left: -100px; background: radial-gradient(circle, #7c3aed, transparent 65%); }
-    .ai-suite-v2 .ai-bg-blob-b { bottom: -180px; right: -120px; background: radial-gradient(circle, #ec4899, transparent 65%); animation-delay: -6s; }
-    .ai-suite-v2 .ai-bg-blob-c { top: 30%; right: 25%; width: 320px; height: 320px; background: radial-gradient(circle, #22d3ee, transparent 65%); animation-delay: -12s; opacity: .22; }
+    .ai-suite-v2 .ai-bg-blob-a { top: -120px; left: -100px; background: #7c3aed; }
+    .ai-suite-v2 .ai-bg-blob-b { bottom: -180px; right: -120px; background: #8b5cf6; animation-delay: -6s; }
+    .ai-suite-v2 .ai-bg-blob-c { top: 30%; right: 25%; width: 320px; height: 320px; background: #a855f7; animation-delay: -12s; opacity: .22; }
     @keyframes aiBlobFloat {
         0%,100% { transform: translate3d(0,0,0) scale(1); }
         50%     { transform: translate3d(40px,-30px,0) scale(1.08); }
@@ -79,11 +79,7 @@
 
     /* Headline shimmer sweep */
     .ai-shimmer {
-        background: linear-gradient(90deg, #a78bfa 0%, #ec4899 25%, #22d3ee 50%, #ec4899 75%, #a78bfa 100%);
-        background-size: 200% 100%;
-        -webkit-background-clip: text; background-clip: text;
-        color: transparent;
-        animation: aiShimmer 6s linear infinite;
+        color: #a78bfa;
     }
     @keyframes aiShimmer { 0%{ background-position: 0% 50%; } 100%{ background-position: 200% 50%; } }
 
@@ -91,7 +87,7 @@
     .ai-card {
         position: relative; display: block; overflow: hidden;
         border-radius: 1.5rem;
-        background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+        background: rgba(255,255,255,.03);
         border: 1px solid rgba(255,255,255,.08);
         padding: 1.25rem 1.25rem 1.4rem;
         transition: transform .4s cubic-bezier(.2,.7,.2,1), border-color .35s ease, box-shadow .4s ease;
@@ -108,23 +104,21 @@
     }
     .ai-card-glow {
         position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
-        background: radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--ai-accent, #7c3aed) 35%, transparent), transparent 70%);
+        background: color-mix(in srgb, var(--ai-accent, #7c3aed) 22%, transparent);
         opacity: .35; transition: opacity .4s ease;
     }
     .ai-card:hover .ai-card-glow { opacity: 1; }
     .ai-card-corner {
         position: absolute; top: -50px; right: -50px; width: 160px; height: 160px;
         border-radius: 9999px; opacity: .22;
-        background: radial-gradient(circle, var(--ai-accent, #7c3aed), transparent 70%);
+        background: var(--ai-accent, #7c3aed);
     }
 
     /* Illustration frame */
     .ai-illus {
         position: relative; height: 132px; border-radius: 1rem; overflow: hidden;
         margin-bottom: 1rem;
-        background:
-            radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--ai-accent, #7c3aed) 22%, transparent), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+        background: rgba(255,255,255,.03);
         border: 1px solid rgba(255,255,255,.08);
     }
     html.light-mode .ai-illus {
@@ -185,7 +179,7 @@
     .ai-task-bar { flex: 1; height: 6px; border-radius: 9999px; background: rgba(255,255,255,.10); overflow: hidden; }
     html.light-mode .ai-task-bar { background: rgba(15,23,42,.08); }
     .ai-task-bar i {
-        display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ai-accent), #22d3ee);
+        display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ai-accent), #6366f1);
         animation: aiTaskFill 4s ease-in-out infinite;
     }
     .ai-task:nth-child(1) { animation: aiTaskRow 4s ease-in-out infinite; }
@@ -228,7 +222,7 @@
     .ai-widget-pop {
         position: absolute; right: 8px; bottom: 8px;
         width: 64px; padding: 6px 8px; border-radius: .55rem;
-        background: linear-gradient(135deg, var(--ai-accent), #f97316);
+        background: linear-gradient(135deg, var(--ai-accent), #6366f1);
         color: #fff; font-size: .58rem; font-weight: 700;
         box-shadow: 0 8px 22px -8px var(--ai-accent);
         display: flex; align-items: center; gap: 5px;
@@ -282,7 +276,7 @@
     .ai-wave { display: flex; align-items: center; gap: 4px; height: 56px; }
     .ai-wave i {
         display: block; width: 4px; border-radius: 9999px;
-        background: linear-gradient(180deg, var(--ai-accent), #ec4899);
+        background: linear-gradient(180deg, var(--ai-accent), #6366f1);
         animation: aiWaveBar 1.2s ease-in-out infinite;
     }
     .ai-wave i:nth-child(1){ height: 18px; animation-delay: 0s; }
@@ -318,7 +312,7 @@
         .ai-widget-pop::before,
         .ai-phone,
         .ai-wave i { animation: none !important; }
-        .ai-shimmer { background: linear-gradient(90deg, #a78bfa, #ec4899, #22d3ee); -webkit-background-clip: text; background-clip: text; }
+        .ai-shimmer { color: #a78bfa; }
         .ai-chat-bubble { opacity: 1; transform: none; }
         .ai-widget-pop { transform: none; opacity: 1; }
         .ai-suite-v2 .ai-card { opacity: 1; transform: none; }

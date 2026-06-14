@@ -28,7 +28,7 @@
         {{-- VS chips --}}
         <div data-anim="fade-up" class="flex items-center justify-center gap-3 sm:gap-5 mb-7">
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white"
-                  style="background:linear-gradient(135deg, var(--c1, #7c3aed), var(--c4, #1bd4d9));">
+                  style="background: var(--c1, #7c3aed);">
                 <i class="fas fa-bolt"></i> 1INME
             </span>
             <span class="text-sm font-bold uppercase tracking-widest text-gray-500">vs</span>
@@ -85,7 +85,7 @@
             <article class="glass rounded-3xl p-7" data-anim="fade-right">
                 <div class="flex items-center gap-3 mb-5">
                     <span class="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
-                          style="background:linear-gradient(135deg, var(--c1, #7c3aed), var(--c4, #1bd4d9));">
+                          style="background: var(--c1, #7c3aed);">
                         <i class="fas fa-bolt"></i>
                     </span>
                     <h3 class="text-lg font-bold text-white">Where 1INME wins</h3>
@@ -104,7 +104,7 @@
             <article class="glass rounded-3xl p-7" data-anim="fade-left">
                 <div class="flex items-center gap-3 mb-5">
                     <span class="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
-                          style="background:linear-gradient(135deg, {{ $accent }}, #475569);">
+                          style="background: {{ $accent }};">
                         <i class="fas {{ $c['icon'] }}"></i>
                     </span>
                     <h3 class="text-lg font-bold text-white">Where {{ $c['name'] }} wins</h3>
@@ -143,7 +143,7 @@
                     @foreach($steps as $i => $s)
                         <div class="text-center sm:text-left" data-anim="fade-up" data-stagger>
                             <div class="inline-flex w-11 h-11 rounded-2xl items-center justify-center text-white mb-3"
-                                 style="background:linear-gradient(135deg, {{ $accent }}, #7c3aed);">
+                                 style="background: {{ $accent }};">
                                 <i class="fas {{ $s['icon'] }}"></i>
                             </div>
                             <div class="text-sm font-bold text-white">{{ $i + 1 }}. {{ $s['title'] }}</div>
@@ -199,7 +199,7 @@
                 <a href="{{ route('site.compare.show', ['competitor' => $o['key']]) }}" class="group glass rounded-2xl p-5 lift block">
                     <div class="flex items-center gap-3">
                         <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                              style="background:linear-gradient(135deg, {{ $o['accent'] }}, #7c3aed);">
+                              style="background: {{ $o['accent'] }};">
                             <i class="fas {{ $o['icon'] }}"></i>
                         </span>
                         <div>

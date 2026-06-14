@@ -47,7 +47,7 @@
                     @if($authorAvatar)
                         <img src="{{ $authorAvatar }}" alt="{{ $post->author->name }}" class="w-10 h-10 rounded-full object-cover">
                     @else
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">{{ strtoupper(substr($post->author->name ?? '?', 0, 1)) }}</div>
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white" style="background:#7c3aed;">{{ strtoupper(substr($post->author->name ?? '?', 0, 1)) }}</div>
                     @endif
                 @endif
                 <div class="text-xs text-white/60 leading-tight">
@@ -136,7 +136,7 @@
                 <form method="POST" action="{{ route('site.blogs.comments.store', $post->slug) }}" class="mt-6 space-y-3">
                     @csrf
                     <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-white" style="background: linear-gradient(135deg, #7c3aed, #38bdf8);">{{ strtoupper(substr($commenter['name'], 0, 1)) }}</div>
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-white" style="background: #7c3aed;">{{ strtoupper(substr($commenter['name'], 0, 1)) }}</div>
                         <span class="text-sm text-white/80">Posting as <strong>{{ $commenter['name'] }}</strong></span>
                     </div>
                     <textarea name="body" required rows="4" placeholder="Share your thoughts…" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/40 focus:border-violet-500 outline-none">{{ old('body') }}</textarea>
@@ -150,7 +150,7 @@
             <div class="mt-10 space-y-6">
                 @forelse($comments as $c)
                     <div id="comment-{{ $c->id }}" class="flex gap-3">
-                        <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-semibold text-white" style="background: linear-gradient(135deg, #7c3aed, #38bdf8);">{{ $c->authorInitial() }}</div>
+                        <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-semibold text-white" style="background: #7c3aed;">{{ $c->authorInitial() }}</div>
                         <div class="flex-1">
                             <div class="bg-white/[0.03] border border-white/10 rounded-xl p-4">
                                 <div class="flex items-center justify-between text-xs text-white/60">
@@ -162,7 +162,7 @@
 
                             @foreach($c->replies as $r)
                                 <div id="comment-{{ $r->id }}" class="mt-3 ml-6 flex gap-3">
-                                    <div class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">{{ $r->authorInitial() }}</div>
+                                    <div class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background: #7c3aed;">{{ $r->authorInitial() }}</div>
                                     <div class="flex-1 bg-violet-500/[0.06] border border-violet-500/20 rounded-xl p-4">
                                         <div class="flex items-center gap-2 text-xs text-white/70">
                                             <span class="font-semibold text-white">{{ $r->author_name }}</span>

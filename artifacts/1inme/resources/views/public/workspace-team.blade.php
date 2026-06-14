@@ -67,7 +67,7 @@
             @php $reverse = $i % 2 === 1; @endphp
             <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
                 <div class="{{ $reverse ? 'lg:order-2' : '' }}" data-anim="{{ $reverse ? 'fade-left' : 'fade-right' }}">
-                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 border border-violet-400/30 text-violet-300 mb-4">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-500/20 border border-violet-400/30 text-violet-300 mb-4">
                         <i class="fas {{ $f['icon'] }}"></i>
                     </div>
                     <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{!! $f['title'] !!}</h2>
@@ -93,7 +93,7 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
             @foreach($highlights as $h)
                 <div class="group bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-violet-400/40 rounded-2xl p-6 transition">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/15 border border-violet-400/30 flex items-center justify-center text-violet-200 mb-4 group-hover:scale-110 transition">
+                    <div class="w-11 h-11 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center text-violet-200 mb-4 group-hover:scale-110 transition">
                         <i class="fas {{ $h['icon'] }}"></i>
                     </div>
                     <h3 class="text-base font-bold text-white">{!! $h['title'] !!}</h3>

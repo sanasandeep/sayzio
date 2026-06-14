@@ -239,7 +239,7 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5" data-anim="fade-up" data-stagger>
             @foreach($valueCards as $v)
                 <div class="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-violet-400/40 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/15 border border-violet-400/30 flex items-center justify-center text-violet-200 mb-4">
+                    <div class="w-11 h-11 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center text-violet-200 mb-4">
                         <i class="fas {{ $v['icon'] ?? 'fa-circle-dot' }}"></i>
                     </div>
                     @if(!empty($v['title']))<h3 class="text-base font-bold text-white">{{ $v['title'] }}</h3>@endif
@@ -302,12 +302,12 @@
                     @if($founderTitle !== '')
                         <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight">{{ $founderTitle }}</h2>
                     @endif
-                    <div class="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5 border border-white/10 rounded-3xl p-6 sm:p-10 grid sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-center">
+                    <div class="bg-violet-500/10 border border-white/10 rounded-3xl p-6 sm:p-10 grid sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-center">
                         <div class="shrink-0 mx-auto sm:mx-0">
                             @php $founderPhoto = $personPhoto($founder) ?? $defaultFounderPhoto; @endphp
                             <div class="relative">
                                 <img src="{{ $founderPhoto }}" alt="{{ $founder['name'] ?? '' }}" class="w-40 h-40 rounded-full object-cover border-2 border-violet-400/40 shadow-2xl">
-                                <div class="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 border-4 border-[#1e2330] flex items-center justify-center text-white">
+                                <div class="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-violet-500 border-4 border-[#1e2330] flex items-center justify-center text-white">
                                     <i class="fas fa-crown text-sm"></i>
                                 </div>
                             </div>
@@ -351,7 +351,7 @@
                                 @if($photo = $personPhoto($p))
                                     <img src="{{ $photo }}" alt="{{ $p['name'] ?? '' }}" class="w-24 h-24 rounded-full object-cover mx-auto border-2 border-white/10">
                                 @else
-                                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-sky-500 to-violet-500 flex items-center justify-center text-xl font-bold text-white mx-auto border-2 border-white/10">
+                                    <div class="w-24 h-24 rounded-full bg-violet-500 flex items-center justify-center text-xl font-bold text-white mx-auto border-2 border-white/10">
                                         {{ $personInitials($p) }}
                                     </div>
                                 @endif
@@ -389,7 +389,7 @@
                                 @if($photo = $personPhoto($p))
                                     <img src="{{ $photo }}" alt="{{ $p['name'] ?? '' }}" class="w-16 h-16 rounded-full object-cover mx-auto">
                                 @else
-                                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-fuchsia-500/70 to-violet-500/70 flex items-center justify-center text-sm font-bold text-white mx-auto">
+                                    <div class="w-16 h-16 rounded-full bg-violet-500/70 flex items-center justify-center text-sm font-bold text-white mx-auto">
                                         {{ $personInitials($p) }}
                                     </div>
                                 @endif

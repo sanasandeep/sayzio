@@ -6,7 +6,7 @@
 @endphp
 @if($blogCtaEnabled && $latestCta->count())
     <section class="max-w-6xl mx-auto px-4 sm:px-6 my-16">
-        <div class="rounded-3xl bg-gradient-to-br from-violet-600/15 via-pink-500/10 to-sky-500/10 border border-white/10 p-6 sm:p-8">
+        <div class="rounded-3xl bg-violet-500/10 border border-white/10 p-6 sm:p-8">
             <div class="flex items-end justify-between gap-4 mb-6">
                 <div>
                     <p class="text-[11px] uppercase tracking-[0.2em] text-violet-300">From the blog</p>

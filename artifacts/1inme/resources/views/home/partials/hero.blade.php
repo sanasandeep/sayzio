@@ -334,7 +334,7 @@
                         <span id="hero-role-word" class="grad-text role-word">Creator</span>
                         <svg class="absolute -bottom-3 left-0 w-full" height="14" viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true">
                             <path class="draw-line" d="M2 9 Q 60 2, 110 8 T 218 6" stroke="url(#g)" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <defs><linearGradient id="g"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="50%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#ffc845"/></linearGradient></defs>
+                            <defs><linearGradient id="g"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
                         </svg>
                     </span>
                     <span class="sr-only" aria-live="polite" aria-atomic="true" id="hero-role-sr">Creator</span>

@@ -10,9 +10,9 @@
         ['outlet' => 'Forbes',     'date' => 'Dec 2025', 'headline' => 'The next-gen biolink is built for serious creators.',  'href' => '#'],
     ];
     $awards = [
-        ['title' => 'Product Hunt — #1 of the day', 'date' => 'Sep 2025', 'icon' => 'fa-trophy', 'tint' => 'from-amber-500/40 to-orange-500/10'],
-        ['title' => 'Best of 2025 · Creator Tools', 'date' => 'Dec 2025', 'icon' => 'fa-medal', 'tint' => 'from-violet-500/40 to-fuchsia-500/10'],
-        ['title' => 'Indie SaaS Award · Design',    'date' => 'Nov 2025', 'icon' => 'fa-star',  'tint' => 'from-pink-500/40 to-rose-500/10'],
+        ['title' => 'Product Hunt — #1 of the day', 'date' => 'Sep 2025', 'icon' => 'fa-trophy'],
+        ['title' => 'Best of 2025 · Creator Tools', 'date' => 'Dec 2025', 'icon' => 'fa-medal'],
+        ['title' => 'Indie SaaS Award · Design',    'date' => 'Nov 2025', 'icon' => 'fa-star'],
     ];
     $testimonials = [
         ['name' => 'Maya Daly',     'role' => 'Storyteller, 24K followers', 'quote' => 'I used to juggle four tools. Now everything runs from one tab — and I can actually see what is working.', 'tint' => 'from-violet-500 to-fuchsia-500'],
@@ -45,14 +45,10 @@
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
-<<<<<<< HEAD
                 <img src="{{ asset('images/marketing/buzz/hero.png') }}" alt="Press coverage and editorial features">
-=======
-                <img src="{{ asset('images/marketing/buzz/hero.png') }}" alt="">
->>>>>>> 60d7746 (Saved your changes before starting work)
             </div>
             <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-pink-500 flex items-center justify-center text-white"><i class="fas fa-trophy"></i></div>
+                <div class="w-10 h-10 rounded-xl bg-[#7c3aed] flex items-center justify-center text-white"><i class="fas fa-trophy"></i></div>
                 <div class="text-xs"><div class="font-semibold text-white">#1 Product of the Day</div><div class="text-gray-400">Product Hunt</div></div>
             </div>
         </div>
@@ -87,11 +83,7 @@
             @foreach($press as $p)
                 <a href="{{ $p['href'] }}" class="group bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-violet-400/40 rounded-2xl overflow-hidden transition flex flex-col sm:flex-row">
                     <div class="img-frame rounded-none border-0 aspect-[16/10] sm:aspect-auto sm:w-44 shrink-0">
-<<<<<<< HEAD
                         <img src="{{ asset('images/marketing/buzz/press.png') }}" alt="Press article preview">
-=======
-                        <img src="{{ asset('images/marketing/buzz/press.png') }}" alt="">
->>>>>>> 60d7746 (Saved your changes before starting work)
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="text-xs font-semibold uppercase tracking-wider text-violet-300">{{ $p['outlet'] }} · {{ $p['date'] }}</div>
@@ -114,7 +106,7 @@
                 <div class="mt-7 space-y-3" data-anim="fade-up" data-stagger>
                     @foreach($awards as $a)
                         <div class="flex items-center gap-4 bg-white/[0.03] border border-white/10 rounded-2xl p-4 hover:border-violet-400/40 transition">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br {{ $a['tint'] }} border border-white/10 flex items-center justify-center text-white">
+                            <div class="w-12 h-12 rounded-xl bg-[#7c3aed] border border-white/10 flex items-center justify-center text-white">
                                 <i class="fas {{ $a['icon'] }} text-lg"></i>
                             </div>
                             <div class="flex-1 min-w-0">

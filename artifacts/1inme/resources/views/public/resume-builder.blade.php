@@ -19,10 +19,7 @@
 <style>
     .rbp-mesh::before {
         content:""; position:absolute; inset:-15%;
-        background:
-            radial-gradient(40% 40% at 20% 20%, rgba(124,58,237,.22), transparent 60%),
-            radial-gradient(38% 38% at 82% 26%, rgba(27,212,217,.18), transparent 60%),
-            radial-gradient(45% 45% at 50% 90%, rgba(233,78,140,.18), transparent 60%);
+        background: rgba(124,58,237,.06);
         filter: blur(40px); pointer-events:none;
         animation: rbpMesh 14s ease-in-out infinite alternate;
     }
@@ -39,10 +36,10 @@
     @keyframes rbpFloat { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(-3deg); } }
     .rbp-paper-head {
         padding: 22px; color:#fff;
-        background: linear-gradient(135deg,#7c3aed,#e94e8c 60%,#ff8a3c);
+        background: linear-gradient(135deg,#7c3aed,#a855f7);
     }
     .rbp-bar { height: 7px; border-radius: 999px; background: #e5e7eb; overflow:hidden; position: relative; }
-    .rbp-bar > span { position:absolute; inset:0; border-radius:inherit; background: linear-gradient(90deg,#7c3aed,#1bd4d9); width: var(--w,70%); transform-origin:left; transform: scaleX(0); animation: rbpFill 2.4s ease-out forwards; }
+    .rbp-bar > span { position:absolute; inset:0; border-radius:inherit; background: #7c3aed; width: var(--w,70%); transform-origin:left; transform: scaleX(0); animation: rbpFill 2.4s ease-out forwards; }
     @keyframes rbpFill { to { transform: scaleX(1); } }
 
     /* Step cards */
@@ -50,12 +47,11 @@
     .rbp-step:hover { transform: translateY(-6px); }
     .rbp-step-num {
         position:absolute; top:14px; right:18px; font-size: 3rem; font-weight:800; line-height:1; opacity:.14;
-        background: linear-gradient(135deg, var(--rbp-c,#7c3aed), #ec4899);
-        -webkit-background-clip:text; background-clip:text; color: transparent;
+        color: var(--rbp-c,#7c3aed);
     }
     .rbp-step-icon {
         width:56px; height:56px; border-radius:18px;
-        background: linear-gradient(135deg, var(--rbp-c,#7c3aed), #1bd4d9);
+        background: var(--rbp-c,#7c3aed);
         color:#fff; display:flex; align-items:center; justify-content:center;
         box-shadow: 0 12px 28px -10px var(--rbp-c,#7c3aed); position:relative;
     }
@@ -90,11 +86,11 @@
     .rbp-cmp .col { padding: 22px; border-radius: 22px; }
     .rbp-cmp .bad  { background: rgba(239,68,68,.05); border:1px solid rgba(239,68,68,.18); }
     .rbp-cmp .good { background: rgba(34,197,94,.06); border:1px solid rgba(34,197,94,.22); position:relative; overflow:hidden; }
-    .rbp-cmp .good::before { content:""; position:absolute; inset:-1px; border-radius:inherit; background: conic-gradient(from 180deg, #22c55e, #1bd4d9, #7c3aed, #22c55e); opacity:.18; filter: blur(20px); pointer-events:none; }
+    .rbp-cmp .good::before { content:""; position:absolute; inset:-1px; border-radius:inherit; background: rgba(34,197,94,.45); opacity:.18; filter: blur(20px); pointer-events:none; }
 
     /* Stat counter */
     .rbp-stat { text-align:center; padding: 22px 14px; }
-    .rbp-stat .num { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg,#1bd4d9,#7c3aed); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .rbp-stat .num { font-size: 2.5rem; font-weight: 800; color:#7c3aed; }
     .rbp-stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: #9ca3af; margin-top: 4px; }
 
     @media (max-width: 640px) {
@@ -135,7 +131,7 @@
             <div class="rbp-paper">
                 <div class="rbp-paper-head">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white" style="background: linear-gradient(135deg,#1bd4d9,#7c3aed);">JS</div>
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white" style="background: #7c3aed;">JS</div>
                         <div>
                             <div class="text-base font-bold leading-tight">Jordan Silva</div>
                             <div class="text-[11px] opacity-90">Full-stack Engineer · Lisbon</div>
@@ -319,8 +315,8 @@
 {{-- ============== FINAL CTA ============== --}}
 <section class="py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="relative rounded-3xl p-10 text-center overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(236,72,153,.14), rgba(34,211,238,.14)); border: 1px solid rgba(255,255,255,.08);">
-            <div class="absolute inset-[-1px] rounded-[inherit] pointer-events-none" style="background: conic-gradient(from 180deg, #7c3aed, #ec4899, #22d3ee, #7c3aed); opacity:.18; filter: blur(28px);"></div>
+        <div class="relative rounded-3xl p-10 text-center overflow-hidden" style="background: rgba(124,58,237,.16); border: 1px solid rgba(255,255,255,.08);">
+            <div class="absolute inset-[-1px] rounded-[inherit] pointer-events-none" style="background: rgba(124,58,237,.45); opacity:.18; filter: blur(28px);"></div>
             <div class="relative">
                 <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
                     Your next role is one <span class="grad-text">résumé away.</span>

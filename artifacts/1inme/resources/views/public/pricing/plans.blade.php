@@ -4,12 +4,12 @@
 
 @push('head')
 <style>
-    .grad-bar { background: linear-gradient(135deg,#7c3aed 0%,#ec4899 50%,#f59e0b 100%); }
-    .grad-text { background: linear-gradient(90deg,#a78bfa,#f472b6,#fbbf24); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .grad-bar { background: linear-gradient(135deg,#7c3aed 0%,#a855f7 100%); }
+    .grad-text { color: #a78bfa; }
     .grad-glow { position: relative; }
     .grad-glow::before {
         content: ""; position: absolute; inset: -1px; border-radius: 1.1rem; padding: 1px;
-        background: linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);
+        background: #7c3aed;
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
         -webkit-mask-composite: xor; mask-composite: exclude;
         opacity: 0; transition: opacity .35s ease;
@@ -20,7 +20,7 @@
     .grad-glow { transition: transform .35s cubic-bezier(.2,.7,.2,1); }
     .grad-glow.is-current::before {
         opacity: 1;
-        background: linear-gradient(135deg,#34d399,#22d3ee);
+        background: #34d399;
     }
     .price-num { font-variant-numeric: tabular-nums; }
     .price-pop { animation: pricePop .35s cubic-bezier(.2,.7,.2,1); }
@@ -29,21 +29,19 @@
         100% { transform: translateY(0); opacity: 1; }
     }
     .coin-bg {
-        background:
-          radial-gradient(70% 60% at 30% 20%, rgba(245,158,11,.12), transparent 60%),
-          radial-gradient(60% 50% at 80% 80%, rgba(236,72,153,.10), transparent 60%);
+        background: rgba(124,58,237,.06);
     }
     .pulse-dot { animation: pulse 1.6s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.5} }
     .float-coin { animation: floaty 3s ease-in-out infinite; }
     @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
     .seg { transition: background-color .25s ease, color .25s ease, box-shadow .25s ease; }
-    .seg-active { background-image: linear-gradient(135deg,#7c3aed,#ec4899); color: #fff; box-shadow: 0 8px 24px -10px rgba(236,72,153,.55); }
+    .seg-active { background-color: #7c3aed; color: #fff; box-shadow: 0 8px 24px -10px rgba(124,58,237,.55); }
 
     /* Most-popular ribbon — gentle wiggle on hover */
     .pop-ribbon { animation: ribbonGlow 3s ease-in-out infinite; }
     @keyframes ribbonGlow {
-        0%, 100% { box-shadow: 0 8px 24px -10px rgba(236,72,153,.55); }
+        0%, 100% { box-shadow: 0 8px 24px -10px rgba(124,58,237,.55); }
         50%      { box-shadow: 0 12px 32px -8px rgba(167,139,250,.65); }
     }
     .grad-glow:hover .pop-ribbon { animation: ribbonWiggle .55s ease-in-out; }
@@ -55,13 +53,10 @@
 
     /* "Recommended for you" callout in the upgrade banner */
     .smart-banner {
-        background:
-            radial-gradient(60% 100% at 90% 0%, rgba(124,58,237,.20), transparent 60%),
-            radial-gradient(50% 100% at 0% 100%, rgba(236,72,153,.18), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+        background: rgba(124,58,237,.08);
     }
     .smart-pill {
-        background: linear-gradient(90deg, rgba(167,139,250,.28), rgba(236,72,153,.24), rgba(34,211,238,.24));
+        background: rgba(124,58,237,.22);
         border: 1px solid rgba(255,255,255,.18);
     }
     .smart-meter {
@@ -69,10 +64,10 @@
     }
     .smart-meter > span {
         display: block; height: 100%; border-radius: 9999px;
-        background: linear-gradient(90deg,#7c3aed,#ec4899,#f59e0b);
+        background: #7c3aed;
         transition: width .9s cubic-bezier(.2,.7,.2,1);
     }
-    .smart-meter.warn > span { background: linear-gradient(90deg,#f59e0b,#ef4444); }
+    .smart-meter.warn > span { background: #f59e0b; }
 
     /* Compare-features matrix — one column per plan */
     .feat-matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -97,7 +92,7 @@
         padding: .55rem 1rem;
     }
     .feat-cell.feat-popular-col {
-        background: linear-gradient(180deg, rgba(124,58,237,.10), transparent);
+        background: rgba(124,58,237,.07);
     }
     .feat-mark { display: inline-flex; align-items: center; justify-content: center;
                  width: 26px; height: 26px; border-radius: 9999px; }
@@ -210,11 +205,11 @@
     class="relative pt-20 pb-12 lg:pt-28 lg:pb-16">
     <div class="absolute inset-0 -z-10 overflow-hidden">
         <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[60rem] h-[60rem] rounded-full opacity-30 blur-[120px]"
-             style="background: radial-gradient(closest-side, #7c3aed 0%, transparent 70%);"></div>
+             style="background: #7c3aed;"></div>
         <div class="absolute top-40 -right-32 w-[36rem] h-[36rem] rounded-full opacity-20 blur-[100px]"
-             style="background: radial-gradient(closest-side, #ec4899 0%, transparent 70%);"></div>
+             style="background: #8b5cf6;"></div>
         <div class="absolute top-72 -left-32 w-[36rem] h-[36rem] rounded-full opacity-20 blur-[100px]"
-             style="background: radial-gradient(closest-side, #f59e0b 0%, transparent 70%);"></div>
+             style="background: #6d28d9;"></div>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -315,7 +310,7 @@
                         @if($rec['recommendedPlan'])
                             @php $recPlan = $rec['recommendedPlan']; @endphp
                             <a href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
-                               class="group block rounded-2xl border border-violet-400/40 p-5 bg-gradient-to-br from-violet-600/15 via-pink-500/10 to-transparent hover:from-violet-600/25 hover:to-amber-500/10 transition relative overflow-hidden">
+                               class="group block rounded-2xl border border-violet-400/40 p-5 bg-violet-600/15 hover:bg-violet-600/25 transition relative overflow-hidden">
                                 <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-violet-500/20 blur-2xl pointer-events-none"></div>
                                 <div class="text-[11px] font-bold uppercase tracking-[.18em] text-pink-300 mb-1">
                                     <i class="fas fa-wand-magic-sparkles"></i> Recommended for you
@@ -404,11 +399,11 @@
                         : 'guest';
                     $planJs = $row['prices']; // { USD: {monthly, annual}, INR: {monthly, annual} }
                     $borderClasses = $isCurrent
-                        ? 'border-emerald-400/50 bg-gradient-to-b from-emerald-500/[0.10] to-transparent'
+                        ? 'border-emerald-400/50 bg-emerald-500/[0.08]'
                         : ($isRecommended
-                            ? 'border-pink-400/50 bg-gradient-to-b from-pink-500/[0.10] to-transparent'
+                            ? 'border-pink-400/50 bg-pink-500/[0.08]'
                             : ($isPopular
-                                ? 'border-violet-500/50 bg-gradient-to-b from-violet-500/[0.10] to-transparent'
+                                ? 'border-violet-500/50 bg-violet-500/[0.08]'
                                 : 'border-white/10 bg-white/[0.02]'));
                 @endphp
                 <div
@@ -819,7 +814,7 @@
         <div class="mt-10 max-w-3xl mx-auto" data-anim="fade-up">
             <div class="grad-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 bg-white/[0.02]">
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0"
-                     style="background: linear-gradient(135deg,#7c3aed,#ec4899);">
+                     style="background: #7c3aed;">
                     <i class="fas fa-gift"></i>
                 </div>
                 <div class="flex-1 min-w-0">

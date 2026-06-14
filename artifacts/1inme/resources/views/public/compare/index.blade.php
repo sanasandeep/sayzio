@@ -44,10 +44,10 @@
                 <a href="{{ route('site.compare.show', ['competitor' => $c['key']]) }}"
                    class="group glass rounded-3xl p-6 lift block relative overflow-hidden">
                     <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" aria-hidden="true"
-                         style="background:radial-gradient(circle, {{ $c['accent'] }}, transparent 70%);"></div>
+                         style="background: {{ $c['accent'] }};"></div>
                     <div class="relative flex items-center gap-3 mb-4">
                         <span class="w-11 h-11 rounded-2xl flex items-center justify-center text-white text-lg"
-                              style="background:linear-gradient(135deg, {{ $c['accent'] }}, #7c3aed);">
+                              style="background: {{ $c['accent'] }};">
                             <i class="fas {{ $c['icon'] }}"></i>
                         </span>
                         <div>

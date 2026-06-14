@@ -17,7 +17,7 @@
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=4">
     <script src="{{ asset('js/marketing-anim.js') }}?v=1" defer></script>
     <script>
         try {
@@ -120,9 +120,9 @@
             animation: aurora 22s ease-in-out infinite;
         }
         .aurora b:nth-child(1) { top:-10%; left:-10%; width:60vw; height:60vw; background: var(--c2); animation-delay: -2s; }
-        .aurora b:nth-child(2) { bottom:-15%; right:-10%; width:55vw; height:55vw; background: var(--c1); animation-delay: -8s; }
-        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background: var(--c3); animation-delay: -14s; }
-        .aurora b:nth-child(4) { top:60%; left:5%; width:35vw; height:35vw; background: var(--c4); opacity:.7; animation-delay: -18s; }
+        .aurora b:nth-child(2) { bottom:-15%; right:-10%; width:55vw; height:55vw; background: #8b5cf6; animation-delay: -8s; }
+        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background: #a855f7; animation-delay: -14s; }
+        .aurora b:nth-child(4) { top:60%; left:5%; width:35vw; height:35vw; background: #6d28d9; opacity:.7; animation-delay: -18s; }
         @keyframes aurora {
             0%,100% { transform: translate(0,0) scale(1); }
             33%     { transform: translate(6%,-4%) scale(1.15); }
@@ -191,7 +191,7 @@
         .btn-glow { position: relative; }
         .btn-glow::after {
             content:""; position: absolute; inset: -4px; border-radius: inherit; z-index: -1;
-            background: conic-gradient(from 0deg, var(--c1), var(--c2), var(--c3), var(--c4), var(--c5), var(--c1));
+            background: conic-gradient(from 0deg, #7c3aed, #a855f7, #7c3aed);
             opacity: 0; filter: blur(12px); transition: opacity .35s; animation: spinSlow 8s linear infinite;
         }
         .btn-glow:hover::after { opacity: .85; }
@@ -269,16 +269,13 @@
 
         /* ============ Logo gradient text ============ */
         .grad-text {
-            background: linear-gradient(95deg, var(--c1), var(--c2) 30%, var(--c3) 55%, var(--c4) 78%, var(--c5));
-            background-size: 200% 100%;
-            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-            animation: gradShift 9s ease-in-out infinite;
+            color: #a78bfa;
         }
         @keyframes gradShift { 0%,100%{ background-position: 0% 50%;} 50%{ background-position: 100% 50%;} }
 
         /* ============ Logo gradient bar ============ */
         .grad-bar {
-            background: linear-gradient(95deg, var(--c1), var(--c2), var(--c3), var(--c4), var(--c5));
+            background: linear-gradient(95deg, #7c3aed, #a855f7);
         }
 
         /* ============ Confetti shapes (drifting) ============ */
@@ -535,7 +532,7 @@
             position: relative;
             width: 100%; height: 100%;
             border-radius: 36px; overflow: hidden;
-            background: var(--phone-bg, linear-gradient(140deg,#7c3aed,#e94e8c));
+            background: var(--phone-bg, linear-gradient(140deg,#7c3aed,#a855f7));
             transition: background 1.2s ease;
         }
         .hero-phone-screen::before {
@@ -2323,27 +2320,15 @@
            premium accents instead of neon. White button text stays legible
            because the mid-stops are still dark enough for contrast. */
         html.light-mode .grad-bar {
-            background: linear-gradient(95deg,
-                #0aa3a8 0%,
-                #6d28d9 30%,
-                #be185d 55%,
-                #c2410c 78%,
-                #b45309 100%);
+            background: linear-gradient(95deg, #6d28d9, #9333ea);
         }
         html.light-mode .grad-text {
-            background: linear-gradient(95deg,
-                #0aa3a8 0%,
-                #6d28d9 30%,
-                #be185d 55%,
-                #c2410c 78%,
-                #b45309 100%);
-            background-size: 200% 100%;
-            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-            animation: gradShift 9s ease-in-out infinite;
+            background: none;
+            -webkit-text-fill-color: initial;
+            color: #6d28d9;
         }
         html.light-mode .btn-glow::after {
-            background: conic-gradient(from 0deg,
-                #0aa3a8, #6d28d9, #be185d, #c2410c, #b45309, #0aa3a8);
+            background: conic-gradient(from 0deg, #6d28d9, #9333ea, #6d28d9);
             filter: blur(10px);
         }
         html.light-mode .btn-glow:hover::after { opacity: .35; }
@@ -2439,8 +2424,8 @@
         <div class="grid md:grid-cols-3 gap-5">
             @foreach($__audiences as $i => $a)
                 <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
-                    <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:radial-gradient(circle, {{ $a['color'] }}, transparent 70%);animation-delay:{{ $i * 1.2 }}s;"></div>
-                    <div class="aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $a['color'] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
+                    <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:{{ $a['color'] }};animation-delay:{{ $i * 1.2 }}s;"></div>
+                    <div class="aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: {{ $a['color'] }}; box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
                         <i class="fas {{ $a['icon'] }} text-xl text-white" style="animation-delay:{{ $i * 0.5 }}s;"></i>
                     </div>
                     <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
@@ -2461,7 +2446,7 @@
     @media (min-width: 1024px) {
         .hiw-track::before {
             content: ""; position: absolute; left: 8%; right: 8%; top: 56px; height: 2px;
-            background: linear-gradient(90deg, rgba(124,58,237,0), #1bd4d9 18%, #7c3aed 50%, #e94e8c 82%, rgba(233,78,140,0));
+            background: rgba(124,58,237,.45);
             opacity: .55; pointer-events: none;
         }
     }
@@ -2476,8 +2461,7 @@
     .hiw-step:hover .hiw-icon-wrap::after { opacity: .8; }
     @keyframes hiwPulse { 0%,100% { transform: scale(1); opacity: .25; } 50% { transform: scale(1.08); opacity: .65; } }
     .hiw-num { position: absolute; top: 14px; right: 18px; font-size: 3.25rem; font-weight: 800; line-height: 1;
-        background: linear-gradient(135deg, var(--hiw-color, #7c3aed), #ec4899);
-        -webkit-background-clip: text; background-clip: text; color: transparent; opacity: .14;
+        color: var(--hiw-color, #7c3aed); opacity: .14;
     }
     .hiw-time {
         display:inline-flex; align-items:center; gap:6px;
@@ -2488,12 +2472,12 @@
     .hiw-time i { font-size: 9px; }
     .hiw-cta-wrap {
         position: relative; padding: 1.75rem; border-radius: 1.75rem; overflow: hidden;
-        background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(236,72,153,.14), rgba(34,211,238,.12));
+        background: rgba(124,58,237,.12);
         border: 1px solid rgba(255,255,255,.08);
     }
     .hiw-cta-wrap::before {
         content:""; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
-        background: conic-gradient(from 180deg at 50% 50%, #7c3aed, #ec4899, #22d3ee, #7c3aed);
+        background: #7c3aed;
         opacity:.18; filter: blur(20px);
     }
 </style>
@@ -2516,7 +2500,7 @@
             ] as $i => $s)
                 <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: {{ $s[5] }}">
                     <span class="hiw-num">{{ $s[0] }}</span>
-                    <div class="hiw-icon-wrap" style="background: linear-gradient(135deg, {{ $s[5] }}, var(--c2));"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
+                    <div class="hiw-icon-wrap" style="background: {{ $s[5] }};"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
                     <span class="hiw-time"><i class="fas fa-stopwatch"></i>{{ $s[1] }}</span>
                     <h3 class="text-lg font-bold mb-1.5">{!! $s[2] !!}</h3>
                     <p class="text-sm text-gray-400 leading-relaxed">{!! $s[3] !!}</p>
@@ -2579,7 +2563,7 @@
                     $__paidAmount = $__teaserPaid['monthly']['amount_display'] ?? null;
                 @endphp
                 <a href="#pricing" class="reveal rd-2 group rounded-2xl p-6 lift block relative overflow-hidden grad-border">
-                    <div class="absolute inset-0 -z-10 opacity-20" style="background:radial-gradient(circle at 80% 0%, var(--c2), transparent 60%);"></div>
+                    <div class="absolute inset-0 -z-10 opacity-20" style="background:var(--c2);"></div>
                     <div class="text-[11px] font-bold uppercase tracking-wider mb-2" style="color:var(--c2)">{{ $__teaserPaid['name'] ?? 'Pro' }} · most popular</div>
                     <div class="flex items-baseline gap-2 mb-3">
                         <span class="text-3xl font-extrabold text-white">{{ $__paidAmount ?: 'Pro' }}</span>
@@ -3156,7 +3140,7 @@
             </div>
 
             {{-- Coach card --}}
-            <div class="reveal rd-2 lg:col-span-5 rounded-3xl p-7 tilt relative overflow-hidden text-white" style="background: linear-gradient(140deg, var(--c2), var(--c3) 70%, var(--c4));">
+            <div class="reveal rd-2 lg:col-span-5 rounded-3xl p-7 tilt relative overflow-hidden text-white" style="background: #7c3aed;">
                 <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10"></div>
                 <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/5"></div>
                 <div class="relative">
@@ -3358,15 +3342,15 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             @foreach($__pillars as $i => $p)
                 <article class="reveal rd-{{ ($i % 4) + 1 }} glass rounded-3xl p-6 lift relative overflow-hidden">
-                    <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" style="background:radial-gradient(circle, {{ $p['color'] }}, transparent 70%);"></div>
-                    <div class="relative w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, {{ $p['color'] }}, var(--c2)); box-shadow: 0 12px 30px -12px {{ $p['color'] }};">
+                    <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" style="background:{{ $p['color'] }};"></div>
+                    <div class="relative w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background: {{ $p['color'] }}; box-shadow: 0 12px 30px -12px {{ $p['color'] }};">
                         <i class="fas {{ $p['icon'] }} text-white"></i>
                     </div>
                     <div class="relative text-[11px] font-bold uppercase tracking-wider mb-1" style="color: {{ $p['color'] }};">{{ $p['eyebrow'] }}</div>
                     <h3 class="relative text-lg font-bold mb-4 leading-snug">{!! $p['title'] !!}</h3>
 
                     {{-- Mini visual preview, one per pillar --}}
-                    <div class="pillar-preview relative mb-5 rounded-2xl p-3 overflow-hidden" style="background:linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06);" aria-hidden="true">
+                    <div class="pillar-preview relative mb-5 rounded-2xl p-3 overflow-hidden" style="background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);" aria-hidden="true">
                         @if($i === 0)
                             {{-- Bio-link mini card --}}
                             <div class="flex items-center gap-2.5 mb-2.5">
@@ -3512,7 +3496,7 @@
                         ['fa-credit-card','#ff8a3c','Billing per workspace','Separate plans &amp; invoices for each workspace.'],
                     ] as $i => $f)
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c2)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
@@ -3529,8 +3513,8 @@
 
             <div class="reveal rd-3">
                 <div class="glass rounded-3xl p-6 sm:p-8 tilt relative overflow-hidden ws-card">
-                    <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c2),transparent 70%);"></div>
-                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-20" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
+                    <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30" style="background:var(--c2);"></div>
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-20" style="background:var(--c2);"></div>
 
                     {{-- Live cursors floating across the panel --}}
                     <div class="ws-cursor" aria-hidden="true">
@@ -3674,7 +3658,7 @@
 
 {{-- ============================ BUZZ ============================ --}}
 <section id="buzz" class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="absolute inset-0 -z-10" style="background:radial-gradient(60% 50% at 80% 30%, rgba(233,78,140,.15), transparent 70%);"></div>
+    <div class="absolute inset-0 -z-10" style="background:rgba(124,58,237,.06);"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
@@ -3689,7 +3673,7 @@
         <div class="grid lg:grid-cols-2 gap-10 items-center">
             <div class="reveal rd-3 order-2 lg:order-1">
                 <div class="relative glass rounded-3xl p-6 sm:p-8 tilt overflow-hidden" style="min-height: 360px;">
-                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:var(--c2);"></div>
                     <div class="relative">
                         <div class="flex items-center justify-between mb-4">
                             <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your biolink</div>
@@ -3810,7 +3794,7 @@
                         ['fa-user-secret','#7c3aed','Privacy-first','Names masked, locations coarse, dismissible.'],
                     ] as $i => $f)
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c3)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
@@ -3980,7 +3964,7 @@
                             <img src="{{ $post->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                         </div>
                     @else
-                        <div class="aspect-[16/9]" style="background:linear-gradient(135deg, rgba(124,58,237,.25), rgba(56,189,248,.18));"></div>
+                        <div class="aspect-[16/9]" style="background:rgba(124,58,237,.18);"></div>
                     @endif
                     <div class="p-6">
                         @if($post->category)

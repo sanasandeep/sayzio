@@ -32,7 +32,7 @@
                                  class="w-10 h-10 rounded-full object-cover border border-white/10">
                         @else
                             <div class="w-10 h-10 rounded-full grad-bar text-white text-sm font-bold flex items-center justify-center"
-                                 style="background:linear-gradient(135deg,#7c3aed,#ec4899);" aria-hidden="true">
+                                 style="background:#7c3aed;" aria-hidden="true">
                                 {{ strtoupper(mb_substr(trim((string) ($t['name'] ?? '·')), 0, 1)) }}
                             </div>
                         @endif
