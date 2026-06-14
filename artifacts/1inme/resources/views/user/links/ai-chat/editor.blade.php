@@ -64,7 +64,7 @@
                     </div>
                     <div class="aic-row">
                         <label class="aic-label" for="aic-persona">Persona (the brain)</label>
-                        <select id="aic-persona" class="aic-select" name="persona_id" required>
+                        <select id="aic-persona" class="aic-select" name="persona_id" required x-model.number="personaId">
                             @foreach($personas as $p)
                                 <option value="{{ $p->id }}" @selected((int) old('persona_id', $companion->persona_id) === (int) $p->id)>{{ $p->name }}</option>
                             @endforeach
@@ -72,6 +72,78 @@
                         <div class="aic-hint">
                             The persona supplies the system prompt, model, tone and knowledge (Minds).
                             <a href="{{ route('user.ai-personas.index') }}" class="text-purple-400 no-underline">Manage personas &amp; knowledge →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="aic-card">
+                    <input type="hidden" name="persona[apply]" :value="switched ? '0' : '1'">
+                    <h5><i class="fas fa-brain text-[13px]" style="color:#a78bfa"></i> Personality &amp; knowledge</h5>
+
+                    <div class="aic-banner info" x-show="switched" x-cloak style="margin-bottom:16px">
+                        <i class="fas fa-circle-info"></i>
+                        You picked a different persona. Save to bind it first — then its personality &amp; knowledge will load here for editing.
+                    </div>
+
+                    <div x-show="!switched">
+                        <div class="aic-row">
+                            <label class="aic-label" for="aic-system-prompt">System prompt</label>
+                            <textarea id="aic-system-prompt" class="aic-textarea" name="persona[system_prompt]"
+                                      maxlength="{{ $caps['max_system_prompt_chars'] }}" style="min-height:140px"
+                                      placeholder="You are a friendly assistant for this page…">{{ old('persona.system_prompt', $persona->system_prompt) }}</textarea>
+                            @error('persona.system_prompt')<div class="aic-hint" style="color:#f87171">{{ $message }}</div>@enderror
+                            <div class="aic-hint">The core instructions that shape how the assistant thinks and replies.</div>
+                        </div>
+                        <div class="aic-row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                            <div>
+                                <label class="aic-label" for="aic-tone">Tone</label>
+                                <select id="aic-tone" class="aic-select" name="persona[tone_preset]">
+                                    <option value="">Default</option>
+                                    @foreach($tones as $t)
+                                        <option value="{{ $t }}" @selected(old('persona.tone_preset', $persona->tone_preset) === $t)>{{ ucfirst($t) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="aic-label" for="aic-fallback">When unsure</label>
+                                @php $fallbackLabels = ['clarify' => 'Ask a clarifying question', 'escalate' => 'Offer to connect to a human', 'refuse' => 'Politely refuse &amp; explain limits']; @endphp
+                                <select id="aic-fallback" class="aic-select" name="persona[fallback_behavior]">
+                                    @foreach($fallbacks as $f)
+                                        <option value="{{ $f }}" @selected(old('persona.fallback_behavior', $persona->fallback_behavior ?: 'clarify') === $f)>{!! $fallbackLabels[$f] ?? ucfirst($f) !!}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="aic-row">
+                            <label class="aic-label">Knowledge (Minds)</label>
+                            <label class="aic-toggle" style="margin-bottom:8px">
+                                <input type="checkbox" name="persona[use_default_mind]" value="1"
+                                       @checked(old('persona.use_default_mind', $persona->use_default_mind))>
+                                <span>
+                                    <strong style="color:var(--text-primary)">Use 1INME's built-in knowledge</strong>
+                                    @if($defaultMind)
+                                        <span class="aic-hint" style="display:block;margin-top:2px">The shared "{{ $defaultMind->name }}" knowledge base.</span>
+                                    @endif
+                                </span>
+                            </label>
+                            @php $attached = old('persona.mind_ids', $attachedMindIds); @endphp
+                            @forelse($myMinds as $mind)
+                                <label class="aic-toggle" style="margin-bottom:8px">
+                                    <input type="checkbox" name="persona[mind_ids][]" value="{{ $mind->id }}"
+                                           @checked(in_array($mind->id, $attached))>
+                                    <span><strong style="color:var(--text-primary)">{{ $mind->name }}</strong></span>
+                                </label>
+                            @empty
+                                <div class="aic-hint">
+                                    You don't have any custom knowledge bases yet.
+                                    <a href="{{ route('user.minds.index') }}" class="text-purple-400 no-underline">Create one →</a>
+                                </div>
+                            @endforelse
+                            <div class="aic-hint" style="margin-top:6px">Attach knowledge so the assistant can answer from your own content. Up to {{ $caps['max_minds_per_persona'] }} per persona.</div>
+                        </div>
+                        <div class="aic-hint">
+                            Need model, temperature or version history?
+                            <a href="{{ route('user.ai-personas.edit', $persona) }}" class="text-purple-400 no-underline">Open the full persona manager →</a>
                         </div>
                     </div>
                 </div>
@@ -165,6 +237,12 @@
 </div>
 
 <script>
-    function aiChatEditor() { return {}; }
+    function aiChatEditor() {
+        return {
+            personaId: {{ (int) old('persona_id', $companion->persona_id) }},
+            boundPersonaId: {{ (int) $companion->persona_id }},
+            get switched() { return this.personaId !== this.boundPersonaId; },
+        };
+    }
 </script>
 @endsection
