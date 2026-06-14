@@ -5,25 +5,13 @@
     $__faqsForSchema = [];
     foreach (($groups ?? []) as $cat => $items) {
         foreach ($items as $row) {
-            $q = trim((string) ($row['q'] ?? ''));
-            $a = trim((string) ($row['a'] ?? ''));
-            if ($q === '' || $a === '') continue;
-            $__faqsForSchema[] = [
-                '@type' => 'Question',
-                'name' => $q,
-                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $a],
-            ];
+            $__faqsForSchema[] = ['q' => $row['q'] ?? '', 'a' => $row['a'] ?? ''];
         }
     }
+    $__faqNode = \App\Modules\Common\Support\MarketingSchema::faqPage($__faqsForSchema);
 @endphp
-@if(!empty($__faqsForSchema))
-<script type="application/ld+json">
-{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type'    => 'FAQPage',
-    'mainEntity' => $__faqsForSchema,
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
-</script>
+@if($__faqNode)
+<script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph([$__faqNode]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
 <style>
     .faq-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; transition: background .2s ease, border-color .2s ease; }

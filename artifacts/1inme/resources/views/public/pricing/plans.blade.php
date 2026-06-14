@@ -3,6 +3,15 @@
 @section('title', 'Pricing')
 
 @push('head')
+@php
+    $__pricingProducts = \App\Modules\Common\Support\MarketingSchema::pricingProducts(
+        $planModels ?? collect(),
+        $currency ?? 'USD'
+    );
+@endphp
+@if(!empty($__pricingProducts))
+<script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph($__pricingProducts), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endif
 <style>
     .grad-bar { background: linear-gradient(135deg,#7c3aed 0%,#a855f7 100%); }
     .grad-text { color: #a78bfa; }

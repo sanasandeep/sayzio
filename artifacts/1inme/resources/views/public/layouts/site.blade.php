@@ -18,6 +18,15 @@
     @if(($__seo['keywords'] ?? '') !== '')
         <meta name="keywords" content="{{ $__seo['keywords'] }}">
     @endif
+    @php
+        $__schema = \App\Modules\Common\Support\MarketingSchema::forView([
+            'seoKey' => $seoKey ?? null,
+            'page'   => $page ?? null,
+            'title'  => $__seo['title'] ?? null,
+            'url'    => request()->url(),
+        ]);
+    @endphp
+    <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     @include('common.partials.default-icons')
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')

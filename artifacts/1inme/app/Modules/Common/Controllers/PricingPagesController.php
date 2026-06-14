@@ -102,6 +102,7 @@ class PricingPagesController extends Controller
         return view('public.pricing.plans', [
             'seoKey'        => 'pricing',
             'plans'         => $rows,
+            'planModels'    => $plans,
             'cycle'         => $cycle,
             'currency'      => $currency,
             'currencySource'=> $currencySource,

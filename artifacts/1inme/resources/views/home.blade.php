@@ -12,6 +12,14 @@
     @if(($__seo['keywords'] ?? '') !== '')
         <meta name="keywords" content="{{ $__seo['keywords'] }}">
     @endif
+    @php
+        $__schema = \App\Modules\Common\Support\MarketingSchema::forView([
+            'seoKey' => 'home',
+            'title'  => $__seo['title'] ?? null,
+            'url'    => request()->url(),
+        ]);
+    @endphp
+    <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')
     <script src="https://cdn.tailwindcss.com"></script>
@@ -3901,19 +3909,11 @@
 @php
     $__homeFaqGroups = \App\Modules\Common\Support\SitePagesContent::homepageFaqs();
     $__homeFaqHighlights = \App\Modules\Common\Support\SitePagesContent::homepageFaqHighlights();
-    $__faqJsonLd = [
-        '@context' => 'https://schema.org',
-        '@type'    => 'FAQPage',
-        'mainEntity' => array_map(function ($q) {
-            return [
-                '@type' => 'Question',
-                'name'  => $q['q'],
-                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $q['a']],
-            ];
-        }, $__homeFaqHighlights),
-    ];
+    $__faqNode = \App\Modules\Common\Support\MarketingSchema::faqPage($__homeFaqHighlights);
 @endphp
-<script type="application/ld+json">{!! json_encode($__faqJsonLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@if($__faqNode)
+<script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph([$__faqNode]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endif
 <section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8">

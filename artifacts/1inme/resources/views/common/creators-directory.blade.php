@@ -12,6 +12,14 @@
 @if(($__seo['keywords'] ?? '') !== '')
 <meta name="keywords" content="{{ $__seo['keywords'] }}">
 @endif
+@php
+    $__schema = \App\Modules\Common\Support\MarketingSchema::forView([
+        'seoKey' => 'creators',
+        'title'  => $__seo['title'] ?? null,
+        'url'    => request()->url(),
+    ]);
+@endphp
+<script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @include('public.partials.marketing-share-meta')
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
