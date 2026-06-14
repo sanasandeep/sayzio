@@ -170,6 +170,14 @@
             <span class="sidebar-tooltip">AI Usage</span>
         </a>
 
+        <a href="{{ route('admin.api-keys.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.api-keys.*') ? 'active' : '' }}"
+           style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-key"></i></div>
+            <span class="nav-label">API Keys &amp; Plugins</span>
+            <span class="sidebar-tooltip">API Keys &amp; Plugins</span>
+        </a>
+
         <a href="{{ route('admin.ai-minds.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">

@@ -356,7 +356,28 @@ class NotificationService
 
         $broadcast->forceFill(['recipients_count' => $delivered])->save();
 
+        // System announcements (downtime / product news) double as ops
+        // alerts — fan a single copy out to the configured Slack/Discord
+        // webhook so the team sees it without checking the admin UI. The
+        // dispatcher is best-effort and a no-op when alerting is disabled.
+        if ($type === 'system_broadcast') {
+            $this->systemAlert($subject, $body, 'info', ['recipients' => $delivered]);
+        }
+
         return $broadcast;
+    }
+
+    /**
+     * Route a critical/system alert to the admin-configured internal alert
+     * webhook(s). Best-effort and a no-op when internal alerting is off, so
+     * health/infra notification sites can call it unconditionally.
+     *
+     * @param array<string,scalar|null> $context
+     * @return array{enabled:bool,channels:array<int,array{channel:string,ok:bool,status:?int,error:?string}>}
+     */
+    public function systemAlert(string $title, string $body, string $level = 'warning', array $context = []): array
+    {
+        return \App\Services\Integrations\InternalAlertDispatcher::send($title, $body, $level, $context);
     }
 
     /** @return Collection<int, int> */

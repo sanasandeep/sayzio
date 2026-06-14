@@ -145,8 +145,11 @@ class OtpService
      */
     public function sendWhatsApp(string $mobile, string $code): void
     {
-        $phoneNumberId = (string) config('whatsapp.phone_number_id', '');
-        $accessToken   = (string) config('whatsapp.access_token', '');
+        // Admin-managed values (API Keys hub) take precedence; the settings
+        // accessors fall back to config/whatsapp.php (env) when unset, so
+        // preview mode is preserved when neither source is configured.
+        $phoneNumberId = (string) (\App\Services\Integrations\IntegrationKeySettings::whatsappPhoneNumberId() ?? '');
+        $accessToken   = (string) (\App\Services\Integrations\IntegrationKeySettings::whatsappAccessToken() ?? '');
 
         // Meta requires the recipient in international format, digits only.
         $to = preg_replace('/\D+/', '', $mobile) ?? '';
@@ -156,9 +159,9 @@ class OtpService
             return;
         }
 
-        $version  = (string) config('whatsapp.graph_version', 'v21.0');
-        $template = (string) config('whatsapp.template_name', 'otp_code');
-        $language = (string) config('whatsapp.template_language', 'en_US');
+        $version  = \App\Services\Integrations\IntegrationKeySettings::whatsappGraphVersion();
+        $template = \App\Services\Integrations\IntegrationKeySettings::whatsappTemplateName();
+        $language = \App\Services\Integrations\IntegrationKeySettings::whatsappTemplateLanguage();
         $endpoint = "https://graph.facebook.com/{$version}/{$phoneNumberId}/messages";
 
         try {

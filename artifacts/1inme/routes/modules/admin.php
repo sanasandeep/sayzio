@@ -367,6 +367,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\AiEngineController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('/', [\App\Modules\Admin\Controllers\AiEngineController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
+        // API Keys & Plugins hub: WhatsApp Cloud API credentials and
+        // internal alert webhooks (Slack/Discord), plus a read-only
+        // status overview of the other key-bearing systems.
+        Route::prefix('api-keys')->name('api-keys.')->group(function () {
+            Route::get ('/',              [\App\Modules\Admin\Controllers\ApiKeysController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put ('/',              [\App\Modules\Admin\Controllers\ApiKeysController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('test-whatsapp',  [\App\Modules\Admin\Controllers\ApiKeysController::class, 'testWhatsApp'])->middleware(CheckPermission::class . ':settings.manage')->name('test-whatsapp');
+            Route::post('test-alert',     [\App\Modules\Admin\Controllers\ApiKeysController::class, 'testAlert'])->middleware(CheckPermission::class . ':settings.manage')->name('test-alert');
+        });
+
         Route::prefix('ai-usage')->name('ai-usage.')->group(function () {
             Route::get('/',                 [\App\Modules\Admin\Controllers\AiUsageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('{user}',            [\App\Modules\Admin\Controllers\AiUsageController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
