@@ -51,6 +51,16 @@ cleared in ~8 passes this way. **Delete the temp script when done.**
 0 pending, always confirm with the real `php artisan migrate` (→ "Nothing to migrate")
 and `migrate:status`; mop up any stragglers it surfaces.
 
+**The RDS ledger is SHARED and volatile across concurrent task-agent envs.** All the
+parallel isolated envs point at the same distant RDS `Database=postgres`, so the
+`migrations` table is shared state. A concurrent task running `migrate:fresh` or a
+ledger "dedup" can wipe the ledger down to a handful of rows mid-session — and a
+concurrent `migrate:fresh` can drop+recreate tables, so a fresh reconcile then does
+real (slow) DDL for the dropped ones, not just orphan-records. Expect to have to
+re-reconcile from scratch even right after you finished; it is not your prior work
+regressing, it is another agent churning the shared DB. Just re-run the reconciler to
+convergence (it handles run-vs-orphan idempotently regardless of the mixed state).
+
 **Note:** transient `42P01 does not exist` / `42P07 already exists` lines in
 `storage/logs/laravel.log` during the migration window are expected (a page hit a
 table before its migration ran, or a reconcile pass hit an orphan). Only errors
