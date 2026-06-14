@@ -1357,7 +1357,7 @@ class BiolinkBlockController extends Controller
         // Visibility tier lives on the Link.visibility column (single source of
         // truth, shared with the REST API). Surfaced in the biolink editor so
         // creators can set it from the UI; enforcement is in
-        // RedirectController::enforceBiolinkVisibility (biolink family only).
+        // RedirectController::enforceVisibility (biolink family persists here; gate covers all types).
         if (!empty($validated['visibility'])) {
             $updateData['visibility'] = $validated['visibility'];
         }

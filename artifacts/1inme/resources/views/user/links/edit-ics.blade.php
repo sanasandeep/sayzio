@@ -415,6 +415,10 @@
                 </select>
             </div>
 
+            <div class="mb-4">
+                @include('user.links.partials.visibility-field', ['visInputClass' => 'ics-input', 'link' => $link])
+            </div>
+
             <label class="ics-tile flex items-start gap-3 p-4 cursor-pointer">
                 <input type="hidden" name="show_preview_page" value="0">
                 <input type="checkbox" name="show_preview_page" value="1" {{ old('show_preview_page', !empty($s['show_preview_page'])) ? 'checked' : '' }} class="mt-0.5 w-4 h-4 rounded text-violet-500">

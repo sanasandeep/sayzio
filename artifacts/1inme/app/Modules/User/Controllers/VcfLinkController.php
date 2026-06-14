@@ -56,6 +56,7 @@ class VcfLinkController extends Controller
             'title'      => $this->buildLinkTitle($validated),
             'project_id' => $validated['project_id'] ?? null,
             'is_active'  => true,
+            'visibility' => $validated['visibility'] ?? 'public',
             'settings'   => $request->boolean('show_preview_page') ? ['show_preview_page' => true] : null,
         ]);
 
@@ -98,6 +99,7 @@ class VcfLinkController extends Controller
             'title'      => $this->buildLinkTitle($validated),
             'project_id' => $validated['project_id'] ?? null,
             'expires_at' => $ps['expires_at'],
+            'visibility' => $validated['visibility'] ?? 'public',
             'settings'   => $newSettings,
         ]);
 
@@ -197,6 +199,8 @@ class VcfLinkController extends Controller
             'social_profiles.*.value'         => 'nullable|string|max:500',
 
             'note' => 'nullable|string|max:2000',
+
+            'visibility' => 'nullable|in:public,registered,followers,subscribers',
         ]);
     }
 

@@ -80,6 +80,10 @@
                     </select>
                 </div>
             </div>
+
+            <div class="mt-4">
+                @include('user.links.partials.visibility-field')
+            </div>
         </div>
 
         <div class="glass rounded-2xl p-6 mb-6">

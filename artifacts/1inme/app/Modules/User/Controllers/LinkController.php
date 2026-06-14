@@ -229,6 +229,7 @@ class LinkController extends Controller
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
             'smart_rules_json' => 'nullable|string|max:20000',
+            'visibility' => 'nullable|in:public,registered,followers,subscribers',
         ] + self::protectionSchedulingRules());
 
         if (empty($validated['alias'])) {
@@ -2159,6 +2160,7 @@ class LinkController extends Controller
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
             'smart_rules_json' => 'nullable|string|max:20000',
+            'visibility' => 'nullable|in:public,registered,followers,subscribers',
         ] + self::protectionSchedulingRules());
 
         // Per-link advanced setting gates (update path). The protection /

@@ -245,6 +245,9 @@
                     @endforeach
                 </select>
             </div>
+            <div>
+                @include('user.links.partials.visibility-field', ['visInputClass' => $inputCls, 'link' => $link ?? null])
+            </div>
         </div>
         @include('user.links.partials.preview-toggle', [
             'previewChecked' => old('show_preview_page', $link->settings['show_preview_page'] ?? false),

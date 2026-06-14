@@ -48,6 +48,7 @@ class IcsLinkController extends Controller
             'title'      => $validated['event_name'],
             'project_id' => $validated['project_id'] ?? null,
             'is_active'  => true,
+            'visibility' => $validated['visibility'] ?? 'public',
             'settings'   => $settings ?: null,
         ]);
 
@@ -122,6 +123,7 @@ class IcsLinkController extends Controller
             'title'      => $validated['event_name'],
             'project_id' => $validated['project_id'] ?? null,
             'expires_at' => $ps['expires_at'],
+            'visibility' => $validated['visibility'] ?? 'public',
             'settings'   => $newSettings,
         ]);
 
@@ -201,6 +203,7 @@ class IcsLinkController extends Controller
             'slots.*.end'          => 'nullable|date',
             'slots.*.label'        => 'nullable|string|max:255',
             'slots.*.location'     => 'nullable|string|max:500',
+            'visibility'           => 'nullable|in:public,registered,followers,subscribers',
         ] + LinkController::protectionSchedulingRules());
     }
 

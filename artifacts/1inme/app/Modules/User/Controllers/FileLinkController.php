@@ -57,6 +57,7 @@ class FileLinkController extends Controller
             'expires_at' => 'nullable|date|after:now',
             'show_download_page' => 'nullable|boolean',
             'open_in_app' => 'nullable|boolean',
+            'visibility' => 'nullable|in:public,registered,followers,subscribers',
         ]);
 
         $file = $request->file('file');
@@ -100,6 +101,7 @@ class FileLinkController extends Controller
             'project_id' => $validated['project_id'] ?? null,
             'expires_at' => $validated['expires_at'] ?? null,
             'is_active' => true,
+            'visibility' => $validated['visibility'] ?? 'public',
             'settings' => $settings ?: null,
         ]);
 

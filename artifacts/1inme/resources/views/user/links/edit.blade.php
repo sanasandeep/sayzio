@@ -141,6 +141,10 @@
                 </div>
             </div>
 
+            <div class="mb-4">
+                @include('user.links.partials.visibility-field', ['link' => $link])
+            </div>
+
             @if(($domains ?? collect())->isNotEmpty() || $link->domain_id)
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1">Custom Domain</label>

@@ -68,6 +68,16 @@ class RedirectController extends Controller
             }
         }
 
+        // Visibility gating (public/registered/followers/subscribers) for the
+        // biolink family AND short-link / file / ics / vcf links. Enforced
+        // here — before splash / password / preview pages and before the
+        // visit is tracked — so a restricted link never leaks its
+        // interstitial, download page, or analytics to an unauthorized
+        // viewer. Owners (and signed owner-previews) bypass the gate.
+        if ($gated = $this->enforceVisibility($request, $link)) {
+            return $gated;
+        }
+
         $settings = $link->settings ?? [];
 
         if (!empty($settings['expire_on_first_click']) && (int) $link->total_clicks >= 1) {
@@ -305,11 +315,6 @@ class RedirectController extends Controller
                     }
                 }
             }
-        }
-
-        // Visibility gating for biolinks (see enforceBiolinkVisibility()).
-        if ($gated = $this->enforceBiolinkVisibility($request, $link)) {
-            return $gated;
         }
 
         // Owner-scoped "draft preview" — when the editor iframe loads with
@@ -590,18 +595,29 @@ class RedirectController extends Controller
     }
 
     /**
-     * Enforce a biolink's visibility tier (public/registered/followers/
+     * Enforce a link's visibility tier (public/registered/followers/
      * subscribers). Returns a 401 gated response when the viewer doesn't
      * meet the tier, or null to allow the request to proceed.
      *
+     * Applies to the whole biolink family AND to short-link / file / ics /
+     * vcf links — the `links.visibility` column is the single source of
+     * truth for all of them, so a creator can lock a short link or shared
+     * file behind the same registered/followers/subscribers gate.
+     *
      * Owners (the link's creator) always bypass the gate. Public visibility
-     * is a no-op so this is cheap to call on every biolink request.
+     * is a no-op so this is cheap to call on every request.
      */
-    protected function enforceBiolinkVisibility(Request $request, Link $link)
+    protected function enforceVisibility(Request $request, Link $link)
     {
         $vis = $link->visibility ?? 'public';
         if ($vis === 'public') return null;
-        if (!$link->isBiolinkFamily()) return null;
+
+        // Only the biolink family and the redirect/download types carry a
+        // meaningful visibility gate. Any other type stays public.
+        if (!$link->isBiolinkFamily()
+            && !in_array($link->type, ['url', 'file', 'ics', 'vcf'], true)) {
+            return null;
+        }
 
         $viewerId = ViewerSession::id() ?: optional($request->user())->id;
         if ($viewerId && (int) $viewerId === (int) $link->user_id) {
@@ -837,7 +853,7 @@ class RedirectController extends Controller
 
         // Same visibility enforcement as the biolink page itself, so private
         // tiers cannot be bypassed by deep-linking directly to a block click URL.
-        if ($gated = $this->enforceBiolinkVisibility($request, $link)) {
+        if ($gated = $this->enforceVisibility($request, $link)) {
             return $gated;
         }
 

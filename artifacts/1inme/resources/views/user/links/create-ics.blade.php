@@ -338,6 +338,9 @@
                         @foreach($projects as $p)<option value="{{ $p->id }}" {{ old('project_id') == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>@endforeach
                     </select>
                 </div>
+                <div>
+                    @include('user.links.partials.visibility-field', ['visInputClass' => 'ics-input'])
+                </div>
             </div>
 
             <label class="ics-tile flex items-start gap-3 p-4 cursor-pointer mb-4">

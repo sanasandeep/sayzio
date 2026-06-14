@@ -52,6 +52,8 @@
                 <input type="datetime-local" name="expires_at" class="border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40">
             </div>
 
+            @include('user.links.partials.visibility-field')
+
             <div class="flex items-center gap-3">
                 <input type="hidden" name="show_download_page" value="0">
                 <label class="relative inline-flex items-center cursor-pointer">

@@ -141,7 +141,7 @@ class PublicResumeController extends Controller
     }
 
     /**
-     * Apply visibility tier (mirrors RedirectController::enforceBiolinkVisibility).
+     * Apply visibility tier (mirrors RedirectController::enforceVisibility).
      * Returns a response (gated / password screen) or null when allowed.
      */
     protected function enforceVisibility(Request $request, Resume $resume, User $user, ?int $viewerId)
