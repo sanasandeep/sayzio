@@ -39,3 +39,10 @@ fixture exists), then drives a real browser against the public alias.
   Container; and that `prefers-reduced-motion` disables the drop
   animation. All tests share one logged-in browser context because the
   `demo-login` route is rate-limited.
+- `cookie-consent-footer-reserve.spec.ts` — guards the cookie-banner
+  footer-reserve invariant. On `/contact` it asserts that a first-time
+  visitor's `document.body` bottom padding equals the *visible* banner
+  height (the bug once reserved ~416px for a ~154px prompt), that the
+  in-place "Customize" expansion grows the reserve in lockstep, and that
+  a returning visitor (consent cookie present) gets no banner, no reserve,
+  and a footer flush with the bottom of the document. No login needed.
