@@ -107,9 +107,10 @@ class MarketingSeoController extends Controller
 
         AppSetting::put(MarketingSeo::SETTING_KEY, $map);
 
-        // Drop the cached marketing sitemap (and best-effort ping search engines)
-        // so the updated per-page SEO/lastmod is reflected and re-crawled.
-        \App\Modules\Common\Support\MarketingSitemap::flush();
+        // The marketing sitemap + sitemap index embed these overrides (and the
+        // marketing_seo row's timestamp drives <lastmod>), so drop both caches
+        // and best-effort ping search engines about the change.
+        \App\Modules\Common\Controllers\SitemapController::flushPublicCaches();
 
         return back()->with('success', 'Marketing SEO saved.');
     }

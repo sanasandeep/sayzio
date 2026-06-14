@@ -9,6 +9,7 @@ use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Support\MarketingSeo;
 use App\Modules\Common\Support\MarketingSitemap;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Public XML sitemap + robots.txt for the marketing pages.
@@ -18,9 +19,39 @@ use Illuminate\Support\Carbon;
  * with the per-page SEO meta. Rendering/caching/invalidation lives in
  * {@see MarketingSitemap}. Note: this is the *marketing* sitemap; the blog
  * keeps its own sitemap at /blogs/sitemap.xml.
+ *
+ * Both the marketing sitemap and the sitemap index are cached for 10 minutes
+ * (matching the blog sitemap) so search-engine crawlers don't recompute the DB
+ * queries on every hit. The caches are invalidated by
+ * {@see self::flushPublicCaches()} whenever marketing pages change
+ * (site_pages / marketing_seo) and — for the index, which carries a blog
+ * lastmod — whenever blog posts publish/update (see BlogPost::flushPublicCaches).
  */
 class SitemapController extends Controller
 {
+    /** Cache key for the sitemap index (/sitemap_index.xml). */
+    public const INDEX_CACHE_KEY = 'sitemap.index.xml';
+
+    /** TTL (seconds) for the sitemap index cache, matching the blog sitemap. */
+    public const CACHE_TTL = 600;
+
+    /**
+     * Invalidate every cached public sitemap artifact when marketing pages
+     * change: the sitemap index (owned here) and the marketing sitemap
+     * (owned by {@see MarketingSitemap}, which additionally best-effort pings
+     * search engines). Guarded so a cache failure never breaks the write path.
+     */
+    public static function flushPublicCaches(): void
+    {
+        try {
+            Cache::forget(self::INDEX_CACHE_KEY);
+        } catch (\Throwable $e) {
+            // Cache flushing must never break the write path.
+        }
+
+        MarketingSitemap::flush();
+    }
+
     /**
      * Sitemap index that references both the marketing sitemap and the blog
      * sitemap so search engines can discover every public URL from a single
@@ -29,18 +60,20 @@ class SitemapController extends Controller
      */
     public function index()
     {
-        $sitemaps = [
-            [
-                'loc' => url('/sitemap.xml'),
-                'lastmod' => $this->formatLastmod($this->marketingLastmod()),
-            ],
-            [
-                'loc' => url('/blogs/sitemap.xml'),
-                'lastmod' => $this->formatLastmod($this->blogLastmod()),
-            ],
-        ];
+        $body = Cache::remember(self::INDEX_CACHE_KEY, self::CACHE_TTL, function () {
+            $sitemaps = [
+                [
+                    'loc' => url('/sitemap.xml'),
+                    'lastmod' => $this->formatLastmod($this->marketingLastmod()),
+                ],
+                [
+                    'loc' => url('/blogs/sitemap.xml'),
+                    'lastmod' => $this->formatLastmod($this->blogLastmod()),
+                ],
+            ];
 
-        $body = view('public.sitemap_index', ['sitemaps' => $sitemaps])->render();
+            return view('public.sitemap_index', ['sitemaps' => $sitemaps])->render();
+        });
 
         return response($body, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
     }

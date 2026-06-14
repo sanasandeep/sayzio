@@ -53,6 +53,11 @@ class BlogPost extends Model
         try {
             \Illuminate\Support\Facades\Cache::forget('blog.sitemap.xml');
             \Illuminate\Support\Facades\Cache::forget('blog.rss.xml');
+            // The sitemap index carries a blog <lastmod>, so it must rebuild
+            // when blog content changes too.
+            \Illuminate\Support\Facades\Cache::forget(
+                \App\Modules\Common\Controllers\SitemapController::INDEX_CACHE_KEY
+            );
         } catch (\Throwable $e) {
             // Cache flushing must never break the write path.
         }

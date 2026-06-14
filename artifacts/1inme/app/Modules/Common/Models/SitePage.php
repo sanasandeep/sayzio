@@ -2,7 +2,6 @@
 
 namespace App\Modules\Common\Models;
 
-use App\Modules\Common\Support\MarketingSitemap;
 use Illuminate\Database\Eloquent\Model;
 
 class SitePage extends Model
@@ -11,11 +10,11 @@ class SitePage extends Model
 
     protected static function booted(): void
     {
-        // Any time a marketing page row is created, updated or deleted, drop the
-        // cached marketing sitemap (and best-effort ping search engines) so the
-        // change is reflected/recrawled promptly.
-        static::saved(fn () => MarketingSitemap::flush());
-        static::deleted(fn () => MarketingSitemap::flush());
+        // Any time a marketing page is created, updated or deleted, invalidate
+        // the cached marketing sitemap + sitemap index (and best-effort ping
+        // search engines) so changes go live and are recrawled promptly.
+        static::saved(fn () => \App\Modules\Common\Controllers\SitemapController::flushPublicCaches());
+        static::deleted(fn () => \App\Modules\Common\Controllers\SitemapController::flushPublicCaches());
     }
 
     protected function casts(): array
