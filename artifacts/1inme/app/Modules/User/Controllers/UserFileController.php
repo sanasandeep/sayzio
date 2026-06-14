@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Concerns\RespondsWithUploadErrors;
 use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -10,6 +11,8 @@ use Illuminate\Support\Str;
 
 class UserFileController extends Controller
 {
+    use RespondsWithUploadErrors;
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -91,7 +94,7 @@ class UserFileController extends Controller
         try {
             $userFile = UserFile::createFromUpload($request->file('file'), $user);
         } catch (\RuntimeException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+            return $this->uploadError($request, $e->getMessage());
         }
 
         return response()->json([
@@ -217,7 +220,7 @@ class UserFileController extends Controller
         $url = $request->input('url');
         $parsed = parse_url($url);
         if (!$parsed || !in_array(strtolower($parsed['scheme'] ?? ''), ['http', 'https'], true)) {
-            return response()->json(['success' => false, 'error' => 'Only http(s) URLs are supported.'], 422);
+            return $this->uploadError($request, 'Only http(s) URLs are supported.');
         }
 
         // SSRF guard: resolve the host ONCE, validate every resolved IP is
@@ -242,11 +245,11 @@ class UserFileController extends Controller
                 if ($resolved && $resolved !== $host) $ips[] = $resolved;
             }
             if (!$ips) {
-                return response()->json(['success' => false, 'error' => 'Could not resolve host.'], 422);
+                return $this->uploadError($request, 'Could not resolve host.');
             }
             foreach ($ips as $ip) {
                 if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
-                    return response()->json(['success' => false, 'error' => 'URL points to a disallowed network.'], 422);
+                    return $this->uploadError($request, 'URL points to a disallowed network.');
                 }
             }
             // Pin curl to these IPs so a later DNS swap cannot redirect us
@@ -285,10 +288,10 @@ class UserFileController extends Controller
             curl_close($ch);
 
             if ($bytes === false || $status >= 400) {
-                return response()->json(['success' => false, 'error' => 'Could not fetch URL' . ($err ? ': ' . $err : '') . ($status ? " (HTTP {$status})" : '')], 422);
+                return $this->uploadError($request, 'Could not fetch URL' . ($err ? ': ' . $err : '') . ($status ? " (HTTP {$status})" : ''));
             }
             if ($maxBytes > 0 && strlen($bytes) > $maxBytes) {
-                return response()->json(['success' => false, 'error' => "File exceeds maximum size of {$maxMb}MB."], 422);
+                return $this->uploadError($request, "File exceeds maximum size of {$maxMb}MB.");
             }
 
             $mime = strtolower(trim(explode(';', $contentType)[0] ?? '')) ?: 'application/octet-stream';
@@ -313,10 +316,10 @@ class UserFileController extends Controller
             if (!$skipAllowlist) {
                 $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION) ?: '');
                 if (!in_array($mime, UserFile::getAllAllowedMimes(), true)) {
-                    return response()->json(['success' => false, 'error' => 'File type not allowed.'], 422);
+                    return $this->uploadError($request, 'File type not allowed.');
                 }
                 if (!$ext || !in_array($ext, UserFile::getAllAllowedExtensions(), true)) {
-                    return response()->json(['success' => false, 'error' => 'File extension not allowed.'], 422);
+                    return $this->uploadError($request, 'File extension not allowed.');
                 }
             }
 
@@ -328,9 +331,9 @@ class UserFileController extends Controller
                 'quota' => $this->getQuotaInfo($user->fresh()),
             ]);
         } catch (\RuntimeException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+            return $this->uploadError($request, $e->getMessage());
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'error' => 'Import failed.'], 500);
+            return $this->uploadError($request, 'Import failed.', 500);
         }
     }
 

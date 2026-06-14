@@ -916,7 +916,7 @@ if (cv_bg_form) {
                 try { body = await r.json(); } catch (_) {}
             }
             if (!r.ok || !body || body.ok !== true) {
-                throw new Error((body && body.message) || 'Save failed');
+                throw new Error((body && ((body.error && body.error.message) || body.message)) || 'Save failed');
             }
             status.className = 'cv-bg-status is-ok';
             status.textContent = 'Saved · preview updating…';

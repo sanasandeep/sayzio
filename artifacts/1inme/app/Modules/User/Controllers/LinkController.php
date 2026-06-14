@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\CityLookupService;
 use App\Modules\Common\Services\AppLinkResolver;
+use App\Modules\User\Concerns\RespondsWithUploadErrors;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\PollVote;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Storage;
 
 class LinkController extends Controller
 {
+    use RespondsWithUploadErrors;
+
     /**
      * Build a Validation rule that constrains domain_id to a domain the
      * user can actually attach: their own verified+active domains plus
@@ -276,7 +279,7 @@ class LinkController extends Controller
                 $validated['favicon'] = UserFile::createFromUpload($request->file('favicon'), $request->user())->url;
             }
         } catch (\RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
+            return $this->uploadError($request, $e->getMessage());
         }
 
         $settings = [];
@@ -2215,7 +2218,7 @@ class LinkController extends Controller
                 unset($validated['favicon']);
             }
         } catch (\RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
+            return $this->uploadError($request, $e->getMessage());
         }
 
         $settings = $link->settings ?? [];

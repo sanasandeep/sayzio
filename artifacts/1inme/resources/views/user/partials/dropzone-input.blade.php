@@ -334,7 +334,7 @@ function dropzoneInput_{{ $dzId }}() {
                 });
                 const data = await res.json();
                 if (!data.success || !data.file) {
-                    this.error = data.error || 'Could not import URL.';
+                    this.error = (data.error && data.error.message) || (typeof data.error === 'string' ? data.error : '') || 'Could not import URL.';
                     return;
                 }
                 await this.injectVaultFile(data.file, 'from URL');

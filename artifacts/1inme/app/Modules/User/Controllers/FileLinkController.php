@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Concerns\RespondsWithUploadErrors;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\FileLink;
 use App\Modules\User\Models\UserFile;
@@ -10,6 +11,8 @@ use Illuminate\Http\Request;
 
 class FileLinkController extends Controller
 {
+    use RespondsWithUploadErrors;
+
     public function create(Request $request)
     {
         $projects = workspace_owner()->projects()->orderBy('name')->get();
@@ -33,21 +36,6 @@ class FileLinkController extends Controller
     private static function fileShareDisk(): string
     {
         return config('filesystems.default') === 's3' ? 's3' : 'user_files';
-    }
-
-    /**
-     * Return a structured JSON error envelope for API/automation clients, or
-     * fall back to the web form's redirect-back-with-flash behaviour for
-     * browser sessions. Keeps the two call sites below in lockstep so the
-     * upload flow never hands an HTML redirect to a JSON consumer.
-     */
-    private function uploadError(Request $request, string $message, int $status = 422)
-    {
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json(['error' => ['message' => $message]], $status);
-        }
-
-        return back()->withInput()->with('error', $message);
     }
 
     public function store(Request $request)

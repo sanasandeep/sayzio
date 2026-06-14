@@ -283,12 +283,12 @@ function fileUploadField_{{ $fieldId }}() {
                         self.emitMeta();
                         self.showUploadToast('File uploaded');
                     } else {
-                        self.uploadError = data.error || 'Upload failed';
+                        self.uploadError = (data.error && data.error.message) || (typeof data.error === 'string' ? data.error : '') || 'Upload failed';
                     }
                 } else {
                     try {
                         var err = JSON.parse(xhr.responseText);
-                        self.uploadError = err.error || err.message || 'Upload failed (' + xhr.status + ')';
+                        self.uploadError = (err.error && err.error.message) || (typeof err.error === 'string' ? err.error : '') || err.message || 'Upload failed (' + xhr.status + ')';
                     } catch(e) {
                         self.uploadError = 'Upload failed (' + xhr.status + ')';
                     }

@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Controllers;
 
+use App\Modules\User\Concerns\RespondsWithUploadErrors;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
@@ -16,6 +17,8 @@ use Illuminate\Validation\Rule;
 
 class BiolinkBlockController extends Controller
 {
+    use RespondsWithUploadErrors;
+
     public function editor(Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
@@ -1326,7 +1329,7 @@ class BiolinkBlockController extends Controller
         }
 
         } catch (\RuntimeException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
+            return $this->uploadError($request, $e->getMessage());
         }
 
         $updateData = ['settings' => $settings];
