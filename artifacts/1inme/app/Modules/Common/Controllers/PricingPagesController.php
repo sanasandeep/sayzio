@@ -40,42 +40,60 @@ class PricingPagesController extends Controller
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
 
-        $taxFor = function ($priced) use ($billing, $currency, $hasAddress) {
-            if (!$hasAddress || (int) $priced['amount_minor'] === 0) return null;
+        // The /pricing currency switcher flips USD/INR instantly client-side
+        // (no page reload), so every price-bearing element needs both
+        // currencies pre-computed and embedded in the Alpine payload.
+        $currencies = ['USD', 'INR'];
+
+        $taxFor = function (int $amountMinor, string $cur) use ($billing, $hasAddress) {
+            if (!$hasAddress || $amountMinor === 0) return null;
             return TaxCalculator::calculate(
-                [['label' => 'Plan', 'amount_minor' => (int) $priced['amount_minor']]],
+                [['label' => 'Plan', 'amount_minor' => $amountMinor]],
                 [
                     'country'     => $billing->country,
                     'region'      => $billing->region,
                     'tax_id'      => $billing->tax_id,
                     'tax_id_kind' => $billing->tax_id_kind,
                 ],
-                $currency,
+                $cur,
             );
         };
 
         $plans = Plan::active()->with('prices')->ordered()->get();
-        $rows = $plans->map(function (Plan $p) use ($user, $taxFor) {
-            $monthly = PricingResolver::priceFor($p, $user, 'monthly');
-            $annual  = PricingResolver::priceFor($p, $user, 'annual');
+        $rows = $plans->map(function (Plan $p) use ($currencies, $taxFor) {
+            $prices = [];
+            $tax = [];
+            foreach ($currencies as $cur) {
+                $monthly = PricingResolver::priceForCurrency($p, $cur, 'monthly');
+                $annual  = PricingResolver::priceForCurrency($p, $cur, 'annual');
+                $prices[$cur] = ['monthly' => $monthly, 'annual' => $annual];
+                $tax[$cur] = [
+                    'monthly' => $taxFor((int) ($monthly['amount_minor'] ?? 0), $cur),
+                    'annual'  => $taxFor((int) ($annual['amount_minor'] ?? 0), $cur),
+                ];
+            }
             return [
-                'model'      => $p,
-                'monthly'    => $monthly,
-                'annual'     => $annual,
-                'tax_monthly'=> $taxFor($monthly),
-                'tax_annual' => $taxFor($annual),
+                'model'   => $p,
+                'prices'  => $prices,
+                'tax'     => $tax,
+                'is_free' => ((int) ($prices['USD']['monthly']['amount_minor'] ?? 0)) === 0,
             ];
         });
 
         $packages = CoinPackage::active()->with('prices')->ordered()->get()
-            ->map(function (CoinPackage $p) use ($currency) {
-                $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
+            ->map(function (CoinPackage $p) use ($currencies) {
+                $priced = [];
+                foreach ($currencies as $cur) {
+                    $pc = PricingResolver::priceForCurrency($p, $cur, 'monthly');
+                    $priced[$cur] = [
+                        'amount_minor' => (int) ($pc['amount_minor'] ?? 0),
+                        'formatted'    => $pc['formatted'] ?? null,
+                    ];
+                }
                 return [
-                    'model'         => $p,
-                    'amount_minor'  => (int) ($priced['amount_minor'] ?? 0),
-                    'formatted'     => $priced['formatted'] ?? null,
-                    'currency'      => $currency,
-                    'total_coins'   => $p->totalCoins(),
+                    'model'       => $p,
+                    'prices'      => $priced,
+                    'total_coins' => $p->totalCoins(),
                 ];
             });
 

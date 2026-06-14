@@ -108,6 +108,7 @@
         .pulse-dot, .float-coin, .pop-ribbon, .grad-glow { animation: none !important; }
         .grad-glow:hover { transform: none !important; }
         .price-pop { animation: none !important; }
+        .seg { transition: none !important; }
         .smart-meter > span { transition: none !important; }
     }
 </style>
@@ -117,10 +118,48 @@
 <section
     x-data="{
         cycle: '{{ $cycle }}',
+        currency: '{{ $currency }}',
         priceKey: 0,
+        cur(plan){ return plan[this.currency] || plan.USD || {}; },
         money(plan, c){
-            const r = c === 'annual' ? plan.annual : plan.monthly;
+            const block = this.cur(plan);
+            const r = c === 'annual' ? block.annual : block.monthly;
             return r && r.formatted ? r.formatted : '—';
+        },
+        hasAnnual(plan){
+            const a = this.cur(plan).annual;
+            return a && Number(a.amount_minor) > 0;
+        },
+        perMonth(plan){
+            const a = this.cur(plan).annual;
+            if (!a) return '';
+            return (Number(a.amount_minor) / 12 / 100)
+                .toLocaleString(undefined, { style: 'currency', currency: a.currency || this.currency });
+        },
+        coinPrice(prices){
+            const p = prices[this.currency] || prices.USD || {};
+            return p.formatted || '—';
+        },
+        switchCurrency(c){
+            if (this.currency === c) return;
+            this.currency = c;
+            this.priceKey++;
+            // Persist the choice (session + cookie + user preference) in the
+            // background — the UI has already re-rendered, so we never block on it.
+            const url = '{{ route('upgrade.public.switch-currency') }}';
+            const token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+            const data = new FormData();
+            data.append('currency', c);
+            data.append('_token', token);
+            try {
+                fetch(url, {
+                    method: 'POST',
+                    body: data,
+                    credentials: 'same-origin',
+                    keepalive: true,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+            } catch (e) { /* swallow — UX must not depend on persistence */ }
         },
         rememberCycle(c){
             // Persist the chosen cycle server-side so a refresh, menu
@@ -190,12 +229,41 @@
             <p class="text-lg text-gray-400">
                 Plans for steady use, coins for one-off boosts — all in one place.
             </p>
-            @include('public.pricing._currency_badge', [
-                'currency'       => $currency,
-                'currencySource' => $currencySource,
-                'user'           => $user,
-                'switchRoute'    => 'upgrade.public.switch-currency',
-            ])
+            {{-- Currency switch — flips USD/INR instantly client-side (prices for
+                 both currencies are embedded in each card's Alpine payload), with a
+                 background ping to persist the choice in session + cookie + profile. --}}
+            @php
+                $curIsCountry = $currencySource === \App\Services\PricingResolver::SOURCE_USER_COUNTRY;
+                $curIsAuto    = $currencySource === \App\Services\PricingResolver::SOURCE_GEO;
+            @endphp
+            <div class="inline-flex flex-wrap items-center justify-center gap-2.5 mt-4" role="group" aria-label="Display currency">
+                @if($curIsCountry)
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-xs">
+                        <i class="fas fa-globe text-emerald-300" aria-hidden="true"></i>
+                        <span class="text-gray-400">Your country:</span>
+                        <span class="font-semibold text-white">{{ $currency === 'INR' ? '₹ INR' : '$ USD' }}</span>
+                    </span>
+                    <span class="text-[11px] text-gray-500">
+                        Set from your billing country (<span class="uppercase">{{ $user->country }}</span>) —
+                        <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">change</a>
+                    </span>
+                @else
+                    <span class="text-[11px] uppercase tracking-wider font-semibold text-gray-500">Currency</span>
+                    <div class="inline-flex rounded-full border border-white/10 bg-white/[0.03] p-1" role="tablist" aria-label="Choose display currency">
+                        <button type="button" role="tab" @click="switchCurrency('USD')"
+                                :aria-selected="currency === 'USD'"
+                                :class="currency === 'USD' ? 'seg-active' : 'text-gray-300 hover:text-white'"
+                                class="seg px-3.5 py-1.5 text-xs font-bold rounded-full">$ USD</button>
+                        <button type="button" role="tab" @click="switchCurrency('INR')"
+                                :aria-selected="currency === 'INR'"
+                                :class="currency === 'INR' ? 'seg-active' : 'text-gray-300 hover:text-white'"
+                                class="seg px-3.5 py-1.5 text-xs font-bold rounded-full">₹ INR</button>
+                    </div>
+                    @if($curIsAuto)
+                        <span class="text-[11px] text-gray-500">auto-detected — switch anytime</span>
+                    @endif
+                @endif
+            </div>
         </div>
 
         {{-- ───────────────── SMART UPGRADE BANNER (logged-in only) ───────────────── --}}
@@ -334,10 +402,7 @@
                     $cmpKind = auth()->check()
                         ? \App\Services\PlanRecommender::compare($recommendation['currentPlan'] ?? null, $plan)
                         : 'guest';
-                    $planJs = [
-                        'monthly' => $row['monthly'],
-                        'annual'  => $row['annual'],
-                    ];
+                    $planJs = $row['prices']; // { USD: {monthly, annual}, INR: {monthly, annual} }
                     $borderClasses = $isCurrent
                         ? 'border-emerald-400/50 bg-gradient-to-b from-emerald-500/[0.10] to-transparent'
                         : ($isRecommended
@@ -366,31 +431,35 @@
                     <div class="flex items-baseline gap-1 mt-2">
                         <span class="price-num text-4xl font-semibold text-white"
                               :class="'price-pop'"
-                              :key="cycle + '-' + priceKey + '-{{ $plan->id }}'"
-                              x-text="money(plan, cycle)">{{ $row[$cycle]['formatted'] ?? '—' }}</span>
+                              :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
+                              x-text="money(plan, cycle)">{{ $row['prices'][$currency][$cycle]['formatted'] ?? '—' }}</span>
                         <span class="text-sm text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
                     </div>
                     <div class="text-[11px] text-emerald-300/80 mt-1 h-4"
-                         x-show="cycle==='annual' && plan.annual && Number(plan.annual.amount_minor) > 0"
-                         x-text="'≈ ' + (plan.annual ? (Number(plan.annual.amount_minor)/12/100).toLocaleString(undefined,{style:'currency',currency:plan.annual.currency || '{{ $currency }}'}) : '') + '/mo billed annually'"></div>
+                         x-show="cycle==='annual' && hasAnnual(plan)"
+                         x-text="'≈ ' + perMonth(plan) + '/mo billed annually'"></div>
 
-                    {{-- Tax / fineprint blocks for each cycle, toggled by Alpine --}}
-                    @foreach(['monthly','annual'] as $c)
-                        @php $taxKey = 'tax_'.$c; @endphp
-                        @if(($row[$c]['amount_minor'] ?? 0) > 0)
-                            <div x-show="cycle==='{{ $c }}'" x-cloak>
-                                @if(!empty($row[$taxKey]) && !empty($row[$taxKey]['tax_breakdown']))
-                                    <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
-                                        @foreach($row[$taxKey]['tax_breakdown'] as $line)
-                                            <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $currency) }}</span></div>
-                                        @endforeach
-                                        <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $row[$taxKey]['grand_total_minor'], $currency) }}</span></div>
-                                    </div>
-                                @else
-                                    <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
-                                @endif
-                            </div>
-                        @endif
+                    {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
+                         Both currencies are pre-rendered so the instant switcher stays
+                         accurate for signed-in buyers with a billing address. --}}
+                    @foreach(['USD','INR'] as $cur)
+                        @foreach(['monthly','annual'] as $c)
+                            @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
+                            @if(($row['prices'][$cur][$c]['amount_minor'] ?? 0) > 0)
+                                <div x-show="currency==='{{ $cur }}' && cycle==='{{ $c }}'" x-cloak>
+                                    @if(!empty($taxBlock) && !empty($taxBlock['tax_breakdown']))
+                                        <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
+                                            @foreach($taxBlock['tax_breakdown'] as $line)
+                                                <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
+                                            @endforeach
+                                            <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $taxBlock['grand_total_minor'], $cur) }}</span></div>
+                                        </div>
+                                    @else
+                                        <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
+                                    @endif
+                                </div>
+                            @endif
+                        @endforeach
                     @endforeach
                     <p class="text-sm text-gray-400 mt-3 min-h-[2.5rem]">{{ $plan->description }}</p>
 
@@ -428,6 +497,34 @@
                                 </span>
                             </li>
                         @endif
+                        @php $analyticsDepth = $features['analytics'] ?? null; @endphp
+                        @if($analyticsDepth)
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
+                                <span>{{ strtolower((string) $analyticsDepth) === 'advanced' ? 'Advanced analytics (geo, device, referrers)' : 'Click & view analytics' }}</span>
+                            </li>
+                        @endif
+                        {{-- High-value capabilities — surface the headline features (not
+                             just raw limits) so each tier's value is obvious at a glance. --}}
+                        @foreach([
+                            'custom_domains' => 'Custom domains',
+                            'pixels' => 'Marketing pixels (FB, GA, TikTok…)',
+                            'utm_params' => 'UTM campaign tracking',
+                            'seo_settings' => 'SEO & social previews',
+                            'ecommerce' => 'Sell from your bio',
+                            'custom_forms' => 'Custom forms',
+                            'teams' => 'Team workspaces & seats',
+                            'leads' => 'Lead capture & CRM',
+                            'vaults' => 'Credential vault',
+                            'white_label' => 'White-label / remove branding',
+                        ] as $key => $label)
+                            @if(!empty($features[$key]))
+                                <li class="flex items-start gap-2">
+                                    <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
+                                    <span>{{ $label }}</span>
+                                </li>
+                            @endif
+                        @endforeach
                         @foreach([
                             'creator_profile_public' => 'Public creator profile',
                             'calendar_sync' => 'Calendar sync',
@@ -492,7 +589,7 @@
                             @default
                                 <a href="{{ route('user.register') }}"
                                    class="block text-center w-full px-4 py-2.5 rounded-xl font-semibold {{ $isPopular ? 'grad-bar text-white hover:opacity-95' : 'bg-white/10 text-white hover:bg-white/20' }} transition">
-                                    {{ ((int) ($row['monthly']['amount_minor'] ?? 0)) === 0 ? 'Get started free' : 'Start free trial' }}
+                                    {{ !empty($row['is_free']) ? 'Get started free' : 'Start free trial' }}
                                 </a>
                         @endswitch
                     </div>
@@ -652,7 +749,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     @foreach($packages as $row)
                         @php $pkg = $row['model']; $isFeat = $pkg->bonus_coins > 0; @endphp
-                        <div class="grad-glow {{ $isFeat ? 'is-popular' : '' }} relative rounded-2xl border {{ $isFeat ? 'border-amber-400/40' : 'border-white/10' }} bg-white/[0.02] coin-bg p-6 flex flex-col overflow-hidden">
+                        <div x-data='{ prices: @json($row['prices']) }'
+                             class="grad-glow {{ $isFeat ? 'is-popular' : '' }} relative rounded-2xl border {{ $isFeat ? 'border-amber-400/40' : 'border-white/10' }} bg-white/[0.02] coin-bg p-6 flex flex-col overflow-hidden">
                             @if($isFeat)
                                 <div class="absolute -top-3 right-6 px-3 py-1 bg-amber-400 text-[#1e2330] text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-amber-500/20">
                                     +{{ number_format($pkg->bonus_coins) }} bonus
@@ -689,7 +787,7 @@
                             @endif
 
                             <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-                                <span class="text-2xl font-bold text-white price-num">{{ $row['formatted'] ?? '—' }}</span>
+                                <span class="text-2xl font-bold text-white price-num" x-text="coinPrice(prices)">{{ $row['prices'][$currency]['formatted'] ?? '—' }}</span>
                                 @auth
                                     <a href="{{ route('user.wallet.buy') }}" class="px-4 py-2 bg-amber-400 text-[#1e2330] rounded-xl text-sm font-bold hover:bg-amber-300 transition shadow-lg shadow-amber-500/20">Buy now</a>
                                 @else

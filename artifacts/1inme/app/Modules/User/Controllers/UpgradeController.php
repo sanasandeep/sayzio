@@ -205,6 +205,16 @@ class UpgradeController extends Controller
         //     country (so the choice follows them across devices).
         $cookie = PricingResolver::rememberManualChoice($currency, $request->user());
         Cookie::queue($cookie);
+
+        // The /pricing switcher flips currency instantly client-side and
+        // pings this endpoint only to persist the choice — it expects no
+        // body and must not be sent on a full-page redirect chase. Plain
+        // form posts (e.g. /user/upgrade, the landing teaser) still get a
+        // normal back() redirect so the reload reflects the new currency.
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->noContent();
+        }
+
         return back();
     }
 }

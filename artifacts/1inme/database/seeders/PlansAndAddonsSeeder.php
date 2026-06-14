@@ -348,9 +348,9 @@ class PlansAndAddonsSeeder extends Seeder
                 ],
             ],
             [
-                'name' => 'Business',
+                'name' => 'Premium',
                 'slug' => 'business',
-                'description' => 'For teams and businesses with high-volume needs.',
+                'description' => 'For teams scaling fast — unlimited everything, custom domains, and deep analytics.',
                 'monthly_price' => 29.99,
                 'annual_price' => 299.99,
                 'trial_days' => 14,
