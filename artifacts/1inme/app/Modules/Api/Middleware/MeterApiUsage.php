@@ -2,13 +2,17 @@
 
 namespace App\Modules\Api\Middleware;
 
+use App\Modules\Common\Services\NotificationService;
 use App\Modules\User\Models\ApiUsageCounter;
+use App\Modules\User\Models\User;
 use App\Services\Billing\InsufficientCoinsException;
 use App\Services\Billing\WalletService;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -75,8 +79,13 @@ class MeterApiUsage
         $callsPerCoin = WalletService::apiOverageCallsPerCoin();
         $wallet = app(WalletService::class);
 
+        // Notification intents collected under the row lock (so dedup
+        // flags are stamped atomically) but delivered AFTER the
+        // transaction commits — emails must never run inside the lock.
+        $notes = [];
+
         try {
-            $denied = DB::transaction(function () use ($user, $allowance, $unlimited, $callsPerCoin, $wallet) {
+            $denied = DB::transaction(function () use ($user, $allowance, $unlimited, $callsPerCoin, $wallet, &$notes) {
                 $period = ApiUsageCounter::currentPeriod();
 
                 // Lock (or create) the period counter row first.
@@ -103,6 +112,9 @@ class MeterApiUsage
                 // Within the included allowance (or unlimited) — free call.
                 if ($unlimited || ($counter->calls_used + 1) <= $allowance) {
                     $counter->forceFill(['calls_used' => $counter->calls_used + 1])->save();
+                    if (!$unlimited) {
+                        $this->stampThresholdWarnings($counter, $allowance, $callsPerCoin, $notes);
+                    }
                     return null;
                 }
 
@@ -118,6 +130,7 @@ class MeterApiUsage
 
                 // Need to buy a fresh overage block with 1 coin.
                 if (!WalletService::isEnabled()) {
+                    $this->stampOverageBlocked($counter, $allowance, 'wallet_disabled', $notes);
                     return $this->limitDenial($allowance);
                 }
 
@@ -127,6 +140,7 @@ class MeterApiUsage
                         'meta'   => ['kind' => 'api_overage', 'period' => $period, 'calls_per_coin' => $callsPerCoin],
                     ]);
                 } catch (InsufficientCoinsException) {
+                    $this->stampOverageBlocked($counter, $allowance, 'insufficient_coins', $notes);
                     return $this->coinDenial($allowance, $callsPerCoin);
                 }
 
@@ -146,6 +160,12 @@ class MeterApiUsage
             return $next($request);
         }
 
+        // Deliver any queued warnings outside the transaction/lock. Best
+        // effort — a delivery failure must never break the API call.
+        if (!empty($notes)) {
+            $this->deliverWarnings($user, $notes);
+        }
+
         if (is_array($denied)) {
             return response()->json(
                 ['error' => $denied['error']],
@@ -154,6 +174,130 @@ class MeterApiUsage
         }
 
         return $next($request);
+    }
+
+    /**
+     * Queue (at most one of) the 80%/100% allowance warnings, stamping
+     * the matching dedup column on the counter under the row lock so
+     * each warning fires only once per period.
+     *
+     * @param array<int, array{type:string, subject:string, body:string, data:array<string,mixed>}> $notes
+     */
+    private function stampThresholdWarnings(ApiUsageCounter $counter, int $allowance, int $callsPerCoin, array &$notes): void
+    {
+        if ($allowance <= 0) {
+            return; // No included allowance → percentage warnings are meaningless.
+        }
+
+        $used = (int) $counter->calls_used;
+
+        // 100% — allowance fully consumed; subsequent calls draw on coin overage.
+        if ($used >= $allowance && !$counter->warned_100_at) {
+            $notes[] = [
+                'type'    => 'api.usage_warning',
+                'subject' => "You've used your full monthly API allowance",
+                'body'    => "You've now used all " . number_format($allowance) . " API calls included in your plan this period."
+                    . " Further calls are billed as overage from your coin balance (1 coin = " . number_format($callsPerCoin) . " calls)."
+                    . " Top up coins or upgrade your plan to avoid rejected calls.",
+                'data'    => [
+                    'threshold'  => 100,
+                    'period'     => $counter->period,
+                    'allowance'  => $allowance,
+                    'calls_used' => $used,
+                ],
+            ];
+            // Stamp 100% and also disarm 80% (it's redundant once exhausted).
+            $stamp = ['warned_100_at' => now()];
+            if (!$counter->warned_80_at) {
+                $stamp['warned_80_at'] = now();
+            }
+            $counter->forceFill($stamp)->save();
+            return;
+        }
+
+        // 80% — crossed the warning threshold but still within allowance.
+        $threshold80 = (int) ceil($allowance * 0.8);
+        if ($used >= $threshold80 && $used < $allowance && !$counter->warned_80_at) {
+            $pct       = (int) round($used / $allowance * 100);
+            $remaining = max(0, $allowance - $used);
+            $notes[] = [
+                'type'    => 'api.usage_warning',
+                'subject' => "You're nearing your monthly API limit",
+                'body'    => "You've used " . number_format($used) . " of your " . number_format($allowance)
+                    . " included API calls this period ({$pct}%). " . number_format($remaining)
+                    . " calls remain before overage billing kicks in. Consider upgrading your plan or topping up coins.",
+                'data'    => [
+                    'threshold'  => 80,
+                    'period'     => $counter->period,
+                    'allowance'  => $allowance,
+                    'calls_used' => $used,
+                ],
+            ];
+            $counter->forceFill(['warned_80_at' => now()])->save();
+        }
+    }
+
+    /**
+     * Queue the "overage can no longer be covered → calls being rejected"
+     * warning, once per period.
+     *
+     * @param 'wallet_disabled'|'insufficient_coins' $reason
+     * @param array<int, array{type:string, subject:string, body:string, data:array<string,mixed>}> $notes
+     */
+    private function stampOverageBlocked(ApiUsageCounter $counter, int $allowance, string $reason, array &$notes): void
+    {
+        if ($counter->overage_unavailable_notified_at) {
+            return;
+        }
+
+        $body = $reason === 'wallet_disabled'
+            ? "You've exhausted your monthly API allowance and overage billing is currently unavailable, so additional API calls are being rejected. Upgrade your plan for a higher allowance."
+            : "You've exhausted your monthly API allowance and your coin balance can no longer cover overage, so additional API calls are being rejected. Top up coins or upgrade your plan to restore access.";
+
+        $notes[] = [
+            'type'    => 'api.usage_warning',
+            'subject' => 'Your API calls are being rejected',
+            'body'    => $body,
+            'data'    => [
+                'threshold' => 'overage_blocked',
+                'reason'    => $reason,
+                'period'    => $counter->period,
+                'allowance' => $allowance,
+            ],
+        ];
+        $counter->forceFill(['overage_unavailable_notified_at' => now()])->save();
+    }
+
+    /**
+     * Deliver queued warnings: an in-app row (preference-aware) plus an
+     * email when the recipient hasn't muted the email channel. Wholly
+     * best-effort.
+     *
+     * @param array<int, array{type:string, subject:string, body:string, data:array<string,mixed>}> $notes
+     */
+    private function deliverWarnings(User $user, array $notes): void
+    {
+        $notifications = app(NotificationService::class);
+
+        foreach ($notes as $note) {
+            try {
+                $notifications->notify($user, $note['type'], array_merge($note['data'], [
+                    'subject' => $note['subject'],
+                    'body'    => $note['body'],
+                    'message' => $note['body'],
+                ]));
+
+                if ($user->email && $notifications->prefersChannel($user->id, $note['type'], 'email')) {
+                    $subject = $note['subject'];
+                    $body    = $note['body'];
+                    Mail::raw($body, function ($m) use ($user, $subject) {
+                        $m->to($user->email)->subject($subject);
+                    });
+                }
+            } catch (\Throwable $e) {
+                Log::warning('API usage warning delivery failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+            }
+        }
     }
 
     /**

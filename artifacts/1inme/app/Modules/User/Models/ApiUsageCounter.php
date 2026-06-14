@@ -18,15 +18,21 @@ class ApiUsageCounter extends Model
         'overage_calls',
         'coins_spent',
         'prepaid_overage_remaining',
+        'warned_80_at',
+        'warned_100_at',
+        'overage_unavailable_notified_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'calls_used'                => 'integer',
-            'overage_calls'             => 'integer',
-            'coins_spent'               => 'integer',
-            'prepaid_overage_remaining' => 'integer',
+            'calls_used'                      => 'integer',
+            'overage_calls'                   => 'integer',
+            'coins_spent'                     => 'integer',
+            'prepaid_overage_remaining'       => 'integer',
+            'warned_80_at'                    => 'datetime',
+            'warned_100_at'                   => 'datetime',
+            'overage_unavailable_notified_at' => 'datetime',
         ];
     }
 

@@ -168,6 +168,14 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => false,
             ],
+            // Developer API usage warnings (Task #1396).
+            'api.usage_warning' => [
+                'label'          => 'API usage warnings',
+                'description'    => 'Heads-up when your developer API key nears or exceeds its monthly call allowance, or when overage can no longer be covered and calls are being rejected.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => false,
+            ],
             // Paid DMs (Task #1210).
             'dm.new' => [
                 'label'          => 'New direct messages',

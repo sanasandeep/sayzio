@@ -35,3 +35,13 @@ DB_CONNECTION=pgsql` env vars (real env vars win over `.env` via phpdotenv).
 **When skip=0 (normal `artisan test`), `tests/bootstrap.php` is a no-op** —
 identical to the old `vendor/autoload.php` bootstrap. So any failures seen in
 shard 1 are pre-existing suite/environment failures, not caused by sharding.
+
+**Quick single-test verification:** a plain `--filter=OneTest` still pays the
+full remote-Postgres `migrate:fresh` (RefreshDatabase) and routinely blows past
+a 120s shell timeout with NO output. For fast local iteration on logic that uses
+only standard column types, override to in-memory sqlite:
+`DB_CONNECTION=sqlite DB_DATABASE=:memory: DB_URL= php artisan test --filter=X`
+(runs in ~5s). CI/`composer test:sharded` still exercises Postgres, so only use
+sqlite to sanity-check Postgres-agnostic code. Pre-existing suite-wide PHPUnit
+deprecations (e.g. `PlanGateTest::plan()` implicit-nullable) show as
+"N deprecated" — not failures from your test.
