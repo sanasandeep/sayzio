@@ -98,7 +98,8 @@ export default function NotificationPreferencesScreen() {
           ))}
 
           <Text style={[styles.footnote, { color: colors.mutedForeground }]}>
-            Push delivery rolls out with the next mobile release.
+            Push delivery is enabled on this device. Make sure notifications are
+            allowed in your system settings to receive alerts.
           </Text>
         </ScrollView>
       )}

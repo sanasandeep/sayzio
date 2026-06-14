@@ -65,6 +65,12 @@ export default function NotificationsScreen() {
                 </Pressable>
               ) : null}
               <Pressable
+                onPress={() => router.push("/api-usage")}
+                hitSlop={8}
+              >
+                <Feather name="activity" size={18} color={colors.primary} />
+              </Pressable>
+              <Pressable
                 onPress={() => router.push("/notification-preferences")}
                 hitSlop={8}
               >

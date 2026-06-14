@@ -168,13 +168,13 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => false,
             ],
-            // Developer API usage warnings (Task #1396).
+            // Developer API usage warnings (Task #1396, push added #1403).
             'api.usage_warning' => [
                 'label'          => 'API usage warnings',
                 'description'    => 'Heads-up when your developer API key nears or exceeds its monthly call allowance, or when overage can no longer be covered and calls are being rejected.',
                 'default_in_app' => true,
                 'default_email'  => true,
-                'default_push'   => false,
+                'default_push'   => true,
             ],
             // Paid DMs (Task #1210).
             'dm.new' => [
@@ -248,6 +248,36 @@ class NotificationService
             'data'       => $data,
             'created_at' => now(),
         ]);
+    }
+
+    /**
+     * Deliver a push notification for $user honoring their `push`
+     * preference for $type. Returns the number of device messages Expo
+     * accepted (0 when the channel is muted, the user has no registered
+     * devices, or delivery fails). Wholly best-effort — never throws.
+     *
+     * @param array<string, mixed> $data Payload merged into the push `data`.
+     */
+    public function pushToUser(User $user, string $type, string $title, string $body, array $data = []): int
+    {
+        if (!$this->prefersChannel($user->id, $type, 'push')) {
+            return 0;
+        }
+
+        try {
+            return app(ExpoPushNotifier::class)->sendToUser(
+                $user->id,
+                $title,
+                $body,
+                array_merge($data, ['type' => $type]),
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Push notification delivery failed: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'type'    => $type,
+            ]);
+            return 0;
+        }
     }
 
     /**

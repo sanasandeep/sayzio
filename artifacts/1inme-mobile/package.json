@@ -68,6 +68,7 @@
     "expo-device": "~8.0.10",
     "expo-file-system": "^55.0.17",
     "expo-local-authentication": "^55.0.13",
+    "expo-notifications": "~0.32.17",
     "expo-secure-store": "~15.0.8",
     "react-native-nfc-manager": "^3.17.2",
     "react-native-purchases": "^10.0.1",

@@ -294,6 +294,17 @@ class MeterApiUsage
                         $m->to($user->email)->subject($subject);
                     });
                 }
+
+                // Push to the 1inme-mobile app (task #1403). Preference-aware
+                // and best-effort: pushToUser swallows transport failures so a
+                // dead token can't break the metered call we're finishing.
+                $notifications->pushToUser(
+                    $user,
+                    $note['type'],
+                    $note['subject'],
+                    $note['body'],
+                    $note['data'],
+                );
             } catch (\Throwable $e) {
                 Log::warning('API usage warning delivery failed: ' . $e->getMessage(), ['user_id' => $user->id]);
             }

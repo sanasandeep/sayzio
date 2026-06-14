@@ -28,6 +28,11 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
+import {
+  addPushResponseListener,
+  configurePushHandler,
+  syncPushRegistration,
+} from "@/lib/push";
 import { initializeRevenueCat, SubscriptionProvider } from "@/lib/revenuecat";
 import { getToken } from "@/lib/secure";
 
@@ -85,6 +90,24 @@ function GlobalVoiceAssistant() {
   return <VoiceAssistant />;
 }
 
+function PushRegistrar() {
+  const { user, token, locked } = useAuth();
+
+  useEffect(() => {
+    configurePushHandler();
+    const sub = addPushResponseListener();
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (user && token && !locked) {
+      void syncPushRegistration();
+    }
+  }, [user, token, locked]);
+
+  return null;
+}
+
 function RootLayoutNav() {
   const colors = useColors();
   return (
@@ -126,6 +149,7 @@ function RootLayoutNav() {
       <Stack.Screen name="plans" options={{ title: "Plans & billing" }} />
       <Stack.Screen name="coin-packages" options={{ title: "Coin packages" }} />
       <Stack.Screen name="premium-features" options={{ title: "Premium features" }} />
+      <Stack.Screen name="api-usage" options={{ title: "API usage" }} />
       <Stack.Screen name="dialer" options={{ title: "Dialer" }} />
       <Stack.Screen name="call/active" options={{ headerShown: false }} />
       <Stack.Screen name="call/incoming" options={{ headerShown: false }} />
@@ -164,6 +188,7 @@ export default function RootLayout() {
                     <ActivityWatcher>
                       <RootLayoutNav />
                       <GlobalVoiceAssistant />
+                      <PushRegistrar />
                       <IdleLockWarning />
                     </ActivityWatcher>
                   </KeyboardProvider>

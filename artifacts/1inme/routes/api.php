@@ -14,6 +14,8 @@ use App\Modules\Api\Controllers\LinkController;
 use App\Modules\Api\Controllers\NfcWriteController;
 use App\Modules\Api\Controllers\DashboardController;
 use App\Modules\Api\Controllers\NotificationController;
+use App\Modules\Api\Controllers\PushTokenController;
+use App\Modules\Api\Controllers\ApiUsageController;
 use App\Modules\Api\Controllers\OnboardingController;
 use App\Modules\Api\Controllers\OnboardingSlideController;
 use App\Modules\Api\Controllers\OtpController;
@@ -324,6 +326,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/notifications/{id}/read',        [NotificationController::class, 'markRead'])->whereNumber('id');
         Route::get ('/me/notification-preferences',    [NotificationController::class, 'preferences']);
         Route::put ('/me/notification-preferences',    [NotificationController::class, 'updatePreferences']);
+
+        // Expo push-token registration (1inme-mobile push delivery).
+        Route::post  ('/me/push-tokens',               [PushTokenController::class, 'store']);
+        Route::delete('/me/push-tokens',               [PushTokenController::class, 'destroy']);
+
+        // Developer API-usage summary (mobile mirror of the web meter).
+        Route::get ('/me/api-usage',                   [ApiUsageController::class, 'show']);
 
         // Recent-logins history + "This wasn't me" revoke (mobile parity
         // for the suspicious-login email pipeline).

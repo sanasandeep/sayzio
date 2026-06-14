@@ -15,6 +15,7 @@ import {
   promptBiometric,
   type BiometricCapability,
 } from "@/lib/biometrics";
+import { clearPushRegistration } from "@/lib/push";
 import {
   DEFAULT_IDLE_TIMEOUT_MS,
   DEFAULT_LOCK_WARNING_LEAD_MS,
@@ -315,6 +316,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Detach this device's push token while the bearer token is still
+    // valid, so a shared device stops receiving the previous user's
+    // notifications (best-effort — never blocks sign-out).
+    await clearPushRegistration();
     try {
       await apiFetch("/auth/logout", { method: "POST" });
     } catch {}

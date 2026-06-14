@@ -13,3 +13,4 @@
 - [drizzle-kit + SSL RDS quirks](drizzle-rds-ssl-and-schema.md) — discrete creds (not URL) for force_ssl RDS; `push` drops any schema not declared via pgSchema; bulk-load dumps as one node-pg query; cross-region latency (~251ms/query) is inherent not a bug.
 - [Distant-DB dev preview perf](distant-db-dev-perf.md) — far RDS makes dev preview time out (looks like a DB error); fix = local file cache (not database cache) + persistent PDO + PHP_CLI_SERVER_WORKERS with `--no-reload`.
 - [Alpine CDN single-point-of-failure](cdn-alpine-spof.md) — 1inme nav/menus/buttons are pure Alpine; loading it from a floating CDN range caused intermittent dead clicks. Self-host pinned at public/js/vendor/alpine.min.js.
+- [Expo Router typed-route regen](expo-router-typed-routes.md) — adding a screen breaks router.push typecheck until the expo dev server rewrites .expo/types/router.d.ts; restart the expo workflow, don't cast.
