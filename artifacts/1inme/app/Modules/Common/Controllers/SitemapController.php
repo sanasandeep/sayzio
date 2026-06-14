@@ -4,6 +4,7 @@ namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Common\Models\BlogPost;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Support\MarketingSeo;
 use Illuminate\Support\Carbon;
@@ -18,6 +19,66 @@ use Illuminate\Support\Carbon;
  */
 class SitemapController extends Controller
 {
+    /**
+     * Sitemap index that references both the marketing sitemap and the blog
+     * sitemap so search engines can discover every public URL from a single
+     * entry point (/sitemap_index.xml). The individual sitemaps keep working
+     * on their own.
+     */
+    public function index()
+    {
+        $sitemaps = [
+            [
+                'loc' => url('/sitemap.xml'),
+                'lastmod' => $this->formatLastmod($this->marketingLastmod()),
+            ],
+            [
+                'loc' => url('/blogs/sitemap.xml'),
+                'lastmod' => $this->formatLastmod($this->blogLastmod()),
+            ],
+        ];
+
+        $body = view('public.sitemap_index', ['sitemaps' => $sitemaps])->render();
+
+        return response($body, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    /**
+     * Most recent change across marketing pages: the newest site_pages row
+     * timestamp or the marketing_seo override row, whichever is later.
+     */
+    private function marketingLastmod()
+    {
+        $latest = null;
+
+        $newestRow = SitePage::query()->max('updated_at');
+        $codeFallback = optional(
+            AppSetting::where('key', MarketingSeo::SETTING_KEY)->first()
+        )->updated_at;
+
+        foreach ([$newestRow, $codeFallback] as $candidate) {
+            if (empty($candidate)) {
+                continue;
+            }
+            $ts = $candidate instanceof \DateTimeInterface
+                ? Carbon::instance($candidate)
+                : Carbon::parse((string) $candidate);
+            if ($latest === null || $ts->greaterThan($latest)) {
+                $latest = $ts;
+            }
+        }
+
+        return $latest;
+    }
+
+    /**
+     * Most recent published-post update, mirroring the blog sitemap content.
+     */
+    private function blogLastmod()
+    {
+        return BlogPost::published()->max('updated_at');
+    }
+
     public function sitemap()
     {
         // Per-row lastmod for the site_pages-backed pages. Read updated_at off
@@ -94,7 +155,7 @@ class SitemapController extends Controller
             'Disallow: /companion/',
             'Disallow: /embed/',
             '',
-            'Sitemap: ' . url('/sitemap.xml'),
+            'Sitemap: ' . url('/sitemap_index.xml'),
             '',
         ];
 

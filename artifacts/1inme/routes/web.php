@@ -218,6 +218,7 @@ Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::cla
 
 // ---- Marketing XML sitemap + robots.txt (must precede the catch-all /{alias} routes) ----
 // URL list sourced from MarketingSeo so it stays in lockstep with per-page SEO meta.
+Route::get('/sitemap_index.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'index'])->name('site.sitemap.index');
 Route::get('/sitemap.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'sitemap'])->name('site.sitemap');
 Route::get('/robots.txt',  [\App\Modules\Common\Controllers\SitemapController::class, 'robots'])->name('site.robots');
 
