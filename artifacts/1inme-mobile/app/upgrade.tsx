@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import React from "react";
 import { Stack, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -9,10 +10,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useColors } from "@/hooks/useColors";
-import { billing, type Plan } from "@/lib/api/billing";
+import { billing, planPrice, type Currency, type Plan } from "@/lib/api/billing";
+
+const CURRENCIES: Currency[] = ["USD", "INR"];
 
 export default function UpgradeScreen() {
   const colors = useColors();
@@ -23,6 +26,26 @@ export default function UpgradeScreen() {
     queryKey: ["billing", "plans"],
     queryFn: () => billing.plans(),
   });
+
+  const [currency, setCurrencyState] = React.useState<Currency | null>(null);
+  const resolvedCurrency = plansQuery.data?.data?.currency;
+  React.useEffect(() => {
+    if (currency == null && resolvedCurrency) {
+      const c = resolvedCurrency.toUpperCase();
+      if (c === "USD" || c === "INR") setCurrencyState(c);
+    }
+  }, [currency, resolvedCurrency]);
+
+  const currencies = plansQuery.data?.data?.currencies ?? CURRENCIES;
+  const activeCurrency: Currency = currency ?? "USD";
+
+  const persistCurrency = useMutation({
+    mutationFn: (c: Currency) => billing.setCurrency(c),
+  });
+  const onCurrencyChange = (c: Currency) => {
+    setCurrencyState(c);
+    persistCurrency.mutate(c);
+  };
 
   const plans = plansQuery.data?.data?.plans ?? [];
   const free = plans.find((p) => (p.monthly?.amount_minor ?? 0) === 0);
@@ -52,13 +75,38 @@ export default function UpgradeScreen() {
           Start free. Upgrade only when you outgrow it.
         </Text>
 
+        <View style={[styles.toggle, { borderColor: colors.border }]}>
+          {currencies.map((c) => {
+            const active = activeCurrency === c;
+            return (
+              <Pressable
+                key={c}
+                onPress={() => onCurrencyChange(c)}
+                style={[
+                  styles.toggleBtn,
+                  { backgroundColor: active ? colors.primary : "transparent" },
+                ]}
+              >
+                <Text
+                  style={{
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                    color: active ? colors.primaryForeground : colors.foreground,
+                  }}
+                >
+                  {c}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {plansQuery.isLoading ? (
           <ActivityIndicator color={colors.primary} />
         ) : plansQuery.error ? (
           <Text style={{ color: colors.destructive }}>Could not load plans.</Text>
         ) : (
           featured.map((plan) => {
-            const price = plan.monthly;
+            const price = planPrice(plan, activeCurrency, "monthly");
             const popularBadge = !!plan.is_popular;
             return (
               <View
@@ -175,6 +223,18 @@ export default function UpgradeScreen() {
 const styles = StyleSheet.create({
   heading: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold" },
   intro: { fontSize: 13, lineHeight: 18 },
+  toggle: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 999,
+    padding: 4,
+    alignSelf: "center",
+  },
+  toggleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+  },
   card: { borderWidth: 1, padding: 16 },
   cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   planName: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 18 },

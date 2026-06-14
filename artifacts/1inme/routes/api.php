@@ -528,6 +528,8 @@ Route::prefix('v1')->group(function () {
         // the RevenueCat receipt-verification hook used by the mobile
         // app after a successful Purchases.purchasePackage / restore.
         Route::get ('/billing/plans',                [RevenueCatBillingController::class, 'plans']);
+        Route::post('/billing/currency',             [RevenueCatBillingController::class, 'setCurrency'])
+            ->middleware('throttle:60,1');
         Route::post('/billing/revenuecat/activate',  [RevenueCatBillingController::class, 'activate'])
             ->middleware('throttle:30,1');
 

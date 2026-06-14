@@ -21,13 +21,20 @@ import type {
 import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { billing, type Plan } from "@/lib/api/billing";
+import {
+  billing,
+  planPrice,
+  type Currency,
+  type Plan,
+} from "@/lib/api/billing";
 import {
   isRevenueCatConfigured,
   useSubscription,
 } from "@/lib/revenuecat";
 
 type Cycle = "monthly" | "annual";
+
+const CURRENCIES: Currency[] = ["USD", "INR"];
 
 export default function PlansScreen() {
   const colors = useColors();
@@ -38,6 +45,7 @@ export default function PlansScreen() {
   const sub = useSubscription();
 
   const [cycle, setCycle] = useState<Cycle>("monthly");
+  const [currency, setCurrencyState] = useState<Currency | null>(null);
   const [confirm, setConfirm] = useState<{
     plan: Plan;
     pkg: PurchasesPackage;
@@ -47,6 +55,31 @@ export default function PlansScreen() {
     queryKey: ["billing", "plans"],
     queryFn: () => billing.plans(),
   });
+
+  // Seed the currency from the backend-resolved default (geo / profile /
+  // saved preference) once, then let the user flip it manually.
+  const resolvedCurrency = plansQuery.data?.data?.currency;
+  React.useEffect(() => {
+    if (currency == null && resolvedCurrency) {
+      const c = resolvedCurrency.toUpperCase();
+      if (c === "USD" || c === "INR") setCurrencyState(c);
+    }
+  }, [currency, resolvedCurrency]);
+
+  const currencies = plansQuery.data?.data?.currencies ?? CURRENCIES;
+  const activeCurrency: Currency = currency ?? "USD";
+
+  // Persist the manual pick so purchase/activation use the same currency
+  // and it follows the user across devices. Fire-and-forget — the UI has
+  // already flipped client-side from the pre-computed price matrix.
+  const persistCurrency = useMutation({
+    mutationFn: (c: Currency) => billing.setCurrency(c),
+  });
+
+  const onCurrencyChange = (c: Currency) => {
+    setCurrencyState(c);
+    persistCurrency.mutate(c);
+  };
 
   const activate = useMutation({
     mutationFn: (input: {
@@ -168,32 +201,61 @@ export default function PlansScreen() {
           gap: 16,
         }}
       >
-        <View style={[styles.toggle, { borderColor: colors.border }]}>
-          {(["monthly", "annual"] as Cycle[]).map((c) => {
-            const active = cycle === c;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => setCycle(c)}
-                style={[
-                  styles.toggleBtn,
-                  {
-                    backgroundColor: active ? colors.primary : "transparent",
-                  },
-                ]}
-              >
-                <Text
-                  style={{
-                    fontFamily: "SpaceGrotesk_600SemiBold",
-                    color: active ? colors.primaryForeground : colors.foreground,
-                    textTransform: "capitalize",
-                  }}
+        <View style={styles.switchers}>
+          <View style={[styles.toggle, { borderColor: colors.border }]}>
+            {(["monthly", "annual"] as Cycle[]).map((c) => {
+              const active = cycle === c;
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => setCycle(c)}
+                  style={[
+                    styles.toggleBtn,
+                    {
+                      backgroundColor: active ? colors.primary : "transparent",
+                    },
+                  ]}
                 >
-                  {c}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={{
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      color: active ? colors.primaryForeground : colors.foreground,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {c}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={[styles.toggle, { borderColor: colors.border }]}>
+            {currencies.map((c) => {
+              const active = activeCurrency === c;
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => onCurrencyChange(c)}
+                  style={[
+                    styles.toggleBtn,
+                    {
+                      backgroundColor: active ? colors.primary : "transparent",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      color: active ? colors.primaryForeground : colors.foreground,
+                    }}
+                  >
+                    {c}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         {plansQuery.isLoading ? (
@@ -204,7 +266,7 @@ export default function PlansScreen() {
           </Text>
         ) : (
           plans.map((plan) => {
-            const price = cycle === "monthly" ? plan.monthly : plan.annual;
+            const price = planPrice(plan, activeCurrency, cycle);
             const isCurrent = plan.is_current;
             return (
               <View
@@ -393,6 +455,13 @@ export default function PlansScreen() {
 }
 
 const styles = StyleSheet.create({
+  switchers: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+  },
   toggle: {
     flexDirection: "row",
     borderWidth: 1,

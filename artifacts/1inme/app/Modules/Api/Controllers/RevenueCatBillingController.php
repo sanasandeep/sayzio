@@ -48,14 +48,37 @@ class RevenueCatBillingController extends Controller
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
 
+        // Mirror the web /pricing page: pre-compute BOTH currencies so the
+        // mobile client can flip USD ⇄ INR instantly client-side (no
+        // round-trip) just like the web switcher. `currency` is the
+        // currently-resolved default; `prices[CUR]` carries every cell.
+        $currencies = ['USD', 'INR'];
+
+        $pricePair = function ($priceable, string $cur): array {
+            $m = PricingResolver::priceForCurrency($priceable, $cur, 'monthly');
+            $a = PricingResolver::priceForCurrency($priceable, $cur, 'annual');
+            return [
+                'monthly' => [
+                    'amount_minor' => (int) ($m['amount_minor'] ?? 0),
+                    'formatted'    => $m['formatted'] ?? null,
+                ],
+                'annual'  => [
+                    'amount_minor' => (int) ($a['amount_minor'] ?? 0),
+                    'formatted'    => $a['formatted'] ?? null,
+                ],
+            ];
+        };
+
         $plans = Plan::query()
             ->where('status', 'active')
             ->where('is_archived', false)
             ->orderBy('sort_order')->orderBy('id')
             ->get()
-            ->map(function (Plan $p) use ($user, $currency) {
-                $monthly = PricingResolver::priceFor($p, $user, 'monthly');
-                $annual  = PricingResolver::priceFor($p, $user, 'annual');
+            ->map(function (Plan $p) use ($user, $currency, $currencies, $pricePair) {
+                $prices = [];
+                foreach ($currencies as $cur) {
+                    $prices[$cur] = $pricePair($p, $cur);
+                }
                 return [
                     'id'           => $p->id,
                     'slug'         => $p->slug,
@@ -68,14 +91,11 @@ class RevenueCatBillingController extends Controller
                     'is_current'   => $user && (int) $user->plan_id === (int) $p->id,
                     'features_map' => is_array($p->features) ? $p->features : [],
                     'trial_days'   => (int) ($p->trial_days ?? 0),
-                    'monthly'      => [
-                        'amount_minor' => (int) ($monthly['amount_minor'] ?? 0),
-                        'formatted'    => $monthly['formatted'] ?? null,
-                    ],
-                    'annual'       => [
-                        'amount_minor' => (int) ($annual['amount_minor'] ?? 0),
-                        'formatted'    => $annual['formatted'] ?? null,
-                    ],
+                    // Backward-compat: resolved-currency prices kept so older
+                    // mobile builds keep working. `prices` is the new map.
+                    'monthly'      => $prices[$currency]['monthly'],
+                    'annual'       => $prices[$currency]['annual'],
+                    'prices'       => $prices,
                 ];
             })->all();
 
@@ -84,9 +104,11 @@ class RevenueCatBillingController extends Controller
             ->where('is_archived', false)
             ->orderBy('sort_order')->orderBy('id')
             ->get()
-            ->map(function (Addon $a) use ($user, $currency) {
-                $monthly = PricingResolver::priceFor($a, $user, 'monthly');
-                $annual  = PricingResolver::priceFor($a, $user, 'annual');
+            ->map(function (Addon $a) use ($currency, $currencies, $pricePair) {
+                $prices = [];
+                foreach ($currencies as $cur) {
+                    $prices[$cur] = $pricePair($a, $cur);
+                }
                 return [
                     'id'          => $a->id,
                     'slug'        => $a->slug,
@@ -94,14 +116,9 @@ class RevenueCatBillingController extends Controller
                     'description' => $a->description,
                     'type'        => $a->type,
                     'currency'    => $currency,
-                    'monthly'     => [
-                        'amount_minor' => (int) ($monthly['amount_minor'] ?? 0),
-                        'formatted'    => $monthly['formatted'] ?? null,
-                    ],
-                    'annual'      => [
-                        'amount_minor' => (int) ($annual['amount_minor'] ?? 0),
-                        'formatted'    => $annual['formatted'] ?? null,
-                    ],
+                    'monthly'     => $prices[$currency]['monthly'],
+                    'annual'      => $prices[$currency]['annual'],
+                    'prices'      => $prices,
                 ];
             })->all();
 
@@ -118,9 +135,32 @@ class RevenueCatBillingController extends Controller
 
         return $this->ok([
             'currency'         => $currency,
+            'currencies'       => $currencies,
             'plans'            => $plans,
             'addons'           => $addons,
             'premium_features' => $premiumFeatures,
+        ]);
+    }
+
+    /**
+     * Persist a manual USD ⇄ INR currency choice for the signed-in user,
+     * mirroring the web /pricing switcher (POST /pricing/currency). The
+     * choice is stored on `users.preferred_currency` (when the user has no
+     * billing country — country always wins, same as web) so it follows
+     * them across devices and is honoured by subsequent `priceFor()` calls
+     * during purchase/activation. The plans endpoint already returns both
+     * currencies so the UI flips instantly; this only persists the pick.
+     */
+    public function setCurrency(Request $request)
+    {
+        $data = $request->validate([
+            'currency' => 'required|in:USD,INR',
+        ]);
+
+        PricingResolver::rememberManualChoice($data['currency'], $request->user());
+
+        return $this->ok([
+            'currency' => $data['currency'],
         ]);
     }
 
