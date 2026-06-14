@@ -40,6 +40,14 @@ class RenewDueSubscriptions extends Command
     protected $signature = 'subscriptions:renew-due';
     protected $description = 'Charge gateways for subscriptions whose next renewal falls within 24h, and expire grace-ended ones.';
 
+    /**
+     * Number of unexpected recurring-charge failures in a single run that
+     * flips this from "a few declined cards" into "something is wrong"
+     * worth paging the team about. Chosen to stay quiet on routine
+     * declines while catching gateway outages / credential breakage.
+     */
+    private const RENEWAL_FAILURE_ALERT_THRESHOLD = 5;
+
     public function handle(GatewayManager $gateways, SubscriptionLifecycle $lifecycle): int
     {
         $this->processScheduledCancellations($lifecycle);
@@ -110,6 +118,8 @@ class RenewDueSubscriptions extends Command
             ->where('current_period_end', '<=', $deadline)
             ->where('current_period_end', '>', now()->subDays(7)) // don't revive truly ancient rows
             ->get();
+        $failures = 0;
+        $failedGateways = [];
         foreach ($subs as $sub) {
             if ($this->hasRenewalInvoice($sub)) continue;
             try {
@@ -120,7 +130,45 @@ class RenewDueSubscriptions extends Command
             } catch (\Throwable $e) {
                 Log::warning('chargeRecurring failed', ['sub' => $sub->id, 'err' => $e->getMessage()]);
                 $lifecycle->markRenewalFailed($sub);
+                $failures++;
+                $g = $sub->gateway ?? 'offline';
+                $failedGateways[$g] = ($failedGateways[$g] ?? 0) + 1;
             }
+        }
+
+        $this->alertOnRenewalFailureSpike($failures, $failedGateways);
+    }
+
+    /**
+     * A handful of recurring-charge failures in one run usually means a
+     * gateway outage or broken credentials, not isolated declined cards —
+     * surface it to the team once per run (best-effort, never throws).
+     *
+     * @param array<string,int> $failedGateways failure count keyed by gateway slug
+     */
+    private function alertOnRenewalFailureSpike(int $failures, array $failedGateways): void
+    {
+        if ($failures < self::RENEWAL_FAILURE_ALERT_THRESHOLD) {
+            return;
+        }
+
+        try {
+            $breakdown = collect($failedGateways)
+                ->map(fn ($count, $gateway) => "{$gateway}: {$count}")
+                ->implode(', ');
+
+            app(\App\Modules\Common\Services\NotificationService::class)->systemAlert(
+                'Subscription renewal charges are failing',
+                "{$failures} recurring renewal charges failed in this run and were marked past due."
+                    . ' This usually points at a gateway outage or a credential problem rather than isolated declines.',
+                'error',
+                [
+                    'failures'   => $failures,
+                    'by_gateway' => $breakdown !== '' ? $breakdown : 'n/a',
+                ],
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Failed to dispatch renewal-failure alert: ' . $e->getMessage());
         }
     }
 

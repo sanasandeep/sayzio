@@ -82,13 +82,23 @@ class WebhookController extends Controller
         $type = (string) ($event['type'] ?? '');
         if ($type === 'payment.succeeded') {
             $attempt->update(['status' => 'succeeded']);
-            // Client invoices (kanban) follow a different post-payment
-            // pipeline than subscription invoices: no plan activation,
-            // just sync the originating cards + flip status.
-            if (($invoice->kind ?? 'subscription') === 'client') {
-                app(ClientInvoiceService::class)->markPaid($invoice, $gateway, $ref);
-            } else {
-                $activator->run($invoice, $gateway, $ref);
+            try {
+                // Client invoices (kanban) follow a different post-payment
+                // pipeline than subscription invoices: no plan activation,
+                // just sync the originating cards + flip status.
+                if (($invoice->kind ?? 'subscription') === 'client') {
+                    app(ClientInvoiceService::class)->markPaid($invoice, $gateway, $ref);
+                } else {
+                    $activator->run($invoice, $gateway, $ref);
+                }
+            } catch (\Throwable $e) {
+                // The gateway confirmed the money moved, but turning that
+                // payment into a granted plan / credited coins threw. This
+                // is a high-signal ops event: a customer may have paid
+                // without getting what they bought. Alert the team, then
+                // re-throw so the gateway still sees a 5xx and retries.
+                $this->alertPaymentActivationFailed($gateway, $invoice, $ref, $e);
+                throw $e;
             }
             return response()->json(['ok' => true], 200);
         }
@@ -98,5 +108,31 @@ class WebhookController extends Controller
         }
         $attempt->update(['status' => 'requires_review']);
         return response()->json(['ok' => true], 202);
+    }
+
+    /**
+     * Best-effort team alert when a confirmed payment fails to activate.
+     * Wrapped so a dead webhook can never mask the underlying error we're
+     * about to re-throw.
+     */
+    private function alertPaymentActivationFailed(string $gateway, Invoice $invoice, string $ref, \Throwable $e): void
+    {
+        try {
+            app(\App\Modules\Common\Services\NotificationService::class)->systemAlert(
+                'Payment activation failed after a successful charge',
+                "A {$gateway} payment succeeded but post-payment processing threw for invoice {$invoice->number}."
+                    . ' The customer may have paid without receiving their plan or coins — needs a human.',
+                'critical',
+                [
+                    'gateway'     => $gateway,
+                    'invoice'     => $invoice->number,
+                    'invoice_id'  => $invoice->id,
+                    'gateway_ref' => $ref,
+                    'error'       => \Illuminate\Support\Str::limit($e->getMessage(), 300),
+                ],
+            );
+        } catch (\Throwable $alertError) {
+            Log::warning('Failed to dispatch payment-activation alert: ' . $alertError->getMessage());
+        }
     }
 }

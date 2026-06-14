@@ -79,6 +79,37 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureAuthRateLimiters();
         $this->bustPlanRecommenderCacheOnUsageChange();
+        $this->alertOnFailedBackgroundJobs();
+    }
+
+    /**
+     * Page the team when a queued background job exhausts its retries and
+     * lands in the failed_jobs table. Many of our scheduled tasks fan work
+     * out onto the queue (contact imports, AI ingestion, newsletters, push
+     * delivery, …); a permanent failure there is silent otherwise. One
+     * central hook covers every job, fires only on terminal failure (not
+     * each retry), and is wholly best-effort so it can never break the
+     * worker or mask the original job error.
+     */
+    protected function alertOnFailedBackgroundJobs(): void
+    {
+        \Illuminate\Support\Facades\Queue::failing(function (\Illuminate\Queue\Events\JobFailed $event) {
+            try {
+                app(\App\Modules\Common\Services\NotificationService::class)->systemAlert(
+                    'Background job failed',
+                    'A queued background job exhausted its retries and was moved to the failed jobs table.',
+                    'error',
+                    [
+                        'job'        => $event->job->resolveName(),
+                        'connection' => $event->connectionName,
+                        'queue'      => $event->job->getQueue() ?: 'default',
+                        'error'      => \Illuminate\Support\Str::limit($event->exception->getMessage(), 300),
+                    ],
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to dispatch job-failure alert: ' . $e->getMessage());
+            }
+        });
     }
 
     /**
