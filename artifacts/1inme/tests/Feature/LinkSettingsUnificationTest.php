@@ -65,6 +65,16 @@ class LinkSettingsUnificationTest extends TestCase
         ]);
     }
 
+    private function shortLink(User $u, string $type = 'url'): Link
+    {
+        return $u->links()->create([
+            'user_id'  => $u->id, 'type' => $type,
+            'alias'    => 'sl' . substr(Str::random(8), 0, 8),
+            'long_url' => 'https://example.com',
+            'is_active' => true,
+        ]);
+    }
+
     // ===== (a) SEO/favicon write the Link columns + strip JSON mirrors =====
 
     public function test_biolink_editor_writes_seo_columns_and_strips_json_mirrors(): void
@@ -147,6 +157,105 @@ class LinkSettingsUnificationTest extends TestCase
         $this->assertNotEmpty($link->favicon, 'short link should persist the favicon canonical column');
         // Favicon is canonical on the column, not mirrored into the settings JSON.
         $this->assertArrayNotHasKey('favicon_url', (array) ($link->settings ?? []));
+    }
+
+    // ===== (a') Short-link UPDATE keeps the canonical columns in sync =====
+
+    public function test_short_link_update_writes_seo_columns(): void
+    {
+        Storage::fake('user_files');
+        $u = $this->user($this->plan(['max_links' => 100]));
+        $link = $this->shortLink($u);
+
+        $resp = $this->actingAs($u)->put('/user/links/' . $link->id, [
+            'long_url'        => 'https://example.com',
+            'seo_title'       => 'Edited SEO',
+            'seo_description' => 'Edited SEO desc',
+            'seo_image'       => UploadedFile::fake()->image('share.png', 1200, 800),
+            'favicon'         => UploadedFile::fake()->image('fav.png', 64, 64),
+        ]);
+        $resp->assertSessionMissing('error');
+
+        $link->refresh();
+        // Canonical columns are written by the update path.
+        $this->assertSame('Edited SEO', $link->seo_title);
+        $this->assertSame('Edited SEO desc', $link->seo_description);
+        $this->assertNotEmpty($link->seo_image, 'update should persist the seo_image column');
+        $this->assertNotEmpty($link->favicon, 'update should persist the favicon column');
+        // SEO/favicon stay canonical on the columns, never mirrored into JSON.
+        $settings = (array) ($link->settings ?? []);
+        $this->assertArrayNotHasKey('favicon_url', $settings);
+        $this->assertArrayNotHasKey('seo_title', $settings);
+    }
+
+    public function test_short_link_update_enables_open_in_app_when_plan_allows(): void
+    {
+        $u = $this->user($this->plan(['max_links' => 100, 'link_deep_link' => true]));
+        $link = $this->shortLink($u);
+
+        $resp = $this->actingAs($u)->put('/user/links/' . $link->id, [
+            'long_url'    => 'https://example.com',
+            'open_in_app' => 1,
+        ]);
+        $resp->assertSessionMissing('error');
+
+        // The url-type deep-link toggle syncs into settings.open_in_app.
+        $this->assertTrue((bool) ($link->fresh()->settings['open_in_app'] ?? false));
+    }
+
+    public function test_short_link_update_blocks_open_in_app_when_plan_downgraded(): void
+    {
+        // The plan does not include the deep-link feature. Editing the link
+        // must not let the user enable the deep-link toggle.
+        $u = $this->user($this->plan(['max_links' => 100, 'link_deep_link' => false]));
+        $link = $this->shortLink($u);
+        $this->assertArrayNotHasKey('open_in_app', (array) ($link->settings ?? []));
+
+        $resp = $this->actingAs($u)->put('/user/links/' . $link->id, [
+            'long_url'    => 'https://example.com',
+            'open_in_app' => 1,
+        ]);
+        // Plan gate rejects the edit outright with a session error.
+        $resp->assertSessionHas('error');
+
+        // And the downgraded plan can never end up with the deep-link enabled.
+        $this->assertFalse((bool) ($link->fresh()->settings['open_in_app'] ?? false));
+    }
+
+    public function test_short_link_update_persists_and_clears_show_preview_page(): void
+    {
+        $u = $this->user($this->plan(['max_links' => 100]));
+        $link = $this->shortLink($u);
+
+        // Enable the preview page.
+        $this->actingAs($u)->put('/user/links/' . $link->id, [
+            'long_url'          => 'https://example.com',
+            'show_preview_page' => 1,
+        ])->assertSessionMissing('error');
+        $this->assertTrue((bool) ($link->fresh()->settings['show_preview_page'] ?? false));
+
+        // Unchecking it clears the flag from settings.
+        $this->actingAs($u)->put('/user/links/' . $link->id, [
+            'long_url'          => 'https://example.com',
+            'show_preview_page' => 0,
+        ])->assertSessionMissing('error');
+        $this->assertArrayNotHasKey('show_preview_page', (array) ($link->fresh()->settings ?? []));
+    }
+
+    public function test_short_link_update_persists_show_preview_page_for_ics_and_vcf(): void
+    {
+        $u = $this->user($this->plan(['max_links' => 100]));
+
+        foreach (['ics', 'vcf'] as $type) {
+            $link = $this->shortLink($u, $type);
+            $this->actingAs($u)->put('/user/links/' . $link->id, [
+                'show_preview_page' => 1,
+            ])->assertSessionMissing('error');
+            $this->assertTrue(
+                (bool) ($link->fresh()->settings['show_preview_page'] ?? false),
+                "$type update should persist show_preview_page"
+            );
+        }
     }
 
     // ===== (b) Visibility selector persists Link.visibility =====
