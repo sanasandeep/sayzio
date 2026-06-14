@@ -29,6 +29,33 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
     # (see CardTemplateSeeder::SEED_VERSION + CardTemplate::wasCustomized).
     php artisan migrate --force || true
     php artisan db:seed --class=Database\\Seeders\\CardTemplateSeeder --force 2>/dev/null || true
+
+    # Onboarding page templates. The "Who are you?" persona picker reads
+    # from page_templates, which starts empty in a freshly provisioned
+    # environment. The three seeders below (StarterPageTemplatesSeeder,
+    # PageTemplatePersonaSeeder, ExpandedPageTemplateLibrarySeeder) ensure
+    # every PersonaCatalog persona ends up with >= 10 recommended
+    # templates so the picker is never empty. They are all idempotent —
+    # re-running on a populated DB is a safe no-op — but they are NOT a
+    # full `db:seed` (DatabaseSeeder also creates non-idempotent
+    # roles/permissions/admin that would duplicate/error).
+    #
+    # The expanded library inserts ~400 rows one-by-one and is slow over
+    # the distant RDS (and even the idempotent no-op pass costs ~50s of
+    # framework boots + round-trips), so we always detach it to the
+    # background to stay within the post-merge budget. On a fresh env the
+    # picker back-fills shortly after the merge; on a populated env this is
+    # a quick no-op that also picks up starter templates / new personas
+    # added between merges. Logs -> storage/logs/post-merge-recover.log.
+    echo "seeding onboarding page templates in background..."
+    mkdir -p storage/logs
+    nohup bash -c "
+      php artisan db:seed --class=Database\\\\Seeders\\\\StarterPageTemplatesSeeder --force
+      php artisan db:seed --class=Database\\\\Seeders\\\\PageTemplatePersonaSeeder --force
+      php artisan db:seed --class=Database\\\\Seeders\\\\ExpandedPageTemplateLibrarySeeder --force
+      echo \"[\$(date)] onboarding page-template seed finished\"
+    " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
+    disown $! 2>/dev/null || true
   else
     # Slow path: schema was wiped. Detach the rebuild so we don't blow the
     # post-merge timeout. Logs go to storage/logs/post-merge-recover.log.
