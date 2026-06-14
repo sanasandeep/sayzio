@@ -20,10 +20,8 @@
                 <li><a href="{{ route('site.audience') }}" class="hover:text-white transition-colors">Audience</a></li>
                 <li><a href="{{ route('site.integrations') }}" class="hover:text-white transition-colors">Integrations</a></li>
                 <li><a href="{{ route('site.features') }}#cat-scheduling" class="hover:text-white transition-colors">Scheduling</a></li>
-                <li><a href="{{ route('site.features') }}#cat-events" class="hover:text-white transition-colors">Events</a></li>
                 <li><a href="{{ route('site.workspace-team') }}" class="hover:text-white transition-colors">Workspace &amp; Team</a></li>
                 <li><a href="{{ route('site.premium-features') }}" class="hover:text-white transition-colors">Premium features</a></li>
-                <li><a href="{{ route('site.api-docs') }}" class="hover:text-white transition-colors">API</a></li>
             </ul>
         </div>
         {{-- AI Suite (5) --}}
@@ -45,7 +43,7 @@
                 <li><a href="{{ route('site.pricing') }}" class="hover:text-white transition-colors">Pricing</a></li>
                 <li><a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="hover:text-white transition-colors">Coin packages</a></li>
                 <li><a href="{{ route('site.discovery') }}" class="hover:text-white transition-colors">Discover creators</a></li>
-                <li><a href="{{ route('site.buzz') }}" class="hover:text-white transition-colors">Buzz</a></li>
+                <li><a href="{{ route('site.creators-feed') }}" class="hover:text-white transition-colors">Creators feed</a></li>
                 <li><a href="{{ route('site.features') }}#cat-events" class="hover:text-white transition-colors">Events &amp; RSVPs</a></li>
                 <li><a href="{{ route('site.features') }}#cat-referrals" class="hover:text-white transition-colors">Referral program</a></li>
             </ul>
@@ -56,11 +54,9 @@
             <ul class="space-y-2.5 text-gray-400">
                 <li><a href="{{ route('site.blogs.index') }}" class="hover:text-white transition-colors">Blog</a></li>
                 <li><a href="{{ route('site.faqs') }}" class="hover:text-white transition-colors">FAQs</a></li>
+                <li><a href="{{ route('site.features') }}#cat-templates" class="hover:text-white transition-colors">Templates</a></li>
                 <li><a href="{{ route('site.api-docs') }}" class="hover:text-white transition-colors">Help &amp; API docs</a></li>
                 <li><a href="#subscribe" class="hover:text-white transition-colors">Newsletter sign-up</a></li>
-                <li><a href="{{ route('site.contact') }}" class="hover:text-white transition-colors">Contact</a></li>
-                <li><a href="{{ route('site.features') }}#cat-templates" class="hover:text-white transition-colors">Templates</a></li>
-                <li><a href="{{ route('site.creators-feed') }}" class="hover:text-white transition-colors">Creators feed</a></li>
             </ul>
         </div>
         {{-- Company (5) --}}
@@ -68,10 +64,8 @@
             <div class="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-4">Company</div>
             <ul class="space-y-2.5 text-gray-400">
                 <li><a href="{{ route('site.about') }}" class="hover:text-white transition-colors">About</a></li>
+                <li><a href="{{ route('site.buzz') }}" class="hover:text-white transition-colors">Buzz</a></li>
                 <li><a href="{{ route('site.contact') }}" class="hover:text-white transition-colors">Contact</a></li>
-                <li><a href="{{ route('site.faqs') }}" class="hover:text-white transition-colors">FAQs</a></li>
-                <li><a href="{{ route('site.blogs.index') }}" class="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="{{ route('site.creators-feed') }}" class="hover:text-white transition-colors">Creators feed</a></li>
                 @auth
                     <li><a href="{{ \Illuminate\Support\Facades\Route::has('site.dashboard') ? route('site.dashboard') : '/dashboard' }}" class="hover:text-white transition-colors">Dashboard</a></li>
                 @else
