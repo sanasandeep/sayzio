@@ -2394,6 +2394,9 @@
     </div>
 </div>
 
+{{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
+@include('public.partials.marketing-trust-band')
+
 {{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
 @php
     $__audiences = [

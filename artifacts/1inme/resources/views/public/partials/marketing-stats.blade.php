@@ -65,6 +65,8 @@
     (function(){
         if (window.__inmeStatsCountupBound) return;
         window.__inmeStatsCountupBound = true;
+        const reduce = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const fmt = (n) => n.toLocaleString('en-IN');
         const animate = (el) => {
             const target = parseInt(el.dataset.target || '', 10);
@@ -90,7 +92,12 @@
                 }
             });
         }, { threshold: 0.4 });
-        document.querySelectorAll('.js-stat-count').forEach(el => io.observe(el));
+        const els = document.querySelectorAll('.js-stat-count');
+        if (reduce || !('IntersectionObserver' in window)) {
+            els.forEach(el => { el.textContent = el.dataset.display || el.textContent; });
+            return;
+        }
+        els.forEach(el => io.observe(el));
     })();
     </script>
 </section>
