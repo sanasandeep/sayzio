@@ -177,12 +177,20 @@
     @keyframes cc-fade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes cc-slide-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes cc-slide-down { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
-    .cc-host[data-anim="fade"]       .cc-card { animation: cc-fade .25s ease both; }
-    .cc-host[data-anim="slide-up"]   .cc-card { animation: cc-slide-up .28s ease both; }
-    .cc-host[data-anim="slide-down"] .cc-card { animation: cc-slide-down .28s ease both; }
-    .cc-host[data-anim="fade"]       .cc-backdrop { animation: cc-fade .25s ease both; }
-    .cc-host[data-anim="slide-up"]   .cc-backdrop { animation: cc-fade .25s ease both; }
-    .cc-host[data-anim="slide-down"] .cc-backdrop { animation: cc-fade .25s ease both; }
+    /* NOTE: this consent host uses `data-cc-anim` (NOT the generic `data-anim`).
+       The marketing reveal stylesheet (/css/marketing-anim.css) styles every
+       `[data-anim]` element with `opacity:0` until its IntersectionObserver adds
+       `.in-view`. The dynamically-injected consent host is never observed, so a
+       generic `data-anim` left it stuck at opacity:0 — invisible, yet still
+       occupying layout height, which produced a phantom empty band below the
+       footer (the reserve padding for a prompt nobody could see). Namespacing the
+       attribute keeps the two animation systems from colliding. */
+    .cc-host[data-cc-anim="fade"]       .cc-card { animation: cc-fade .25s ease both; }
+    .cc-host[data-cc-anim="slide-up"]   .cc-card { animation: cc-slide-up .28s ease both; }
+    .cc-host[data-cc-anim="slide-down"] .cc-card { animation: cc-slide-down .28s ease both; }
+    .cc-host[data-cc-anim="fade"]       .cc-backdrop { animation: cc-fade .25s ease both; }
+    .cc-host[data-cc-anim="slide-up"]   .cc-backdrop { animation: cc-fade .25s ease both; }
+    .cc-host[data-cc-anim="slide-down"] .cc-backdrop { animation: cc-fade .25s ease both; }
 
     /* Footer reopen link is rendered inside the page footer; the
        legacy floating cookie icon has been retired. */
@@ -290,7 +298,7 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         host.setAttribute('data-layout', liveLayout);
         host.setAttribute('data-position', livePosition);
         host.setAttribute('data-theme', cfg.theme);
-        host.setAttribute('data-anim', cfg.animation || 'none');
+        host.setAttribute('data-cc-anim', cfg.animation || 'none');
         host.style.setProperty('--cc-accent', cfg.accent);
         host.style.setProperty('--cc-radius', (cfg.radius|0) + 'px');
 
@@ -437,15 +445,30 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         if (liveLayout === 'inline') return true;
         return livePosition.indexOf('bottom') === 0;
     }
+    function clearFooterReserve() { document.body.style.paddingBottom = ''; }
+    // The reserve must only ever exist for a prompt the user can actually SEE.
+    // A host that is detached, not bottom-pinned, display:none, visibility:hidden,
+    // fully transparent, or zero-height is "not shown" — reserving space for it
+    // leaves an empty band below the footer. Treat all of those as non-visible.
+    function reserveVisible() {
+        if (!state.host || !state.host.isConnected || !bottomPinned()) return false;
+        const cs = window.getComputedStyle(state.host);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+        if (parseFloat(cs.opacity || '1') === 0) return false;
+        return state.host.getBoundingClientRect().height > 0;
+    }
     // Reserve space at the bottom of the page equal to the prompt's footprint so
     // the footer (and any other bottom content) scrolls clear of the fixed card
-    // and stays clickable while the prompt is visible.
+    // and stays clickable while the prompt is visible. Capped so a runaway
+    // measurement can never push the footer off behind a giant band.
     function updateFooterReserve() {
-        if (!state.host || !bottomPinned()) { document.body.style.paddingBottom = ''; return; }
+        if (!reserveVisible()) { clearFooterReserve(); return; }
         requestAnimationFrame(function(){
-            if (!state.host || !bottomPinned()) { document.body.style.paddingBottom = ''; return; }
+            if (!reserveVisible()) { clearFooterReserve(); return; }
             const h = state.host.getBoundingClientRect().height || 0;
-            document.body.style.paddingBottom = h > 0 ? (Math.ceil(h) + 'px') : '';
+            if (h <= 0) { clearFooterReserve(); return; }
+            const cap = Math.max(0, Math.round(window.innerHeight * 0.5));
+            document.body.style.paddingBottom = Math.min(Math.ceil(h), cap) + 'px';
         });
     }
 
@@ -480,11 +503,16 @@ window.__cookieConsent = window.__cookieConsent || (function(){
     }
 
     function init() {
+        // No prompt is shown in these branches (a decision already exists, or the
+        // visitor is outside the configured geo scope), so make sure no stale
+        // bottom reserve survives (e.g. a bfcache restore of inline padding).
         if (state.decision && state.decision.c) {
+            clearFooterReserve();
             applyConsents(state.decision.c);
             return;
         }
         if (!inGeoScope()) {
+            clearFooterReserve();
             const o = {}; allCats().forEach(c => o[c] = true);
             applyConsents(o);
             return;
