@@ -563,7 +563,7 @@ $catColors = [
 ];
 @endphp
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
-    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks', 'showModeSelector' => true])
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
 
     <div class="flex items-center justify-end gap-2 mb-4">
         <button type="button" id="deleteAllBlocksBtn"

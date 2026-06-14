@@ -48,7 +48,7 @@ class FollowerDigestComposer
         $biolinkByCreator = [];
         if (!empty($creatorIds)) {
             $biolinkByCreator = Link::whereIn('user_id', $creatorIds)
-                ->where('type', 'biolink')
+                ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
                 ->with('domain')
                 ->get()
                 ->groupBy('user_id')

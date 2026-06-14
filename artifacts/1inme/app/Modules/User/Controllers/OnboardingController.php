@@ -237,7 +237,7 @@ class OnboardingController extends Controller
         // existing users hit the wizard via the dashboard banner). If they
         // already have one, apply the template to their most recent biolink
         // that has no blocks yet; otherwise nudge them to the picker.
-        $existing = $user->links()->where('type', 'biolink')->latest('id')->get();
+        $existing = $user->links()->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->latest('id')->get();
 
         if ($existing->isEmpty()) {
             // First-time creation — enforce the same plan caps used elsewhere.

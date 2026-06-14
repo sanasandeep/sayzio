@@ -35,7 +35,7 @@ class ViewerDirectMessageController
      */
     private function resolveMessageableLink(int $linkId)
     {
-        $link = Link::where('id', $linkId)->where('type', 'biolink')->first();
+        $link = Link::where('id', $linkId)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
         if (! $link || ! ($link->is_active ?? true)) {
             return ['reason' => 'not_found', 'http' => 404];
         }

@@ -20,7 +20,7 @@ class SlideDeckController extends Controller
     protected function authorizeLink(Link $link): void
     {
         abort_if(
-            $link->user_id !== workspace_owner_id() || $link->type !== 'biolink',
+            $link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(),
             403,
         );
     }

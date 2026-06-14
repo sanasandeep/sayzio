@@ -163,7 +163,7 @@
 </style>
 
 <div class="max-w-7xl mx-auto">
-    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'conversational', 'showModeSelector' => true])
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'conversational'])
 
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <a href="{{ route('user.links.conversational.analytics', $link) }}" class="cv-btn cv-btn-outline no-underline">

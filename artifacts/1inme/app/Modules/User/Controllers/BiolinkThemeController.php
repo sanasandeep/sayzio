@@ -21,7 +21,7 @@ class BiolinkThemeController extends Controller
 
     protected function authorize(Link $link): void
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
     }
 
     public function settingsIndex(Link $link)

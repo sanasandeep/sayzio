@@ -18,7 +18,7 @@ class BiolinkBlockController extends Controller
 {
     public function editor(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
         $blocks = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->get();
         $blocks->load('children');
         $blockTypes = BiolinkBlock::TYPES;
@@ -95,7 +95,7 @@ class BiolinkBlockController extends Controller
 
     public function settingsAppearance(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
         // Order templates as a "color grid": neutrals first (sorted by
         // lightness, brightest → darkest), then a rainbow sweep through
         // the colour wheel (red → orange → yellow → green → cyan → blue
@@ -204,25 +204,25 @@ class BiolinkBlockController extends Controller
 
     public function settingsLayout(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
         return view('user.links.settings.layout', compact('link'));
     }
 
     public function settingsBlockTheme(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
         return view('user.links.settings.block-theme', compact('link'));
     }
 
     public function settingsAdvanced(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
         return view('user.links.settings.advanced', compact('link'));
     }
 
     public function store(Request $request, Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
 
         $validated = $request->validate([
             'type' => 'required|string|in:' . implode(',',
@@ -741,7 +741,7 @@ class BiolinkBlockController extends Controller
 
     public function bulkDestroy(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
 
         // Verified blocks (verified_heading / verified_avatar) are protected and
         // must survive a "delete all" just like they survive a single delete.
@@ -781,7 +781,7 @@ class BiolinkBlockController extends Controller
 
     public function reorder(Request $request, Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
 
         $validated = $request->validate([
             'blocks' => 'required|array',
@@ -890,7 +890,7 @@ class BiolinkBlockController extends Controller
      */
     public function previewDraft(Request $request, Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
 
         $input = $request->except(['_token', '_method', 'remove_slideshow_images']);
         // Drop any uploaded file fields — they aren't persisted yet, so we
@@ -912,7 +912,7 @@ class BiolinkBlockController extends Controller
 
     public function updatePageSettings(Request $request, Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
 
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',

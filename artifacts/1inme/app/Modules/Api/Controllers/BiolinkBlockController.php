@@ -139,7 +139,7 @@ class BiolinkBlockController extends Controller
      */
     public function publicLimits(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->where('type', 'biolink')->first();
+        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
         // Mirror BiolinkController@show: missing or disabled links are
         // 404 (don't leak existence), and accessibility (paywall, expiry,
         // password-protected, etc.) is enforced before we touch blocks.
@@ -223,7 +223,7 @@ class BiolinkBlockController extends Controller
     protected function ownedLink(Request $request, int $id): ?Link
     {
         return Link::where('user_id', $request->user()->id)
-            ->where('type', 'biolink')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->find($id);
     }
 

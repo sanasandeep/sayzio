@@ -94,7 +94,7 @@ class DialerController extends Controller
         }
         if ($matchedUser) {
             $bio = \App\Modules\User\Models\Link::where('user_id', $matchedUser->id)
-                ->where('type', 'biolink')->where('is_active', true)
+                ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->where('is_active', true)
                 ->orderByDesc('id')->first();
         }
 

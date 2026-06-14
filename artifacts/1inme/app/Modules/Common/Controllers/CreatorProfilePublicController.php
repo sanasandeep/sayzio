@@ -96,7 +96,7 @@ class CreatorProfilePublicController extends Controller
 
         $primaryBiolink = Link::query()
             ->where('user_id', $creator->id)
-            ->where('type', 'biolink')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->orderBy('id')
             ->first();

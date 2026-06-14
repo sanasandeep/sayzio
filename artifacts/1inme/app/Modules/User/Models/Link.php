@@ -132,6 +132,26 @@ protected $fillable = [
     }
 
     /**
+     * AI Companions bound to this link via the `ai_companion_links` pivot.
+     * An `ai_chat` link drives its full-page chat through one of these.
+     */
+    public function aiCompanions()
+    {
+        return $this->belongsToMany(
+            AiCompanion::class,
+            'ai_companion_links',
+            'link_id',
+            'companion_id'
+        )->withTimestamps();
+    }
+
+    /** The single companion powering an ai_chat link (first bound). */
+    public function aiCompanion(): ?AiCompanion
+    {
+        return $this->aiCompanions()->first();
+    }
+
+    /**
      * A/B test variants for this short link. Populated by the browser
      * extension's "Shorten as A/B test" flow. When non-empty AND the
      * link's `settings.ab_test.winner_variant_id` is null, the redirect
@@ -493,15 +513,54 @@ protected $fillable = [
     }
 
     /**
+     * The "biolink family" — link types that share the biolink page
+     * engine (blocks, visibility tiers, themes, analytics, feeds, plan
+     * limits). `biolink` is the classic block list; `conversational`,
+     * `slides`, and `ai_chat` are first-class types that reuse the same
+     * underlying plumbing with a different public renderer/editor.
+     *
+     * Anything that gated on `type === 'biolink'` for *page* behaviour
+     * (as opposed to "a classic block list specifically") should use
+     * {@see isBiolinkFamily()} / {@see scopeBiolinkFamily()} instead so
+     * the new types inherit the same treatment.
+     */
+    public const TYPE_BIOLINK        = 'biolink';
+    public const TYPE_CONVERSATIONAL = 'conversational';
+    public const TYPE_SLIDES         = 'slides';
+    public const TYPE_AI_CHAT        = 'ai_chat';
+
+    public const BIOLINK_FAMILY = [
+        self::TYPE_BIOLINK,
+        self::TYPE_CONVERSATIONAL,
+        self::TYPE_SLIDES,
+        self::TYPE_AI_CHAT,
+    ];
+
+    /** Is this link rendered by the biolink page engine? */
+    public function isBiolinkFamily(): bool
+    {
+        return in_array($this->type, self::BIOLINK_FAMILY, true);
+    }
+
+    /** Query scope: restrict to biolink-family link types. */
+    public function scopeBiolinkFamily($query)
+    {
+        return $query->whereIn('type', self::BIOLINK_FAMILY);
+    }
+
+    /**
      * Friendly user-facing labels for link types. Internal slugs
      * (`url`, `biolink`, `file`, `ics`, `vcf`) remain unchanged.
      */
     public const TYPE_LABELS = [
-        'url'     => 'Short Link',
-        'biolink' => 'Link in Bio',
-        'file'    => 'File Share',
-        'ics'     => 'Event',
-        'vcf'     => 'Contact Card',
+        'url'            => 'Short Link',
+        'biolink'        => 'Link in Bio',
+        'conversational' => 'Conversational',
+        'slides'         => 'Slides',
+        'ai_chat'        => 'AI Chatbot',
+        'file'           => 'File Share',
+        'ics'            => 'Event',
+        'vcf'            => 'Contact Card',
     ];
 
     public static function typeLabel(?string $type): string

@@ -1,5 +1,12 @@
 @php
     $activeMainTab = $activeMainTab ?? 'blocks';
+    $__typeIcons = [
+        'biolink'        => 'fa-th-large',
+        'conversational' => 'fa-comments',
+        'slides'         => 'fa-images',
+        'ai_chat'        => 'fa-robot',
+    ];
+    $__typeIcon = $__typeIcons[$link->type] ?? 'fa-link';
     $favSrc = $link->favicon
         ?? ($link->settings['biolink']['favicons']['icon_512'] ?? null)
         ?? ($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null);
@@ -7,18 +14,18 @@
         $host = parse_url($link->long_url, PHP_URL_HOST);
         if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
     }
-    if (!$favSrc && $link->type === 'biolink') {
+    if (!$favSrc && $link->isBiolinkFamily()) {
         $favSrc = url('favicon.ico');
     }
 @endphp
 @include('user.partials.page-hero', [
     'title'    => $link->title ?: $link->alias,
-    'icon'     => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link',
+    'icon'     => $__typeIcon,
     'favicon'  => $favSrc,
     'url'      => $link->getShortUrl(),
     'chips'    => [
         ['icon' => 'fa-circle ' . ($link->is_active ? 'text-emerald-400' : 'text-red-400'), 'text' => $link->is_active ? 'Active' : 'Inactive'],
-        ['icon' => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link', 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
+        ['icon' => $__typeIcon, 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
     ],
     'back'     => route('user.links.index'),
     'actions'  => [
@@ -41,20 +48,26 @@
             <i class="fas fa-cog text-[10px]"></i>
             <span>Settings</span>
         </a>
+        @if($link->type === 'conversational')
         <a href="{{ route('user.links.conversational.editor', $link) }}"
            class="editor-tab no-underline {{ $activeMainTab === 'conversational' ? 'is-active' : '' }}">
             <i class="fas fa-comments text-[10px]"></i>
             <span>Conversational</span>
         </a>
+        @elseif($link->type === 'slides')
         <a href="{{ route('user.links.slides.editor', $link) }}"
            class="editor-tab no-underline {{ $activeMainTab === 'slides' ? 'is-active' : '' }}">
             <i class="fas fa-images text-[10px]"></i>
             <span>Slides</span>
         </a>
+        @elseif($link->type === 'ai_chat')
+        <a href="{{ route('user.links.ai-chat.editor', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'ai_chat' ? 'is-active' : '' }}">
+            <i class="fas fa-robot text-[10px]"></i>
+            <span>AI Chat</span>
+        </a>
+        @endif
     </div>
-    @if($showModeSelector ?? false)
-        @include('user.links.partials.mode-selector', ['link' => $link, 'inline' => true])
-    @endif
 </div>
 @endif
 <style>

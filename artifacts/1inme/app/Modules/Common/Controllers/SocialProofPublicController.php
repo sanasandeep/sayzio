@@ -110,7 +110,7 @@ class SocialProofPublicController extends Controller
     private function ownerHidesPublicVisitorCounts(int $userId): bool
     {
         $bio = Link::where('user_id', $userId)
-            ->where('type', 'biolink')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->orderByDesc('total_clicks')
             ->first(['settings']);

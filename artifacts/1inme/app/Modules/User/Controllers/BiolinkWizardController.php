@@ -244,7 +244,7 @@ class BiolinkWizardController extends Controller
         }
         $maxBiolinks = $features['max_biolinks'] ?? 1;
         if ($maxBiolinks !== -1) {
-            $usedBiolinks = $owner->links()->where('type', 'biolink')->count();
+            $usedBiolinks = $owner->links()->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->count();
             if ($usedBiolinks >= $maxBiolinks) {
                 return redirect()->route('user.upgrade')
                     ->with('error', 'You\'ve reached your plan\'s Link in Bio limit — upgrade to add more.');

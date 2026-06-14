@@ -124,7 +124,7 @@ class CarbonEmissionsModel
     /** Bytes/view tier for a link's complexity. */
     public function bytesPerViewFor(Link $link): int
     {
-        if ($link->type !== 'biolink') return self::DEFAULT_BYTES_PER_VIEW;
+        if (!$link->isBiolinkFamily()) return self::DEFAULT_BYTES_PER_VIEW;
         $blocks = (int) $link->biolinkBlocks()->where('is_active', true)->count();
         foreach (self::COMPLEXITY_TIERS as $tier) {
             if ($blocks <= $tier['max_blocks']) return (int) $tier['bytes'];

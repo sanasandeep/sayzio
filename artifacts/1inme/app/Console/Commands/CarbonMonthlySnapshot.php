@@ -47,7 +47,7 @@ class CarbonMonthlySnapshot extends Command
         // / file / vcard / ics types redirect off-domain or download
         // a payload, so the SWD per-view bytes model doesn't apply
         // and offsetting them would misbill the workspace.
-        $q = Link::query()->where('is_active', true)->where('type', 'biolink');
+        $q = Link::query()->where('is_active', true)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY);
         if ($this->option('link')) $q->where('id', $this->option('link'));
 
         $written = 0; $offset = 0; $skipped = 0;

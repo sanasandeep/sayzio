@@ -31,7 +31,7 @@ class CardTemplateController extends Controller
     public function index(Request $request, int $id): JsonResponse
     {
         $link = Link::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
-        abort_if($link->type !== 'biolink', 403);
+        abort_if(!$link->isBiolinkFamily(), 403);
 
         $userPlanSlug = auth()->user()?->plan?->slug;
         $categories = CardTemplate::categories();
@@ -85,7 +85,7 @@ class CardTemplateController extends Controller
     public function apply(Request $request, int $id): JsonResponse
     {
         $link = Link::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
-        abort_if($link->type !== 'biolink', 403);
+        abort_if(!$link->isBiolinkFamily(), 403);
 
         $validated = $request->validate([
             'template_id'  => 'required|integer|exists:card_templates,id',

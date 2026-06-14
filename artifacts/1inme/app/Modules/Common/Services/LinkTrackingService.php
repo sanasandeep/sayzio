@@ -120,7 +120,7 @@ class LinkTrackingService
         // settings.biolink.privacy and only apply to biolink-type links.
         // Short links and other types keep their historical behaviour of
         // recording the Referer header.
-        if ($link->type !== 'biolink') {
+        if (!$link->isBiolinkFamily()) {
             return true;
         }
         $explicit = data_get($link->settings, 'biolink.privacy.disable_referrer_logging', null);

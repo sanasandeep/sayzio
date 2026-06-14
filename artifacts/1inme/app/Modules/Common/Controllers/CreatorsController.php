@@ -40,7 +40,7 @@ class CreatorsController extends Controller
         $onlyAdult = $ageGated && (string) $request->query('only_adult', '0') === '1';
 
         // Discoverable users that have at least one published biolink.
-        $publishedBiolinkUserIds = Link::where('type', 'biolink')
+        $publishedBiolinkUserIds = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->select('user_id')->distinct();
 
@@ -230,7 +230,7 @@ class CreatorsController extends Controller
             ->where('profile_published', true)
             ->where('id', '!=', $creator->id)
             ->whereNotNull('handle')
-            ->whereIn('id', Link::where('type', 'biolink')->where('is_active', true)->select('user_id'));
+            ->whereIn('id', Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->where('is_active', true)->select('user_id'));
         if (!empty($blocked)) $q->whereNotIn('id', $blocked);
 
         if (!empty($tags)) {
@@ -360,7 +360,7 @@ class CreatorsController extends Controller
 
         // Pick the same "primary biolink" each creator's directory snippet
         // is implicitly tied to: their most-clicked active biolink.
-        $primary = Link::where('type', 'biolink')
+        $primary = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->whereIn('user_id', $creatorIds)
             ->orderByDesc('total_clicks')

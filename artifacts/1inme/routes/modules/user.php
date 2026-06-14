@@ -729,6 +729,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/slides/analytics.json', [\App\Modules\User\Controllers\SlideDeckController::class, 'analytics'])->middleware('workspace.can:links.view')->name('links.slides.analytics.json');
         Route::get ('links/{link}/slides/analytics.csv',  [\App\Modules\User\Controllers\SlideDeckController::class, 'exportCsv'])->middleware('workspace.can:links.view')->name('links.slides.analytics.csv');
 
+        // ── Full-page AI Chat (links.type = ai_chat) ───────────────────
+        Route::get ('links/{link}/ai-chat', [\App\Modules\User\Controllers\AiChatController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.ai-chat.editor');
+        Route::post('links/{link}/ai-chat', [\App\Modules\User\Controllers\AiChatController::class, 'save'])->middleware('workspace.can:links.edit')->name('links.ai-chat.save');
+
         // Plan upgrade, checkout & billing — these touch the workspace
         // owner's subscription/wallet/invoices, so they remain owner-only
         // regardless of any member's role inside the workspace.

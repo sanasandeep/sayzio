@@ -42,7 +42,7 @@ class SubscriberController
             'whatsapp_number' => Subscriber::where('user_id', $user->id)->ofType('whatsapp_number')->active()->count(),
         ];
 
-        $links = Link::where('user_id', $user->id)->where('type', 'biolink')->get(['id', 'alias']);
+        $links = Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->get(['id', 'alias']);
 
         return view('user.subscribers.index', compact('subscribers', 'stats', 'links'));
     }

@@ -122,7 +122,7 @@ class RedirectController extends Controller
         // throughput unchanged.
         $rateLimiter = app(\App\Modules\Common\Services\VisitorRateLimiter::class);
         $rlUa = $request->userAgent() ?: $request->header('X-1INME-Client');
-        if ($link->type === 'biolink' && $rateLimiter->shouldThrottle($link, $request, $rlUa)) {
+        if ($link->isBiolinkFamily() && $rateLimiter->shouldThrottle($link, $request, $rlUa)) {
             // Still record the throttled hit so creators see it in the
             // "Blocked attempts this week" stat. The tracking service
             // reads the same memoized decision and tags is_throttled=true
@@ -311,7 +311,7 @@ class RedirectController extends Controller
         // into the link's settings BEFORE rendering. This is what powers the
         // live device preview so creators can see colour/font/theme/layout
         // tweaks without hitting Save first.
-        if ($link->type === 'biolink') {
+        if ($link->isBiolinkFamily()) {
             $this->applyDraftOverrides($request, $link);
             $this->applyPreviewSimulation($request);
             // Read-time safety net: if a scheduled theme just started but
@@ -353,12 +353,12 @@ class RedirectController extends Controller
             }
         }
 
-        return match ($link->type) {
-            'url' => tap(
-                redirect()->away($finalUrl, $link->redirect_type ?: 301),
-                fn ($r) => $smartCookie && $r->withCookie($smartCookie)
-            ),
-            'biolink' => tap(
+        // Whole biolink family (biolink/conversational/slides/ai_chat)
+        // renders through the same page engine — framing headers, A/B
+        // plumbing, and lazy social refresh. The specific public template
+        // is chosen by biolinkViewFor() based on the link type.
+        if ($link->isBiolinkFamily()) {
+            return tap(
                 $this->applyBiolinkFramingHeaders(
                     response()->view($this->biolinkViewFor($link), compact('link')),
                     $request
@@ -375,6 +375,13 @@ class RedirectController extends Controller
                         app(BiolinkExperimentService::class)->recordVisit($exp, $variant);
                     }
                 }
+            );
+        }
+
+        return match ($link->type) {
+            'url' => tap(
+                redirect()->away($finalUrl, $link->redirect_type ?: 301),
+                fn ($r) => $smartCookie && $r->withCookie($smartCookie)
             ),
             'file' => $this->handleFileDownload($link),
             'ics' => $this->handleIcsDownload($link),
@@ -467,25 +474,44 @@ class RedirectController extends Controller
     protected function biolinkViewFor(Link $link): string
     {
         // Pick the visitor's variant + override the rendered block tree
-        // BEFORE the view is resolved so all biolink modes (list,
-        // conversational, slides) share the same A/B plumbing.
+        // BEFORE the view is resolved so all biolink-family types (biolink,
+        // conversational, slides, ai_chat) share the same A/B plumbing.
         $this->applyBiolinkAbExperiment($link);
 
-        $mode = data_get($link->settings, 'biolink.mode', 'list');
-        if ($mode !== 'conversational' && $mode !== 'slides') return 'common.biolink';
+        // The link type now drives the renderer. Legacy `biolink` rows that
+        // still carry a `settings.biolink.mode` are honoured as a fallback
+        // so anything that hasn't been migrated yet keeps working.
+        $type = $link->type;
+        if ($type === 'biolink') {
+            $mode = data_get($link->settings, 'biolink.mode', 'list');
+            if ($mode === 'conversational') $type = 'conversational';
+            elseif ($mode === 'slides')     $type = 'slides';
+        }
+
+        if ($type !== 'conversational' && $type !== 'slides' && $type !== 'ai_chat') {
+            return 'common.biolink';
+        }
 
         $req = request();
         $isOwnerPreview = $req && $req->boolean('_preview')
             && $req->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false);
 
-        if ($mode === 'slides') {
+        if ($type === 'ai_chat') {
+            // The full-page AI chat needs a companion bound to the link to
+            // run; without one (or if it's disabled) fall back to the block
+            // page so the URL is never a dead end.
+            $companion = $link->aiCompanion();
+            return ($companion && !$companion->is_disabled) ? 'common.ai-chat' : 'common.biolink';
+        }
+
+        if ($type === 'slides') {
             $q = \App\Modules\User\Models\LinkSlideDeck::withoutGlobalScope('workspace')
                 ->where('link_id', $link->id);
             if (!$isOwnerPreview) $q->where('is_published', true);
             return $q->exists() ? 'common.biolink-slides' : 'common.biolink';
         }
 
-        // Conversational mode — same draft preview unlock as before.
+        // Conversational — same draft preview unlock as before.
         if ($isOwnerPreview) {
             session([
                 'cv_preview_link_'.$link->id => now()->addMinutes(30)->getTimestamp(),
@@ -568,7 +594,7 @@ class RedirectController extends Controller
     {
         $vis = $link->visibility ?? 'public';
         if ($vis === 'public') return null;
-        if ($link->type !== 'biolink') return null;
+        if (!$link->isBiolinkFamily()) return null;
 
         $viewerId = ViewerSession::id() ?: optional($request->user())->id;
         if ($viewerId && (int) $viewerId === (int) $link->user_id) {
@@ -665,7 +691,7 @@ class RedirectController extends Controller
     public function manifest(Request $request, string $alias)
     {
         $link = Link::resolveByAlias($alias, $request->getHost());
-        if (!$link || $link->type !== 'biolink') abort(404);
+        if (!$link || !$link->isBiolinkFamily()) abort(404);
 
         if (!$link->isAccessible()) {
             abort(404);
@@ -793,7 +819,7 @@ class RedirectController extends Controller
     public function handleBlockClick(Request $request, string $alias, int $blockId)
     {
         $link = Link::resolveByAlias($alias, $request->getHost());
-        if (!$link || $link->type !== 'biolink') abort(404);
+        if (!$link || !$link->isBiolinkFamily()) abort(404);
 
         if (!$link->isAccessible()) {
             if ($redirect = $link->getExpiryRedirectUrl()) {

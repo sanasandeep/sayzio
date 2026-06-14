@@ -152,7 +152,7 @@ class AskCoachToolRegistry
     {
         $rows = Link::query()
             ->where('user_id', $user->id)
-            ->where('type', 'biolink')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->orderByDesc('id')
             ->limit(10)
             ->get(['id', 'title', 'alias', 'is_active', 'total_clicks']);
@@ -186,7 +186,7 @@ class AskCoachToolRegistry
     {
         $rows = Link::query()
             ->where('user_id', $user->id)
-            ->where('type', '!=', 'biolink')
+            ->whereNotIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->orderByDesc('total_clicks')
             ->limit(10)
             ->get(['id', 'type', 'title', 'alias', 'long_url', 'total_clicks', 'is_active']);

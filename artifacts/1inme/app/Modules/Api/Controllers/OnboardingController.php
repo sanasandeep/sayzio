@@ -18,7 +18,7 @@ class OnboardingController extends Controller
             'has_handle'        => (bool) ($u->handle ?? false),
             'email_verified'    => (bool) ($u->email_verified_at ?? false),
             'has_links'         => $u->id ? \App\Modules\User\Models\Link::where('user_id', $u->id)->exists() : false,
-            'has_biolink'       => $u->id ? \App\Modules\User\Models\Link::where('user_id', $u->id)->where('type', 'biolink')->exists() : false,
+            'has_biolink'       => $u->id ? \App\Modules\User\Models\Link::where('user_id', $u->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->exists() : false,
         ]);
     }
 

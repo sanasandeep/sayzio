@@ -23,11 +23,13 @@ class AiCompanion extends Model
     public const PLACEMENT_BIOLINK = 'biolink';
     public const PLACEMENT_EMBED   = 'embed';
     public const PLACEMENT_INBOX   = 'inbox';
+    public const PLACEMENT_PAGE    = 'page';
 
     public const PLACEMENTS = [
         self::PLACEMENT_BIOLINK => 'Biolink chatbot',
         self::PLACEMENT_EMBED   => 'External website embed',
         self::PLACEMENT_INBOX   => 'Inbox auto-reply bot',
+        self::PLACEMENT_PAGE    => 'Full-page AI chat',
     ];
 
     protected $fillable = [

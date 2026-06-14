@@ -80,7 +80,7 @@ class LinkController extends Controller
         // so power users who repeatedly create the same kind of link can fly
         // through Step 1 with a single click + name.
         $lastType = $request->session()->get('links.last_type');
-        if (!in_array($lastType, ['url', 'biolink', 'file', 'ics', 'vcf'], true)) {
+        if (!in_array($lastType, ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'file', 'ics', 'vcf'], true)) {
             $lastType = null;
         }
 
@@ -109,7 +109,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,file,ics,vcf',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,file,ics,vcf',
             'alias' => [
                 'nullable', 'string', 'alpha_dash',
                 'min:' . $limits['min'],
@@ -126,12 +126,20 @@ class LinkController extends Controller
         // pre-selected on their next visit to Step 1.
         $request->session()->put('links.last_type', $validated['type']);
 
+        // Conversational / Slides / AI Chatbot share the biolink "Step 2"
+        // form (name + alias + project); the chosen type is carried through
+        // so store() persists the right links.type.
+        $params['type'] = $validated['type'];
+
         return match ($validated['type']) {
-            'url'     => redirect()->route('user.links.url.create', $params),
-            'biolink' => redirect()->route('user.links.biolink.create', $params),
-            'file'    => redirect()->route('user.links.file.create', $params),
-            'ics'     => redirect()->route('user.links.ics.create', $params),
-            'vcf'     => redirect()->route('user.links.vcf.create', $params),
+            'url'            => redirect()->route('user.links.url.create', $params),
+            'biolink',
+            'conversational',
+            'slides',
+            'ai_chat'        => redirect()->route('user.links.biolink.create', $params),
+            'file'           => redirect()->route('user.links.file.create', $params),
+            'ics'            => redirect()->route('user.links.ics.create', $params),
+            'vcf'            => redirect()->route('user.links.vcf.create', $params),
         };
     }
 
@@ -163,12 +171,21 @@ class LinkController extends Controller
         $projects = workspace_owner()->projects()->orderBy('name')->get();
         $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
+        // Shared Step 2 form for the whole biolink family. The type is
+        // carried through from the picker so store() persists it; default
+        // to the classic biolink when missing or out of family.
+        $type = (string) $request->query('type', 'biolink');
+        if (!in_array($type, ['biolink', 'conversational', 'slides', 'ai_chat'], true)) {
+            $type = 'biolink';
+        }
+
         return view('user.links.create-biolink', [
             'projects' => $projects,
             'domains'  => $domains,
             'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
+            'linkType'    => $type,
         ]);
     }
 
@@ -177,7 +194,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,file,ics,vcf',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,file,ics,vcf',
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
@@ -316,7 +333,7 @@ class LinkController extends Controller
         }
 
         // Push a "link_published" feed event so followers see the new link.
-        if (($link->is_active ?? true) && in_array($link->type, ['biolink', 'short', 'file', 'splash', 'rsvp'])) {
+        if (($link->is_active ?? true) && in_array($link->type, array_merge(Link::BIOLINK_FAMILY, ['short', 'file', 'splash', 'rsvp']))) {
             try {
                 $u = auth()->user();
                 \App\Modules\User\Models\FeedEvent::create([
@@ -336,6 +353,21 @@ class LinkController extends Controller
                     \App\Modules\User\Controllers\CreatorPostController::notifyFollowersDebounced($u, 'published a new link: ' . ($link->title ?: $link->alias));
                 }
             } catch (\Throwable $e) { \Log::warning('feed event failed: ' . $e->getMessage()); }
+        }
+
+        // Biolink-family types each open straight into their dedicated
+        // editor instead of the generic links index.
+        if ($link->type === 'conversational') {
+            return redirect()->route('user.links.conversational.editor', $link)
+                ->with('success', 'Conversational link created — build your chat flow.');
+        }
+        if ($link->type === 'slides') {
+            return redirect()->route('user.links.slides.editor', $link)
+                ->with('success', 'Slides link created — build your deck.');
+        }
+        if ($link->type === 'ai_chat') {
+            return redirect()->route('user.links.ai-chat.editor', $link)
+                ->with('success', 'AI Chatbot created — configure its persona and knowledge.');
         }
 
         // For new biolinks, send the user to the template picker so they can
@@ -794,7 +826,7 @@ class LinkController extends Controller
         // Build a lightweight metadata map (title/url/thumb) for each block on this link
         // so the engagement table can show *what* each block actually is, not just an id.
         $blockMeta = [];
-        if ($link->type === 'biolink') {
+        if ($link->isBiolinkFamily()) {
             $blocksForLink = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
                 ->get(['id', 'type', 'settings', 'parent_id', 'is_active']);
 
@@ -918,7 +950,7 @@ class LinkController extends Controller
         $blockInventory = ['clickable' => [], 'has_socials' => false, 'has_qr' => false,
                             'active_count' => 0, 'top_level_active_count' => 0,
                             'disabled_socials_block_id' => null];
-        if ($link->type === 'biolink' && isset($blocksForLink)) {
+        if ($link->isBiolinkFamily() && isset($blocksForLink)) {
             $nonInteractive = ['heading', 'heading_logo',
                 'paragraph', 'paragraph_rich', 'divider', 'spacer',
                 'verified_heading', 'verified_avatar', 'alert', 'badge', 'avatar'];
@@ -2065,7 +2097,7 @@ class LinkController extends Controller
 
         // For biolinks, all edit controls live on the unified Appearance
         // settings page so users have a single, premium place to manage them.
-        if ($link->type === 'biolink') {
+        if ($link->isBiolinkFamily()) {
             return redirect()->route('user.links.settings.appearance', $link);
         }
 

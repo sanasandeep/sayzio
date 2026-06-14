@@ -20,3 +20,4 @@
 - [CDN SRI breaks vendored libs](cdn-sri-vendored-libs.md) — cdnjs SRI hashes drift and silently block scripts; self-host pinned in public/{js,css}/vendor (Leaflet, Alpine), no integrity attrs.
 - [Expo Router typed-route regen](expo-router-typed-routes.md) — adding a screen breaks router.push typecheck until the expo dev server rewrites .expo/types/router.d.ts; restart the expo workflow, don't cast.
 - [Site layout meta description](site-layout-meta-description.md) — plain <meta description> falls back to $shareDescription; model-less marketing pages just pass $shareTitle/$shareDescription.
+- [Biolink family & ai_chat type](biolink-family-and-ai-chat.md) — conversational/slides/ai_chat are distinct links.type (use isBiolinkFamily); ai_chat reuses AiCompanion(placement=page), no new AI runtime; embed-only origin gate means same-origin full-page chat just works.

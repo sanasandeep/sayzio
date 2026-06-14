@@ -215,7 +215,7 @@
     }
 </style>
 
-@include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'slides', 'showModeSelector' => true])
+@include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'slides'])
 
 <div class="sl-builder">
     <div>

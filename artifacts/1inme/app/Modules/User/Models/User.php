@@ -316,7 +316,7 @@ class User extends Authenticatable
     public function primaryBiolink(): ?Link
     {
         return Link::where('user_id', $this->id)
-            ->where('type', 'biolink')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->orderByDesc('total_clicks')
             ->first();

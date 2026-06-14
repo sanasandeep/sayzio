@@ -47,7 +47,7 @@ class BiolinkThemeResolver
      */
     public function applyActiveTheme(Link $link): void
     {
-        if (($link->type ?? null) !== 'biolink') return;
+        if (!$link->isBiolinkFamily()) return;
 
         $sched = $this->currentScheduleFor($link);
         if (!$sched || !$sched->theme) return;

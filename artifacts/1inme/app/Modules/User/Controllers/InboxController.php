@@ -36,7 +36,7 @@ class InboxController
         $items->withPath($request->url())->appends($request->except('page'));
 
         $forms = Form::where('user_id', $userId)->orderBy('title')->get(['id', 'title']);
-        $links = Link::where('user_id', $userId)->where('type', 'biolink')->orderBy('alias')->get(['id', 'alias']);
+        $links = Link::where('user_id', $userId)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->orderBy('alias')->get(['id', 'alias']);
         $sourceLabels = InboxAggregator::sourceLabels();
         $unread = $aggregator->unreadCount();
 

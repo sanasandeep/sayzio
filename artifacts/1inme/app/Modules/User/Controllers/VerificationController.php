@@ -19,14 +19,14 @@ class VerificationController extends Controller
             ->with('link')
             ->orderByDesc('created_at')
             ->get();
-        $biolinks = Link::where('user_id', $user->id)->where('type', 'biolink')->get();
+        $biolinks = Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->get();
         return view('user.verification.index', compact('requests', 'biolinks'));
     }
 
     public function create(Request $request)
     {
         $user = Auth::user();
-        $biolinks = Link::where('user_id', $user->id)->where('type', 'biolink')->get();
+        $biolinks = Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->get();
         $linkId = $request->query('link_id');
         return view('user.verification.request', compact('biolinks', 'linkId'));
     }
@@ -141,7 +141,7 @@ class VerificationController extends Controller
             'verified_logo' => $verificationRequest->logo_path,
         ]);
 
-        if ($link->type === 'biolink') {
+        if ($link->isBiolinkFamily()) {
             $settings = $link->settings ?? [];
             $settings['biolink']['title'] = $verificationRequest->display_name;
             $link->update([

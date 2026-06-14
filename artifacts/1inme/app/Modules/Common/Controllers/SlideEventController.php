@@ -16,7 +16,7 @@ class SlideEventController extends Controller
     public function view(Request $request, string $alias)
     {
         $link = Link::withoutGlobalScope('workspace')
-            ->where('alias', $alias)->where('type', 'biolink')->first();
+            ->where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
         if (!$link || !$link->is_active) abort(404);
         if (!$link->isAccessible())     abort(404);
 

@@ -93,7 +93,7 @@ class ApplyScheduledBiolinkThemes extends Command
             try {
                 DB::transaction(function () use ($sched, $resolver) {
                     $link = Link::query()->lockForUpdate()->find($sched->link_id);
-                    if (!$link || $link->type !== 'biolink') return;
+                    if (!$link || !$link->isBiolinkFamily()) return;
 
                     $theme = $sched->theme()->first();
                     if (!$theme) {

@@ -127,7 +127,7 @@ class EngagementController extends Controller
         // Engagement endpoints are only meaningfully reached from biolink
         // pages, but be explicit: privacy semantics live under
         // settings.biolink.privacy and only apply to biolink-type links.
-        if ($link->type !== 'biolink') return true;
+        if (!$link->isBiolinkFamily()) return true;
         $bannerOn = (bool) data_get($link->settings, 'biolink.privacy.consent_banner_enabled', false);
         if (!$bannerOn) return true;
         // Per-link banner cookie wins when present.
@@ -150,7 +150,7 @@ class EngagementController extends Controller
 
     private function shouldLogReferrer(Link $link): bool
     {
-        if ($link->type !== 'biolink') return true;
+        if (!$link->isBiolinkFamily()) return true;
         $explicit = data_get($link->settings, 'biolink.privacy.disable_referrer_logging', null);
         if ($explicit === null) return false;
         return !((bool) $explicit);

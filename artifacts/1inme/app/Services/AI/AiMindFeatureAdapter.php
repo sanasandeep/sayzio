@@ -66,7 +66,7 @@ class AiMindFeatureAdapter
     protected function biolinks(User $user): string
     {
         $links = $user->links()
-            ->where('type', 'biolink')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->latest('updated_at')
             ->limit(20)
             ->get(['id','title','alias','clicks','active','updated_at']);
@@ -83,7 +83,7 @@ class AiMindFeatureAdapter
     protected function links(User $user): string
     {
         $links = $user->links()
-            ->where('type', '!=', 'biolink')
+            ->whereNotIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->latest('updated_at')
             ->limit(30)
             ->get(['id','type','title','alias','target_url','clicks','active']);

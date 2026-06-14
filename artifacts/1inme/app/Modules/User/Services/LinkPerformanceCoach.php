@@ -509,7 +509,7 @@ class LinkPerformanceCoach
         $cfg = $ctx['_config'] ?? self::CONFIG;
         /** @var Link $link */
         $link = $ctx['link'];
-        if ($link->type !== 'biolink') return null;
+        if (!$link->isBiolinkFamily()) return null;
         if ((int) ($ctx['totalInRange'] ?? 0) < $cfg['dead_block_min_total_clicks']) return null;
 
         $blockStats = $ctx['blockStats'] ?? collect();
@@ -659,7 +659,7 @@ class LinkPerformanceCoach
     {
         /** @var Link $link */
         $link = $ctx['link'];
-        if ($link->type !== 'biolink') return null;
+        if (!$link->isBiolinkFamily()) return null;
 
         $inv = $ctx['blockInventory'] ?? [];
         if (!empty($inv['has_socials'])) return null;
@@ -699,7 +699,7 @@ class LinkPerformanceCoach
         $cfg = $ctx['_config'] ?? self::CONFIG;
         /** @var Link $link */
         $link = $ctx['link'];
-        if ($link->type !== 'biolink') return null;
+        if (!$link->isBiolinkFamily()) return null;
         if ((int) ($ctx['totalSessions'] ?? 0) < 20) return null;
 
         $inv = $ctx['blockInventory'] ?? [];
@@ -740,7 +740,7 @@ class LinkPerformanceCoach
     {
         /** @var Link $link */
         $link = $ctx['link'];
-        if ($link->type !== 'biolink') return null;
+        if (!$link->isBiolinkFamily()) return null;
         // Feature gate: only fire if the link has a QR-code block configured.
         $inv = $ctx['blockInventory'] ?? [];
         if (empty($inv['has_qr'])) return null;

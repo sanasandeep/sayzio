@@ -45,7 +45,7 @@ class CreatorProfileApiController extends Controller
             : false;
 
         $primaryBiolink = Link::where('user_id', $creator->id)
-            ->where('type', 'biolink')->where('is_active', true)
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->where('is_active', true)
             ->orderBy('id')->first();
 
         // ── Monetization (Task #1209) ────────────────────────────

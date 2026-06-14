@@ -22,7 +22,7 @@ class LinkTemplateController extends Controller
 
     public function picker(Request $request, Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== auth()->id() || !$link->isBiolinkFamily(), 403);
         $user = auth()->user();
         $userPlanSlug = $user->plan?->slug;
         // Show all active templates so users can see what they could unlock,
@@ -65,7 +65,7 @@ class LinkTemplateController extends Controller
 
     public function cardGallery(Request $request, Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== auth()->id() || !$link->isBiolinkFamily(), 403);
         $userPlanSlug = auth()->user()->plan?->slug;
 
         $categories = CardTemplate::categories();
@@ -116,7 +116,7 @@ class LinkTemplateController extends Controller
 
     public function applyPage(Request $request, Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== auth()->id() || !$link->isBiolinkFamily(), 403);
         $validated = $request->validate([
             'template_id' => 'required|integer|exists:page_templates,id',
             'confirm_overwrite' => 'nullable|boolean',
@@ -142,7 +142,7 @@ class LinkTemplateController extends Controller
 
     public function applyCard(Request $request, Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== auth()->id() || !$link->isBiolinkFamily(), 403);
         $validated = $request->validate([
             'template_id' => 'required|integer|exists:card_templates,id',
             'insert_after' => 'nullable|integer|exists:biolink_blocks,id',

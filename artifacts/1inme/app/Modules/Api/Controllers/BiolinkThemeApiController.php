@@ -24,7 +24,7 @@ class BiolinkThemeApiController extends Controller
 
     protected function ownedLink(Request $request, int $id): ?Link
     {
-        $link = Link::where('id', $id)->where('type', 'biolink')->first();
+        $link = Link::where('id', $id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
         if (!$link) return null;
         $user = $request->user();
         if (!$user || (int) $link->user_id !== (int) $user->id) return null;

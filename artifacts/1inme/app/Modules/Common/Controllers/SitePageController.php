@@ -337,7 +337,7 @@ class SitePageController extends Controller
 
         // Public biolinks: active + owned by a discoverable user.
         $query = Link::query()
-            ->where('type', 'biolink')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->whereHas('user', fn($u) => $u->where('discoverable', true))
             ->with(['user:id,name,handle,bio,avatar,followers_count']);

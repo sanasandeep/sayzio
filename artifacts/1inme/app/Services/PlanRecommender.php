@@ -249,7 +249,7 @@ class PlanRecommender
     {
         return [
             'max_links'        => (int) Link::where('user_id', $user->id)->count(),
-            'max_biolinks'     => (int) Link::where('user_id', $user->id)->where('type', 'biolink')->count(),
+            'max_biolinks'     => (int) Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->count(),
             'max_projects'     => (int) $user->projects()->count(),
             'storage_limit_mb' => (int) round($user->getStorageUsedBytes() / 1048576),
             'contacts_max'     => (int) Contact::where('user_id', $user->id)->count(),
