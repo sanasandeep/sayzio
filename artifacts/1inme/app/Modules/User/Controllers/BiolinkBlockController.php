@@ -953,6 +953,7 @@ class BiolinkBlockController extends Controller
             'custom_branding_logo' => 'nullable|string|max:500',
             'favicon_url' => 'nullable|string|max:500',
             'favicon_upload' => \App\Services\UploadPolicy::rule('link.favicon_upload', $request->user()),
+            'visibility' => 'nullable|string|in:public,registered,followers,subscribers',
             'custom_css' => 'nullable|string|max:10000',
             'custom_js_head' => 'nullable|string|max:10000',
             'custom_js_body' => 'nullable|string|max:10000',
@@ -1298,14 +1299,19 @@ class BiolinkBlockController extends Controller
             $settings['biolink']['slideshow_images'] = array_values(array_diff_key($existing, array_flip($removeIndexes)));
         }
 
+        // Favicon single source of truth: the primary favicon lives on the
+        // Link.favicon column (shared with short links). We intentionally no
+        // longer mirror it into settings.biolink.favicon_url. Touch-icon sizes
+        // (apple_touch_icon, icon_512) have no column and stay under
+        // settings.biolink.favicons.
         $faviconValue = null;
         if ($request->hasFile('favicon_upload') && $user->getPlanFeature('custom_favicon', false)) {
             $faviconValue = $vault($request->file('favicon_upload'));
-            $settings['biolink']['favicon_url'] = $faviconValue;
         } elseif (!empty($validated['favicon_url']) && $user->getPlanFeature('custom_favicon', false)) {
             $faviconValue = $this->sanitizeUrl($validated['favicon_url']);
-            $settings['biolink']['favicon_url'] = $faviconValue;
         }
+        // Drop any legacy mirror so it can never diverge from the column.
+        unset($settings['biolink']['favicon_url']);
 
         if ($request->hasFile('apple_touch_upload') && $user->getPlanFeature('custom_favicon', false)) {
             $settings['biolink']['favicons']['apple_touch_icon'] = $vault($request->file('apple_touch_upload'));
@@ -1328,18 +1334,32 @@ class BiolinkBlockController extends Controller
             $updateData['favicon'] = $faviconValue;
         }
 
+        // SEO/meta single source of truth: the title/description/image trio
+        // lives on the Link columns (shared with short links + the REST API).
+        // When the form posted the meta/og block we mirror the posted value
+        // (including an explicit clear) onto the column, then strip the trio
+        // from the JSON so the two can never diverge.
         if ($metaInput !== null) {
-            if (!empty($metaInput['seo_title'])) {
-                $updateData['seo_title'] = trim($metaInput['seo_title']);
-            }
-            if (!empty($metaInput['seo_description'])) {
-                $updateData['seo_description'] = trim($metaInput['seo_description']);
-            }
+            $updateData['seo_title'] = trim((string) ($metaInput['seo_title'] ?? '')) ?: null;
+            $updateData['seo_description'] = trim((string) ($metaInput['seo_description'] ?? '')) ?: null;
         }
+        unset($settings['biolink']['meta']['seo_title'], $settings['biolink']['meta']['seo_description']);
 
         $ogImageFinal = $settings['biolink']['og']['image_url'] ?? null;
         if ($ogImageFinal) {
             $updateData['seo_image'] = $ogImageFinal;
+        } elseif ($ogInput !== null && array_key_exists('image_url', $ogInput)) {
+            // OG image URL field was posted but cleared → clear the column too.
+            $updateData['seo_image'] = null;
+        }
+        unset($settings['biolink']['og']['image_url']);
+
+        // Visibility tier lives on the Link.visibility column (single source of
+        // truth, shared with the REST API). Surfaced in the biolink editor so
+        // creators can set it from the UI; enforcement is in
+        // RedirectController::enforceBiolinkVisibility (biolink family only).
+        if (!empty($validated['visibility'])) {
+            $updateData['visibility'] = $validated['visibility'];
         }
 
         if (!empty($settings['biolink']['custom_branding_url'])) {

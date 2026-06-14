@@ -47,6 +47,21 @@
 
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-1">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-eye text-violet-400 text-xs"></i></div>
+                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">Visibility</h3>
+                </div>
+                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Choose who can view this page. Restricted tiers show a gated screen to everyone else.</p>
+                @php $__vis = old('visibility', $link->visibility ?? 'public'); @endphp
+                <select name="visibility" class="theme-input w-full">
+                    <option value="public" {{ $__vis === 'public' ? 'selected' : '' }}>Public — anyone with the link</option>
+                    <option value="registered" {{ $__vis === 'registered' ? 'selected' : '' }}>Registered — signed-in users only</option>
+                    <option value="followers" {{ $__vis === 'followers' ? 'selected' : '' }}>Followers — people who follow you</option>
+                    <option value="subscribers" {{ $__vis === 'subscribers' ? 'selected' : '' }}>Subscribers — active subscribers only</option>
+                </select>
+            </div>
+
+            <div class="card-premium p-6">
+                <div class="flex items-center gap-3 mb-1">
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(59,130,246,0.1);"><i class="fas fa-search text-violet-400 text-xs"></i></div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">SEO & Meta Tags</h3>
                 </div>
@@ -54,12 +69,12 @@
                 <div class="space-y-3">
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">SEO Title</label>
-                        <input type="text" name="meta[seo_title]" value="{{ $meta['seo_title'] ?? $link->seo_title ?? '' }}" placeholder="My Awesome Link in Bio" class="theme-input w-full" maxlength="70">
+                        <input type="text" name="meta[seo_title]" value="{{ $link->seo_title ?? $meta['seo_title'] ?? '' }}" placeholder="My Awesome Link in Bio" class="theme-input w-full" maxlength="70">
                         <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Recommended: 50-60 characters. Shown in browser tabs & search results.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Meta Description</label>
-                        <textarea name="meta[seo_description]" rows="2" class="theme-input w-full text-xs" placeholder="A brief description of your page for search engines..." maxlength="320">{{ $meta['seo_description'] ?? $link->seo_description ?? '' }}</textarea>
+                        <textarea name="meta[seo_description]" rows="2" class="theme-input w-full text-xs" placeholder="A brief description of your page for search engines..." maxlength="320">{{ $link->seo_description ?? $meta['seo_description'] ?? '' }}</textarea>
                         <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Recommended: 150-160 characters. Appears below title in search results.</p>
                     </div>
                     <div>
@@ -138,7 +153,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">OG Image URL</label>
-                        <input type="url" name="og[image_url]" value="{{ $og['image_url'] ?? '' }}" placeholder="https://example.com/preview.jpg" class="theme-input w-full">
+                        <input type="url" name="og[image_url]" value="{{ $link->seo_image ?? $og['image_url'] ?? '' }}" placeholder="https://example.com/preview.jpg" class="theme-input w-full">
                         <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Recommended: 1200×630px. Shows as preview when shared on social media.</p>
                     </div>
                     <div>
@@ -205,7 +220,7 @@
                         </div>
                         @endif
                         <div class="space-y-2">
-                            <div><label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Favicon URL</label><input type="url" name="favicon_url" value="{{ $bs['favicon_url'] ?? $link->favicon ?? '' }}" placeholder="https://example.com/favicon.png" class="theme-input w-full"></div>
+                            <div><label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Favicon URL</label><input type="url" name="favicon_url" value="{{ $link->favicon ?? '' }}" placeholder="https://example.com/favicon.png" class="theme-input w-full"></div>
                             @include('user.partials.dropzone-input', [
                                 'name'    => 'favicon_upload',
                                 'label'   => 'Or Upload',

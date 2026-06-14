@@ -63,6 +63,20 @@
                     <p class="text-xs text-white/30">When enabled, visitors see a branded download page. When disabled, the file downloads directly.</p>
                 </div>
             </div>
+
+            @if(workspace_owner()->userCanUseLinkSetting('deep_link'))
+            <div class="flex items-center gap-3">
+                <input type="hidden" name="open_in_app" value="0">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="open_in_app" value="1" {{ old('open_in_app') ? 'checked' : '' }} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-violet-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                </label>
+                <div>
+                    <span class="text-sm font-medium text-white/60">Open in app on mobile</span>
+                    <p class="text-xs text-white/30">If the file's link points at a supported app, mobile visitors get a deep-link interstitial before downloading.</p>
+                </div>
+            </div>
+            @endif
         </div>
 
         <div class="flex items-center justify-end gap-3 mt-4">

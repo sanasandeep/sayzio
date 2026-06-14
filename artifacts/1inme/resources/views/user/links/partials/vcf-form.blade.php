@@ -246,16 +246,11 @@
                 </select>
             </div>
         </div>
-        <label class="flex items-start gap-3 cursor-pointer">
-            <input type="hidden" name="show_preview_page" value="0">
-            <input type="checkbox" name="show_preview_page" value="1"
-                   {{ old('show_preview_page', $link->settings['show_preview_page'] ?? false) ? 'checked' : '' }}
-                   class="mt-1">
-            <div class="text-xs">
-                <div class="font-medium text-white">Show preview page before download</div>
-                <p class="text-white/40 mt-0.5">Renders a contact preview that fires marketing pixels and tracks visitor dwell time before the .vcf is delivered.</p>
-            </div>
-        </label>
+        @include('user.links.partials.preview-toggle', [
+            'previewChecked' => old('show_preview_page', $link->settings['show_preview_page'] ?? false),
+            'previewTitle' => 'Show preview page before download',
+            'previewDesc' => 'Renders a contact preview that fires marketing pixels and tracks visitor dwell time before the .vcf is delivered.',
+        ])
     </div>
 
     @isset($link)

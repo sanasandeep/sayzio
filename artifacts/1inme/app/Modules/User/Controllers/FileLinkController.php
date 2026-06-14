@@ -41,6 +41,7 @@ class FileLinkController extends Controller
             'file' => "required|file|max:{$maxFileSizeKb}",
             'expires_at' => 'nullable|date|after:now',
             'show_download_page' => 'nullable|boolean',
+            'open_in_app' => 'nullable|boolean',
         ]);
 
         $file = $request->file('file');
@@ -60,6 +61,17 @@ class FileLinkController extends Controller
 
         $alias = $validated['alias'] ?: Link::generateAlias();
 
+        // Deep-link / "open in app" — same settings.open_in_app field used by
+        // Short Links, plan-gated by the deep_link feature. Opt-in for files
+        // (default off) since most file URLs won't match a known app.
+        $settings = [];
+        if ($request->boolean('open_in_app')) {
+            if (!workspace_owner()->userCanUseLinkSetting('deep_link')) {
+                return back()->withInput()->with('error', 'The "deep link" link setting isn\'t available on your current plan. Upgrade to enable it.');
+            }
+            $settings['open_in_app'] = true;
+        }
+
         $link = Link::create([
             'user_id' => workspace_owner_id(),
             'type' => 'file',
@@ -68,6 +80,7 @@ class FileLinkController extends Controller
             'project_id' => $validated['project_id'] ?? null,
             'expires_at' => $validated['expires_at'] ?? null,
             'is_active' => true,
+            'settings' => $settings ?: null,
         ]);
 
         FileLink::create([

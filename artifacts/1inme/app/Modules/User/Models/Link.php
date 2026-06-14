@@ -463,6 +463,39 @@ protected $fillable = [
     }
 
     /**
+     * Unified preview/interstitial concept across link types. Reconciles the
+     * reusable SplashPage transition with the per-type "show a page before the
+     * action" booleans so callers can reason about ONE concept:
+     *   - 'splash'  : a reusable SplashPage transition is enabled
+     *   - 'preview' : a type-specific interstitial/landing/download page is on
+     *   - 'none'    : go straight to the action
+     * Splash wins when both are set (it renders first in RedirectController).
+     */
+    public function interstitialMode(): string
+    {
+        if ($this->hasSplashEnabled()) return 'splash';
+        if ($this->previewPageEnabled()) return 'preview';
+        return 'none';
+    }
+
+    /**
+     * Whether this link renders its own interstitial page before performing
+     * its action. url/ics/vcf use settings.show_preview_page; file uses the
+     * FileLink.show_download_page branded download page. Other types: false.
+     */
+    public function previewPageEnabled(): bool
+    {
+        if ($this->type === 'file') {
+            $fl = $this->relationLoaded('fileLink') ? $this->fileLink : $this->fileLink()->first();
+            return (bool) ($fl?->show_download_page);
+        }
+        if (in_array($this->type, ['url', 'ics', 'vcf'], true)) {
+            return !empty(($this->settings ?? [])['show_preview_page']);
+        }
+        return false;
+    }
+
+    /**
      * URL to send visitors to when this link has expired (or is unavailable).
      * Returns null if no custom expiry URL configured.
      */

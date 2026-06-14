@@ -276,14 +276,21 @@ class RedirectController extends Controller
         // serve a tiny interstitial that tries the native app's deep link
         // first and falls back to the web. Bypassed with ?_web=1 (used by
         // the "Continue in browser" button on the interstitial itself).
-        if ($link->type === 'url'
-            && ($settings['open_in_app'] ?? true) !== false
-            && !$request->boolean('_web')) {
+        // Deep-link / "open in app" interstitial. url-type links resolve the
+        // target app from their destination URL and default ON; file-type
+        // links resolve from the file's public URL and are opt-in via the same
+        // settings.open_in_app field.
+        $deepLinkType = in_array($link->type, ['url', 'file'], true);
+        $openInApp    = $settings['open_in_app'] ?? ($link->type === 'url');
+        if ($deepLinkType && $openInApp && !$request->boolean('_web')) {
             $ua = $request->userAgent() ?? '';
             $isIos     = (bool) preg_match('/iPhone|iPad|iPod/i', $ua);
             $isAndroid = (bool) preg_match('/Android/i', $ua);
             if ($isIos || $isAndroid) {
-                $matched = AppLinkResolver::resolve($finalUrl);
+                $resolveUrl = $link->type === 'url'
+                    ? $finalUrl
+                    : optional($link->fileLink)->publicUrl();
+                $matched = $resolveUrl ? AppLinkResolver::resolve($resolveUrl) : null;
                 if ($matched) {
                     $appUrl = $isIos ? ($matched['ios'] ?? null) : ($matched['android'] ?? null);
                     if ($appUrl) {

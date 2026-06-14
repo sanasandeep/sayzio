@@ -7,9 +7,9 @@
     $shareBtnSettings = $link->settings['biolink']['share_button'] ?? [];
     $menuBarSettings = $link->settings['biolink']['menu_bar'] ?? [];
     $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
-    $pageTitle = $metaSettings['seo_title'] ?? $link->seo_title ?? $link->title ?? '1INME Link in Bio';
-    $pageDesc = $metaSettings['seo_description'] ?? $link->seo_description ?? '';
-    $pageImage = $ogSettings['image_url'] ?? $link->seo_image ?? '';
+    $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title ?? '1INME Link in Bio';
+    $pageDesc = $link->seo_description ?? $metaSettings['seo_description'] ?? '';
+    $pageImage = $link->seo_image ?? $ogSettings['image_url'] ?? '';
     $ogTitle = $ogSettings['title'] ?? $pageTitle;
     $ogDesc = $ogSettings['description'] ?? $pageDesc;
     $ogType = $ogSettings['type'] ?? 'website';
