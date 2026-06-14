@@ -2,11 +2,21 @@
 
 namespace App\Modules\Common\Models;
 
+use App\Modules\Common\Support\MarketingSitemap;
 use Illuminate\Database\Eloquent\Model;
 
 class SitePage extends Model
 {
     protected $fillable = ['slug', 'title', 'meta_description', 'meta_keywords', 'intro', 'last_updated_at', 'show_toc', 'sections', 'extra', 'cta_label', 'cta_url'];
+
+    protected static function booted(): void
+    {
+        // Any time a marketing page row is created, updated or deleted, drop the
+        // cached marketing sitemap (and best-effort ping search engines) so the
+        // change is reflected/recrawled promptly.
+        static::saved(fn () => MarketingSitemap::flush());
+        static::deleted(fn () => MarketingSitemap::flush());
+    }
 
     protected function casts(): array
     {

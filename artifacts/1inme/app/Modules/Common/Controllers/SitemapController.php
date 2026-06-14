@@ -7,14 +7,16 @@ use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\BlogPost;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Support\MarketingSeo;
+use App\Modules\Common\Support\MarketingSitemap;
 use Illuminate\Support\Carbon;
 
 /**
  * Public XML sitemap + robots.txt for the marketing pages.
  *
- * The URL list is sourced entirely from {@see MarketingSeo::sitemapPaths()}
+ * The URL list is sourced entirely from {@see \App\Modules\Common\Support\MarketingSeo::sitemapPaths()}
  * (code-driven SEO registry + site_pages-backed slugs) so it stays in lockstep
- * with the per-page SEO meta. Note: this is the *marketing* sitemap; the blog
+ * with the per-page SEO meta. Rendering/caching/invalidation lives in
+ * {@see MarketingSitemap}. Note: this is the *marketing* sitemap; the blog
  * keeps its own sitemap at /blogs/sitemap.xml.
  */
 class SitemapController extends Controller
@@ -81,39 +83,27 @@ class SitemapController extends Controller
 
     public function sitemap()
     {
-        // Per-row lastmod for the site_pages-backed pages. Read updated_at off
-        // model instances so the value is a Carbon regardless of cast config.
-        $rowUpdated = [];
-        foreach (SitePage::query()->get(['slug', 'updated_at']) as $row) {
-            $rowUpdated[$row->slug] = $row->updated_at;
-        }
-
-        // Code-driven pages have no model; fall back to the marketing_seo
-        // override row's timestamp (the last time any of them was edited).
-        $codeFallback = optional(
-            AppSetting::where('key', MarketingSeo::SETTING_KEY)->first()
-        )->updated_at;
-
-        $urls = [];
-        foreach (MarketingSeo::sitemapPaths() as $entry) {
-            $slug = $entry['slug'];
-
-            if ($slug !== null) {
-                $ts = $rowUpdated[$slug] ?? null;
-                $lastmod = $ts ?: $codeFallback;
-            } else {
-                $lastmod = $codeFallback;
-            }
-
-            $urls[] = [
-                'loc' => url($entry['path']),
-                'lastmod' => $this->formatLastmod($lastmod),
-            ];
-        }
-
-        $body = view('public.sitemap', ['urls' => $urls])->render();
+        // Cached for 10 minutes; invalidated by MarketingSitemap::flush() when a
+        // SitePage row or the marketing_seo AppSetting changes so it stays in sync.
+        $body = MarketingSitemap::render();
 
         return response($body, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    /**
+     * Serve the IndexNow ownership key file (/{key}.txt) so search engines can
+     * verify we own the host before honouring our change notifications. Returns
+     * 404 for any path that does not match the stored key.
+     */
+    public function indexNowKey(string $key)
+    {
+        $stored = MarketingSitemap::indexNowKey();
+
+        if ($stored === null || !hash_equals($stored, $key)) {
+            abort(404);
+        }
+
+        return response($stored, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
     }
 
     /**

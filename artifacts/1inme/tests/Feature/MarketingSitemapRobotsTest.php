@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Support\MarketingSeo;
+use App\Modules\Common\Support\MarketingSitemap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
@@ -51,6 +53,44 @@ class MarketingSitemapRobotsTest extends TestCase
 
         // At least one lastmod (from the about row) is emitted.
         $this->assertStringContainsString('<lastmod>', $body);
+    }
+
+    public function test_sitemap_response_is_cached(): void
+    {
+        Cache::forget(MarketingSitemap::CACHE_KEY);
+
+        $this->assertNull(Cache::get(MarketingSitemap::CACHE_KEY));
+
+        $this->get('/sitemap.xml')->assertOk();
+
+        // After a request the rendered XML is warmed into the cache.
+        $this->assertNotNull(Cache::get(MarketingSitemap::CACHE_KEY));
+    }
+
+    public function test_saving_a_site_page_flushes_the_sitemap_cache(): void
+    {
+        // Warm the cache.
+        $this->get('/sitemap.xml')->assertOk();
+        $this->assertNotNull(Cache::get(MarketingSitemap::CACHE_KEY));
+
+        // Saving a marketing page row invalidates it via the model event.
+        SitePage::firstOrCreate(['slug' => 'about'], ['title' => 'About']);
+
+        $this->assertNull(Cache::get(MarketingSitemap::CACHE_KEY));
+    }
+
+    public function test_indexnow_key_file_serves_the_stored_key(): void
+    {
+        $key = MarketingSitemap::indexNowKey();
+        $this->assertNotNull($key);
+
+        $res = $this->get('/' . $key . '.txt');
+        $res->assertOk();
+        $res->assertHeader('Content-Type', 'text/plain; charset=UTF-8');
+        $this->assertSame($key, trim($res->getContent()));
+
+        // A non-matching (but well-formed) key returns 404.
+        $this->get('/' . str_repeat('0', 32) . '.txt')->assertNotFound();
     }
 
     public function test_robots_references_sitemap_and_blocks_app_paths(): void

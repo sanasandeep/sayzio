@@ -221,6 +221,11 @@ Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::cla
 Route::get('/sitemap_index.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'index'])->name('site.sitemap.index');
 Route::get('/sitemap.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'sitemap'])->name('site.sitemap');
 Route::get('/robots.txt',  [\App\Modules\Common\Controllers\SitemapController::class, 'robots'])->name('site.robots');
+// IndexNow ownership key file (proves we own the host before search engines
+// honour our change notifications). Constrained to the 32-hex key format so it
+// can't shadow other top-level .txt routes.
+Route::get('/{key}.txt', [\App\Modules\Common\Controllers\SitemapController::class, 'indexNowKey'])
+    ->where('key', '[a-f0-9]{32}')->name('site.indexnow-key');
 
 // ---- Marketing CTA click tracking (anonymous, allow-listed) ----
 Route::post('/marketing-events/track', [\App\Modules\Common\Controllers\MarketingEventController::class, 'track'])
