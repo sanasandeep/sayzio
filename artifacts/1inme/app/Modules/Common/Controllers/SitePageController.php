@@ -7,6 +7,7 @@ use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\ContactMessage;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Models\SitePageRevision;
+use App\Modules\Common\Support\ComparisonContent;
 use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\Link;
@@ -174,6 +175,41 @@ class SitePageController extends Controller
             ]);
         }
         return view('public.page', ['page' => $page]);
+    }
+
+    /**
+     * /compare — index of every available competitor comparison.
+     */
+    public function compareIndex()
+    {
+        $competitors = ComparisonContent::index();
+
+        return view('public.compare.index', [
+            'competitors'      => $competitors,
+            'total'            => ComparisonContent::totalFeatures(),
+            'ourScore'         => ComparisonContent::scores()['ours'] ?? 0,
+            'shareTitle'       => 'Compare 1INME vs Linktree, Beacons, Bitly & more',
+            'shareDescription' => 'See how 1INME stacks up against the tools you already use across '
+                . ComparisonContent::totalFeatures()
+                . ' features — biolinks, short links, QR codes, analytics, monetisation and more.',
+        ]);
+    }
+
+    /**
+     * /compare/{competitor} — dedicated head-to-head landing page.
+     * 404s on unknown competitors.
+     */
+    public function compareShow(string $competitor)
+    {
+        $data = ComparisonContent::competitor($competitor);
+        abort_if($data === null, 404);
+
+        return view('public.compare.show', [
+            'competitor'       => $data,
+            'shareTitle'       => ComparisonContent::shareTitle($data),
+            'shareDescription' => ComparisonContent::shareDescription($data),
+            'shareType'        => 'article',
+        ]);
     }
 
     /**

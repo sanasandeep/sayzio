@@ -40,6 +40,7 @@
             <div class="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-4">Solutions</div>
             <ul class="space-y-2.5 text-gray-400">
                 <li><a href="{{ route('site.services') }}" class="hover:text-white transition-colors">Use cases</a></li>
+                <li><a href="{{ route('site.compare.index') }}" class="hover:text-white transition-colors">Compare 1INME</a></li>
                 <li><a href="{{ route('site.pricing') }}" class="hover:text-white transition-colors">Pricing</a></li>
                 <li><a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="hover:text-white transition-colors">Coin packages</a></li>
                 <li><a href="{{ route('site.discovery') }}" class="hover:text-white transition-colors">Discover creators</a></li>

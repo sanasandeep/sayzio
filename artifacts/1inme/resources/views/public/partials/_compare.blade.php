@@ -1,85 +1,49 @@
 {{--
     Shared "How we compare" section.
+    Data source of truth: App\Modules\Common\Support\ComparisonContent.
     Props:
       $compact (bool, default false) — when true, hides the wide matrix and
                                        shows only the head-to-head selector
                                        plus a CTA linking to /pricing#compare.
       $anchorId (string, default 'compare') — id used on the <section>.
+      $only (string|null, default null) — when set to a rival key (e.g.
+                                       'linktree'), locks the head-to-head to
+                                       that rival, hides the rival selector and
+                                       the full-matrix toggle. Used by the
+                                       dedicated /compare/{competitor} pages.
+      $hideHeading (bool, default false) — hide the built-in section heading
+                                       (the comparison pages supply their own).
 --}}
 @php
-    $compact  = $compact  ?? false;
-    $anchorId = $anchorId ?? 'compare';
+    use App\Modules\Common\Support\ComparisonContent;
 
-    // 7 competitors. "ours" must be first.
-    $__cmpCompetitors = [
-        ['key' => 'ours',     'name' => '1INME',    'tagline' => 'The whole growth stack', 'badge' => 'All-in-one',            'isOurs' => true],
-        ['key' => 'linktree', 'name' => 'Linktree', 'tagline' => 'Bio link page',          'badge' => 'Half the cost',         'isOurs' => false],
-        ['key' => 'bitly',    'name' => 'Bitly',    'tagline' => 'Short links & QR',       'badge' => 'More features',         'isOurs' => false],
-        ['key' => 'beacons',  'name' => 'Beacons',  'tagline' => 'Creator bio',            'badge' => 'Lower price',           'isOurs' => false],
-        ['key' => 'carrd',    'name' => 'Carrd',    'tagline' => 'One-page sites',         'badge' => 'Way more inside',       'isOurs' => false],
-        ['key' => 'taplink',  'name' => 'Taplink',  'tagline' => 'Insta micro-landing',    'badge' => 'Bigger toolkit',        'isOurs' => false],
-        ['key' => 'stan',     'name' => 'Stan',     'tagline' => 'Creator store',          'badge' => 'Free forever plan',     'isOurs' => false],
-    ];
+    $compact     = $compact  ?? false;
+    $anchorId    = $anchorId ?? 'compare';
+    $only        = $only ?? null;
+    $hideHeading = $hideHeading ?? false;
 
-    // 24 features grouped into 7 categories.
-    $__cmpGroups = [
-        'Bio link page' => [
-            ['Drag-and-drop biolink builder',     ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
-            ['Multiple bio pages per account',    ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>false,'carrd'=>true, 'taplink'=>false,'stan'=>true ]],
-            ['Embed video, music & forms',        ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
-            ['Custom themes & fonts',             ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
-            ['Custom domains',                    ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
-        ],
-        'Links & QR' => [
-            ['Branded short links',               ['ours'=>true,'linktree'=>false, 'bitly'=>true, 'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-            ['Dynamic QR codes',                  ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>true, 'carrd'=>false,'taplink'=>true, 'stan'=>false]],
-            ['QR styling, logos & colors',        ['ours'=>true,'linktree'=>false, 'bitly'=>true, 'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-            ['Bulk link import',                  ['ours'=>true,'linktree'=>false, 'bitly'=>true, 'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-        ],
-        'Analytics' => [
-            ['Built-in click analytics',          ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
-            ['Live visitor map',                  ['ours'=>true,'linktree'=>false, 'bitly'=>false,'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-            ['Click heatmap',                     ['ours'=>true,'linktree'=>false, 'bitly'=>false,'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-            ['UTM builder',                       ['ours'=>true,'linktree'=>false, 'bitly'=>true, 'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-        ],
-        'Growth & AI' => [
-            ['AI Performance coach',              ['ours'=>true,'linktree'=>false, 'bitly'=>false,'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-            ['Scheduled posts',                   ['ours'=>true,'linktree'=>false, 'bitly'=>false,'beacons'=>true, 'carrd'=>false,'taplink'=>false,'stan'=>true ]],
-            ['A/B testing',                       ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-        ],
-        'Monetization' => [
-            ['Tip jar / donations',               ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>false,'taplink'=>true, 'stan'=>true ]],
-            ['Sell digital products',             ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>false,'taplink'=>true, 'stan'=>true ]],
-            ['Coin / wallet rewards',             ['ours'=>true,'linktree'=>false, 'bitly'=>false,'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-        ],
-        'Team & workflow' => [
-            ['Team workspaces',                   ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-            ['Direct messaging',                  ['ours'=>true,'linktree'=>false, 'bitly'=>false,'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-            ['Roles & permissions',               ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>false,'carrd'=>false,'taplink'=>false,'stan'=>false]],
-        ],
-        'Plans & access' => [
-            ['Free forever (no credit card)',     ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>false]],
-            ['Native mobile app',                 ['ours'=>true,'linktree'=>true,  'bitly'=>true, 'beacons'=>true, 'carrd'=>false,'taplink'=>true, 'stan'=>true ]],
-        ],
-    ];
+    $__cmpCompetitors = ComparisonContent::competitors();
+    $__cmpGroups      = ComparisonContent::groups();
+    $__cmpFeaturesFlat = ComparisonContent::featuresFlat();
+    $__cmpTotal       = ComparisonContent::totalFeatures();
+    $__cmpScores      = ComparisonContent::scores();
 
-    // Flat list for the wide matrix + counts.
-    $__cmpFeaturesFlat = [];
-    foreach ($__cmpGroups as $g => $rows) {
-        foreach ($rows as $r) { $__cmpFeaturesFlat[] = $r; }
-    }
-    $__cmpTotal = count($__cmpFeaturesFlat); // 24
-
-    // Pre-compute per-competitor totals so the Alpine tabs can show win deltas
-    // without doing the math client-side.
-    $__cmpScores = [];
-    foreach ($__cmpCompetitors as $c) {
-        $n = 0;
-        foreach ($__cmpFeaturesFlat as [$label, $support]) {
-            if (!empty($support[$c['key']])) { $n++; }
+    // When locked to a single rival, validate the key and fall back to the
+    // first rival if it's unknown.
+    $__cmpRivals = array_slice($__cmpCompetitors, 1);
+    $__cmpOnlyKey = null;
+    if ($only) {
+        foreach ($__cmpRivals as $r) {
+            if ($r['key'] === $only) { $__cmpOnlyKey = $only; break; }
         }
-        $__cmpScores[$c['key']] = $n;
+        if ($__cmpOnlyKey === null && !empty($__cmpRivals)) {
+            $__cmpOnlyKey = $__cmpRivals[0]['key'];
+        }
     }
+    $__cmpInitialRival = $__cmpOnlyKey ?? ($__cmpRivals[0]['key'] ?? 'linktree');
+    // Full N-tool matrix only appears on the non-compact homepage/pricing use
+    // (never on a single-rival comparison page).
+    $__cmpShowMatrix = !$compact && !$__cmpOnlyKey;
 @endphp
 
 <section id="{{ $anchorId }}" class="py-20 lg:py-28 relative overflow-hidden">
@@ -87,6 +51,7 @@
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Heading --}}
+        @unless($hideHeading)
         <div class="text-center mb-10 max-w-2xl mx-auto">
             <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">{{ $eyebrowOverride ?? 'How we compare' }}</div>
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
@@ -98,6 +63,7 @@
                 <span class="text-white font-semibold">{{ count($__cmpCompetitors) - 1 }} competitors</span>.
             </p>
         </div>
+        @endunless
 
         {{-- ========================================================
              HEAD-TO-HEAD (Alpine tabs)
@@ -106,7 +72,7 @@
             data-anim="fade-up"
             class="cmp-h2h"
             x-data="{
-                rival: 'linktree',
+                rival: '{{ $__cmpInitialRival }}',
                 showAll: {{ $compact ? 'false' : 'true' }},
                 rivals: @js(array_slice($__cmpCompetitors, 1)),
                 scores: @js($__cmpScores),
@@ -141,7 +107,8 @@
             x-init="$nextTick(() => animateTo({ ours: ourScore(), rival: rivalScore(), wins: wins() }))"
             x-effect="animateTo({ ours: ourScore(), rival: rivalScore(), wins: wins() })"
         >
-            {{-- Rival selector chips --}}
+            {{-- Rival selector chips (hidden when locked to a single rival) --}}
+            @unless($__cmpOnlyKey)
             <div class="cmp-tabs flex flex-wrap items-center justify-center gap-2 mb-6">
                 <span class="text-xs font-bold uppercase tracking-wider text-gray-500 mr-1">Compare 1INME vs</span>
                 @foreach(array_slice($__cmpCompetitors, 1) as $c)
@@ -155,6 +122,7 @@
                     </button>
                 @endforeach
             </div>
+            @endunless
 
             {{-- ────────── VS hero — side-by-side brand cards ────────── --}}
             <div class="cmp-vs grid items-stretch gap-3 mb-6"
@@ -276,25 +244,49 @@
 
             {{-- Toggle / CTA row --}}
             <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-                @if($compact)
+                @if($__cmpOnlyKey)
+                    {{-- Locked single-rival page: link out to the full index. --}}
+                    <a href="{{ url('/compare') }}" class="cmp-cta">
+                        <i class="fas fa-table-cells-large"></i>
+                        Compare 1INME against every other tool
+                        <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                @elseif($compact)
                     <a href="{{ url('/pricing') }}#compare" class="cmp-cta">
                         <i class="fas fa-table-cells-large"></i>
                         See full feature breakdown across all {{ count($__cmpCompetitors) - 1 }} tools
                         <i class="fas fa-arrow-right text-xs"></i>
                     </a>
+                    {{-- Deep-link straight to the active rival's dedicated page. --}}
+                    @foreach(array_slice($__cmpCompetitors, 1) as $c)
+                        <template x-if="rival === '{{ $c['key'] }}'">
+                            <a href="{{ url('/compare/' . $c['key']) }}" class="cmp-cta">
+                                <i class="fas fa-arrow-up-right-from-square text-xs"></i>
+                                Read the full 1INME vs {{ $c['name'] }} page
+                            </a>
+                        </template>
+                    @endforeach
                 @else
                     <button type="button" @click="showAll = !showAll" class="cmp-cta">
                         <i class="fas fa-table-cells-large"></i>
                         <span x-text="showAll ? 'Hide full {{ count($__cmpCompetitors) - 1 }}-tool matrix' : 'Show full {{ count($__cmpCompetitors) - 1 }}-tool matrix'">Show full matrix</span>
                         <i class="fas fa-chevron-down text-xs" :class="showAll ? 'rotate-180' : ''" style="transition:transform .25s ease"></i>
                     </button>
+                    @foreach(array_slice($__cmpCompetitors, 1) as $c)
+                        <template x-if="rival === '{{ $c['key'] }}'">
+                            <a href="{{ url('/compare/' . $c['key']) }}" class="cmp-cta">
+                                <i class="fas fa-arrow-up-right-from-square text-xs"></i>
+                                Full 1INME vs {{ $c['name'] }} page
+                            </a>
+                        </template>
+                    @endforeach
                 @endif
             </div>
 
             {{-- ========================================================
                  FULL N-COMPETITOR MATRIX (only on /pricing or when toggled)
                  ======================================================== --}}
-            @unless($compact)
+            @if($__cmpShowMatrix)
                 <div x-show="showAll" x-transition.duration.400ms x-cloak class="mt-8">
                     <div class="cmp-wrap grad-border rounded-3xl overflow-hidden relative">
                         <div class="cmp-matrix-scroll">
@@ -365,7 +357,7 @@
                         </div>
                     </div>
                 </div>
-            @endunless
+            @endif
         </div>
 
         <p data-anim="fade-up" class="text-center text-xs text-gray-500 mt-6">

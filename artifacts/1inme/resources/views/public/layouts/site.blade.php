@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', $page->title ?? '1INME') — {{ config('app.name', '1INME') }}</title>
-    <meta name="description" content="{{ $page->meta_description ?? '' }}">
+    <meta name="description" content="{{ $page->meta_description ?? ($shareDescription ?? '') }}">
     @include('common.partials.default-icons')
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')

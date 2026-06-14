@@ -163,6 +163,11 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     // Standalone marketing page for the Résumé / Portfolio Builder module.
     Route::view('/resume-builder', 'public.resume-builder')->name('site.resume-builder');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
+    // Competitor comparison "vs" landing pages. Data driven by ComparisonContent.
+    Route::get('/compare', [\App\Modules\Common\Controllers\SitePageController::class, 'compareIndex'])->name('site.compare.index');
+    Route::get('/compare/{competitor}', [\App\Modules\Common\Controllers\SitePageController::class, 'compareShow'])
+        ->where('competitor', \App\Modules\Common\Support\ComparisonContent::rivalKeysPattern())
+        ->name('site.compare.show');
     Route::view('/analytics',    'public.analytics')   ->name('site.analytics');
     Route::view('/audience',     'public.audience')    ->name('site.audience');
     Route::view('/integrations', 'public.integrations')->name('site.integrations');
@@ -383,8 +388,8 @@ Route::get('/sustainability/methodology', [\App\Modules\Common\Controllers\Carbo
 Route::get('/sustainability/badge/{link}', [\App\Modules\Common\Controllers\CarbonPublicController::class, 'badge'])
     ->whereNumber('link')->middleware('throttle:60,1')->name('public.carbon.badge');
 
-Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations).*$');
-Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations)[^/]+$');
+Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations|compare).*$');
+Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations|compare)[^/]+$');
 // ── Conversational Biolink visitor endpoints ─────────────────────
 // Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.
 Route::post('/sl/{alias}/view',            [\App\Modules\Common\Controllers\SlideEventController::class, 'view'])
