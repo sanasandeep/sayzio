@@ -23,6 +23,34 @@ backlog took several bounded passes.
 **Why:** avoids re-running half-applied migrations (which would error) while still
 completing the sync without code changes.
 
+**Faster than the per-`migrate` loop — a single-boot resumable reconciler:** the
+`migrate --force` loop reboots the framework every pass (~10-15s) and only advances
+one orphan at a time. Instead, write a temp PHP script that boots the kernel once,
+gets the sorted pending files, and for each does `$migration = require $file;` then
+`$migration->up()` — record on success (`batch = max+1`), record as orphan on an
+idempotency error, abort on anything else. Use `require` (NOT `Migrator::resolvePath`,
+which is `protected`); 1inme migrations are anonymous-class files so `require` returns
+the object. Give it an internal time budget (~70s) under the shell tool timeout. It is
+idempotent/resumable because each row is inserted right after its `up()` commits, so
+even a SIGKILL mid-pass keeps all progress — just re-run. A ~220-migration backlog
+cleared in ~8 passes this way. **Delete the temp script when done.**
+
+**Two pitfalls of the single-boot approach:**
+- *Cached plan must not change result type* (`SQLSTATE[0A000]`): running 100+ DDL ops
+  in one PHP process/connection stales Postgres's prepared-statement cache, so a later
+  seeder-style migration that SELECTs errors. It is NOT a real failure — a fresh
+  process resets the plan cache, so just re-run (the migration is first-pending in the
+  new pass and succeeds).
+- *Lost stdout on SIGKILL*: piped PHP stdout is buffered, so a pass killed at the shell
+  timeout prints nothing even though rows were committed. Don't trust empty output —
+  check progress with `DB::table('migrations')->count()` between passes.
+
+**Path-coverage gotcha:** a hand-rolled reconciler that enumerates only
+`$migrator->paths()` + `database_path('migrations')` can miss migrations that
+`php artisan migrate` finds via module-registered paths. After the reconciler reports
+0 pending, always confirm with the real `php artisan migrate` (→ "Nothing to migrate")
+and `migrate:status`; mop up any stragglers it surfaces.
+
 **Note:** transient `42P01 does not exist` / `42P07 already exists` lines in
 `storage/logs/laravel.log` during the migration window are expected (a page hit a
 table before its migration ran, or a reconcile pass hit an orphan). Only errors
