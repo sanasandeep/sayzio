@@ -298,4 +298,14 @@ class OnboardingController extends Controller
         $user->forceFill(['settings' => $settings])->save();
         return back();
     }
+
+    /** Hide the "add a WhatsApp number" dashboard nudge for this user. */
+    public function dismissWhatsappPrompt(Request $request)
+    {
+        $user = Auth::user();
+        $settings = $user->settings ?? [];
+        $settings['whatsapp_prompt_dismissed_at'] = now()->toIso8601String();
+        $user->forceFill(['settings' => $settings])->save();
+        return back();
+    }
 }

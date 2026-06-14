@@ -257,6 +257,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('template',[\App\Modules\User\Controllers\OnboardingController::class, 'applyTemplate'])->name('template.apply');
             Route::post('go-to-dashboard', [\App\Modules\User\Controllers\OnboardingController::class, 'goToDashboard'])->name('go-to-dashboard');
             Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');
+            Route::post('dismiss-whatsapp-prompt', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissWhatsappPrompt'])->name('dismiss-whatsapp-prompt');
         });
 
         // ===== Social: followers, posts, notifications (dashboard) =====

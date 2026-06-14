@@ -55,6 +55,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
     Route::post('/auth/login',    [AuthController::class, 'login'])->middleware('throttle:auth-credentials');
 
+    // Public auth config — which login methods are available (email-only by
+    // default; WhatsApp/mobile behind an admin toggle with allowed codes).
+    Route::get('/auth/config', [OtpController::class, 'config']);
+
     // OTP-based mobile auth
     Route::post('/auth/otp/send',     [OtpController::class, 'send'])->middleware('throttle:otp-send');
     Route::post('/auth/otp/verify',   [OtpController::class, 'verify'])->middleware('throttle:otp-verify');

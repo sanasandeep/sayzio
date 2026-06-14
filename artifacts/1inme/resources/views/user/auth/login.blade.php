@@ -48,7 +48,7 @@
 
                 <div class="hidden lg:block mb-7">
                     <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">We'll email or text you a 6-digit code — no password needed.</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">We'll send you a 6-digit code — no password needed.</p>
                 </div>
 
                 <div class="lg:hidden text-center mb-6">
@@ -62,6 +62,8 @@
                     </div>
                 @endif
 
+                @php($mobileLoginEnabled = $mobileLoginEnabled ?? false)
+                @if($mobileLoginEnabled)
                 <form method="POST" action="{{ route('user.otp.send') }}" x-data="{ otpType: 'email' }">
                     @csrf
                     <div class="space-y-4">
@@ -70,13 +72,31 @@
                                 <i class="fas fa-envelope mr-1"></i> Email
                             </button>
                             <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
-                                <i class="fas fa-mobile-alt mr-1"></i> Mobile
+                                <i class="fab fa-whatsapp mr-1"></i> WhatsApp
                             </button>
                         </div>
                         <input type="hidden" name="type" :value="otpType">
                         <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);" x-text="otpType === 'email' ? 'Email Address' : 'Mobile Number'"></label>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);" x-text="otpType === 'email' ? 'Email Address' : 'WhatsApp Number'"></label>
                             <input type="text" name="identifier" value="{{ old('identifier') }}" required autofocus :placeholder="otpType === 'email' ? 'you@example.com' : '+1234567890'" class="theme-input w-full">
+                            @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            <p x-show="otpType === 'mobile'" x-cloak class="mt-1.5 text-[10px]" style="color: var(--text-faint);">
+                                <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
+                            </p>
+                        </div>
+                        <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                            <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
+                        </button>
+                    </div>
+                </form>
+                @else
+                <form method="POST" action="{{ route('user.otp.send') }}">
+                    @csrf
+                    <div class="space-y-4">
+                        <input type="hidden" name="type" value="email">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email Address</label>
+                            <input type="email" name="identifier" value="{{ old('identifier') }}" required autofocus placeholder="you@example.com" class="theme-input w-full">
                             @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                         </div>
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
@@ -84,6 +104,7 @@
                         </button>
                     </div>
                 </form>
+                @endif
 
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
                     <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Or sign in with</p>

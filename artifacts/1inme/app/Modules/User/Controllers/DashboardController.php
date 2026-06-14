@@ -4,8 +4,10 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\ChannelClassifier;
+use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\Backlink;
 use App\Modules\User\Models\LinkClick;
+use App\Modules\User\Models\LinkedIdentifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -78,10 +80,20 @@ class DashboardController extends Controller
             ->where('first_seen_at', '>=', now()->subDays(7))
             ->count();
 
+        // WhatsApp prompt — only when an admin has switched on WhatsApp login,
+        // the user hasn't already linked a phone number, and they haven't
+        // dismissed the nudge. Lets returning users add a WhatsApp identifier
+        // so they can use the faster OTP sign-in.
+        $whatsappPromptDismissed = !empty($user->settings['whatsapp_prompt_dismissed_at'] ?? null);
+        $showWhatsappPrompt = AuthMethods::mobileLoginEnabled()
+            && !$whatsappPromptDismissed
+            && !LinkedIdentifier::where('user_id', $user->id)->where('kind', 'phone')->exists();
+
         return view('user.dashboard.index', compact(
             'user', 'totalLinks', 'totalClicks', 'totalProjects',
             'activeLinks', 'recentLinks', 'clicksToday',
-            'channelStats', 'channelFilter', 'backlinksThisWeek'
+            'channelStats', 'channelFilter', 'backlinksThisWeek',
+            'showWhatsappPrompt'
         ));
     }
 }

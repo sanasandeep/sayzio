@@ -6,6 +6,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
 use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\Common\Services\OtpService;
+use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
@@ -24,12 +25,28 @@ class OtpController extends Controller
 {
     use ApiResponses;
 
+    /**
+     * Public auth config so clients (mobile app, web) can decide whether to
+     * offer WhatsApp (mobile) login and which country codes are accepted.
+     */
+    public function config()
+    {
+        return $this->ok([
+            'mobile_login_enabled' => AuthMethods::mobileLoginEnabled(),
+            'allowed_country_codes' => AuthMethods::allowedCountryCodes(),
+        ]);
+    }
+
     public function send(Request $request, OtpService $otp)
     {
         $data = $request->validate([
             'identifier' => ['required', 'string', 'max:190'],
             'type'       => ['required', Rule::in(['email', 'mobile'])],
         ]);
+
+        if ($denied = $this->guardMobile($data['type'], $data['identifier'])) {
+            return $denied;
+        }
 
         $user = $this->resolve($data['identifier'], $data['type']);
 
@@ -40,7 +57,7 @@ class OtpController extends Controller
             try {
                 $data['type'] === 'email'
                     ? $otp->sendEmail($data['identifier'], $code)
-                    : $otp->sendSms($data['identifier'], $code);
+                    : $otp->sendWhatsApp($data['identifier'], $code);
             } catch (\Throwable $e) {
                 \Log::warning('OTP send failed: ' . $e->getMessage());
             }
@@ -60,6 +77,10 @@ class OtpController extends Controller
             'code'       => ['required', 'string', 'size:6'],
             'device'     => ['nullable', 'string', 'max:60'],
         ]);
+
+        if ($denied = $this->guardMobile($data['type'], $data['identifier'])) {
+            return $denied;
+        }
 
         if (!$otp->verify($data['identifier'], $data['code'], $data['type'], 'login', 'web')) {
             return $this->fail('Invalid or expired code', 400, 'invalid_otp');
@@ -96,6 +117,10 @@ class OtpController extends Controller
             'type'       => ['required', Rule::in(['email', 'mobile'])],
             'country'    => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ]);
+
+        if ($denied = $this->guardMobile($data['type'], $data['identifier'])) {
+            return $denied;
+        }
 
         $existing = $this->resolve($data['identifier'], $data['type']);
         if ($existing) {
@@ -171,6 +196,29 @@ class OtpController extends Controller
             'user'  => UserResource::toArray($user, self: true),
             'token' => $newToken->plainTextToken,
         ]);
+    }
+
+    /**
+     * Enforce the email-only-by-default policy. Returns a JSON error
+     * response when a mobile request is not permitted (login disabled or
+     * the number falls outside the allowed country codes); null otherwise.
+     */
+    private function guardMobile(string $type, string $identifier)
+    {
+        if ($type !== 'mobile') {
+            return null;
+        }
+        if (!AuthMethods::mobileLoginEnabled()) {
+            return $this->fail('Mobile login is not available. Use your email instead.', 422, 'mobile_login_disabled');
+        }
+        if (!AuthMethods::isAllowedMobile($identifier)) {
+            return $this->fail(
+                'That country code isn\'t supported. Allowed codes: ' . AuthMethods::allowedCountryCodesLabel() . '.',
+                422,
+                'country_code_not_allowed'
+            );
+        }
+        return null;
     }
 
     private function resolve(string $identifier, string $type): ?User

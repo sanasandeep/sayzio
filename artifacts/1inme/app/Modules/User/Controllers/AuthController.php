@@ -7,6 +7,7 @@ use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\OtpService;
+use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Services\ReferralService;
 use App\Modules\User\Services\TwoFactorPolicy;
 use Illuminate\Http\Request;
@@ -107,7 +108,10 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) return redirect()->route('user.dashboard');
-        return view('user.auth.login');
+        return view('user.auth.login', [
+            'mobileLoginEnabled'  => AuthMethods::mobileLoginEnabled(),
+            'allowedCountryCodes' => AuthMethods::allowedCountryCodes(),
+        ]);
     }
 
     public function sendOtp(Request $request)
@@ -119,6 +123,18 @@ class AuthController extends Controller
 
         $identifier = $request->identifier;
         $type = $request->type;
+
+        // Email is the only login identifier unless an admin has switched on
+        // WhatsApp (mobile) login. Reject mobile attempts when it's off and
+        // enforce the allowed-country-code list when it's on.
+        if ($type === 'mobile') {
+            if (!AuthMethods::mobileLoginEnabled()) {
+                return back()->withErrors(['identifier' => 'Mobile login is not available. Please sign in with your email.'])->withInput();
+            }
+            if (!AuthMethods::isAllowedMobile($identifier)) {
+                return back()->withErrors(['identifier' => 'That country code isn\'t supported. Allowed codes: ' . AuthMethods::allowedCountryCodesLabel() . '.'])->withInput();
+            }
+        }
 
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
@@ -133,7 +149,7 @@ class AuthController extends Controller
         if ($type === 'email') {
             $otpService->sendEmail($identifier, $code);
         } else {
-            $otpService->sendSms($identifier, $code);
+            $otpService->sendWhatsApp($identifier, $code);
         }
 
         session(['otp_identifier' => $identifier, 'otp_type' => $type]);
@@ -156,6 +172,13 @@ class AuthController extends Controller
             return redirect()->route('user.login');
         }
 
+        // Mirror the send-time policy: never re-issue a mobile code once
+        // WhatsApp login has been switched off (or for a now-disallowed code).
+        if ($type === 'mobile' && (!AuthMethods::mobileLoginEnabled() || !AuthMethods::isAllowedMobile($identifier))) {
+            return redirect()->route('user.login')
+                ->withErrors(['identifier' => 'Mobile login is not available. Please sign in with your email.']);
+        }
+
         // Only generate/send when a real user matches the session identifier.
         // Always show a generic success so we don't leak account existence.
         $user = $this->resolveUserByIdentifier($identifier, $type);
@@ -167,7 +190,7 @@ class AuthController extends Controller
                 if ($type === 'email') {
                     $otpService->sendEmail($identifier, $code);
                 } else {
-                    $otpService->sendSms($identifier, $code);
+                    $otpService->sendWhatsApp($identifier, $code);
                 }
             } catch (\Exception $e) {
                 \Log::warning('Resend OTP failed: ' . $e->getMessage());

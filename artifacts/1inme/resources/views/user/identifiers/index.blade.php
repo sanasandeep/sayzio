@@ -17,7 +17,7 @@
                 <li class="py-3 flex items-center justify-between gap-4">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs uppercase tracking-wider text-white/50">{{ $id->kindLabel() }}</span>
+                            <span class="text-xs uppercase tracking-wider text-white/50">{{ $id->kind === 'phone' ? 'WhatsApp' : $id->kindLabel() }}</span>
                             @if($id->is_primary)
                                 <span class="text-[10px] uppercase tracking-wider text-violet-200 bg-violet-500/20 border border-violet-500/30 rounded-full px-2 py-0.5">Primary</span>
                             @endif
@@ -47,7 +47,7 @@
     </div>
 
     <div class="glass rounded-2xl p-6 mb-6">
-        <h2 class="text-lg font-semibold text-white mb-3">Add an email or phone</h2>
+        <h2 class="text-lg font-semibold text-white mb-3">Add an email or WhatsApp number</h2>
         @if($pending)
             <p class="text-sm text-white/60 mb-3">We sent a 6-digit code to <span class="text-white">{{ $pending['value'] }}</span>. Enter it below to confirm.</p>
             <form method="POST" action="{{ route('user.identifiers.confirm') }}" class="flex gap-2">
@@ -62,7 +62,7 @@
                 <div class="flex gap-2">
                     <select name="kind" class="px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white">
                         <option value="email" class="bg-[#0d0818]">Email</option>
-                        <option value="phone" class="bg-[#0d0818]">Phone</option>
+                        <option value="phone" class="bg-[#0d0818]">WhatsApp</option>
                     </select>
                     <input name="value" required placeholder="you@example.com or +15551234567"
                            class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white">

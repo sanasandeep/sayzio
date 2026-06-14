@@ -167,7 +167,7 @@ export default function Verify() {
         <Button
           label={
             mode === "backup"
-              ? `Use the ${channel === "email" ? "email" : "SMS"} code instead`
+              ? `Use the ${channel === "email" ? "email" : "WhatsApp"} code instead`
               : "Use a backup code instead"
           }
           variant="ghost"

@@ -34,7 +34,7 @@
                 <i class="fas fa-key text-violet-400 text-xl"></i>
             </div>
             <h2 class="text-lg font-bold mb-1" style="color: var(--text-primary);">Enter Verification Code</h2>
-            <p class="text-xs mb-6" style="color: var(--text-dimmed);">We sent a 6-digit code to your {{ session('otp_type', 'email') }}</p>
+            <p class="text-xs mb-6" style="color: var(--text-dimmed);">We sent a 6-digit code to your {{ session('otp_type') === 'mobile' ? 'WhatsApp' : 'email' }}</p>
 
             @if(session('status'))
                 <div class="mb-4 p-3 rounded-xl text-violet-400 text-xs font-medium" style="border: 1px solid rgba(124,58,237,0.15); background: rgba(124,58,237,0.06);">
@@ -68,7 +68,7 @@
 
             <p class="mt-4 text-xs">
                 <a href="{{ route('user.login') }}" class="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
-                    <i class="fas fa-arrow-left text-[10px] mr-1"></i> Use a different {{ session('otp_type', 'email') }}
+                    <i class="fas fa-arrow-left text-[10px] mr-1"></i> Use a different {{ session('otp_type') === 'mobile' ? 'number' : 'email' }}
                 </a>
             </p>
         </div>

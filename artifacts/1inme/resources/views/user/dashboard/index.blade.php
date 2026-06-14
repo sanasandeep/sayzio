@@ -386,6 +386,22 @@
                 </div>
             </div>
             @endif
+            @if($showWhatsappPrompt ?? false)
+            <div class="m-4 mb-0 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-600/10 to-green-500/5 p-4 flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                    <i class="fab fa-whatsapp text-emerald-300 text-lg"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-white">Add your WhatsApp number</p>
+                    <p class="text-xs text-white/50 mt-0.5">Link a WhatsApp number to sign in faster with a one-time code — no password needed.</p>
+                </div>
+                <a href="{{ route('user.identifiers.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex-shrink-0">Add WhatsApp</a>
+                <form method="POST" action="{{ route('user.onboarding.dismiss-whatsapp-prompt') }}">
+                    @csrf
+                    <button type="submit" class="text-white/30 hover:text-white/70 px-2 py-1.5" title="Dismiss"><i class="fas fa-times text-xs"></i></button>
+                </form>
+            </div>
+            @endif
             @if($showPersonaBanner)
             <div class="m-4 mb-0 rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-600/10 to-fuchsia-500/5 p-4 flex items-start gap-3">
                 <div class="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center flex-shrink-0">

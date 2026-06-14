@@ -26,6 +26,7 @@ WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
+import { getAuthConfig, isAllowedCountryCode } from "@/lib/api/authConfig";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 type Channel = "email" | "mobile";
@@ -117,6 +118,25 @@ export default function AuthLanding() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Login-method policy: email is always available; WhatsApp (mobile) login
+  // is behind an admin toggle with an allowed-country-code list. Default to
+  // email-only until the config loads / if it fails.
+  const [mobileLoginEnabled, setMobileLoginEnabled] = useState(false);
+  const [allowedCountryCodes, setAllowedCountryCodes] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getAuthConfig().then((cfg) => {
+      if (!active) return;
+      setMobileLoginEnabled(cfg.mobileLoginEnabled);
+      setAllowedCountryCodes(cfg.allowedCountryCodes);
+      if (!cfg.mobileLoginEnabled) setChannel("email");
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const onSendOtp = async () => {
     // In dev, refuse to send OTP at the production host by accident:
     // the most common cause of "broken login" is a missing local
@@ -129,7 +149,7 @@ export default function AuthLanding() {
     }
     const id = identifier.trim();
     if (!id) {
-      setError(channel === "email" ? "Enter your email" : "Enter your mobile number");
+      setError(channel === "email" ? "Enter your email" : "Enter your WhatsApp number");
       return;
     }
     if (channel === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) {
@@ -137,7 +157,15 @@ export default function AuthLanding() {
       return;
     }
     if (channel === "mobile" && !/^\+?[0-9\s\-()]{6,}$/.test(id)) {
-      setError("Enter a phone number with country code (e.g. +1 555 123 4567)");
+      setError("Enter a WhatsApp number with country code (e.g. +1 555 123 4567)");
+      return;
+    }
+    if (
+      channel === "mobile" &&
+      allowedCountryCodes.length > 0 &&
+      !isAllowedCountryCode(id, allowedCountryCodes)
+    ) {
+      setError(`Supported country codes: ${allowedCountryCodes.join(", ")}.`);
       return;
     }
     setError(null);
@@ -289,7 +317,7 @@ export default function AuthLanding() {
             },
           ]}
         >
-          {(["email", "mobile"] as const).map((c) => {
+          {((mobileLoginEnabled ? ["email", "mobile"] : ["email"]) as Channel[]).map((c) => {
             const active = channel === c;
             return (
               <Pressable
@@ -313,7 +341,7 @@ export default function AuthLanding() {
                     { color: active ? colors.primary : colors.mutedForeground },
                   ]}
                 >
-                  {c === "email" ? "Email" : "Mobile"}
+                  {c === "email" ? "Email" : "WhatsApp"}
                 </Text>
               </Pressable>
             );
@@ -323,7 +351,7 @@ export default function AuthLanding() {
         <View style={{ height: 16 }} />
 
         <TextField
-          label={channel === "email" ? "Email address" : "Mobile number"}
+          label={channel === "email" ? "Email address" : "WhatsApp number"}
           placeholder={channel === "email" ? "you@example.com" : "+1 555 123 4567"}
           autoCapitalize="none"
           autoCorrect={false}

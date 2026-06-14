@@ -244,6 +244,14 @@
             </a>
         @endif
 
+        <a href="{{ route('admin.auth-settings.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.auth-settings.*') ? 'active' : '' }}"
+           style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-right-to-bracket"></i></div>
+            <span class="nav-label">Login &amp; OTP</span>
+            <span class="sidebar-tooltip">Login &amp; OTP</span>
+        </a>
+
         <a href="{{ route('admin.marketing-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">

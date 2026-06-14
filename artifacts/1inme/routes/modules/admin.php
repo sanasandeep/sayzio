@@ -262,6 +262,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/', [\App\Modules\Admin\Controllers\MaintenanceModeController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
+        Route::prefix('auth-settings')->name('auth-settings.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\AuthSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('/', [\App\Modules\Admin\Controllers\AuthSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         Route::prefix('marketing-settings')->name('marketing-settings.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

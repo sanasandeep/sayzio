@@ -130,6 +130,71 @@ class OtpService
 
     public function sendSms(string $mobile, string $code): void
     {
-        \Log::info("OTP SMS sent to mobile number ending in " . substr($mobile, -4));
+        // Legacy SMS stub kept for backwards-compatibility. Mobile login is
+        // now WhatsApp-only; route phone OTP through sendWhatsApp() instead.
+        $this->sendWhatsApp($mobile, $code);
+    }
+
+    /**
+     * Deliver a code over WhatsApp via the Meta WhatsApp Cloud API.
+     *
+     * Runs in "preview" mode — logging the code instead of calling Meta —
+     * whenever the credentials in config/whatsapp.php are absent, so the
+     * flow stays fully demonstrable in development. In production with
+     * credentials present it posts the configured template message.
+     */
+    public function sendWhatsApp(string $mobile, string $code): void
+    {
+        $phoneNumberId = (string) config('whatsapp.phone_number_id', '');
+        $accessToken   = (string) config('whatsapp.access_token', '');
+
+        // Meta requires the recipient in international format, digits only.
+        $to = preg_replace('/\D+/', '', $mobile) ?? '';
+
+        if ($phoneNumberId === '' || $accessToken === '' || $to === '') {
+            Log::info('WhatsApp OTP (preview mode — credentials absent): code ' . $code . ' for number ending in ' . substr($mobile, -4));
+            return;
+        }
+
+        $version  = (string) config('whatsapp.graph_version', 'v21.0');
+        $template = (string) config('whatsapp.template_name', 'otp_code');
+        $language = (string) config('whatsapp.template_language', 'en_US');
+        $endpoint = "https://graph.facebook.com/{$version}/{$phoneNumberId}/messages";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withToken($accessToken)
+                ->acceptJson()
+                ->post($endpoint, [
+                    'messaging_product' => 'whatsapp',
+                    'to'                => $to,
+                    'type'              => 'template',
+                    'template'          => [
+                        'name'     => $template,
+                        'language' => ['code' => $language],
+                        'components' => [
+                            [
+                                'type'       => 'body',
+                                'parameters' => [
+                                    ['type' => 'text', 'text' => $code],
+                                ],
+                            ],
+                            [
+                                'type'        => 'button',
+                                'sub_type'    => 'url',
+                                'index'       => '0',
+                                'parameters'  => [
+                                    ['type' => 'text', 'text' => $code],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]);
+
+            if ($response->failed()) {
+                Log::warning('WhatsApp OTP send failed: HTTP ' . $response->status() . ' ' . $response->body());
+            }
+        } catch (\Throwable $e) {
+            Log::warning('WhatsApp OTP send threw: ' . $e->getMessage());
+        }
     }
 }
