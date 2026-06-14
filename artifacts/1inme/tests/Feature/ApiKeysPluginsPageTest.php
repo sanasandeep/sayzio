@@ -218,4 +218,77 @@ class ApiKeysPluginsPageTest extends TestCase
         // No webhook configured → error flash, nothing sent.
         $this->assertNull(IntegrationKeySettings::discordWebhookUrl());
     }
+
+    // ── Per-category alert toggles ────────────────────────────────
+
+    public function test_categories_default_to_enabled(): void
+    {
+        // Nothing stored yet → every category fans out (backward compatible).
+        $this->assertTrue(IntegrationKeySettings::alertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_RENEWAL));
+        $this->assertTrue(IntegrationKeySettings::alertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_JOB));
+        $this->assertTrue(IntegrationKeySettings::alertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_BROADCAST));
+        // Unknown / uncategorised alerts always send.
+        $this->assertTrue(IntegrationKeySettings::alertCategoryEnabled('something-else'));
+    }
+
+    public function test_payment_category_is_always_on_and_cannot_be_muted(): void
+    {
+        IntegrationKeySettings::setAlertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_PAYMENT, false);
+
+        // The setter refuses to persist an always-on category as off.
+        $this->assertTrue(IntegrationKeySettings::alertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_PAYMENT));
+    }
+
+    public function test_muted_category_is_skipped_by_dispatcher(): void
+    {
+        Http::fake(['hooks.slack.com/*' => Http::response('ok', 200)]);
+
+        IntegrationKeySettings::setAlertsEnabled(true);
+        IntegrationKeySettings::setSlackWebhookUrl('https://hooks.slack.com/services/T/B/abc');
+        IntegrationKeySettings::setAlertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_JOB, false);
+
+        $res = InternalAlertDispatcher::send('Title', 'Body', 'error', [], IntegrationKeySettings::ALERT_CATEGORY_JOB);
+
+        $this->assertTrue($res['enabled']);
+        $this->assertTrue($res['muted'] ?? false);
+        $this->assertSame([], $res['channels']);
+        Http::assertNothingSent();
+    }
+
+    public function test_critical_category_still_sends_even_if_others_muted(): void
+    {
+        Http::fake(['hooks.slack.com/*' => Http::response('ok', 200)]);
+
+        IntegrationKeySettings::setAlertsEnabled(true);
+        IntegrationKeySettings::setSlackWebhookUrl('https://hooks.slack.com/services/T/B/abc');
+        IntegrationKeySettings::setAlertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_PAYMENT, false);
+
+        $res = InternalAlertDispatcher::send('Pay', 'Body', 'critical', [], IntegrationKeySettings::ALERT_CATEGORY_PAYMENT);
+
+        $this->assertTrue($res['enabled']);
+        $this->assertArrayNotHasKey('muted', $res);
+        $this->assertSame('slack', $res['channels'][0]['channel']);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'hooks.slack.com'));
+    }
+
+    public function test_update_persists_category_toggles(): void
+    {
+        $admin = $this->makeAdminWithPermission('settings.manage');
+
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/api-keys', [
+                'alerts_enabled'      => '1',
+                // job left unchecked (hidden 0 only) → muted
+                'alert_cat_job'       => '0',
+                // renewal checked → enabled
+                'alert_cat_renewal'   => '1',
+                'alert_cat_broadcast' => '1',
+            ])
+            ->assertRedirect(route('admin.api-keys.index'));
+
+        $this->assertFalse(IntegrationKeySettings::alertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_JOB));
+        $this->assertTrue(IntegrationKeySettings::alertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_RENEWAL));
+        // Payment stays on regardless of the form.
+        $this->assertTrue(IntegrationKeySettings::alertCategoryEnabled(IntegrationKeySettings::ALERT_CATEGORY_PAYMENT));
+    }
 }

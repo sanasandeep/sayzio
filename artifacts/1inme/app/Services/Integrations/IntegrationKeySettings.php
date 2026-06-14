@@ -34,6 +34,17 @@ class IntegrationKeySettings
     public const KEY_ALERTS_SLACK_ENC    = 'alerts.slack_webhook_url_enc';
     public const KEY_ALERTS_DISCORD_ENC  = 'alerts.discord_webhook_url_enc';
 
+    // Per-category mute toggles. Each category's enabled flag lives at
+    // `alerts.category.{key}` and defaults to ON, so existing installs keep
+    // receiving every alert until an admin opts out. Always-on categories
+    // (payment) ignore the toggle entirely.
+    public const KEY_ALERT_CATEGORY_PREFIX = 'alerts.category.';
+
+    public const ALERT_CATEGORY_PAYMENT   = 'payment';
+    public const ALERT_CATEGORY_RENEWAL   = 'renewal';
+    public const ALERT_CATEGORY_JOB       = 'job';
+    public const ALERT_CATEGORY_BROADCAST = 'broadcast';
+
     // ─────────────────────────────────────────────────────────────
     // WhatsApp accessors (admin value first, then config/whatsapp.php)
     // ─────────────────────────────────────────────────────────────
@@ -218,6 +229,84 @@ class IntegrationKeySettings
             return ['key' => 'configured', 'label' => 'Configured', 'tone' => 'green'];
         }
         return ['key' => 'env', 'label' => 'Using env fallback', 'tone' => 'amber'];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Per-category alert toggles
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * The internal alert categories the dispatcher can fan out. Admins can
+     * mute any non-critical category from the API Keys hub; the critical
+     * payment category is always-on and cannot be switched off.
+     *
+     * @return array<int,array{key:string,label:string,desc:string,level:string,always_on:bool}>
+     */
+    public static function alertCategories(): array
+    {
+        return [
+            [
+                'key'       => self::ALERT_CATEGORY_PAYMENT,
+                'label'     => 'Payment activation failures',
+                'desc'      => 'A charge succeeded but applying the plan or coins threw — a customer may have paid without receiving anything. Always sent.',
+                'level'     => 'critical',
+                'always_on' => true,
+            ],
+            [
+                'key'       => self::ALERT_CATEGORY_RENEWAL,
+                'label'     => 'Renewal-failure spikes',
+                'desc'      => 'A run of recurring renewal charges failed in one pass — usually a gateway outage or credential problem.',
+                'level'     => 'error',
+                'always_on' => false,
+            ],
+            [
+                'key'       => self::ALERT_CATEGORY_JOB,
+                'label'     => 'Failed background jobs',
+                'desc'      => 'A queued job exhausted its retries and landed in the failed jobs table.',
+                'level'     => 'error',
+                'always_on' => false,
+            ],
+            [
+                'key'       => self::ALERT_CATEGORY_BROADCAST,
+                'label'     => 'System announcements',
+                'desc'      => 'Downtime notices and admin broadcasts sent to all users are echoed to the team channel.',
+                'level'     => 'info',
+                'always_on' => false,
+            ],
+        ];
+    }
+
+    /**
+     * Whether a given alert category should fan out. Defaults to true for
+     * any unknown category (backward compatibility) and is forced true for
+     * always-on categories regardless of any stored value.
+     */
+    public static function alertCategoryEnabled(string $category): bool
+    {
+        foreach (self::alertCategories() as $c) {
+            if ($c['key'] === $category) {
+                if ($c['always_on']) {
+                    return true;
+                }
+                return (bool) AppSetting::get(self::KEY_ALERT_CATEGORY_PREFIX . $category, true);
+            }
+        }
+
+        // Unknown / uncategorised alerts always send.
+        return true;
+    }
+
+    /** Persist a per-category toggle. Always-on categories are never stored off. */
+    public static function setAlertCategoryEnabled(string $category, bool $on): void
+    {
+        foreach (self::alertCategories() as $c) {
+            if ($c['key'] === $category && $c['always_on']) {
+                AppSetting::put(self::KEY_ALERT_CATEGORY_PREFIX . $category, true);
+                return;
+            }
+        }
+
+        AppSetting::put(self::KEY_ALERT_CATEGORY_PREFIX . $category, $on);
     }
 
     // ─────────────────────────────────────────────────────────────

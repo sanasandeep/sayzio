@@ -105,6 +105,7 @@ class AppServiceProvider extends ServiceProvider
                         'queue'      => $event->job->getQueue() ?: 'default',
                         'error'      => \Illuminate\Support\Str::limit($event->exception->getMessage(), 300),
                     ],
+                    \App\Services\Integrations\IntegrationKeySettings::ALERT_CATEGORY_JOB,
                 );
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Failed to dispatch job-failure alert: ' . $e->getMessage());

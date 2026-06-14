@@ -52,6 +52,11 @@ class ApiKeysController extends Controller
             'discordHasUrl'     => IntegrationKeySettings::discordWebhookUrl() !== null,
             'discordMasked'     => IntegrationKeySettings::maskedDiscordWebhookUrl(),
 
+            // Per-category alert toggles
+            'alertCategories'   => collect(IntegrationKeySettings::alertCategories())
+                ->map(fn ($c) => $c + ['enabled' => IntegrationKeySettings::alertCategoryEnabled($c['key'])])
+                ->all(),
+
             // Read-only overview of the other key-bearing systems
             'overview' => $this->overview(),
         ]);
@@ -105,6 +110,19 @@ class ApiKeysController extends Controller
             IntegrationKeySettings::setDiscordWebhookUrl(null);
         } elseif (!empty($data['discord_webhook_url'])) {
             IntegrationKeySettings::setDiscordWebhookUrl($data['discord_webhook_url']);
+        }
+
+        // Per-category mute toggles. Always-on categories (payment) have no
+        // form control and are skipped; setAlertCategoryEnabled also force-
+        // pins them on defensively.
+        foreach (IntegrationKeySettings::alertCategories() as $cat) {
+            if ($cat['always_on']) {
+                continue;
+            }
+            IntegrationKeySettings::setAlertCategoryEnabled(
+                $cat['key'],
+                $request->boolean('alert_cat_' . $cat['key']),
+            );
         }
 
         return redirect()->route('admin.api-keys.index')

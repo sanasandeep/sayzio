@@ -130,6 +130,7 @@ class WebhookController extends Controller
                     'gateway_ref' => $ref,
                     'error'       => \Illuminate\Support\Str::limit($e->getMessage(), 300),
                 ],
+                \App\Services\Integrations\IntegrationKeySettings::ALERT_CATEGORY_PAYMENT,
             );
         } catch (\Throwable $alertError) {
             Log::warning('Failed to dispatch payment-activation alert: ' . $alertError->getMessage());

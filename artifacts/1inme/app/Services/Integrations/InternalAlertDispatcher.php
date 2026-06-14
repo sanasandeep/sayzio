@@ -20,14 +20,25 @@ class InternalAlertDispatcher
     /**
      * Send an alert to every configured + enabled webhook.
      *
+     * When a $category is supplied, the admin-controlled per-category toggle
+     * is consulted before fan-out: a muted category is skipped (returned with
+     * `muted => true`). A null/unknown category always sends, so legacy
+     * callers keep their existing behaviour. Always-on categories (payment)
+     * ignore the toggle entirely — see IntegrationKeySettings::alertCategories().
+     *
      * @param array<string,scalar|null> $context optional key/value detail lines.
-     * @return array{enabled:bool,channels:array<int,array{channel:string,ok:bool,status:?int,error:?string}>}
+     * @return array{enabled:bool,muted?:bool,channels:array<int,array{channel:string,ok:bool,status:?int,error:?string}>}
      */
-    public static function send(string $title, string $message, string $level = 'info', array $context = []): array
+    public static function send(string $title, string $message, string $level = 'info', array $context = [], ?string $category = null): array
     {
         $result = ['enabled' => IntegrationKeySettings::alertsEnabled(), 'channels' => []];
 
         if (!$result['enabled']) {
+            return $result;
+        }
+
+        if ($category !== null && !IntegrationKeySettings::alertCategoryEnabled($category)) {
+            $result['muted'] = true;
             return $result;
         }
 

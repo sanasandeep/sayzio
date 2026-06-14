@@ -361,7 +361,13 @@ class NotificationService
         // webhook so the team sees it without checking the admin UI. The
         // dispatcher is best-effort and a no-op when alerting is disabled.
         if ($type === 'system_broadcast') {
-            $this->systemAlert($subject, $body, 'info', ['recipients' => $delivered]);
+            $this->systemAlert(
+                $subject,
+                $body,
+                'info',
+                ['recipients' => $delivered],
+                \App\Services\Integrations\IntegrationKeySettings::ALERT_CATEGORY_BROADCAST,
+            );
         }
 
         return $broadcast;
@@ -375,9 +381,9 @@ class NotificationService
      * @param array<string,scalar|null> $context
      * @return array{enabled:bool,channels:array<int,array{channel:string,ok:bool,status:?int,error:?string}>}
      */
-    public function systemAlert(string $title, string $body, string $level = 'warning', array $context = []): array
+    public function systemAlert(string $title, string $body, string $level = 'warning', array $context = [], ?string $category = null): array
     {
-        return \App\Services\Integrations\InternalAlertDispatcher::send($title, $body, $level, $context);
+        return \App\Services\Integrations\InternalAlertDispatcher::send($title, $body, $level, $context, $category);
     }
 
     /** @return Collection<int, int> */

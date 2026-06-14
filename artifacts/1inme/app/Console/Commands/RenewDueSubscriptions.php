@@ -166,6 +166,7 @@ class RenewDueSubscriptions extends Command
                     'failures'   => $failures,
                     'by_gateway' => $breakdown !== '' ? $breakdown : 'n/a',
                 ],
+                \App\Services\Integrations\IntegrationKeySettings::ALERT_CATEGORY_RENEWAL,
             );
         } catch (\Throwable $e) {
             Log::warning('Failed to dispatch renewal-failure alert: ' . $e->getMessage());

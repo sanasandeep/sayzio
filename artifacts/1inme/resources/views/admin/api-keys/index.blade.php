@@ -117,6 +117,37 @@
                 <span class="text-sm text-white">Enable alert delivery</span>
             </label>
 
+            {{-- Per-category alert toggles ----------------------------- --}}
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-white/40">Which alerts to send</p>
+                    <p class="text-[11px] text-white/30 mt-0.5">Mute lower-severity categories to cut alert fatigue. Critical payment alerts are always sent.</p>
+                </div>
+                <div class="space-y-3">
+                    @foreach($alertCategories as $cat)
+                        <label class="flex items-start gap-3 {{ $cat['always_on'] ? '' : 'cursor-pointer' }}">
+                            @if($cat['always_on'])
+                                <input type="checkbox" checked disabled class="mt-0.5 w-4 h-4 accent-violet-500 opacity-60">
+                            @else
+                                <input type="hidden" name="alert_cat_{{ $cat['key'] }}" value="0">
+                                <input type="checkbox" name="alert_cat_{{ $cat['key'] }}" value="1"
+                                       {{ $cat['enabled'] ? 'checked' : '' }}
+                                       class="mt-0.5 w-4 h-4 accent-violet-500">
+                            @endif
+                            <span class="min-w-0">
+                                <span class="text-sm text-white flex items-center gap-2">
+                                    {{ $cat['label'] }}
+                                    @if($cat['always_on'])
+                                        <span class="px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-300 text-[10px] font-medium uppercase tracking-wide">Always on</span>
+                                    @endif
+                                </span>
+                                <span class="block text-[11px] text-white/40">{{ $cat['desc'] }}</span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
             <div>
                 <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Slack incoming webhook URL</label>
                 @if($slackHasUrl)
