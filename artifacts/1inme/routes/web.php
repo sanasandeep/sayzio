@@ -216,6 +216,11 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
 Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
     ->name('site.contact.submit')->middleware('throttle:10,10');
 
+// ---- Marketing XML sitemap + robots.txt (must precede the catch-all /{alias} routes) ----
+// URL list sourced from MarketingSeo so it stays in lockstep with per-page SEO meta.
+Route::get('/sitemap.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'sitemap'])->name('site.sitemap');
+Route::get('/robots.txt',  [\App\Modules\Common\Controllers\SitemapController::class, 'robots'])->name('site.robots');
+
 // ---- Marketing CTA click tracking (anonymous, allow-listed) ----
 Route::post('/marketing-events/track', [\App\Modules\Common\Controllers\MarketingEventController::class, 'track'])
     ->middleware('throttle:60,1')

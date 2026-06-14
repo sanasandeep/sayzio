@@ -219,6 +219,50 @@ class MarketingSeo
         return array_keys(self::sitePageLabels());
     }
 
+    /**
+     * The public URL path for a `site_pages`-backed slug. Most pages live at
+     * `/{slug}`; the use-case pages are mounted under `/for/{persona}` and
+     * their rows are stored as `for-{persona}` (see SitePageController::useCase).
+     */
+    public static function sitePagePath(string $slug): string
+    {
+        if (str_starts_with($slug, 'for-')) {
+            return '/for/' . substr($slug, 4);
+        }
+
+        return '/' . $slug;
+    }
+
+    /**
+     * Every public marketing URL for the XML sitemap, kept in lockstep with
+     * the SEO registry: the code-driven pages (their seeded `url`) plus the
+     * `site_pages`-backed pages. Returns a de-duplicated list of
+     * `['path' => string, 'slug' => ?string]`; `slug` is set only for
+     * site-page-backed entries so the caller can resolve a per-row lastmod.
+     */
+    public static function sitemapPaths(): array
+    {
+        $paths = [];
+
+        foreach (self::codeDrivenDefaults() as $def) {
+            $url = trim((string) ($def['url'] ?? ''));
+            if ($url !== '') {
+                $paths[$url] = ['path' => $url, 'slug' => null];
+            }
+        }
+
+        foreach (self::sitePageSlugs() as $slug) {
+            $url = self::sitePagePath($slug);
+            // Don't let a site-page entry clobber a code-driven one that
+            // already claimed the same path.
+            if (!isset($paths[$url])) {
+                $paths[$url] = ['path' => $url, 'slug' => $slug];
+            }
+        }
+
+        return array_values($paths);
+    }
+
     /** The full per-page override map for code-driven pages. */
     public static function overrides(): array
     {
