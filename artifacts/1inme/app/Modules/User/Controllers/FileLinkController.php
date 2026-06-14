@@ -17,7 +17,22 @@ class FileLinkController extends Controller
 
         $prefillAlias = (string) $request->query('alias', '');
         $aliasLimits  = workspace_owner()->getAliasLengthLimits();
-        return view('user.links.create-file', compact('projects', 'maxFileSizeMb', 'prefillAlias', 'aliasLimits'));
+        // The "open in app" toggle is only meaningful when files on the
+        // upload disk could actually resolve to a known app. For self-hosted
+        // files (app domain / S3 bucket) this is never the case, so the toggle
+        // stays hidden instead of promising behaviour it can't deliver.
+        $deepLinkSupported = FileLink::diskSupportsDeepLink(self::fileShareDisk());
+        return view('user.links.create-file', compact('projects', 'maxFileSizeMb', 'prefillAlias', 'aliasLimits', 'deepLinkSupported'));
+    }
+
+    /**
+     * The storage disk new File Share uploads land on. Mirrors the disk
+     * selection inside UserFile::createFromUpload() so the create form can
+     * reason about deep-link support before the file is uploaded.
+     */
+    private static function fileShareDisk(): string
+    {
+        return config('filesystems.default') === 's3' ? 's3' : 'user_files';
     }
 
     public function store(Request $request)
@@ -69,7 +84,12 @@ class FileLinkController extends Controller
             if (!workspace_owner()->userCanUseLinkSetting('deep_link')) {
                 return back()->withInput()->with('error', 'The "deep link" link setting isn\'t available on your current plan. Upgrade to enable it.');
             }
-            $settings['open_in_app'] = true;
+            // Only persist the flag when files on this disk could actually
+            // resolve to a known app. Otherwise it would be a silent no-op,
+            // so we drop it rather than store a setting that never fires.
+            if (FileLink::diskSupportsDeepLink(self::fileShareDisk())) {
+                $settings['open_in_app'] = true;
+            }
         }
 
         $link = Link::create([

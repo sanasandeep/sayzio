@@ -64,7 +64,7 @@
                 </div>
             </div>
 
-            @if(workspace_owner()->userCanUseLinkSetting('deep_link'))
+            @if(($deepLinkSupported ?? false) && workspace_owner()->userCanUseLinkSetting('deep_link'))
             <div class="flex items-center gap-3">
                 <input type="hidden" name="open_in_app" value="0">
                 <label class="relative inline-flex items-center cursor-pointer">

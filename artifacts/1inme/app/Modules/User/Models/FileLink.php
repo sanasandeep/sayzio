@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Models;
 
+use App\Modules\Common\Services\AppLinkResolver;
 use Illuminate\Database\Eloquent\Model;
 
 class FileLink extends Model
@@ -44,6 +45,34 @@ class FileLink extends Model
             return \Illuminate\Support\Facades\Storage::disk($this->disk ?: 'public')->url($this->stored_path);
         } catch (\Throwable $e) {
             return null;
+        }
+    }
+
+    /**
+     * Whether this file's public URL can actually resolve to a known mobile
+     * app — i.e. whether enabling "open in app" could ever produce a real
+     * deep-link interstitial instead of being a silent no-op.
+     */
+    public function canDeepLink(): bool
+    {
+        $url = $this->publicUrl();
+        return $url ? AppLinkResolver::resolve($url) !== null : false;
+    }
+
+    /**
+     * Whether files stored on the given disk could ever resolve to a known
+     * app. Used by the create form to decide if the "open in app" toggle is
+     * worth showing at all (before a file is uploaded we only know the disk,
+     * not the final path — but the host that drives app resolution is fixed
+     * by the disk's base URL, not the path).
+     */
+    public static function diskSupportsDeepLink(?string $disk = null): bool
+    {
+        try {
+            $url = \Illuminate\Support\Facades\Storage::disk($disk ?: 'public')->url('__deep_link_probe__');
+            return $url ? AppLinkResolver::resolve($url) !== null : false;
+        } catch (\Throwable $e) {
+            return false;
         }
     }
 }
