@@ -15,18 +15,23 @@
 // country-code hint vanishing, or the screen no longer defaulting to
 // email-only) could ship unnoticed.
 //
-// Why this is a source-driven test and NOT a headless browser click-through:
-// the screen calls expo-auth-session's `Google.useIdTokenAuthRequest` at the
-// top level, which throws on the web platform unless a Google *web* client id
-// is configured — so the screen can't be rendered headlessly in an
-// environment without that credential. Instead, following the convention in
-// test-block-cache.mjs / test-citation-href.mjs, we exercise the REAL logic:
+// This is a source-driven test (NOT a headless browser click-through),
+// following the convention in test-block-cache.mjs / test-citation-href.mjs.
+// It exercises the REAL logic:
 //   1. getAuthConfig() run against a mocked apiFetch (success + failure).
 //   2. The actual tab-list expression lifted out of the screen source,
 //      evaluated for both policy states.
 //   3. isAllowedCountryCode() — the real gate behind the country-code hint.
 //   4. Source-wiring guards so the screen can't drift away from the logic
-//      these checks pin down.
+//      these checks pin down — including a guard that the Google auth hook
+//      stays guarded against the web crash (see below).
+//
+// Note: the screen used to call expo-auth-session's
+// `Google.useIdTokenAuthRequest` unconditionally at the top level, which
+// throws on web unless a Google *web* client id is configured, crashing the
+// whole login screen. That call is now guarded (useGuardedGoogleAuth) so the
+// screen renders on web without credentials; the headless check-icon-fonts
+// test now drives the rendered screen. Check (5) below pins that guard down.
 //
 // Run via `node scripts/test-login-auth-config.mjs` (package script
 // `test:login-auth-config`).
@@ -216,5 +221,34 @@ assert.ok(
   "an out-of-list number must surface the allowed country codes",
 );
 ok("screen defaults to email-only, forces email when disabled, and shows codes when gated");
+
+// ===========================================================================
+// 5. Google auth hook stays guarded (regression guard for the web crash)
+//
+// expo-auth-session's useIdTokenAuthRequest throws on web when no webClientId
+// is configured, crashing the whole login screen. The screen must NOT call it
+// unconditionally at the top level — it must go through the guarded wrapper
+// that skips the hook on web without a webClientId.
+// ===========================================================================
+console.log("[test-login-auth-config] Google auth hook is guarded against the web crash");
+
+// The raw hook must not be invoked directly inside the component render.
+assert.ok(
+  !/=\s*Google\.useIdTokenAuthRequest\(/.test(screenSrc),
+  "the screen must NOT call Google.useIdTokenAuthRequest directly — it crashes on web without a webClientId; use the guarded wrapper",
+);
+// The component must obtain the request/response/prompt via the guarded wrapper.
+assert.ok(
+  /useGuardedGoogleAuth\(\)/.test(screenSrc),
+  "the screen must obtain Google auth via useGuardedGoogleAuth()",
+);
+// The wrapper must skip the hook on web when no webClientId is configured.
+assert.ok(
+  /Platform\.OS !== "web" \|\| !!process\.env\.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/.test(
+    screenSrc,
+  ),
+  "the guard must skip the hook on web unless EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is set",
+);
+ok("Google auth hook is wrapped so a missing webClientId can't crash the web login screen");
 
 console.log(`\n[test-login-auth-config] all ${passed} checks passed`);

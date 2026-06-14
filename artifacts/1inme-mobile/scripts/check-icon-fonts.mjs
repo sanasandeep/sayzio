@@ -33,8 +33,12 @@ const APP_URL =
 const NAV_TIMEOUT_MS = 90_000;
 const STEP_TIMEOUT_MS = 30_000;
 
-const SOCIAL_LABELS = [
-  "Continue with Google",
+// The Google button only renders when a Google client id is configured
+// (HAS_GOOGLE_NATIVE in app/(auth)/index.tsx) — on web without
+// EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID it's intentionally hidden. The
+// web-browser providers below always render, so they're the minimum set
+// the test requires. Google is verified too, but only if it's present.
+const REQUIRED_SOCIAL_LABELS = [
   "Continue with Instagram",
   "Continue with Facebook",
   "Continue with X",
@@ -42,6 +46,7 @@ const SOCIAL_LABELS = [
   "Continue with Pinterest",
   "Continue with TikTok",
 ];
+const OPTIONAL_SOCIAL_LABELS = ["Continue with Google"];
 
 function log(...args) {
   console.log("[check-icon-fonts]", ...args);
@@ -129,12 +134,15 @@ async function assertSocialIconsRendered(page) {
   //   2. The glyph's measured width with the loaded font differs from
   //      the same string measured WITHOUT the icon font — i.e. the
   //      browser actually used the icon font, not the fallback "tofu".
-  const report = await page.evaluate(async (labels) => {
+  const report = await page.evaluate(async ({ required, optional }) => {
     const out = [];
-    for (const label of labels) {
+    for (const label of [...required, ...optional]) {
+      const isOptional = optional.includes(label);
       const el = document.querySelector(`[aria-label="${label}"]`);
       if (!el) {
-        out.push({ label, error: "button not found" });
+        // Optional providers (e.g. Google when no client id is configured)
+        // may be intentionally absent — skip them quietly.
+        if (!isOptional) out.push({ label, error: "button not found" });
         continue;
       }
       // Find the glyph text node within the button.
@@ -161,7 +169,7 @@ async function assertSocialIconsRendered(page) {
       out.push({ label, glyph, wIcon, wFallback });
     }
     return out;
-  }, SOCIAL_LABELS);
+  }, { required: REQUIRED_SOCIAL_LABELS, optional: OPTIONAL_SOCIAL_LABELS });
 
   log("social glyph report:", JSON.stringify(report, null, 2));
   for (const r of report) {

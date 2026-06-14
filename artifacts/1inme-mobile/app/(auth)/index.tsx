@@ -77,6 +77,31 @@ const HAS_GOOGLE_NATIVE =
   !!process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
   !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
+// On web, expo-auth-session's useIdTokenAuthRequest THROWS at render when no
+// webClientId is configured ("Client Id property `webClientId` must be defined
+// to use Google auth on this platform."), which crashes the whole login screen
+// into the error boundary. On native it safely no-ops without a client id.
+// So only invoke the hook when it's safe to do so. Both Platform.OS and the
+// env var are module-level constants for the app's lifetime, so this condition
+// never changes between renders and the hook call order stays stable.
+const GOOGLE_AUTH_SAFE_TO_INIT =
+  Platform.OS !== "web" || !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
+type GoogleAuth = ReturnType<typeof Google.useIdTokenAuthRequest>;
+
+function useGuardedGoogleAuth(): GoogleAuth {
+  if (!GOOGLE_AUTH_SAFE_TO_INIT) {
+    return [null, null, async () => ({ type: "dismiss" })] as unknown as GoogleAuth;
+  }
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return Google.useIdTokenAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+}
+
 export default function AuthLanding() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -87,13 +112,10 @@ export default function AuthLanding() {
   // Native Google sign-in via expo-auth-session. Returns an id_token
   // that we POST to /auth/social (per OpenAPI). The hook is no-op
   // unless at least one EXPO_PUBLIC_GOOGLE_*_CLIENT_ID is set, so it
-  // safely degrades when the build isn't configured for it.
-  const [googleRequest, googleResponse, googlePrompt] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
+  // safely degrades when the build isn't configured for it. On web it
+  // is skipped entirely (see useGuardedGoogleAuth) so a missing
+  // webClientId doesn't crash the screen.
+  const [googleRequest, googleResponse, googlePrompt] = useGuardedGoogleAuth();
 
   useEffect(() => {
     if (!googleResponse) return;
