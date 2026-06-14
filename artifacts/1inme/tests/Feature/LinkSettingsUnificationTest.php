@@ -334,6 +334,27 @@ class LinkSettingsUnificationTest extends TestCase
         $this->assertArrayNotHasKey('open_in_app', (array) ($link->settings ?? []));
     }
 
+    public function test_file_create_defaults_title_and_alias_when_blank(): void
+    {
+        $u = $this->user($this->plan([
+            'max_links' => 100, 'link_deep_link' => true,
+            'max_file_size_mb' => 10, 'storage_limit_mb' => 100,
+        ]));
+
+        // No title or alias keys at all — the API/automation path. Must not 500.
+        $resp = $this->actingAs($u)->post('/user/links-file', [
+            'file' => $this->fakeUpload(),
+        ]);
+        $resp->assertSessionMissing('error');
+
+        $link = $u->links()->where('type', 'file')->latest('id')->first();
+        $this->assertNotNull($link);
+        // Title falls back to the uploaded file's original name.
+        $this->assertSame('share.txt', $link->title);
+        // Alias is auto-generated (non-empty).
+        $this->assertNotEmpty($link->alias);
+    }
+
     // ===== (d) interstitialMode()/previewPageEnabled() per type =====
 
     public function test_preview_page_enabled_for_url_type_via_settings(): void

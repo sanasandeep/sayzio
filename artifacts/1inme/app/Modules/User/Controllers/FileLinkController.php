@@ -75,7 +75,7 @@ class FileLinkController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
-        $alias = $validated['alias'] ?: Link::generateAlias();
+        $alias = ($validated['alias'] ?? null) ?: Link::generateAlias();
 
         // Deep-link / "open in app" — same settings.open_in_app field used by
         // Short Links, plan-gated by the deep_link feature. Opt-in for files
@@ -97,7 +97,7 @@ class FileLinkController extends Controller
             'user_id' => workspace_owner_id(),
             'type' => 'file',
             'alias' => $alias,
-            'title' => $validated['title'] ?: $file->getClientOriginalName(),
+            'title' => ($validated['title'] ?? null) ?: $file->getClientOriginalName(),
             'project_id' => $validated['project_id'] ?? null,
             'expires_at' => $validated['expires_at'] ?? null,
             'is_active' => true,
