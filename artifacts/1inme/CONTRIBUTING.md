@@ -144,6 +144,13 @@ from your dev data, [`phpunit.xml`](phpunit.xml) pins the test database name
 to `1inme_testing` (separate from the `1inme` dev database in
 [`.env.example`](.env.example)).
 
+> **In Replit task environments this is automated.** The post-merge setup
+> script (`scripts/post-merge.sh`) creates the `1inme_testing` database after
+> every merge — idempotently, on the same connection your `.env` points at — so
+> RefreshDatabase feature tests (e.g. `EmailOnlyLoginPolicyTest`) run without
+> any manual step. The steps below are the manual fallback for fresh local
+> checkouts outside that flow.
+
 1. Make sure your `.env` points at a reachable local PostgreSQL instance —
    `DB_CONNECTION=pgsql`, plus working `DB_HOST` / `DB_PORT` / `DB_USERNAME` /
    `DB_PASSWORD` values. (`phpunit.xml` only forces `DB_CONNECTION` and

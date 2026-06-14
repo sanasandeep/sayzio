@@ -43,3 +43,30 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
 
   cd - >/dev/null
 fi
+
+# Provision the dedicated PHPUnit test database so RefreshDatabase feature tests
+# (e.g. tests/Feature/EmailOnlyLoginPolicyTest.php, which guards the email-only
+# login policy) can run in this environment without the manual `createdb` step
+# documented in artifacts/1inme/CONTRIBUTING.md. phpunit.xml forces
+# DB_DATABASE=1inme_testing while host/port/credentials fall through to .env, so
+# we create the database on exactly that connection. Postgres has no
+# `CREATE DATABASE IF NOT EXISTS`, so we probe pg_database first. Idempotent and
+# best-effort: a failure here never aborts the merge.
+if [ -f artifacts/1inme/.env ] && command -v psql >/dev/null 2>&1; then
+  TEST_DB_HOST=$(grep -E '^DB_HOST=' artifacts/1inme/.env | head -1 | cut -d= -f2-)
+  TEST_DB_PORT=$(grep -E '^DB_PORT=' artifacts/1inme/.env | head -1 | cut -d= -f2-)
+  TEST_DB_USER=$(grep -E '^DB_USERNAME=' artifacts/1inme/.env | head -1 | cut -d= -f2-)
+  TEST_DB_PASS=$(grep -E '^DB_PASSWORD=' artifacts/1inme/.env | head -1 | cut -d= -f2-)
+  if [ -n "$TEST_DB_HOST" ]; then
+    if PGPASSWORD="$TEST_DB_PASS" psql -h "$TEST_DB_HOST" -p "${TEST_DB_PORT:-5432}" \
+        -U "$TEST_DB_USER" -d postgres -tAc \
+        "SELECT 1 FROM pg_database WHERE datname='1inme_testing'" 2>/dev/null | grep -q 1; then
+      echo "post-merge: 1inme_testing test database already present"
+    else
+      PGPASSWORD="$TEST_DB_PASS" psql -h "$TEST_DB_HOST" -p "${TEST_DB_PORT:-5432}" \
+        -U "$TEST_DB_USER" -d postgres -c 'CREATE DATABASE "1inme_testing"' >/dev/null 2>&1 \
+        && echo "post-merge: created 1inme_testing test database" \
+        || echo "post-merge: skipped 1inme_testing provisioning (non-fatal)"
+    fi
+  fi
+fi
