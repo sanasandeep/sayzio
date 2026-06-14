@@ -130,6 +130,24 @@ Route::get('/qr/render', [PublicQrController::class, 'render'])->name('qr.public
 
 Route::get('/f/{id}/{filename}', [UserFileController::class, 'serve'])->name('file.serve')->where('id', '[0-9]+');
 
+// ---- Legacy /storage/* fallback → CloudFront ----
+// Avatars, covers, post images, verification logos, etc. were historically
+// stored as plain `/storage/...` URLs that the local symlink served directly.
+// Once the `public` disk is S3-backed the local file is gone, so requests fall
+// through to this route (php's dev server / production still serve any file
+// that is still present locally). We then redirect to the S3/CloudFront URL.
+// Guarded so it never loops when the `public` disk is still local.
+Route::get('/storage/{path}', function (string $path) {
+    if (config('filesystems.disks.public.driver') !== 's3') {
+        abort(404);
+    }
+    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+    if (!$disk->exists($path)) {
+        abort(404);
+    }
+    return redirect($disk->url($path), 302);
+})->where('path', '.*')->name('storage.cdn.fallback');
+
 // ---- Public Forms ----
 Route::get('/f/{slug}',          [\App\Modules\User\Controllers\FormController::class, 'publicShow'])->name('forms.public.show')->where('slug', '[a-z0-9-]+');
 Route::get('/f/{slug}/iframe',   [\App\Modules\User\Controllers\FormController::class, 'publicIframe'])->name('forms.public.iframe')->where('slug', '[a-z0-9-]+');

@@ -160,12 +160,14 @@ class UserFileController extends Controller
             }
         }
 
-        $disk = $file->disk;
-        if ($disk === 's3') {
-            return redirect(Storage::disk('s3')->temporaryUrl($file->path, now()->addMinutes(30)));
+        // Resolve the actual disk this file lives on, then decide how to serve
+        // it by the disk's *driver* (not its name): S3-backed disks have no
+        // local ->path(), so we redirect to a short-lived signed URL instead.
+        $storageDisk = $file->disk === 'public' ? 'public' : ($file->disk === 's3' ? 's3' : 'user_files');
+        if (config("filesystems.disks.{$storageDisk}.driver") === 's3') {
+            return redirect(Storage::disk($storageDisk)->temporaryUrl($file->path, now()->addMinutes(30)));
         }
 
-        $storageDisk = $disk === 'public' ? 'public' : 'user_files';
         $fullPath = Storage::disk($storageDisk)->path($file->path);
 
         if (!file_exists($fullPath)) {

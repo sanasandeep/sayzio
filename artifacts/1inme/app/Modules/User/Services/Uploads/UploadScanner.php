@@ -165,7 +165,8 @@ class UploadScanner
     {
         if (!function_exists('proc_open')) return null;
         $disk = $file->disk === 'public' ? 'public' : ($file->disk === 's3' ? 's3' : 'user_files');
-        if ($disk === 's3') return null; // remote disk — skip the local CLI engine
+        // Remote (S3-backed) disks have no local path for the CLI scanner.
+        if (config("filesystems.disks.{$disk}.driver") === 's3') return null;
         try {
             $path = Storage::disk($disk)->path($file->path);
         } catch (\Throwable) {

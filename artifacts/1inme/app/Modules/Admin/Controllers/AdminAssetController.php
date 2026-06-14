@@ -177,15 +177,19 @@ class AdminAssetController extends Controller
             abort(404);
         }
 
-        if ($asset->disk === 's3') {
+        $diskName = $asset->disk ?: AdminAsset::diskName();
+
+        // S3-backed disks (whatever the disk is named) have no local path —
+        // hand the visitor a short-lived signed URL, falling back to the
+        // public/CloudFront URL if signing is unavailable.
+        if (config("filesystems.disks.{$diskName}.driver") === 's3') {
             try {
-                return redirect(Storage::disk('s3')->temporaryUrl($asset->path, now()->addMinutes(15)));
+                return redirect(Storage::disk($diskName)->temporaryUrl($asset->path, now()->addMinutes(15)));
             } catch (\Throwable $e) {
-                return redirect(Storage::disk('s3')->url($asset->path));
+                return redirect(Storage::disk($diskName)->url($asset->path));
             }
         }
 
-        $diskName = $asset->disk ?: AdminAsset::diskName();
         $disk = Storage::disk($diskName);
         if (!$disk->exists($asset->path)) {
             abort(404, 'Asset not found.');
@@ -247,7 +251,7 @@ class AdminAssetController extends Controller
             'total_bytes' => $totalBytes,
             'total_human' => $this->humanBytes($totalBytes),
             'file_count'  => $count,
-            'is_s3'       => $disk === 's3',
+            'is_s3'       => config("filesystems.disks.$disk.driver", 'local') === 's3',
         ];
     }
 

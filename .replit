@@ -53,3 +53,8 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
+AWS_BUCKET = "1in.me"
+AWS_DEFAULT_REGION = "ap-south-2"
+AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
+AWS_USE_PATH_STYLE_ENDPOINT = "true"
+USER_CONTENT_DISK = "s3"

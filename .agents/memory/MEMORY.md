@@ -23,3 +23,4 @@
 - [Biolink family & ai_chat type](biolink-family-and-ai-chat.md) — conversational/slides/ai_chat are distinct links.type (use isBiolinkFamily); ai_chat reuses AiCompanion(placement=page), no new AI runtime; embed-only origin gate means same-origin full-page chat just works.
 - [Link settings single source](link-settings-unification.md) — SEO trio/favicon/og.image_url canonical on Link columns (JSON stripped); visibility column shared w/ API but enforced biolink-family-only; file deep-link is opt-in best-effort.
 - [Cookie consent data-anim collision](cookie-consent-data-anim-collision.md) — marketing `[data-anim]{opacity:0}` reveal hides the consent host (namespaced `data-cc-anim`); invisible banner + footer reserve = phantom band.
+- [S3/CloudFront user content](s3-cloudfront-user-content.md) — 1in.me bucket has ACLs off (omit disk `visibility` or put() silently fails); branch on disk DRIVER not name; `local` `serve=>true` shadows custom /storage route.

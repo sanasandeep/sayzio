@@ -68,11 +68,12 @@ class ResumeImportService
 
         try {
             $disk = $stored->disk === 's3' ? 's3' : 'user_files';
-            $absPath = $disk === 's3'
-                ? Storage::disk('s3')->temporaryUrl($stored->path, now()->addMinutes(5))
+            $isRemote = config("filesystems.disks.{$disk}.driver") === 's3';
+            $absPath = $isRemote
+                ? Storage::disk($disk)->temporaryUrl($stored->path, now()->addMinutes(5))
                 : Storage::disk($disk)->path($stored->path);
 
-            $text = $this->extractText($absPath, $ext, $disk === 's3');
+            $text = $this->extractText($absPath, $ext, $isRemote);
         } catch (\Throwable $e) {
             // Don't keep an uploaded blob in the vault we couldn't read —
             // the user gets back nothing useful from it anyway.
