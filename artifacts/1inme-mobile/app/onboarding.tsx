@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type ImageSourcePropType,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
@@ -28,7 +29,7 @@ import { setOnboardingComplete } from "@/lib/secure";
 // Bundled fallbacks. Used only if the slides endpoint is unreachable
 // (offline, fresh install with no network) so the splash never breaks.
 // Admin-managed slides from the API take priority.
-const FALLBACK_IMAGES: Record<string, ReturnType<typeof require>> = {
+const FALLBACK_IMAGES: Record<string, ImageSourcePropType> = {
   creators: require("@/assets/images/onboarding/creators.png"),
   business: require("@/assets/images/onboarding/business.png"),
   freelancer: require("@/assets/images/onboarding/freelancer.png"),
@@ -102,7 +103,7 @@ const { width, height } = Dimensions.get("window");
 const GALLERY_INTERVAL = 3500;
 const FADE_DURATION = 700;
 
-type SlideImage = { uri: string } | ReturnType<typeof require>;
+type SlideImage = ImageSourcePropType;
 
 // Resolve a slide into the list of images we should rotate through.
 // Prefer admin-managed remote URLs; fall back to bundled assets so
