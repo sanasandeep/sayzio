@@ -106,21 +106,11 @@ class CoinPackageWebhookCreditTest extends TestCase
         $activator->run($invoice, 'stripe', 'evt_first');
 
         // The second is the gateway re-sending the same event (same
-        // invoice). Whatever the activator does on re-delivery, the one
-        // invariant that must hold is that it never double-credits.
-        //
-        // NOTE: the current implementation throws here — its early
-        // "paid but no subscription" guard fires for coin invoices
-        // (which never get a subscription_id) before the coin block's
-        // own idempotency short-circuit can run. We tolerate that so
-        // this test pins the money-safety invariant (no double-credit)
-        // without locking in the throw; if the activator is later made
-        // to no-op gracefully, this test keeps passing.
-        try {
-            $activator->run($invoice->fresh(), 'stripe', 'evt_first');
-        } catch (\RuntimeException $e) {
-            // Re-delivery of an already-paid coin invoice — tolerated.
-        }
+        // invoice). Re-delivery of an already-paid coin invoice must be a
+        // clean no-op: the coin block's idempotency short-circuit runs
+        // before the "paid but no subscription" fail-safe, so it returns
+        // gracefully instead of throwing.
+        $activator->run($invoice->fresh(), 'stripe', 'evt_first');
 
         $this->assertSame(550, app(WalletService::class)->getBalance($user), 'Re-delivery must not double-credit.');
         $this->assertCount(
@@ -182,16 +172,12 @@ class CoinPackageWebhookCreditTest extends TestCase
         $this->withoutExceptionHandling();
         $this->postJson('/webhooks/stripe')->assertOk();
 
-        // Re-delivery of the exact same event (same gateway_ref). The
-        // money-safety invariant is that it must not double-credit. The
-        // current activator throws on re-delivery of an already-paid coin
-        // invoice (see CoinPackageWebhookCreditTest::test_redelivered_*),
-        // so we tolerate that here and assert the invariant below.
-        try {
-            $this->postJson('/webhooks/stripe');
-        } catch (\RuntimeException $e) {
-            // Tolerated — see note above.
-        }
+        // Re-delivery of the exact same event (same gateway_ref). It must
+        // not double-credit and must return cleanly — re-delivery of an
+        // already-paid coin invoice is a graceful no-op (the activator's
+        // coin idempotency short-circuit runs before the "paid but no
+        // subscription" fail-safe).
+        $this->postJson('/webhooks/stripe')->assertOk();
 
         $this->assertSame(1100, app(WalletService::class)->getBalance($user), 'Coins credited once across two deliveries.');
         $this->assertCount(

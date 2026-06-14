@@ -39,15 +39,6 @@ class ActivateSubscription
             if ($fresh->status === 'paid' && $fresh->subscription_id) {
                 return Subscription::findOrFail($fresh->subscription_id);
             }
-            // Fail-safe: invoice is already marked paid but not linked to a
-            // subscription. Don't silently create a new one — that's a data
-            // inconsistency that needs a human to look at.
-            if ($fresh->status === 'paid' && !$fresh->subscription_id) {
-                Log::error('Invoice already paid but missing subscription_id', [
-                    'invoice_id' => $fresh->id, 'invoice_number' => $fresh->number,
-                ]);
-                throw new \RuntimeException("Invoice {$fresh->number} is already marked paid but has no subscription; please investigate.");
-            }
 
             $items   = is_array($fresh->line_items) ? $fresh->line_items : [];
 
@@ -58,6 +49,13 @@ class ActivateSubscription
             // most recent active subscription if any (callers that only
             // need a return value won't blow up); webhook routing
             // doesn't actually use the return value.
+            //
+            // This block (including its already-paid short-circuit) runs
+            // BEFORE the "paid but no subscription" fail-safe below,
+            // because coin invoices intentionally never get a
+            // subscription_id — otherwise a re-delivered coin webhook
+            // would trip the fail-safe and throw instead of cleanly
+            // no-op'ing.
             $coinItems = array_filter($items, fn($i) => (($i['meta']['kind'] ?? null) === 'coin_package'));
             if (!empty($coinItems)) {
                 if ($fresh->status === 'paid') {
@@ -87,6 +85,17 @@ class ActivateSubscription
                 $this->sendReceipt($fresh);
                 return Subscription::where('user_id', $fresh->user_id)->latest('id')->first()
                     ?? new Subscription(['user_id' => $fresh->user_id]);
+            }
+
+            // Fail-safe: a plan/subscription invoice is already marked paid
+            // but not linked to a subscription. Don't silently create a new
+            // one — that's a data inconsistency that needs a human to look
+            // at. (Coin invoices are handled above and never reach here.)
+            if ($fresh->status === 'paid' && !$fresh->subscription_id) {
+                Log::error('Invoice already paid but missing subscription_id', [
+                    'invoice_id' => $fresh->id, 'invoice_number' => $fresh->number,
+                ]);
+                throw new \RuntimeException("Invoice {$fresh->number} is already marked paid but has no subscription; please investigate.");
             }
 
             $planId  = null;
