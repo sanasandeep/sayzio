@@ -7,6 +7,8 @@ use App\Modules\User\Models\Form;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\Project;
+use App\Modules\User\Models\Domain;
+use App\Modules\User\Models\User;
 use App\Modules\User\Services\SpamChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -40,10 +42,32 @@ class FormController extends Controller
         return view('user.forms.index', compact('forms', 'projects'));
     }
 
+    /**
+     * Build a Validation rule that constrains domain_id to a domain the
+     * user can actually attach: their own verified+active domains plus
+     * admin-global active domains tagged for their plan (or untagged
+     * globals open to every plan). Mirrors LinkController::availableDomainRule.
+     */
+    protected function availableDomainRule(User $user): \Closure
+    {
+        return function ($attribute, $value, $fail) use ($user) {
+            if (empty($value)) return;
+            $allowed = Domain::availableTo($user)->pluck('id')->all();
+            if (!in_array((int) $value, $allowed, true)) {
+                $fail('That domain is not available on your plan.');
+            }
+        };
+    }
+
     public function create(Request $request)
     {
         $projects = workspace_owner()->projects()->orderBy('name')->get();
-        return view('user.forms.create', compact('projects'));
+        $domains  = Domain::availableTo($request->user())->get();
+        return view('user.forms.create', [
+            'projects'        => $projects,
+            'domains'         => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+        ]);
     }
 
     public function store(Request $request)
@@ -52,12 +76,14 @@ class FormController extends Controller
             'title' => 'required|string|max:160',
             'description' => 'nullable|string|max:1000',
             'project_id' => ['nullable', \Illuminate\Validation\Rule::exists('projects', 'id')->where('user_id', workspace_owner_id())],
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
             'template' => 'nullable|in:contact,lead,survey,registration,feedback,blank',
         ]);
 
         $template = $data['template'] ?? 'contact';
         $form = workspace_owner()->forms()->create([
             'project_id' => $data['project_id'] ?? null,
+            'domain_id' => $data['domain_id'] ?? null,
             'slug' => Form::uniqueSlug($data['title']),
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
@@ -323,7 +349,31 @@ class FormController extends Controller
     public function embed(Request $request, Form $form)
     {
         $this->authorizeForm($request, $form);
-        return view('user.forms.embed', compact('form'));
+        $domains = Domain::availableTo($request->user())->get();
+        $form->load('domain');
+        return view('user.forms.embed', [
+            'form'            => $form,
+            'domains'         => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+        ]);
+    }
+
+    /**
+     * Persist the global/custom domain a form's public + embed links use.
+     * Plan-gated via availableDomainRule: an empty value clears the domain
+     * (links revert to the platform URL), and a domain_id the user can no
+     * longer attach is rejected by validation. Separately, if a previously
+     * stored domain later becomes unavailable, Form::baseUrl() falls back to
+     * the platform URL at render time without mutating the stored value.
+     */
+    public function updateDomain(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+        $data = $request->validate([
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
+        ]);
+        $form->update(['domain_id' => $data['domain_id'] ?? null]);
+        return back()->with('success', 'Form domain updated.');
     }
 
     public function submissions(Request $request, Form $form)

@@ -37,6 +37,22 @@
                     </select>
                 </div>
                 @endif
+                @if(($domains ?? collect())->isNotEmpty())
+                @php $selectedDomainId = old('domain_id', $defaultDomainId ?? ''); @endphp
+                <div>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Domain <span class="text-[10px]" style="color: var(--text-faint);">— the address your form link uses</span></label>
+                    <select name="domain_id" class="theme-input w-full">
+                        @php $primaryDomainId = $domains->firstWhere('is_primary', true)?->id; @endphp
+                        @unless($primaryDomainId)
+                            <option value="">{{ rtrim(parse_url(config('app.url'), PHP_URL_HOST) ?: config('app.url'), '/') }} (default)</option>
+                        @endunless
+                        @foreach($domains as $d)
+                            <option value="{{ $d->id }}" {{ (string) $selectedDomainId === (string) $d->id ? 'selected' : '' }}>{{ $d->domain }}{{ $d->is_primary ? ' (default)' : '' }}</option>
+                        @endforeach
+                    </select>
+                    @error('domain_id') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                @endif
             </div>
         </div>
 

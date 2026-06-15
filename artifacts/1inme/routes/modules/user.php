@@ -569,6 +569,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('forms/{form}/notifications', [FormController::class, 'notifications'])->middleware('workspace.can:inbox.view')->name('forms.notifications');
         Route::put('forms/{form}/notifications', [FormController::class, 'updateNotifications'])->middleware('workspace.can:inbox.edit')->name('forms.notifications.update');
         Route::get('forms/{form}/embed', [FormController::class, 'embed'])->middleware('workspace.can:inbox.view')->name('forms.embed');
+        Route::put('forms/{form}/domain', [FormController::class, 'updateDomain'])->middleware('workspace.can:inbox.edit')->name('forms.domain.update');
         Route::get('forms/{form}/submissions', [FormController::class, 'submissions'])->middleware('workspace.can:inbox.view')->name('forms.submissions');
         Route::get('forms/{form}/submissions/export', [FormController::class, 'exportSubmissions'])->middleware('workspace.can:inbox.view')->name('forms.submissions.export');
         Route::get('forms/{form}/submissions/{submission}', [FormController::class, 'showSubmission'])->middleware('workspace.can:inbox.view')->name('forms.submissions.show');

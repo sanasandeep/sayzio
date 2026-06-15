@@ -13,6 +13,35 @@
 
     @include('user.forms._tabs')
 
+    @if(session('success'))
+    <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
+        <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
+    </div>
+    @endif
+
+    @if(($domains ?? collect())->isNotEmpty())
+    <form method="POST" action="{{ route('user.forms.domain.update', $form) }}" class="card-premium p-5 mb-6">
+        @csrf @method('PUT')
+        <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div class="flex-1">
+                <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Link domain</h3>
+                <p class="text-[11px] mb-2.5" style="color: var(--text-faint);">Choose the branded address your form's public link and embeds use. Saving updates the snippets below.</p>
+                @php $primaryDomainId = $domains->firstWhere('is_primary', true)?->id; @endphp
+                <select name="domain_id" onchange="this.form.submit()" class="theme-input w-full sm:max-w-md">
+                    @unless($primaryDomainId)
+                        <option value="" {{ $form->domain_id ? '' : 'selected' }}>{{ rtrim(parse_url(config('app.url'), PHP_URL_HOST) ?: config('app.url'), '/') }} (default)</option>
+                    @endunless
+                    @foreach($domains as $d)
+                        <option value="{{ $d->id }}" {{ (string) $form->domain_id === (string) $d->id ? 'selected' : '' }}>{{ $d->domain }}{{ $d->is_primary ? ' (default)' : '' }}</option>
+                    @endforeach
+                </select>
+                @error('domain_id') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+            <button type="submit" class="btn-primary text-xs px-4 py-2.5"><i class="fas fa-save text-[10px] mr-1"></i> Save</button>
+        </div>
+    </form>
+    @endif
+
     <div class="card-premium p-1 mb-6 inline-flex">
         @foreach(['iframe' => ['Iframe', 'fa-window-maximize'], 'script' => ['Script tag', 'fa-code'], 'link' => ['Direct link', 'fa-link'], 'biolink' => ['Link in Bio block', 'fa-th-large']] as $key => [$label, $icon])
             <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'bg-violet-500 text-white' : ''" class="px-4 py-2 rounded-lg text-xs font-semibold" style="color: var(--text-muted);">

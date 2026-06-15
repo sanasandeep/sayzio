@@ -12,7 +12,7 @@ class Form extends Model
     
     use BelongsToWorkspace;
 protected $fillable = [
-        'project_id', 'slug', 'title', 'description',
+        'project_id', 'domain_id', 'slug', 'title', 'description',
         'fields', 'design', 'settings', 'notifications',
         'is_active', 'is_multi_step',
     ];
@@ -39,25 +39,55 @@ protected $fillable = [
         return $this->belongsTo(Project::class);
     }
 
+    public function domain()
+    {
+        return $this->belongsTo(Domain::class);
+    }
+
     public function submissions()
     {
         return $this->hasMany(FormSubmission::class);
     }
 
+    /**
+     * Base URL for this form's public/embed links. Uses the associated
+     * global/custom domain's host when one is set, still verified+active, and
+     * still available to the form's owner under their current plan; otherwise
+     * falls back to the platform APP_URL. This means a creator who downgrades
+     * (losing the custom_domains feature) gracefully reverts to platform links
+     * at render time without us having to mutate the stored domain_id. The
+     * /f/{slug} routes are host-agnostic, so a form resolves on whichever host
+     * this returns.
+     */
+    public function baseUrl(): string
+    {
+        $domain = $this->domain;
+        if (
+            $domain
+            && $domain->is_active
+            && $domain->is_verified
+            && $this->user
+            && Domain::availableTo($this->user)->where('id', $domain->id)->exists()
+        ) {
+            return 'https://' . $domain->domain;
+        }
+        return rtrim(config('app.url'), '/');
+    }
+
     public function getPublicUrl(): string
     {
-        return rtrim(config('app.url'), '/') . '/f/' . $this->slug;
+        return $this->baseUrl() . '/f/' . $this->slug;
     }
 
     public function getEmbedScript(): string
     {
-        return '<script src="' . rtrim(config('app.url'), '/') . '/f/' . $this->slug . '/embed.js" async></script>'
+        return '<script src="' . $this->baseUrl() . '/f/' . $this->slug . '/embed.js" async></script>'
              . '<div data-1inme-form="' . $this->slug . '"></div>';
     }
 
     public function getIframeEmbed(int $h = 600): string
     {
-        $src = rtrim(config('app.url'), '/') . '/f/' . $this->slug . '/iframe';
+        $src = $this->baseUrl() . '/f/' . $this->slug . '/iframe';
         return '<iframe src="' . $src . '" style="width:100%;height:' . $h . 'px;border:0;" loading="lazy"></iframe>';
     }
 
