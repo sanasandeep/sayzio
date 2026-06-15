@@ -667,6 +667,24 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links-vcf/{link}/edit', [VcfLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.vcf.edit');
         Route::put('links-vcf/{link}', [VcfLinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.vcf.update');
 
+        // ── Standalone Reviews page: step-2 create, editor, moderation,
+        //    custom questions, and 3rd-party provider connections. ──
+        Route::get ('links-reviews/create', [LinkController::class, 'createReviews'])->middleware('workspace.can:links.create')->name('links.reviews.create');
+        Route::get ('links/{link}/reviews', [\App\Modules\User\Controllers\ReviewsController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.reviews.editor');
+        Route::post('links/{link}/reviews/settings', [\App\Modules\User\Controllers\ReviewsController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.settings');
+        Route::post('links/{link}/reviews/questions', [\App\Modules\User\Controllers\ReviewsController::class, 'storeQuestion'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.questions.store');
+        Route::delete('reviews/questions/{question}', [\App\Modules\User\Controllers\ReviewsController::class, 'destroyQuestion'])->whereNumber('question')->middleware('workspace.can:links.edit')->name('links.reviews.questions.destroy');
+        // Moderation actions (creator-scoped reviews).
+        Route::post  ('reviews/{review}/approve', [\App\Modules\User\Controllers\ReviewsController::class, 'approve'])->whereNumber('review')->middleware('workspace.can:links.edit')->name('links.reviews.approve');
+        Route::post  ('reviews/{review}/hide',    [\App\Modules\User\Controllers\ReviewsController::class, 'hide'])->whereNumber('review')->middleware('workspace.can:links.edit')->name('links.reviews.hide');
+        Route::post  ('reviews/{review}/pin',     [\App\Modules\User\Controllers\ReviewsController::class, 'pin'])->whereNumber('review')->middleware('workspace.can:links.edit')->name('links.reviews.pin');
+        Route::post  ('reviews/{review}/reply',   [\App\Modules\User\Controllers\ReviewsController::class, 'reply'])->whereNumber('review')->middleware('workspace.can:links.edit')->name('links.reviews.reply');
+        Route::delete('reviews/{review}',         [\App\Modules\User\Controllers\ReviewsController::class, 'destroy'])->whereNumber('review')->middleware('workspace.can:links.edit')->name('links.reviews.destroy');
+        // 3rd-party provider connections.
+        Route::post  ('reviews/providers/{provider}/connect', [\App\Modules\User\Controllers\ReviewsController::class, 'connectProvider'])->middleware('workspace.can:links.edit')->name('links.reviews.providers.connect');
+        Route::post  ('reviews/providers/{providerConn}/refresh', [\App\Modules\User\Controllers\ReviewsController::class, 'refreshProvider'])->whereNumber('providerConn')->middleware('workspace.can:links.edit')->name('links.reviews.providers.refresh');
+        Route::delete('reviews/providers/{providerConn}', [\App\Modules\User\Controllers\ReviewsController::class, 'disconnectProvider'])->whereNumber('providerConn')->middleware('workspace.can:links.edit')->name('links.reviews.providers.disconnect');
+
         // Biolink blocks live under a link — same gating as the parent link.
         Route::get('links/{link}/blocks', [BiolinkBlockController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.blocks.editor');
         Route::get('links/{link}/settings', [BiolinkBlockController::class, 'settings'])->middleware('workspace.can:links.view')->name('links.blocks.settings');

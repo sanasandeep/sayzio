@@ -112,7 +112,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews',
             'alias' => [
                 'nullable', 'string', 'alpha_dash',
                 'min:' . $limits['min'],
@@ -144,7 +144,26 @@ class LinkController extends Controller
             'file'           => redirect()->route('user.links.file.create', $params),
             'ics'            => redirect()->route('user.links.ics.create', $params),
             'vcf'            => redirect()->route('user.links.vcf.create', $params),
+            'reviews'        => redirect()->route('user.links.reviews.create', $params),
         };
+    }
+
+    /**
+     * Step 2 for the standalone Reviews page — name + alias + project only,
+     * then the dedicated reviews editor takes over.
+     */
+    public function createReviews(Request $request)
+    {
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        return view('user.links.create-reviews', [
+            'projects' => $projects,
+            'domains'  => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'prefillAlias' => (string) $request->query('alias', ''),
+            'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
+        ]);
     }
 
     /**
@@ -198,7 +217,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews',
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
@@ -377,6 +396,10 @@ class LinkController extends Controller
         if ($link->type === 'restaurant_menu') {
             return redirect()->route('user.links.restaurant.editor', $link)
                 ->with('success', 'Restaurant Menu created — build your menu.');
+        }
+        if ($link->type === 'reviews') {
+            return redirect()->route('user.links.reviews.editor', $link)
+                ->with('success', 'Reviews page created — configure it and start collecting reviews.');
         }
 
         // For new biolinks, send the user to the template picker so they can

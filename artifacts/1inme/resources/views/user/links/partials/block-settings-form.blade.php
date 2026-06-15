@@ -777,6 +777,35 @@ if (typeof window.resetPollVotes !== 'function') {
     <div><label class="{{ $labelClass }}">Rating (1-5)</label><input type="number" name="settings[rating]" value="{{ $s['rating'] ?? 5 }}" min="1" max="5" class="{{ $inputClass }}"></div>
 </div>
 
+@elseif($block->type === 'reviews_wall')
+<div class="space-y-3">
+    <p class="text-xs text-white/40">A live wall of reviews collected on this page. Visitors can submit ratings, written reviews, photos, audio and video — moderate them from the standalone Reviews page editor.</p>
+    <div><label class="{{ $labelClass }}">Heading</label><input type="text" name="settings[heading]" value="{{ $s['heading'] ?? 'What people are saying' }}" class="{{ $inputClass }}"></div>
+    <div class="grid grid-cols-2 gap-2">
+        <div><label class="{{ $labelClass }}">Source</label><select name="settings[source]" class="{{ $selectClass }}">@foreach(['both'=>'Native + Imported','native'=>'Native only','external'=>'Imported only'] as $v=>$l)<option value="{{ $v }}" @selected(($s['source'] ?? 'both')===$v) style="background: var(--bg-body); color: var(--text-primary);">{{ $l }}</option>@endforeach</select></div>
+        <div><label class="{{ $labelClass }}">Sort</label><select name="settings[sort]" class="{{ $selectClass }}">@foreach(['recent'=>'Most recent','rating'=>'Highest rated'] as $v=>$l)<option value="{{ $v }}" @selected(($s['sort'] ?? 'recent')===$v) style="background: var(--bg-body); color: var(--text-primary);">{{ $l }}</option>@endforeach</select></div>
+        <div><label class="{{ $labelClass }}">Layout</label><select name="settings[layout]" class="{{ $selectClass }}">@foreach(['grid'=>'Grid','list'=>'List'] as $v=>$l)<option value="{{ $v }}" @selected(($s['layout'] ?? 'grid')===$v) style="background: var(--bg-body); color: var(--text-primary);">{{ $l }}</option>@endforeach</select></div>
+        <div><label class="{{ $labelClass }}">Max shown</label><input type="number" name="settings[limit]" value="{{ $s['limit'] ?? 6 }}" min="1" max="50" class="{{ $inputClass }}"></div>
+    </div>
+    @php $rwSelProviders = is_array($s['providers'] ?? null) ? $s['providers'] : []; @endphp
+    <div>
+        <label class="{{ $labelClass }}">Imported providers to show</label>
+        <p class="text-[11px] text-white/40 mb-1.5">Leave all unchecked to show every connected provider.</p>
+        <div class="flex flex-wrap gap-2">
+            @foreach(\App\Services\ReviewProviders\ReviewProviderRegistry::all() as $rwSlug => $rwP)
+            <label class="flex items-center gap-1.5 text-sm text-white/70 bg-white/5 rounded-lg px-2.5 py-1.5 cursor-pointer">
+                <input type="checkbox" name="settings[providers][]" value="{{ $rwSlug }}" @checked(in_array($rwSlug, $rwSelProviders, true)) class="rounded">
+                <i class="{{ $rwP['icon'] }}" style="color: {{ $rwP['tint'] }}"></i>{{ $rwP['name'] }}
+            </label>
+            @endforeach
+        </div>
+    </div>
+    <label class="flex items-center gap-2 text-sm text-white/70"><input type="hidden" name="settings[show_summary]" value="0"><input type="checkbox" name="settings[show_summary]" value="1" @checked($s['show_summary'] ?? true) class="rounded">Show rating summary</label>
+    <label class="flex items-center gap-2 text-sm text-white/70"><input type="hidden" name="settings[allow_submissions]" value="0"><input type="checkbox" name="settings[allow_submissions]" value="1" @checked($s['allow_submissions'] ?? true) class="rounded">Allow visitors to submit reviews</label>
+    <label class="flex items-center gap-2 text-sm text-white/70"><input type="hidden" name="settings[collect_media]" value="0"><input type="checkbox" name="settings[collect_media]" value="1" @checked($s['collect_media'] ?? true) class="rounded">Allow photo / audio / video</label>
+    <label class="flex items-center gap-2 text-sm text-white/70"><input type="hidden" name="settings[collect_email]" value="0"><input type="checkbox" name="settings[collect_email]" value="1" @checked($s['collect_email'] ?? true) class="rounded">Collect reviewer email (private)</label>
+</div>
+
 @elseif(in_array($block->type, ['timeline', 'timeline_staged']))
 <div x-data="{ items: {{ json_encode($s['items'] ?? [['title'=>'','description'=>'']]) }} }">
     <label class="{{ $labelClass }}">Timeline Items</label>

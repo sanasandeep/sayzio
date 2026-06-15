@@ -64,7 +64,7 @@ class BlockDefaults
                 'display_mode' => 'card', 'padding' => '8',
             ],
 
-            'faq', 'faq_v2', 'poll', 'quiz', 'testimonials', 'review',
+            'faq', 'faq_v2', 'poll', 'quiz', 'testimonials', 'review', 'reviews_wall',
             'timeline', 'timeline_staged', 'social_proof', 'ai_companion',
             'insider', 'fan_leaderboard', 'roadmap', 'product', 'service',
             'catalog', 'market', 'price', 'donation', 'coupon',
@@ -269,6 +269,7 @@ class BlockDefaults
                 ['name' => 'Sam Lopez', 'text' => 'Another testimonial — swap in real customer feedback.', 'avatar' => $avatarUrl, 'rating' => 5],
             ], '_placeholder' => true],
             'review' => ['name' => 'Alex Carter', 'text' => 'Loved working with them — would recommend! (Replace with a real review.)', 'rating' => 5, 'avatar' => $avatarUrl, '_placeholder' => true],
+            'reviews_wall' => ['heading' => 'What people are saying', 'source' => 'both', 'layout' => 'grid', 'sort' => 'recent', 'limit' => 6, 'show_summary' => true, 'allow_submissions' => true, 'providers' => [], '_placeholder' => true],
             'timeline' => ['items' => [
                 ['title' => 'Got started', 'description' => 'The day it all began.', 'date' => '2024-01'],
                 ['title' => 'Hit a milestone', 'description' => 'Replace with your own moment.', 'date' => '2024-06'],

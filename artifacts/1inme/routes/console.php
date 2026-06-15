@@ -254,6 +254,15 @@ Schedule::command('cv-uploads:prune-abandoned --days=7')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 30 minutes: pull 3rd-party reviews (Google, Trustpilot, …) into
+// external_reviews for all connected providers. Providers without API
+// credentials sync a clearly-labelled preview sample so the connect flow
+// is demonstrable; creators can also trigger a per-connection manual refresh.
+Schedule::command('reviews:sync')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Task #1211 — weekly creator digest. Mondays 08:00 UTC. The service
 // itself dedupes by users.creator_digest_last_sent_at so reruns inside
 // the same week are no-ops, and only emails creators with at least one

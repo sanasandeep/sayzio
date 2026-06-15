@@ -25,6 +25,7 @@ see [API usage metering](#api-usage-metering)).
 - [Profile](#profile) · [Onboarding](#onboarding) · [Dashboard & notifications](#dashboard--notifications) · [Push tokens](#push-tokens)
 - [Links](#links-own-resources) · [A/B links](#ab-links) · [Smart links & rules](#smart-links--rules) · [AI-chat links](#ai-chat-links) · [Card templates](#card-templates) · [NFC writes](#nfc-writes)
 - [Biolinks (public)](#biolinks-public-visibility-aware) · [Blocks](#biolink-blocks-authoring) · [Block live limits & interactions](#block-live-limits--interactions) · [Biolink themes](#biolink-themes)
+- [Reviews (public)](#reviews-public)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Creator monetization](#creator-monetization) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Resume](#resume--portfolio) · [Projects](#projects)
 - [Wallet & coins](#wallet--coins) · [AI](#ai-credits) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
@@ -226,6 +227,60 @@ Saved looks + scheduled application. Public viewers always see the currently-act
 | POST   | `/links/{id}/themes/schedules`                        | yes  | Schedule a theme for a date range.  |
 | PATCH  | `/links/{id}/themes/schedules/{scheduleId}`           | yes  | Update a theme schedule.            |
 | POST   | `/links/{id}/themes/schedules/{scheduleId}/cancel`    | yes  | Cancel/end a schedule early.        |
+
+---
+
+## Reviews (public)
+
+Google-style reviews for a standalone **Reviews page** (`reviews` link type) or a
+**`reviews_wall`** biolink block. Reviews are scoped to the creator and stamped
+with the originating `link_id`. The unified feed merges native (approved) reviews
+with imported 3rd-party reviews (Google / Trustpilot). `{alias}` is the alias of
+the Reviews page (or the biolink hosting the `reviews_wall` block).
+
+| Method | Path                          | Auth | Description                                                                                       |
+| ------ | ----------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
+| GET    | `/reviews/{alias}`            | opt  | Unified review feed + summary. Query: `source` (`native`/`external`/`both`), `sort` (`recent`/`rating`), `limit` (1–100). |
+| GET    | `/reviews/{alias}/summary`    | opt  | Rating summary only (`average`, `total`, `native`, `external`, `breakdown`). Query: `source`.     |
+| POST   | `/reviews/{alias}`            | —    | Submit a review (no login). Throttle: 10/min. Honeypot + SpamChecker applied server-side.         |
+
+**`index` response** (`GET /reviews/{alias}`):
+
+```json
+{
+  "data": {
+    "reviews": [
+      {
+        "id": "n12", "source": "native", "source_label": "1INME",
+        "author_name": "Jane", "author_avatar": null, "rating": 5,
+        "body": "Loved it!", "reply": "Thank you!", "source_url": null,
+        "pinned": true, "created_at": "2026-06-15T10:00:00+00:00",
+        "media": [{ "type": "image", "url": "https://…", "meta": {} }],
+        "answers": [{ "prompt": "Would you recommend us?", "answer": "Yes" }]
+      }
+    ],
+    "summary": { "average": 4.8, "total": 24, "native": 20, "external": 4, "breakdown": { "5": 18, "4": 4, "3": 1, "2": 0, "1": 1 } }
+  }
+}
+```
+
+**`submit` body** (`POST /reviews/{alias}`, `multipart/form-data` for media):
+
+| Field          | Type        | Notes                                                          |
+| -------------- | ----------- | ------------------------------------------------------------- |
+| `author_name`  | string?     | ≤120 chars.                                                   |
+| `author_email` | email?      | Stored privately; only kept when the page collects email.    |
+| `rating`       | int? (1–5)  | At least one of `rating`, `body`, or `answers` is required.   |
+| `body`         | string?     | ≤5000 chars.                                                  |
+| `answers[id]`  | string?     | Keyed by custom-question id; ≤2000 chars each.               |
+| `media[]`      | file[]?     | ≤6 files, image/audio/video, ≤50 MB each.                   |
+| `website`      | string      | **Honeypot** — must stay empty (bots fill it → flagged spam). |
+
+Returns `201` with `{data: {status, pending, message}}`. `status` is `approved`,
+`pending` (awaiting moderation), or `hidden` (caught by spam heuristics; the
+visitor still gets a success message). `404` if the page isn't a Reviews page /
+has no `reviews_wall` block; `403` (`submissions_closed`) when submissions are
+off; `422` (`empty_review`) when nothing was provided.
 
 ---
 

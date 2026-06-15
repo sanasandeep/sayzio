@@ -59,6 +59,9 @@ class UploadPolicy
         // ── File Share (uses plan-wide max_file_size_mb by default) ───────
         'link.file_share'        => ['label' => 'File Share Upload',          'group' => 'File Share',         'max_mb' => 5,  'extensions' => [],                                          'multiple' => false],
 
+        // ── Reviews (public visitor media: photo / audio / video) ─────────
+        'review.media'           => ['label' => 'Review Media',               'group' => 'Reviews',            'max_mb' => 50, 'extensions' => ['jpg','jpeg','png','webp','gif','mp3','wav','ogg','m4a','mp4','webm','mov'], 'multiple' => true],
+
         // ── Biolink Wizard ────────────────────────────────────────────────
         'biolink.avatar'         => ['label' => 'Wizard Avatar / Cover',      'group' => 'Bio Wizard',         'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
     ];

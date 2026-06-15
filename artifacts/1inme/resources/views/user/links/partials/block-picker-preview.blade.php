@@ -78,7 +78,7 @@
         'share' => 'share',
         'poll', 'quiz' => 'poll',
         // Testimonials
-        'testimonials', 'testimonial_carousel', 'review' => 'testimonial',
+        'testimonials', 'testimonial_carousel', 'review', 'reviews_wall' => 'testimonial',
         // Timelines
         'timeline', 'timeline_staged' => 'timeline',
         // Menus

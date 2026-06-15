@@ -453,6 +453,13 @@ Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\Engagemen
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');
 
+// Public, no-login review submission for a standalone Reviews page. Honeypot
+// + SpamChecker live inside the controller; per-IP throttle here.
+Route::post('/{alias}/reviews', [\App\Modules\Common\Controllers\ReviewSubmissionController::class, 'submit'])
+    ->name('redirect.reviews.submit')
+    ->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')
+    ->middleware('throttle:10,1');
+
 // Visitor-filed report on a public biolink (spam/abuse moderation queue).
 // CAPTCHA + honeypot + per-IP RateLimiter live inside the controller.
 Route::post('/{alias}/report', [\App\Modules\Common\Controllers\BiolinkReportController::class, 'store'])

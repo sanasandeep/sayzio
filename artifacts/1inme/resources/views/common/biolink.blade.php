@@ -1718,6 +1718,87 @@
                     <p class="text-sm" style="color:{{ $fontColor }}cc">{{ $s['text'] ?? '' }}</p>
                 </div>
 
+            @elseif($block->type === 'reviews_wall')
+                @php
+                    $rwSource = in_array($s['source'] ?? 'both', ['native', 'external', 'both'], true) ? ($s['source'] ?? 'both') : 'both';
+                    $rwSort   = in_array($s['sort'] ?? 'recent', ['recent', 'rating'], true) ? ($s['sort'] ?? 'recent') : 'recent';
+                    $rwLimit  = min(50, max(1, (int) ($s['limit'] ?? 6)));
+                    $rwProviders = is_array($s['providers'] ?? null) ? $s['providers'] : [];
+                    $rwItems  = \App\Modules\User\Support\ReviewFeed::build((int) $link->user_id, (int) $link->id, $rwSource, $rwSort, $rwLimit, $rwProviders);
+                    $rwSummary = ($s['show_summary'] ?? true)
+                        ? app(\App\Modules\User\Support\ReviewSummaryService::class)->summary((int) $link->user_id, (int) $link->id, $rwSource)
+                        : null;
+                    $rwLayout = ($s['layout'] ?? 'grid') === 'list' ? 'list' : 'grid';
+                @endphp
+                <div class="mb-4" data-reviews-wall="{{ $block->id }}" data-reviews-alias="{{ $link->alias }}">
+                    @if(!empty($s['heading']))<h3 class="text-base font-semibold mb-3">{{ $s['heading'] }}</h3>@endif
+                    @if($rwSummary)
+                    <div class="glass-block rounded-xl p-4 mb-3 flex items-center gap-4">
+                        <div class="text-3xl font-bold">{{ number_format($rwSummary['average'] ?? 0, 1) }}</div>
+                        <div>
+                            <div class="flex gap-0.5">@for($star = 1; $star <= 5; $star++)<i class="fas fa-star text-sm {{ $star <= round($rwSummary['average'] ?? 0) ? 'text-yellow-400' : 'text-white/20' }}"></i>@endfor</div>
+                            <p class="text-xs mt-0.5" style="color:{{ $fontColor }}88">{{ $rwSummary['total'] ?? 0 }} reviews</p>
+                        </div>
+                    </div>
+                    @endif
+                    <div class="{{ $rwLayout === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'space-y-3' }}">
+                        @forelse($rwItems as $rev)
+                        <div class="glass-block rounded-xl p-4">
+                            <div class="flex items-center gap-2.5 mb-1.5">
+                                @if(!empty($rev['author_avatar']))<img src="{{ $rev['author_avatar'] }}" class="w-9 h-9 rounded-full object-cover" alt="">
+                                @else<div class="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center"><span class="text-xs font-bold">{{ strtoupper(substr($rev['author_name'] ?: 'A', 0, 1)) }}</span></div>@endif
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium truncate">{{ $rev['author_name'] ?: 'Anonymous' }}@if(!empty($rev['is_pinned']))<i class="fas fa-thumbtack text-purple-400 text-[10px] ml-1"></i>@endif</p>
+                                    @if(!empty($rev['rating']))<div class="flex gap-0.5">@for($star = 1; $star <= 5; $star++)<i class="fas fa-star text-[10px] {{ $star <= $rev['rating'] ? 'text-yellow-400' : 'text-white/20' }}"></i>@endfor</div>@endif
+                                </div>
+                                @if(!empty($rev['source']) && $rev['source'] !== 'native')<span class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{{ $rev['source_label'] }}</span>@endif
+                            </div>
+                            @if(!empty($rev['body']))<p class="text-sm" style="color:{{ $fontColor }}cc">{{ $rev['body'] }}</p>@endif
+                            @if(!empty($rev['media']))
+                            <div class="flex gap-1.5 mt-2 flex-wrap">
+                                @foreach($rev['media'] as $m)
+                                    @if(($m['type'] ?? '') === 'image')<img src="{{ $m['url'] }}" class="w-14 h-14 object-cover rounded-lg" alt="">
+                                    @elseif(($m['type'] ?? '') === 'video')<video src="{{ $m['url'] }}" class="w-14 h-14 object-cover rounded-lg" controls></video>
+                                    @elseif(($m['type'] ?? '') === 'audio')<audio src="{{ $m['url'] }}" controls class="h-8"></audio>@endif
+                                @endforeach
+                            </div>
+                            @endif
+                            @if(!empty($rev['answers']))
+                            <div class="mt-2 text-xs space-y-0.5" style="color:{{ $fontColor }}99">
+                                @foreach($rev['answers'] as $a)<div><span class="font-medium" style="color:{{ $fontColor }}cc">{{ $a['prompt'] }}:</span> {{ $a['answer'] }}</div>@endforeach
+                            </div>
+                            @endif
+                            @if(!empty($rev['reply']))
+                            <div class="mt-2 pl-2.5 border-l-2 border-purple-500/40 text-xs" style="color:{{ $fontColor }}aa"><span class="text-purple-400 font-medium">Reply:</span> {{ $rev['reply'] }}</div>
+                            @endif
+                        </div>
+                        @empty
+                        <p class="text-sm text-center py-4" style="color:{{ $fontColor }}66">No reviews yet — be the first!</p>
+                        @endforelse
+                    </div>
+                    @if($s['allow_submissions'] ?? true)
+                    <button type="button" class="bio-btn block w-full text-center mt-3 py-2.5 text-sm font-medium" onclick="document.getElementById('rw-modal-{{ $block->id }}').classList.toggle('hidden')">
+                        <i class="fas fa-star mr-1.5"></i>Write a review
+                    </button>
+                    <div id="rw-modal-{{ $block->id }}" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70" onclick="if(event.target===this)this.classList.add('hidden')">
+                        <form method="POST" action="{{ url('/' . $link->alias . '/reviews') }}" enctype="multipart/form-data" class="glass-block rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                            @csrf
+                            <div class="flex items-center justify-between mb-3"><h4 class="font-semibold">Write a review</h4><button type="button" onclick="document.getElementById('rw-modal-{{ $block->id }}').classList.add('hidden')" class="text-white/40 hover:text-white">&times;</button></div>
+                            <div style="position:absolute;left:-9999px" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+                            <div class="flex gap-1 mb-3" data-rw-stars>
+                                @for($star = 1; $star <= 5; $star++)<button type="button" data-star="{{ $star }}" class="text-2xl text-white/20 hover:text-yellow-400"><i class="fas fa-star"></i></button>@endfor
+                                <input type="hidden" name="rating" value="">
+                            </div>
+                            <input type="text" name="author_name" placeholder="Your name" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2">
+                            @if($s['collect_email'] ?? true)<input type="email" name="author_email" placeholder="Your email (kept private)" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2">@endif
+                            <textarea name="body" rows="3" placeholder="Share your experience…" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2"></textarea>
+                            @if($s['collect_media'] ?? true)<input type="file" name="media[]" multiple accept="image/*,audio/*,video/*" class="w-full text-xs text-white/60 mb-2">@endif
+                            <button type="submit" class="bio-btn block w-full text-center py-2.5 text-sm font-medium">Submit review</button>
+                        </form>
+                    </div>
+                    @endif
+                </div>
+
             @elseif(in_array($block->type, ['timeline', 'timeline_staged']))
                 <div class="mb-4 glass-block rounded-xl p-5">
                     <div class="relative pl-6 border-l-2 border-purple-500/30 space-y-4">
@@ -3368,5 +3449,31 @@
     </script>
     @include('common.blocks._carbon_badge', ['link' => $link])
     @include('common.partials.biolink-report')
+    {{-- reviews_wall: interactive star picker inside the "Write a review" modal. --}}
+    <script>
+    (function () {
+        function wire(box) {
+            var stars = box.querySelectorAll('button[data-star]');
+            var input = box.querySelector('input[name="rating"]');
+            function paint(v) {
+                stars.forEach(function (s) {
+                    var on = parseInt(s.getAttribute('data-star'), 10) <= v;
+                    s.classList.toggle('text-yellow-400', on);
+                    s.classList.toggle('text-white/20', !on);
+                });
+            }
+            stars.forEach(function (s) {
+                s.addEventListener('click', function () {
+                    var v = parseInt(s.getAttribute('data-star'), 10);
+                    if (input) input.value = v;
+                    paint(v);
+                });
+            });
+        }
+        function start() { document.querySelectorAll('[data-rw-stars]').forEach(wire); }
+        if (document.readyState === 'complete' || document.readyState === 'interactive') start();
+        else document.addEventListener('DOMContentLoaded', start);
+    })();
+    </script>
 </body>
 </html>

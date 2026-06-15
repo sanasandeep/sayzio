@@ -568,6 +568,13 @@ protected $fillable = [
     public const TYPE_AI_CHAT         = 'ai_chat';
     public const TYPE_RESTAURANT_MENU = 'restaurant_menu';
 
+    /**
+     * Standalone "Reviews" page. Deliberately NOT part of BIOLINK_FAMILY: it
+     * is rendered by its own dedicated public view (a full review wall +
+     * submission form), not the biolink block engine.
+     */
+    public const TYPE_REVIEWS        = 'reviews';
+
     public const BIOLINK_FAMILY = [
         self::TYPE_BIOLINK,
         self::TYPE_CONVERSATIONAL,
@@ -602,7 +609,14 @@ protected $fillable = [
         'file'           => 'File Share',
         'ics'            => 'Event',
         'vcf'            => 'Contact Card',
+        'reviews'        => 'Reviews Page',
     ];
+
+    /** Reviews relationship — native reviews submitted on this link. */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 
     public static function typeLabel(?string $type): string
     {

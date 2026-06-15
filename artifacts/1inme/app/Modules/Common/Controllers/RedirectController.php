@@ -398,6 +398,7 @@ class RedirectController extends Controller
             'file' => $this->handleFileDownload($link),
             'ics' => $this->handleIcsDownload($link),
             'vcf' => $this->handleVcfDownload($link),
+            'reviews' => $this->handleReviewsPage($request, $link),
             default => abort(404),
         };
     }
@@ -622,7 +623,7 @@ class RedirectController extends Controller
         // Only the biolink family and the redirect/download types carry a
         // meaningful visibility gate. Any other type stays public.
         if (!$link->isBiolinkFamily()
-            && !in_array($link->type, ['url', 'file', 'ics', 'vcf'], true)) {
+            && !in_array($link->type, ['url', 'file', 'ics', 'vcf', 'reviews'], true)) {
             return null;
         }
 
@@ -985,6 +986,43 @@ class RedirectController extends Controller
             'Content-Type' => 'text/vcard; charset=utf-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
+    }
+
+    /**
+     * Render the public, standalone "Reviews" page — a full review wall with
+     * a rating summary, native + 3rd-party reviews, and a no-login submission
+     * form. Honours the same permissive framing headers as biolink pages so
+     * the in-app editor preview iframe can render it.
+     */
+    protected function handleReviewsPage(Request $request, Link $link)
+    {
+        $settings = $link->settings['reviews'] ?? [];
+        $source   = $settings['source'] ?? 'both';
+        $sort     = $settings['sort'] ?? 'recent';
+
+        $summary = app(\App\Modules\User\Support\ReviewSummaryService::class)
+            ->summary((int) $link->user_id, (int) $link->id, $source);
+
+        $items = \App\Modules\User\Support\ReviewFeed::build(
+            (int) $link->user_id,
+            (int) $link->id,
+            $source,
+            $sort,
+            (int) ($settings['limit'] ?? 24),
+            (array) ($settings['providers'] ?? [])
+        );
+
+        $questions = \App\Modules\User\Models\ReviewQuestion::query()
+            ->where('user_id', $link->user_id)
+            ->active()
+            ->where(fn ($q) => $q->whereNull('link_id')->orWhere('link_id', $link->id))
+            ->orderBy('sort_order')
+            ->get();
+
+        return $this->applyBiolinkFramingHeaders(
+            response()->view('common.reviews-page', compact('link', 'settings', 'summary', 'items', 'questions')),
+            $request
+        );
     }
 
     public function subscribe(Request $request, string $alias)

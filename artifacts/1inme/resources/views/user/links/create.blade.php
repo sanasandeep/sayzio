@@ -85,6 +85,7 @@
                     ['value' => 'file',           'icon' => 'fa-file',         'color' => 'text-emerald-400', 'label' => 'File Share'],
                     ['value' => 'ics',            'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'Event'],
                     ['value' => 'vcf',            'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'Contact Card'],
+                    ['value' => 'reviews',        'icon' => 'fa-star',         'color' => 'text-yellow-400',  'label' => 'Reviews'],
                 ] as $opt)
                     <label class="relative cursor-pointer block">
                         <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only">

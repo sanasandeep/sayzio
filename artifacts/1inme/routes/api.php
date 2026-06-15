@@ -81,6 +81,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/restaurant/{alias}/order',       [RestaurantController::class, 'placeOrder'])->middleware('throttle:30,1');
         Route::get('/restaurant/orders/{token}/status',[RestaurantController::class, 'orderStatus']);
 
+        // Public reviews feed + summary for a standalone Reviews page.
+        Route::get('/reviews/{alias}',             [\App\Modules\Api\Controllers\ReviewApiController::class, 'index']);
+        Route::get('/reviews/{alias}/summary',     [\App\Modules\Api\Controllers\ReviewApiController::class, 'summary']);
         Route::get('/discovery/creators',          [DiscoveryController::class, 'creators']);
         Route::get('/discovery/creators/{handle}', [DiscoveryController::class, 'creator']);
         Route::get('/feed',                        [FeedController::class, 'index']);
@@ -113,6 +116,12 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])
         ->middleware('throttle:10,1');
+
+    // Public, no-login review submission (honeypot + SpamChecker inside).
+    // optional_auth so a bearer token is honoured when the page is
+    // visibility-gated (registered/followers/subscribers).
+    Route::post('/reviews/{alias}', [\App\Modules\Api\Controllers\ReviewApiController::class, 'submit'])
+        ->middleware(['api.optional_auth', 'throttle:10,1']);
 
     // Best-effort page-visit tracking from in-app biolink viewers (mobile).
     // Mirrors the web's RedirectController::track() call on every biolink
