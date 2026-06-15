@@ -31,6 +31,18 @@ return [
         'api_key' => env('SENDGRID_API_KEY'),
     ],
 
+    // Google Business Profile reviews via the Places Details API. Read by
+    // GoogleReviewsAdapter; absent key = transparent preview mode.
+    'google_places' => [
+        'api_key' => env('GOOGLE_PLACES_API_KEY'),
+    ],
+
+    // Trustpilot public Business Unit reviews API. Read by TrustpilotAdapter;
+    // absent key = transparent preview mode.
+    'trustpilot' => [
+        'api_key' => env('TRUSTPILOT_API_KEY'),
+    ],
+
     'google_calendar' => [
         'client_id'     => env('GOOGLE_CALENDAR_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CALENDAR_CLIENT_SECRET'),

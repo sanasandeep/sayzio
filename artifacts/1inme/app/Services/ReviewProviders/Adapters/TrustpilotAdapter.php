@@ -12,19 +12,34 @@ use Illuminate\Support\Facades\Http;
  * Requires a TRUSTPILOT_API_KEY and the creator's Business Unit ID (stored
  * on the connection's external_ref). Falls back to a preview sample when the
  * key is absent.
+ *
+ * Public (read-only) Trustpilot endpoints authenticate with the API key passed
+ * as the `apikey` query parameter.
  */
 class TrustpilotAdapter extends ReviewSyncAdapter
 {
+    /** Resolve the API key via config (cache-safe) with an env fallback. */
+    protected function apiKey(): ?string
+    {
+        $key = config('services.trustpilot.api_key') ?: env('TRUSTPILOT_API_KEY');
+        return $key !== null && $key !== '' ? (string) $key : null;
+    }
+
+    public function credentialsConfigured(): bool
+    {
+        return $this->apiKey() !== null;
+    }
+
     public function fetch(ReviewProvider $connection): array
     {
         if (!$this->credentialsConfigured() || !$connection->external_ref) {
             return $this->previewSample($connection);
         }
 
-        $unit = $connection->external_ref;
+        $unit = rawurlencode($connection->external_ref);
         $resp = Http::timeout(15)
-            ->withHeaders(['apikey' => env('TRUSTPILOT_API_KEY')])
             ->get("https://api.trustpilot.com/v1/business-units/{$unit}/reviews", [
+                'apikey'  => $this->apiKey(),
                 'orderBy' => 'createdat.desc',
                 'perPage' => 50,
             ]);
@@ -41,11 +56,19 @@ class TrustpilotAdapter extends ReviewSyncAdapter
                 'author_name'   => $r['consumer']['displayName'] ?? 'Trustpilot user',
                 'rating'        => $r['stars'] ?? null,
                 'body'          => $r['text'] ?? ($r['title'] ?? null),
+                'source_url'    => $this->reviewUrl($r),
                 'reviewed_at'   => isset($r['createdAt']) ? Carbon::parse($r['createdAt']) : null,
                 'payload'       => $r,
             ]);
         }
 
         return $out;
+    }
+
+    /** Best-effort public link to the review on Trustpilot, when provided. */
+    private function reviewUrl(array $review): ?string
+    {
+        return $review['links']['profileUrl']
+            ?? ($review['businessUnit']['profileUrl'] ?? null);
     }
 }

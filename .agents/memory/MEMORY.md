@@ -26,3 +26,4 @@
 - [Cookie consent data-anim collision](cookie-consent-data-anim-collision.md) — marketing `[data-anim]{opacity:0}` reveal hides the consent host (namespaced `data-cc-anim`); invisible banner + footer reserve = phantom band.
 - [S3/CloudFront user content](s3-cloudfront-user-content.md) — 1in.me bucket has ACLs off (omit disk `visibility` or put() silently fails); branch on disk DRIVER not name; `local` `serve=>true` shadows custom /storage route.
 - [Marketing SEO two-kind resolution](marketing-seo-resolution.md) — code-driven pages override via AppSetting `marketing_seo`; site_pages-backed pages override via the row itself; home/creators have standalone heads, not site.blade.php.
+- [Review provider live-API quirks](review-provider-apis.md) — Google Places returns errors as HTTP 200 + `status` field; Trustpilot public API auths via `apikey` query param; keys read via config(), absent = preview mode.
