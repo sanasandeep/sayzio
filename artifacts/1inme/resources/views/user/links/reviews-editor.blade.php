@@ -47,8 +47,9 @@
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-semibold text-white text-sm">{{ $review->author_name ?: 'Anonymous' }}</span>
                         @if($review->rating)<span class="text-sm">{!! $renderStars($review->rating) !!}</span>@endif
-                        @php $statusColors = ['approved' => 'emerald', 'pending' => 'amber', 'hidden' => 'gray']; $c = $statusColors[$review->status] ?? 'gray'; @endphp
-                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-{{ $c }}-500/15 text-{{ $c }}-300 capitalize">{{ $review->status }}</span>
+                        @php $statusColors = ['approved' => 'emerald', 'pending' => 'amber', 'hidden' => 'gray', 'unverified' => 'sky']; $c = $statusColors[$review->status] ?? 'gray'; $statusLabel = $review->status === 'unverified' ? 'awaiting verification' : $review->status; @endphp
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-{{ $c }}-500/15 text-{{ $c }}-300 capitalize">{{ $statusLabel }}</span>
+                        @if($review->verified_at)<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300" title="{{ ucfirst($review->verification_method ?? 'email') }}-verified customer"><i class="fas fa-circle-check mr-0.5"></i>Verified</span>@endif
                         @if($review->is_pinned)<span class="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300">Pinned</span>@endif
                         @if($review->is_spam)<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-300">Spam</span>@endif
                         <span class="text-[11px] text-white/30 ml-auto">{{ $review->created_at?->diffForHumans() }}</span>
@@ -146,12 +147,26 @@
                 </div>
             </div>
             <div class="grid md:grid-cols-2 gap-2.5">
-                @foreach(['show_summary' => 'Show rating summary', 'allow_submissions' => 'Allow public submissions', 'require_approval' => 'Require approval before showing', 'collect_media' => 'Allow photo / audio / video', 'collect_email' => 'Collect reviewer email (private)'] as $flag => $label)
-                <label class="flex items-center gap-2.5 text-sm text-white/70 bg-white/5 rounded-xl px-3 py-2.5"><input type="checkbox" name="{{ $flag }}" value="1" @checked($settings[$flag] ?? false) class="rounded">{{ $label }}</label>
+                @foreach(['show_summary' => 'Show rating summary', 'allow_submissions' => 'Allow public submissions', 'require_approval' => 'Require approval before showing', 'require_verification' => 'Require email verification (adds “Verified customer” badge)', 'collect_media' => 'Allow photo / audio / video', 'collect_email' => 'Collect reviewer email (private)'] as $flag => $label)
+                <label class="flex items-center gap-2.5 text-sm text-white/70 bg-white/5 rounded-xl px-3 py-2.5"><input type="checkbox" name="{{ $flag }}" value="1" @checked($settings[$flag] ?? false) data-review-flag="{{ $flag }}" class="rounded">{{ $label }}</label>
                 @endforeach
             </div>
+            <p class="text-xs text-white/40 -mt-1">Email verification needs an address, so it keeps “Collect reviewer email” turned on.</p>
             <div class="flex justify-end"><button class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white">Save settings</button></div>
         </form>
+        <script>
+        (function () {
+            var verify = document.querySelector('[data-review-flag="require_verification"]');
+            var email  = document.querySelector('[data-review-flag="collect_email"]');
+            if (!verify || !email) return;
+            function sync() {
+                if (verify.checked) { email.checked = true; email.disabled = true; }
+                else { email.disabled = false; }
+            }
+            verify.addEventListener('change', sync);
+            sync();
+        })();
+        </script>
     </div>
 
     {{-- ── Questions ── --}}

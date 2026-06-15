@@ -1748,7 +1748,7 @@
                                 @if(!empty($rev['author_avatar']))<img src="{{ $rev['author_avatar'] }}" class="w-9 h-9 rounded-full object-cover" alt="">
                                 @else<div class="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center"><span class="text-xs font-bold">{{ strtoupper(substr($rev['author_name'] ?: 'A', 0, 1)) }}</span></div>@endif
                                 <div class="min-w-0">
-                                    <p class="text-sm font-medium truncate">{{ $rev['author_name'] ?: 'Anonymous' }}@if(!empty($rev['is_pinned']))<i class="fas fa-thumbtack text-purple-400 text-[10px] ml-1"></i>@endif</p>
+                                    <p class="text-sm font-medium truncate">{{ $rev['author_name'] ?: 'Anonymous' }}@if(!empty($rev['verified']))<span class="inline-flex items-center gap-0.5 align-middle ml-1 text-[9px] font-semibold text-emerald-300 bg-emerald-400/10 border border-emerald-400/30 rounded-full px-1.5 py-px" title="Verified customer"><i class="fas fa-circle-check text-[8px]"></i>Verified</span>@endif@if(!empty($rev['is_pinned']))<i class="fas fa-thumbtack text-purple-400 text-[10px] ml-1"></i>@endif</p>
                                     @if(!empty($rev['rating']))<div class="flex gap-0.5">@for($star = 1; $star <= 5; $star++)<i class="fas fa-star text-[10px] {{ $star <= $rev['rating'] ? 'text-yellow-400' : 'text-white/20' }}"></i>@endfor</div>@endif
                                 </div>
                                 @if(!empty($rev['source']) && $rev['source'] !== 'native')<span class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{{ $rev['source_label'] }}</span>@endif
@@ -1790,7 +1790,8 @@
                                 <input type="hidden" name="rating" value="">
                             </div>
                             <input type="text" name="author_name" placeholder="Your name" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2">
-                            @if($s['collect_email'] ?? true)<input type="email" name="author_email" placeholder="Your email (kept private)" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2">@endif
+                            @php $rwRequireVerification = $s['require_verification'] ?? false; @endphp
+                            @if(($s['collect_email'] ?? true) || $rwRequireVerification)<input type="email" name="author_email" placeholder="{{ $rwRequireVerification ? 'Your email (required to verify, kept private)' : 'Your email (kept private)' }}" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2" {{ $rwRequireVerification ? 'required' : '' }}>@endif
                             <textarea name="body" rows="3" placeholder="Share your experience…" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2"></textarea>
                             @if($s['collect_media'] ?? true)<input type="file" name="media[]" multiple accept="image/*,audio/*,video/*" class="w-full text-xs text-white/60 mb-2">@endif
                             <button type="submit" class="bio-btn block w-full text-center py-2.5 text-sm font-medium">Submit review</button>

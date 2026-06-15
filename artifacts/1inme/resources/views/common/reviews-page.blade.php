@@ -4,7 +4,8 @@
     $showSummary = $settings['show_summary'] ?? true;
     $allowSub = $settings['allow_submissions'] ?? true;
     $collectMedia = $settings['collect_media'] ?? true;
-    $collectEmail = $settings['collect_email'] ?? true;
+    $requireVerification = $settings['require_verification'] ?? false;
+    $collectEmail = ($settings['collect_email'] ?? true) || $requireVerification;
     $layout = $settings['layout'] ?? 'grid';
     $avg = $summary['average'] ?? 0;
     $pageTitle = $link->seo_title ?? ($link->title ? $link->title . ' — Reviews' : 'Reviews');
@@ -77,6 +78,7 @@
         .reply { margin-top:10px; padding:10px 12px; border-left:3px solid var(--accent); background:rgba(139,92,246,.08); border-radius:0 10px 10px 0; font-size:13px; }
         .reply .who { font-size:11px; color:var(--accent); font-weight:600; margin-bottom:3px; }
         .pin { font-size:10px; color:var(--star); font-weight:600; }
+        .verified { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:600; color:#34d399; background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.35); border-radius:99px; padding:1px 7px; vertical-align:middle; }
         .empty { text-align:center; color:var(--muted); padding:40px 0; }
         /* form */
         .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-start; justify-content:center; padding:30px 16px; overflow:auto; z-index:50; }
@@ -154,7 +156,7 @@
                     @if(!empty($item['author_avatar']))<img src="{{ $item['author_avatar'] }}" alt="">@else{{ strtoupper(substr($item['author_name'] ?: 'A', 0, 1)) }}@endif
                 </div>
                 <div>
-                    <div class="name">{{ $item['author_name'] }} @if($item['is_pinned'])<span class="pin">&#9733; Pinned</span>@endif</div>
+                    <div class="name">{{ $item['author_name'] }} @if(!empty($item['verified']))<span class="verified" title="Verified customer">&#10003; Verified customer</span>@endif @if($item['is_pinned'])<span class="pin">&#9733; Pinned</span>@endif</div>
                     <div class="meta">{{ $item['created_at']?->diffForHumans() }}</div>
                 </div>
                 <span class="source-tag">{{ $item['source_label'] }}</span>
@@ -223,8 +225,8 @@
 
         @if($collectEmail)
         <div class="field">
-            <label>Email (optional, not shown publicly)</label>
-            <input type="email" name="author_email" maxlength="255" placeholder="you@example.com">
+            <label>Email {{ $requireVerification ? '(required to verify — not shown publicly)' : '(optional, not shown publicly)' }}</label>
+            <input type="email" name="author_email" maxlength="255" placeholder="you@example.com" {{ $requireVerification ? 'required' : '' }}>
         </div>
         @endif
 

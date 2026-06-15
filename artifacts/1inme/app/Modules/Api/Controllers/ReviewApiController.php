@@ -147,6 +147,7 @@ class ReviewApiController extends Controller
                 'reply'         => $i['reply'],
                 'source_url'    => $i['source_url'],
                 'pinned'        => $i['is_pinned'],
+                'verified'      => $i['verified'] ?? false,
                 'created_at'    => $i['created_at']?->toIso8601String(),
                 'media'         => $i['media'],
                 'answers'       => $i['answers'],
@@ -185,9 +186,11 @@ class ReviewApiController extends Controller
             return $this->fail('Submissions are closed for this page.', 403, 'submissions_closed');
         }
 
+        $requireVerification = (bool) ($settings['require_verification'] ?? false);
+
         $validated = $request->validate([
             'author_name'  => 'nullable|string|max:120',
-            'author_email' => 'nullable|email|max:255',
+            'author_email' => ($requireVerification ? 'required' : 'nullable') . '|email|max:255',
             'rating'       => 'nullable|integer|min:1|max:5',
             'body'         => 'nullable|string|max:5000',
             'website'      => 'nullable|string|max:0',
@@ -211,23 +214,55 @@ class ReviewApiController extends Controller
         ]);
 
         $requireApproval = $settings['require_approval'] ?? true;
-        $status = $spam['is_spam']
-            ? Review::STATUS_HIDDEN
-            : ($requireApproval ? Review::STATUS_PENDING : Review::STATUS_APPROVED);
+
+        // ── Optional customer verification (mirrors the web flow) ──
+        $email = $validated['author_email'] ?? null;
+        $verifiedAt = null;
+        $verificationMethod = null;
+        $verificationToken = null;
+        $needsEmailVerify = false;
+
+        if ($requireVerification && !$spam['is_spam']) {
+            $verifier = app(\App\Modules\User\Support\ReviewVerifier::class);
+            if ($method = $verifier->matchKnownCustomer((int) $link->user_id, $email)) {
+                $verifiedAt = now();
+                $verificationMethod = $method;
+            } else {
+                $needsEmailVerify = true;
+                $verificationToken = $verifier->freshToken();
+            }
+        }
+
+        if ($spam['is_spam']) {
+            $status = Review::STATUS_HIDDEN;
+        } elseif ($needsEmailVerify) {
+            $status = Review::STATUS_UNVERIFIED;
+        } else {
+            $status = $requireApproval ? Review::STATUS_PENDING : Review::STATUS_APPROVED;
+        }
+
+        $keepEmail = ($settings['collect_email'] ?? true) || $requireVerification;
 
         $review = Review::create([
             'user_id'      => $link->user_id,
             'link_id'      => $link->id,
             'author_name'  => $validated['author_name'] ?? null,
-            'author_email' => ($settings['collect_email'] ?? true) ? ($validated['author_email'] ?? null) : null,
+            'author_email' => $keepEmail ? $email : null,
             'rating'       => $validated['rating'] ?? null,
             'body'         => $validated['body'] ?? null,
             'status'       => $status,
             'is_spam'      => (bool) $spam['is_spam'],
             'spam_reason'  => $spam['reason'] ?? null,
+            'verified_at'  => $verifiedAt,
+            'verification_method' => $verificationMethod,
+            'verification_token'  => $verificationToken,
             'ip_hash'      => hash('sha256', $request->ip() . '|' . config('app.key')),
             'fingerprint'  => substr(hash('sha256', (string) $request->userAgent()), 0, 64),
         ]);
+
+        if ($needsEmailVerify) {
+            app(\App\Modules\User\Support\ReviewVerifier::class)->sendVerificationEmail($link, $review);
+        }
 
         if (!empty($validated['answers'])) {
             $questions = ReviewQuestion::where('user_id', $link->user_id)->active()
@@ -270,12 +305,19 @@ class ReviewApiController extends Controller
             }
         }
 
+        if ($needsEmailVerify) {
+            $message = 'Check your email and tap the link to confirm and publish your review.';
+        } elseif ($status === Review::STATUS_APPROVED) {
+            $message = 'Your review is now live.';
+        } else {
+            $message = 'Your review was submitted and is awaiting approval.';
+        }
+
         return $this->created([
-            'status'  => $status,
-            'pending' => $status === Review::STATUS_PENDING,
-            'message' => $status === Review::STATUS_APPROVED
-                ? 'Your review is now live.'
-                : 'Your review was submitted and is awaiting approval.',
+            'status'            => $status,
+            'pending'           => $status === Review::STATUS_PENDING,
+            'needs_verification' => $needsEmailVerify,
+            'message'           => $message,
         ]);
     }
 }

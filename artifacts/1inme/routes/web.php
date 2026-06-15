@@ -460,6 +460,13 @@ Route::post('/{alias}/reviews', [\App\Modules\Common\Controllers\ReviewSubmissio
     ->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')
     ->middleware('throttle:10,1');
 
+// One-time email confirmation link for customer-verified reviews.
+Route::get('/{alias}/reviews/verify/{token}', [\App\Modules\Common\Controllers\ReviewSubmissionController::class, 'verify'])
+    ->name('redirect.reviews.verify')
+    ->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')
+    ->where('token', '[A-Za-z0-9]+')
+    ->middleware('throttle:30,1');
+
 // Visitor-filed report on a public biolink (spam/abuse moderation queue).
 // CAPTCHA + honeypot + per-IP RateLimiter live inside the controller.
 Route::post('/{alias}/report', [\App\Modules\Common\Controllers\BiolinkReportController::class, 'store'])

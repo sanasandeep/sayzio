@@ -45,6 +45,7 @@ class ReviewFeed
                     'reply'         => $r->reply,
                     'replied_at'    => $r->replied_at,
                     'is_pinned'     => (bool) $r->is_pinned,
+                    'verified'      => $r->verified_at !== null,
                     'created_at'    => $r->created_at,
                     'source_url'    => null,
                     'media'         => $r->media->map(fn ($m) => [
@@ -74,6 +75,7 @@ class ReviewFeed
                     'reply'         => null,
                     'replied_at'    => null,
                     'is_pinned'     => false,
+                    'verified'      => false,
                     'created_at'    => $r->reviewed_at ?: $r->created_at,
                     'source_url'    => $r->source_url,
                     'media'         => [],

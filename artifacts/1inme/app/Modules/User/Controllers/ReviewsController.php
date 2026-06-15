@@ -34,6 +34,7 @@ class ReviewsController extends Controller
         'show_summary'      => true,
         'allow_submissions' => true,
         'require_approval'  => true,
+        'require_verification' => false,
         'collect_media'     => true,
         'collect_email'     => true,
     ];
@@ -91,12 +92,18 @@ class ReviewsController extends Controller
             'show_summary'      => 'boolean',
             'allow_submissions' => 'boolean',
             'require_approval'  => 'boolean',
+            'require_verification' => 'boolean',
             'collect_media'     => 'boolean',
             'collect_email'     => 'boolean',
         ]);
 
-        foreach (['show_summary', 'allow_submissions', 'require_approval', 'collect_media', 'collect_email'] as $flag) {
+        foreach (['show_summary', 'allow_submissions', 'require_approval', 'require_verification', 'collect_media', 'collect_email'] as $flag) {
             $data[$flag] = $request->boolean($flag);
+        }
+
+        // Email verification needs an address to verify, so force email collection on.
+        if ($data['require_verification']) {
+            $data['collect_email'] = true;
         }
 
         // Normalise selected providers (empty / absent = show all connected).
