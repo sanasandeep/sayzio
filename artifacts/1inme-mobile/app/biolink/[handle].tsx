@@ -31,6 +31,7 @@ import {
 } from "@/components/BlockListPreview";
 import { BrandWordmark } from "@/components/Brand";
 import { EmbedModal } from "@/components/EmbedModal";
+import { ReviewsWall } from "@/components/ReviewsWall";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import { variantOverlay } from "@/lib/blockVariants";
@@ -1254,6 +1255,17 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   if (t === "rsvp") {
     return (
       <RsvpBlock block={block} alias={alias} settings={s} colors={colors} />
+    );
+  }
+
+  // Reviews wall: render the rating summary, the unified review feed, and an
+  // inline no-login submission form natively instead of bouncing to the web.
+  if (t === "reviews_wall") {
+    const title = pickStr(s, "title", "heading");
+    return (
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
+        <ReviewsWall alias={alias} colors={colors} title={title} />
+      </View>
     );
   }
 

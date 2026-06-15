@@ -296,6 +296,15 @@ export default function EditLinkScreen() {
               }
             />
           ) : null}
+          {l.type === "reviews" ? (
+            <ActionTile
+              icon="star"
+              label="Reviews"
+              onPress={() =>
+                router.push(`/reviews/${encodeURIComponent(l.alias)}` as any)
+              }
+            />
+          ) : null}
           <ActionTile
             icon="copy"
             label="Duplicate"

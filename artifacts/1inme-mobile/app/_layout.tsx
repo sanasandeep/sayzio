@@ -130,6 +130,7 @@ function RootLayoutNav() {
       <Stack.Screen name="lock" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="info" options={{ headerShown: false }} />
       <Stack.Screen name="biolink/[handle]" options={{ headerShown: false }} />
+      <Stack.Screen name="reviews/[alias]" options={{ title: "Reviews" }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
       <Stack.Screen name="resume" options={{ title: "Resume" }} />
       <Stack.Screen name="payouts" options={{ title: "Earnings & Payouts" }} />
