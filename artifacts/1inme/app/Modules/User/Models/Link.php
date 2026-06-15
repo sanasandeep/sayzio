@@ -116,6 +116,11 @@ protected $fillable = [
         return $this->hasOne(VcfData::class);
     }
 
+    public function restaurantMenu()
+    {
+        return $this->hasOne(RestaurantMenu::class);
+    }
+
     public function rsvps()
     {
         return $this->hasMany(Rsvp::class);
@@ -557,16 +562,18 @@ protected $fillable = [
      * {@see isBiolinkFamily()} / {@see scopeBiolinkFamily()} instead so
      * the new types inherit the same treatment.
      */
-    public const TYPE_BIOLINK        = 'biolink';
-    public const TYPE_CONVERSATIONAL = 'conversational';
-    public const TYPE_SLIDES         = 'slides';
-    public const TYPE_AI_CHAT        = 'ai_chat';
+    public const TYPE_BIOLINK         = 'biolink';
+    public const TYPE_CONVERSATIONAL  = 'conversational';
+    public const TYPE_SLIDES          = 'slides';
+    public const TYPE_AI_CHAT         = 'ai_chat';
+    public const TYPE_RESTAURANT_MENU = 'restaurant_menu';
 
     public const BIOLINK_FAMILY = [
         self::TYPE_BIOLINK,
         self::TYPE_CONVERSATIONAL,
         self::TYPE_SLIDES,
         self::TYPE_AI_CHAT,
+        self::TYPE_RESTAURANT_MENU,
     ];
 
     /** Is this link rendered by the biolink page engine? */
@@ -591,6 +598,7 @@ protected $fillable = [
         'conversational' => 'Conversational',
         'slides'         => 'Slides',
         'ai_chat'        => 'AI Chatbot',
+        'restaurant_menu' => 'Restaurant Menu',
         'file'           => 'File Share',
         'ics'            => 'Event',
         'vcf'            => 'Contact Card',

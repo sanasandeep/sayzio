@@ -39,6 +39,7 @@ use App\Modules\Api\Controllers\VerificationController;
 use App\Modules\Api\Controllers\BillingController;
 use App\Modules\Api\Controllers\RevenueCatBillingController;
 use App\Modules\Api\Controllers\DialerController;
+use App\Modules\Api\Controllers\RestaurantController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -73,6 +74,13 @@ Route::prefix('v1')->group(function () {
     // ── Public, visibility-aware (optional bearer token) ────────────
     Route::middleware('api.optional_auth')->group(function () {
         Route::get('/biolinks/{alias}',            [BiolinkController::class, 'show']);
+
+        // Restaurant menu (Task #1536) — public: fetch menu, place order,
+        // poll guest order status. No auth, no online payment.
+        Route::get('/restaurant/{alias}',              [RestaurantController::class, 'show']);
+        Route::post('/restaurant/{alias}/order',       [RestaurantController::class, 'placeOrder'])->middleware('throttle:30,1');
+        Route::get('/restaurant/orders/{token}/status',[RestaurantController::class, 'orderStatus']);
+
         Route::get('/discovery/creators',          [DiscoveryController::class, 'creators']);
         Route::get('/discovery/creators/{handle}', [DiscoveryController::class, 'creator']);
         Route::get('/feed',                        [FeedController::class, 'index']);
@@ -479,6 +487,11 @@ Route::prefix('v1')->group(function () {
         Route::put   ('/qr-codes/{id}',     [QrCodeController::class, 'update'])->whereNumber('id');
         Route::patch ('/qr-codes/{id}',     [QrCodeController::class, 'update'])->whereNumber('id');
         Route::delete('/qr-codes/{id}',     [QrCodeController::class, 'destroy'])->whereNumber('id');
+
+        // Restaurant menu (Task #1536) — owner orders dashboard parity.
+        Route::get ('/restaurant/links/{link}/orders',                [RestaurantController::class, 'ownerOrders'])->whereNumber('link');
+        Route::get ('/restaurant/links/{link}/orders/poll',           [RestaurantController::class, 'ownerPoll'])->whereNumber('link');
+        Route::post('/restaurant/links/{link}/orders/{order}/status', [RestaurantController::class, 'updateOrderStatus'])->whereNumber('link')->whereNumber('order');
 
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);

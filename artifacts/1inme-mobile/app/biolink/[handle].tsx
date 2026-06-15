@@ -1735,8 +1735,9 @@ export default function BiolinkViewer() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { handle } = useLocalSearchParams<{ handle: string }>();
+  const { handle, t } = useLocalSearchParams<{ handle: string; t?: string }>();
   const alias = String(handle ?? "");
+  const tableCode = t ? String(t) : "";
   const webTop = Platform.OS === "web" ? 67 : 0;
 
   const [embed, setEmbed] = useState<{ url: string; title?: string; sandboxed?: boolean } | null>(null);
@@ -1763,6 +1764,18 @@ export default function BiolinkViewer() {
     visitedRef.current = alias;
     trackBiolinkVisit(alias);
   }, [q.data, alias]);
+
+  // Restaurant menus are a distinct biolink-family type with their own
+  // viewer (menu + cart + order-at-table). When a handle resolves to one,
+  // hand off to the dedicated screen so the in-app experience matches web.
+  const redirectedRef = useRef(false);
+  useEffect(() => {
+    if (q.data?.biolink.type === "restaurant_menu" && alias && !redirectedRef.current) {
+      redirectedRef.current = true;
+      const suffix = tableCode ? `?t=${encodeURIComponent(tableCode)}` : "";
+      router.replace(`/restaurant/${alias}${suffix}` as any);
+    }
+  }, [q.data, alias, tableCode, router]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

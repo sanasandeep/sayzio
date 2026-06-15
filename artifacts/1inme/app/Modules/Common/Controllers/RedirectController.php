@@ -500,6 +500,13 @@ class RedirectController extends Controller
             elseif ($mode === 'slides')     $type = 'slides';
         }
 
+        if ($type === 'restaurant_menu') {
+            // Restaurant menu always renders its own page; if the owner
+            // hasn't set up a menu config row yet, fall back to the block
+            // page so the URL is never a dead end.
+            return $link->restaurantMenu()->exists() ? 'common.restaurant-menu' : 'common.biolink';
+        }
+
         if ($type !== 'conversational' && $type !== 'slides' && $type !== 'ai_chat') {
             return 'common.biolink';
         }

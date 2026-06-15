@@ -442,6 +442,13 @@ Route::post('/cv/{publicId}/capture-email',[\App\Modules\Common\Controllers\Conv
 Route::post('/cv/{publicId}/upload',       [\App\Modules\Common\Controllers\ConversationPublicController::class, 'captureFile'])
     ->where('publicId', 'cvs_[a-z0-9]{20}')->middleware('throttle:30,1')->name('cv.public.upload');
 
+// ── Restaurant Menu visitor endpoints (Task #1536) ───────────────
+// Use the /rm/ prefix so they don't collide with the catch-all /{alias}.
+Route::post('/rm/{alias}/order', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'placeOrder'])
+    ->where('alias', '[^/]+')->middleware('throttle:20,1')->name('rm.public.order');
+Route::get('/rm/order/{token}/status', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'orderStatus'])
+    ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('rm.public.order.status');
+
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');

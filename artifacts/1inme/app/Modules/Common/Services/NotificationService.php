@@ -198,6 +198,14 @@ class NotificationService
                 'default_email'  => false,
                 'default_push'   => true,
             ],
+            // Restaurant menu orders (Task #1536).
+            'restaurant.new_order' => [
+                'label'          => 'New restaurant orders',
+                'description'    => 'When a guest places an order from your restaurant menu page.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
         ];
     }
 

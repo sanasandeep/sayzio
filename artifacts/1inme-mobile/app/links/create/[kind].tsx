@@ -99,6 +99,8 @@ export default function CreateLinkScreen() {
         router.replace(`/links/${link.id}/blocks` as any);
       } else if (meta.kind === "ai_chat") {
         router.replace(`/links/${link.id}/ai-chat` as any);
+      } else if (meta.kind === "restaurant_menu") {
+        router.replace(`/links/${link.id}/restaurant-orders` as any);
       } else {
         router.replace(`/links/${link.id}/edit` as any);
       }

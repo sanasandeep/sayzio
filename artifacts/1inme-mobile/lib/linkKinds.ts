@@ -8,7 +8,8 @@ export type LinkKind =
   | "calendar"
   | "ai_chat"
   | "conversational"
-  | "slides";
+  | "slides"
+  | "restaurant_menu";
 
 type IconName = keyof typeof Feather.glyphMap;
 
@@ -22,7 +23,8 @@ export type LinkKindMeta = {
     | "event"
     | "ai_chat"
     | "conversational"
-    | "slides";
+    | "slides"
+    | "restaurant_menu";
   label: string;
   blurb: string;
   icon: IconName;
@@ -91,6 +93,13 @@ const EXTRA_KIND_META: LinkKindMeta[] = [
     label: "Slides",
     blurb: "A swipeable slide-deck biolink.",
     icon: "layers",
+  },
+  {
+    kind: "restaurant_menu",
+    apiType: "restaurant_menu",
+    label: "Restaurant Menu",
+    blurb: "A digital menu with optional order-at-table.",
+    icon: "coffee",
   },
 ];
 

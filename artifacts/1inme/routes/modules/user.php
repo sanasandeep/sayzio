@@ -734,6 +734,29 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/ai-chat', [\App\Modules\User\Controllers\AiChatController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.ai-chat.editor');
         Route::post('links/{link}/ai-chat', [\App\Modules\User\Controllers\AiChatController::class, 'save'])->middleware('workspace.can:links.edit')->name('links.ai-chat.save');
 
+        // ── Restaurant Menu (links.type = restaurant_menu) ─────────────
+        Route::get ('links/{link}/restaurant',          [\App\Modules\User\Controllers\RestaurantMenuController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.restaurant.editor');
+        Route::post('links/{link}/restaurant/settings', [\App\Modules\User\Controllers\RestaurantMenuController::class, 'saveSettings'])->middleware('workspace.can:links.edit')->name('links.restaurant.settings');
+        // Categories
+        Route::post  ('links/{link}/restaurant/categories',                 [\App\Modules\User\Controllers\RestaurantMenuController::class, 'storeCategory'])->middleware('workspace.can:links.edit')->name('links.restaurant.categories.store');
+        Route::put   ('links/{link}/restaurant/categories/{category}',      [\App\Modules\User\Controllers\RestaurantMenuController::class, 'updateCategory'])->middleware('workspace.can:links.edit')->name('links.restaurant.categories.update');
+        Route::delete('links/{link}/restaurant/categories/{category}',      [\App\Modules\User\Controllers\RestaurantMenuController::class, 'destroyCategory'])->middleware('workspace.can:links.edit')->name('links.restaurant.categories.destroy');
+        Route::post  ('links/{link}/restaurant/categories/reorder',         [\App\Modules\User\Controllers\RestaurantMenuController::class, 'reorderCategories'])->middleware('workspace.can:links.edit')->name('links.restaurant.categories.reorder');
+        // Items
+        Route::post  ('links/{link}/restaurant/items',         [\App\Modules\User\Controllers\RestaurantMenuController::class, 'storeItem'])->middleware('workspace.can:links.edit')->name('links.restaurant.items.store');
+        Route::put   ('links/{link}/restaurant/items/{item}',  [\App\Modules\User\Controllers\RestaurantMenuController::class, 'updateItem'])->middleware('workspace.can:links.edit')->name('links.restaurant.items.update');
+        Route::delete('links/{link}/restaurant/items/{item}',  [\App\Modules\User\Controllers\RestaurantMenuController::class, 'destroyItem'])->middleware('workspace.can:links.edit')->name('links.restaurant.items.destroy');
+        Route::post  ('links/{link}/restaurant/items/reorder', [\App\Modules\User\Controllers\RestaurantMenuController::class, 'reorderItems'])->middleware('workspace.can:links.edit')->name('links.restaurant.items.reorder');
+        // Tables + per-table printable QR
+        Route::post  ('links/{link}/restaurant/tables',             [\App\Modules\User\Controllers\RestaurantMenuController::class, 'storeTable'])->middleware('workspace.can:links.edit')->name('links.restaurant.tables.store');
+        Route::delete('links/{link}/restaurant/tables/{table}',     [\App\Modules\User\Controllers\RestaurantMenuController::class, 'destroyTable'])->middleware('workspace.can:links.edit')->name('links.restaurant.tables.destroy');
+        Route::get   ('links/{link}/restaurant/tables/{table}/qr',  [\App\Modules\User\Controllers\RestaurantMenuController::class, 'tableQr'])->middleware('workspace.can:links.view')->name('links.restaurant.tables.qr');
+        Route::get   ('links/{link}/restaurant/tables-qr-sheet',     [\App\Modules\User\Controllers\RestaurantMenuController::class, 'tablesQrSheet'])->middleware('workspace.can:links.view')->name('links.restaurant.tables.qr-sheet');
+        // Orders dashboard + near-real-time polling + status workflow
+        Route::get ('links/{link}/restaurant/orders',                   [\App\Modules\User\Controllers\RestaurantMenuController::class, 'orders'])->middleware('workspace.can:links.view')->name('links.restaurant.orders');
+        Route::get ('links/{link}/restaurant/orders/poll',              [\App\Modules\User\Controllers\RestaurantMenuController::class, 'pollOrders'])->middleware('workspace.can:links.view')->name('links.restaurant.orders.poll');
+        Route::post('links/{link}/restaurant/orders/{order}/status',    [\App\Modules\User\Controllers\RestaurantMenuController::class, 'updateOrderStatus'])->middleware('workspace.can:links.edit')->name('links.restaurant.orders.status');
+
         // Plan upgrade, checkout & billing — these touch the workspace
         // owner's subscription/wallet/invoices, so they remain owner-only
         // regardless of any member's role inside the workspace.

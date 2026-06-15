@@ -58,6 +58,7 @@ export type BiolinkPayload = {
     id: number;
     alias: string;
     title: string | null;
+    type?: string;
     visibility: "public" | "registered" | "followers" | "subscribers";
     seo_title: string | null;
     seo_description: string | null;

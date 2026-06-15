@@ -287,6 +287,15 @@ export default function EditLinkScreen() {
               onPress={() => router.push(`/links/${id}/ai-chat` as any)}
             />
           ) : null}
+          {meta.kind === "restaurant_menu" ? (
+            <ActionTile
+              icon="coffee"
+              label="Orders"
+              onPress={() =>
+                router.push(`/links/${id}/restaurant-orders` as any)
+              }
+            />
+          ) : null}
           <ActionTile
             icon="copy"
             label="Duplicate"

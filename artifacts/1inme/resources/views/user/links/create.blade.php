@@ -81,6 +81,7 @@
                     ['value' => 'conversational', 'icon' => 'fa-comments',     'color' => 'text-sky-400',     'label' => 'Conversational'],
                     ['value' => 'slides',         'icon' => 'fa-clone',        'color' => 'text-fuchsia-400', 'label' => 'Slides'],
                     ['value' => 'ai_chat',        'icon' => 'fa-robot',        'color' => 'text-teal-400',    'label' => 'AI Chatbot'],
+                    ['value' => 'restaurant_menu','icon' => 'fa-utensils',     'color' => 'text-orange-400',  'label' => 'Restaurant Menu'],
                     ['value' => 'file',           'icon' => 'fa-file',         'color' => 'text-emerald-400', 'label' => 'File Share'],
                     ['value' => 'ics',            'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'Event'],
                     ['value' => 'vcf',            'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'Contact Card'],

@@ -83,7 +83,7 @@ class LinkController extends Controller
         // so power users who repeatedly create the same kind of link can fly
         // through Step 1 with a single click + name.
         $lastType = $request->session()->get('links.last_type');
-        if (!in_array($lastType, ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'file', 'ics', 'vcf'], true)) {
+        if (!in_array($lastType, ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'file', 'ics', 'vcf'], true)) {
             $lastType = null;
         }
 
@@ -112,7 +112,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,file,ics,vcf',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf',
             'alias' => [
                 'nullable', 'string', 'alpha_dash',
                 'min:' . $limits['min'],
@@ -139,7 +139,8 @@ class LinkController extends Controller
             'biolink',
             'conversational',
             'slides',
-            'ai_chat'        => redirect()->route('user.links.biolink.create', $params),
+            'ai_chat',
+            'restaurant_menu' => redirect()->route('user.links.biolink.create', $params),
             'file'           => redirect()->route('user.links.file.create', $params),
             'ics'            => redirect()->route('user.links.ics.create', $params),
             'vcf'            => redirect()->route('user.links.vcf.create', $params),
@@ -178,7 +179,7 @@ class LinkController extends Controller
         // carried through from the picker so store() persists it; default
         // to the classic biolink when missing or out of family.
         $type = (string) $request->query('type', 'biolink');
-        if (!in_array($type, ['biolink', 'conversational', 'slides', 'ai_chat'], true)) {
+        if (!in_array($type, ['biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu'], true)) {
             $type = 'biolink';
         }
 
@@ -197,7 +198,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,file,ics,vcf',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf',
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
@@ -372,6 +373,10 @@ class LinkController extends Controller
         if ($link->type === 'ai_chat') {
             return redirect()->route('user.links.ai-chat.editor', $link)
                 ->with('success', 'AI Chatbot created — configure its persona and knowledge.');
+        }
+        if ($link->type === 'restaurant_menu') {
+            return redirect()->route('user.links.restaurant.editor', $link)
+                ->with('success', 'Restaurant Menu created — build your menu.');
         }
 
         // For new biolinks, send the user to the template picker so they can

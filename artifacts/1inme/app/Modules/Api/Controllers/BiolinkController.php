@@ -120,6 +120,7 @@ class BiolinkController extends Controller
                 'id'         => $link->id,
                 'alias'      => $link->alias,
                 'title'      => $link->title,
+                'type'       => $link->type,
                 'visibility' => $link->visibility,
                 'seo_title'  => $link->seo_title,
                 'seo_description' => $link->seo_description,
