@@ -219,6 +219,79 @@ class ApiKeysPluginsPageTest extends TestCase
         $this->assertNull(IntegrationKeySettings::discordWebhookUrl());
     }
 
+    public function test_test_alert_action_posts_to_discord_and_flashes_success(): void
+    {
+        Http::fake(['discord.com/*' => Http::response('', 204)]);
+
+        $admin = $this->makeAdminWithPermission('settings.manage');
+        IntegrationKeySettings::setDiscordWebhookUrl('https://discord.com/api/webhooks/123/abc');
+
+        $this->actingAs($admin, 'admin')
+            ->post('/admin/api-keys/test-alert', ['channel' => 'discord'])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        Http::assertSent(fn ($req) =>
+            str_contains($req->url(), 'discord.com') &&
+            isset($req->data()['content'])
+        );
+    }
+
+    public function test_test_alert_action_flashes_error_when_discord_hook_fails(): void
+    {
+        Http::fake(['discord.com/*' => Http::response('boom', 500)]);
+
+        $admin = $this->makeAdminWithPermission('settings.manage');
+        IntegrationKeySettings::setDiscordWebhookUrl('https://discord.com/api/webhooks/123/abc');
+
+        $this->actingAs($admin, 'admin')
+            ->post('/admin/api-keys/test-alert', ['channel' => 'discord'])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'discord.com'));
+    }
+
+    // ── WhatsApp test message ─────────────────────────────────────
+
+    public function test_test_whatsapp_dispatches_via_otp_when_configured(): void
+    {
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'x']]], 200)]);
+
+        $admin = $this->makeAdminWithPermission('settings.manage');
+        IntegrationKeySettings::setWhatsappPhoneNumberId('123456789012345');
+        IntegrationKeySettings::setWhatsappAccessToken('EAAB-token');
+        IntegrationKeySettings::setWhatsappGraphVersion('v21.0');
+
+        $this->actingAs($admin, 'admin')
+            ->post('/admin/api-keys/test-whatsapp', ['test_number' => '+15551234567'])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        // The OTP path actually called the WhatsApp Cloud API.
+        Http::assertSent(fn ($req) =>
+            str_contains($req->url(), 'graph.facebook.com') &&
+            str_contains($req->url(), '123456789012345') &&
+            $req->hasHeader('Authorization', 'Bearer EAAB-token')
+        );
+    }
+
+    public function test_test_whatsapp_preview_mode_logs_and_flashes_info(): void
+    {
+        Http::fake();
+
+        $admin = $this->makeAdminWithPermission('settings.manage');
+        // No WhatsApp credentials stored → preview mode.
+
+        $this->actingAs($admin, 'admin')
+            ->post('/admin/api-keys/test-whatsapp', ['test_number' => '+15551234567'])
+            ->assertRedirect()
+            ->assertSessionHas('info');
+
+        // Preview mode means nothing is actually sent to Meta.
+        Http::assertNothingSent();
+    }
+
     // ── Per-category alert toggles ────────────────────────────────
 
     public function test_categories_default_to_enabled(): void
