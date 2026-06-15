@@ -2,17 +2,31 @@
 
 Cross-browser MV3 extension (Chrome, Firefox, Edge) for [1INME](https://1inme.com).
 
-Three primary actions on any page you visit:
+> **Related docs:** [REST API reference](../1inme/docs/api.md) · [Mobile app](../1inme-mobile/docs/mobile-app.md)
 
-1. **Shorten & copy** — turns the current tab's URL into a 1INME short link, copies it to your clipboard, and shows a toast with a deep link to analytics.
+Primary actions on any page you visit:
+
+1. **Shorten & copy** — turns the current tab's URL into a 1INME short link, copies it to your clipboard, and shows a toast with a deep link to analytics. When shortening you can attach **smart rules** (geo / device / language / time routing, plan-gated by `link_smart_rules`) and start an **A/B test** straight from the popup.
 2. **Turn into bio-link page** — scrapes the current page's title, description, OG image, and outbound/social links, creates a draft bio-link in your 1INME workspace pre-filled with header + link blocks, and opens the bio-link editor so you can refine and publish.
-3. **Backlink radar** (opt-in) — quietly notices when a page you're browsing links **to you** (one of your short links, your bio-link username path, or any of your verified custom domains) and surfaces a "This page links to you" card in the popup with one-click **Save**, **Open**, and **Thank** actions. A **Backlinks** tab keeps a filterable history with CSV export.
+3. **Save contact** — extracts the page author/business contact (vCard `.vcf`, hCard microformats, JSON-LD `Person`/`Organization`, or a heuristic email/phone scrape) and saves it to your 1INME address book in one click (`POST /api/v1/contacts`). Default tags and the active workspace for saves are configurable in **Settings**.
+4. **Backlink radar** (opt-in) — quietly notices when a page you're browsing links **to you** (one of your short links, your bio-link username path, or any of your verified custom domains) and surfaces a "This page links to you" card in the popup with one-click **Save**, **Open**, and **Thank** actions. A **Backlinks** tab keeps a filterable history with CSV export.
 
-A **right-click context menu** mirrors both actions:
+A **right-click context menu** mirrors these actions:
 
 - **Shorten this page with 1INME** (right-click anywhere on a page)
 - **Shorten link with 1INME** (right-click on any link)
 - **Turn page into 1INME bio-link** (right-click anywhere on a page)
+- **Save contact with 1INME** (right-click anywhere on a page)
+
+## Permissions
+
+From `src/manifest.chrome.json` / `src/manifest.firefox.json` (both MV3):
+
+- `permissions`: `activeTab`, `storage`, `contextMenus`, `scripting`, `notifications`, `tabs`, `alarms`.
+- `host_permissions`: `<all_urls>` (Chrome/Edge also declare `optional_host_permissions` for `http(s)://*/*`).
+- **Static content script**: `content-handshake.js`, matched against `https://1inme.com/extension/handshake*`.
+- **Dynamically registered content scripts** (via the `scripting` API): the backlink **radar** against `http(s)://*/*` (minus muted hosts) and a **handshake** script against your configured `webBaseUrl` when it differs from the default.
+- **Background**: a module service worker (`background.js`) on Chrome/Edge; Firefox uses a non-service-worker background `scripts` entry (`browser_specific_settings.gecko`, `strict_min_version` 115). The worker manages context menus, orchestrates auth handshakes, coordinates radar scans, performs clipboard writes via injected scripting, and runs an `alarms`-driven periodic sync (~30s) for the pending-thanks queue.
 
 ## Build
 
@@ -123,30 +137,61 @@ The bearer token is attached as `Authorization: Bearer …` to every API call. A
 
 ## Settings
 
-Open the gear icon in the popup header to override the API/web base URLs (default `https://1inme.com`). Useful when testing against a local 1INME workflow — point both URLs at your dev domain (e.g. `https://<repl-id>.replit.dev` and `https://<repl-id>.replit.dev/api/v1`).
+Open the gear icon in the popup header to override the API/web base URLs (default `https://1inme.com`). Useful when testing against a local 1INME workflow — point both URLs at your dev domain (e.g. `https://<repl-id>.replit.dev` and `https://<repl-id>.replit.dev/api/v1`). The Settings tab also surfaces contact-save preferences (default tags, one-click toggle, contact workspace) and the workspace tracking-pixels badge.
 
 ## Storage shape
 
-Persisted under `browser.storage.local`:
+Persisted under `browser.storage.local`. The canonical `ExtSettings` type lives in `src/lib/storage.ts`:
 
 ```ts
 {
   apiBaseUrl: string,
   webBaseUrl: string,
   token: string | null,
-  user: { id, name, email, handle? } | null,
+  user: { id, name, email, handle?,
+          capabilities?: { link_smart_rules?, max_smart_rules? } } | null,
   workspaceId: number | null,
   workspaces: Array<{ id, name }>,
+
+  // Contacts: "Save contact" preferences
+  contactDefaultTags: string[],        // applied client-side before POST /contacts
+  contactAllowOneClick: boolean,       // gates the one-click save button
+  contactWorkspaceId: number | null,   // overrides the active workspace for saves
+
   // Backlink radar
   radarEnabled: boolean,
   radarOnboarded: boolean,
   radarDisabledHosts: string[],
-  // Cached "known properties" payload for the radar (1h TTL)
-  radarProperties?: { short_link_hosts, biolink_hosts, biolink_username_path,
-                      custom_domain_hosts, slug_hashes, … },
-  // Per-tab match list keyed by tab id, cleared on navigation/close
-  radarTabMatches?: Record<string, { pageUrl, pageTitle, matches[], scannedAt }>,
+
+  // Thank-you templates (max 3) + last-write-wins sync metadata
+  thankTemplates: ThankTemplate[],
+  thankTemplatesUpdatedAtMs: number | null,
+  thankTemplatesLastServerTs: number | null,  // optimistic-concurrency token
+  thankTemplatesWorkspaceId: number | null,
+
+  // Queued thank-yous (Backlinks tab) + sync metadata
+  pendingThanks: PendingThank[],
+  pendingThanksUpdatedAtMs: number | null,
+  pendingThanksWorkspaceId: number | null,
+  pendingThanksSeenIds: string[],
+
+  // Per-host "author book": cached email / X handle / LinkedIn URL,
+  // keyed by host (or "host|path"), capped at AUTHOR_BOOK_MAX (500)
+  authorBook: Record<string, AuthorBookEntry>,
 }
+```
+
+Two radar caches are stored under their own keys (not part of `ExtSettings`):
+
+```ts
+// key: "radarProperties" — cached "known properties" payload (TTL-bounded)
+{ short_link_hosts, biolink_hosts, biolink_username_path, custom_domain_hosts,
+  slug_hashes, slug_hash_prefix_len, slug_hash_algo, cached_at,
+  cache_ttl_seconds, fetched_at_ms }
+
+// key: "radarTabMatches" — per-tab match state, cleared on navigation/close
+Record<string, { pageUrl, pageTitle, matches[], scannedAt,
+                 author?: { email, xHandle, linkedinUrl } }>
 ```
 
 ## Backlink radar — data flow & privacy
@@ -160,11 +205,16 @@ When enabled:
 
 1. A small **content script** (`content-radar.js`) is registered against
    `http(s)://*/*` (excluding muted hosts) and runs `document_idle`. It
-   collects only outbound `<a href>` URLs and their anchor text. **No page
-   text, body content, cookies, or PII is read or transmitted.**
-2. The harvested URLs are sent over `runtime.sendMessage` to the background
-   service worker. The page itself never sees the creator's "known properties"
-   list or any account data.
+   collects outbound `<a href>` URLs and their anchor text, plus (for the
+   **Thank** action) the page author's public contact handles — email
+   (`mailto:`/regex), X handle (`rel=author`/meta), and LinkedIn URL. **No
+   other page text, body content, cookies, or PII is read or transmitted.**
+2. The harvested URLs and any sniffed author contacts are sent over
+   `runtime.sendMessage` to the background service worker. The page itself
+   never sees the creator's "known properties" list or any account data.
+   Sniffed author contacts are cached per host in the local **author book** so
+   the Thank composer can pre-fill instantly on repeat backlinks from the same
+   publisher.
 3. The background worker fetches `GET /api/v1/me/properties` once per hour
    and caches it locally. The payload includes:
    - the platform's short-link hosts and the user's verified custom domains
