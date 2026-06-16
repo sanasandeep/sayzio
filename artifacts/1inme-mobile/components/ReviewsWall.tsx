@@ -239,7 +239,20 @@ function SubmitModal({
     setDone(null);
   };
 
-  const addMedia = async () => {
+  const appendAssets = (assets: ImagePicker.ImagePickerAsset[]) => {
+    if (!assets.length) return;
+    setError(null);
+    setMedia((prev) => {
+      const picked = assets.map((a) => ({
+        uri: a.uri,
+        mimeType: a.mimeType ?? null,
+        fileName: a.fileName ?? null,
+      }));
+      return [...prev, ...picked].slice(0, MAX_MEDIA);
+    });
+  };
+
+  const pickFromLibrary = async () => {
     if (media.length >= MAX_MEDIA) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -256,15 +269,34 @@ function SubmitModal({
       quality: 0.85,
     });
     if (res.canceled || !res.assets?.length) return;
-    setError(null);
-    setMedia((prev) => {
-      const picked = res.assets.map((a) => ({
-        uri: a.uri,
-        mimeType: a.mimeType ?? null,
-        fileName: a.fileName ?? null,
-      }));
-      return [...prev, ...picked].slice(0, MAX_MEDIA);
+    appendAssets(res.assets);
+  };
+
+  const takePhoto = async () => {
+    if (media.length >= MAX_MEDIA) return;
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Camera access needed",
+        "Allow camera access in Settings to take a photo or video for your review.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      quality: 0.85,
     });
+    if (res.canceled || !res.assets?.length) return;
+    appendAssets(res.assets);
+  };
+
+  const addMedia = () => {
+    if (media.length >= MAX_MEDIA) return;
+    Alert.alert("Add media", undefined, [
+      { text: "Choose from library", onPress: pickFromLibrary },
+      { text: "Take photo or video", onPress: takePhoto },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   const removeMedia = (index: number) => {
@@ -425,9 +457,9 @@ function SubmitModal({
                         { borderColor: colors.border, backgroundColor: colors.card },
                       ]}
                     >
-                      <Feather name="plus" size={20} color={colors.primary} />
+                      <Feather name="camera" size={20} color={colors.primary} />
                       <Text style={[styles.mediaAddLabel, { color: colors.mutedForeground }]}>
-                        Photo / video
+                        Add media
                       </Text>
                     </Pressable>
                   ) : null}

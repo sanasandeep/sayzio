@@ -112,6 +112,13 @@
         {
           "microphonePermission": "1INME records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "1INME accesses your photo library so you can attach photos or videos to a review.",
+          "cameraPermission": "1INME uses your camera so you can capture a photo or video for a review."
+        }
       ]
     ],
     "experiments": {
