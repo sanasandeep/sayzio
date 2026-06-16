@@ -212,6 +212,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/profile',   [ProfileController::class, 'show']);
         Route::patch('/profile', [ProfileController::class, 'update']);
 
+        // ── Reviews moderation (owner-scoped) ────────────────────────
+        // Bearer-token parity for the web /user/.../reviews/* moderation
+        // actions so creators can approve / hide / pin / reply / delete
+        // their own native reviews from the mobile "Manage reviews"
+        // screen. Every action is scoped to the authenticated owner.
+        Route::get   ('/me/reviews',                  [\App\Modules\Api\Controllers\ReviewApiController::class, 'mine']);
+        Route::post  ('/me/reviews/{review}/approve', [\App\Modules\Api\Controllers\ReviewApiController::class, 'approve'])->whereNumber('review');
+        Route::post  ('/me/reviews/{review}/hide',    [\App\Modules\Api\Controllers\ReviewApiController::class, 'hide'])->whereNumber('review');
+        Route::post  ('/me/reviews/{review}/pin',     [\App\Modules\Api\Controllers\ReviewApiController::class, 'pin'])->whereNumber('review');
+        Route::post  ('/me/reviews/{review}/reply',   [\App\Modules\Api\Controllers\ReviewApiController::class, 'reply'])->whereNumber('review');
+        Route::delete('/me/reviews/{review}',         [\App\Modules\Api\Controllers\ReviewApiController::class, 'destroy'])->whereNumber('review');
+
         // Creator Payouts + Adult-content (Task #1208) ───────────────
         // Mobile parity for the "Earnings & Payouts" dashboard. The
         // hosted-onboarding URL is returned to the app to open in an

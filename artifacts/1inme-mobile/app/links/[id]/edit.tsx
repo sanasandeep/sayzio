@@ -305,6 +305,13 @@ export default function EditLinkScreen() {
               }
             />
           ) : null}
+          {l.type === "reviews" ? (
+            <ActionTile
+              icon="check-circle"
+              label="Moderate"
+              onPress={() => router.push(`/reviews/manage` as any)}
+            />
+          ) : null}
           <ActionTile
             icon="copy"
             label="Duplicate"

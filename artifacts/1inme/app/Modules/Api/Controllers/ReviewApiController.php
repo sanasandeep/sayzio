@@ -15,6 +15,7 @@ use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\SpamChecker;
 use App\Modules\User\Support\ReviewFeed;
 use App\Modules\User\Support\ReviewSummaryService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -24,6 +25,16 @@ use Illuminate\Routing\Controller;
  *   - GET  /reviews/{alias}          → paginated unified review feed
  *   - GET  /reviews/{alias}/summary  → rating summary
  *   - POST /reviews/{alias}          → submit a review (no-login, throttled)
+ *
+ * Owner-side moderation (auth:sanctum) mirrors the web
+ * ReviewsController moderation actions so creators can triage reviews
+ * from the mobile app:
+ *   - GET    /me/reviews                  → list own reviews (all statuses)
+ *   - POST   /me/reviews/{review}/approve → publish a review
+ *   - POST   /me/reviews/{review}/hide    → hide a review
+ *   - POST   /me/reviews/{review}/pin     → toggle pinned
+ *   - POST   /me/reviews/{review}/reply   → set / clear the owner reply
+ *   - DELETE /me/reviews/{review}         → delete a review
  *
  * All responses use the unified {data}/{error} envelope.
  */
@@ -319,5 +330,166 @@ class ReviewApiController extends Controller
             'needs_verification' => $needsEmailVerify,
             'message'           => $message,
         ]);
+    }
+
+    // ── Owner moderation (auth:sanctum) ─────────────────────────────────
+
+    /**
+     * List the authenticated owner's native reviews for moderation. Unlike
+     * the public feed this returns every status (pending / approved /
+     * hidden / unverified), the spam flag, and the reviewer's email so the
+     * creator can triage from the app. External (provider-imported) reviews
+     * live in a separate table and are read-only, so they are excluded.
+     *
+     * Optional `status` query filters to one tier; `per_page` (1..100,
+     * default 30) controls pagination.
+     */
+    public function mine(Request $request)
+    {
+        $user = $request->user();
+
+        $allowed = [
+            Review::STATUS_PENDING,
+            Review::STATUS_APPROVED,
+            Review::STATUS_HIDDEN,
+            Review::STATUS_UNVERIFIED,
+        ];
+
+        $query = Review::forUser((int) $user->id)
+            ->with(['media', 'answers', 'link:id,title,alias'])
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('created_at');
+
+        $status = $request->query('status');
+        if (is_string($status) && in_array($status, $allowed, true)) {
+            $query->where('status', $status);
+        }
+
+        $perPage = min(100, max(1, (int) $request->query('per_page', 30)));
+        $page = $query->paginate($perPage);
+
+        return $this->ok([
+            'reviews' => array_map(fn ($r) => $this->ownerReviewPayload($r), $page->items()),
+            'counts'  => $this->ownerCounts((int) $user->id),
+            'meta'    => [
+                'total'        => $page->total(),
+                'per_page'     => $page->perPage(),
+                'current_page' => $page->currentPage(),
+                'last_page'    => $page->lastPage(),
+            ],
+        ]);
+    }
+
+    public function approve(Request $request, int $review)
+    {
+        $r = $this->ownedReviewOr($request, $review);
+        if ($r instanceof JsonResponse) return $r;
+        $r->update(['status' => Review::STATUS_APPROVED, 'is_spam' => false]);
+        return $this->ok($this->ownerReviewPayload($r));
+    }
+
+    public function hide(Request $request, int $review)
+    {
+        $r = $this->ownedReviewOr($request, $review);
+        if ($r instanceof JsonResponse) return $r;
+        $r->update(['status' => Review::STATUS_HIDDEN]);
+        return $this->ok($this->ownerReviewPayload($r));
+    }
+
+    public function pin(Request $request, int $review)
+    {
+        $r = $this->ownedReviewOr($request, $review);
+        if ($r instanceof JsonResponse) return $r;
+        $r->update(['is_pinned' => !$r->is_pinned]);
+        return $this->ok($this->ownerReviewPayload($r));
+    }
+
+    public function reply(Request $request, int $review)
+    {
+        $r = $this->ownedReviewOr($request, $review);
+        if ($r instanceof JsonResponse) return $r;
+        $data = $request->validate(['reply' => 'nullable|string|max:2000']);
+        $r->update([
+            'reply'      => $data['reply'] ?: null,
+            'replied_at' => $data['reply'] ? now() : null,
+        ]);
+        return $this->ok($this->ownerReviewPayload($r));
+    }
+
+    public function destroy(Request $request, int $review)
+    {
+        $r = $this->ownedReviewOr($request, $review);
+        if ($r instanceof JsonResponse) return $r;
+        $r->delete();
+        return $this->ok(['id' => (string) $review, 'deleted' => true]);
+    }
+
+    /**
+     * Resolve a native review owned by the authenticated user, eager-loading
+     * the relations the owner payload needs. Returns a 404 {error} when the
+     * review does not exist and a 403 {error} when it belongs to another
+     * creator, so moderation is always owner-scoped server-side.
+     */
+    private function ownedReviewOr(Request $request, int $id): Review|JsonResponse
+    {
+        $review = Review::with(['media', 'answers', 'link:id,title,alias'])->find($id);
+        if (!$review) {
+            return $this->notFound('Review not found.');
+        }
+        if ((int) $review->user_id !== (int) $request->user()->id) {
+            return $this->forbidden('You can only moderate your own reviews.');
+        }
+        return $review;
+    }
+
+    /** Per-status review tallies for the owner (drives mobile tab badges). */
+    private function ownerCounts(int $userId): array
+    {
+        $rows = Review::forUser($userId)
+            ->selectRaw('status, count(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        return [
+            'pending'    => (int) ($rows[Review::STATUS_PENDING] ?? 0),
+            'approved'   => (int) ($rows[Review::STATUS_APPROVED] ?? 0),
+            'hidden'     => (int) ($rows[Review::STATUS_HIDDEN] ?? 0),
+            'unverified' => (int) ($rows[Review::STATUS_UNVERIFIED] ?? 0),
+        ];
+    }
+
+    /** Owner-facing serialization (includes moderation-only fields). */
+    private function ownerReviewPayload(Review $r): array
+    {
+        return [
+            'id'            => (string) $r->id,
+            'status'        => $r->status,
+            'is_spam'       => (bool) $r->is_spam,
+            'spam_reason'   => $r->spam_reason,
+            'pinned'        => (bool) $r->is_pinned,
+            'author_name'   => $r->author_name,
+            'author_email'  => $r->author_email,
+            'author_avatar' => $r->author_avatar,
+            'rating'        => $r->rating,
+            'body'          => $r->body,
+            'reply'         => $r->reply,
+            'replied_at'    => $r->replied_at?->toIso8601String(),
+            'verified'      => $r->isVerified(),
+            'created_at'    => $r->created_at?->toIso8601String(),
+            'link'          => $r->link ? [
+                'id'    => (string) $r->link->id,
+                'title' => $r->link->title,
+                'alias' => $r->link->alias,
+            ] : null,
+            'media' => $r->media->map(fn ($m) => [
+                'type' => $m->type,
+                'url'  => $m->url,
+                'meta' => $m->meta,
+            ])->all(),
+            'answers' => $r->answers->map(fn ($a) => [
+                'prompt' => $a->prompt,
+                'answer' => $a->answer,
+            ])->all(),
+        ];
     }
 }

@@ -284,6 +284,54 @@ off; `422` (`empty_review`) when nothing was provided.
 
 ---
 
+## Reviews moderation (owner)
+
+Bearer-token parity for the web `/user/.../reviews/*` moderation actions so a
+creator can triage reviews from the mobile app. All endpoints are
+**owner-scoped**: they only touch **native** reviews owned by the authenticated
+user. Imported 3rd-party reviews (Google / Trustpilot) live in a separate table
+and are read-only, so they are not listed or moderatable here. `{review}` is the
+numeric review id.
+
+| Method | Path                          | Auth | Description                                                                                       |
+| ------ | ----------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
+| GET    | `/me/reviews`                 | yes  | The owner's reviews across all statuses. Query: `status` (`pending`/`approved`/`hidden`/`unverified`), `per_page` (1–100, default 30). |
+| POST   | `/me/reviews/{review}/approve`| yes  | Publish a review (`status` → `approved`, clears the spam flag).                                    |
+| POST   | `/me/reviews/{review}/hide`   | yes  | Hide a review (`status` → `hidden`).                                                               |
+| POST   | `/me/reviews/{review}/pin`    | yes  | Toggle the pinned flag.                                                                            |
+| POST   | `/me/reviews/{review}/reply`  | yes  | Set the public owner reply. Body: `reply` (string?, ≤2000). Empty/absent clears the reply.         |
+| DELETE | `/me/reviews/{review}`        | yes  | Permanently delete a review.                                                                       |
+
+**`mine` response** (`GET /me/reviews`):
+
+```json
+{
+  "data": {
+    "reviews": [
+      {
+        "id": "12", "status": "pending", "is_spam": false, "spam_reason": null,
+        "pinned": false, "author_name": "Jane", "author_email": "jane@example.com",
+        "author_avatar": null, "rating": 5, "body": "Loved it!", "reply": null,
+        "replied_at": null, "verified": true, "created_at": "2026-06-15T10:00:00+00:00",
+        "link": { "id": "7", "title": "My reviews", "alias": "my-reviews" },
+        "media": [{ "type": "image", "url": "https://…", "meta": {} }],
+        "answers": [{ "prompt": "Would you recommend us?", "answer": "Yes" }]
+      }
+    ],
+    "counts": { "pending": 3, "approved": 20, "hidden": 1, "unverified": 0 },
+    "meta": { "total": 24, "per_page": 30, "current_page": 1, "last_page": 1 }
+  }
+}
+```
+
+The single-review moderation endpoints (`approve` / `hide` / `pin` / `reply`)
+return `200` with `{data: <review>}` using the same owner-review shape as the
+`reviews[]` items above. `DELETE` returns `200` with `{data: {id, deleted: true}}`.
+`404` (`not_found`) when the review doesn't exist; `403` (`forbidden`) when it
+belongs to another creator.
+
+---
+
 ## Feed
 
 | Method | Path                          | Auth | Notes                                                                            |

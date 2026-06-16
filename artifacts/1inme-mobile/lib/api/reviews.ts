@@ -117,3 +117,107 @@ export async function submitReview(
   );
   return res.data;
 }
+
+// ── Owner moderation (auth:sanctum) ─────────────────────────────────
+// Mirrors the bearer-token surface added to ReviewApiController:
+//   GET    /me/reviews                  → own reviews (all statuses)
+//   POST   /me/reviews/{id}/approve     → publish
+//   POST   /me/reviews/{id}/hide        → hide
+//   POST   /me/reviews/{id}/pin         → toggle pinned
+//   POST   /me/reviews/{id}/reply       → set / clear owner reply
+//   DELETE /me/reviews/{id}             → delete
+
+export type ReviewStatus =
+  | "pending"
+  | "approved"
+  | "hidden"
+  | "unverified"
+  | string;
+
+export type OwnerReview = {
+  id: string;
+  status: ReviewStatus;
+  is_spam: boolean;
+  spam_reason: string | null;
+  pinned: boolean;
+  author_name: string | null;
+  author_email: string | null;
+  author_avatar: string | null;
+  rating: number | null;
+  body: string | null;
+  reply: string | null;
+  replied_at: string | null;
+  verified: boolean;
+  created_at: string | null;
+  link: { id: string; title: string | null; alias: string } | null;
+  media: ReviewMedia[];
+  answers: ReviewAnswer[];
+};
+
+export type OwnerReviewCounts = {
+  pending: number;
+  approved: number;
+  hidden: number;
+  unverified: number;
+};
+
+export type OwnerReviewsPage = {
+  reviews: OwnerReview[];
+  counts: OwnerReviewCounts;
+  meta: {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+  };
+};
+
+export async function getMyReviews(
+  params: { status?: ReviewStatus; per_page?: number } = {},
+): Promise<OwnerReviewsPage> {
+  const q = new URLSearchParams();
+  if (params.status) q.set("status", params.status);
+  if (params.per_page) q.set("per_page", String(params.per_page));
+  const qs = q.toString() ? `?${q}` : "";
+  const res = await apiFetch<{ data: OwnerReviewsPage }>(`/me/reviews${qs}`);
+  return res.data;
+}
+
+export async function approveReview(id: string): Promise<OwnerReview> {
+  const res = await apiFetch<{ data: OwnerReview }>(
+    `/me/reviews/${encodeURIComponent(id)}/approve`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+export async function hideReview(id: string): Promise<OwnerReview> {
+  const res = await apiFetch<{ data: OwnerReview }>(
+    `/me/reviews/${encodeURIComponent(id)}/hide`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+export async function pinReview(id: string): Promise<OwnerReview> {
+  const res = await apiFetch<{ data: OwnerReview }>(
+    `/me/reviews/${encodeURIComponent(id)}/pin`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+export async function replyReview(
+  id: string,
+  reply: string,
+): Promise<OwnerReview> {
+  const res = await apiFetch<{ data: OwnerReview }>(
+    `/me/reviews/${encodeURIComponent(id)}/reply`,
+    { method: "POST", body: JSON.stringify({ reply }) },
+  );
+  return res.data;
+}
+
+export async function deleteReview(id: string): Promise<void> {
+  await apiFetch(`/me/reviews/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
