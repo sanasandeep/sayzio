@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Modal,
   Platform,
@@ -19,10 +21,14 @@ import { useColors } from "@/hooks/useColors";
 import {
   getReviews,
   submitReview,
+  submitReviewWithMedia,
   type Review,
+  type ReviewMediaUpload,
   type ReviewSort,
   type ReviewSummary,
 } from "@/lib/api/reviews";
+
+const MAX_MEDIA = 6;
 
 type Colors = ReturnType<typeof useColors>;
 
@@ -219,6 +225,7 @@ function SubmitModal({
   const [email, setEmail] = useState("");
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
+  const [media, setMedia] = useState<ReviewMediaUpload[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
@@ -227,18 +234,55 @@ function SubmitModal({
     setEmail("");
     setRating(0);
     setBody("");
+    setMedia([]);
     setError(null);
     setDone(null);
   };
 
+  const addMedia = async () => {
+    if (media.length >= MAX_MEDIA) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Photos access needed",
+        "Allow access to your photo library in Settings to attach photos or videos.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_MEDIA - media.length,
+      quality: 0.85,
+    });
+    if (res.canceled || !res.assets?.length) return;
+    setError(null);
+    setMedia((prev) => {
+      const picked = res.assets.map((a) => ({
+        uri: a.uri,
+        mimeType: a.mimeType ?? null,
+        fileName: a.fileName ?? null,
+      }));
+      return [...prev, ...picked].slice(0, MAX_MEDIA);
+    });
+  };
+
+  const removeMedia = (index: number) => {
+    setMedia((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const mutation = useMutation({
-    mutationFn: () =>
-      submitReview(alias, {
+    mutationFn: () => {
+      const fields = {
         author_name: name.trim() || undefined,
         author_email: email.trim() || undefined,
         rating: rating > 0 ? rating : undefined,
         body: body.trim() || undefined,
-      }),
+      };
+      return media.length > 0
+        ? submitReviewWithMedia(alias, fields, media)
+        : submitReview(alias, fields);
+    },
     onSuccess: (res) => {
       setDone(res.message);
       onSubmitted();
@@ -343,6 +387,55 @@ function SubmitModal({
                 multiline
                 editable={!mutation.isPending}
               />
+
+              <View style={styles.mediaSection}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8 }}
+                >
+                  {media.map((m, i) => {
+                    const isVideo = (m.mimeType || "").startsWith("video");
+                    return (
+                      <View key={`${m.uri}-${i}`} style={styles.mediaPreviewWrap}>
+                        <Image source={{ uri: m.uri }} style={styles.mediaThumb} />
+                        {isVideo ? (
+                          <View style={styles.mediaVideoBadge}>
+                            <Feather name="video" size={12} color="#fff" />
+                          </View>
+                        ) : null}
+                        <Pressable
+                          onPress={() => removeMedia(i)}
+                          disabled={mutation.isPending}
+                          hitSlop={6}
+                          style={styles.mediaRemoveBtn}
+                        >
+                          <Feather name="x" size={12} color="#fff" />
+                        </Pressable>
+                      </View>
+                    );
+                  })}
+                  {media.length < MAX_MEDIA ? (
+                    <Pressable
+                      onPress={addMedia}
+                      disabled={mutation.isPending}
+                      style={[
+                        styles.mediaThumb,
+                        styles.mediaAddBtn,
+                        { borderColor: colors.border, backgroundColor: colors.card },
+                      ]}
+                    >
+                      <Feather name="plus" size={20} color={colors.primary} />
+                      <Text style={[styles.mediaAddLabel, { color: colors.mutedForeground }]}>
+                        Photo / video
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </ScrollView>
+                <Text style={[styles.mediaHint, { color: colors.mutedForeground }]}>
+                  Add up to {MAX_MEDIA} photos or videos (optional)
+                </Text>
+              </View>
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -574,6 +667,39 @@ const styles = StyleSheet.create({
   modalHeadRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   modalTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 20 },
   starPicker: { flexDirection: "row", gap: 6, justifyContent: "center", paddingVertical: 4 },
+  mediaSection: { gap: 6 },
+  mediaPreviewWrap: { position: "relative" },
+  mediaAddBtn: {
+    borderWidth: 1,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
+  mediaAddLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 9, textAlign: "center" },
+  mediaRemoveBtn: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mediaVideoBadge: {
+    position: "absolute",
+    bottom: 4,
+    left: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mediaHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
   submitBtn: { minHeight: 50, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
   submitBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   errorText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, color: "#dc2626" },

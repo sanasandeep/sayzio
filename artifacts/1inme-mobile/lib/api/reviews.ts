@@ -1,4 +1,5 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getBaseUrl, MOBILE_USER_AGENT, type ApiError } from "@/lib/api";
+import { getToken } from "@/lib/secure";
 
 // Mirrors the public reviews REST surface documented in
 // artifacts/1inme/docs/api.md (Reviews section):
@@ -91,15 +92,17 @@ export type ReviewSubmitResult = {
   message: string;
 };
 
+export type ReviewSubmitInput = {
+  author_name?: string;
+  author_email?: string;
+  rating?: number;
+  body?: string;
+  answers?: Record<string, string>;
+};
+
 export async function submitReview(
   alias: string,
-  body: {
-    author_name?: string;
-    author_email?: string;
-    rating?: number;
-    body?: string;
-    answers?: Record<string, string>;
-  },
+  body: ReviewSubmitInput,
 ): Promise<ReviewSubmitResult> {
   // `website` is the server-side honeypot — a real client always leaves it
   // empty so legitimate submissions are never flagged as spam.
@@ -220,4 +223,96 @@ export async function replyReview(
 
 export async function deleteReview(id: string): Promise<void> {
   await apiFetch(`/me/reviews/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// A photo/video the reviewer picked from their device. `uri` is the local
+// file:// path expo-image-picker returns; `mimeType`/`fileName` are best-effort
+// and filled in by the picker.
+export type ReviewMediaUpload = {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+};
+
+// Map a media mime type to a sensible filename extension so the server's
+// `mimes:` validation accepts the upload even when the picker omits a name.
+function extForMime(mime: string): string {
+  const m = mime.toLowerCase();
+  if (m.includes("jpeg") || m.includes("jpg")) return "jpg";
+  if (m.includes("png")) return "png";
+  if (m.includes("webp")) return "webp";
+  if (m.includes("gif")) return "gif";
+  if (m.includes("quicktime") || m.includes("mov")) return "mov";
+  if (m.includes("webm")) return "webm";
+  if (m.includes("mp4")) return "mp4";
+  return "bin";
+}
+
+/**
+ * Submit a review with attached photos/videos via multipart/form-data, mirroring
+ * the web form's media support and the `voiceAssistant.turn` upload pattern in
+ * `lib/api.ts`. The public endpoint accepts up to 6 files under `media[]`.
+ *
+ * NB: do NOT set Content-Type — React Native fills in the multipart boundary
+ * for us when the body is a FormData.
+ */
+export async function submitReviewWithMedia(
+  alias: string,
+  body: ReviewSubmitInput,
+  media: ReviewMediaUpload[],
+): Promise<ReviewSubmitResult> {
+  const url = `${getBaseUrl()}/api/v1/reviews/${encodeURIComponent(alias)}`;
+  const token = await getToken();
+
+  const fd = new FormData();
+  // Honeypot — always empty for a real client.
+  fd.append("website", "");
+  if (body.author_name) fd.append("author_name", body.author_name);
+  if (body.author_email) fd.append("author_email", body.author_email);
+  if (typeof body.rating === "number") fd.append("rating", String(body.rating));
+  if (body.body) fd.append("body", body.body);
+  if (body.answers) {
+    for (const [qid, answer] of Object.entries(body.answers)) {
+      if (answer) fd.append(`answers[${qid}]`, answer);
+    }
+  }
+
+  media.slice(0, 6).forEach((m, i) => {
+    const mime = m.mimeType || "application/octet-stream";
+    const name = m.fileName || `review-${i}.${extForMime(mime)}`;
+    fd.append("media[]", {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore – RN-specific FormData entry.
+      uri: m.uri,
+      name,
+      type: mime,
+    } as any);
+  });
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(url, { method: "POST", body: fd as any, headers });
+  const text = await res.text();
+  let parsed: any = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = null;
+  }
+  if (!res.ok) {
+    const err: ApiError = {
+      status: res.status,
+      message:
+        (parsed?.error?.message && String(parsed.error.message)) ||
+        (parsed?.message && String(parsed.message)) ||
+        `Could not submit your review (${res.status})`,
+    };
+    throw err;
+  }
+  return parsed.data as ReviewSubmitResult;
 }
