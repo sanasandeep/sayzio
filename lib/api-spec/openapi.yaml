@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: contact
+    description: Contact form operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /contact:
+    post:
+      operationId: submitContactMessage
+      tags: [contact]
+      summary: Submit a contact message
+      description: >
+        Accepts a contact form submission from the marketing site, stores it for
+        the team, and returns the result. Includes a honeypot field for spam
+        protection.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactMessageInput"
+      responses:
+        "201":
+          description: Message accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactMessageResult"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +63,55 @@ components:
           type: string
       required:
         - status
+    ContactMessageInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        website:
+          type: string
+          maxLength: 255
+          description: >
+            Honeypot field. Must be left empty by real users; populated
+            submissions are silently dropped as spam.
+      required:
+        - name
+        - email
+        - subject
+        - message
+    ContactMessageResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+            code:
+              type: string
+          required:
+            - message
+      required:
+        - error
 

@@ -14,3 +14,32 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Accepts a contact form submission from the marketing site, stores it for the team, and returns the result. Includes a honeypot field for spam protection.
+
+ * @summary Submit a contact message
+ */
+export const submitContactMessageBodyNameMax = 120;
+
+export const submitContactMessageBodyEmailMax = 255;
+
+export const submitContactMessageBodySubjectMax = 200;
+
+export const submitContactMessageBodyMessageMax = 5000;
+
+export const submitContactMessageBodyWebsiteMax = 255;
+
+export const SubmitContactMessageBody = zod.object({
+  name: zod.string().min(1).max(submitContactMessageBodyNameMax),
+  email: zod.string().email().max(submitContactMessageBodyEmailMax),
+  subject: zod.string().min(1).max(submitContactMessageBodySubjectMax),
+  message: zod.string().min(1).max(submitContactMessageBodyMessageMax),
+  website: zod
+    .string()
+    .max(submitContactMessageBodyWebsiteMax)
+    .optional()
+    .describe(
+      "Honeypot field. Must be left empty by real users; populated submissions are silently dropped as spam.\n",
+    ),
+});

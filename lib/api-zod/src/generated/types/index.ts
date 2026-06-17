@@ -6,4 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./contactMessageInput";
+export * from "./contactMessageResult";
+export * from "./errorResponse";
+export * from "./errorResponseError";
 export * from "./healthStatus";

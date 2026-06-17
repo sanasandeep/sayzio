@@ -4,26 +4,47 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Mail, MapPin, Clock, Languages, Zap, Handshake, Lightbulb, Check } from "lucide-react";
+import { Mail, MapPin, Clock, Languages, Zap, Handshake, Lightbulb, Check, AlertCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { submitContactMessage } from "@workspace/api-client-react";
 
 const SUPPORT_EMAIL = "support@1inme.com";
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
     subject: "",
     message: "",
+    // Honeypot — hidden from real users; bots that fill it are dropped server-side.
+    website: "",
   });
 
-  // NOTE: This marketing site is frontend-only — there is no backend to receive
-  // submissions. We show a success state and offer a mailto fallback. Wire this
-  // up to a real endpoint (or form service) when a backend becomes available.
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      await submitContactMessage({
+        name: form.name,
+        email: form.email,
+        subject: form.subject,
+        message: form.message,
+        website: form.website,
+      });
+      setSubmitted(true);
+    } catch {
+      setError(
+        "We couldn't send your message. Please try again, or email us directly below.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
@@ -143,6 +164,26 @@ export default function Contact() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Honeypot: visually hidden and off-screen, hidden from
+                      assistive tech and excluded from tab order. Bots that
+                      autofill it get their submission dropped server-side. */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden"
+                  >
+                    <label htmlFor="website">Leave this field empty</label>
+                    <input
+                      id="website"
+                      name="website"
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={form.website}
+                      onChange={(e) =>
+                        setForm({ ...form, website: e.target.value })
+                      }
+                    />
+                  </div>
                   <div className="grid sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="name">Your name</Label>
@@ -195,12 +236,29 @@ export default function Contact() {
                       placeholder="Tell us a little more..."
                     />
                   </div>
+                  {error && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+                    >
+                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                      <span>{error}</span>
+                    </div>
+                  )}
                   <Button
                     type="submit"
                     size="lg"
+                    disabled={submitting}
                     className="w-full rounded-full h-12"
                   >
-                    Send message
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send message"
+                    )}
                   </Button>
                 </form>
               )}
