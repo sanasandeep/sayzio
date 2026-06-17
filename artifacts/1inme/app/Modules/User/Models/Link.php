@@ -621,7 +621,7 @@ protected $fillable = [
         'vcf'            => 'Contact Card',
         'reviews'        => 'Reviews Page',
         'resume'         => 'Resume / Portfolio',
-        'paid_page'      => 'Paid Page',
+        'paid_page'      => 'Bizs Profile',
     ];
 
     /** Reviews relationship — native reviews submitted on this link. */

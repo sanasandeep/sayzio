@@ -83,6 +83,6 @@ class PaidPageController extends Controller
         $link->visibility = $request->boolean('is_public') ? 'public' : 'registered';
         $link->save();
 
-        return back()->with('success', 'Paid Page design saved.');
+        return back()->with('success', 'Bizs Profile design saved.');
     }
 }

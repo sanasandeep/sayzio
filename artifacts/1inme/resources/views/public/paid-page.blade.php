@@ -181,9 +181,9 @@
         <div class="mt-3 pp-chip rounded-2xl px-4 py-3 text-xs font-medium flex items-center gap-2" style="border-radius: var(--pp-radius);">
             <i class="fas fa-circle-info"></i>
             <span>
-                This is your Paid Page preview. It's
+                This is your Bizs Profile preview. It's
                 <strong>{{ ($link->visibility ?? 'public') === 'public' ? 'public' : 'gated (sign-in required)' }}</strong>.
-                Posts &amp; tiers are shared across all your pages — manage them from your dashboard.
+                Your posts &amp; tiers appear here automatically — there's no linking step; just publish them from your dashboard.
             </span>
         </div>
     @endif

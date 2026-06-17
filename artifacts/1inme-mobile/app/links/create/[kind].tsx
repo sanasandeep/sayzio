@@ -279,8 +279,9 @@ export default function CreateLinkScreen() {
               })}
             </View>
             <Text style={[styles.tplHint, { color: colors.mutedForeground }]}>
-              You can change the template and toggle public / gated access
-              anytime from the web editor.
+              Your posts and tiers appear on this page automatically — there's
+              no linking step. You can change the template and toggle public /
+              gated access anytime from the web editor.
             </Text>
           </View>
         ) : null}

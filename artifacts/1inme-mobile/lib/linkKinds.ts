@@ -87,8 +87,9 @@ export const LINK_KINDS: LinkKindMeta[] = [
   {
     kind: "paid_page",
     apiType: "paid_page",
-    label: "Paid Page",
-    blurb: "A bold, themeable home for your paid posts, tiers & tips.",
+    label: "Bizs Profile",
+    blurb:
+      "A themeable home that automatically shows all your posts, tiers & tips — no linking needed.",
     icon: "award",
   },
 ];

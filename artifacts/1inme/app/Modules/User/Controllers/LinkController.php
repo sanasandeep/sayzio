@@ -277,7 +277,7 @@ class LinkController extends Controller
             'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
             'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
             'resume'          => ['module' => 'module_resume',          'cap' => 'max_resume',          'label' => 'Resume / Portfolio'],
-            'paid_page'       => ['module' => 'module_paid_page',       'cap' => 'max_paid_page',       'label' => 'Paid Page'],
+            'paid_page'       => ['module' => 'module_paid_page',       'cap' => 'max_paid_page',       'label' => 'Bizs Profile'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -527,7 +527,7 @@ class LinkController extends Controller
         }
         if ($link->type === 'paid_page') {
             return redirect()->route('user.links.paid-page.editor', $link)
-                ->with('success', 'Paid Page created — pick a design, then add posts and tiers.');
+                ->with('success', 'Bizs Profile created — just pick a design. Your posts and tiers appear here automatically; there is no linking step.');
         }
 
         // "Build with AI" start mode — skip the picker and send the user to

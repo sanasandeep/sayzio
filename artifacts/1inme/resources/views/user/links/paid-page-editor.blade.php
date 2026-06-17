@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Paid Page Editor')
+@section('title', 'Bizs Profile Editor')
 
 @section('content')
 <div class="max-w-5xl mx-auto"
@@ -13,7 +13,7 @@
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white/50" title="Back to links"><i class="fas fa-arrow-left"></i></a>
         <div class="min-w-0">
-            <h1 class="text-2xl font-bold text-white truncate">{{ $link->title ?: 'Paid Page' }}</h1>
+            <h1 class="text-2xl font-bold text-white truncate">{{ $link->title ?: 'Bizs Profile' }}</h1>
             <p class="text-xs text-white/40 mt-0.5">
                 <a href="{{ $publicUrl }}" target="_blank" class="text-violet-400 hover:underline">{{ $publicUrl }} <i class="fas fa-arrow-up-right-from-square ml-0.5 text-[10px]"></i></a>
             </p>
@@ -77,19 +77,45 @@
                     </div>
                 </div>
 
-                {{-- Content management shortcuts --}}
+                {{-- Content management --}}
                 <div class="glass rounded-2xl p-6">
-                    <h2 class="text-sm font-semibold text-white mb-1">Manage your content</h2>
-                    <p class="text-xs text-white/40 mb-4">Posts &amp; tiers are shared across all your pages.</p>
+                    <h2 class="text-sm font-semibold text-white mb-1">Your posts &amp; tiers</h2>
+                    <p class="text-xs text-white/40 mb-4">Everything you publish shows here automatically — there's no "add to page" step. Posts &amp; tiers are shared across all your pages.</p>
+
+                    @if($postCount === 0 || $tierCount === 0)
+                        <div class="mb-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-xs text-white/70 leading-relaxed">
+                            <i class="fas fa-wand-magic-sparkles mr-1 text-violet-300"></i>
+                            This page fills itself in. The moment you publish a post or add a paid tier, it appears here for fans —
+                            @if($postCount === 0 && $tierCount === 0)
+                                you don't have any posts or tiers yet.
+                            @elseif($postCount === 0)
+                                you don't have any posts yet.
+                            @else
+                                you don't have any paid tiers yet.
+                            @endif
+                            Create them below and reopen the page to see them in place.
+                        </div>
+                    @endif
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <a href="{{ route('user.posts.index') }}" class="rounded-xl border border-white/10 hover:border-white/30 px-4 py-3 flex items-center justify-between transition">
-                            <span class="text-sm text-white"><i class="fas fa-feather mr-2 text-violet-300"></i> Posts</span>
-                            <span class="text-xs text-white/40">{{ number_format($postCount) }}</span>
-                        </a>
-                        <a href="{{ route('user.monetization.earnings') }}" class="rounded-xl border border-white/10 hover:border-white/30 px-4 py-3 flex items-center justify-between transition">
-                            <span class="text-sm text-white"><i class="fas fa-gem mr-2 text-violet-300"></i> Tiers</span>
-                            <span class="text-xs text-white/40">{{ number_format($tierCount) }}</span>
-                        </a>
+                        <div class="rounded-xl border border-white/10 px-4 py-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-white"><i class="fas fa-feather mr-2 text-violet-300"></i> Posts</span>
+                                <span class="text-xs text-white/40">{{ number_format($postCount) }}</span>
+                            </div>
+                            <a href="{{ route('user.posts.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
+                                <i class="fas fa-plus text-[10px]"></i> Create a post
+                            </a>
+                        </div>
+                        <div class="rounded-xl border border-white/10 px-4 py-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-white"><i class="fas fa-gem mr-2 text-violet-300"></i> Tiers</span>
+                                <span class="text-xs text-white/40">{{ number_format($tierCount) }}</span>
+                            </div>
+                            <a href="{{ route('user.monetization.tiers') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
+                                <i class="fas fa-plus text-[10px]"></i> Create a tier
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
