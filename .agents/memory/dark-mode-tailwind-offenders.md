@@ -7,7 +7,9 @@ description: Why 1inme dashboard pages show white-on-dark, and the safe conversi
 
 The theme is CSS-variable driven (`common/partials/theme-styles.blade.php`): default = dark, `html.light-mode` flips the vars. There is a JS-injected `light-mode-overrides` `<style>` that remaps Tailwind palette utilities (`text-slate-*`, `bg-slate-7xx`, etc.) **only for `html.light-mode`**. There is **no** symmetric dark-mode remapping.
 
-**Consequence:** a page written with hardcoded LIGHT utilities (`bg-white`, `text-slate-900/700/600`, `text-gray-*`, `border-slate-200`, `bg-slate-50/100`) looks fine in light mode (overrides catch it) but renders white-on-dark / dark-on-dark in DARK mode (the default). `text-gray-*` is NOT even covered by the light overrides (only zinc/slate/neutral/stone), so gray utilities are doubly fragile.
+**Consequence:** a page written with hardcoded LIGHT utilities (`bg-white`, `text-slate-900/700/600`, `text-gray-*`, `border-slate-200`, `bg-slate-50/100`) looks fine in light mode (overrides catch it) but renders white-on-dark / dark-on-dark in DARK mode (the default).
+
+**Light-mode gray coverage:** `text-gray-*` IS now remapped in the same grouped block as slate/zinc/neutral/stone (tiers 1-6 → muted/dimmed). For solid mid-gray *fills* used as status dots (`bg-gray-400`) use **exact-class** selectors (`.bg-gray-400`, not `[class*="bg-gray-4"]`) so you don't also hit translucent badges (`bg-gray-500/20`) or the off-state toggle track (`bg-gray-300`), which must stay light.
 
 **Fix pattern (per-element, NOT a global override):** convert the offending class to an inline `style="..."` using the themed vars — `--bg-card` (cards), `--bg-glass`/`--bg-glass-light` (subtle/chips), `--bg-glass-input` (form fields), `--border-glass` (borders), `--text-primary/-secondary/-muted/-faint`. Vars flip per mode so both modes read correctly. Light-gray ghost buttons (`bg-slate-100 text-slate-700 hover:bg-slate-200`) → existing `.btn-ghost` class. Reference: `user/stats/index.blade.php`.
 

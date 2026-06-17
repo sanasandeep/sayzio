@@ -904,9 +904,6 @@
     html.light-mode .text-cyan-100,    html.light-mode .text-cyan-200,    html.light-mode .text-cyan-300,    html.light-mode .text-cyan-400 { color: #0e7490 !important; }
     html.light-mode .text-blue-100,    html.light-mode .text-blue-200,    html.light-mode .text-blue-300,    html.light-mode .text-blue-400 { color: #1d4ed8 !important; }
     html.light-mode .text-indigo-100,  html.light-mode .text-indigo-200,  html.light-mode .text-indigo-300,  html.light-mode .text-indigo-400 { color: #4338ca !important; }
-    /* Very-light gray text (gray-100/200) — even lighter than the gray-3+ steps
-       the global remap already covers; map to a muted readable token. */
-    html.light-mode .text-gray-100, html.light-mode .text-gray-200 { color: var(--text-muted) !important; }
 </style>
 <script>
 (function(){
@@ -932,14 +929,6 @@
         html.light-mode [class*="text-white/2"],
         html.light-mode [class*="text-white/1"] {
             color: var(--text-faint) !important;
-        }
-        html.light-mode [class*="text-gray-3"],
-        html.light-mode [class*="text-gray-4"] {
-            color: var(--text-muted) !important;
-        }
-        html.light-mode [class*="text-gray-5"],
-        html.light-mode [class*="text-gray-6"] {
-            color: var(--text-dimmed) !important;
         }
         html.light-mode [class*="border-white/"] {
             border-color: var(--border-glass) !important;
@@ -1004,9 +993,13 @@
         html.light-mode [class*="border-black/"] {
             border-color: var(--border-glass) !important;
         }
-        /* ----- Tailwind palette text colors (zinc/slate/neutral/stone)
-           sometimes used in dashboard widgets — map them onto our muted
-           tokens so they read on the light surface. */
+        /* ----- Tailwind palette text colors (gray/zinc/slate/neutral/stone)
+           sometimes used in dashboard widgets, often inside dynamic class
+           ternaries (vault tabs, status badges) — map them onto our muted
+           tokens so they read on the light surface. The gray palette gets the
+           exact same tier treatment as slate/zinc here. */
+        html.light-mode [class*="text-gray-1"],
+        html.light-mode [class*="text-gray-2"],
         html.light-mode [class*="text-zinc-1"],
         html.light-mode [class*="text-zinc-2"],
         html.light-mode [class*="text-slate-1"],
@@ -1015,8 +1008,10 @@
         html.light-mode [class*="text-neutral-2"],
         html.light-mode [class*="text-stone-1"],
         html.light-mode [class*="text-stone-2"] {
-            color: var(--text-faint) !important;
+            color: var(--text-muted) !important;
         }
+        html.light-mode [class*="text-gray-3"],
+        html.light-mode [class*="text-gray-4"],
         html.light-mode [class*="text-zinc-3"],
         html.light-mode [class*="text-zinc-4"],
         html.light-mode [class*="text-slate-3"],
@@ -1027,6 +1022,8 @@
         html.light-mode [class*="text-stone-4"] {
             color: var(--text-muted) !important;
         }
+        html.light-mode [class*="text-gray-5"],
+        html.light-mode [class*="text-gray-6"],
         html.light-mode [class*="text-zinc-5"],
         html.light-mode [class*="text-zinc-6"],
         html.light-mode [class*="text-slate-5"],
@@ -1036,6 +1033,15 @@
         html.light-mode [class*="text-stone-5"],
         html.light-mode [class*="text-stone-6"] {
             color: var(--text-dimmed) !important;
+        }
+        /* ----- Solid mid-gray fills used as status dots (e.g. inactive plan
+           badge: bg-gray-400) go faint on white. Lift them to a readable
+           neutral. Exact-class selectors only, so translucent badges
+           (bg-gray-500/20) and the off-state toggle track (bg-gray-300) are
+           intentionally left untouched. */
+        html.light-mode .bg-gray-400,
+        html.light-mode .bg-gray-500 {
+            background-color: var(--text-dimmed) !important;
         }
         /* ----- Dark Tailwind backgrounds (slate/zinc/gray/neutral/stone 7xx-9xx)
            lift to white so light dashboards don't get heavy dark slabs. */
