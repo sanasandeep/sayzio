@@ -17,4 +17,16 @@ The 1inme Feature suite is effectively un-runnable in isolated task envs / dev b
 - **Danger:** if `SHARDED_TEST_SKIP_MIGRATION` is NOT set, this runs `migrate:fresh` and DROPS the dev DB. Always confirm the flag is in the process env before trusting it.
 - **Limitation:** tests that scan global tables (e.g. `RenewDueSubscriptions` counting due subscriptions) are NOT isolated from real dev data, so count-based assertions are non-deterministic there. They only behave on the empty schema that `migrate:fresh` gives in CI.
 
-**Bottom line:** trust CI (`.github/workflows/laravel-tests.yml`, local Postgres) for green; locally rely on `php -l` + static cross-check of referenced symbols/signatures. Don't burn an hour waiting on cross-region `migrate:fresh`.
+**Better local recipe (works, used to get PaidPageTest green in ~7s):** point DB_* at the **local `helium`** Postgres `1inme_testing` DB (not the dev DB, not RDS) and skip migration:
+```
+HELIUM_PW=$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)
+DB_HOST=helium DB_PORT=5432 DB_DATABASE=1inme_testing DB_USERNAME=postgres \
+DB_PASSWORD="$HELIUM_PW" DB_SSLMODE=disable DB_URL= DATABASE_URL= \
+SHARDED_TEST_SKIP_MIGRATION=1 php artisan test --filter=YourTest
+```
+- The isolated-env **process env** sets `DB_HOST=...rds.amazonaws.com DB_DATABASE=postgres DB_SSLMODE=require` (un-migrated RDS), which overrides phpunit's non-forced `<env>` — that's why a naive `php artisan test` hits RDS `postgres` and 500s on missing tables. Override DB_* explicitly on the command line.
+- `helium` `1inme_testing` is a real, mostly-migrated dedicated test DB (sslmode=disable). SKIP_MIGRATION reuses its schema and rolls back each test in a transaction, so it never wipes anything. It's stale vs the full migration set, so a test needing a brand-new column may still need CI.
+
+**Public-page Feature test pitfall (workspace scope):** the catch-all `/{alias}` (and `/@handle`) routes have NO SetActiveWorkspace middleware, so a real visitor request carries no bound `current_workspace` and Link's `workspace` global scope is skipped. Test setup helpers that bind `current_workspace` (needed so created models get a workspace_id) leak that binding; the **last** user built wins, so a guest/visitor GET wrongly scopes `resolveByAlias` to that workspace and 404s the owner's link. Fix: `app()->forgetInstance('current_workspace')` (+ `workspace_owner`) right before the public GET. Also: creator-page renders need `$creator->handle` set or `branded-reactions.blade.php`'s `route('creator-profile.react', ['handle'=>...])` throws a UrlGenerationException.
+
+**Bottom line:** prefer the helium `1inme_testing` + SKIP_MIGRATION recipe for fast local green; otherwise trust CI (`.github/workflows/laravel-tests.yml`). Don't burn an hour on cross-region `migrate:fresh`.
