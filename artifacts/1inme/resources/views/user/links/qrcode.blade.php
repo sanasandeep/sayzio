@@ -107,7 +107,7 @@
                 @php $publicQrUrl = route('qr.public.link', $link->alias); @endphp
                 <div class="relative">
                     <textarea readonly class="w-full border border-white/10 rounded-xl px-3 py-2 text-xs font-mono bg-white/5 resize-none" rows="3" x-ref="embedCode" :value="'<img src=&quot;{{ $publicQrUrl }}?size=' + size + '&fg_color=' + encodeURIComponent(fgColor) + '&bg_color=' + encodeURIComponent(bgColor) + '&error_correction=' + errorCorrection + '&quot; alt=&quot;QR Code&quot; width=&quot;' + size + '&quot; height=&quot;' + size + '&quot;>'"></textarea>
-                    <button @click="navigator.clipboard.writeText($refs.embedCode.value); $el.textContent = 'Copied!'; setTimeout(() => $el.textContent = 'Copy', 2000)" type="button" class="absolute top-2 right-2 text-xs bg-white border border-white/10 rounded px-2 py-1 text-white/50 hover:bg-white/5">Copy</button>
+                    <button @click="navigator.clipboard.writeText($refs.embedCode.value); $el.textContent = 'Copied!'; setTimeout(() => $el.textContent = 'Copy', 2000)" type="button" class="absolute top-2 right-2 text-xs bg-white/10 border border-white/10 rounded px-2 py-1 text-white/80 hover:bg-white/20">Copy</button>
                 </div>
                 <p class="text-xs text-white/30 mt-1">Paste this HTML to embed the QR code on any webpage</p>
             </div>
