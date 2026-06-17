@@ -233,7 +233,7 @@
 
                     <div class="p-4 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
                         <div class="flex items-center gap-2 mb-3">
-                            <i class="fab fa-apple text-gray-300 text-[10px]"></i>
+                            <i class="fab fa-apple text-[10px]" style="color: var(--text-muted);"></i>
                             <span class="text-xs font-semibold" style="color: var(--text-primary);">Apple Touch Icon</span>
                         </div>
                         @if(!empty($favicons['apple_touch_icon']))

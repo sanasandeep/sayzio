@@ -1,11 +1,13 @@
 @extends('user.layouts.app')
-@php($linkType = $linkType ?? 'biolink')
-@php($typeMeta = [
-    'biolink'        => ['label' => 'Link in Bio',     'placeholder' => 'My Link in Bio'],
-    'conversational' => ['label' => 'Conversational',  'placeholder' => 'My Conversational Page'],
-    'slides'         => ['label' => 'Slides',          'placeholder' => 'My Slides Page'],
-    'ai_chat'        => ['label' => 'AI Chatbot',      'placeholder' => 'My AI Chatbot'],
-][$linkType] ?? ['label' => 'Link in Bio', 'placeholder' => 'My Link in Bio'])
+@php
+    $linkType = $linkType ?? 'biolink';
+    $typeMeta = [
+        'biolink'        => ['label' => 'Link in Bio',     'placeholder' => 'My Link in Bio'],
+        'conversational' => ['label' => 'Conversational',  'placeholder' => 'My Conversational Page'],
+        'slides'         => ['label' => 'Slides',          'placeholder' => 'My Slides Page'],
+        'ai_chat'        => ['label' => 'AI Chatbot',      'placeholder' => 'My AI Chatbot'],
+    ][$linkType] ?? ['label' => 'Link in Bio', 'placeholder' => 'My Link in Bio'];
+@endphp
 @section('title', 'Create ' . $typeMeta['label'])
 
 @section('content')
