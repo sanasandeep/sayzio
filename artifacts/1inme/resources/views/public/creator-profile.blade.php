@@ -9,6 +9,11 @@
 <meta property="og:title" content="{{ $creator->name }} (&#64;{{ $creator->handle }})">
 <meta property="og:description" content="{{ Str::limit($creator->tagline ?: $creator->bio ?: ('Follow ' . $creator->name . ' on 1INME'), 180) }}">
 <meta property="og:type" content="profile">
+{{-- Single canonical URL for the profile: always the @-prefixed form,
+     so the bare /handle and /@handle entry points are treated as one
+     page for SEO + sharing and never double-counted. --}}
+<link rel="canonical" href="{{ route('creator-profile.show', $creator->handle) }}">
+<meta property="og:url" content="{{ route('creator-profile.show', $creator->handle) }}">
 @if($creator->cover_image)
     <meta property="og:image" content="{{ $creator->cover_image }}">
 @elseif($creator->avatar)

@@ -25,6 +25,43 @@ class RedirectController extends Controller
         protected LinkTrackingService $trackingService
     ) {}
 
+    /**
+     * Bare /handle → creator profile fallback.
+     *
+     * Invoked only after link/biolink alias resolution misses, so existing
+     * short links always win the bare path (the non-breaking collision
+     * default). On a handle match we delegate to the very same controller
+     * that powers /@handle, so unpublished/owner checks, the 18+ age gate,
+     * region gating, viewer blocks, and the canonical @-form URL all behave
+     * identically across both entry points. Returns null (→ "not found"
+     * page) when nothing usable matches.
+     */
+    private function tryCreatorProfileFallback(Request $request, string $alias, string $host): mixed
+    {
+        // Creator profiles live on platform hosts only; custom domains are
+        // biolink-only surfaces, so never resolve an arbitrary handle there.
+        if (!\App\Modules\Common\Support\PlatformHosts::isPlatformHost($host)) {
+            return null;
+        }
+
+        // Same case-insensitive handle rule as the /@handle route.
+        $handle = ltrim($alias, '@');
+        if ($handle === '' || strlen($handle) > 60) {
+            return null;
+        }
+
+        $exists = \App\Modules\User\Models\User::query()
+            ->whereRaw('LOWER(handle) = ?', [strtolower($handle)])
+            ->exists();
+        if (!$exists) {
+            return null;
+        }
+
+        // Render the exact /@handle profile (controller enforces all gating).
+        return app(\App\Modules\Common\Controllers\CreatorProfilePublicController::class)
+            ->show($handle, $request);
+    }
+
     public function handle(Request $request, string $alias)
     {
         // Resolve to the link via primary alias OR any of its additional aliases.
@@ -33,6 +70,16 @@ class RedirectController extends Controller
         $host = $request->getHost();
         $link = Link::resolveByAlias($alias, $host);
         if (!$link) {
+            // Bare /handle → creator profile fallback (non-breaking).
+            // Only attempted when no link/biolink alias resolved, so
+            // existing short links always keep priority. Resolution
+            // reuses the exact /@handle controller, so all gating
+            // (unpublished / 18+ age gate / region / blocks / canonical)
+            // behaves identically to the @-prefixed entry point.
+            if ($response = $this->tryCreatorProfileFallback($request, $alias, $host)) {
+                return $response;
+            }
+
             // Show "Domain not connected" only for hosts that are
             // genuinely an unfinished custom-domain attempt: a row exists
             // in `domains` but it isn't yet verified and active. Platform
