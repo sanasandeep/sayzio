@@ -1,12 +1,13 @@
 import { Feather } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -14,18 +15,23 @@ import {
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
-import { getBaseUrl } from "@/lib/api";
 import {
   getMailSettings,
   sendTestEmail,
+  updateMailSettings,
+  type MailSettingsSaveResult,
+  type MailSettingsStatus,
   type MailStatusTone,
   type MailTestResult,
 } from "@/lib/api/mail";
 
-// Task #1589 — super-admin parity for the web "Email / SMTP" settings.
-// Read-only: shows the effective mailer + from-identity and a status badge,
-// and lets an admin fire a live test email. Editing the transport stays on
-// the web admin page (linked at the bottom).
+// Super-admin parity for the web "Email / SMTP" settings. Shows the
+// effective transport with a status badge, lets an admin fully edit the
+// mailer / SMTP host-port-encryption-username-password and the from-identity,
+// and fire a live test email — so a broken SMTP config can be fixed entirely
+// from a phone. The stored SMTP password is never sent back to the device;
+// leaving the password blank keeps it untouched, and the clear toggle resets
+// it to the server env fallback.
 
 function toneColors(
   tone: MailStatusTone,
@@ -41,43 +47,172 @@ function toneColors(
   }
 }
 
+type FormState = {
+  mailer: string;
+  host: string;
+  port: string;
+  encryption: string;
+  username: string;
+  password: string;
+  clearPassword: boolean;
+  fromAddress: string;
+  fromName: string;
+};
+
+function seedForm(data: MailSettingsStatus): FormState {
+  return {
+    mailer: data.mailer,
+    host: data.host ?? "",
+    port: data.port != null ? String(data.port) : "",
+    encryption: data.encryption,
+    username: data.username ?? "",
+    password: "",
+    clearPassword: false,
+    fromAddress: data.from_address ?? "",
+    fromName: data.from_name ?? "",
+  };
+}
+
 export default function MailSettingsScreen() {
   const colors = useColors();
+  const qc = useQueryClient();
+
+  const [form, setForm] = useState<FormState | null>(null);
+  const seededRef = useRef(false);
+  const reseedRef = useRef(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveResult, setSaveResult] = useState<MailSettingsSaveResult | null>(null);
+
   const [testEmail, setTestEmail] = useState("");
   const [result, setResult] = useState<MailTestResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["mail-settings"],
     queryFn: getMailSettings,
   });
 
+  // Seed the editable form once from the server, then leave it under the
+  // admin's control so a background refetch doesn't clobber in-progress edits.
+  // A successful save flips reseedRef so we re-seed from the freshly-refetched
+  // server truth (e.g. has_password after a clear), never a stale response.
+  useEffect(() => {
+    if (query.data && (!seededRef.current || reseedRef.current)) {
+      seededRef.current = true;
+      reseedRef.current = false;
+      setForm(seedForm(query.data));
+    }
+  }, [query.data]);
+
+  const save = useMutation({
+    mutationFn: (payload: FormState) =>
+      updateMailSettings({
+        mailer: payload.mailer,
+        host: payload.mailer === "smtp" ? payload.host.trim() || null : null,
+        port:
+          payload.mailer === "smtp" && payload.port.trim() !== ""
+            ? Number(payload.port)
+            : null,
+        encryption: payload.encryption,
+        username: payload.username.trim() || null,
+        password: payload.clearPassword ? "" : payload.password,
+        clear_password: payload.clearPassword,
+        from_address: payload.fromAddress.trim(),
+        from_name: payload.fromName.trim(),
+      }),
+    onSuccess: (r) => {
+      setSaveResult(r);
+      setSaveError(null);
+      // Re-seed optimistically from the saved state (clears the password
+      // field), then refetch so the has_password indicator reflects server
+      // truth even if a momentary cache made the response lag behind.
+      setForm(seedForm(r));
+      reseedRef.current = true;
+      qc.invalidateQueries({ queryKey: ["mail-settings"] });
+    },
+    onError: (e: any) => {
+      setSaveResult(null);
+      setSaveError(e?.message ?? "Couldn't save the mail settings.");
+    },
+  });
+
   const test = useMutation({
     mutationFn: (email: string) => sendTestEmail(email),
     onSuccess: (r) => {
       setResult(r);
-      setError(null);
+      setTestError(null);
     },
     onError: (e: any) => {
       setResult(null);
-      setError(e?.message ?? "Couldn't send the test email.");
+      setTestError(e?.message ?? "Couldn't send the test email.");
     },
   });
 
-  const trimmed = testEmail.trim();
-  const canSend = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) && !test.isPending;
-
-  const row = (label: string, value: string | null | undefined) => (
-    <View style={styles.row}>
-      <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>{label}</Text>
-      <Text style={[styles.rowValue, { color: colors.foreground }]} numberOfLines={1}>
-        {value && String(value).trim() !== "" ? String(value) : "—"}
-      </Text>
-    </View>
-  );
-
   const data = query.data;
   const badge = data ? toneColors(data.status.tone, colors) : null;
+
+  const trimmedTest = testEmail.trim();
+  const canSend =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedTest) && !test.isPending;
+
+  // Save gating mirrors the web validation: from-identity always required;
+  // host + port required only for the SMTP transport.
+  const fromOk =
+    !!form &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.fromAddress.trim()) &&
+    form.fromName.trim() !== "";
+  const smtpOk =
+    !!form &&
+    (form.mailer !== "smtp" ||
+      (form.host.trim() !== "" &&
+        form.port.trim() !== "" &&
+        Number(form.port) > 0));
+  const canSave = !!form && fromOk && smtpOk && !save.isPending;
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((p) => (p ? { ...p, [key]: value } : p));
+    setSaveResult(null);
+    setSaveError(null);
+  };
+
+  const segment = (
+    options: string[],
+    value: string,
+    onPick: (v: string) => void,
+  ) => (
+    <View
+      style={[
+        styles.segment,
+        { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+      ]}
+    >
+      {options.map((opt) => {
+        const on = value === opt;
+        return (
+          <Pressable
+            key={opt}
+            onPress={() => onPick(opt)}
+            style={[
+              styles.segmentItem,
+              {
+                backgroundColor: on ? colors.background : "transparent",
+                borderRadius: colors.radius - 4,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                { color: on ? colors.primary : colors.mutedForeground },
+              ]}
+            >
+              {opt}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -94,7 +229,7 @@ export default function MailSettingsScreen() {
                 : "Couldn't load mail settings."}
             </Text>
           </View>
-        ) : data ? (
+        ) : data && form ? (
           <>
             {/* Status badge */}
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -109,7 +244,7 @@ export default function MailSettingsScreen() {
               {data.status.key === "log" ? (
                 <Text style={[styles.note, { color: colors.mutedForeground }]}>
                   The log driver writes mail to the server log instead of delivering it.
-                  Choose the SMTP mailer on the web admin to send live.
+                  Choose the SMTP mailer below to send live.
                 </Text>
               ) : data.status.key === "env" ? (
                 <Text style={[styles.note, { color: colors.mutedForeground }]}>
@@ -118,29 +253,143 @@ export default function MailSettingsScreen() {
               ) : null}
             </View>
 
-            {/* Effective transport */}
+            {/* Editable transport */}
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.cardTitle, { color: colors.foreground, marginBottom: 4 }]}>
-                Transport
-              </Text>
-              {row("Mailer", data.mailer)}
-              {data.mailer === "smtp" ? (
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Transport</Text>
+
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Mailer</Text>
+              {segment(data.mailers, form.mailer, (v) => set("mailer", v))}
+
+              {form.mailer === "smtp" ? (
                 <>
-                  {row("Host", data.host)}
-                  {row("Port", data.port != null ? String(data.port) : null)}
-                  {row("Encryption", data.encryption?.toUpperCase())}
-                  {row("Password", data.has_password ? "•••••••• (set)" : "Not set")}
+                  <TextField
+                    label="SMTP host"
+                    value={form.host}
+                    onChangeText={(t) => set("host", t)}
+                    placeholder="smtp.example.com"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TextField
+                    label="SMTP port"
+                    value={form.port}
+                    onChangeText={(t) => set("port", t.replace(/[^0-9]/g, ""))}
+                    placeholder="587"
+                    keyboardType="number-pad"
+                  />
+                  <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                    Encryption
+                  </Text>
+                  {segment(data.encryption_options, form.encryption, (v) =>
+                    set("encryption", v),
+                  )}
+                  <TextField
+                    label="Username"
+                    value={form.username}
+                    onChangeText={(t) => set("username", t)}
+                    placeholder="Optional"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TextField
+                    label="Password"
+                    value={form.password}
+                    onChangeText={(t) => set("password", t)}
+                    placeholder={
+                      data.has_password
+                        ? "•••••••• (leave blank to keep)"
+                        : "Not set"
+                    }
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!form.clearPassword}
+                  />
+                  {data.has_password ? (
+                    <View style={styles.switchRow}>
+                      <Text style={[styles.switchLabel, { color: colors.foreground }]}>
+                        Clear saved password (reset to env)
+                      </Text>
+                      <Switch
+                        value={form.clearPassword}
+                        onValueChange={(nv) => set("clearPassword", nv)}
+                        trackColor={{ true: colors.primary, false: colors.border }}
+                      />
+                    </View>
+                  ) : null}
                 </>
               ) : null}
             </View>
 
             {/* From identity */}
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.cardTitle, { color: colors.foreground, marginBottom: 4 }]}>
-                From identity
-              </Text>
-              {row("From address", data.from_address)}
-              {row("From name", data.from_name)}
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>From identity</Text>
+              <TextField
+                label="From address"
+                value={form.fromAddress}
+                onChangeText={(t) => set("fromAddress", t)}
+                placeholder="hello@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TextField
+                label="From name"
+                value={form.fromName}
+                onChangeText={(t) => set("fromName", t)}
+                placeholder="1INME"
+              />
+
+              <Button
+                label="Save settings"
+                onPress={() => form && save.mutate(form)}
+                loading={save.isPending}
+                disabled={!canSave}
+              />
+
+              {saveResult ? (
+                <View
+                  style={[
+                    styles.resultBox,
+                    {
+                      backgroundColor:
+                        saveResult.verify && !saveResult.verify.ok
+                          ? "#f59e0b15"
+                          : "#10b98115",
+                      borderColor:
+                        saveResult.verify && !saveResult.verify.ok ? "#f59e0b" : "#10b981",
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={
+                      saveResult.verify && !saveResult.verify.ok ? "info" : "check-circle"
+                    }
+                    size={16}
+                    color={saveResult.verify && !saveResult.verify.ok ? "#f59e0b" : "#10b981"}
+                  />
+                  <Text style={{ color: colors.foreground, flex: 1 }}>
+                    {saveResult.verify
+                      ? saveResult.verify.ok
+                        ? "Settings saved — SMTP connection verified."
+                        : "Settings saved, but the SMTP connection check failed: " +
+                          (saveResult.verify.error ?? "unknown error")
+                      : "Settings saved."}
+                  </Text>
+                </View>
+              ) : null}
+
+              {saveError ? (
+                <View
+                  style={[
+                    styles.resultBox,
+                    { backgroundColor: colors.destructive + "15", borderColor: colors.destructive },
+                  ]}
+                >
+                  <Feather name="alert-circle" size={16} color={colors.destructive} />
+                  <Text style={{ color: colors.foreground, flex: 1 }}>{saveError}</Text>
+                </View>
+              ) : null}
             </View>
 
             {/* Send test */}
@@ -155,7 +404,7 @@ export default function MailSettingsScreen() {
                 onChangeText={(t) => {
                   setTestEmail(t);
                   setResult(null);
-                  setError(null);
+                  setTestError(null);
                 }}
                 placeholder="you@example.com"
                 keyboardType="email-address"
@@ -164,7 +413,7 @@ export default function MailSettingsScreen() {
               />
               <Button
                 label="Send test email"
-                onPress={() => test.mutate(trimmed)}
+                onPress={() => test.mutate(trimmedTest)}
                 loading={test.isPending}
                 disabled={!canSend}
               />
@@ -188,7 +437,7 @@ export default function MailSettingsScreen() {
                 </View>
               ) : null}
 
-              {error ? (
+              {testError ? (
                 <View
                   style={[
                     styles.resultBox,
@@ -196,20 +445,10 @@ export default function MailSettingsScreen() {
                   ]}
                 >
                   <Feather name="alert-circle" size={16} color={colors.destructive} />
-                  <Text style={{ color: colors.foreground, flex: 1 }}>{error}</Text>
+                  <Text style={{ color: colors.foreground, flex: 1 }}>{testError}</Text>
                 </View>
               ) : null}
             </View>
-
-            <Button
-              label="Edit settings on web"
-              variant="outline"
-              onPress={() =>
-                Linking.openURL(
-                  `${getBaseUrl().replace(/\/api\/?$/, "")}/admin/mail-settings`,
-                )
-              }
-            />
           </>
         ) : null}
       </ScrollView>
@@ -221,12 +460,29 @@ const styles = StyleSheet.create({
   card: { padding: 14, borderWidth: 1, borderRadius: 12, gap: 8 },
   cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 15 },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  rowLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium" },
-  rowValue: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", flexShrink: 1, textAlign: "right" },
   note: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium", lineHeight: 17 },
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   badgeText: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold" },
+  fieldLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  segment: { flexDirection: "row", padding: 4, borderWidth: 1 },
+  segmentItem: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 10 },
+  segmentText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+    textTransform: "uppercase",
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  switchLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", flex: 1 },
   resultBox: {
     flexDirection: "row",
     alignItems: "center",
