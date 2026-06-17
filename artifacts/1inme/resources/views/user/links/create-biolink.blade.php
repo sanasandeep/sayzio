@@ -77,10 +77,31 @@
             </div>
         </div>
 
+        @php($aiBuilderEnabled = $linkType === 'biolink' && \App\Services\AI\AiEngineSettings::isEnabled())
+
+        @if($aiBuilderEnabled)
+        <div class="glass rounded-2xl p-5 mb-6 border border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5">
+            <div class="flex items-start gap-3">
+                <div class="shrink-0 w-10 h-10 rounded-xl bg-violet-600/30 flex items-center justify-center">
+                    <i class="fas fa-wand-magic-sparkles text-violet-300"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-white">Build with AI <span class="ml-1.5 text-[10px] uppercase tracking-wide text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded">New</span></h3>
+                    <p class="text-xs text-white/50 mt-1">Skip the blank page — describe your page, paste your links, and add photos. AI assembles a complete Link in Bio for you to refine in the editor. Uses AI credits.</p>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Back</a>
+            @if($aiBuilderEnabled)
+            <button type="submit" name="start_mode" value="ai" class="bg-white/5 hover:bg-white/10 border border-violet-500/30 text-violet-200 px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/10">
+                <i class="fas fa-wand-magic-sparkles mr-1.5 text-xs"></i> Build with AI
+            </button>
+            @endif
             <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
-                Create Link in Bio <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
+                {{ $aiBuilderEnabled ? 'Start blank' : 'Create Link in Bio' }} <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
             </button>
         </div>
     </form>

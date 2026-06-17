@@ -402,6 +402,16 @@ class LinkController extends Controller
                 ->with('success', 'Reviews page created — configure it and start collecting reviews.');
         }
 
+        // "Build with AI" start mode — skip the picker and send the user to
+        // the AI page builder intake, where they describe the page and the
+        // assistant assembles it from real supported block types.
+        if ($link->type === 'biolink'
+            && $request->input('start_mode') === 'ai'
+            && \App\Services\AI\AiEngineSettings::isEnabled()) {
+            return redirect()->route('user.links.ai-builder', $link)
+                ->with('success', 'Link in Bio created — describe it and let AI build your page.');
+        }
+
         // For new biolinks, send the user to the template picker so they can
         // start from an admin-curated preset (or skip and start from scratch).
         // Always send new biolinks to the picker when any active templates

@@ -685,6 +685,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('reviews/providers/{providerConn}/refresh', [\App\Modules\User\Controllers\ReviewsController::class, 'refreshProvider'])->whereNumber('providerConn')->middleware('workspace.can:links.edit')->name('links.reviews.providers.refresh');
         Route::delete('reviews/providers/{providerConn}', [\App\Modules\User\Controllers\ReviewsController::class, 'disconnectProvider'])->whereNumber('providerConn')->middleware('workspace.can:links.edit')->name('links.reviews.providers.disconnect');
 
+        // AI Biolink Page Builder — describe a page, AI assembles it from
+        // real supported block types, then opens the standard editor.
+        Route::get('links/{link}/ai-builder', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'intake'])->middleware('workspace.can:links.view')->name('links.ai-builder');
+        Route::post('links/{link}/ai-builder/estimate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'estimate'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ai-builder.estimate');
+        Route::post('links/{link}/ai-builder/generate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'generate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-builder.generate');
+
         // Biolink blocks live under a link — same gating as the parent link.
         Route::get('links/{link}/blocks', [BiolinkBlockController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.blocks.editor');
         Route::get('links/{link}/settings', [BiolinkBlockController::class, 'settings'])->middleware('workspace.can:links.view')->name('links.blocks.settings');
