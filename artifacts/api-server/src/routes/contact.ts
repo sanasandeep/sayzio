@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { SubmitContactMessageBody } from "@workspace/api-zod";
 import { db, contactMessagesTable } from "@workspace/db";
 import { contactRateLimiter } from "../middlewares/rate-limit";
+import { sendContactNotificationSafely } from "../lib/mailer";
 
 const router: IRouter = Router();
 
@@ -38,6 +39,14 @@ router.post("/contact", contactRateLimiter, async (req, res) => {
 
     req.log.info({ id: row?.id, email }, "contact: stored message");
     res.status(201).json({ success: true });
+
+    // Best-effort team notification. Runs after the response so a slow or
+    // failing email never blocks or fails the request — the message is
+    // already safely stored above.
+    void sendContactNotificationSafely(
+      { name, email, subject, message },
+      req.log,
+    );
   } catch (err) {
     req.log.error({ err }, "contact: failed to store message");
     res.status(500).json({
