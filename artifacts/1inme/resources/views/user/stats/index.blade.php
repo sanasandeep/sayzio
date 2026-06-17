@@ -97,6 +97,11 @@
     const labels   = @json(array_keys($audienceSeries));
     const audience = @json(array_values($audienceSeries));
     const content  = @json(array_values($contentSeries));
+    // This page renders on always-light (bg-white) cards, so the chart is
+    // tuned for a light surface: dark slate axis labels and a faint grid that
+    // stay legible on white regardless of the app's light/dark theme.
+    const statsTickColor = 'rgba(15,23,42,0.7)';
+    const statsGridColor = 'rgba(0,0,0,0.07)';
     new Chart(document.getElementById('statsChart'), {
         type: 'line',
         data: {
@@ -106,7 +111,21 @@
                 { label: 'Posts published',data: content,  borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,.15)', tension: .3, fill: true },
             ]
         },
-        options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, precision: 0 } } }
+        options: {
+            plugins: {
+                legend: { position: 'bottom', labels: { color: statsTickColor } },
+                tooltip: {
+                    backgroundColor: 'rgba(255,255,255,0.98)',
+                    titleColor: statsTickColor, bodyColor: statsTickColor,
+                    borderColor: 'rgba(124,58,237,0.35)', borderWidth: 1,
+                    padding: 10, cornerRadius: 10,
+                },
+            },
+            scales: {
+                x: { grid: { color: statsGridColor }, ticks: { color: statsTickColor }, border: { display: false } },
+                y: { beginAtZero: true, grid: { color: statsGridColor }, ticks: { color: statsTickColor, precision: 0 }, border: { display: false } },
+            },
+        }
     });
 </script>
 @endsection

@@ -2840,6 +2840,32 @@ document.addEventListener('DOMContentLoaded', function () {
         $__sourceChartLabels = $sourceStats->pluck('source')->map(fn($s) => $__sourceLabelMap[$s] ?? ucfirst(str_replace('_', ' ', $s)))->values();
     @endphp
     @if(!$sourceStats->isEmpty())doughnut('sourceChart', @json($__sourceChartLabels), @json($sourceStats->pluck('count')));@endif
+
+    // Re-colour every Chart.js instance on this page when the app theme is
+    // toggled, so axis labels, gridlines, legends and tooltips stay legible
+    // without a reload (mirrors how the heatmap basemap already follows theme).
+    function reThemeCharts() {
+        if (!window.Chart || !Chart.instances) return;
+        const light = document.documentElement.classList.contains('light-mode');
+        const tick = light ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.7)';
+        const grid = light ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+        const tipBg = light ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)';
+        Chart.defaults.color = tick;
+        Chart.defaults.borderColor = grid;
+        Object.values(Chart.instances).forEach((ch) => {
+            const o = ch.options || {};
+            if (o.scales) Object.values(o.scales).forEach((sc) => {
+                sc.ticks = sc.ticks || {}; sc.ticks.color = tick;
+                sc.grid = sc.grid || {}; sc.grid.color = grid;
+            });
+            o.plugins = o.plugins || {};
+            if (o.plugins.legend) { o.plugins.legend.labels = o.plugins.legend.labels || {}; o.plugins.legend.labels.color = tick; }
+            if (o.plugins.tooltip) { o.plugins.tooltip.backgroundColor = tipBg; o.plugins.tooltip.titleColor = tick; o.plugins.tooltip.bodyColor = tick; }
+            ch.update('none');
+        });
+    }
+    new MutationObserver(reThemeCharts)
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 });
 </script>
 
