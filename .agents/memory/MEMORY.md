@@ -30,3 +30,4 @@
 - [Token-charged AI feature pattern](ai-feature-token-charging.md) — add feature key to FEATURES, call OpenAiService::chat (auto-charges); engine OFF by default in dev so verify wiring not live gen; biolink builder constrains to safe block subset + relative image URLs.
 - [Drizzle schema barrel cycle](drizzle-schema-barrel-cycle.md) — drizzleSchema lives in its own module, not the barrel; table-file→barrel cycle crashes drizzle-kit push (typecheck won't catch it).
 - [Two contact_messages systems](two-contact-message-systems.md) — Laravel public.contact_messages (its own admin inbox) vs Node drizzle.contact_messages (1inme-com /admin/inbox + api-server); same name, different schemas, unrelated.
+- [1inme.com gateway CTAs](marketing-gateway-cta.md) — static marketing site; all auth/pay CTAs via @/config (LOGIN/SIGNUP/PRICING); signup-intent→SIGNUP, plan-buttons→PRICING; copy mirrors Laravel SitePagesContent.

@@ -1,6 +1,6 @@
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
-import { SIGNUP_URL } from "@/config";
+import { PRICING_URL } from "@/config";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
@@ -122,7 +122,7 @@ export default function Pricing() {
                   variant={plan.variant} 
                   className="w-full rounded-full h-12"
                 >
-                  <a href={SIGNUP_URL}>{plan.cta}</a>
+                  <a href={PRICING_URL}>{plan.cta}</a>
                 </Button>
               </motion.div>
             ))}

@@ -9,57 +9,15 @@ import {
 } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
+import { faqCategories } from "@/content/faqs";
 
 export default function Faq() {
-  const faqs = [
-    {
-      question: "Can I use my own domain?",
-      answer:
-        "Yes. On any paid plan, you can connect your own custom domain (e.g., links.yourname.com) or a root domain.",
-    },
-    {
-      question: "What are coins for?",
-      answer:
-        "Coins are a one-off currency used for usage-based features like AI generation, sending SMS broadcasts, or temporary storage boosts.",
-    },
-    {
-      question: "Is there a free plan?",
-      answer:
-        "Yes, our Free plan is free forever and includes everything you need to get started: a biolink, short links, and basic analytics.",
-    },
-    {
-      question: "How do refunds work?",
-      answer:
-        "We offer a 7-day no-questions-asked refund policy for all new subscriptions.",
-    },
-    {
-      question: "Can I change the destination of a QR code after printing it?",
-      answer:
-        "Absolutely. Every QR code points to an editable link, so you can repoint the same printed code to a new destination at any time — no reprinting required.",
-    },
-    {
-      question: "What analytics do I get?",
-      answer:
-        "You'll see visitors arrive in real time with country, city, device, referrer and conversion breakdowns. The Performance Coach also surfaces concrete fixes like slow pages, dead blocks and missing CTAs.",
-    },
-    {
-      question: "Can I invite my team?",
-      answer:
-        "Yes. Create a workspace per brand or client and invite teammates with the right role — Owner, Admin, Editor or Viewer — while keeping billing, analytics and contacts cleanly separated. Pro includes up to 3 seats and Business includes 10.",
-    },
-    {
-      question: "Do I need design skills to build a biolink?",
-      answer:
-        "Not at all. Stack blocks for text, images, video, audio, embeds, products, donations and forms, reorder them by dragging, and swap themes in a click. You can publish a polished page in minutes.",
-    },
-  ];
-
   return (
     <PageLayout
       title="FAQ"
-      description="Answers to common questions about 1INME — domains, coins, the free plan, refunds, analytics, teams and more."
+      description="Answers to common questions about 1INME — getting started, biolinks, short links, QR codes, analytics, teams, billing, domains, security, integrations and more."
     >
-      <section className="py-20 lg:py-32">
+      <section className="py-20 lg:py-28">
         <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
@@ -76,31 +34,52 @@ export default function Faq() {
             </p>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="max-w-3xl mx-auto glass-card p-4 sm:p-8 rounded-3xl"
-          >
-            <Accordion type="single" collapsible className="w-full">
-              {faqs.map((faq, index) => (
-                <AccordionItem key={index} value={`item-${index}`}>
-                  <AccordionTrigger className="text-left text-base font-semibold hover:text-primary">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground leading-relaxed text-base">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </motion.div>
+          <nav className="flex flex-wrap justify-center gap-2 max-w-4xl mx-auto mb-14">
+            {faqCategories.map((cat) => (
+              <a
+                key={cat.category}
+                href={`#${cat.category.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+                className="text-xs font-medium px-3 py-1.5 rounded-full glass-card hover:text-primary transition-colors"
+              >
+                {cat.category}
+              </a>
+            ))}
+          </nav>
+
+          <div className="max-w-3xl mx-auto space-y-12">
+            {faqCategories.map((cat, catIndex) => (
+              <motion.div
+                key={cat.category}
+                id={cat.category.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.5 }}
+                className="scroll-mt-24"
+              >
+                <h2 className="text-xl font-bold tracking-tight mb-4 px-1">
+                  {cat.category}
+                </h2>
+                <div className="glass-card p-4 sm:p-6 rounded-3xl">
+                  <Accordion type="single" collapsible className="w-full">
+                    {cat.items.map((faq, index) => (
+                      <AccordionItem key={index} value={`${catIndex}-${index}`}>
+                        <AccordionTrigger className="text-left text-base font-semibold hover:text-primary">
+                          {faq.question}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-muted-foreground leading-relaxed text-base">
+                          {faq.answer}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              </motion.div>
+            ))}
+          </div>
 
           <div className="max-w-3xl mx-auto text-center mt-16">
-            <p className="text-muted-foreground mb-6">
-              Still have questions?
-            </p>
+            <p className="text-muted-foreground mb-6">Still have questions?</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="rounded-full h-14 px-8 text-base">
                 <a href={SIGNUP_URL}>Sign up free</a>
