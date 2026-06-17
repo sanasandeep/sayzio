@@ -240,6 +240,32 @@
 .sa-typing{align-self:flex-start;font-size:11px;color:#94a3b8;padding:0 4px}
 .sa-badge{position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a}
 /* (.sa-launcher-wrap rules consolidated above with the new launcher styles.) */
+/* --- Light-mode overrides: follow the site theme (html.light-mode), keep purple accent + brand launcher intact --- */
+html.light-mode #sa-panel{background:#ffffff;color:#1e293b;border:1px solid rgba(15,23,42,.1);box-shadow:0 25px 60px rgba(15,23,42,.18)}
+html.light-mode .sa-header{border-bottom:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-header img,html.light-mode .sa-header .sa-avatar{background:rgba(15,23,42,.06);color:#0f172a}
+html.light-mode .sa-header h4{color:#0f172a}
+html.light-mode .sa-close{color:#64748b}
+html.light-mode .sa-close:hover{color:#0f172a}
+html.light-mode .sa-msg.assistant{background:rgba(15,23,42,.05);color:#1e293b}
+html.light-mode .sa-msg.error{background:rgba(239,68,68,.1);color:#b91c1c}
+html.light-mode .sa-cutoff{color:#b45309;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4)}
+html.light-mode .sa-cutoff button{background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.5);color:#92400e}
+html.light-mode .sa-cutoff button:hover{background:rgba(251,191,36,.35)}
+html.light-mode .sa-btn{background:rgba(15,23,42,.05);border:1px solid rgba(15,23,42,.12);color:#1e293b}
+html.light-mode .sa-btn:hover{background:var(--sa-accent,#7c3aed);border-color:transparent;color:#fff}
+html.light-mode .sa-list-item{background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-list-item:hover{background:rgba(15,23,42,.06)}
+html.light-mode .sa-list-item .sa-li-title{color:#0f172a}
+html.light-mode .sa-form{background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-form input,html.light-mode .sa-form textarea{background:#ffffff;border:1px solid rgba(15,23,42,.15);color:#1e293b}
+html.light-mode .sa-low-balance{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#92400e}
+html.light-mode .sa-low-balance .sa-lb-cta{background:rgba(251,191,36,.24);border:1px solid rgba(251,191,36,.5);color:#92400e}
+html.light-mode .sa-low-balance .sa-lb-cta:hover{background:rgba(251,191,36,.4);color:#0f172a}
+html.light-mode .sa-input-row{border-top:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-input-row textarea{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#1e293b}
+html.light-mode .sa-typing{color:#64748b}
+html.light-mode .sa-badge{border:2px solid #ffffff}
 </style>
 <script>
 // Server-resolved localized chrome strings, exposed up front so the
