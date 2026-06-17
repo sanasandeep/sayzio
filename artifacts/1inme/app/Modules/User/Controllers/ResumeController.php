@@ -60,7 +60,44 @@ class ResumeController extends Controller
                 // the presenter payload above.
                 'public_url' => url('/' . $user->publicHandle() . '/resume'),
             ],
+            // Short `resume` links that surface this résumé, so the builder
+            // can show their public URL + a jump to click analytics. A link
+            // with no resume_id falls back to the owner's default version,
+            // so include those when the resolved résumé is the default.
+            'resumeLinks' => $this->resumeLinksFor($resume),
         ]);
+    }
+
+    /**
+     * Short `resume`-type links that surface the given résumé. Returns a
+     * plain array with the public short URL and a deep-link to each link's
+     * click-analytics page so the builder can cross-link back to the link.
+     *
+     * A `resume` link with no `resume_id` falls back to the owner's default
+     * version, so those are included only when the résumé being edited is
+     * the default. Scoped to the résumé owner so no foreign links leak.
+     *
+     * @return array<int, array{title: string, public_url: string, analytics_url: string}>
+     */
+    private function resumeLinksFor(Resume $resume): array
+    {
+        return \App\Modules\User\Models\Link::query()
+            ->where('user_id', $resume->user_id)
+            ->where('type', \App\Modules\User\Models\Link::TYPE_RESUME)
+            ->where(function ($q) use ($resume) {
+                $q->where('resume_id', $resume->id);
+                if ($resume->is_default) {
+                    $q->orWhereNull('resume_id');
+                }
+            })
+            ->latest()
+            ->get()
+            ->map(fn (\App\Modules\User\Models\Link $link) => [
+                'title'         => $link->title ?: $link->alias,
+                'public_url'    => $link->getShortUrl(),
+                'analytics_url' => route('user.links.show', $link),
+            ])
+            ->all();
     }
 
     /**

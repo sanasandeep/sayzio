@@ -483,6 +483,9 @@
     if ($link->type === 'biolink') {
         $heroActions[] = ['label' => 'Edit Blocks', 'url' => route('user.links.blocks.editor', $link), 'icon' => 'fa-th-large', 'class' => 'btn-primary'];
     }
+    if ($link->type === 'resume') {
+        $heroActions[] = ['label' => 'Build / edit resume', 'url' => route('user.resume.editor'), 'icon' => 'fa-file-lines', 'class' => 'btn-primary'];
+    }
     $heroActions[] = ['label' => 'Edit', 'url' => route('user.links.edit', $link), 'icon' => 'fa-edit', 'class' => 'btn-ghost'];
     $heroActions[] = ['label' => $link->hasSplashEnabled() ? 'Intro · On' : 'Intro', 'url' => route('user.links.splash', $link), 'icon' => 'fa-rocket', 'class' => 'btn-ghost'];
 @endphp
