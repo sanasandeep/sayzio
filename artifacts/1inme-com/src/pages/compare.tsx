@@ -85,10 +85,18 @@ export default function Compare() {
                     <th
                       key={label}
                       className={`p-4 text-center font-semibold whitespace-nowrap ${
-                        i === 0 ? "text-primary" : "text-muted-foreground"
+                        i === 0
+                          ? "text-primary-foreground"
+                          : "text-muted-foreground"
                       }`}
                     >
-                      {label}
+                      {i === 0 ? (
+                        <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-primary-foreground shadow-lg shadow-primary/40">
+                          {label}
+                        </span>
+                      ) : (
+                        label
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -109,14 +117,28 @@ export default function Compare() {
                         <td className="p-4 sticky left-0 bg-card/40 backdrop-blur-sm font-medium">
                           {feature}
                         </td>
-                        {columnKeys.map((key) => {
+                        {columnKeys.map((key, ci) => {
                           const supported = featureSupport[feature]?.[key];
+                          const isOurs = ci === 0;
                           return (
-                            <td key={key} className="p-4 text-center">
+                            <td
+                              key={key}
+                              className={`p-4 text-center ${isOurs ? "bg-primary/[0.06]" : ""}`}
+                            >
                               {supported ? (
-                                <Check className="w-5 h-5 text-primary mx-auto" />
+                                <span
+                                  className={`mx-auto inline-flex h-7 w-7 items-center justify-center rounded-full ${
+                                    isOurs
+                                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
+                                      : "bg-emerald-500/15 text-emerald-500 dark:text-emerald-400"
+                                  }`}
+                                >
+                                  <Check className="w-4 h-4" strokeWidth={3} />
+                                </span>
                               ) : (
-                                <X className="w-4 h-4 text-muted-foreground/40 mx-auto" />
+                                <span className="mx-auto inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground/50">
+                                  <X className="w-3.5 h-3.5" />
+                                </span>
                               )}
                             </td>
                           );

@@ -27,6 +27,8 @@ export default function Home() {
     >
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        <div className="mesh-bg" aria-hidden />
+        <div className="grid-bg" aria-hidden />
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -37,9 +39,7 @@ export default function Home() {
             >
               <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-foreground mb-6 leading-tight">
                 Your biolink,{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent-foreground">
-                  reimagined.
-                </span>
+                <span className="grad-text">reimagined.</span>
               </h1>
               
               <div className="text-2xl lg:text-3xl font-medium text-muted-foreground mb-6 h-10">

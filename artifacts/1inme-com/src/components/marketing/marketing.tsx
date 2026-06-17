@@ -60,8 +60,10 @@ export function MarketingHero({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="relative pt-20 lg:pt-28 pb-16">
-      <div className="container mx-auto px-6">
+    <section className="relative pt-20 lg:pt-28 pb-16 overflow-hidden">
+      <div className="mesh-bg" aria-hidden />
+      <div className="grid-bg" aria-hidden />
+      <div className="container mx-auto px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -71,11 +73,7 @@ export function MarketingHero({
           {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
           <h1 className="text-4xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.05]">
             {title}{" "}
-            {highlight && (
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent-foreground">
-                {highlight}
-              </span>
-            )}
+            {highlight && <span className="grad-text">{highlight}</span>}
           </h1>
           {subtitle && (
             <p className="text-lg lg:text-xl text-muted-foreground leading-relaxed">{subtitle}</p>

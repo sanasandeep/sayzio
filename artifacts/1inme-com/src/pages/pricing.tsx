@@ -70,11 +70,16 @@ export default function Pricing() {
       title="Pricing"
       description="Plans for steady use, coins for one-off boosts — all in one place."
     >
-      <section className="py-20 lg:py-32">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <h1 className="text-4xl lg:text-6xl font-bold tracking-tight mb-6">
-              Pick a plan. Top up coins.
+      <section className="relative py-20 lg:py-28 overflow-hidden">
+        <div className="mesh-bg" aria-hidden />
+        <div className="grid-bg" aria-hidden />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4">
+              Pricing
+            </span>
+            <h1 className="text-4xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.05]">
+              Pick a plan. <span className="grad-text">Top up coins.</span>
             </h1>
             <p className="text-xl text-muted-foreground">
               Plans for steady use, coins for one-off boosts — all in one place.
@@ -89,12 +94,14 @@ export default function Pricing() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className={`relative glass-card p-8 rounded-3xl flex flex-col ${
-                  plan.popular ? "border-primary shadow-primary/20" : ""
+                  plan.popular
+                    ? "ring-2 ring-primary/60 shadow-[0_0_60px_-15px_hsl(var(--primary)/0.55)]"
+                    : ""
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                    Popular
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-[hsl(267_84%_66%)] text-primary-foreground text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-primary/40">
+                    Most popular
                   </div>
                 )}
                 
