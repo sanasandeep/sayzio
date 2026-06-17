@@ -286,6 +286,20 @@ class CreatorMonetizationController extends Controller
             'perks'    => $perks,
         ]);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            $tierCount = SubscriptionTier::where('user_id', $user->id)
+                ->where('is_active', true)
+                ->where('is_free', false)
+                ->count();
+
+            return response()->json([
+                'data' => [
+                    'message'    => 'Tier added.',
+                    'tier_count' => $tierCount,
+                ],
+            ]);
+        }
+
         return redirect()->route('user.monetization.tiers')->with('success', 'Tier added.');
     }
 

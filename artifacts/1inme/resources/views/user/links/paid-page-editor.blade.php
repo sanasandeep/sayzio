@@ -78,45 +78,139 @@
                 </div>
 
                 {{-- Content management --}}
-                <div class="glass rounded-2xl p-6">
+                <div class="glass rounded-2xl p-6"
+                     x-data="paidPageContent({
+                        postCount: {{ (int) $postCount }},
+                        tierCount: {{ (int) $tierCount }},
+                        postStoreUrl: '{{ route('user.posts.store') }}',
+                        tierStoreUrl: '{{ route('user.monetization.tiers.store') }}',
+                     })">
                     <h2 class="text-sm font-semibold text-white mb-1">Your posts &amp; tiers</h2>
                     <p class="text-xs text-white/40 mb-4">Everything you publish shows here automatically — there's no "add to page" step. Posts &amp; tiers are shared across all your pages.</p>
 
-                    @if($postCount === 0 || $tierCount === 0)
-                        <div class="mb-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-xs text-white/70 leading-relaxed">
-                            <i class="fas fa-wand-magic-sparkles mr-1 text-violet-300"></i>
-                            This page fills itself in. The moment you publish a post or add a paid tier, it appears here for fans —
-                            @if($postCount === 0 && $tierCount === 0)
-                                you don't have any posts or tiers yet.
-                            @elseif($postCount === 0)
-                                you don't have any posts yet.
-                            @else
-                                you don't have any paid tiers yet.
-                            @endif
-                            Create them below and reopen the page to see them in place.
-                        </div>
-                    @endif
+                    {{-- Empty-state banner (refreshes in place via Alpine) --}}
+                    <div x-show="postCount === 0 || tierCount === 0" x-cloak
+                         class="mb-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-xs text-white/70 leading-relaxed">
+                        <i class="fas fa-wand-magic-sparkles mr-1 text-violet-300"></i>
+                        This page fills itself in. The moment you publish a post or add a paid tier, it appears here for fans —
+                        <span x-show="postCount === 0 && tierCount === 0">you don't have any posts or tiers yet.</span>
+                        <span x-show="postCount === 0 && tierCount > 0">you don't have any posts yet.</span>
+                        <span x-show="postCount > 0 && tierCount === 0">you don't have any paid tiers yet.</span>
+                        Create them right here — no need to leave this page.
+                    </div>
+
+                    {{-- Success toast --}}
+                    <div x-show="toast" x-cloak x-transition.opacity
+                         class="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-4 py-3 text-xs text-emerald-300">
+                        <i class="fas fa-circle-check mr-1"></i> <span x-text="toast"></span>
+                    </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="rounded-xl border border-white/10 px-4 py-3">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-sm text-white"><i class="fas fa-feather mr-2 text-violet-300"></i> Posts</span>
-                                <span class="text-xs text-white/40">{{ number_format($postCount) }}</span>
+                                <span class="text-xs text-white/40" x-text="postCount.toLocaleString()">{{ number_format($postCount) }}</span>
                             </div>
-                            <a href="{{ route('user.posts.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
+                            <button type="button" @click="openPost()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
                                 <i class="fas fa-plus text-[10px]"></i> Create a post
-                            </a>
+                            </button>
                         </div>
                         <div class="rounded-xl border border-white/10 px-4 py-3">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-sm text-white"><i class="fas fa-gem mr-2 text-violet-300"></i> Tiers</span>
-                                <span class="text-xs text-white/40">{{ number_format($tierCount) }}</span>
+                                <span class="text-xs text-white/40" x-text="tierCount.toLocaleString()">{{ number_format($tierCount) }}</span>
                             </div>
-                            <a href="{{ route('user.monetization.tiers') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
+                            <button type="button" @click="openTier()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
                                 <i class="fas fa-plus text-[10px]"></i> Create a tier
-                            </a>
+                            </button>
                         </div>
                     </div>
+
+                    {{-- ── Inline post composer (drawer) ───────────────── --}}
+                    <template x-teleport="body">
+                    <div x-show="postOpen" x-cloak class="fixed inset-0 z-[60] flex" @keydown.escape.window="postOpen = false">
+                        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="postOpen = false"></div>
+                        <div class="relative ml-auto h-full w-full max-w-md bg-[#15121f] border-l border-white/10 shadow-2xl overflow-y-auto"
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0">
+                            <form @submit.prevent="submitPost()" class="p-6 space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-bold text-white"><i class="fas fa-feather mr-2 text-violet-300"></i> Write a post</h3>
+                                    <button type="button" @click="postOpen = false" class="text-white/40 hover:text-white"><i class="fas fa-xmark"></i></button>
+                                </div>
+                                <p class="text-xs text-white/40">It appears on this page automatically once published.</p>
+
+                                <div x-show="post.error" x-cloak class="rounded-lg bg-rose-500/15 border border-rose-500/30 px-3 py-2 text-xs text-rose-300" x-text="post.error"></div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-white/70 mb-1">Title <span class="text-white/30">(optional)</span></label>
+                                    <input type="text" x-model="post.title" maxlength="200"
+                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                           placeholder="What's this post about?">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-white/70 mb-1">Body</label>
+                                    <textarea x-model="post.body" rows="6" maxlength="5000" required
+                                              class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                              placeholder="Share an update with your fans…"></textarea>
+                                </div>
+                                <div class="flex justify-end gap-2 pt-2">
+                                    <button type="button" @click="postOpen = false" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white">Cancel</button>
+                                    <button type="submit" :disabled="post.submitting"
+                                            class="px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50">
+                                        <span x-show="!post.submitting">Publish post</span>
+                                        <span x-show="post.submitting" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i> Publishing…</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    </template>
+
+                    {{-- ── Inline tier composer (drawer) ───────────────── --}}
+                    <template x-teleport="body">
+                    <div x-show="tierOpen" x-cloak class="fixed inset-0 z-[60] flex" @keydown.escape.window="tierOpen = false">
+                        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="tierOpen = false"></div>
+                        <div class="relative ml-auto h-full w-full max-w-md bg-[#15121f] border-l border-white/10 shadow-2xl overflow-y-auto"
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0">
+                            <form @submit.prevent="submitTier()" class="p-6 space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-base font-bold text-white"><i class="fas fa-gem mr-2 text-violet-300"></i> Add a tier</h3>
+                                    <button type="button" @click="tierOpen = false" class="text-white/40 hover:text-white"><i class="fas fa-xmark"></i></button>
+                                </div>
+                                <p class="text-xs text-white/40">A paid membership level fans can subscribe to.</p>
+
+                                <div x-show="tier.error" x-cloak class="rounded-lg bg-rose-500/15 border border-rose-500/30 px-3 py-2 text-xs text-rose-300" x-text="tier.error"></div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-white/70 mb-1">Tier name</label>
+                                    <input type="text" x-model="tier.name" maxlength="80" required
+                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                           placeholder="e.g. Supporter">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-white/70 mb-1">Monthly price</label>
+                                    <input type="number" x-model="tier.price_monthly" min="1" max="1000" step="0.01" required
+                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                           placeholder="5.00">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-white/70 mb-1">Perks <span class="text-white/30">(one per line, optional)</span></label>
+                                    <textarea x-model="tier.perks" rows="4" maxlength="2000"
+                                              class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                              placeholder="Exclusive posts&#10;Early access&#10;Discord role"></textarea>
+                                </div>
+                                <div class="flex justify-end gap-2 pt-2">
+                                    <button type="button" @click="tierOpen = false" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white">Cancel</button>
+                                    <button type="submit" :disabled="tier.submitting"
+                                            class="px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50">
+                                        <span x-show="!tier.submitting">Add tier</span>
+                                        <span x-show="tier.submitting" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i> Adding…</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    </template>
                 </div>
             </div>
 
@@ -170,4 +264,122 @@
         </div>
     </form>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('paidPageContent', (config) => ({
+        postCount: config.postCount,
+        tierCount: config.tierCount,
+        postStoreUrl: config.postStoreUrl,
+        tierStoreUrl: config.tierStoreUrl,
+        postOpen: false,
+        tierOpen: false,
+        toast: '',
+        post: { title: '', body: '', submitting: false, error: '' },
+        tier: { name: '', price_monthly: '', perks: '', submitting: false, error: '' },
+
+        openPost() { this.post.error = ''; this.postOpen = true; },
+        openTier() { this.tier.error = ''; this.tierOpen = true; },
+
+        flash(msg) {
+            this.toast = msg;
+            setTimeout(() => { this.toast = ''; }, 5000);
+        },
+
+        csrf() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        },
+
+        firstError(payload, fallback) {
+            if (payload && payload.error) {
+                if (payload.error.details) {
+                    const keys = Object.keys(payload.error.details);
+                    if (keys.length) {
+                        const v = payload.error.details[keys[0]];
+                        return Array.isArray(v) ? v[0] : v;
+                    }
+                }
+                if (payload.error.message) return payload.error.message;
+            }
+            if (payload && payload.errors) {
+                const keys = Object.keys(payload.errors);
+                if (keys.length) {
+                    const v = payload.errors[keys[0]];
+                    return Array.isArray(v) ? v[0] : v;
+                }
+            }
+            if (payload && payload.message) return payload.message;
+            return fallback;
+        },
+
+        async submitPost() {
+            if (this.post.submitting) return;
+            this.post.error = '';
+            this.post.submitting = true;
+            try {
+                const form = new FormData();
+                form.append('title', this.post.title || '');
+                form.append('body', this.post.body || '');
+                const res = await fetch(this.postStoreUrl, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': this.csrf(), 'Accept': 'application/json' },
+                    body: form,
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    this.post.error = this.firstError(json, 'Could not publish your post. Please try again.');
+                    return;
+                }
+                if (json.data && typeof json.data.post_count === 'number') {
+                    this.postCount = json.data.post_count;
+                }
+                this.post.title = '';
+                this.post.body = '';
+                this.postOpen = false;
+                this.flash((json.data && json.data.message) || 'Post published.');
+            } catch (e) {
+                this.post.error = 'Network error. Please try again.';
+            } finally {
+                this.post.submitting = false;
+            }
+        },
+
+        async submitTier() {
+            if (this.tier.submitting) return;
+            this.tier.error = '';
+            this.tier.submitting = true;
+            try {
+                const form = new FormData();
+                form.append('name', this.tier.name || '');
+                form.append('price_monthly', this.tier.price_monthly || '');
+                form.append('perks', this.tier.perks || '');
+                const res = await fetch(this.tierStoreUrl, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': this.csrf(), 'Accept': 'application/json' },
+                    body: form,
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    this.tier.error = this.firstError(json, 'Could not add your tier. Please try again.');
+                    return;
+                }
+                if (json.data && typeof json.data.tier_count === 'number') {
+                    this.tierCount = json.data.tier_count;
+                }
+                this.tier.name = '';
+                this.tier.price_monthly = '';
+                this.tier.perks = '';
+                this.tierOpen = false;
+                this.flash((json.data && json.data.message) || 'Tier added.');
+            } catch (e) {
+                this.tier.error = 'Network error. Please try again.';
+            } finally {
+                this.tier.submitting = false;
+            }
+        },
+    }));
+});
+</script>
+@endpush
 @endsection

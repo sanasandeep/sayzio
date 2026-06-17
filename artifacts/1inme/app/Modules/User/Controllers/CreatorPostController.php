@@ -169,8 +169,17 @@ class CreatorPostController extends Controller
             ]);
             $this->notifyApproversQueueEntered($workspace, $post, $actor);
 
-            return redirect()->route('user.posts.index')->with('success',
-                'Sent to your reviewers. You\'ll be notified once it\'s approved.');
+            $approvalMsg = 'Sent to your reviewers. You\'ll be notified once it\'s approved.';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'data' => [
+                        'message'    => $approvalMsg,
+                        'post_count' => $this->ownerPostCount($ownerId),
+                    ],
+                ]);
+            }
+
+            return redirect()->route('user.posts.index')->with('success', $approvalMsg);
         }
 
         $me = app()->bound('workspace_owner') ? app('workspace_owner') : auth()->user();
@@ -210,7 +219,29 @@ class CreatorPostController extends Controller
             ['scheduled' => $isFuture],
         );
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'data' => [
+                    'message'    => $msg,
+                    'post_count' => $this->ownerPostCount($ownerId),
+                ],
+            ]);
+        }
+
         return redirect()->route('user.posts.index')->with('success', $msg);
+    }
+
+    /**
+     * Count all posts owned by a creator (workspace global scope removed so
+     * the tally matches the Bizs Profile editor's own count). Used by the
+     * inline composer's AJAX response to refresh the count in place.
+     */
+    private function ownerPostCount(int $ownerId): int
+    {
+        return CreatorPost::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $ownerId)
+            ->count();
     }
 
     /**
