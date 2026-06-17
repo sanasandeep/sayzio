@@ -65,17 +65,17 @@ export default function Contact() {
     {
       icon: Zap,
       title: "Fast replies",
-      description: "We answer within one business day.",
+      description: "Most messages get a real human reply within a few hours.",
     },
     {
       icon: Handshake,
       title: "Partnerships",
-      description: "Let's build something together.",
+      description: "Press, integrations, agencies — pitch us, we read every one.",
     },
     {
       icon: Lightbulb,
       title: "Feature ideas",
-      description: "Tell us what would make 1INME better.",
+      description: "Tell us what to build next — your name is on the changelog.",
     },
   ];
 
@@ -96,6 +96,12 @@ export default function Contact() {
                 hearing from you.
               </span>
             </h1>
+            <p className="text-xl text-muted-foreground leading-relaxed mb-6">
+              Whether you have a question, hit a snag, want to suggest a feature
+              or are exploring a partnership, drop us a note using the form below.
+              A real person on our team will read it and reply, usually within one
+              business day.
+            </p>
             <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-primary" /> Replies within 1 business day

@@ -29,10 +29,49 @@ export default function About() {
     },
   ];
 
+  const milestones = [
+    {
+      date: "Apr 2023",
+      title: "Idea on a whiteboard",
+      description:
+        "An offhand conversation about how messy social bios are turns into the first sketch of 1INME.",
+    },
+    {
+      date: "Sep 2023",
+      title: "First public beta",
+      description:
+        "We open the doors to a handful of friends and creators. Biolinks and short links only — but it works.",
+    },
+    {
+      date: "Mar 2024",
+      title: "Crossed 10,000 users",
+      description:
+        "Word spreads. Creators across India and South-East Asia start moving their link-in-bio to 1INME.",
+    },
+    {
+      date: "Nov 2024",
+      title: "Analytics & QR codes",
+      description:
+        "Live analytics, the Performance Coach and dynamic QR codes ship — turning 1INME into a real growth tool.",
+    },
+    {
+      date: "Jun 2025",
+      title: "Workspaces for teams",
+      description:
+        "Agencies and small teams get proper workspaces, roles and per-workspace billing.",
+    },
+    {
+      date: "Feb 2026",
+      title: "Hello, world",
+      description:
+        "1INME crosses 100k creators across more than 60 countries. We're just getting started.",
+    },
+  ];
+
   return (
     <PageLayout
-      title="About"
-      description="Built for the people doing the work. We started 1INME because juggling ten different tools to run your audience felt absurd."
+      title="About 1INME"
+      description="We help creators, freelancers, agencies and small businesses turn one link into a complete online presence."
     >
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-6">
@@ -51,6 +90,16 @@ export default function About() {
               message and tell your story. We started 1INME because juggling ten
               different tools to do that felt absurd, and the existing biolink
               tools stopped at a list of buttons.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-4">
+              What we believe in
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Four ideas that show up in every line of code, support reply, and
+              roadmap call.
             </p>
           </div>
 
@@ -75,12 +124,11 @@ export default function About() {
             ))}
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto mb-24 text-center">
+          <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto mb-24 text-center">
             {[
-              { stat: "120,000+", label: "creators served" },
-              { stat: "40+", label: "block types" },
-              { stat: "9", label: "teammates" },
-              { stat: "3 years", label: "young" },
+              { stat: "120,000+", label: "Creators served" },
+              { stat: "3", label: "Years young" },
+              { stat: "9", label: "Teammates" },
             ].map((item) => (
               <div key={item.label}>
                 <div className="text-3xl lg:text-4xl font-bold text-primary mb-1">
@@ -91,18 +139,101 @@ export default function About() {
             ))}
           </div>
 
+          <div className="max-w-3xl mx-auto mb-24 space-y-12">
+            <div>
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-4">
+                Our story
+              </h2>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                1INME started in 2023 in a tiny workspace in Hyderabad. Our
+                founder kept watching small businesses and creators juggle five
+                different tools to do one simple thing: share their work and
+                capture leads. We thought there was a better way.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                We shipped the first version of 1INME — just biolinks and short
+                links — to a handful of friends. They loved it, broke it, told us
+                what was missing, and we kept iterating. Today, thousands of
+                creators across the world use 1INME to run their online presence
+                from one URL.
+              </p>
+            </div>
+            <div>
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-4">
+                What we believe
+              </h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Software should respect your time and your audience. We don't sell
+                your data, we don't bolt on features that don't earn their keep,
+                and we ship every week. If something's broken or unclear, our team
+                is one message away.
+              </p>
+            </div>
+          </div>
+
+          <div className="max-w-3xl mx-auto glass-card p-10 rounded-3xl mb-24">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
+              Meet the founder
+            </p>
+            <h2 className="text-2xl font-bold mb-1">Sandeep Sana</h2>
+            <p className="text-muted-foreground mb-6">Founder &amp; CEO</p>
+            <p className="text-muted-foreground leading-relaxed">
+              Guided by this belief, Sandeep Sana, Founder &amp; CEO of 1INME, has
+              dedicated more than 16 years to building digital products that
+              empower businesses and creators. His journey from developer to
+              entrepreneur led to the creation of 1INME, an all-in-one platform
+              that helps users build their digital identity, engage audiences, and
+              unlock new growth opportunities. Through innovation and a relentless
+              focus on user needs, he continues to shape solutions that make online
+              success more accessible to everyone.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto mb-24">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-4">
+                Milestones
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                A short history of how we got here.
+              </p>
+            </div>
+            <div className="space-y-6">
+              {milestones.map((m, index) => (
+                <motion.div
+                  key={m.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-80px" }}
+                  transition={{ duration: 0.4, delay: (index % 3) * 0.08 }}
+                  className="glass-card p-6 rounded-3xl flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-6"
+                >
+                  <div className="text-sm font-semibold text-primary shrink-0 sm:w-24">
+                    {m.date}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">{m.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {m.description}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
           <div className="max-w-3xl mx-auto glass-card p-10 rounded-3xl text-center">
             <h2 className="text-2xl lg:text-3xl font-bold mb-4">
-              Ready to bring it all into one link?
+              Want to build with us?
             </h2>
             <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-              Build, grow, and monetize your audience without juggling ten
-              different tools.
+              Whether you are a creator with feedback or a developer who wants to
+              join, we love hearing from you.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="rounded-full h-14 px-8 text-base">
                 <a href={SIGNUP_URL}>
-                  Sign up free <ArrowRight className="ml-2 w-5 h-5" />
+                  Try 1INME free <ArrowRight className="ml-2 w-5 h-5" />
                 </a>
               </Button>
               <Button
@@ -111,7 +242,7 @@ export default function About() {
                 size="lg"
                 className="rounded-full h-14 px-8 text-base bg-transparent border-primary/20 hover:bg-primary/5"
               >
-                <Link href="/features">Explore features</Link>
+                <Link href="/contact">Say hello</Link>
               </Button>
             </div>
           </div>

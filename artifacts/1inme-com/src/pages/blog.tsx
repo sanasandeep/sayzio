@@ -14,17 +14,17 @@ export default function Blog() {
         <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
-              Blog
+              From the blog
             </p>
             <h1 className="text-4xl lg:text-6xl font-bold tracking-tight mb-6">
-              Notes from{" "}
+              Stories and{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent-foreground">
-                the workshop.
+                insights.
               </span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Product thinking, tips, and the occasional opinion on building one
-              link that does everything.
+              Tips, product news and creator deep-dives — fresh from the 1INME
+              team.
             </p>
           </div>
 
