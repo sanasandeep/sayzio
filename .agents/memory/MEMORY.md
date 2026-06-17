@@ -32,3 +32,4 @@
 - [Two contact_messages systems](two-contact-message-systems.md) — Laravel public.contact_messages (its own admin inbox) vs Node drizzle.contact_messages (1inme-com /admin/inbox + api-server); same name, different schemas, unrelated.
 - [1inme.com gateway CTAs](marketing-gateway-cta.md) — static marketing site; all auth/pay CTAs via @/config (LOGIN/SIGNUP/PRICING); signup-intent→SIGNUP, plan-buttons→PRICING; copy mirrors Laravel SitePagesContent.
 - [Marketing blog ↔ Laravel blog sync](blog-feed-sync.md) — marketing /blog reads DB-driven Laravel blog at runtime via CORS-open /blogs/feed.json + /blogs/feed/{slug}.json (camelCase); no static array.
+- [Marketing light-mode legibility](marketing-light-mode-legibility.md) — fix Tailwind gray/slate text once in marketing-anim.css html.light-mode block (bump ?v=N); custom scoped-style classes need per-page html.light-mode counterparts.

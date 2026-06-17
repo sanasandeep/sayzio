@@ -93,6 +93,10 @@
     .rbp-stat .num { font-size: 2.5rem; font-weight: 800; color:#7c3aed; }
     .rbp-stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: #9ca3af; margin-top: 4px; }
 
+    /* Light-mode legibility: stat label hardcodes a light gray that drops
+       below contrast on the white light-mode background. */
+    html.light-mode .rbp-stat .lbl { color: #64748b; }
+
     @media (max-width: 640px) {
         .rbp-cmp { grid-template-columns: 1fr; }
     }

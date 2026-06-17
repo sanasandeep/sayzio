@@ -34,7 +34,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=5">
     <script>
         // Theme preference: apply ASAP and expose toggle helper.
         // Kept in its own <script> tag so a Tailwind CDN error can't kill it.

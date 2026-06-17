@@ -208,14 +208,24 @@ html.light-mode .divide-white\/10 > * + * {
 html.light-mode .text-white,
 html.light-mode .text-gray-100,
 html.light-mode .text-gray-200,
-html.light-mode .text-gray-300 {
+html.light-mode .text-gray-300,
+html.light-mode .text-slate-100,
+html.light-mode .text-slate-200,
+html.light-mode .text-slate-300 {
     color: #1f2937 !important;
 }
 html.light-mode .text-gray-400 { color: #4b5563 !important; }
 html.light-mode .text-gray-500 { color: #6b7280 !important; }
 html.light-mode .text-gray-600 { color: #4b5563 !important; }
+/* Slate utilities mirror the gray scale (the lighter steps are the
+   low-contrast offenders on the white light-mode background; slate-600+
+   are already dark enough and live mostly inside always-white cards). */
+html.light-mode .text-slate-400 { color: #4b5563 !important; }
+html.light-mode .text-slate-500 { color: #6b7280 !important; }
 html.light-mode .placeholder-gray-400::placeholder,
-html.light-mode .placeholder-gray-500::placeholder { color: #9ca3af !important; }
+html.light-mode .placeholder-gray-500::placeholder,
+html.light-mode .placeholder-slate-400::placeholder,
+html.light-mode .placeholder-slate-500::placeholder { color: #9ca3af !important; }
 
 /* Translucent white text variants (text-white/40, /60, /80) */
 html.light-mode [class*="text-white\\/"] { color: rgba(15,23,42,0.55) !important; }

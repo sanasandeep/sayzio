@@ -27,6 +27,15 @@
     .faq-chip:hover { color: #fff; background: rgba(255,255,255,.08); }
     .faq-chip.is-active { background: #7c3aed; color: #fff; border-color: transparent; box-shadow: 0 8px 24px -10px rgba(124,58,237,.6); }
     mark.faq-hl { background: rgba(124,58,237,.28); color: #fff; padding: 0 2px; border-radius: 3px; }
+
+    /* Light-mode legibility: these custom classes hardcode light text tuned
+       for the dark default, so they need explicit dark counterparts on the
+       white light-mode background. */
+    html.light-mode .faq-cat-link { color: rgba(51,65,85,.95); }
+    html.light-mode .faq-cat-link:hover { color: #0f172a; }
+    html.light-mode .faq-chip { color: #475569; }
+    html.light-mode .faq-chip:hover { color: #0f172a; }
+    html.light-mode .faq-chip.is-active { color: #fff; }
 </style>
 @endpush
 
