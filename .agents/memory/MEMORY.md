@@ -36,3 +36,4 @@
 - [Dark-mode Tailwind offenders](dark-mode-tailwind-offenders.md) — light-mode-overrides only remaps for html.light-mode, so hardcoded bg-white/text-slate-* render white-on-dark in dark mode; fix per-element with themed vars, never a blanket override (breaks toggle knobs/QR).
 - [Paid Page link type](paid-page-link-type.md) — paid_page is a standalone links.type (like resume/reviews), reuses creator feed/gating; per-link template in settings['paid_page'], page gate via links.visibility.
 - [Paid Page mobile render](paid-page-mobile-render.md) — paid_page isn't biolink-family so resolve API won't return it; alias-keyed /paid-page endpoints + PaidPageTemplates::mobileTokens; feed react/comment reuse handle-keyed creator endpoints.
+- [User sidebar dual nav blocks](user-sidebar-dual-nav.md) — app.blade.php has TWO parallel nav menus (desktop aside + mobile drawer); edit both in lockstep or they drift.
