@@ -1340,10 +1340,10 @@ class SitePagesContent
                 'secondary_url'   => '',
             ],
             'founder' => [
-                'name'   => 'Aarav Reddy',
+                'name'   => 'Sandeep Sana',
                 'role'   => 'Founder & CEO',
                 'photo'  => '',
-                'bio'    => "Aarav started 1INME after a decade of helping small businesses get online. He still does the first reply on every founder-tier support email.",
+                'bio'    => "Guided by this belief, Sandeep Sana, Founder & CEO of 1INME, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of 1INME, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
                 'links'  => ['twitter' => '', 'linkedin' => ''],
             ],
             'co_founders' => [
