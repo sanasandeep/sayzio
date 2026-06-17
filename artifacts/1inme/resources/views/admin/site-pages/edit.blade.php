@@ -341,10 +341,11 @@
         @endif
 
         @php
-            $errorSlugs = ['error-403', 'error-404', 'error-500', 'error-503', 'error-419', 'error-429'];
+            $errorSlugs = ['error-403', 'error-404', 'error-405', 'error-500', 'error-503', 'error-419', 'error-429'];
             $errorLabels = [
                 'error-403' => '403 (no access)',
                 'error-404' => '404 (not found)',
+                'error-405' => '405 (invalid page)',
                 'error-500' => '500 (server error)',
                 'error-503' => '503 (maintenance)',
                 'error-419' => '419 (session expired)',

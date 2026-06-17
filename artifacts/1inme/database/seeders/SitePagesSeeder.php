@@ -84,6 +84,16 @@ class SitePagesSeeder extends Seeder
                 'cta_url' => '/',
             ],
             [
+                'slug' => 'error-405',
+                'title' => "That isn't a valid page",
+                'meta_description' => "This link can't be opened the way you reached it. Head back to where you started.",
+                'sections' => [
+                    ['heading' => "This isn't a valid page", 'body' => "The link you followed can't be opened directly. This usually happens when a link is mistyped or opened out of order. Use the button below to get back on track."],
+                ],
+                'cta_label' => 'Back to login',
+                'cta_url' => '/login',
+            ],
+            [
                 'slug' => 'error-500',
                 'title' => 'Something went wrong',
                 'meta_description' => 'An unexpected error occurred on our side. Please try again in a moment.',

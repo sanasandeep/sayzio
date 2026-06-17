@@ -30,6 +30,7 @@
                             $errorPageLabels = [
                                 'error-403' => '403 No access',
                                 'error-404' => '404 Not found',
+                                'error-405' => '405 Invalid page',
                                 'error-500' => '500 Server error',
                                 'error-503' => '503 Maintenance',
                                 'error-419' => '419 Session expired',
