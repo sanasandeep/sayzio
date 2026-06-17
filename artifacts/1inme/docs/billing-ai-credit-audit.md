@@ -67,6 +67,9 @@ account can't afford the worst-case cost.
   (refunds the owner if the scan fails after the charge)
 - **AI Resume Tools** — `ResumeCoverLetterService` (tailoring, cover
   letters, import); surfaces estimated cost before running
+- **AI Biolink Page Builder** — `AiBiolinkBuilderService` (feature key
+  `biolink_builder`); refunds the owner if the AI response fails to
+  parse/validate
 - **Voice Assistant** — Whisper STT + GPT reply + ElevenLabs TTS
 - **AI Minds (user minds)** — `AiMindIngestor::ingest` charges the mind owner
 
