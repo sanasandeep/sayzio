@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
 import { SubmitContactMessageBody } from "@workspace/api-zod";
 import { db, contactMessagesTable } from "@workspace/db";
+import { contactRateLimiter } from "../middlewares/rate-limit";
 
 const router: IRouter = Router();
 
-router.post("/contact", async (req, res) => {
+router.post("/contact", contactRateLimiter, async (req, res) => {
   const parsed = SubmitContactMessageBody.safeParse(req.body);
 
   if (!parsed.success) {

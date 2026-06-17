@@ -6,6 +6,11 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Behind Replit's shared reverse proxy (single hop). Trust exactly one proxy
+// so `req.ip` reflects the real client address for per-IP rate limiting,
+// without blindly trusting a spoofable X-Forwarded-For chain.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

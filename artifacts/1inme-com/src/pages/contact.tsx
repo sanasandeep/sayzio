@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { Mail, MapPin, Clock, Languages, Zap, Handshake, Lightbulb, Check, AlertCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { submitContactMessage } from "@workspace/api-client-react";
+import { submitContactMessage, ApiError } from "@workspace/api-client-react";
 
 const SUPPORT_EMAIL = "support@1inme.com";
 
@@ -38,10 +38,18 @@ export default function Contact() {
         website: form.website,
       });
       setSubmitted(true);
-    } catch {
-      setError(
-        "We couldn't send your message. Please try again, or email us directly below.",
-      );
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        const data = err.data as { error?: { message?: string } } | null;
+        setError(
+          data?.error?.message ??
+            "You're sending messages a little too quickly. Please wait a minute and try again.",
+        );
+      } else {
+        setError(
+          "We couldn't send your message. Please try again, or email us directly below.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
