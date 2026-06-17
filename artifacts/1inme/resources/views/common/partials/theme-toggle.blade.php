@@ -12,13 +12,14 @@ function themeToggle() {
         isDark: !document.documentElement.classList.contains('light-mode'),
         toggle() {
             this.isDark = !this.isDark;
+            const val = this.isDark ? 'dark' : 'light';
             if (this.isDark) {
                 document.documentElement.classList.remove('light-mode');
-                localStorage.setItem('1inme_theme', 'dark');
             } else {
                 document.documentElement.classList.add('light-mode');
-                localStorage.setItem('1inme_theme', 'light');
             }
+            try { localStorage.setItem('1inme_theme', val); } catch (e) {}
+            try { document.cookie = '1inme_theme=' + val + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) {}
         }
     }
 }
