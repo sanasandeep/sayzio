@@ -212,6 +212,48 @@ class LinkController extends Controller
         ]);
     }
 
+    /**
+     * Enforce per-link-type plan toggles + numeric caps for the newer page
+     * types (conversational, slides, ai_chat, restaurant_menu, reviews).
+     *
+     * Returns a user-facing error string when creation should be blocked, or
+     * null when the type is allowed (or isn't one of the gated types). These
+     * caps are INDEPENDENT of the family-wide `max_biolinks` limit (which
+     * still counts the biolink-family types), so a user is bound by whichever
+     * is stricter. Absent plan keys default to "enabled / unlimited" so plans
+     * that predate this feature keep working until an admin sets explicit
+     * values. Super-admin plan-bypass is honored via getPlanFeature/
+     * planUnderLimit.
+     */
+    private function enforceLinkTypeQuota($owner, string $type): ?string
+    {
+        $map = [
+            'conversational'  => ['module' => 'module_conversational',  'cap' => 'max_conversational',  'label' => 'Conversational'],
+            'slides'          => ['module' => 'module_slides',          'cap' => 'max_slides',          'label' => 'Slides'],
+            'ai_chat'         => ['module' => 'module_ai_chat',         'cap' => 'max_ai_chat',         'label' => 'AI Chatbot'],
+            'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
+            'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
+        ];
+        $cfg = $map[$type] ?? null;
+        if (!$cfg) {
+            return null;
+        }
+
+        // Toggle: absent => enabled.
+        if (!$owner->getPlanFeature($cfg['module'], true)) {
+            return "{$cfg['label']} pages aren't available on your current plan. Upgrade to enable them.";
+        }
+
+        // Numeric cap: absent => unlimited (-1).
+        $count = $owner->links()->where('type', $type)->count();
+        if (!$owner->planUnderLimit($cfg['cap'], $count, -1)) {
+            $max = (int) $owner->getPlanFeature($cfg['cap'], -1);
+            return "You've reached your plan's {$cfg['label']} page limit ({$max}). Upgrade your plan for more.";
+        }
+
+        return null;
+    }
+
     public function store(Request $request)
     {
         $userId = workspace_owner_id();
@@ -264,6 +306,13 @@ class LinkController extends Controller
         // protection-and-scheduling fields here (consumed later by
         // applyProtectionScheduling) so a downgraded plan cannot bypass.
         $owner = workspace_owner();
+
+        // Per-link-type plan caps + on/off toggles for the newer page types
+        // (conversational / slides / ai_chat / restaurant_menu / reviews).
+        if ($typeError = $this->enforceLinkTypeQuota($owner, $validated['type'])) {
+            return back()->withInput()->with('error', $typeError);
+        }
+
         $gateMap = [
             'password'         => !empty($validated['password']),
             'expiry'           => self::isExpiryRequested($request),

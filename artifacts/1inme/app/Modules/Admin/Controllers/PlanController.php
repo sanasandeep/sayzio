@@ -233,6 +233,11 @@ class PlanController extends Controller
             // Quantity limits — accept -1 for unlimited.
             'features.max_links'               => 'nullable|integer|min:-1',
             'features.max_biolinks'            => 'nullable|integer|min:-1',
+            'features.max_conversational'      => 'nullable|integer|min:-1',
+            'features.max_slides'              => 'nullable|integer|min:-1',
+            'features.max_ai_chat'             => 'nullable|integer|min:-1',
+            'features.max_restaurant_menu'     => 'nullable|integer|min:-1',
+            'features.max_reviews'             => 'nullable|integer|min:-1',
             'features.max_projects'            => 'nullable|integer|min:-1',
             'features.max_file_size_mb'        => 'nullable|integer|min:-1',
             'features.storage_limit_mb'        => 'nullable|integer|min:-1',
@@ -325,6 +330,11 @@ class PlanController extends Controller
         return array_merge($modules, [
             'max_links' => 10,
             'max_biolinks' => 1,
+            'max_conversational' => 1,
+            'max_slides' => 1,
+            'max_ai_chat' => 1,
+            'max_restaurant_menu' => 1,
+            'max_reviews' => 1,
             'max_file_size_mb' => 5,
             'storage_limit_mb' => 100,
             'max_projects' => 3,

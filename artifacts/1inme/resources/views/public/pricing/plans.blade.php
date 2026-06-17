@@ -108,6 +108,27 @@
     .feat-mark-yes { background: rgba(16,185,129,.14); color: #34d399; }
     .feat-mark-no  { background: rgba(148,163,184,.10); color: #64748b; }
 
+    /* Light-mode overrides for the comparison matrix (dark is the default).
+       The global marketing-anim.css recolors utility classes, but these
+       feat-* rules use hard-coded dark values, so they need explicit
+       light-mode counterparts to stay legible. */
+    html.light-mode .feat-cell {
+        border-top-color: rgba(15,23,42,.08); color: #475569;
+    }
+    html.light-mode .feat-cell.feat-head {
+        background: rgba(15,23,42,.04); color: #64748b;
+    }
+    html.light-mode .feat-cell.feat-row-name {
+        background: #ffffff; color: #1e293b;
+    }
+    html.light-mode .feat-cell.feat-group {
+        background: rgba(124,58,237,.10); color: #6d28d9;
+    }
+    html.light-mode .feat-cell.feat-popular-col {
+        background: rgba(124,58,237,.06);
+    }
+    html.light-mode .feat-mark-no { color: #94a3b8; }
+
     @media (prefers-reduced-motion: reduce) {
         .pulse-dot, .float-coin, .pop-ribbon, .grad-glow { animation: none !important; }
         .grad-glow:hover { transform: none !important; }
@@ -615,6 +636,13 @@
                     ['contacts_max',      'Contacts',             'number'],
                     ['max_files',         'Files',                'number'],
                     ['max_forms',         'Forms',                'number'],
+                ],
+                'Link types' => [
+                    ['max_conversational',   'Conversational pages',  'number'],
+                    ['max_slides',           'Slides pages',          'number'],
+                    ['max_ai_chat',          'AI Chatbot pages',      'number'],
+                    ['max_restaurant_menu',  'Restaurant Menu pages', 'number'],
+                    ['max_reviews',          'Reviews pages',         'number'],
                 ],
                 'Growth & analytics' => [
                     ['analytics',                'Analytics depth',         'analytics'],
