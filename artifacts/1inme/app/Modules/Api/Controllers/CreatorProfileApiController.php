@@ -44,15 +44,178 @@ class CreatorProfileApiController extends Controller
             ? Follow::where('follower_id', $viewer->id)->where('creator_id', $creator->id)->exists()
             : false;
 
+        return $this->ok([
+            'profile'             => $this->profilePayload($creator, $viewer, $isOwner, $isFollowing),
+            'reactions_catalog'   => CreatorPostReaction::REACTIONS,
+            'tiers'               => $this->tiersPayload($creator),
+            'viewer_subscription' => $this->viewerSubscriptionPayload($creator, $viewer, $isOwner),
+        ]);
+    }
+
+    /**
+     * Public Paid Page (Task #1208 / #1649). Resolves a `paid_page` link by
+     * its alias and returns the same creator/profile/tier payload as the
+     * /@handle surface PLUS the chosen design template (decomposed into
+     * mobile-friendly tokens) and the page-level public/gated state. The
+     * Expo app renders this natively so the bold per-link design matches
+     * the web `public/paid-page.blade.php` renderer. Reuses the existing
+     * handle-keyed posts/react/comment endpoints for the feed itself.
+     */
+    public function paidPageShow(Request $request, string $alias)
+    {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link || $link->type !== Link::TYPE_PAID_PAGE || !$link->is_active) {
+            return $this->notFound('Page not found');
+        }
+
+        $creator = User::find($link->user_id);
+        if (!$creator) return $this->notFound('Page not found');
+
+        $viewer  = $request->user();
+        $isOwner = $viewer && (int) $viewer->id === (int) $creator->id;
+
+        if ($gate = $this->enforcePaidPageVisibility($link, $viewer, $isOwner)) {
+            return $gate;
+        }
+
+        $isFollowing = $viewer && !$isOwner
+            ? Follow::where('follower_id', $viewer->id)->where('creator_id', $creator->id)->exists()
+            : false;
+
+        $template = \App\Modules\User\Support\PaidPageTemplates::get(
+            $link->settings['paid_page']['template'] ?? null
+        );
+
+        return $this->ok([
+            'page' => [
+                'alias'       => $link->alias,
+                'handle'      => $creator->handle,
+                'title'       => $link->title ?: $creator->name,
+                'description' => $link->seo_description ?: $creator->tagline,
+                'visibility'  => $link->visibility ?? 'public',
+                'is_owner'    => $isOwner,
+            ],
+            'template'            => \App\Modules\User\Support\PaidPageTemplates::mobileTokens($template),
+            'profile'             => $this->profilePayload($creator, $viewer, $isOwner, $isFollowing),
+            'reactions_catalog'   => CreatorPostReaction::REACTIONS,
+            'tiers'               => $this->tiersPayload($creator),
+            'viewer_subscription' => $this->viewerSubscriptionPayload($creator, $viewer, $isOwner),
+        ]);
+    }
+
+    /**
+     * Posts feed for a Paid Page, resolved by link alias. Unlike the
+     * handle-keyed feed() this does NOT require the creator to have a
+     * published profile — the Paid Page link itself is the publication
+     * surface — but it does honour the page-level visibility gate.
+     */
+    public function paidPageFeed(Request $request, string $alias)
+    {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link || $link->type !== Link::TYPE_PAID_PAGE || !$link->is_active) {
+            return $this->notFound('Page not found');
+        }
+
+        $creator = User::find($link->user_id);
+        if (!$creator) return $this->notFound('Page not found');
+
+        $viewer  = $request->user();
+        $isOwner = $viewer && (int) $viewer->id === (int) $creator->id;
+
+        if ($gate = $this->enforcePaidPageVisibility($link, $viewer, $isOwner)) {
+            return $gate;
+        }
+
+        return $this->buildFeedResponse($request, $creator, $viewer);
+    }
+
+    /**
+     * Page-level visibility gate for a Paid Page link. Mirrors
+     * RedirectController::enforceVisibility for the registered / followers /
+     * subscribers tiers (the editor only sets public/registered today, but
+     * we honour the full set to stay in lockstep with the web column).
+     * Returns a JSON error response when gated, or null to proceed.
+     */
+    private function enforcePaidPageVisibility(Link $link, ?User $viewer, bool $isOwner)
+    {
+        $vis = $link->visibility ?? 'public';
+        if ($vis === 'public' || $isOwner) return null;
+
+        $viewerId = $viewer?->id;
+
+        if ($vis === 'registered') {
+            if (!$viewerId) {
+                return $this->fail('Sign in to view this page.', 401, 'gated_registered');
+            }
+            return null;
+        }
+
+        if ($vis === 'followers') {
+            $ok = $viewerId && Follow::where('follower_id', $viewerId)
+                ->where('creator_id', $link->user_id)->exists();
+            if (!$ok) {
+                return $this->fail('Follow this creator to view this page.', 403, 'gated_followers');
+            }
+            return null;
+        }
+
+        if ($vis === 'subscribers') {
+            $ok = $viewerId && CreatorSubscription::query()
+                ->where('fan_user_id', $viewerId)
+                ->where('creator_user_id', $link->user_id)
+                ->whereIn('status', [
+                    CreatorSubscription::STATUS_ACTIVE,
+                    CreatorSubscription::STATUS_TRIALING,
+                    CreatorSubscription::STATUS_PAST_DUE,
+                ])->exists();
+            if (!$ok) {
+                return $this->fail('Subscribe to view this page.', 403, 'gated_subscribers');
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Shared creator/profile payload used by both the handle-keyed show()
+     * and the alias-keyed paidPageShow().
+     *
+     * @return array<string,mixed>
+     */
+    private function profilePayload(User $creator, ?User $viewer, bool $isOwner, bool $isFollowing): array
+    {
         $primaryBiolink = Link::where('user_id', $creator->id)
             ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->where('is_active', true)
             ->orderBy('id')->first();
 
-        // ── Monetization (Task #1209) ────────────────────────────
-        // Active tiers for the Subscribe sheet, plus the viewer's
-        // own current subscription if they have one. Mirrors the
-        // shape exposed by the web profile controller.
-        $tiers = SubscriptionTier::query()
+        return [
+            'id'                => $creator->id,
+            'handle'            => $creator->handle,
+            'name'              => $creator->name,
+            'avatar'            => $creator->avatar,
+            'cover_image'       => $creator->cover_image,
+            'tagline'           => $creator->tagline,
+            'bio'               => $creator->bio,
+            'location'          => $creator->location,
+            'niche_tags'        => is_array($creator->niche_tags) ? $creator->niche_tags : [],
+            'socials'           => is_array($creator->socials) ? $creator->socials : [],
+            'sections'          => $creator->profileSectionVisibility(),
+            'profile_published' => (bool) $creator->profile_published,
+            'followers_count'   => (int) $creator->followers_count,
+            'posts_count'       => (int) $creator->posts_count,
+            'is_following'      => $isFollowing,
+            'is_owner'          => $isOwner,
+            'biolink_url'       => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
+        ];
+    }
+
+    /**
+     * Active tiers for the Subscribe sheet. Mirrors the shape exposed by
+     * the web profile controller.
+     */
+    private function tiersPayload(User $creator)
+    {
+        return SubscriptionTier::query()
             ->where('user_id', $creator->id)
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -73,61 +236,39 @@ class CreatorProfileApiController extends Controller
                 'perks'                    => $t->visiblePerks(),
                 'yearly_discount_percent'  => $t->yearlyDiscountPercent(),
             ])->values();
+    }
 
-        $viewerSubscription = null;
-        if ($viewer && !$isOwner) {
-            $sub = CreatorSubscription::query()
-                ->where('fan_user_id', $viewer->id)
-                ->where('creator_user_id', $creator->id)
-                ->whereIn('status', [
-                    CreatorSubscription::STATUS_ACTIVE,
-                    CreatorSubscription::STATUS_TRIALING,
-                    CreatorSubscription::STATUS_PAST_DUE,
-                ])
-                ->first();
-            if ($sub) {
-                $tier = SubscriptionTier::find($sub->tier_id);
-                $viewerSubscription = [
-                    'id'                       => $sub->id,
-                    'tier_id'                  => $sub->tier_id,
-                    'tier_name'                => $tier?->name,
-                    'tier_badge'               => $tier?->badge,
-                    'status'                   => $sub->status,
-                    'status_label'             => $sub->statusLabel(),
-                    'billing_cycle'            => $sub->billing_cycle,
-                    'price_cents'              => (int) $sub->price_cents,
-                    'currency'                 => $sub->currency,
-                    'current_period_end'       => optional($sub->current_period_end)->toIso8601String(),
-                    'cancel_at_period_end'     => (bool) $sub->cancel_at_period_end,
-                    'is_current'               => $sub->isCurrent(),
-                ];
-            }
-        }
+    /** The viewer's own current subscription to this creator, if any. */
+    private function viewerSubscriptionPayload(User $creator, ?User $viewer, bool $isOwner): ?array
+    {
+        if (!$viewer || $isOwner) return null;
 
-        return $this->ok([
-            'profile' => [
-                'id'              => $creator->id,
-                'handle'          => $creator->handle,
-                'name'            => $creator->name,
-                'avatar'          => $creator->avatar,
-                'cover_image'     => $creator->cover_image,
-                'tagline'         => $creator->tagline,
-                'bio'             => $creator->bio,
-                'location'        => $creator->location,
-                'niche_tags'      => is_array($creator->niche_tags) ? $creator->niche_tags : [],
-                'socials'         => is_array($creator->socials) ? $creator->socials : [],
-                'sections'        => $creator->profileSectionVisibility(),
-                'profile_published' => (bool) $creator->profile_published,
-                'followers_count' => (int) $creator->followers_count,
-                'posts_count'     => (int) $creator->posts_count,
-                'is_following'    => $isFollowing,
-                'is_owner'        => $isOwner,
-                'biolink_url'     => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
-            ],
-            'reactions_catalog'   => CreatorPostReaction::REACTIONS,
-            'tiers'               => $tiers,
-            'viewer_subscription' => $viewerSubscription,
-        ]);
+        $sub = CreatorSubscription::query()
+            ->where('fan_user_id', $viewer->id)
+            ->where('creator_user_id', $creator->id)
+            ->whereIn('status', [
+                CreatorSubscription::STATUS_ACTIVE,
+                CreatorSubscription::STATUS_TRIALING,
+                CreatorSubscription::STATUS_PAST_DUE,
+            ])
+            ->first();
+        if (!$sub) return null;
+
+        $tier = SubscriptionTier::find($sub->tier_id);
+        return [
+            'id'                   => $sub->id,
+            'tier_id'              => $sub->tier_id,
+            'tier_name'            => $tier?->name,
+            'tier_badge'           => $tier?->badge,
+            'status'               => $sub->status,
+            'status_label'         => $sub->statusLabel(),
+            'billing_cycle'        => $sub->billing_cycle,
+            'price_cents'          => (int) $sub->price_cents,
+            'currency'             => $sub->currency,
+            'current_period_end'   => optional($sub->current_period_end)->toIso8601String(),
+            'cancel_at_period_end' => (bool) $sub->cancel_at_period_end,
+            'is_current'           => $sub->isCurrent(),
+        ];
     }
 
     public function feed(Request $request, string $handle)
@@ -142,6 +283,16 @@ class CreatorProfileApiController extends Controller
             return $this->notFound('Creator not found');
         }
 
+        return $this->buildFeedResponse($request, $creator, $viewer);
+    }
+
+    /**
+     * Shared paginated feed builder used by both the handle-keyed feed()
+     * and the alias-keyed paidPageFeed(). Applies the same per-post
+     * paywall masking so a locked post never leaks its body/media URLs.
+     */
+    private function buildFeedResponse(Request $request, User $creator, ?User $viewer)
+    {
         $page = CreatorPost::query()
             ->withoutGlobalScope('workspace')
             ->where('user_id', $creator->id)

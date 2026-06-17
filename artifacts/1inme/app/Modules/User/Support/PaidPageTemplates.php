@@ -129,6 +129,65 @@ class PaidPageTemplates
         return array_keys(self::all());
     }
 
+    /**
+     * A mobile-friendly projection of a template. The Expo app can't parse
+     * CSS gradient strings or `rem` units, so we decompose `page_bg` /
+     * `hero_bg` into ordered colour stops (for expo-linear-gradient) and
+     * convert the radius to pixels. All other tokens (accent, text, card_*)
+     * are already RN-compatible colour strings (hex / rgba) and pass through
+     * unchanged so the look matches the web renderer.
+     *
+     * @param array<string,mixed> $t A template from self::all()/get().
+     * @return array<string,mixed>
+     */
+    public static function mobileTokens(array $t): array
+    {
+        return [
+            'id'          => $t['id'] ?? self::DEFAULT_ID,
+            'name'        => $t['name'] ?? '',
+            'page_colors' => self::extractColors((string) ($t['page_bg'] ?? '')),
+            'hero_colors' => self::extractColors((string) ($t['hero_bg'] ?? '')),
+            'accent'      => $t['accent'] ?? '#a855f7',
+            'accent_soft' => $t['accent_soft'] ?? 'rgba(168,85,247,0.18)',
+            'text'        => $t['text'] ?? '#ffffff',
+            'text_muted'  => $t['text_muted'] ?? 'rgba(255,255,255,0.62)',
+            'card_bg'     => $t['card_bg'] ?? '#ffffff',
+            'card_text'   => $t['card_text'] ?? '#1e1b4b',
+            'radius'      => self::remToPx((string) ($t['radius'] ?? '1rem')),
+            'font'        => $t['font'] ?? 'Space Grotesk',
+            'hero_style'  => $t['hero_style'] ?? 'glow',
+            'motion'      => (bool) ($t['motion'] ?? false),
+        ];
+    }
+
+    /**
+     * Pull the ordered colour stops out of a CSS gradient string. Both
+     * linear- and radial-gradients are flattened to a simple stop list —
+     * the mobile renderer always paints them as a linear gradient, which is
+     * a faithful-enough approximation of the web look. Always returns at
+     * least two stops so expo-linear-gradient has a valid range.
+     *
+     * @return list<string>
+     */
+    private static function extractColors(string $css): array
+    {
+        preg_match_all('/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/', $css, $m);
+        $colors = array_values($m[0] ?? []);
+        if (count($colors) === 0) {
+            return ['#0a0a18', '#05050d'];
+        }
+        if (count($colors) === 1) {
+            $colors[] = $colors[0];
+        }
+        return $colors;
+    }
+
+    /** Convert a CSS `rem` length to integer pixels (1rem = 16px). */
+    private static function remToPx(string $rem): int
+    {
+        return (int) round(((float) $rem) * 16);
+    }
+
     /** Whether the given id is a known template. */
     public static function exists(?string $id): bool
     {

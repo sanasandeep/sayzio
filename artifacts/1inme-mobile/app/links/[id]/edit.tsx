@@ -338,6 +338,15 @@ export default function EditLinkScreen() {
               }}
             />
           ) : null}
+          {l.type === "paid_page" ? (
+            <ActionTile
+              icon="layout"
+              label="View page"
+              onPress={() =>
+                router.push(`/paid-page/${encodeURIComponent(l.alias)}` as any)
+              }
+            />
+          ) : null}
           {l.type === "reviews" ? (
             <ActionTile
               icon="star"

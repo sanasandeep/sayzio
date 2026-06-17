@@ -97,6 +97,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/creator-profile/{handle}/posts/{post}/react',      [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'react'])->whereNumber('post')->middleware('throttle:120,1');
         Route::post('/creator-profile/{handle}/posts/{post}/comment',    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'comment'])->whereNumber('post')->middleware('throttle:60,1');
 
+        // Standalone Paid Page (Task #1649). Resolved by link alias so the
+        // Expo app can render the bold per-link themed design natively.
+        // Reuses the handle-keyed react/comment endpoints above for the feed
+        // interactions (the show response returns the creator handle).
+        Route::get('/paid-page/{alias}',         [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'paidPageShow']);
+        Route::get('/paid-page/{alias}/posts',   [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'paidPageFeed']);
+
         // Creator monetization (Task #1209). Public-facing per-creator
         // endpoints — listing tiers is unauthenticated; subscribing,
         // unlocking, and tipping require auth (Sanctum).
