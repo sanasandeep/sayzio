@@ -149,6 +149,8 @@
             'file'    => ['icon' => 'fa-file',         'bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399', 'label' => 'File Share'],
             'ics'     => ['icon' => 'fa-calendar',     'bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24', 'label' => 'Event'],
             'vcf'     => ['icon' => 'fa-address-card', 'bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee', 'label' => 'Contact Card'],
+            'reviews' => ['icon' => 'fa-star',         'bg' => 'rgba(234,179,8,0.08)',  'border' => 'rgba(234,179,8,0.12)',  'color' => '#fde047', 'label' => 'Reviews Page'],
+            'resume'  => ['icon' => 'fa-file-lines',   'bg' => 'rgba(99,102,241,0.08)', 'border' => 'rgba(99,102,241,0.12)', 'color' => '#a5b4fc', 'label' => 'Resume / Portfolio'],
         ];
         $ts = $typeStyles[$link->type] ?? $typeStyles['url'];
 

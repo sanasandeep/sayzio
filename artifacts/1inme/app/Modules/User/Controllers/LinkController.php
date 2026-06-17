@@ -112,7 +112,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume',
             'alias' => [
                 'nullable', 'string', 'alpha_dash',
                 'min:' . $limits['min'],
@@ -145,6 +145,7 @@ class LinkController extends Controller
             'ics'            => redirect()->route('user.links.ics.create', $params),
             'vcf'            => redirect()->route('user.links.vcf.create', $params),
             'reviews'        => redirect()->route('user.links.reviews.create', $params),
+            'resume'         => redirect()->route('user.links.resume.create', $params),
         };
     }
 
@@ -158,6 +159,26 @@ class LinkController extends Controller
         $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
         return view('user.links.create-reviews', [
+            'projects' => $projects,
+            'domains'  => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'prefillAlias' => (string) $request->query('alias', ''),
+            'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
+        ]);
+    }
+
+    /**
+     * Step 2 for the standalone Resume / Portfolio page — name + alias +
+     * project only. The link is associated with the owner's existing resume
+     * builder record on store(); the user then drops into the dedicated
+     * resume editor (no parallel editor is built here).
+     */
+    public function createResume(Request $request)
+    {
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        return view('user.links.create-resume', [
             'projects' => $projects,
             'domains'  => $domains,
             'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
@@ -233,6 +254,7 @@ class LinkController extends Controller
             'ai_chat'         => ['module' => 'module_ai_chat',         'cap' => 'max_ai_chat',         'label' => 'AI Chatbot'],
             'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
             'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
+            'resume'          => ['module' => 'module_resume',          'cap' => 'max_resume',          'label' => 'Resume / Portfolio'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -259,7 +281,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume',
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
@@ -401,6 +423,15 @@ class LinkController extends Controller
 
         $link = Link::create($validated);
 
+        // Resume / Portfolio links bridge to the user's standalone resume
+        // builder record. Associate the owner's default resume so the public
+        // page and PDF export resolve through the existing renderer.
+        if ($link->type === 'resume') {
+            $resume = workspace_owner()->ensureResume();
+            $link->resume_id = $resume->id;
+            $link->save();
+        }
+
         if (!empty($pixelIds)) {
             $link->pixels()->sync($pixelIds);
         }
@@ -449,6 +480,10 @@ class LinkController extends Controller
         if ($link->type === 'reviews') {
             return redirect()->route('user.links.reviews.editor', $link)
                 ->with('success', 'Reviews page created — configure it and start collecting reviews.');
+        }
+        if ($link->type === 'resume') {
+            return redirect()->route('user.resume.editor')
+                ->with('success', 'Resume / Portfolio link created — build and publish your resume.');
         }
 
         // "Build with AI" start mode — skip the picker and send the user to

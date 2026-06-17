@@ -238,6 +238,7 @@ class PlanController extends Controller
             'features.max_ai_chat'             => 'nullable|integer|min:-1',
             'features.max_restaurant_menu'     => 'nullable|integer|min:-1',
             'features.max_reviews'             => 'nullable|integer|min:-1',
+            'features.max_resume'              => 'nullable|integer|min:-1',
             'features.max_projects'            => 'nullable|integer|min:-1',
             'features.max_file_size_mb'        => 'nullable|integer|min:-1',
             'features.storage_limit_mb'        => 'nullable|integer|min:-1',

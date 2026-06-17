@@ -12,7 +12,7 @@ class Link extends Model
     
     use BelongsToWorkspace;
 protected $fillable = [
-        'user_id', 'project_id', 'domain_id', 'type', 'alias', 'title',
+        'user_id', 'project_id', 'domain_id', 'resume_id', 'type', 'alias', 'title',
         'long_url', 'redirect_type', 'is_active', 'is_verified', 'verified_name', 'verified_logo',
         'expires_at', 'password', 'is_password_protected',
         'seo_title', 'seo_description', 'seo_image', 'favicon',
@@ -574,6 +574,7 @@ protected $fillable = [
      * submission form), not the biolink block engine.
      */
     public const TYPE_REVIEWS        = 'reviews';
+    public const TYPE_RESUME         = 'resume';
 
     public const BIOLINK_FAMILY = [
         self::TYPE_BIOLINK,
@@ -610,12 +611,23 @@ protected $fillable = [
         'ics'            => 'Event',
         'vcf'            => 'Contact Card',
         'reviews'        => 'Reviews Page',
+        'resume'         => 'Resume / Portfolio',
     ];
 
     /** Reviews relationship — native reviews submitted on this link. */
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Resume relationship — the standalone Resume / Portfolio record this
+     * link surfaces. Nullable: a `resume` link falls back to the owner's
+     * default resume version when no specific version is associated.
+     */
+    public function resume()
+    {
+        return $this->belongsTo(Resume::class);
     }
 
     public static function typeLabel(?string $type): string

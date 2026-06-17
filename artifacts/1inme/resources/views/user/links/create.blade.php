@@ -86,6 +86,7 @@
                     ['value' => 'ics',            'icon' => 'fa-calendar',     'badge' => 'bg-amber-500/15 text-amber-300',    'label' => 'Event',           'desc' => 'A calendar event visitors can add in a single tap.'],
                     ['value' => 'vcf',            'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300',      'label' => 'Contact Card',    'desc' => 'A digital business card visitors can save instantly.'],
                     ['value' => 'reviews',        'icon' => 'fa-star',         'badge' => 'bg-yellow-500/15 text-yellow-300',  'label' => 'Reviews',         'desc' => 'Collect and showcase reviews from your audience.'],
+                    ['value' => 'resume',         'icon' => 'fa-file-lines',   'badge' => 'bg-indigo-500/15 text-indigo-300',  'label' => 'Resume / Portfolio', 'desc' => 'A shareable resume / portfolio page with PDF download.'],
                 ] as $opt)
                     <label class="relative cursor-pointer block group h-full">
                         <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">

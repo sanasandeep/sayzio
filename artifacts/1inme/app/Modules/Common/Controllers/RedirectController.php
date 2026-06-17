@@ -399,6 +399,7 @@ class RedirectController extends Controller
             'ics' => $this->handleIcsDownload($link),
             'vcf' => $this->handleVcfDownload($link),
             'reviews' => $this->handleReviewsPage($request, $link),
+            'resume' => $this->handleResumePage($request, $link),
             default => abort(404),
         };
     }
@@ -1023,6 +1024,37 @@ class RedirectController extends Controller
             response()->view('common.reviews-page', compact('link', 'settings', 'summary', 'items', 'questions')),
             $request
         );
+    }
+
+    /**
+     * Resume / Portfolio link. Bridges the unified link to the standalone
+     * resume builder: resolves the associated resume version (falling back
+     * to the owner's default), then delegates to the existing public resume
+     * renderer so all visibility / password / expiry gates, the view
+     * counter and the PDF-download affordance are reused verbatim. Link-
+     * level gates have already run in handle() before this match.
+     */
+    protected function handleResumePage(Request $request, Link $link)
+    {
+        $resume = $link->resume_id
+            ? \App\Modules\User\Models\Resume::find($link->resume_id)
+            : null;
+
+        $user = $resume?->user ?: \App\Modules\User\Models\User::find($link->user_id);
+        abort_unless($user, 404);
+
+        // Fall back to the owner's default resume when the link never
+        // captured a specific version (or the version was deleted).
+        if (!$resume) {
+            $resume = $user->resumes()->where('is_default', true)->first()
+                ?? $user->resumes()->first();
+        }
+        abort_unless($resume, 404);
+
+        $slug = $resume->is_default ? null : $resume->effectiveSlug();
+
+        return app(PublicResumeController::class)
+            ->show($request, $user->publicHandle(), $slug);
     }
 
     public function subscribe(Request $request, string $alias)

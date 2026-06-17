@@ -670,6 +670,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // ── Standalone Reviews page: step-2 create, editor, moderation,
         //    custom questions, and 3rd-party provider connections. ──
         Route::get ('links-reviews/create', [LinkController::class, 'createReviews'])->middleware('workspace.can:links.create')->name('links.reviews.create');
+        // Standalone Resume / Portfolio link: step-2 create only. The editor
+        // and public page reuse the existing standalone resume builder.
+        Route::get ('links-resume/create', [LinkController::class, 'createResume'])->middleware('workspace.can:links.create')->name('links.resume.create');
         Route::get ('links/{link}/reviews', [\App\Modules\User\Controllers\ReviewsController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.reviews.editor');
         Route::post('links/{link}/reviews/settings', [\App\Modules\User\Controllers\ReviewsController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.settings');
         Route::post('links/{link}/reviews/questions', [\App\Modules\User\Controllers\ReviewsController::class, 'storeQuestion'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.questions.store');
