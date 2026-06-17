@@ -258,6 +258,13 @@ Route::post('/subscriptions/manage/send-link',
 // ---- Public Blogs (must precede the catch-all /{alias} routes) ----
 Route::prefix('blogs')->name('site.blogs.')->controller(\App\Modules\Common\Controllers\BlogController::class)->group(function () {
     Route::get('/',                'index')->name('index');
+    // Public JSON feed for the standalone marketing site (1inme.com). Must
+    // precede the catch-all /{slug} show route below so 'feed.json' isn't
+    // captured as a post slug.
+    Route::get('/feed.json',           'feed')->name('feed');
+    Route::options('/feed.json',       'feedPreflight');
+    Route::get('/feed/{slug}.json',    'feedShow')->name('feed.show')->where('slug', '[a-z0-9-]+');
+    Route::options('/feed/{slug}.json','feedPreflight')->where('slug', '[a-z0-9-]+');
     Route::get('/rss',             'rss')->name('rss');
     Route::get('/rss.xml',         'rss')->name('rss.xml');
     Route::get('/sitemap.xml',     'sitemap')->name('sitemap');

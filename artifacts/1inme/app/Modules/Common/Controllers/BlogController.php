@@ -148,6 +148,101 @@ class BlogController extends Controller
         ]);
     }
 
+    /**
+     * Public JSON feed of published posts, consumed by the standalone
+     * marketing site (1inme.com) so its /blog list stays in sync with the
+     * database-driven blog here. CORS-open + no auth: this is public content.
+     */
+    public function feed(Request $request)
+    {
+        $limit = min(50, max(1, (int) $request->query('limit', 30)));
+
+        $posts = BlogPost::published()->with(['category', 'author'])
+            ->orderByDesc('published_at')->orderByDesc('id')
+            ->take($limit)->get();
+
+        $data = $posts->map(fn (BlogPost $p) => $this->feedItem($p))->values();
+
+        return response()->json(['data' => $data], 200, $this->corsHeaders());
+    }
+
+    /**
+     * Public JSON for a single published post (full body), consumed by the
+     * marketing site's /blog/:slug page.
+     */
+    public function feedShow(string $slug)
+    {
+        $post = BlogPost::published()->with(['category', 'author'])
+            ->where('slug', $slug)->first();
+
+        if (!$post) {
+            return response()->json([
+                'error' => ['message' => 'Post not found', 'code' => 'not_found'],
+            ], 404, $this->corsHeaders());
+        }
+
+        $item = $this->feedItem($post);
+        $item['bodyHtml']        = (string) $post->body_html;
+        $item['metaTitle']       = $post->meta_title ?: $post->title;
+        $item['metaDescription'] = $post->meta_description ?: $post->excerpt;
+
+        return response()->json(['data' => $item], 200, $this->corsHeaders());
+    }
+
+    /**
+     * Shared shape for a blog post in the public JSON feed. Field names are
+     * camelCase to match the marketing site's BlogPost interface.
+     */
+    private function feedItem(BlogPost $p): array
+    {
+        $date = $p->published_at ?? $p->created_at;
+
+        return [
+            'slug'        => (string) $p->slug,
+            'title'       => (string) $p->title,
+            'excerpt'     => (string) ($p->excerpt ?? ''),
+            'date'        => $date ? $date->toDateString() : null,
+            'readingTime' => max(1, (int) $p->reading_time_min) . ' min read',
+            'author'      => (string) ($p->author?->name ?? 'The 1INME Team'),
+            'category'    => (string) ($p->category?->name ?? 'General'),
+            'coverImage'  => $this->absoluteUrl($p->cover_image),
+        ];
+    }
+
+    /**
+     * Turn a possibly-relative stored asset path (e.g. "/storage/...") into an
+     * absolute URL. The marketing site is a different origin, so relative paths
+     * would otherwise resolve against the marketing domain and 404. Absolute
+     * http(s) URLs (S3/CloudFront) are returned untouched.
+     */
+    private function absoluteUrl(?string $path): ?string
+    {
+        $path = trim((string) $path);
+        if ($path === '') {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+        return url($path);
+    }
+
+    private function corsHeaders(): array
+    {
+        return [
+            'Access-Control-Allow-Origin'  => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, X-Requested-With',
+            'Access-Control-Max-Age'       => '600',
+            'Cache-Control'                => 'public, max-age=300',
+        ];
+    }
+
+    public function feedPreflight()
+    {
+        return response('', 204, $this->corsHeaders());
+    }
+
     public function rss()
     {
         $body = \Illuminate\Support\Facades\Cache::remember('blog.rss.xml', 600, function () {
