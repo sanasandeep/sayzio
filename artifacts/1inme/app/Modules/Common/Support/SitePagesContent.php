@@ -1964,6 +1964,14 @@ class SitePagesContent
                 ['Can I change plans mid-cycle?', 'Yes — upgrades take effect immediately with a pro-rated charge; downgrades take effect at next renewal.'],
                 ['Will my links keep working if I downgrade?', 'Yes — your existing links keep working forever, even if you downgrade past the limits, but new links are blocked above the cap.'],
             ],
+            'Domains & aliases' => [
+                ['Which domains can I use for free?', 'Every account can build on our shared, branded domains — 1in.me, bizs.club, getbio.one and Sayzio.app — for free, with no DNS setup. Pick one when you create a link or biolink and you are live instantly with a clean, memorable URL.'],
+                ['How do I connect my own custom domain?', 'On a paid plan, point a single CNAME record from your domain (like links.yourbrand.com) at us. We verify it automatically, provision a free SSL certificate, and once it is healthy you can attach it to any link or biolink — no token juggling.'],
+                ['Can one link have more than one URL?', 'Yes — every link gets a memorable primary slug, and you can add multiple extra aliases that all open the same page with no redirect hop. Great for campaign variants, channel-specific URLs, and catching the typos people make.'],
+                ['What is the difference between a branded domain and a custom domain?', 'Branded domains are our shared, ready-to-use domains — free, with no setup. A custom domain is your own domain or subdomain that you connect via CNAME on a paid plan, so every URL reads 100% you.'],
+                ['Do custom URL aliases work on the Free plan?', 'Yes — custom URL aliases are available on every plan, including Free. Connecting your own custom domain with CNAME verification is the paid feature.'],
+                ['Is connection health visible for my domains?', 'Yes — each custom domain shows its verification status so you always know which domains are verified and ready to serve your links.'],
+            ],
             'Custom domains' => [
                 ['Can I use my own domain for my biolink?', 'Yes, on paid plans. Connect a domain or subdomain via a CNAME record and your biolink lives at your URL.'],
                 ['Can I use my own domain for short links?', 'Yes — bring a custom domain and use it for branded short links across all your campaigns.'],

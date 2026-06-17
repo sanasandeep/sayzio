@@ -27,9 +27,9 @@
         ],
     ];
     $faqAnchors = [
-        ['q' => 'Which domains can I use for free?',          'href' => route('site.pricing')],
-        ['q' => 'How do I connect my own custom domain?',     'href' => route('site.faqs')],
-        ['q' => 'Can one link have more than one URL?',       'href' => route('site.faqs')],
+        ['q' => 'Which domains can I use for free?',          'href' => route('site.faqs') . '#cat-domains-aliases'],
+        ['q' => 'How do I connect my own custom domain?',     'href' => route('site.faqs') . '#cat-domains-aliases'],
+        ['q' => 'Can one link have more than one URL?',       'href' => route('site.faqs') . '#cat-domains-aliases'],
     ];
 @endphp
 
