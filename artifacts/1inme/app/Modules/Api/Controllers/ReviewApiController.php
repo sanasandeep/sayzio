@@ -292,6 +292,7 @@ class ReviewApiController extends Controller
             }
         }
 
+        $skipped = [];
         if (($settings['collect_media'] ?? true) && $request->hasFile('media')) {
             $owner = $link->user;
             $sort = 0;
@@ -301,6 +302,9 @@ class ReviewApiController extends Controller
                         'upload_key' => 'review.media', 'enforce_allowlist' => true,
                     ]);
                 } catch (\Throwable $e) {
+                    // Don't silently lose the file — remember its name so the
+                    // reviewer can be told it wasn't attached.
+                    $skipped[] = $file->getClientOriginalName() ?: 'a file';
                     continue;
                 }
                 $mime = $file->getMimeType() ?: '';
@@ -324,11 +328,20 @@ class ReviewApiController extends Controller
             $message = 'Your review was submitted and is awaiting approval.';
         }
 
+        if (!empty($skipped)) {
+            $count = count($skipped);
+            $message .= $count === 1
+                ? " However, 1 file couldn't be attached and was skipped."
+                : " However, {$count} files couldn't be attached and were skipped.";
+        }
+
         return $this->created([
-            'status'            => $status,
-            'pending'           => $status === Review::STATUS_PENDING,
+            'status'             => $status,
+            'pending'            => $status === Review::STATUS_PENDING,
             'needs_verification' => $needsEmailVerify,
-            'message'           => $message,
+            'message'            => $message,
+            'media_skipped'      => count($skipped),
+            'skipped_files'      => $skipped,
         ]);
     }
 

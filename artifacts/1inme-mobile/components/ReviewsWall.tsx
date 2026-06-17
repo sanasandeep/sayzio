@@ -22,6 +22,7 @@ import {
   getReviews,
   submitReview,
   submitReviewWithMedia,
+  validateReviewMedia,
   type Review,
   type ReviewMediaUpload,
   type ReviewSort,
@@ -228,6 +229,7 @@ function SubmitModal({
   const [media, setMedia] = useState<ReviewMediaUpload[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   const reset = () => {
     setName("");
@@ -237,19 +239,32 @@ function SubmitModal({
     setMedia([]);
     setError(null);
     setDone(null);
+    setProgress(0);
   };
 
   const appendAssets = (assets: ImagePicker.ImagePickerAsset[]) => {
     if (!assets.length) return;
-    setError(null);
-    setMedia((prev) => {
-      const picked = assets.map((a) => ({
-        uri: a.uri,
-        mimeType: a.mimeType ?? null,
-        fileName: a.fileName ?? null,
-      }));
-      return [...prev, ...picked].slice(0, MAX_MEDIA);
-    });
+
+    const picked: ReviewMediaUpload[] = assets.map((a) => ({
+      uri: a.uri,
+      mimeType: a.mimeType ?? null,
+      fileName: a.fileName ?? null,
+      size: a.fileSize ?? null,
+    }));
+
+    // Reject oversized / unsupported files before they ever reach the server
+    // so the reviewer gets a clear message instead of a silent failure.
+    const accepted: ReviewMediaUpload[] = [];
+    const rejected: string[] = [];
+    for (const m of picked) {
+      const problem = validateReviewMedia(m);
+      if (problem) rejected.push(problem);
+      else accepted.push(m);
+    }
+
+    setError(rejected.length > 0 ? rejected[0] : null);
+    if (accepted.length === 0) return;
+    setMedia((prev) => [...prev, ...accepted].slice(0, MAX_MEDIA));
   };
 
   const pickFromLibrary = async () => {
@@ -311,9 +326,9 @@ function SubmitModal({
         rating: rating > 0 ? rating : undefined,
         body: body.trim() || undefined,
       };
-      return media.length > 0
-        ? submitReviewWithMedia(alias, fields, media)
-        : submitReview(alias, fields);
+      if (media.length === 0) return submitReview(alias, fields);
+      setProgress(0);
+      return submitReviewWithMedia(alias, fields, media, setProgress);
     },
     onSuccess: (res) => {
       setDone(res.message);
@@ -471,6 +486,27 @@ function SubmitModal({
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
+              {mutation.isPending && media.length > 0 ? (
+                <View style={{ gap: 6 }}>
+                  <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          backgroundColor: colors.primary,
+                          width: `${Math.max(4, Math.round(progress * 100))}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={[styles.progressLabel, { color: colors.mutedForeground }]}>
+                    {progress >= 1
+                      ? "Finishing up…"
+                      : `Uploading media… ${Math.round(progress * 100)}%`}
+                  </Text>
+                </View>
+              ) : null}
+
               <Pressable
                 onPress={() => {
                   setError(null);
@@ -483,7 +519,14 @@ function SubmitModal({
                 ]}
               >
                 {mutation.isPending ? (
-                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                  <View style={styles.submitPendingRow}>
+                    <ActivityIndicator size="small" color={colors.primaryForeground} />
+                    {media.length > 0 ? (
+                      <Text style={[styles.submitBtnText, { color: colors.primaryForeground }]}>
+                        {progress >= 1 ? "Finishing…" : `Uploading ${Math.round(progress * 100)}%`}
+                      </Text>
+                    ) : null}
+                  </View>
                 ) : (
                   <Text style={[styles.submitBtnText, { color: colors.primaryForeground }]}>
                     Submit review
@@ -734,5 +777,9 @@ const styles = StyleSheet.create({
   mediaHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
   submitBtn: { minHeight: 50, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
   submitBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
+  submitPendingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  progressTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
+  progressFill: { height: 8, borderRadius: 4 },
+  progressLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12, textAlign: "center" },
   errorText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, color: "#dc2626" },
 });

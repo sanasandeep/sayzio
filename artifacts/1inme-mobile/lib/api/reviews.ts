@@ -90,6 +90,10 @@ export type ReviewSubmitResult = {
   status: "approved" | "pending" | "hidden" | string;
   pending: boolean;
   message: string;
+  // Files the server accepted but couldn't store (quota, scan, allowlist).
+  // The reviewer is told rather than silently losing them.
+  media_skipped?: number;
+  skipped_files?: string[];
 };
 
 export type ReviewSubmitInput = {
@@ -232,7 +236,28 @@ export type ReviewMediaUpload = {
   uri: string;
   mimeType?: string | null;
   fileName?: string | null;
+  // Byte size from the picker when known; used for client-side limit checks.
+  size?: number | null;
 };
+
+// The server caps each file at 50MB (`max:51200` KB) and accepts only the
+// extensions below (`mimes:` rule in ReviewApiController::submit). We mirror
+// both here so oversized / unsupported files are caught before uploading.
+export const REVIEW_MEDIA_MAX_BYTES = 50 * 1024 * 1024;
+export const REVIEW_MEDIA_ALLOWED_EXTENSIONS = [
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+  "mp3",
+  "wav",
+  "ogg",
+  "m4a",
+  "mp4",
+  "webm",
+  "mov",
+];
 
 // Map a media mime type to a sensible filename extension so the server's
 // `mimes:` validation accepts the upload even when the picker omits a name.
@@ -245,7 +270,39 @@ function extForMime(mime: string): string {
   if (m.includes("quicktime") || m.includes("mov")) return "mov";
   if (m.includes("webm")) return "webm";
   if (m.includes("mp4")) return "mp4";
+  if (m.includes("m4a") || m.includes("aac")) return "m4a";
+  if (m.includes("mp3") || m.includes("mpeg")) return "mp3";
+  if (m.includes("wav")) return "wav";
+  if (m.includes("ogg")) return "ogg";
   return "bin";
+}
+
+// Best-effort extension for a picked asset: prefer the real filename suffix,
+// fall back to the mime mapping.
+function extForUpload(m: ReviewMediaUpload): string {
+  if (m.fileName && m.fileName.includes(".")) {
+    const e = m.fileName.split(".").pop()?.toLowerCase();
+    if (e) return e;
+  }
+  return extForMime(m.mimeType || "");
+}
+
+/**
+ * Validate one picked file against the server's limits. Returns a clear,
+ * user-facing message when the file would be rejected (too large or an
+ * unsupported type), or null when it's fine to upload.
+ */
+export function validateReviewMedia(m: ReviewMediaUpload): string | null {
+  const label = m.fileName || "This file";
+  const ext = extForUpload(m);
+  if (!REVIEW_MEDIA_ALLOWED_EXTENSIONS.includes(ext)) {
+    return `${label} is an unsupported type. Use a photo (JPG, PNG, WebP, GIF) or video (MP4, MOV, WebM).`;
+  }
+  if (typeof m.size === "number" && m.size > REVIEW_MEDIA_MAX_BYTES) {
+    const mb = (m.size / (1024 * 1024)).toFixed(1);
+    return `${label} is ${mb}MB, over the 50MB limit. Please pick a smaller file.`;
+  }
+  return null;
 }
 
 /**
@@ -255,12 +312,30 @@ function extForMime(mime: string): string {
  *
  * NB: do NOT set Content-Type — React Native fills in the multipart boundary
  * for us when the body is a FormData.
+ *
+ * `onProgress` (0..1) is called as the body uploads so the UI can show a
+ * progress bar — important for large videos on slow mobile connections. We
+ * use XMLHttpRequest because React Native's fetch() can't report upload
+ * progress. Oversized / unsupported files are rejected up-front so the
+ * reviewer gets a clear message instead of a server 422.
  */
 export async function submitReviewWithMedia(
   alias: string,
   body: ReviewSubmitInput,
   media: ReviewMediaUpload[],
+  onProgress?: (fraction: number) => void,
 ): Promise<ReviewSubmitResult> {
+  const files = media.slice(0, 6);
+
+  // Catch oversized / unsupported files client-side before we waste an upload.
+  for (const m of files) {
+    const problem = validateReviewMedia(m);
+    if (problem) {
+      const err: ApiError = { status: 0, message: problem };
+      throw err;
+    }
+  }
+
   const url = `${getBaseUrl()}/api/v1/reviews/${encodeURIComponent(alias)}`;
   const token = await getToken();
 
@@ -277,7 +352,7 @@ export async function submitReviewWithMedia(
     }
   }
 
-  media.slice(0, 6).forEach((m, i) => {
+  files.forEach((m, i) => {
     const mime = m.mimeType || "application/octet-stream";
     const name = m.fileName || `review-${i}.${extForMime(mime)}`;
     fd.append("media[]", {
@@ -289,30 +364,57 @@ export async function submitReviewWithMedia(
     } as any);
   });
 
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "User-Agent": MOBILE_USER_AGENT,
-    "X-1INME-Client": MOBILE_USER_AGENT,
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  return new Promise<ReviewSubmitResult>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.responseType = "text";
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.setRequestHeader("X-1INME-Client", MOBILE_USER_AGENT);
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    // NB: do NOT set Content-Type — React Native fills in the multipart
+    // boundary for us when the body is a FormData.
 
-  const res = await fetch(url, { method: "POST", body: fd as any, headers });
-  const text = await res.text();
-  let parsed: any = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-    parsed = null;
-  }
-  if (!res.ok) {
-    const err: ApiError = {
-      status: res.status,
-      message:
-        (parsed?.error?.message && String(parsed.error.message)) ||
-        (parsed?.message && String(parsed.message)) ||
-        `Could not submit your review (${res.status})`,
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && e.total > 0) {
+          onProgress(Math.min(1, e.loaded / e.total));
+        }
+      };
+    }
+
+    const parse = (): any => {
+      try {
+        return xhr.responseText ? JSON.parse(xhr.responseText) : null;
+      } catch {
+        return null;
+      }
     };
-    throw err;
-  }
-  return parsed.data as ReviewSubmitResult;
+
+    xhr.onload = () => {
+      const parsed = parse();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(1);
+        resolve(parsed?.data as ReviewSubmitResult);
+        return;
+      }
+      const err: ApiError = {
+        status: xhr.status,
+        message:
+          (parsed?.error?.message && String(parsed.error.message)) ||
+          (parsed?.message && String(parsed.message)) ||
+          `Could not submit your review (${xhr.status})`,
+        errors: parsed?.errors ?? parsed?.error?.details,
+      };
+      reject(err);
+    };
+
+    xhr.onerror = () => {
+      reject({
+        status: 0,
+        message: "Upload failed. Check your connection and try again.",
+      } as ApiError);
+    };
+
+    xhr.send(fd as any);
+  });
 }
