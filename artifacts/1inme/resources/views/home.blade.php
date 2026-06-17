@@ -3044,6 +3044,93 @@
     </div>
 </section>
 
+{{-- ============================ DOMAINS & URL ALIASES ============================ --}}
+<section id="domains" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="domains-h">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">Domains &amp; URL aliases</div>
+            <h2 id="domains-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Pick a domain that fits.<br><span class="grad-text">Or bring your own.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                Launch on one of our branded shared domains, connect your own custom domain, or give any link a memorable slug — with multiple aliases pointing at the same page.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            {{-- 1 · Multiple global domains --}}
+            <div class="reveal rd-1 glass rounded-3xl p-7 tilt relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-layer-group text-xl" style="color:var(--c1)"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Multiple global domains</h3>
+                    <p class="text-sm text-gray-400 mb-5">Choose from our branded shared domains at sign-up — no DNS setup required.</p>
+                    <div class="flex flex-wrap gap-2" aria-hidden="true">
+                        @foreach(['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app'] as $__dom)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/5 text-gray-200">
+                                <i class="fas fa-globe text-[10px]" style="color:var(--c1)"></i> {{ $__dom }}
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            {{-- 2 · Bring your own domain --}}
+            <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c2)"></div>
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(124,58,237,.22)"><i class="fas fa-globe text-xl" style="color:var(--c2)"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Bring your own domain</h3>
+                    <p class="text-sm text-gray-400 mb-5">Connect a personal or brand domain like <span class="text-white">links.yourbrand.com</span> and verify it with a single CNAME record.</p>
+                    <div class="space-y-2" aria-hidden="true">
+                        <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs">
+                            <span class="font-mono text-gray-400">CNAME</span>
+                            <span class="font-mono text-gray-200 truncate">links → cname.1in.me</span>
+                            <span style="color:var(--c1)"><i class="fas fa-circle-check"></i></span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs">
+                            <span class="font-mono text-gray-400">Status</span>
+                            <span class="font-mono text-gray-200">Verified · auto-SSL</span>
+                            <span style="color:var(--c1)"><i class="fas fa-circle-check"></i></span>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-[11px] text-gray-500"><i class="fas fa-crown text-[10px] mr-1" style="color:var(--c5)"></i> Custom domains are a paid-plan feature.</p>
+                </div>
+            </div>
+
+            {{-- 3 · Custom URL aliases --}}
+            <div class="reveal rd-3 glass rounded-3xl p-7 tilt relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c3)"></div>
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-tags text-xl" style="color:var(--c3)"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Custom URL aliases</h3>
+                    <p class="text-sm text-gray-400 mb-5">Pick a memorable primary slug, then add extra aliases that all open the same page — no redirects.</p>
+                    <div class="space-y-2" aria-hidden="true">
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
+                            <i class="fas fa-star text-[10px]" style="color:var(--c5)"></i>
+                            <span class="text-gray-400">1in.me/</span><span class="text-white">spring-drop</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
+                            <i class="fas fa-link text-[10px]" style="color:var(--c3)"></i>
+                            <span class="text-gray-400">1in.me/</span><span class="text-gray-200">sale</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
+                            <i class="fas fa-link text-[10px]" style="color:var(--c3)"></i>
+                            <span class="text-gray-400">1in.me/</span><span class="text-gray-200">drop24</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="reveal rd-4 mt-10 text-center">
+            <a href="{{ route('site.domains') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white btn-bounce btn-glow grad-bar">
+                Explore domains &amp; aliases <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ 3 · GROW ============================ --}}
 <section class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

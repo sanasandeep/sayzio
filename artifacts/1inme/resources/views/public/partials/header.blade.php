@@ -55,6 +55,10 @@
                             <i class="fas fa-plug text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Integrations</span><span class="block text-xs text-gray-500">One-click social connections</span></span>
                         </a>
+                        <a href="{{ route('site.domains') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-globe text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Domains &amp; aliases</span><span class="block text-xs text-gray-500">Branded domains &amp; custom slugs</span></span>
+                        </a>
                         <a href="{{ route('site.workspace-team') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-people-group text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Workspace &amp; Team</span><span class="block text-xs text-gray-500">Roles, permissions, audit logs</span></span>
@@ -198,6 +202,7 @@
             <a href="{{ route('site.analytics') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Analytics</a>
             <a href="{{ route('site.audience') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Audience</a>
             <a href="{{ route('site.integrations') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Integrations</a>
+            <a href="{{ route('site.domains') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Domains &amp; aliases</a>
             <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Workspace &amp; Team</a>
             <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
 

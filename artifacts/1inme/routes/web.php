@@ -196,6 +196,7 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::view('/analytics',    'public.analytics',    ['seoKey' => 'analytics'])   ->name('site.analytics');
     Route::view('/audience',     'public.audience',     ['seoKey' => 'audience'])    ->name('site.audience');
     Route::view('/integrations', 'public.integrations', ['seoKey' => 'integrations'])->name('site.integrations');
+    Route::view('/domains',      'public.domains',      ['seoKey' => 'domains'])     ->name('site.domains');
     Route::get('/pricing',          [\App\Modules\Common\Controllers\PricingPagesController::class, 'plans'])   ->name('site.pricing');
     // Lightweight AJAX target the /pricing Alpine toggle pings whenever
     // the visitor flips Monthly ↔ Annual. The page itself doesn't
