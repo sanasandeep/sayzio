@@ -36,6 +36,7 @@ use App\Modules\Admin\Middleware\CheckPermission;
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.submit');
+    Route::get('demo-login', fn () => redirect()->route('admin.login'));
     Route::post('demo-login', [AuthController::class, 'demoLogin'])->name('demo.login');
 
     Route::get('forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
