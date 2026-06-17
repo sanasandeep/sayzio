@@ -125,7 +125,7 @@
     @endphp
 
     @if($page->slug === 'features')
-        @include('admin.site-pages.partials.features-editor', ['page' => $page, 'categories' => $featuresCategories])
+        @include('admin.site-pages.partials.features-editor', ['page' => $page, 'categories' => $featuresCategories, 'homeLinkTypesSync' => $homeLinkTypesSync ?? []])
     @else
     @if($isServices)
         @include('admin.partials.icon-picker')
@@ -380,7 +380,7 @@
         @endif
 
         @if($page->slug === 'home')
-            @include('admin.site-pages.partials.home-editor', ['page' => $page])
+            @include('admin.site-pages.partials.home-editor', ['page' => $page, 'featuresLinkTypesSync' => $featuresLinkTypesSync ?? []])
         @elseif($page->slug === 'about')
             @include('admin.site-pages.partials.about-editor', ['page' => $page])
         @elseif($page->slug === 'contact')

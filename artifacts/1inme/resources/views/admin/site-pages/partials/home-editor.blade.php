@@ -20,11 +20,22 @@
             'new'   => (bool) ($lt['new'] ?? false),
         ];
     }, array_values($homeLinkTypes), array_keys(array_values($homeLinkTypes)));
+
+    // The current Features-page "Link types" category rows, supplied by the
+    // controller, so an admin can pull them into this showcase in one click.
+    $featuresLinkTypesForJs = array_map(function ($f) {
+        return [
+            'name' => (string) ($f['name'] ?? ''),
+            'icon' => (string) ($f['icon'] ?? ''),
+            'desc' => (string) ($f['description'] ?? ''),
+        ];
+    }, array_values($featuresLinkTypesSync ?? []));
 @endphp
 
 <div class="glass rounded-2xl p-5"
      x-data="{
         rows: {{ json_encode($homeLinkTypesForJs) }},
+        featuresSource: {{ json_encode($featuresLinkTypesForJs) }},
         nextKey: {{ count($homeLinkTypesForJs) }},
         dragFrom: null,
         add(){ this.rows.push({ _key: this.nextKey++, name: '', desc: '', icon: 'fa-link', color: '#7c3aed', new: false }); },
@@ -37,18 +48,50 @@
             if(this.dragFrom === null || this.dragFrom === i){ return; }
             const a = this.rows; const moved = a.splice(this.dragFrom, 1)[0];
             a.splice(i, 0, moved); this.dragFrom = null;
+        },
+        syncFromFeatures(){
+            var self = this;
+            window.themedConfirm({
+                title: 'Pull from Features link types?',
+                message: 'This replaces the cards below with the current Features “Link types” list (name, icon and description). Your accent colours and “New” badges are kept for any link type whose name still matches. Nothing is saved until you click Save changes.',
+                confirmText: 'Pull from Features',
+                confirmIcon: 'fa-rotate',
+                iconClass: 'fa-rotate',
+                onConfirm: function () {
+                    var byName = {};
+                    self.rows.forEach(function (r) { byName[(r.name || '').trim().toLowerCase()] = r; });
+                    self.rows = self.featuresSource.map(function (f) {
+                        var prev = byName[(f.name || '').trim().toLowerCase()];
+                        return {
+                            _key: self.nextKey++,
+                            name: f.name || '',
+                            desc: f.desc || '',
+                            icon: f.icon || (prev ? prev.icon : 'fa-link') || 'fa-link',
+                            color: prev ? prev.color : '#7c3aed',
+                            new: prev ? !!prev.new : false,
+                        };
+                    });
+                },
+            });
         }
      }">
-    <div class="flex items-center justify-between mb-2">
+    <div class="flex items-start justify-between mb-2 gap-3">
         <div>
             <label class="text-sm font-semibold text-white">&ldquo;What you can create&rdquo; link types</label>
             <p class="text-[11px] text-white/50 mt-1">The cards in the home-page showcase. Edit each type's name, description, icon, accent colour and &ldquo;New&rdquo; badge, and drag to reorder. Leaving the whole list empty restores the built-in defaults.</p>
         </div>
-        <button type="button" @click="add()" class="shrink-0 text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
-            <i class="fas fa-plus mr-1"></i> Add link type
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" @click="syncFromFeatures()" :disabled="featuresSource.length===0"
+                    class="text-xs px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-white"
+                    title="Replace these cards with the current Features link-types list">
+                <i class="fas fa-rotate mr-1"></i> Pull from Features
+            </button>
+            <button type="button" @click="add()" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                <i class="fas fa-plus mr-1"></i> Add link type
+            </button>
+        </div>
     </div>
-    <p class="text-[11px] text-white/40 mb-3"><i class="fas fa-grip-vertical mr-1"></i> Drag the handle on the left of any card to reorder. Arrow buttons still work too.</p>
+    <p class="text-[11px] text-white/40 mb-3"><i class="fas fa-grip-vertical mr-1"></i> Drag the handle on the left of any card to reorder. Arrow buttons still work too. <span class="text-white/30">&middot;</span> <i class="fas fa-rotate mr-1"></i> &ldquo;Pull from Features&rdquo; copies the Features page list here, keeping your accent colours and &ldquo;New&rdquo; badges for matching names.</p>
 
     <div class="space-y-3">
         <template x-for="(lt, i) in rows" :key="lt._key">

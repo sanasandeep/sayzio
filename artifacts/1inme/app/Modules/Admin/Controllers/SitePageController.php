@@ -40,6 +40,24 @@ class SitePageController extends Controller
         } else {
             $featuresCategories = [];
         }
+        // Cross-page link-type sync sources so admins can pull one list into
+        // the other and keep the home showcase and Features "Link types"
+        // category consistent without manual double entry.
+        $featuresLinkTypesSync = [];
+        $homeLinkTypesSync = [];
+        if ($slug === 'home') {
+            $featuresPage = SitePage::where('slug', 'features')->first();
+            $featuresSections = $featuresPage && is_array($featuresPage->sections) ? $featuresPage->sections : [];
+            $featuresLinkTypesSync = SitePagesContent::featuresLinkTypesFromSections($featuresSections);
+        } elseif ($slug === 'features') {
+            $homePage = SitePage::where('slug', 'home')->first();
+            $homeLinkTypesSync = SitePagesContent::normalizeHomeLinkTypes(
+                (array) (data_get($homePage, 'extra.link_types') ?? [])
+            );
+            if (empty($homeLinkTypesSync)) {
+                $homeLinkTypesSync = SitePagesContent::homeLinkTypesDefault();
+            }
+        }
         $settings = [
             'discovery_per_page'        => (int) AppSetting::get('discovery_per_page', 24),
             'discovery_show_search'     => (bool) AppSetting::get('discovery_show_search', true),
@@ -59,7 +77,7 @@ class SitePageController extends Controller
         }
         return view('admin.site-pages.edit', compact(
             'page', 'faqs', 'settings', 'featuresCategories', 'revisions',
-            'blogCategories', 'blogPosts'
+            'blogCategories', 'blogPosts', 'featuresLinkTypesSync', 'homeLinkTypesSync'
         ));
     }
 

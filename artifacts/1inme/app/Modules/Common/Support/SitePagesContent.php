@@ -979,6 +979,34 @@ class SitePagesContent
     }
 
     /**
+     * Extract the "Link types" category feature rows from a features-page
+     * `sections` payload, normalised to `{name, icon, description}`. Falls
+     * back to the built-in features default when the saved sections are
+     * empty or have no `link-types` category. This is the shared source the
+     * home-page "What you can create" editor pulls from so the two link-type
+     * lists can be kept in sync without manual double entry.
+     */
+    public static function featuresLinkTypesFromSections(array $sections): array
+    {
+        $categories = self::normalizeFeaturesCategories($sections);
+        if (empty($categories)) {
+            $categories = self::featuresCategoriesDefault();
+        }
+        foreach ($categories as $cat) {
+            if (($cat['id'] ?? '') === 'link-types') {
+                return array_values(array_map(function ($f) {
+                    return [
+                        'name'        => (string) ($f['name'] ?? ''),
+                        'icon'        => (string) ($f['icon'] ?? ''),
+                        'description' => (string) ($f['description'] ?? ''),
+                    ];
+                }, (array) ($cat['features'] ?? [])));
+            }
+        }
+        return [];
+    }
+
+    /**
      * Structured default content for the dedicated /features page. Each
      * top-level entry is a category card on the page. Stored on the
      * `features` SitePage row as `sections` so admins can edit every

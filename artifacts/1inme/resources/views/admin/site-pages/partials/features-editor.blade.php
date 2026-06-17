@@ -1,6 +1,6 @@
 @include('admin.partials.icon-picker')
 <form method="POST" action="{{ route('admin.site-pages.update', $page->slug) }}"
-      x-data="featuresEditor({{ json_encode(array_values($categories)) }})"
+      x-data="featuresEditor({{ json_encode(array_values($categories)) }}, {{ json_encode(array_values($homeLinkTypesSync ?? [])) }})"
       class="glass rounded-2xl p-6 space-y-5">
     @csrf
     @method('PUT')
@@ -91,10 +91,21 @@
                 <div class="border-t border-white/10 pt-3">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-[10px] uppercase tracking-wider text-white/40">Features in this category</label>
-                        <button type="button" @click="addFeature(ci)" class="text-[11px] px-2 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-white">
-                            <i class="fas fa-plus mr-1"></i> Add feature
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" x-show="cat.id === 'link-types' && homeSource.length > 0"
+                                    @click="syncFromHome(ci)"
+                                    class="text-[11px] px-2 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-white"
+                                    title="Replace these features with the current home-page link-types showcase">
+                                <i class="fas fa-rotate mr-1"></i> Pull from Home
+                            </button>
+                            <button type="button" @click="addFeature(ci)" class="text-[11px] px-2 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-white">
+                                <i class="fas fa-plus mr-1"></i> Add feature
+                            </button>
+                        </div>
                     </div>
+                    <p x-show="cat.id === 'link-types' && homeSource.length > 0" class="text-[11px] text-white/40 mb-2">
+                        <i class="fas fa-rotate mr-1"></i> &ldquo;Pull from Home&rdquo; copies the home-page showcase here (name, icon, description). Optional links are kept for any feature whose name still matches.
+                    </p>
                     <template x-for="(feat, fi) in cat.features" :key="feat._key">
                         <div class="bg-black/20 border border-white/5 rounded-lg p-3 mb-2 space-y-2 transition-opacity"
                              :class="dragFeat.fromCi === ci && dragFeat.fromFi === fi ? 'opacity-50' : ''"
@@ -138,7 +149,7 @@
 
 @push('scripts')
 <script>
-    function featuresEditor(initial) {
+    function featuresEditor(initial, homeSource) {
         let _uid = 0;
         const nextKey = () => `k${++_uid}_${Date.now()}`;
         return {
@@ -155,8 +166,39 @@
                     link: f.link || '',
                 })),
             })),
+            homeSource: (homeSource || []).map(h => ({
+                name: h.name || '',
+                icon: h.icon || '',
+                desc: h.desc || '',
+            })),
             dragCat: { from: null },
             dragFeat: { fromCi: null, fromFi: null },
+            syncFromHome(ci) {
+                var self = this;
+                window.themedConfirm({
+                    title: 'Pull from Home link types?',
+                    message: 'This replaces the features in this category with the current home-page “What you can create” showcase (name, icon and description). Optional links are kept for any feature whose name still matches. Nothing is saved until you click Save changes.',
+                    confirmText: 'Pull from Home',
+                    confirmIcon: 'fa-rotate',
+                    iconClass: 'fa-rotate',
+                    onConfirm: function () {
+                        var byName = {};
+                        (self.categories[ci].features || []).forEach(function (f) {
+                            byName[(f.name || '').trim().toLowerCase()] = f;
+                        });
+                        self.categories[ci].features = self.homeSource.map(function (h) {
+                            var prev = byName[(h.name || '').trim().toLowerCase()];
+                            return {
+                                _key: nextKey(),
+                                name: h.name || '',
+                                description: h.desc || '',
+                                icon: h.icon || (prev ? prev.icon : '') || '',
+                                link: prev ? (prev.link || '') : '',
+                            };
+                        });
+                    },
+                });
+            },
             addCategory() {
                 this.categories.push({ _key: nextKey(), id: '', icon: 'fa-circle', heading: '', intro: '', features: [] });
             },
