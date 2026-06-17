@@ -32,7 +32,12 @@ import {
 } from "@/lib/api/links";
 import { listNfcWrites } from "@/lib/api/nfc";
 import { metaForApiType } from "@/lib/linkKinds";
-import { PAID_PAGE_TEMPLATES, paidPageTemplateId } from "@/lib/paidPage";
+import { PaidPageTemplatePreview } from "@/components/PaidPageTemplatePreview";
+import {
+  getPaidPageTemplate,
+  PAID_PAGE_TEMPLATES,
+  paidPageTemplateId,
+} from "@/lib/paidPage";
 
 const VISIBILITIES: Link["visibility"][] = [
   "public",
@@ -469,6 +474,20 @@ export default function EditLinkScreen() {
             >
               Template
             </Text>
+            <View
+              style={[
+                styles.tplPreviewFrame,
+                {
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <PaidPageTemplatePreview templateId={paidTemplate} />
+            </View>
+            <Text style={[styles.tplTagline, { color: colors.mutedForeground }]}>
+              {getPaidPageTemplate(paidTemplate).tagline}
+            </Text>
             <View style={styles.tplGrid}>
               {PAID_PAGE_TEMPLATES.map((t) => {
                 const on = paidTemplate === t.id;
@@ -883,6 +902,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   rowLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  tplPreviewFrame: {
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  tplTagline: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+  },
   tplGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   tplCard: {
     width: "30%",
