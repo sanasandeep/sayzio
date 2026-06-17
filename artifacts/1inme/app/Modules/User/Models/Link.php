@@ -576,6 +576,15 @@ protected $fillable = [
     public const TYPE_REVIEWS        = 'reviews';
     public const TYPE_RESUME         = 'resume';
 
+    /**
+     * Standalone "Paid Page" — a creator's monetized feed (posts, tiers,
+     * PPV, tipping) packaged as a shareable link. Deliberately NOT part of
+     * BIOLINK_FAMILY: it is rendered by its own dedicated, themeable public
+     * view that reuses the existing creator-profile feed + paywall stack,
+     * not the biolink block engine.
+     */
+    public const TYPE_PAID_PAGE      = 'paid_page';
+
     public const BIOLINK_FAMILY = [
         self::TYPE_BIOLINK,
         self::TYPE_CONVERSATIONAL,
@@ -612,6 +621,7 @@ protected $fillable = [
         'vcf'            => 'Contact Card',
         'reviews'        => 'Reviews Page',
         'resume'         => 'Resume / Portfolio',
+        'paid_page'      => 'Paid Page',
     ];
 
     /** Reviews relationship — native reviews submitted on this link. */

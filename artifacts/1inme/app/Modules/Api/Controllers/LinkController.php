@@ -69,7 +69,7 @@ class LinkController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page'])],
             'alias'      => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
             'title'      => ['nullable', 'string', 'max:200'],
             'long_url'   => ['nullable', 'url', 'max:2048'],
@@ -158,6 +158,21 @@ class LinkController extends Controller
         if ($link->type === 'resume') {
             $resume = $request->user()->ensureResume();
             $link->resume_id = $resume->id;
+            $link->save();
+        }
+
+        // Paid Page links seed a default design template into settings so the
+        // public render always resolves a theme even before the owner opens
+        // the editor — mirrors the web LinkController::store() behavior.
+        if ($link->type === 'paid_page') {
+            $settings = (array) ($link->settings ?? []);
+            $paidPage = (array) ($settings['paid_page'] ?? []);
+            $requested = $paidPage['template'] ?? null;
+            $paidPage['template'] = \App\Modules\User\Support\PaidPageTemplates::exists($requested)
+                ? $requested
+                : \App\Modules\User\Support\PaidPageTemplates::DEFAULT_ID;
+            $settings['paid_page'] = $paidPage;
+            $link->settings = $settings;
             $link->save();
         }
 

@@ -112,7 +112,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page',
             'alias' => [
                 'nullable', 'string', 'alpha_dash',
                 'min:' . $limits['min'],
@@ -146,7 +146,29 @@ class LinkController extends Controller
             'vcf'            => redirect()->route('user.links.vcf.create', $params),
             'reviews'        => redirect()->route('user.links.reviews.create', $params),
             'resume'         => redirect()->route('user.links.resume.create', $params),
+            'paid_page'      => redirect()->route('user.links.paid-page.create', $params),
         };
+    }
+
+    /**
+     * Step 2 for the standalone Paid Page — name + alias + project + a
+     * starting template. The link bridges to the creator's existing
+     * monetized feed (posts / tiers / PPV / tipping); the dedicated
+     * paid-page editor takes over after creation.
+     */
+    public function createPaidPage(Request $request)
+    {
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        return view('user.links.create-paid-page', [
+            'projects' => $projects,
+            'domains'  => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'prefillAlias' => (string) $request->query('alias', ''),
+            'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
+            'templates' => \App\Modules\User\Support\PaidPageTemplates::all(),
+        ]);
     }
 
     /**
@@ -255,6 +277,7 @@ class LinkController extends Controller
             'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
             'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
             'resume'          => ['module' => 'module_resume',          'cap' => 'max_resume',          'label' => 'Resume / Portfolio'],
+            'paid_page'       => ['module' => 'module_paid_page',       'cap' => 'max_paid_page',       'label' => 'Paid Page'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -281,7 +304,8 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page',
+            'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
@@ -432,6 +456,22 @@ class LinkController extends Controller
             $link->save();
         }
 
+        // Paid Page links bridge to the creator's existing monetized feed
+        // (posts / tiers / PPV / tipping). Seed the chosen starting template
+        // into settings['paid_page'] and default the page to public; the
+        // dedicated editor lets the owner switch template + gate the page.
+        if ($link->type === 'paid_page') {
+            $tpl = $request->input('paid_page_template');
+            if (!in_array($tpl, \App\Modules\User\Support\PaidPageTemplates::ids(), true)) {
+                $tpl = \App\Modules\User\Support\PaidPageTemplates::DEFAULT_ID;
+            }
+            $settings = $link->settings ?? [];
+            $settings['paid_page'] = ['template' => $tpl];
+            $link->settings = $settings;
+            $link->visibility = 'public';
+            $link->save();
+        }
+
         if (!empty($pixelIds)) {
             $link->pixels()->sync($pixelIds);
         }
@@ -484,6 +524,10 @@ class LinkController extends Controller
         if ($link->type === 'resume') {
             return redirect()->route('user.resume.editor')
                 ->with('success', 'Resume / Portfolio link created — build and publish your resume.');
+        }
+        if ($link->type === 'paid_page') {
+            return redirect()->route('user.links.paid-page.editor', $link)
+                ->with('success', 'Paid Page created — pick a design, then add posts and tiers.');
         }
 
         // "Build with AI" start mode — skip the picker and send the user to

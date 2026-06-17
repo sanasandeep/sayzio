@@ -87,6 +87,7 @@
                     ['value' => 'vcf',            'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300',      'label' => 'Contact Card',    'desc' => 'A digital business card visitors can save instantly.'],
                     ['value' => 'reviews',        'icon' => 'fa-star',         'badge' => 'bg-yellow-500/15 text-yellow-300',  'label' => 'Reviews',         'desc' => 'Collect and showcase reviews from your audience.'],
                     ['value' => 'resume',         'icon' => 'fa-file-lines',   'badge' => 'bg-indigo-500/15 text-indigo-300',  'label' => 'Resume / Portfolio', 'desc' => 'A shareable resume / portfolio page with PDF download.'],
+                    ['value' => 'paid_page',      'icon' => 'fa-crown',        'badge' => 'bg-rose-500/15 text-rose-300',      'label' => 'Paid Page',       'desc' => 'A bold, themeable home for your paid posts, tiers & tips.'],
                 ] as $opt)
                     <label class="relative cursor-pointer block group h-full">
                         <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">

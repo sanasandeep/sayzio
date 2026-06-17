@@ -400,6 +400,7 @@ class RedirectController extends Controller
             'vcf' => $this->handleVcfDownload($link),
             'reviews' => $this->handleReviewsPage($request, $link),
             'resume' => $this->handleResumePage($request, $link),
+            'paid_page' => $this->handlePaidPage($request, $link),
             default => abort(404),
         };
     }
@@ -624,7 +625,7 @@ class RedirectController extends Controller
         // Only the biolink family and the redirect/download types carry a
         // meaningful visibility gate. Any other type stays public.
         if (!$link->isBiolinkFamily()
-            && !in_array($link->type, ['url', 'file', 'ics', 'vcf', 'reviews'], true)) {
+            && !in_array($link->type, ['url', 'file', 'ics', 'vcf', 'reviews', 'paid_page'], true)) {
             return null;
         }
 
@@ -1055,6 +1056,66 @@ class RedirectController extends Controller
 
         return app(PublicResumeController::class)
             ->show($request, $user->publicHandle(), $slug);
+    }
+
+    /**
+     * Paid Page link. Repackages the creator's monetized feed (posts /
+     * tiers / PPV / tipping) as a themeable, shareable page. Reuses the
+     * exact per-creator feed data + paywall stack that powers /@handle
+     * (via CreatorProfilePublicController::buildFeedViewData) and the same
+     * creator-post-card partial — so reactions, comments, unlock and
+     * subscribe all flow through the existing handle-based routes. The
+     * page-level public/gated toggle is enforced by enforceVisibility()
+     * (links.visibility) before this runs; here we only apply the chosen
+     * design template and the 18+ / region gates that are content-based.
+     */
+    protected function handlePaidPage(Request $request, Link $link)
+    {
+        $creator = \App\Modules\User\Models\User::find($link->user_id);
+        abort_unless($creator, 404);
+
+        $viewer  = \App\Modules\Common\Services\ViewerSession::user() ?? auth()->user();
+        $isOwner = $viewer && (int) $viewer->id === (int) $creator->id;
+
+        // 18+ age gate (content-based — applies even when the link itself is
+        // publicly visible). Owners and viewers who have affirmed 18+ bypass.
+        if (!$isOwner && $creator->isAdultProfile()
+            && !\App\Modules\Common\Services\AgeGate::passed($request, $viewer)) {
+            return $this->applyBiolinkFramingHeaders(
+                response()->view('public.age-gate', ['creator' => $creator]),
+                $request
+            );
+        }
+
+        // Region gate (profile-level country lists). Owners bypass.
+        if (!$isOwner) {
+            $decision = app(\App\Modules\Common\Services\CountryGate::class)
+                ->decide($creator, null, $request->ip());
+            if (empty($decision['allowed'])) {
+                return response()->view('public.region-blocked', [
+                    'creator' => $creator,
+                    'reason'  => $decision['reason'] ?? 'The creator has restricted this content in your region.',
+                ], 451);
+            }
+        }
+
+        $feed = app(CreatorProfilePublicController::class)
+            ->buildFeedViewData($creator, $viewer, (bool) $isOwner);
+
+        $template = \App\Modules\User\Support\PaidPageTemplates::get(
+            $link->settings['paid_page']['template'] ?? null
+        );
+
+        return $this->applyBiolinkFramingHeaders(
+            response()->view('public.paid-page', array_merge($feed, [
+                'link'     => $link,
+                'creator'  => $creator,
+                'viewer'   => $viewer,
+                'isOwner'  => $isOwner,
+                'template' => $template,
+            ])),
+            $request
+        );
     }
 
     public function subscribe(Request $request, string $alias)

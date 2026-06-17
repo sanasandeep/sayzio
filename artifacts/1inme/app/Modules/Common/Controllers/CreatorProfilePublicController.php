@@ -79,6 +79,41 @@ class CreatorProfilePublicController extends Controller
 
         $sectionsVisible = $creator->profileSectionVisibility();
 
+        $feed = $this->buildFeedViewData($creator, $viewer, $isOwner);
+
+        $primaryBiolink = Link::query()
+            ->where('user_id', $creator->id)
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->first();
+
+        // Task #1211 — related creators by overlapping niche tags. Cheap
+        // static helper on CreatorsController so the directory and the
+        // profile share one ranking definition.
+        $relatedCreators = \App\Modules\Common\Controllers\CreatorsController::relatedCreators($creator, $viewer, 6);
+
+        return view('public.creator-profile', array_merge($feed, [
+            'creator'         => $creator,
+            'primaryBiolink'  => $primaryBiolink,
+            'sectionsVisible' => $sectionsVisible,
+            'viewer'          => $viewer,
+            'isOwner'         => $isOwner,
+            'relatedCreators' => $relatedCreators,
+        ]));
+    }
+
+    /**
+     * Build the shared per-creator feed payload (posts page, reaction
+     * totals, viewer reactions, comments, tiers, viewer subscription,
+     * per-post access and follow state). Reused verbatim by the /@handle
+     * creator profile and the Paid Page link type so both surfaces share
+     * one source of truth for the monetized feed + paywall data.
+     *
+     * @return array<string,mixed>
+     */
+    public function buildFeedViewData(User $creator, ?User $viewer, bool $isOwner): array
+    {
         $posts = CreatorPost::query()
             ->withoutGlobalScope('workspace')
             ->where('user_id', $creator->id)
@@ -90,16 +125,9 @@ class CreatorProfilePublicController extends Controller
         // Bulk-load reactions and comment counts for the visible page so we
         // don't N+1 the rendering loop.
         $postIds = $posts->pluck('id')->all();
-        $reactionTotals  = $this->reactionTotalsByPost($postIds);
-        $myReactions     = $this->myReactionsByPost($postIds, $viewer);
-        $commentsByPost  = $this->commentsByPost($postIds);
-
-        $primaryBiolink = Link::query()
-            ->where('user_id', $creator->id)
-            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->first();
+        $reactionTotals = $this->reactionTotalsByPost($postIds);
+        $myReactions    = $this->myReactionsByPost($postIds, $viewer);
+        $commentsByPost = $this->commentsByPost($postIds);
 
         $isFollowing = false;
         if ($viewer && !$isOwner) {
@@ -127,28 +155,17 @@ class CreatorProfilePublicController extends Controller
         }
         $accessByPost = \App\Services\Monetization\PostAccessPolicy::evaluateMany($viewer, $posts->getCollection());
 
-        // Task #1211 — related creators by overlapping niche tags. Cheap
-        // static helper on CreatorsController so the directory and the
-        // profile share one ranking definition.
-        $relatedCreators = \App\Modules\Common\Controllers\CreatorsController::relatedCreators($creator, $viewer, 6);
-
-        return view('public.creator-profile', [
-            'creator'             => $creator,
-            'posts'               => $posts,
-            'reactionTotals'      => $reactionTotals,
-            'myReactions'         => $myReactions,
-            'commentsByPost'      => $commentsByPost,
-            'primaryBiolink'      => $primaryBiolink,
-            'sectionsVisible'     => $sectionsVisible,
-            'viewer'              => $viewer,
-            'isOwner'             => $isOwner,
-            'isFollowing'         => $isFollowing,
-            'reactionDefs'        => CreatorPostReaction::REACTIONS,
-            'tiers'               => $tiers,
-            'viewerSubscription'  => $viewerSubscription,
-            'accessByPost'        => $accessByPost,
-            'relatedCreators'     => $relatedCreators,
-        ]);
+        return [
+            'posts'              => $posts,
+            'reactionTotals'     => $reactionTotals,
+            'myReactions'        => $myReactions,
+            'commentsByPost'     => $commentsByPost,
+            'reactionDefs'       => CreatorPostReaction::REACTIONS,
+            'tiers'              => $tiers,
+            'viewerSubscription' => $viewerSubscription,
+            'accessByPost'       => $accessByPost,
+            'isFollowing'        => $isFollowing,
+        ];
     }
 
     /**

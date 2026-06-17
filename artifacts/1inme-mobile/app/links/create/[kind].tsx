@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { Button } from "@/components/Button";
 import { DomainPicker } from "@/components/DomainPicker";
@@ -10,6 +16,17 @@ import { useColors } from "@/hooks/useColors";
 import { listAvailableDomains } from "@/lib/api/domains";
 import { createLink } from "@/lib/api/links";
 import { metaForKind, type LinkKind } from "@/lib/linkKinds";
+
+// Mirrors app/Modules/User/Support/PaidPageTemplates.php ids + a single
+// representative accent swatch for the picker. The full theme is applied
+// server-side on the public page.
+const PAID_PAGE_TEMPLATES: { id: string; name: string; swatch: string }[] = [
+  { id: "aurora", name: "Aurora", swatch: "#a855f7" },
+  { id: "sunset", name: "Sunset Blvd", swatch: "#fb7185" },
+  { id: "electric", name: "Electric", swatch: "#22d3ee" },
+  { id: "mono", name: "Mono Bold", swatch: "#f43f5e" },
+  { id: "candy", name: "Candy Pop", swatch: "#e879f9" },
+];
 
 export default function CreateLinkScreen() {
   const colors = useColors();
@@ -32,6 +49,8 @@ export default function CreateLinkScreen() {
   // File
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
+  // Paid Page
+  const [paidTemplate, setPaidTemplate] = useState<string>("aurora");
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +109,8 @@ export default function CreateLinkScreen() {
           end: evEnd || null,
           location: evLocation || null,
         };
+      } else if (meta.kind === "paid_page") {
+        settings.paid_page = { template: paidTemplate };
       }
 
       payload.settings = settings;
@@ -237,6 +258,43 @@ export default function CreateLinkScreen() {
           </>
         ) : null}
 
+        {meta.kind === "paid_page" ? (
+          <View style={{ gap: 10 }}>
+            <Text style={[styles.pickLabel, { color: colors.mutedForeground }]}>
+              Choose a starting template
+            </Text>
+            <View style={styles.tplGrid}>
+              {PAID_PAGE_TEMPLATES.map((t) => {
+                const active = paidTemplate === t.id;
+                return (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => setPaidTemplate(t.id)}
+                    style={[
+                      styles.tplCard,
+                      {
+                        borderColor: active ? colors.primary : colors.border,
+                        borderWidth: active ? 2 : 1,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[styles.tplSwatch, { backgroundColor: t.swatch }]}
+                    />
+                    <Text style={[styles.tplName, { color: colors.foreground }]}>
+                      {t.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={[styles.tplHint, { color: colors.mutedForeground }]}>
+              You can change the template and toggle public / gated access
+              anytime from the web editor.
+            </Text>
+          </View>
+        ) : null}
+
         {error ? (
           <Text style={{ color: colors.destructive }}>{error}</Text>
         ) : null}
@@ -258,4 +316,20 @@ export default function CreateLinkScreen() {
 const styles = StyleSheet.create({
   body: { padding: 20, gap: 14, paddingBottom: 40 },
   blurb: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
+  pickLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  tplGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  tplCard: {
+    width: "30%",
+    borderRadius: 14,
+    padding: 8,
+    alignItems: "center",
+    gap: 6,
+  },
+  tplSwatch: { width: "100%", height: 36, borderRadius: 8 },
+  tplName: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
+  tplHint: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 11,
+    lineHeight: 16,
+  },
 });

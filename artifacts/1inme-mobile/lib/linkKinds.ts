@@ -8,6 +8,7 @@ export type LinkKind =
   | "calendar"
   | "ai_chat"
   | "resume"
+  | "paid_page"
   | "conversational"
   | "slides"
   | "restaurant_menu";
@@ -24,6 +25,7 @@ export type LinkKindMeta = {
     | "event"
     | "ai_chat"
     | "resume"
+    | "paid_page"
     | "conversational"
     | "slides"
     | "restaurant_menu";
@@ -81,6 +83,13 @@ export const LINK_KINDS: LinkKindMeta[] = [
     label: "Resume / Portfolio",
     blurb: "A shareable resume page with PDF download.",
     icon: "file-text",
+  },
+  {
+    kind: "paid_page",
+    apiType: "paid_page",
+    label: "Paid Page",
+    blurb: "A bold, themeable home for your paid posts, tiers & tips.",
+    icon: "award",
   },
 ];
 

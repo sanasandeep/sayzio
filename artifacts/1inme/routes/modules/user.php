@@ -673,6 +673,11 @@ Route::prefix('user')->name('user.')->group(function () {
         // Standalone Resume / Portfolio link: step-2 create only. The editor
         // and public page reuse the existing standalone resume builder.
         Route::get ('links-resume/create', [LinkController::class, 'createResume'])->middleware('workspace.can:links.create')->name('links.resume.create');
+        // Standalone Paid Page link: step-2 create + design editor. Posts and
+        // tiers reuse the existing per-creator dashboards.
+        Route::get ('links-paid-page/create', [LinkController::class, 'createPaidPage'])->middleware('workspace.can:links.create')->name('links.paid-page.create');
+        Route::get ('links/{link}/paid-page', [\App\Modules\User\Controllers\PaidPageController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.paid-page.editor');
+        Route::post('links/{link}/paid-page', [\App\Modules\User\Controllers\PaidPageController::class, 'update'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.paid-page.update');
         Route::get ('links/{link}/reviews', [\App\Modules\User\Controllers\ReviewsController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.reviews.editor');
         Route::post('links/{link}/reviews/settings', [\App\Modules\User\Controllers\ReviewsController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.settings');
         Route::post('links/{link}/reviews/questions', [\App\Modules\User\Controllers\ReviewsController::class, 'storeQuestion'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.questions.store');
