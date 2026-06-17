@@ -1,13 +1,54 @@
 @extends('user.layouts.app')
 @section('title', 'Slides Analytics - ' . ($link->title ?: $link->alias))
 @section('content')
+
+@push('styles')
+<style>
+    /* Themed horizontal bar for the per-slide funnel — mirrors the app's
+       glass surfaces + accent gradient instead of Bootstrap's .progress. */
+    .sl-bar-track {
+        height: 22px;
+        border-radius: 9px;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        overflow: hidden;
+    }
+    .sl-bar-fill {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        padding: 0 9px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+        border-radius: 9px;
+        box-shadow: 0 4px 14px rgba(124,58,237,0.32);
+        min-width: 1.75rem;
+        white-space: nowrap;
+    }
+    .sl-row + .sl-row { margin-top: 1.1rem; }
+    .sl-error {
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--c-danger);
+        background: var(--c-danger-soft);
+        border: 1px solid var(--c-danger);
+    }
+</style>
+@endpush
+
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
         <div>
-            <h2 class="mb-1">Slides analytics</h2>
-            <div class="text-muted small">{{ $link->title ?: $link->alias }} · /{{ $link->alias }}</div>
+            <h2 class="mb-1 text-2xl font-bold" style="color: var(--text-primary);">Slides analytics</h2>
+            <div class="text-sm" style="color: var(--text-muted);">{{ $link->title ?: $link->alias }} · /{{ $link->alias }}</div>
         </div>
-        <a href="{{ route('user.links.slides.editor', $link) }}" class="btn btn-outline-secondary btn-sm">Back to deck</a>
+        <a href="{{ route('user.links.slides.editor', $link) }}" class="btn-ghost text-xs">
+            <i class="fas fa-arrow-left text-[10px]"></i> Back to deck
+        </a>
     </div>
 
     {{-- ===================== PERIOD CONTROLS =====================
@@ -50,25 +91,73 @@
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Impressions <span id="m-range-label" class="text-muted"></span></div><div class="h3 mb-0" id="m-impressions">—</div></div></div>
-        <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Unique sessions</div><div class="h3 mb-0" id="m-sessions">—</div></div></div>
-        <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Completed decks</div><div class="h3 mb-0" id="m-completed">—</div></div></div>
-        <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Completion rate</div><div class="h3 mb-0" id="m-rate">—</div></div></div>
+    {{-- ===================== HEADLINE METRICS ===================== --}}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(124,58,237,0.12); --stat-border-color: rgba(124,58,237,0.2);">
+            <div class="flex items-center justify-between relative z-10">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">
+                        Impressions <span id="m-range-label" style="color: var(--text-faint);"></span>
+                    </p>
+                    <p class="text-xl font-bold" id="m-impressions" style="color: var(--text-primary);">—</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
+                    <i class="fas fa-eye text-violet-400 text-sm"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #3b82f6, #818cf8); --stat-glow: rgba(59,130,246,0.12); --stat-border-color: rgba(59,130,246,0.2);">
+            <div class="flex items-center justify-between relative z-10">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Unique sessions</p>
+                    <p class="text-xl font-bold" id="m-sessions" style="color: var(--text-primary);">—</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);">
+                    <i class="fas fa-users text-blue-400 text-sm"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #10b981, #34d399); --stat-glow: rgba(16,185,129,0.12); --stat-border-color: rgba(16,185,129,0.2);">
+            <div class="flex items-center justify-between relative z-10">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Completed decks</p>
+                    <p class="text-xl font-bold" id="m-completed" style="color: var(--text-primary);">—</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
+                    <i class="fas fa-flag-checkered text-emerald-400 text-sm"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --stat-glow: rgba(245,158,11,0.12); --stat-border-color: rgba(245,158,11,0.2);">
+            <div class="flex items-center justify-between relative z-10">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Completion rate</p>
+                    <p class="text-xl font-bold" id="m-rate" style="color: var(--text-primary);">—</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
+                    <i class="fas fa-percent text-amber-400 text-sm"></i>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card p-3 mb-4">
-        <h5 id="sl-trend-title">Views over the selected window</h5>
+    {{-- ===================== TREND ===================== --}}
+    <div class="card-premium p-5 mb-4">
+        <h5 id="sl-trend-title" class="text-base font-bold mb-1" style="color: var(--text-primary);">Views over the selected window</h5>
         <svg id="sl-trend" viewBox="0 0 600 160" preserveAspectRatio="none" style="width:100%;height:160px;display:block;margin-top:8px;">
-            <text x="300" y="80" text-anchor="middle" fill="#888" font-size="12">Loading…</text>
+            <text x="300" y="80" text-anchor="middle" font-size="12" style="fill: var(--text-faint);">Loading…</text>
         </svg>
-        <div id="sl-trend-legend" class="d-flex justify-content-between text-muted small mt-1"></div>
+        <div id="sl-trend-legend" class="flex justify-between text-xs mt-1" style="color: var(--text-faint);"></div>
     </div>
 
-    <div class="card p-3">
-        <h5>Per-slide views, drop-off &amp; avg time</h5>
-        <div class="text-muted small">Avg time is the average seconds a viewer spends on a slide before moving on.</div>
-        <div id="sl-funnel" class="mt-3"><em class="text-muted small">Loading…</em></div>
+    {{-- ===================== PER-SLIDE FUNNEL ===================== --}}
+    <div class="card-premium p-5">
+        <h5 class="text-base font-bold mb-1" style="color: var(--text-primary);">Per-slide views, drop-off &amp; avg time</h5>
+        <div class="text-xs" style="color: var(--text-muted);">Avg time is the average seconds a viewer spends on a slide before moving on.</div>
+        <div id="sl-funnel" class="mt-3"><em class="text-xs" style="color: var(--text-faint);">Loading…</em></div>
     </div>
 </div>
 
@@ -119,9 +208,9 @@ function formatDwell(ms) {
             // ── Per-slide funnel ────────────────────────────────────────
             const f = document.getElementById('sl-funnel');
             if (!data.slides.length) {
-                f.innerHTML = '<em class="text-muted small">No slides in this deck yet.</em>';
+                f.innerHTML = '<em class="text-xs" style="color: var(--text-faint);">No slides in this deck yet.</em>';
             } else if (data.total_impressions === 0) {
-                f.innerHTML = '<em class="text-muted small">No views recorded in this window.</em>';
+                f.innerHTML = '<em class="text-xs" style="color: var(--text-faint);">No views recorded in this window.</em>';
             } else {
                 const max = Math.max(...data.slides.map(s => s.views)) || 1;
                 f.innerHTML = data.slides.map(s => {
@@ -131,16 +220,16 @@ function formatDwell(ms) {
                         ? `Average across ${s.dwell_samples} viewer${s.dwell_samples === 1 ? '' : 's'} who moved on`
                         : 'No dwell samples yet';
                     return `
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between small">
-                                <strong>#${s.index + 1} · ${s.title.replace(/</g,'&lt;')}</strong>
-                                <span class="text-muted">
+                        <div class="sl-row">
+                            <div class="flex justify-between items-baseline text-xs gap-2 mb-1.5">
+                                <strong style="color: var(--text-primary);">#${s.index + 1} · ${s.title.replace(/</g,'&lt;')}</strong>
+                                <span style="color: var(--text-muted);">
                                     ${s.views} views · ${s.unique} unique · ${s.drop_off_pct}% drop-off ·
                                     <span title="${dwellTitle}">avg ${dwell}</span>
                                 </span>
                             </div>
-                            <div class="progress" style="height:18px;">
-                                <div class="progress-bar bg-primary" style="width:${pct}%;">${s.views}</div>
+                            <div class="sl-bar-track">
+                                <div class="sl-bar-fill" style="width:${pct}%;">${s.views}</div>
                             </div>
                         </div>
                     `;
@@ -148,6 +237,8 @@ function formatDwell(ms) {
             }
 
             // ── Trend sparkline (scoped to the selected window) ────────
+            // Colors are driven by the theme's --accent / --text-faint vars so
+            // the chart stays legible in both light and dark mode.
             const svg = document.getElementById('sl-trend');
             const series = data.series || [];
             const w = 600, h = 160, pad = 8;
@@ -167,12 +258,12 @@ function formatDwell(ms) {
                 : '';
             const dots = showDots
                 ? points.map(pt =>
-                    `<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="2.5" fill="#8b5cf6"><title>${pt[2].date}: ${pt[2].views} views</title></circle>`
+                    `<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="2.5" style="fill: var(--accent);"><title>${pt[2].date}: ${pt[2].views} views</title></circle>`
                 ).join('')
                 : '';
             svg.innerHTML = points.length
-                ? `<path d="${area}" fill="rgba(139,92,246,.18)" /><path d="${path}" fill="none" stroke="#8b5cf6" stroke-width="2" />${dots}`
-                : '<text x="300" y="80" text-anchor="middle" fill="#888" font-size="12">No views in this window.</text>';
+                ? `<path d="${area}" style="fill: var(--accent); fill-opacity: 0.15;" /><path d="${path}" fill="none" style="stroke: var(--accent);" stroke-width="2" />${dots}`
+                : '<text x="300" y="80" text-anchor="middle" font-size="12" style="fill: var(--text-faint);">No views in this window.</text>';
 
             const legend = document.getElementById('sl-trend-legend');
             if (series.length) {
@@ -182,7 +273,7 @@ function formatDwell(ms) {
             }
         })
         .catch(() => {
-            document.getElementById('sl-funnel').innerHTML = '<div class="alert alert-danger">Failed to load analytics.</div>';
+            document.getElementById('sl-funnel').innerHTML = '<div class="sl-error">Failed to load analytics.</div>';
             document.getElementById('sl-trend').innerHTML = '';
         });
 })();
