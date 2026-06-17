@@ -6,7 +6,7 @@
     $aliasLimits = $aliasLimits ?? ['min' => 3, 'max' => 50];
     $domainHost  = $domainHost ?? request()->getHost();
 @endphp
-<div class="max-w-2xl mx-auto">
+<div class="max-w-4xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white transition-colors"><i class="fas fa-arrow-left"></i></a>
         <h1 class="text-2xl font-bold text-white">Create Link</h1>
@@ -74,27 +74,41 @@
             <h2 class="text-base font-semibold text-white mb-1">…or pick a link type manually</h2>
             <p class="text-xs text-white/40 mb-4">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
 
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach([
-                    ['value' => 'url',            'icon' => 'fa-link',         'color' => 'text-violet-400',  'label' => 'Short Link'],
-                    ['value' => 'biolink',        'icon' => 'fa-id-card',      'color' => 'text-pink-400',    'label' => 'Link in Bio'],
-                    ['value' => 'conversational', 'icon' => 'fa-comments',     'color' => 'text-sky-400',     'label' => 'Conversational'],
-                    ['value' => 'slides',         'icon' => 'fa-clone',        'color' => 'text-fuchsia-400', 'label' => 'Slides'],
-                    ['value' => 'ai_chat',        'icon' => 'fa-robot',        'color' => 'text-teal-400',    'label' => 'AI Chatbot'],
-                    ['value' => 'restaurant_menu','icon' => 'fa-utensils',     'color' => 'text-orange-400',  'label' => 'Restaurant Menu'],
-                    ['value' => 'file',           'icon' => 'fa-file',         'color' => 'text-emerald-400', 'label' => 'File Share'],
-                    ['value' => 'ics',            'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'Event'],
-                    ['value' => 'vcf',            'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'Contact Card'],
-                    ['value' => 'reviews',        'icon' => 'fa-star',         'color' => 'text-yellow-400',  'label' => 'Reviews'],
+                    ['value' => 'url',            'icon' => 'fa-link',         'badge' => 'bg-violet-500/15 text-violet-300',  'label' => 'Short Link',      'desc' => 'Shorten any URL with a custom alias and click tracking.'],
+                    ['value' => 'biolink',        'icon' => 'fa-id-card',      'badge' => 'bg-pink-500/15 text-pink-300',      'label' => 'Link in Bio',     'desc' => 'A mini-site of your links, blocks and media on one page.'],
+                    ['value' => 'conversational', 'icon' => 'fa-comments',     'badge' => 'bg-sky-500/15 text-sky-300',        'label' => 'Conversational',  'desc' => 'A guided, chat-style page that responds as visitors tap.'],
+                    ['value' => 'slides',         'icon' => 'fa-clone',        'badge' => 'bg-fuchsia-500/15 text-fuchsia-300','label' => 'Slides',          'desc' => 'Present a swipeable deck of slides from a single link.'],
+                    ['value' => 'ai_chat',        'icon' => 'fa-robot',        'badge' => 'bg-teal-500/15 text-teal-300',      'label' => 'AI Chatbot',      'desc' => 'An AI assistant that answers your visitors for you.'],
+                    ['value' => 'restaurant_menu','icon' => 'fa-utensils',     'badge' => 'bg-orange-500/15 text-orange-300',  'label' => 'Restaurant Menu', 'desc' => 'A digital menu with sections, items and prices.'],
+                    ['value' => 'file',           'icon' => 'fa-file',         'badge' => 'bg-emerald-500/15 text-emerald-300','label' => 'File Share',      'desc' => 'Share a downloadable file behind a short link.'],
+                    ['value' => 'ics',            'icon' => 'fa-calendar',     'badge' => 'bg-amber-500/15 text-amber-300',    'label' => 'Event',           'desc' => 'A calendar event visitors can add in a single tap.'],
+                    ['value' => 'vcf',            'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300',      'label' => 'Contact Card',    'desc' => 'A digital business card visitors can save instantly.'],
+                    ['value' => 'reviews',        'icon' => 'fa-star',         'badge' => 'bg-yellow-500/15 text-yellow-300',  'label' => 'Reviews',         'desc' => 'Collect and showcase reviews from your audience.'],
                 ] as $opt)
-                    <label class="relative cursor-pointer block">
-                        <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only">
-                        <div class="border rounded-xl p-4 text-center transition-all"
+                    <label class="relative cursor-pointer block group h-full">
+                        <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">
+                        <div class="h-full border rounded-2xl p-5 flex flex-col gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-0.5"
                              :class="type === '{{ $opt['value'] }}'
-                                ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30'
-                                : 'border-white/10 hover:bg-white/[0.04]'">
-                            <i class="fas {{ $opt['icon'] }} {{ $opt['color'] }} text-xl mb-2"></i>
-                            <div class="text-sm font-medium text-white/80">{{ $opt['label'] }}</div>
+                                ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20'">
+                            <div class="flex items-center justify-between">
+                                <div class="w-11 h-11 rounded-xl flex items-center justify-center {{ $opt['badge'] }}">
+                                    <i class="fas {{ $opt['icon'] }} text-lg"></i>
+                                </div>
+                                <span class="w-5 h-5 rounded-full border flex items-center justify-center transition-all"
+                                      :class="type === '{{ $opt['value'] }}'
+                                        ? 'border-violet-400 bg-violet-500'
+                                        : 'border-white/20'">
+                                    <i class="fas fa-check text-[10px] text-white transition-opacity"
+                                       :class="type === '{{ $opt['value'] }}' ? 'opacity-100' : 'opacity-0'"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <div class="text-base font-semibold text-white">{{ $opt['label'] }}</div>
+                                <div class="text-xs text-white/50 mt-1 leading-relaxed">{{ $opt['desc'] }}</div>
+                            </div>
                         </div>
                     </label>
                 @endforeach
