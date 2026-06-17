@@ -3,12 +3,18 @@
 
 @php
     $accent = '#7c3aed';
-    $globalDomains = ['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app'];
+    // Live, admin-managed branded domains (shared by the GlobalDomainsComposer);
+    // falls back to a static branded list when none are configured.
+    $globalDomains = $showcaseDomains ?? \App\Modules\User\Models\Domain::SHOWCASE_FALLBACK;
+    // Natural-language "a, b, c or d" phrasing for the feature blurb.
+    $globalDomainsPhrase = count($globalDomains) > 1
+        ? implode(', ', array_slice($globalDomains, 0, -1)) . ' or ' . end($globalDomains)
+        : ($globalDomains[0] ?? '');
     $features = [
         [
             'icon'  => 'fa-layer-group',
             'title' => 'Multiple branded global domains',
-            'desc'  => 'Skip the DNS setup entirely. Pick one of our shared, branded domains when you create a link or biolink — 1in.me, bizs.club, getbio.one or Sayzio.app — and you’re live instantly with a clean, memorable URL.',
+            'desc'  => 'Skip the DNS setup entirely. Pick one of our shared, branded domains when you create a link or biolink — ' . $globalDomainsPhrase . ' — and you’re live instantly with a clean, memorable URL.',
         ],
         [
             'icon'  => 'fa-globe',

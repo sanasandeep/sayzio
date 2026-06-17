@@ -61,6 +61,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Modules\Common\Services\BlogCtaComposer::class
         );
 
+        // Share the live branded global-domain list with the marketing home
+        // section and /domains page so the showcase stays in sync with the
+        // admin-managed domains automatically.
+        \Illuminate\Support\Facades\View::composer(
+            \App\Modules\Common\Services\GlobalDomainsComposer::VIEWS,
+            \App\Modules\Common\Services\GlobalDomainsComposer::class
+        );
+
         // Note: App\Listeners\IssueInvoiceOnSubscriptionActivated is wired to
         // App\Events\SubscriptionActivated by Laravel's event auto-discovery
         // (typed handle() method on a class under app/Listeners). An explicit

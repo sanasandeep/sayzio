@@ -6,12 +6,20 @@ namespace App\Modules\User\Models;
 use App\Modules\User\Concerns\BelongsToWorkspace;
 use App\Modules\Admin\Models\Plan;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class Domain extends Model
 {
     
     use BelongsToWorkspace;
+
+    /** Cache key for the marketing showcase list of global domains. */
+    public const SHOWCASE_CACHE_KEY = 'marketing.global_domains.showcase';
+
+    /** Static branded fallback shown when no global domains are configured. */
+    public const SHOWCASE_FALLBACK = ['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app'];
+
 protected $fillable = [
         'user_id', 'domain', 'type', 'is_verified', 'is_active', 'is_primary',
         'verification_token', 'cname_target', 'verified_at',
@@ -21,6 +29,54 @@ protected $fillable = [
         'brand_logo_light_url', 'brand_logo_dark_url', 'brand_icon_url',
         'relationship_blurb',
     ];
+
+    protected static function booted(): void
+    {
+        // Any time an admin adds, renames, toggles or removes a global
+        // domain, drop the marketing showcase cache so the home section and
+        // /domains page reflect the change on the next request.
+        static::saved(fn () => static::flushShowcaseCache());
+        static::deleted(fn () => static::flushShowcaseCache());
+    }
+
+    /** Forget the cached marketing showcase list. Never breaks the write path. */
+    public static function flushShowcaseCache(): void
+    {
+        try {
+            Cache::forget(self::SHOWCASE_CACHE_KEY);
+        } catch (\Throwable $e) {
+            // Cache flushing must never break the write path.
+        }
+    }
+
+    /**
+     * Up to $limit active, verified admin-global domains (no owning user),
+     * for display on marketing surfaces. Primary first, then alphabetical.
+     * Falls back to a static branded list when none are configured (or on
+     * any DB error) so the marketing copy is never empty.
+     *
+     * @return array<int,string>
+     */
+    public static function showcase(int $limit = 4): array
+    {
+        try {
+            $domains = Cache::remember(self::SHOWCASE_CACHE_KEY, 600, function () use ($limit) {
+                return static::query()
+                    ->whereNull('user_id')
+                    ->where('is_active', true)
+                    ->where('is_verified', true)
+                    ->orderByDesc('is_primary')
+                    ->orderBy('domain')
+                    ->limit($limit)
+                    ->pluck('domain')
+                    ->all();
+            });
+        } catch (\Throwable $e) {
+            return self::SHOWCASE_FALLBACK;
+        }
+
+        return !empty($domains) ? $domains : self::SHOWCASE_FALLBACK;
+    }
 
     /** True when this global domain has at least one custom logo uploaded. */
     public function hasCustomBranding(): bool

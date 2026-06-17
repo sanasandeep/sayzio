@@ -3066,7 +3066,7 @@
                     <h3 class="text-xl font-bold mb-2">Multiple global domains</h3>
                     <p class="text-sm text-gray-400 mb-5">Choose from our branded shared domains at sign-up — no DNS setup required.</p>
                     <div class="flex flex-wrap gap-2" aria-hidden="true">
-                        @foreach(['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app'] as $__dom)
+                        @foreach(($showcaseDomains ?? \App\Modules\User\Models\Domain::SHOWCASE_FALLBACK) as $__dom)
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/5 text-gray-200">
                                 <i class="fas fa-globe text-[10px]" style="color:var(--c1)"></i> {{ $__dom }}
                             </span>
