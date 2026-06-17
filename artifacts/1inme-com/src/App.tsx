@@ -11,6 +11,11 @@ import Pricing from "@/pages/pricing";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import Faq from "@/pages/faq";
+import Terms from "@/pages/terms";
+import Privacy from "@/pages/privacy";
+import Blog from "@/pages/blog";
+import BlogPost from "@/pages/blog-post";
+import Changelog from "@/pages/changelog";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -24,6 +29,11 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/faq" component={Faq} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/changelog" component={Changelog} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -29,7 +29,9 @@ export function Footer() {
             <ul className="space-y-3">
               <li><Link href="/features" className="text-muted-foreground hover:text-primary transition-colors text-sm">Features</Link></li>
               <li><Link href="/pricing" className="text-muted-foreground hover:text-primary transition-colors text-sm">Pricing</Link></li>
+              <li><Link href="/changelog" className="text-muted-foreground hover:text-primary transition-colors text-sm">Changelog</Link></li>
               <li><Link href="/about" className="text-muted-foreground hover:text-primary transition-colors text-sm">About us</Link></li>
+              <li><Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors text-sm">Blog</Link></li>
               <li><Link href="/faq" className="text-muted-foreground hover:text-primary transition-colors text-sm">FAQ</Link></li>
             </ul>
           </div>
@@ -38,9 +40,8 @@ export function Footer() {
             <h4 className="font-semibold mb-4 text-foreground">Support & Legal</h4>
             <ul className="space-y-3">
               <li><Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact</Link></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms of Service</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Refund Policy</a></li>
+              <li><Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
