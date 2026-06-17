@@ -237,6 +237,12 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultShow']);
         Route::post  ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultUpdate']);
 
+        // Mail / SMTP settings (super-admin parity, Task #1589). Read-only
+        // status + a live "send test email" mirroring the web admin page;
+        // both are gated behind the same `settings.manage` permission.
+        Route::get ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'status']);
+        Route::post('/admin/mail-settings/test', [\App\Modules\Api\Controllers\MailSettingsController::class, 'sendTest'])->middleware('throttle:10,1');
+
         // Wallet & coins (mobile parity).
         Route::get ('/wallet',              [WalletController::class, 'balance']);
         Route::get ('/wallet/transactions', [WalletController::class, 'transactions']);

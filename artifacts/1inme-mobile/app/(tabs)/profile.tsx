@@ -907,6 +907,38 @@ export default function Profile() {
           </View>
         </View>
 
+        {user?.role === "super_admin" ? (
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+              Admin
+            </Text>
+            <View
+              style={[
+                styles.list,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => router.push("/mail-settings" as never)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  { borderTopWidth: 0, opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Feather name="mail" size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  Email / SMTP
+                </Text>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             Account
