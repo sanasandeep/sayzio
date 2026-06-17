@@ -539,7 +539,7 @@ function ResumeEditor({
       <PreviewCard resume={{ ...resume, sections: { ...resume.sections, header, summary } }} />
 
       <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-        Header photos and custom sections are still managed on the web editor.
+        Custom sections are still managed on the web editor.
       </Text>
 
       <PublishSheet

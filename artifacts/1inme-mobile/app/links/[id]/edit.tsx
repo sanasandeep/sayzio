@@ -299,6 +299,13 @@ export default function EditLinkScreen() {
           ) : null}
           {meta.kind === "resume" ? (
             <ActionTile
+              icon="edit-3"
+              label="Edit resume"
+              onPress={() => router.push("/resume" as any)}
+            />
+          ) : null}
+          {meta.kind === "resume" ? (
+            <ActionTile
               icon="file-text"
               label="View resume"
               onPress={() => {
