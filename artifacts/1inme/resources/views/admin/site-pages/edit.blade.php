@@ -379,7 +379,9 @@
             </div>
         @endif
 
-        @if($page->slug === 'about')
+        @if($page->slug === 'home')
+            @include('admin.site-pages.partials.home-editor', ['page' => $page])
+        @elseif($page->slug === 'about')
             @include('admin.site-pages.partials.about-editor', ['page' => $page])
         @elseif($page->slug === 'contact')
             @include('admin.site-pages.partials.contact-editor', ['page' => $page])

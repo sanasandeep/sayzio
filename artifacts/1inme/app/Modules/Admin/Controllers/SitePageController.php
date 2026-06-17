@@ -163,6 +163,17 @@ class SitePageController extends Controller
             $rules['extra.milestones.*.title']            = 'nullable|string|max:200';
             $rules['extra.milestones.*.description']      = 'nullable|string|max:1000';
         }
+        if ($slug === 'home') {
+            // "What you can create" link-types showcase. Lenient validation
+            // (string/length only); normalizeHomeLinkTypes() enforces the
+            // canonical shape, drops blanks and falls back the accent colour.
+            $rules['extra.link_types']                = 'nullable|array|max:24';
+            $rules['extra.link_types.*.name']         = 'nullable|string|max:120';
+            $rules['extra.link_types.*.desc']         = 'nullable|string|max:500';
+            $rules['extra.link_types.*.icon']         = 'nullable|string|max:60';
+            $rules['extra.link_types.*.color']        = 'nullable|string|max:9';
+            $rules['extra.link_types.*.new']          = 'nullable|boolean';
+        }
         if ($slug === 'contact') {
             $rules['extra.address']            = 'nullable|string|max:1000';
             $rules['extra.email']              = 'nullable|email|max:190';
@@ -303,7 +314,15 @@ class SitePageController extends Controller
             $payload['last_updated_at'] = $data['last_updated_at'] ?? null;
             $payload['show_toc'] = (bool) $request->input('show_toc', false);
         }
-        if ($slug === 'about') {
+        if ($slug === 'home') {
+            // Persist the link-types showcase under extra.link_types, merging
+            // into any existing extra so the shared blog_block composes below.
+            $existingExtra = is_array($page->extra) ? $page->extra : [];
+            $existingExtra['link_types'] = SitePagesContent::normalizeHomeLinkTypes(
+                (array) ($data['extra']['link_types'] ?? [])
+            );
+            $payload['extra'] = $existingExtra;
+        } elseif ($slug === 'about') {
             $payload['extra'] = SitePagesContent::normalizeAboutExtra((array) ($data['extra'] ?? []));
         } elseif ($slug === 'contact') {
             $payload['extra'] = SitePagesContent::normalizeContactExtra((array) ($data['extra'] ?? []));

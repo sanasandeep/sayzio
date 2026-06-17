@@ -171,6 +171,20 @@ class SitePagesSeeder extends Seeder
             ]);
         }
 
+        // Home "What you can create" link-types showcase lives on the home
+        // SitePage row under extra.link_types so admins can reword, reorder
+        // and retag the cards. Seed the defaults only when missing so a
+        // re-seed never clobbers admin edits.
+        $homePage = SitePage::firstWhere('slug', 'home');
+        if ($homePage) {
+            $homeExtra = is_array($homePage->extra) ? $homePage->extra : [];
+            if (empty($homeExtra['link_types']) || !is_array($homeExtra['link_types'])) {
+                $homeExtra['link_types'] = SitePagesContent::homeLinkTypesDefault();
+                $homePage->extra = $homeExtra;
+                $homePage->save();
+            }
+        }
+
         // "1INME for X" use-case landing pages. Title/meta/sections/cta follow
         // the usual seed defaults, but the editable hero chrome, featured
         // features and FAQ (extra.use_case) are only seeded when missing so

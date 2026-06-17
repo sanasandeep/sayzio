@@ -4,6 +4,8 @@ namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
@@ -155,6 +157,22 @@ class HomeController extends Controller
             // Blogs migration not run yet — silently skip the carousel.
         }
 
-        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts'));
+        // "What you can create" link-types showcase. Admin-editable from the
+        // `home` SitePage row under extra.link_types; falls back to the shared
+        // SitePagesContent defaults when unset (or the table isn't migrated).
+        $linkTypes = SitePagesContent::homeLinkTypesDefault();
+        try {
+            $homePage = SitePage::where('slug', 'home')->first();
+            $saved = $homePage
+                ? SitePagesContent::normalizeHomeLinkTypes((array) data_get($homePage->extra, 'link_types', []))
+                : [];
+            if (!empty($saved)) {
+                $linkTypes = $saved;
+            }
+        } catch (\Throwable $e) {
+            // SitePages migration not run yet — use defaults.
+        }
+
+        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes'));
     }
 }

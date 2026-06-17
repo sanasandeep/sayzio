@@ -3325,18 +3325,12 @@
 
 {{-- ============================ WHAT YOU CAN CREATE (LINK TYPES) ============================ --}}
 @php
-    $__linkTypes = [
-        ['name' => 'Short Link',      'icon' => 'fa-link',                'color' => '#7c3aed', 'new' => false, 'desc' => 'Clean, branded short links you can repoint anytime — with click analytics and expiry controls.'],
-        ['name' => 'Link in Bio',     'icon' => 'fa-square-share-nodes',  'color' => '#1bd4d9', 'new' => false, 'desc' => 'A drag-and-drop one-link page with a deep block library, custom themes and a guided wizard.'],
-        ['name' => 'Conversational',  'icon' => 'fa-comments',            'color' => '#34d399', 'new' => true,  'desc' => 'A chat-style page that greets visitors and guides them through your links one message at a time.'],
-        ['name' => 'Slides',          'icon' => 'fa-images',              'color' => '#fbbf24', 'new' => true,  'desc' => 'A swipeable, story-style page that presents your content as full-screen slides.'],
-        ['name' => 'AI Chatbot',      'icon' => 'fa-robot',               'color' => '#a855f7', 'new' => false, 'desc' => 'An AI page that answers visitor questions about you using your own content, around the clock.'],
-        ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils',            'color' => '#fb7185', 'new' => true,  'desc' => 'A digital menu with categories, photos and prices — plus optional table-side ordering by QR.'],
-        ['name' => 'File Share',      'icon' => 'fa-file-arrow-down',     'color' => '#38bdf8', 'new' => true,  'desc' => 'Upload a file and share it through a short link that streams the download to visitors.'],
-        ['name' => 'Event',           'icon' => 'fa-calendar-day',        'color' => '#f472b6', 'new' => false, 'desc' => 'A shareable calendar event visitors can add to their own calendar in a single tap.'],
-        ['name' => 'Contact Card',    'icon' => 'fa-address-card',        'color' => '#ff8a3c', 'new' => true,  'desc' => 'A downloadable vCard so people can save your full contact details with one tap.'],
-        ['name' => 'Reviews Page',    'icon' => 'fa-star',                'color' => '#ffc845', 'new' => true,  'desc' => 'A review wall that collects and shows star ratings and feedback from your visitors.'],
-    ];
+    // Admin-editable from the `home` SitePage (extra.link_types). Falls back
+    // to the shared SitePagesContent defaults when the controller didn't pass
+    // a list (e.g. the partial is rendered in isolation).
+    $__linkTypes = (!empty($linkTypes) && is_array($linkTypes))
+        ? $linkTypes
+        : \App\Modules\Common\Support\SitePagesContent::homeLinkTypesDefault();
 @endphp
 <section id="create" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="create-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

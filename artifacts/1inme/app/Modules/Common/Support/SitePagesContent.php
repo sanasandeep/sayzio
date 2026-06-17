@@ -919,6 +919,66 @@ class SitePagesContent
     }
 
     /**
+     * Default cards for the home page "What you can create" (link types)
+     * showcase. Each entry maps 1:1 to a card on the public home page:
+     * name, FontAwesome icon, accent colour, "New" badge flag and a short
+     * description. Stored on the `home` SitePage row under
+     * `extra.link_types` so admins can reword, reorder, retag and toggle
+     * the "New" badge from the admin UI without touching home.blade.php.
+     */
+    public static function homeLinkTypesDefault(): array
+    {
+        return [
+            ['name' => 'Short Link',      'icon' => 'fa-link',                'color' => '#7c3aed', 'new' => false, 'desc' => 'Clean, branded short links you can repoint anytime — with click analytics and expiry controls.'],
+            ['name' => 'Link in Bio',     'icon' => 'fa-square-share-nodes',  'color' => '#1bd4d9', 'new' => false, 'desc' => 'A drag-and-drop one-link page with a deep block library, custom themes and a guided wizard.'],
+            ['name' => 'Conversational',  'icon' => 'fa-comments',            'color' => '#34d399', 'new' => true,  'desc' => 'A chat-style page that greets visitors and guides them through your links one message at a time.'],
+            ['name' => 'Slides',          'icon' => 'fa-images',              'color' => '#fbbf24', 'new' => true,  'desc' => 'A swipeable, story-style page that presents your content as full-screen slides.'],
+            ['name' => 'AI Chatbot',      'icon' => 'fa-robot',               'color' => '#a855f7', 'new' => false, 'desc' => 'An AI page that answers visitor questions about you using your own content, around the clock.'],
+            ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils',            'color' => '#fb7185', 'new' => true,  'desc' => 'A digital menu with categories, photos and prices — plus optional table-side ordering by QR.'],
+            ['name' => 'File Share',      'icon' => 'fa-file-arrow-down',     'color' => '#38bdf8', 'new' => true,  'desc' => 'Upload a file and share it through a short link that streams the download to visitors.'],
+            ['name' => 'Event',           'icon' => 'fa-calendar-day',        'color' => '#f472b6', 'new' => false, 'desc' => 'A shareable calendar event visitors can add to their own calendar in a single tap.'],
+            ['name' => 'Contact Card',    'icon' => 'fa-address-card',        'color' => '#ff8a3c', 'new' => true,  'desc' => 'A downloadable vCard so people can save your full contact details with one tap.'],
+            ['name' => 'Reviews Page',    'icon' => 'fa-star',                'color' => '#ffc845', 'new' => true,  'desc' => 'A review wall that collects and shows star ratings and feedback from your visitors.'],
+        ];
+    }
+
+    /**
+     * Sanitise an admin-submitted home link-types list into the canonical
+     * shape the public home page renders. Drops blank rows (no name and
+     * no description), falls back to a safe icon/accent when missing, and
+     * coerces the "New" flag to a real boolean. Order is preserved exactly
+     * as submitted so admin reordering sticks.
+     */
+    public static function normalizeHomeLinkTypes(array $items): array
+    {
+        $out = [];
+        foreach ($items as $it) {
+            if (!is_array($it)) {
+                continue;
+            }
+            $name  = trim((string) ($it['name'] ?? ''));
+            $desc  = trim((string) ($it['desc'] ?? ($it['description'] ?? '')));
+            $icon  = trim((string) ($it['icon'] ?? ''));
+            $color = trim((string) ($it['color'] ?? ''));
+            $new   = filter_var($it['new'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if ($name === '' && $desc === '') {
+                continue;
+            }
+            if (!preg_match('/^#[0-9a-f]{3,8}$/i', $color)) {
+                $color = '#7c3aed';
+            }
+            $out[] = [
+                'name'  => $name,
+                'icon'  => $icon !== '' ? $icon : 'fa-link',
+                'color' => $color,
+                'new'   => $new,
+                'desc'  => $desc,
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * Structured default content for the dedicated /features page. Each
      * top-level entry is a category card on the page. Stored on the
      * `features` SitePage row as `sections` so admins can edit every
