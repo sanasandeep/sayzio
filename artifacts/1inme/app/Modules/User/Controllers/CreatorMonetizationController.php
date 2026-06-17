@@ -99,9 +99,9 @@ class CreatorMonetizationController extends Controller
         $payingFans = CreatorPaymentEvent::query()
             ->where('creator_user_id', $user->id)
             ->where('amount_cents', '>', 0)
-            ->whereNotNull('fan_id')
-            ->distinct('fan_id')
-            ->count('fan_id');
+            ->whereNotNull('fan_user_id')
+            ->distinct('fan_user_id')
+            ->count('fan_user_id');
         $ltvCents = $payingFans > 0 ? (int) round($allTime / $payingFans) : 0;
 
         // Top-earning posts in the last 90d (PPV unlocks + tips on a
@@ -194,11 +194,11 @@ class CreatorMonetizationController extends Controller
         $ltvMap = $fanIds
             ? CreatorPaymentEvent::query()
                 ->where('creator_user_id', $user->id)
-                ->whereIn('fan_id', $fanIds)
+                ->whereIn('fan_user_id', $fanIds)
                 ->where('amount_cents', '>', 0)
-                ->selectRaw('fan_id, SUM(amount_cents) as total')
-                ->groupBy('fan_id')
-                ->pluck('total', 'fan_id')
+                ->selectRaw('fan_user_id, SUM(amount_cents) as total')
+                ->groupBy('fan_user_id')
+                ->pluck('total', 'fan_user_id')
                 ->all()
             : [];
         // Last seen — most recent payment event from this fan acts as a
@@ -207,10 +207,10 @@ class CreatorMonetizationController extends Controller
         $lastActiveMap = $fanIds
             ? CreatorPaymentEvent::query()
                 ->where('creator_user_id', $user->id)
-                ->whereIn('fan_id', $fanIds)
-                ->selectRaw('fan_id, MAX(occurred_at) as last_at')
-                ->groupBy('fan_id')
-                ->pluck('last_at', 'fan_id')
+                ->whereIn('fan_user_id', $fanIds)
+                ->selectRaw('fan_user_id, MAX(occurred_at) as last_at')
+                ->groupBy('fan_user_id')
+                ->pluck('last_at', 'fan_user_id')
                 ->all()
             : [];
 

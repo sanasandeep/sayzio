@@ -140,8 +140,8 @@
                             <div class="text-sm font-medium truncate" style="color: var(--text-primary);">{{ $e->describeShort() }}</div>
                             <div class="text-xs" style="color: var(--text-faint);">
                                 {{ optional($e->occurred_at)->diffForHumans() ?? '—' }}
-                                @if($e->fan_id)
-                                    · {{ optional($e->fan)->name ?? 'Fan #'.$e->fan_id }}
+                                @if($e->fan_user_id)
+                                    · {{ optional($e->fan)->name ?? 'Fan #'.$e->fan_user_id }}
                                 @endif
                             </div>
                         </div>
