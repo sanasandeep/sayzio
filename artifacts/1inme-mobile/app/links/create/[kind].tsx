@@ -16,17 +16,7 @@ import { useColors } from "@/hooks/useColors";
 import { listAvailableDomains } from "@/lib/api/domains";
 import { createLink } from "@/lib/api/links";
 import { metaForKind, type LinkKind } from "@/lib/linkKinds";
-
-// Mirrors app/Modules/User/Support/PaidPageTemplates.php ids + a single
-// representative accent swatch for the picker. The full theme is applied
-// server-side on the public page.
-const PAID_PAGE_TEMPLATES: { id: string; name: string; swatch: string }[] = [
-  { id: "aurora", name: "Aurora", swatch: "#a855f7" },
-  { id: "sunset", name: "Sunset Blvd", swatch: "#fb7185" },
-  { id: "electric", name: "Electric", swatch: "#22d3ee" },
-  { id: "mono", name: "Mono Bold", swatch: "#f43f5e" },
-  { id: "candy", name: "Candy Pop", swatch: "#e879f9" },
-];
+import { PAID_PAGE_TEMPLATES } from "@/lib/paidPage";
 
 export default function CreateLinkScreen() {
   const colors = useColors();

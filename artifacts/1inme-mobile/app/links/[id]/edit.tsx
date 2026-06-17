@@ -32,6 +32,7 @@ import {
 } from "@/lib/api/links";
 import { listNfcWrites } from "@/lib/api/nfc";
 import { metaForApiType } from "@/lib/linkKinds";
+import { PAID_PAGE_TEMPLATES, paidPageTemplateId } from "@/lib/paidPage";
 
 const VISIBILITIES: Link["visibility"][] = [
   "public",
@@ -82,6 +83,9 @@ export default function EditLinkScreen() {
   const [visibility, setVisibility] = useState<Link["visibility"]>("public");
   const [active, setActive] = useState(true);
   const [domainId, setDomainId] = useState<number | null>(null);
+  // Paid Page (paid_page) template + public/gated toggle. Mirrors the
+  // web editor: visibility "public" => anyone, "registered" => gated.
+  const [paidTemplate, setPaidTemplate] = useState<string>("aurora");
 
   const domainsQ = useQuery({
     queryKey: ["domains-available"],
@@ -112,6 +116,7 @@ export default function EditLinkScreen() {
     setVisibility(l.visibility);
     setActive(l.is_active);
     setDomainId(l.domain_id ?? null);
+    setPaidTemplate(paidPageTemplateId(readPaidPageTemplate(l.settings ?? null)));
     const privacy = readPrivacy(l.settings ?? null);
     setPrivacyHide(privacy.hide_public_visitor_counts ?? true);
     setPrivacyNoRef(privacy.disable_referrer_logging ?? true);
@@ -132,6 +137,9 @@ export default function EditLinkScreen() {
       const isBiolink =
         (q.data?.type ?? "").toString() === "biolink" ||
         meta.kind === "biolink";
+      const isPaidPage =
+        (q.data?.type ?? "").toString() === "paid_page" ||
+        meta.kind === "paid_page";
       const payload: Parameters<typeof updateLink>[1] = {
         title: title || null,
         alias,
@@ -142,6 +150,22 @@ export default function EditLinkScreen() {
         is_active: active,
         domain_id: domainId,
       };
+      if (isPaidPage) {
+        // Deep-merge so other paid_page settings (posts/tiers metadata
+        // the mobile editor doesn't know about) are preserved.
+        const existing: SettingsRecord = (q.data?.settings ??
+          {}) as SettingsRecord;
+        const existingPaid: SettingsRecord = isRecord(existing.paid_page)
+          ? existing.paid_page
+          : {};
+        payload.settings = {
+          ...existing,
+          paid_page: {
+            ...existingPaid,
+            template: paidPageTemplateId(paidTemplate),
+          },
+        };
+      }
       if (isBiolink) {
         const existing: SettingsRecord = (q.data?.settings ??
           {}) as SettingsRecord;
@@ -429,46 +453,121 @@ export default function EditLinkScreen() {
           />
         </View>
 
+        {meta.kind === "paid_page" ? (
+          <View style={styles.section}>
+            <Text
+              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+            >
+              Template
+            </Text>
+            <View style={styles.tplGrid}>
+              {PAID_PAGE_TEMPLATES.map((t) => {
+                const on = paidTemplate === t.id;
+                return (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => setPaidTemplate(t.id)}
+                    style={[
+                      styles.tplCard,
+                      {
+                        borderColor: on ? colors.primary : colors.border,
+                        borderWidth: on ? 2 : 1,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[styles.tplSwatch, { backgroundColor: t.swatch }]}
+                    />
+                    <Text
+                      style={[styles.tplName, { color: colors.foreground }]}
+                    >
+                      {t.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             Visibility
           </Text>
-          <View
-            style={[
-              styles.segment,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderRadius: colors.radius,
-              },
-            ]}
-          >
-            {VISIBILITIES.map((v) => {
-              const on = visibility === v;
-              return (
-                <Pressable
-                  key={v}
-                  onPress={() => setVisibility(v)}
-                  style={[
-                    styles.segmentItem,
-                    {
-                      backgroundColor: on ? colors.background : "transparent",
-                      borderRadius: colors.radius - 4,
-                    },
-                  ]}
+          {meta.kind === "paid_page" ? (
+            <View
+              style={[
+                styles.row,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Public page
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 11,
+                    marginTop: 4,
+                    color: colors.mutedForeground,
+                  }}
                 >
-                  <Text
+                  {visibility === "public"
+                    ? "Anyone can view this page."
+                    : "Viewers must be signed in to view this page."}
+                </Text>
+              </View>
+              <Switch
+                value={visibility === "public"}
+                onValueChange={(on) =>
+                  setVisibility(on ? "public" : "registered")
+                }
+                trackColor={{ true: colors.primary, false: colors.border }}
+              />
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.segment,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              {VISIBILITIES.map((v) => {
+                const on = visibility === v;
+                return (
+                  <Pressable
+                    key={v}
+                    onPress={() => setVisibility(v)}
                     style={[
-                      styles.segmentText,
-                      { color: on ? colors.primary : colors.mutedForeground },
+                      styles.segmentItem,
+                      {
+                        backgroundColor: on ? colors.background : "transparent",
+                        borderRadius: colors.radius - 4,
+                      },
                     ]}
                   >
-                    {v}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.segmentText,
+                        { color: on ? colors.primary : colors.mutedForeground },
+                      ]}
+                    >
+                      {v}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
           <View
             style={[
               styles.row,
@@ -604,6 +703,13 @@ type PrivacySettings = {
 
 function isRecord(value: unknown): value is SettingsRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readPaidPageTemplate(settings: unknown): unknown {
+  if (!isRecord(settings)) return undefined;
+  const paid = settings.paid_page;
+  if (!isRecord(paid)) return undefined;
+  return paid.template;
 }
 
 function readPrivacy(settings: unknown): PrivacySettings {
@@ -768,6 +874,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   rowLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  tplGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  tplCard: {
+    width: "30%",
+    borderRadius: 14,
+    padding: 8,
+    alignItems: "center",
+    gap: 6,
+  },
+  tplSwatch: { width: "100%", height: 36, borderRadius: 8 },
+  tplName: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
   privacyRow: {
     flexDirection: "row",
     alignItems: "center",
