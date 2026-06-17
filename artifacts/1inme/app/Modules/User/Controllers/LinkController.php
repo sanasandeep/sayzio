@@ -2250,7 +2250,14 @@ class LinkController extends Controller
 
         $defaultDomainId = $domains->firstWhere('is_primary', true)?->id;
 
-        return view('user.links.edit', compact('link', 'projects', 'pixels', 'domains', 'detectedApp', 'defaultDomainId'));
+        // Resume links can point at a specific named résumé version. Surface
+        // every version the owner has so the edit form can offer a picker
+        // (empty selection falls back to the default version).
+        $resumeVersions = $link->type === Link::TYPE_RESUME
+            ? workspace_owner()->resumes()->get()
+            : collect();
+
+        return view('user.links.edit', compact('link', 'projects', 'pixels', 'domains', 'detectedApp', 'defaultDomainId', 'resumeVersions'));
     }
 
     public function update(Request $request, Link $link)
@@ -2286,7 +2293,19 @@ class LinkController extends Controller
             'device_targeting.*' => 'in:desktop,mobile,tablet',
             'smart_rules_json' => 'nullable|string|max:20000',
             'visibility' => 'nullable|in:public,registered,followers,subscribers',
+            'resume_id' => "nullable|exists:resumes,id,user_id,{$userId}",
         ] + self::protectionSchedulingRules());
+
+        // Resume version pick. Only meaningful for resume links: the owner
+        // chooses which named résumé version the short link resolves to.
+        // An empty selection clears resume_id so the public page falls back
+        // to the owner's default version. For any non-resume link, strip the
+        // field entirely so it can never be stamped onto the wrong type.
+        if ($link->type === Link::TYPE_RESUME) {
+            $validated['resume_id'] = $validated['resume_id'] ?? null;
+        } else {
+            unset($validated['resume_id']);
+        }
 
         // Per-link advanced setting gates (update path). The protection /
         // scheduling fields are processed later by applyProtectionScheduling

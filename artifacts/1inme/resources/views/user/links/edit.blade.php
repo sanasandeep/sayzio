@@ -161,6 +161,24 @@
             @endif
         </div>
 
+        @if($link->type === 'resume' && ($resumeVersions ?? collect())->isNotEmpty())
+        @php $selectedResumeId = old('resume_id', $link->resume_id); @endphp
+        <div class="glass rounded-2xl p-6 mb-6">
+            <h2 class="text-lg font-semibold text-white mb-2">Résumé version</h2>
+            <p class="text-xs text-white/40 mb-4">Choose which version of your résumé this short link opens. Leave it on <span class="text-white/60">Default version</span> to always follow whichever version you've marked as default.</p>
+            <label class="block text-sm font-medium text-white/60 mb-1">Version to show</label>
+            <select name="resume_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40">
+                <option value="" {{ (string) $selectedResumeId === '' ? 'selected' : '' }}>Default version (follows your default)</option>
+                @foreach($resumeVersions as $version)
+                    <option value="{{ $version->id }}" {{ (string) $selectedResumeId === (string) $version->id ? 'selected' : '' }}>
+                        {{ $version->displayName() }}{{ $version->is_default ? ' — current default' : '' }}
+                    </option>
+                @endforeach
+            </select>
+            @error('resume_id') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+        @endif
+
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">Password protection</h2>
             <label class="flex items-center gap-3">
