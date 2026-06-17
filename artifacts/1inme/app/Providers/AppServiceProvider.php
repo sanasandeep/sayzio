@@ -85,6 +85,15 @@ class AppServiceProvider extends ServiceProvider
             \App\Modules\Common\Services\GlobalDomainsComposer::class
         );
 
+        // Share the login-method policy (mobile/WhatsApp login enabled +
+        // allowed country codes) with the public auth modal so it can hide
+        // the Mobile tab when admins have turned mobile login off, matching
+        // the dedicated login page.
+        \Illuminate\Support\Facades\View::composer(
+            \App\Modules\Common\Services\AuthModalComposer::VIEW,
+            \App\Modules\Common\Services\AuthModalComposer::class
+        );
+
         // Note: App\Listeners\IssueInvoiceOnSubscriptionActivated is wired to
         // App\Events\SubscriptionActivated by Laravel's event auto-discovery
         // (typed handle() method on a class under app/Listeners). An explicit

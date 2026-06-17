@@ -30,6 +30,8 @@
                 </div>
 
                 {{-- Login form --}}
+                @php($mobileLoginEnabled = $mobileLoginEnabled ?? false)
+                @if($mobileLoginEnabled)
                 <form x-show="authTab==='login'" method="POST" action="{{ route('user.otp.send') }}"
                       x-data="{ otpType:'email' }" class="space-y-3">
                     @csrf
@@ -39,19 +41,37 @@
                             <i class="fas fa-envelope mr-1"></i> Email
                         </button>
                         <button type="button" @click="otpType='mobile'" :class="otpType==='mobile' ? 'border-violet-500 text-violet-300 bg-violet-500/10' : 'border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border">
-                            <i class="fas fa-mobile-alt mr-1"></i> Mobile
+                            <i class="fab fa-whatsapp mr-1"></i> WhatsApp
                         </button>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400" x-text="otpType==='email' ? 'Email' : 'Mobile'"></label>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400" x-text="otpType==='email' ? 'Email' : 'WhatsApp Number'"></label>
                         <input type="text" name="identifier" required :placeholder="otpType==='email' ? 'you@example.com' : '+1234567890'"
                                class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none">
+                        <p x-show="otpType==='mobile'" x-cloak class="mt-1.5 text-[10px] text-gray-500">
+                            <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
+                        </p>
                     </div>
                     <button type="submit" class="w-full py-2.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white">
                         <i class="fas fa-paper-plane mr-1 text-xs"></i> Send 6-digit code
                     </button>
                     <p class="text-center text-xs text-gray-500">No password — we'll text or email you a code.</p>
                 </form>
+                @else
+                <form x-show="authTab==='login'" method="POST" action="{{ route('user.otp.send') }}" class="space-y-3">
+                    @csrf
+                    <input type="hidden" name="type" value="email">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Email</label>
+                        <input type="email" name="identifier" required placeholder="you@example.com"
+                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none">
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white">
+                        <i class="fas fa-paper-plane mr-1 text-xs"></i> Send 6-digit code
+                    </button>
+                    <p class="text-center text-xs text-gray-500">No password — we'll email you a code.</p>
+                </form>
+                @endif
 
                 {{-- Register form --}}
                 <form x-show="authTab==='register'" x-cloak method="POST" action="{{ route('user.register.submit') }}"
