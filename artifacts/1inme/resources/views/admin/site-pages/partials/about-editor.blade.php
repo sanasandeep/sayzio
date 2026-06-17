@@ -12,8 +12,6 @@
     $aboutSectionTitles = array_replace($aboutDefaults['section_titles'], (array)($aboutExtra['section_titles'] ?? []));
     $aboutCta = array_replace($aboutDefaults['cta'], (array)($aboutExtra['cta'] ?? []));
     $founder = $aboutExtra['founder'] ?? $aboutDefaults['founder'];
-    $coFounders = array_values((array)($aboutExtra['co_founders'] ?? []));
-    $teamRows = array_values((array)($aboutExtra['team'] ?? []));
     $milestoneRows = array_values((array)($aboutExtra['milestones'] ?? []));
 
     // Section order control: build the editor list in the saved order
@@ -26,8 +24,6 @@
         'story'       => ['label' => 'Story', 'desc' => 'Heading + body cards above the team band.'],
         'team_band'   => ['label' => 'Team photo band', 'desc' => 'Wide team image strip.'],
         'founder'     => ['label' => 'Founder', 'desc' => 'Featured founder card with photo and bio.'],
-        'co_founders' => ['label' => 'Co-founders', 'desc' => 'Three-up grid of co-founder cards.'],
-        'team'        => ['label' => 'Team grid', 'desc' => 'Smaller member cards under the co-founders.'],
         'milestones'  => ['label' => 'Milestones', 'desc' => 'Vertical timeline of dated milestones.'],
         'cta'         => ['label' => 'Bottom call to action', 'desc' => 'The "Want to build with us?" panel.'],
     ];
@@ -294,21 +290,6 @@
                 @error('extra.section_titles.founder')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Co-founders" heading</label>
-                <input type="text" name="extra[section_titles][co_founders]" value="{{ $aboutSectionTitles['co_founders'] }}" maxlength="200" placeholder="Co-founders" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.section_titles.co_founders')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"The team" heading</label>
-                <input type="text" name="extra[section_titles][team_title]" value="{{ $aboutSectionTitles['team_title'] }}" maxlength="200" placeholder="The team" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.section_titles.team_title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"The team" subtitle</label>
-                <input type="text" name="extra[section_titles][team_subtitle]" value="{{ $aboutSectionTitles['team_subtitle'] }}" maxlength="300" placeholder="The folks shipping 1INME every week." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.section_titles.team_subtitle')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-            </div>
-            <div>
                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Milestones" heading</label>
                 <input type="text" name="extra[section_titles][milestones_title]" value="{{ $aboutSectionTitles['milestones_title'] }}" maxlength="200" placeholder="Milestones" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 @error('extra.section_titles.milestones_title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
@@ -515,120 +496,6 @@
                 <input type="url" name="extra[founder][links][linkedin]" value="{{ $founder['links']['linkedin'] ?? '' }}" placeholder="https://linkedin.com/in/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
             </div>
         </div>
-    </div>
-
-    <div x-data="{ rows: {{ json_encode($coFounders) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
-        <div class="flex items-center justify-between mb-2">
-            <div>
-                <h3 class="text-sm font-semibold text-white">Co-founders</h3>
-                <p class="text-xs text-white/50">Three cards by default.</p>
-            </div>
-            <button type="button" @click="rows.push({name:'',role:'',photo:'',bio:'',links:{twitter:'',linkedin:''}})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add co-founder</button>
-        </div>
-        <template x-for="(p, i) in rows" :key="i">
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
-                <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] uppercase tracking-wider text-white/40">Co-founder <span x-text="i+1"></span></span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
-                        <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
-                        <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-                <div class="grid sm:grid-cols-2 gap-3">
-                    <input type="text" :name="'extra[co_founders]['+i+'][name]'" x-model="p.name" placeholder="Name" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    <input type="text" :name="'extra[co_founders]['+i+'][role]'" x-model="p.role" placeholder="Role" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                </div>
-                <div x-data="aboutPhotoUploader({ get: () => p.photo, set: (v) => p.photo = v })" class="space-y-2">
-                    <div class="flex items-start gap-3">
-                        <div class="shrink-0 text-center">
-                            <template x-if="p.photo">
-                                <img :src="p.photo" alt="" class="w-24 h-24 rounded-full object-cover border-2 border-white/10 bg-white/5" x-on:error="$el.style.display='none'">
-                            </template>
-                            <template x-if="!p.photo">
-                                <div class="w-24 h-24 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2">As shown on /about</div>
-                            </template>
-                            <div class="text-[10px] text-white/40 mt-1">Live /about preview</div>
-                        </div>
-                        <div class="flex-1 space-y-2">
-                            <input type="url" :name="'extra[co_founders]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
-                                    <i class="fas fa-upload"></i>
-                                    <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
-                                </button>
-                                <button type="button" x-show="p.photo" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1" title="Re-crop the photo currently in the URL field"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
-                                <button type="button" x-show="p.photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
-                            </div>
-                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
-                        </div>
-                    </div>
-                    <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
-                    @include('admin.site-pages.partials.about-crop-modal')
-                </div>
-                <textarea :name="'extra[co_founders]['+i+'][bio]'" x-model="p.bio" rows="2" placeholder="Short bio" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
-                <div class="grid sm:grid-cols-2 gap-3">
-                    <input type="url" :name="'extra[co_founders]['+i+'][links][twitter]'" x-model="p.links.twitter" placeholder="Twitter / X URL" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    <input type="url" :name="'extra[co_founders]['+i+'][links][linkedin]'" x-model="p.links.linkedin" placeholder="LinkedIn URL" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                </div>
-            </div>
-        </template>
-        <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-4">No co-founders yet — click "Add co-founder".</div>
-    </div>
-
-    <div x-data="{ rows: {{ json_encode($teamRows) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
-        <div class="flex items-center justify-between mb-2">
-            <div>
-                <h3 class="text-sm font-semibold text-white">Team grid</h3>
-                <p class="text-xs text-white/50">Smaller cards under the co-founders.</p>
-            </div>
-            <button type="button" @click="rows.push({name:'',role:'',photo:'',bio:'',links:{twitter:'',linkedin:''}})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add team member</button>
-        </div>
-        <template x-for="(p, i) in rows" :key="i">
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
-                <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] uppercase tracking-wider text-white/40">Member <span x-text="i+1"></span></span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
-                        <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
-                        <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-                <div class="grid sm:grid-cols-2 gap-3">
-                    <input type="text" :name="'extra[team]['+i+'][name]'" x-model="p.name" placeholder="Name" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    <input type="text" :name="'extra[team]['+i+'][role]'" x-model="p.role" placeholder="Role" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                </div>
-                <div x-data="aboutPhotoUploader({ get: () => p.photo, set: (v) => p.photo = v })" class="space-y-2">
-                    <div class="flex items-start gap-3">
-                        <div class="shrink-0 text-center">
-                            <template x-if="p.photo">
-                                <img :src="p.photo" alt="" class="w-16 h-16 rounded-full object-cover bg-white/5" x-on:error="$el.style.display='none'">
-                            </template>
-                            <template x-if="!p.photo">
-                                <div class="w-16 h-16 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[9px] text-white/40 text-center px-1">/about</div>
-                            </template>
-                            <div class="text-[10px] text-white/40 mt-1">Live preview</div>
-                        </div>
-                        <div class="flex-1 space-y-2">
-                            <input type="url" :name="'extra[team]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
-                                    <i class="fas fa-upload"></i>
-                                    <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
-                                </button>
-                                <button type="button" x-show="p.photo" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1" title="Re-crop the photo currently in the URL field"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
-                                <button type="button" x-show="p.photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
-                            </div>
-                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
-                        </div>
-                    </div>
-                    <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
-                    @include('admin.site-pages.partials.about-crop-modal')
-                </div>
-                <textarea :name="'extra[team]['+i+'][bio]'" x-model="p.bio" rows="2" placeholder="One-line bio" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
-            </div>
-        </template>
-        <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-4">No team members yet — click "Add team member".</div>
     </div>
 
     <div x-data="{ rows: {{ json_encode($milestoneRows) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">

@@ -24,11 +24,11 @@ return new class extends Migration {
 
         $now = now();
         DB::table('site_stats')->insert([
-            ['icon' => 'fa-users',        'value' => '3,25,000', 'suffix' => '+',   'label' => 'Users onboarded',     'color' => '#1bd4d9', 'sort_order' => 10, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['icon' => 'fa-link',         'value' => '240,000',  'suffix' => '+',   'label' => 'Linkbios created',    'color' => '#7c3aed', 'sort_order' => 20, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['icon' => 'fa-bolt',         'value' => '99',       'suffix' => 'cr+', 'label' => 'Clicks tracked',      'color' => '#e94e8c', 'sort_order' => 30, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['icon' => 'fa-globe',        'value' => '67',       'suffix' => '+',   'label' => 'Countries reached',   'color' => '#ff8a3c', 'sort_order' => 40, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['icon' => 'fa-qrcode',       'value' => '10,000',   'suffix' => '+',   'label' => 'QR codes generated',  'color' => '#ffc845', 'sort_order' => 50, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['icon' => 'fa-users',        'value' => '3.75 Lakh', 'suffix' => '+', 'label' => 'Users Worldwide',           'color' => '#1bd4d9', 'sort_order' => 10, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['icon' => 'fa-link',         'value' => '1,05,000',  'suffix' => '+', 'label' => 'Biolinks Created',          'color' => '#7c3aed', 'sort_order' => 20, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['icon' => 'fa-bolt',         'value' => '1,43 Lakh', 'suffix' => '+', 'label' => 'Analytics Events Tracked',  'color' => '#e94e8c', 'sort_order' => 30, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['icon' => 'fa-globe',        'value' => '67',        'suffix' => '+', 'label' => 'Countries Reached',         'color' => '#ff8a3c', 'sort_order' => 40, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['icon' => 'fa-qrcode',       'value' => '10,000',    'suffix' => '+', 'label' => 'QR codes generated',        'color' => '#ffc845', 'sort_order' => 50, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
         ]);
     }
 

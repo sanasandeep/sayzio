@@ -128,15 +128,12 @@ class SitePageController extends Controller
             // Lower-section titles / subtitles.
             $rules['extra.section_titles']                = 'nullable|array';
             $rules['extra.section_titles.founder']             = 'nullable|string|max:200';
-            $rules['extra.section_titles.co_founders']         = 'nullable|string|max:200';
-            $rules['extra.section_titles.team_title']          = 'nullable|string|max:200';
-            $rules['extra.section_titles.team_subtitle']       = 'nullable|string|max:300';
             $rules['extra.section_titles.milestones_title']    = 'nullable|string|max:200';
             $rules['extra.section_titles.milestones_subtitle'] = 'nullable|string|max:300';
             // Render order for the lower /about sections (drag-to-reorder).
             // The list is canonicalised in normalizeAboutExtra(): unknown
             // and duplicate slugs are dropped, missing slugs are appended.
-            $rules['extra.section_order']   = 'nullable|array|max:7';
+            $rules['extra.section_order']   = 'nullable|array|max:5';
             $rules['extra.section_order.*'] = ['nullable', 'string', 'in:' . implode(',', SitePagesContent::aboutLowerSectionSlugs())];
             // Per-section visibility map (slug => bool). The map is
             // canonicalised in normalizeAboutExtra(): unknown keys are
@@ -161,20 +158,6 @@ class SitePageController extends Controller
             $rules['extra.founder.bio']                   = 'nullable|string|max:2000';
             $rules['extra.founder.links.twitter']         = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
             $rules['extra.founder.links.linkedin']        = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
-            $rules['extra.co_founders']                   = 'nullable|array|max:20';
-            $rules['extra.co_founders.*.name']            = 'nullable|string|max:120';
-            $rules['extra.co_founders.*.role']            = 'nullable|string|max:120';
-            $rules['extra.co_founders.*.photo']           = 'nullable|string|max:1000';
-            $rules['extra.co_founders.*.bio']             = 'nullable|string|max:2000';
-            $rules['extra.co_founders.*.links.twitter']   = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
-            $rules['extra.co_founders.*.links.linkedin']  = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
-            $rules['extra.team']                          = 'nullable|array|max:60';
-            $rules['extra.team.*.name']                   = 'nullable|string|max:120';
-            $rules['extra.team.*.role']                   = 'nullable|string|max:120';
-            $rules['extra.team.*.photo']                  = 'nullable|string|max:1000';
-            $rules['extra.team.*.bio']                    = 'nullable|string|max:2000';
-            $rules['extra.team.*.links.twitter']          = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
-            $rules['extra.team.*.links.linkedin']         = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
             $rules['extra.milestones']                    = 'nullable|array|max:50';
             $rules['extra.milestones.*.date']             = 'nullable|string|max:40';
             $rules['extra.milestones.*.title']            = 'nullable|string|max:200';

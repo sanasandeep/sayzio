@@ -1280,14 +1280,14 @@ class SitePagesContent
      */
     public static function aboutLowerSectionSlugs(): array
     {
-        return ['story', 'team_band', 'founder', 'co_founders', 'team', 'milestones', 'cta'];
+        return ['story', 'team_band', 'founder', 'milestones', 'cta'];
     }
 
     /**
      * Default structured "extra" payload for the public /about page —
-     * founder, co-founders, team grid, and milestones timeline. All copy
-     * is intentionally placeholder so admins can swap in real names,
-     * bios, photos and dates from the editor without touching code.
+     * founder and milestones timeline. All copy is intentionally
+     * placeholder so admins can swap in real names, bios, photos and
+     * dates from the editor without touching code.
      */
     public static function aboutExtraDefault(): array
     {
@@ -1323,9 +1323,6 @@ class SitePagesContent
             ],
             'section_titles' => [
                 'founder'            => 'Meet the founder',
-                'co_founders'        => 'Co-founders',
-                'team_title'         => 'The team',
-                'team_subtitle'      => 'The folks shipping 1INME every week.',
                 'milestones_title'   => 'Milestones',
                 'milestones_subtitle'=> 'A short history of how we got here.',
             ],
@@ -1345,19 +1342,6 @@ class SitePagesContent
                 'photo'  => '',
                 'bio'    => "Guided by this belief, Sandeep Sana, Founder & CEO of 1INME, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of 1INME, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
                 'links'  => ['twitter' => '', 'linkedin' => ''],
-            ],
-            'co_founders' => [
-                ['name' => 'Meera Iyer',  'role' => 'Co-founder & CTO',     'photo' => '', 'bio' => "Meera leads engineering. Previously shipped scale at two fintechs.",        'links' => ['twitter' => '', 'linkedin' => '']],
-                ['name' => 'Rohan Shah',  'role' => 'Co-founder & Design',  'photo' => '', 'bio' => "Rohan owns the look and feel of 1INME — every pixel, every motion.",     'links' => ['twitter' => '', 'linkedin' => '']],
-                ['name' => 'Priya Menon', 'role' => 'Co-founder & Growth',  'photo' => '', 'bio' => "Priya makes sure the people who would love 1INME actually find it.",     'links' => ['twitter' => '', 'linkedin' => '']],
-            ],
-            'team' => [
-                ['name' => 'Karthik Rao',     'role' => 'Senior Engineer',     'photo' => '', 'bio' => "Backend & APIs."],
-                ['name' => 'Anjali Verma',    'role' => 'Frontend Engineer',   'photo' => '', 'bio' => "Builder behind the dashboard."],
-                ['name' => 'Sandeep Kumar',   'role' => 'Product Designer',    'photo' => '', 'bio' => "Designs the everyday flows."],
-                ['name' => 'Lakshmi Nair',    'role' => 'Customer Success',    'photo' => '', 'bio' => "Probably replied to your last ticket."],
-                ['name' => 'Vikram Joshi',    'role' => 'DevOps',              'photo' => '', 'bio' => "Keeps the lights on, 24/7."],
-                ['name' => 'Neha Bansal',     'role' => 'Marketing',           'photo' => '', 'bio' => "Tells the 1INME story to the world."],
             ],
             'milestones' => [
                 ['date' => '2023-04', 'title' => 'Idea on a whiteboard', 'description' => "An offhand conversation about how messy social bios are turns into the first sketch of 1INME."],
@@ -1552,9 +1536,6 @@ class SitePagesContent
         $titlesIn = (array) ($input['section_titles'] ?? []);
         $sectionTitles = [
             'founder'             => trim((string) ($titlesIn['founder']             ?? '')),
-            'co_founders'         => trim((string) ($titlesIn['co_founders']         ?? '')),
-            'team_title'          => trim((string) ($titlesIn['team_title']          ?? '')),
-            'team_subtitle'       => trim((string) ($titlesIn['team_subtitle']       ?? '')),
             'milestones_title'    => trim((string) ($titlesIn['milestones_title']    ?? '')),
             'milestones_subtitle' => trim((string) ($titlesIn['milestones_subtitle'] ?? '')),
         ];
@@ -1581,23 +1562,6 @@ class SitePagesContent
                 'linkedin' => trim((string) ($founderIn['links']['linkedin'] ?? '')),
             ],
         ];
-
-        $cleanPersonRow = function ($p): ?array {
-            if (!is_array($p)) return null;
-            $name = trim((string) ($p['name'] ?? ''));
-            $role = trim((string) ($p['role'] ?? ''));
-            $photo = trim((string) ($p['photo'] ?? ''));
-            $bio = trim((string) ($p['bio'] ?? ''));
-            $tw = trim((string) ($p['links']['twitter'] ?? ''));
-            $ln = trim((string) ($p['links']['linkedin'] ?? ''));
-            if ($name === '' && $role === '' && $bio === '' && $photo === '') return null;
-            return [
-                'name' => $name, 'role' => $role, 'photo' => $photo, 'bio' => $bio,
-                'links' => ['twitter' => $tw, 'linkedin' => $ln],
-            ];
-        };
-        $coFounders = array_values(array_filter(array_map($cleanPersonRow, (array) ($input['co_founders'] ?? []))));
-        $team = array_values(array_filter(array_map($cleanPersonRow, (array) ($input['team'] ?? []))));
 
         $milestones = [];
         foreach ((array) ($input['milestones'] ?? []) as $m) {
@@ -1661,8 +1625,6 @@ class SitePagesContent
             'section_visibility' => $sectionVisibility,
             'cta'                => $cta,
             'founder'            => $founder,
-            'co_founders'        => $coFounders,
-            'team'               => $team,
             'milestones'         => $milestones,
         ];
     }

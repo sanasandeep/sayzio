@@ -6,8 +6,6 @@
     $story = array_slice($sections, 1);
     $extraArr = is_array($extra ?? null) ? $extra : [];
     $founder = $extraArr['founder'] ?? [];
-    $coFounders = $extraArr['co_founders'] ?? [];
-    $team = $extraArr['team'] ?? [];
     $milestones = $extraArr['milestones'] ?? [];
 
     // New editable groups — every leaf has a literal fallback so the
@@ -84,9 +82,6 @@
 
     // Lower section titles.
     $founderTitle           = $or($sectionTitles['founder']             ?? '', 'Meet the founder');
-    $coFoundersTitle        = $or($sectionTitles['co_founders']         ?? '', 'Co-founders');
-    $teamTitle              = $or($sectionTitles['team_title']          ?? '', 'The team');
-    $teamSubtitle           = $or($sectionTitles['team_subtitle']       ?? '', 'The folks shipping 1INME every week.');
     $milestonesTitle        = $or($sectionTitles['milestones_title']    ?? '', 'Milestones');
     $milestonesSubtitle     = $or($sectionTitles['milestones_subtitle'] ?? '', 'A short history of how we got here.');
 
@@ -149,14 +144,6 @@
     $personPhoto = function (array $p) {
         $url = trim((string)($p['photo'] ?? ''));
         return $url !== '' ? $url : null;
-    };
-    $personInitials = function (array $p) {
-        $name = trim((string)($p['name'] ?? ''));
-        if ($name === '') return '?';
-        $parts = preg_split('/\s+/', $name);
-        $a = mb_substr($parts[0] ?? '', 0, 1);
-        $b = mb_substr($parts[1] ?? '', 0, 1);
-        return strtoupper($a . $b) ?: '?';
     };
     $milestoneLabel = function (string $date) {
         if ($date === '') return '';
@@ -332,72 +319,6 @@
                                 </div>
                             @endif
                         </div>
-                    </div>
-                </div>
-            </section>
-            @endif
-            @break
-
-        @case('co_founders')
-            @if(!empty($coFounders))
-            <section class="pb-16">
-                <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    @if($coFoundersTitle !== '')
-                        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight" data-anim="fade-up">{{ $coFoundersTitle }}</h2>
-                    @endif
-                    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
-                        @foreach($coFounders as $p)
-                            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center hover:border-violet-400/40 transition hover:-translate-y-1 duration-300">
-                                @if($photo = $personPhoto($p))
-                                    <img src="{{ $photo }}" alt="{{ $p['name'] ?? '' }}" class="w-24 h-24 rounded-full object-cover mx-auto border-2 border-white/10">
-                                @else
-                                    <div class="w-24 h-24 rounded-full bg-violet-500 flex items-center justify-center text-xl font-bold text-white mx-auto border-2 border-white/10">
-                                        {{ $personInitials($p) }}
-                                    </div>
-                                @endif
-                                <h3 class="mt-4 text-lg font-bold text-white">{{ $p['name'] ?? '' }}</h3>
-                                @if(!empty($p['role']))<p class="text-xs text-violet-300 mt-1 font-medium uppercase tracking-wider">{{ $p['role'] }}</p>@endif
-                                @if(!empty($p['bio']))<p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $p['bio'] }}</p>@endif
-                                @php $links = $p['links'] ?? []; @endphp
-                                @if(!empty($links['twitter']) || !empty($links['linkedin']))
-                                    <div class="mt-3 flex gap-3 justify-center">
-                                        @if(!empty($links['twitter']))<a href="{{ $links['twitter'] }}" target="_blank" rel="noopener" class="text-gray-500 hover:text-white"><i class="fab fa-x-twitter"></i></a>@endif
-                                        @if(!empty($links['linkedin']))<a href="{{ $links['linkedin'] }}" target="_blank" rel="noopener" class="text-gray-500 hover:text-white"><i class="fab fa-linkedin"></i></a>@endif
-                                    </div>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </section>
-            @endif
-            @break
-
-        @case('team')
-            @if(!empty($team))
-            <section class="pb-16">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    @if($teamTitle !== '')
-                        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-2 tracking-tight" data-anim="fade-up">{{ $teamTitle }}</h2>
-                    @endif
-                    @if($teamSubtitle !== '')
-                        <p class="text-center text-gray-400 mb-8" data-anim="fade-up">{{ $teamSubtitle }}</p>
-                    @endif
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" data-anim="fade-up" data-stagger>
-                        @foreach($team as $p)
-                            <div class="bg-white/[0.03] border border-white/10 rounded-xl p-4 text-center hover:bg-white/[0.05] hover:border-violet-400/40 transition">
-                                @if($photo = $personPhoto($p))
-                                    <img src="{{ $photo }}" alt="{{ $p['name'] ?? '' }}" class="w-16 h-16 rounded-full object-cover mx-auto">
-                                @else
-                                    <div class="w-16 h-16 rounded-full bg-violet-500/70 flex items-center justify-center text-sm font-bold text-white mx-auto">
-                                        {{ $personInitials($p) }}
-                                    </div>
-                                @endif
-                                <div class="mt-3 text-sm font-semibold text-white">{{ $p['name'] ?? '' }}</div>
-                                @if(!empty($p['role']))<div class="text-[11px] text-violet-300 mt-0.5 uppercase tracking-wider">{{ $p['role'] }}</div>@endif
-                                @if(!empty($p['bio']))<p class="mt-2 text-xs text-gray-400 leading-snug">{{ $p['bio'] }}</p>@endif
-                            </div>
-                        @endforeach
                     </div>
                 </div>
             </section>
