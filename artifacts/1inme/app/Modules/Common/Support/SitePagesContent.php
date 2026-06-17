@@ -20,7 +20,7 @@ class SitePagesContent
         return [
             'features' => [
                 'title' => 'Features',
-                'meta_description' => 'Everything you get with 1INME — biolinks, short links, dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
+                'meta_description' => 'Everything you get with 1INME — all 10 link types (short links, biolinks, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
                 'sections' => [
                     ['heading' => 'A drag & drop biolink page', 'body' => "Stack blocks for text, images, video, audio, embeds, products, donations and forms. Reorder by dragging, swap themes in a click, and publish a polished page in minutes — no design skills needed."],
                     ['heading' => 'Branded short links', 'body' => "Turn long URLs into clean, on-brand short links you can repoint at any time. Add UTMs automatically, password-protect sensitive links, expire them on a date or after N clicks, and route visitors by country, device or language."],
@@ -928,6 +928,24 @@ class SitePagesContent
     public static function featuresCategoriesDefault(): array
     {
         return [
+            [
+                'id' => 'link-types',
+                'icon' => 'fa-shapes',
+                'heading' => 'Link types — everything you can create',
+                'intro' => 'One dashboard, ten distinct kinds of link. Pick the format that fits the moment — from a simple short link to a full chat experience — and every one is tracked, themeable, and shareable from a single URL.',
+                'features' => [
+                    ['name' => 'Short Link', 'icon' => 'fa-link', 'description' => 'Turn long URLs into clean, branded short links you can repoint anytime, with click analytics, expiry dates and click limits.'],
+                    ['name' => 'Link in Bio', 'icon' => 'fa-square-share-nodes', 'description' => 'A drag-and-drop one-link landing page with a deep block library, custom themes and a guided setup wizard.'],
+                    ['name' => 'Conversational', 'icon' => 'fa-comments', 'description' => 'A chat-style page that greets visitors and guides them through your links, questions and actions one message at a time.'],
+                    ['name' => 'Slides', 'icon' => 'fa-images', 'description' => 'A swipeable, story-style page that presents your content as full-screen slides, with background music and transitions.'],
+                    ['name' => 'AI Chatbot', 'icon' => 'fa-robot', 'description' => 'An AI-powered page that answers visitor questions about you using your own content, around the clock.'],
+                    ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils', 'description' => 'A digital menu with categories, photos, descriptions and prices — plus optional table-side ordering by QR code.'],
+                    ['name' => 'File Share', 'icon' => 'fa-file-arrow-down', 'description' => 'Upload a file and share it through a short link that streams the download straight to your visitors.'],
+                    ['name' => 'Event', 'icon' => 'fa-calendar-day', 'description' => 'A shareable calendar event with a downloadable .ics file visitors can add to their own calendar in one tap.'],
+                    ['name' => 'Contact Card', 'icon' => 'fa-address-card', 'description' => 'A downloadable vCard so people can save your full contact details — phones, emails, socials — with one tap.'],
+                    ['name' => 'Reviews Page', 'icon' => 'fa-star', 'description' => 'A dedicated review wall that collects and shows star ratings and feedback from your visitors.'],
+                ],
+            ],
             self::aiSuiteFeaturesCategory(),
             [
                 'id' => 'biolink',
@@ -1231,6 +1249,7 @@ class SitePagesContent
             $features = [];
             foreach ((array) ($cat['features'] ?? []) as $f) {
                 $link = '';
+                $fIcon = '';
                 if (is_array($f) && array_is_list($f) && count($f) >= 2) {
                     $name = trim((string) $f[0]);
                     $desc = trim((string) $f[1]);
@@ -1239,11 +1258,12 @@ class SitePagesContent
                     $name = trim((string) ($f['name'] ?? ''));
                     $desc = trim((string) ($f['description'] ?? ''));
                     $link = trim((string) ($f['link'] ?? ''));
+                    $fIcon = trim((string) ($f['icon'] ?? ''));
                 }
                 if ($name === '' && $desc === '') {
                     continue;
                 }
-                $features[] = ['name' => $name, 'description' => $desc, 'link' => $link];
+                $features[] = ['name' => $name, 'description' => $desc, 'link' => $link, 'icon' => $fIcon];
             }
             if ($heading === '' && $intro === '' && empty($features)) {
                 continue;

@@ -3323,6 +3323,58 @@
     </div>
 </section>
 
+{{-- ============================ WHAT YOU CAN CREATE (LINK TYPES) ============================ --}}
+@php
+    $__linkTypes = [
+        ['name' => 'Short Link',      'icon' => 'fa-link',                'color' => '#7c3aed', 'new' => false, 'desc' => 'Clean, branded short links you can repoint anytime — with click analytics and expiry controls.'],
+        ['name' => 'Link in Bio',     'icon' => 'fa-square-share-nodes',  'color' => '#1bd4d9', 'new' => false, 'desc' => 'A drag-and-drop one-link page with a deep block library, custom themes and a guided wizard.'],
+        ['name' => 'Conversational',  'icon' => 'fa-comments',            'color' => '#34d399', 'new' => true,  'desc' => 'A chat-style page that greets visitors and guides them through your links one message at a time.'],
+        ['name' => 'Slides',          'icon' => 'fa-images',              'color' => '#fbbf24', 'new' => true,  'desc' => 'A swipeable, story-style page that presents your content as full-screen slides.'],
+        ['name' => 'AI Chatbot',      'icon' => 'fa-robot',               'color' => '#a855f7', 'new' => false, 'desc' => 'An AI page that answers visitor questions about you using your own content, around the clock.'],
+        ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils',            'color' => '#fb7185', 'new' => true,  'desc' => 'A digital menu with categories, photos and prices — plus optional table-side ordering by QR.'],
+        ['name' => 'File Share',      'icon' => 'fa-file-arrow-down',     'color' => '#38bdf8', 'new' => true,  'desc' => 'Upload a file and share it through a short link that streams the download to visitors.'],
+        ['name' => 'Event',           'icon' => 'fa-calendar-day',        'color' => '#f472b6', 'new' => false, 'desc' => 'A shareable calendar event visitors can add to their own calendar in a single tap.'],
+        ['name' => 'Contact Card',    'icon' => 'fa-address-card',        'color' => '#ff8a3c', 'new' => true,  'desc' => 'A downloadable vCard so people can save your full contact details with one tap.'],
+        ['name' => 'Reviews Page',    'icon' => 'fa-star',                'color' => '#ffc845', 'new' => true,  'desc' => 'A review wall that collects and shows star ratings and feedback from your visitors.'],
+    ];
+@endphp
+<section id="create" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="create-h">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">What you can create</div>
+            <h2 id="create-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Ten kinds of link.<br><span class="grad-text">One simple dashboard.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                A short link is just the start. Build a chat page, a slide story, a digital menu, a review wall and more — every one tracked and shareable from a single URL.
+            </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+            @foreach($__linkTypes as $i => $lt)
+                <article class="reveal rd-{{ ($i % 5) + 1 }} glass rounded-2xl p-5 lift relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-20" style="background:{{ $lt['color'] }};"></div>
+                    @if($lt['new'])
+                        <span class="absolute top-3 right-3 inline-flex items-center text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
+                    @endif
+                    <div class="relative w-11 h-11 rounded-xl flex items-center justify-center mb-4" style="background:{{ $lt['color'] }}; box-shadow:0 12px 28px -12px {{ $lt['color'] }};">
+                        <i class="fas {{ $lt['icon'] }} text-white"></i>
+                    </div>
+                    <h3 class="relative text-base font-bold mb-1.5">{{ $lt['name'] }}</h3>
+                    <p class="relative text-sm text-gray-400 leading-relaxed">{{ $lt['desc'] }}</p>
+                </article>
+            @endforeach
+        </div>
+
+        <div class="reveal rd-3 mt-12 text-center">
+            <a href="{{ route('site.features') }}#cat-link-types" class="inline-flex items-center gap-2 px-6 py-3 glass rounded-full text-sm font-bold lift border border-white/10 hover:border-white/20 transition">
+                See every link type
+                <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ EVERYTHING YOU GET (4 PILLARS) ============================ --}}
 @php
     $__pillars = [

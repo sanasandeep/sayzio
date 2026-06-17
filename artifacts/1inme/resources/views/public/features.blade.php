@@ -11,6 +11,11 @@
         if (!is_array($f)) return '';
         return $f['description'] ?? ($f[1] ?? '');
     };
+    $featureIcon = function ($f) {
+        if (!is_array($f)) return 'fa-circle-check';
+        $icon = trim((string) ($f['icon'] ?? ''));
+        return $icon !== '' ? $icon : 'fa-circle-check';
+    };
     $showcase = [
         ['img' => asset('images/marketing/features/biolink.png'),  'label' => 'Biolink builder', 'desc' => 'Drag, drop, ship.'],
         ['img' => asset('images/marketing/features/qr-code.png'),  'label' => 'Dynamic QR',     'desc' => 'Scannable. Trackable.'],
@@ -189,7 +194,7 @@
                                 <div class="feature-row grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6 px-5 py-4">
                                     <div class="md:col-span-1">
                                         <div class="flex items-start gap-2">
-                                            <i class="fas fa-circle-check text-violet-400 mt-1 text-sm"></i>
+                                            <i class="fas {{ $featureIcon($feat) }} text-violet-400 mt-1 text-sm w-4 text-center"></i>
                                             <div class="font-semibold text-white">
                                                 @if($featLink !== '')
                                                     <a href="{{ $featLink }}" class="hover:text-violet-300 underline-offset-4 hover:underline">{{ $featureName($feat) }}</a>

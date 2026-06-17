@@ -27,7 +27,7 @@ class SitePageController extends Controller
                 ['slug' => 'features'],
                 [
                     'title' => 'Features',
-                    'meta_description' => 'A complete tour of every capability inside 1INME — biolinks, short links, QR codes, analytics, inboxes, teams, billing, and more.',
+                    'meta_description' => 'A complete tour of every capability inside 1INME — all 10 link types (short links, biolinks, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), plus QR codes, analytics, inboxes, teams, billing, and more.',
                     'sections' => SitePagesContent::featuresCategoriesDefault(),
                 ]
             );
