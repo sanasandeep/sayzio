@@ -6,8 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./contactMessage";
 export * from "./contactMessageInput";
+export * from "./contactMessageList";
+export * from "./contactMessageResource";
 export * from "./contactMessageResult";
+export * from "./contactMessageStatus";
+export * from "./contactMessageStatusUpdate";
+export * from "./contactMessageStatusUpdateStatus";
 export * from "./errorResponse";
 export * from "./errorResponseError";
 export * from "./healthStatus";
+export * from "./listContactMessagesParams";
+export * from "./listContactMessagesStatus";
+export * from "./paginationMeta";

@@ -43,3 +43,77 @@ export const SubmitContactMessageBody = zod.object({
       "Honeypot field. Must be left empty by real users; populated submissions are silently dropped as spam.\n",
     ),
 });
+
+/**
+ * Returns stored contact form submissions, newest first. Admin-only: requires a bearer token. Supports pagination, a free-text search across name/email/subject/message, and filtering by read status.
+
+ * @summary List contact messages (admin)
+ */
+export const listContactMessagesQueryPageDefault = 1;
+
+export const listContactMessagesQueryPerPageDefault = 20;
+export const listContactMessagesQueryPerPageMax = 100;
+
+export const listContactMessagesQueryStatusDefault = `all`;
+export const listContactMessagesQuerySearchMax = 200;
+
+export const ListContactMessagesQueryParams = zod.object({
+  page: zod.coerce.number().min(1).default(listContactMessagesQueryPageDefault),
+  perPage: zod.coerce
+    .number()
+    .min(1)
+    .max(listContactMessagesQueryPerPageMax)
+    .default(listContactMessagesQueryPerPageDefault),
+  status: zod
+    .enum(["all", "new", "read"])
+    .default(listContactMessagesQueryStatusDefault),
+  search: zod.coerce.string().max(listContactMessagesQuerySearchMax).optional(),
+});
+
+export const ListContactMessagesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      email: zod.string(),
+      subject: zod.string(),
+      message: zod.string(),
+      status: zod.enum(["new", "read"]),
+      readAt: zod.coerce.date().nullable(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  meta: zod.object({
+    page: zod.number(),
+    perPage: zod.number(),
+    total: zod.number(),
+    totalPages: zod.number(),
+  }),
+});
+
+/**
+ * Marks a contact message as read or new (handled / unhandled). Admin-only: requires a bearer token.
+
+ * @summary Update a contact message's status (admin)
+ */
+
+export const UpdateContactMessageParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const UpdateContactMessageBody = zod.object({
+  status: zod.enum(["new", "read"]),
+});
+
+export const UpdateContactMessageResponse = zod.object({
+  data: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    email: zod.string(),
+    subject: zod.string(),
+    message: zod.string(),
+    status: zod.enum(["new", "read"]),
+    readAt: zod.coerce.date().nullable(),
+    createdAt: zod.coerce.date(),
+  }),
+});

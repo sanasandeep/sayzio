@@ -39,6 +39,53 @@ export interface ContactMessageResult {
   success: boolean;
 }
 
+export type ContactMessageStatus =
+  (typeof ContactMessageStatus)[keyof typeof ContactMessageStatus];
+
+export const ContactMessageStatus = {
+  new: "new",
+  read: "read",
+} as const;
+
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: ContactMessageStatus;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface PaginationMeta {
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ContactMessageList {
+  data: ContactMessage[];
+  meta: PaginationMeta;
+}
+
+export interface ContactMessageResource {
+  data: ContactMessage;
+}
+
+export type ContactMessageStatusUpdateStatus =
+  (typeof ContactMessageStatusUpdateStatus)[keyof typeof ContactMessageStatusUpdateStatus];
+
+export const ContactMessageStatusUpdateStatus = {
+  new: "new",
+  read: "read",
+} as const;
+
+export interface ContactMessageStatusUpdate {
+  status: ContactMessageStatusUpdateStatus;
+}
+
 export type ErrorResponseError = {
   message: string;
   code?: string;
@@ -47,3 +94,29 @@ export type ErrorResponseError = {
 export interface ErrorResponse {
   error: ErrorResponseError;
 }
+
+export type ListContactMessagesParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  perPage?: number;
+  status?: ListContactMessagesStatus;
+  /**
+   * @maxLength 200
+   */
+  search?: string;
+};
+
+export type ListContactMessagesStatus =
+  (typeof ListContactMessagesStatus)[keyof typeof ListContactMessagesStatus];
+
+export const ListContactMessagesStatus = {
+  all: "all",
+  new: "new",
+  read: "read",
+} as const;

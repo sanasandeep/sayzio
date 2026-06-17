@@ -16,6 +16,7 @@ import Privacy from "@/pages/privacy";
 import Blog from "@/pages/blog";
 import BlogPost from "@/pages/blog-post";
 import Changelog from "@/pages/changelog";
+import Inbox from "@/pages/inbox";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/changelog" component={Changelog} />
+      <Route path="/admin/inbox" component={Inbox} />
       <Route component={NotFound} />
     </Switch>
   );

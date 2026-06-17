@@ -54,7 +54,128 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /contact/messages:
+    get:
+      operationId: listContactMessages
+      tags: [contact]
+      summary: List contact messages (admin)
+      description: >
+        Returns stored contact form submissions, newest first. Admin-only:
+        requires a bearer token. Supports pagination, a free-text search across
+        name/email/subject/message, and filtering by read status.
+      security:
+        - adminBearer: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: perPage
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, new, read]
+            default: all
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+      responses:
+        "200":
+          description: A page of contact messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactMessageList"
+        "401":
+          description: Missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Admin inbox is not configured on the server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /contact/messages/{id}:
+    patch:
+      operationId: updateContactMessage
+      tags: [contact]
+      summary: Update a contact message's status (admin)
+      description: >
+        Marks a contact message as read or new (handled / unhandled).
+        Admin-only: requires a bearer token.
+      security:
+        - adminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactMessageStatusUpdate"
+      responses:
+        "200":
+          description: The updated contact message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactMessageResource"
+        "401":
+          description: Missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Admin inbox is not configured on the server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    adminBearer:
+      type: http
+      scheme: bearer
+      description: >
+        Shared admin token, sent as `Authorization: Bearer <token>`. The token
+        is configured on the API server via the CONTACT_ADMIN_TOKEN environment
+        variable.
   schemas:
     HealthStatus:
       type: object
@@ -100,6 +221,81 @@ components:
           type: boolean
       required:
         - success
+    ContactMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        subject:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [new, read]
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - subject
+        - message
+        - status
+        - readAt
+        - createdAt
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        perPage:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+      required:
+        - page
+        - perPage
+        - total
+        - totalPages
+    ContactMessageList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContactMessage"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+      required:
+        - data
+        - meta
+    ContactMessageResource:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ContactMessage"
+      required:
+        - data
+    ContactMessageStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [new, read]
+      required:
+        - status
     ErrorResponse:
       type: object
       properties:
