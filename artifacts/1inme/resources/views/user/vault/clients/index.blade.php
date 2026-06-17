@@ -8,7 +8,7 @@
 <div class="flex flex-wrap items-center gap-3 mb-4">
     <form method="get" class="flex-1 min-w-[240px]">
         <div class="relative">
-            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
             <input type="text" name="q" value="{{ $q }}" placeholder="Search by name, company, email or tag…"
                    class="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
         </div>
@@ -22,7 +22,7 @@
 
 <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
     <table class="min-w-full text-sm">
-        <thead class="bg-white/5 text-xs uppercase tracking-wide text-gray-400">
+        <thead class="bg-white/5 text-xs uppercase tracking-wide" style="color: var(--text-faint);">
             <tr>
                 <th class="px-4 py-3 text-left">Name</th>
                 <th class="px-4 py-3 text-left">Company</th>
@@ -41,10 +41,10 @@
                     <td class="px-4 py-3">{{ $c->company }}</td>
                     <td class="px-4 py-3">{{ $c->primary_email }}</td>
                     <td class="px-4 py-3">{{ $c->primary_phone }}</td>
-                    <td class="px-4 py-3 text-gray-400 text-xs">{{ $c->updated_at?->diffForHumans() }}</td>
+                    <td class="px-4 py-3 text-xs" style="color: var(--text-faint);">{{ $c->updated_at?->diffForHumans() }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="px-4 py-12 text-center text-gray-400">No clients yet.</td></tr>
+                <tr><td colspan="5" class="px-4 py-12 text-center" style="color: var(--text-faint);">No clients yet.</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -55,8 +55,8 @@
         <h2 class="text-sm font-semibold text-gray-300 mb-2">Recent activity</h2>
         <div class="rounded-xl border border-white/10 divide-y divide-white/5" style="background: var(--bg-card);">
             @foreach($audits as $a)
-                <div class="px-4 py-2 text-xs text-gray-400 flex items-center gap-3">
-                    <span class="w-20 text-gray-500">{{ $a->occurred_at?->diffForHumans() }}</span>
+                <div class="px-4 py-2 text-xs flex items-center gap-3" style="color: var(--text-faint);">
+                    <span class="w-20" style="color: var(--text-muted);">{{ $a->occurred_at?->diffForHumans() }}</span>
                     <span class="px-2 py-0.5 rounded bg-white/5 uppercase tracking-wider text-[10px]">{{ $a->action }}</span>
                     <span>{{ $a->target_type }}</span>
                     <span class="text-gray-300">{{ $a->target_label }}</span>

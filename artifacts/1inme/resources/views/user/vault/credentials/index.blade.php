@@ -11,7 +11,7 @@
 <div class="flex flex-wrap items-center gap-3 mb-4">
     <form method="get" class="flex-1 min-w-[240px]">
         <div class="relative">
-            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
             <input type="text" name="q" value="{{ $q }}" placeholder="Search by label, username, URL or tag…"
                    class="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
         </div>
@@ -25,7 +25,7 @@
 
 <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
     <table class="min-w-full text-sm">
-        <thead class="bg-white/5 text-xs uppercase tracking-wide text-gray-400">
+        <thead class="bg-white/5 text-xs uppercase tracking-wide" style="color: var(--text-faint);">
             <tr>
                 <th class="px-4 py-3 text-left">Label</th>
                 <th class="px-4 py-3 text-left">Username</th>
@@ -48,7 +48,7 @@
                         <span x-data="{ copied: false }" class="inline-flex items-center gap-2">
                             <span class="font-mono text-xs">{{ $c->username }}</span>
                             @if($c->username)
-                                <button type="button" @click="vaultCopy('{{ addslashes($c->username) }}'); copied = true; setTimeout(()=>copied=false, 1500)" class="text-gray-500 hover:text-amber-300 text-xs" title="Copy username (auto-clears in 30s)">
+                                <button type="button" @click="vaultCopy('{{ addslashes($c->username) }}'); copied = true; setTimeout(()=>copied=false, 1500)" class="hover:text-amber-300 text-xs" style="color: var(--text-muted);" title="Copy username (auto-clears in 30s)">
                                     <i class="fas fa-copy" x-show="!copied"></i>
                                     <i class="fas fa-check text-emerald-400" x-show="copied"></i>
                                 </button>
@@ -65,22 +65,22 @@
                             <span class="text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-300">Shared</span>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-gray-400 text-xs">{{ $c->updated_at?->diffForHumans() }}</td>
+                    <td class="px-4 py-3 text-xs" style="color: var(--text-faint);">{{ $c->updated_at?->diffForHumans() }}</td>
                     <td class="px-4 py-3 text-right">
                         <span x-data="vaultInlineReveal({{ $c->id }})" class="inline-flex items-center gap-3">
                             <span x-show="shown" class="font-mono text-xs text-amber-200" x-text="value"></span>
-                            <button type="button" @click="reveal()" class="text-gray-400 hover:text-amber-300 text-xs" :title="shown ? 'Hide' : 'Reveal password (logged)'">
+                            <button type="button" @click="reveal()" class="hover:text-amber-300 text-xs" style="color: var(--text-faint);" :title="shown ? 'Hide' : 'Reveal password (logged)'">
                                 <i :class="shown ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                             </button>
-                            <button type="button" x-show="shown" @click="vaultCopy(value)" class="text-gray-400 hover:text-amber-300 text-xs" title="Copy password (auto-clears in 30s)">
+                            <button type="button" x-show="shown" @click="vaultCopy(value)" class="hover:text-amber-300 text-xs" style="color: var(--text-faint);" title="Copy password (auto-clears in 30s)">
                                 <i class="fas fa-copy"></i>
                             </button>
-                            <a href="{{ route('user.vault.credentials.show', $c) }}" class="text-gray-400 hover:text-white text-xs"><i class="fas fa-arrow-right"></i></a>
+                            <a href="{{ route('user.vault.credentials.show', $c) }}" class="hover:text-white text-xs" style="color: var(--text-faint);"><i class="fas fa-arrow-right"></i></a>
                         </span>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="px-4 py-12 text-center text-gray-400">No credentials yet.</td></tr>
+                <tr><td colspan="6" class="px-4 py-12 text-center" style="color: var(--text-faint);">No credentials yet.</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -91,8 +91,8 @@
         <h2 class="text-sm font-semibold text-gray-300 mb-2">Recent activity</h2>
         <div class="rounded-xl border border-white/10 divide-y divide-white/5" style="background: var(--bg-card);">
             @foreach($audits as $a)
-                <div class="px-4 py-2 text-xs text-gray-400 flex items-center gap-3">
-                    <span class="w-20 text-gray-500">{{ $a->occurred_at?->diffForHumans() }}</span>
+                <div class="px-4 py-2 text-xs flex items-center gap-3" style="color: var(--text-faint);">
+                    <span class="w-20" style="color: var(--text-muted);">{{ $a->occurred_at?->diffForHumans() }}</span>
                     <span class="px-2 py-0.5 rounded bg-white/5 uppercase tracking-wider text-[10px]">{{ $a->action }}</span>
                     <span>{{ $a->target_type }}</span>
                     <span class="text-gray-300">{{ $a->target_label }}</span>

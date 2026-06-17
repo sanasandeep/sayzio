@@ -16,7 +16,7 @@
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('user.workspaces.audit.preferences') }}"
-               class="px-3 py-2 rounded-lg text-sm font-semibold border hover:bg-gray-50"
+               class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
                style="border-color: var(--border-strong); color: var(--text-primary);">
                 <i class="fas fa-bell mr-1"></i> Alert preferences
             </a>
@@ -68,7 +68,7 @@
 
     <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
         <table class="min-w-full text-sm">
-            <thead class="bg-white/5 text-xs uppercase tracking-wide text-gray-400">
+            <thead class="bg-white/5 text-xs uppercase tracking-wide" style="color: var(--text-faint);">
                 <tr>
                     <th class="px-4 py-3 text-left">When</th>
                     <th class="px-4 py-3 text-left">Actor</th>
@@ -82,7 +82,7 @@
             <tbody class="divide-y divide-white/5">
                 @forelse($events as $event)
                     <tr class="{{ $event->reported_unauthorized_at ? 'bg-red-500/5' : '' }}">
-                        <td class="px-4 py-2 text-xs text-gray-400">
+                        <td class="px-4 py-2 text-xs" style="color: var(--text-faint);">
                             {{ $event->occurred_at?->toDateTimeString() }}
                         </td>
                         <td class="px-4 py-2">{{ $event->actor?->name ?? $event->actor?->email ?? '—' }}</td>
@@ -94,10 +94,10 @@
                         <td class="px-4 py-2">
                             <div class="text-sm">{{ $event->target_label ?: '—' }}</div>
                             @if($event->target_type)
-                                <div class="text-[11px] text-gray-500">{{ $event->target_type }}{{ $event->target_id ? ' #'.$event->target_id : '' }}</div>
+                                <div class="text-[11px]" style="color: var(--text-muted);">{{ $event->target_type }}{{ $event->target_id ? ' #'.$event->target_id : '' }}</div>
                             @endif
                         </td>
-                        <td class="px-4 py-2 text-xs text-gray-500 font-mono">{{ $event->ip ?: '—' }}</td>
+                        <td class="px-4 py-2 text-xs font-mono" style="color: var(--text-muted);">{{ $event->ip ?: '—' }}</td>
                         <td class="px-4 py-2">
                             @if($event->reported_unauthorized_at)
                                 <span class="px-2 py-0.5 text-[10px] rounded bg-red-500/20 text-red-300 uppercase">
@@ -118,7 +118,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-12 text-center text-gray-400">
+                        <td colspan="7" class="px-4 py-12 text-center" style="color: var(--text-faint);">
                             No sensitive actions recorded yet.
                         </td>
                     </tr>

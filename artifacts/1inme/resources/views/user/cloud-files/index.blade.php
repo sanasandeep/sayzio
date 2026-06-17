@@ -28,7 +28,7 @@
     <form method="get" class="flex flex-wrap items-center gap-2">
         <input type="hidden" name="view" value="{{ $viewMode }}">
         <div class="relative flex-1 min-w-[220px]">
-            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
             <input type="text" name="q" value="{{ request('q') }}" placeholder="Search by file name…"
                    class="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
         </div>
@@ -83,7 +83,7 @@
         <div class="rounded-xl border border-dashed border-white/15 p-10 text-center" style="background: var(--bg-card);">
             <i class="fas fa-cloud-arrow-up text-4xl text-cyan-400/50 mb-3"></i>
             <h3 class="text-lg font-semibold mb-1">No files in the workspace library yet</h3>
-            <p class="text-sm text-gray-400 mb-4">Connect your Google Drive, Dropbox, or OneDrive and pick files to share with your team. Bytes stay in the cloud — only the link is shared.</p>
+            <p class="text-sm mb-4" style="color: var(--text-faint);">Connect your Google Drive, Dropbox, or OneDrive and pick files to share with your team. Bytes stay in the cloud — only the link is shared.</p>
             <a href="{{ route('user.cloud-files.connections') }}" class="inline-block px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-semibold">
                 <i class="fas fa-plug mr-1"></i> Connect a cloud account
             </a>
@@ -101,9 +101,9 @@
                                 <img src="{{ $f->thumbnail_url }}" alt="" loading="lazy"
                                      class="w-full h-full object-cover"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                <div class="hidden absolute inset-0 items-center justify-center text-3xl text-gray-500"><i class="far fa-file"></i></div>
+                                <div class="hidden absolute inset-0 items-center justify-center text-3xl" style="color: var(--text-muted);"><i class="far fa-file"></i></div>
                             @else
-                                <div class="absolute inset-0 flex items-center justify-center text-3xl text-gray-500"><i class="far fa-file"></i></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-3xl" style="color: var(--text-muted);"><i class="far fa-file"></i></div>
                             @endif
                             @if($canPreview)
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-sm">
@@ -123,17 +123,17 @@
                                 <a href="{{ $f->link }}" target="_blank" rel="noopener noreferrer"
                                    class="text-xs font-medium hover:text-cyan-300 line-clamp-2 break-words" title="{{ $f->name }}">{{ $f->name }}</a>
                             @endif
-                            <div class="text-[10px] text-gray-400 flex items-center justify-between">
+                            <div class="text-[10px] flex items-center justify-between" style="color: var(--text-faint);">
                                 <span>{{ $f->humanSize() }}</span>
                                 <span>{{ $f->added_at?->diffForHumans() }}</span>
                             </div>
                             <div class="flex items-center justify-between pt-1">
-                                <span class="text-[10px] text-gray-500 truncate">{{ $f->addedBy?->name ?: '—' }}</span>
+                                <span class="text-[10px] truncate" style="color: var(--text-muted);">{{ $f->addedBy?->name ?: '—' }}</span>
                                 <div class="inline-flex items-center gap-2">
                                     <button type="button"
                                             x-data="{ copied: false }"
                                             @click.stop="navigator.clipboard.writeText(@js($f->link)).then(() => { copied = true; setTimeout(() => copied = false, 1500); })"
-                                            class="text-gray-400 hover:text-cyan-300 text-xs"
+                                            class="hover:text-cyan-300 text-xs" style="color: var(--text-faint);"
                                             :title="copied ? 'Copied!' : 'Copy share link'">
                                         <i class="fas fa-link" x-show="!copied"></i>
                                         <i class="fas fa-check text-emerald-400" x-show="copied"></i>
@@ -154,7 +154,7 @@
         @else
             <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
                 <table class="min-w-full text-sm">
-                    <thead class="bg-white/5 text-xs uppercase tracking-wide text-gray-400">
+                    <thead class="bg-white/5 text-xs uppercase tracking-wide" style="color: var(--text-faint);">
                         <tr>
                             <th class="px-4 py-3 text-left">Name</th>
                             <th class="px-4 py-3 text-left">Provider</th>
@@ -176,10 +176,10 @@
                                                     class="shrink-0 w-10 h-10 rounded bg-black/30 overflow-hidden flex items-center justify-center"
                                                     title="{{ $canPreview ? 'Preview' : 'Open' }}">
                                                 <img src="{{ $f->thumbnail_url }}" alt="" loading="lazy" class="w-full h-full object-cover"
-                                                     onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'far fa-file text-gray-400'}))">
+                                                     onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'far fa-file theme-text-faint'}))">
                                             </button>
                                         @else
-                                            <div class="shrink-0 w-10 h-10 rounded bg-black/20 flex items-center justify-center text-gray-400">
+                                            <div class="shrink-0 w-10 h-10 rounded bg-black/20 flex items-center justify-center" style="color: var(--text-faint);">
                                                 <i class="far fa-file"></i>
                                             </div>
                                         @endif
@@ -188,30 +188,30 @@
                                                     @click="openPreview(@js(['name'=>$f->name,'mime'=>$f->mime,'link'=>$f->link,'thumb'=>$f->thumbnail_url]))"
                                                     class="font-medium hover:text-cyan-300 text-left">
                                                 {{ $f->name }}
-                                                <i class="fas fa-eye ml-1 text-[10px] text-gray-500"></i>
+                                                <i class="fas fa-eye ml-1 text-[10px]" style="color: var(--text-muted);"></i>
                                             </button>
                                         @else
                                             <a href="{{ $f->link }}" target="_blank" rel="noopener noreferrer" class="font-medium hover:text-cyan-300">
                                                 {{ $f->name }}
-                                                <i class="fas fa-arrow-up-right-from-square ml-1 text-[10px] text-gray-500"></i>
+                                                <i class="fas fa-arrow-up-right-from-square ml-1 text-[10px]" style="color: var(--text-muted);"></i>
                                             </a>
                                         @endif
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-gray-300"><i class="{{ $f->providerIcon() }} mr-1"></i> {{ $f->providerLabel() }}</td>
-                                <td class="px-4 py-3 text-gray-400">{{ $f->humanSize() }}</td>
-                                <td class="px-4 py-3 text-gray-400">{{ $f->addedBy?->name ?: '—' }}</td>
-                                <td class="px-4 py-3 text-gray-400">{{ $f->added_at?->diffForHumans() }}</td>
+                                <td class="px-4 py-3" style="color: var(--text-faint);">{{ $f->humanSize() }}</td>
+                                <td class="px-4 py-3" style="color: var(--text-faint);">{{ $f->addedBy?->name ?: '—' }}</td>
+                                <td class="px-4 py-3" style="color: var(--text-faint);">{{ $f->added_at?->diffForHumans() }}</td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="inline-flex items-center gap-3">
                                         <a href="{{ $f->link }}" target="_blank" rel="noopener noreferrer"
-                                           class="text-gray-400 hover:text-cyan-300 text-xs" title="Open in provider">
+                                           class="hover:text-cyan-300 text-xs" style="color: var(--text-faint);" title="Open in provider">
                                             <i class="fas fa-arrow-up-right-from-square"></i>
                                         </a>
                                         <button type="button"
                                                 x-data="{ copied: false }"
                                                 @click="navigator.clipboard.writeText(@js($f->link)).then(() => { copied = true; setTimeout(() => copied = false, 1500); })"
-                                                class="text-gray-400 hover:text-cyan-300 text-xs"
+                                                class="hover:text-cyan-300 text-xs" style="color: var(--text-faint);"
                                                 :title="copied ? 'Copied!' : 'Copy share link'">
                                             <i class="fas fa-link" x-show="!copied"></i>
                                             <i class="fas fa-check text-emerald-400" x-show="copied"></i>
@@ -246,7 +246,7 @@
                        class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-xs">
                         <i class="fas fa-arrow-up-right-from-square mr-1"></i> Open in provider
                     </a>
-                    <button type="button" @click="closePreview()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+                    <button type="button" @click="closePreview()" class="hover:text-white" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                 </div>
             </div>
             <div class="flex-1 overflow-auto bg-black/40 flex items-center justify-center">
@@ -257,7 +257,7 @@
                     <iframe :src="preview.link" class="w-full h-[75vh]" title="PDF preview"></iframe>
                 </template>
                 <template x-if="!preview.kind">
-                    <div class="text-gray-400 text-sm p-8">No preview available.</div>
+                    <div class="text-sm p-8" style="color: var(--text-faint);">No preview available.</div>
                 </template>
             </div>
         </div>
@@ -270,11 +270,11 @@
             <div class="px-5 py-3 border-b border-white/10">
                 <div class="flex items-center justify-between mb-2">
                     <div class="font-semibold">Pick files</div>
-                    <button @click="close()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+                    <button @click="close()" class="hover:text-white" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="relative flex-1">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
                         <input type="text" x-model="searchTerm" @keydown.enter.prevent="runSearch()"
                                placeholder="Search files in this account…"
                                class="w-full pl-9 pr-3 py-1.5 rounded bg-white/5 border border-white/10 text-sm">
@@ -282,21 +282,21 @@
                     <button type="button" @click="runSearch()" class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-sm">Search</button>
                     <button type="button" x-show="searching" @click="clearSearch()" class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-sm">Clear</button>
                 </div>
-                <div class="text-xs text-gray-400 mt-2" x-show="!searching">
+                <div class="text-xs mt-2" style="color: var(--text-faint);" x-show="!searching">
                     <template x-for="(crumb, i) in breadcrumbs" :key="i">
                         <span>
                             <a href="#" @click.prevent="goBackTo(i)" class="hover:text-cyan-300" x-text="crumb.name"></a>
-                            <span class="mx-1 text-gray-600">/</span>
+                            <span class="mx-1" style="color: var(--text-muted);">/</span>
                         </span>
                     </template>
                 </div>
-                <div class="text-xs text-gray-400 mt-2" x-show="searching">
+                <div class="text-xs mt-2" style="color: var(--text-faint);" x-show="searching">
                     <i class="fas fa-magnifying-glass mr-1"></i> Search results for "<span x-text="searchTerm"></span>"
                 </div>
             </div>
 
             <div class="flex-1 overflow-y-auto p-3" x-ref="list">
-                <div x-show="loading" class="text-center text-gray-400 py-8"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
+                <div x-show="loading" class="text-center py-8" style="color: var(--text-faint);"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
                 <div x-show="error" x-text="error" class="px-3 py-2 rounded bg-rose-500/15 text-rose-200 text-sm"></div>
 
                 <template x-for="folder in folders" :key="'f' + folder.id">
@@ -304,20 +304,20 @@
                             class="w-full text-left px-3 py-2 rounded hover:bg-white/5 flex items-center gap-2">
                         <i class="fas fa-folder text-amber-400"></i>
                         <span class="flex-1" x-text="folder.name"></span>
-                        <i class="fas fa-chevron-right text-xs text-gray-500"></i>
+                        <i class="fas fa-chevron-right text-xs" style="color: var(--text-muted);"></i>
                     </button>
                 </template>
 
                 <template x-for="file in files" :key="'x' + file.id">
                     <label class="px-3 py-2 rounded hover:bg-white/5 flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" :value="file.id" @change="toggle(file, $event.target.checked)" class="w-4 h-4">
-                        <i class="far fa-file text-gray-400"></i>
+                        <i class="far fa-file" style="color: var(--text-faint);"></i>
                         <span class="flex-1 text-sm" x-text="file.name"></span>
-                        <span class="text-xs text-gray-500" x-text="humanSize(file.size)"></span>
+                        <span class="text-xs" style="color: var(--text-muted);" x-text="humanSize(file.size)"></span>
                     </label>
                 </template>
 
-                <div x-show="!loading && folders.length === 0 && files.length === 0" class="text-center text-gray-500 py-8 text-sm">This folder is empty.</div>
+                <div x-show="!loading && folders.length === 0 && files.length === 0" class="text-center py-8 text-sm" style="color: var(--text-muted);">This folder is empty.</div>
 
                 <div x-show="cursor && !loading" class="text-center pt-3">
                     <button type="button" @click="loadMore()" :disabled="loadingMore"
@@ -329,7 +329,7 @@
             </div>
 
             <div class="px-5 py-3 border-t border-white/10 flex items-center justify-between">
-                <div class="text-xs text-gray-400"><span x-text="selected.length"></span> selected</div>
+                <div class="text-xs" style="color: var(--text-faint);"><span x-text="selected.length"></span> selected</div>
                 <div class="flex gap-2">
                     <button type="button" @click="close()" class="px-3 py-2 rounded bg-white/5 text-sm">Cancel</button>
                     <button type="button" @click="submit()" :disabled="selected.length === 0 || saving"

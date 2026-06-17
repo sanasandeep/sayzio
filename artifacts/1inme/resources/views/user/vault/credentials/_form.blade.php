@@ -3,31 +3,31 @@
 @endphp
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <label class="block">
-        <span class="text-xs uppercase tracking-wider text-gray-400">Label *</span>
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Label *</span>
         <input type="text" name="label" required value="{{ old('label', $item->label ?? '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
     </label>
     <label class="block">
-        <span class="text-xs uppercase tracking-wider text-gray-400">URL</span>
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">URL</span>
         <input type="text" name="url" value="{{ old('url', $item->url ?? '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
     </label>
     <label class="block">
-        <span class="text-xs uppercase tracking-wider text-gray-400">Username</span>
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Username</span>
         <input type="text" name="username" value="{{ old('username', $item->username ?? '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
     </label>
     <label class="block">
-        <span class="text-xs uppercase tracking-wider text-gray-400">Password {{ isset($item) ? '(leave blank to keep)' : '*' }}</span>
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Password {{ isset($item) ? '(leave blank to keep)' : '*' }}</span>
         <input type="password" name="password" autocomplete="new-password" value="" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
     </label>
     <label class="block md:col-span-2">
-        <span class="text-xs uppercase tracking-wider text-gray-400">Notes</span>
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Notes</span>
         <textarea name="notes" rows="3" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">{{ old('notes', $item?->getEncrypted('notes')) }}</textarea>
     </label>
     <label class="block">
-        <span class="text-xs uppercase tracking-wider text-gray-400">Tags (comma-separated)</span>
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Tags (comma-separated)</span>
         <input type="text" name="tags" value="{{ old('tags', isset($item) ? implode(',', (array) ($item->tags ?? [])) : '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
     </label>
     <label class="block">
-        <span class="text-xs uppercase tracking-wider text-gray-400">Visibility</span>
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Visibility</span>
         <select name="visibility" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             <option value="shared" @selected(old('visibility', $item->visibility ?? 'shared') === 'shared')>Shared with workspace</option>
             <option value="private" @selected(old('visibility', $item->visibility ?? '') === 'private')>Private — creator + owner only</option>
@@ -51,5 +51,5 @@
 
 <div class="mt-6 flex items-center gap-3">
     <button class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">Save</button>
-    <a href="{{ route('user.vault.credentials.index') }}" class="text-sm text-gray-400 hover:text-white">Cancel</a>
+    <a href="{{ route('user.vault.credentials.index') }}" class="text-sm hover:text-white" style="color: var(--text-faint);">Cancel</a>
 </div>

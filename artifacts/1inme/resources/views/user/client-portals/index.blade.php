@@ -25,23 +25,23 @@
                 </div>
                 <div class="min-w-0">
                     <div class="font-semibold truncate">{{ $portal->name }}</div>
-                    <div class="text-xs text-gray-400 truncate">
+                    <div class="text-xs truncate" style="color: var(--text-faint);">
                         {{ optional($portal->vaultClient)->name ?: 'No client linked' }}
                         · {{ $portal->is_enabled ? 'Active' : 'Disabled' }}
                     </div>
                 </div>
             </div>
-            <div class="flex items-center gap-3 text-xs text-gray-400">
+            <div class="flex items-center gap-3 text-xs" style="color: var(--text-faint);">
                 <span><i class="fas fa-share-alt mr-1"></i>{{ $portal->shares_count }} shares</span>
                 <span><i class="fas fa-link mr-1"></i>{{ $portal->links_count }} links</span>
                 <span><i class="fas fa-bolt mr-1"></i>{{ $portal->actions_count }} actions</span>
             </div>
             @if($portal->last_seen_at)
-                <div class="text-xs text-gray-500 mt-2">Last seen {{ $portal->last_seen_at->diffForHumans() }}</div>
+                <div class="text-xs mt-2" style="color: var(--text-muted);">Last seen {{ $portal->last_seen_at->diffForHumans() }}</div>
             @endif
         </a>
     @empty
-        <div class="md:col-span-2 lg:col-span-3 rounded-xl border border-dashed p-10 text-center text-gray-400" style="border-color: var(--border-glass);">
+        <div class="md:col-span-2 lg:col-span-3 rounded-xl border border-dashed p-10 text-center" style="border-color: var(--border-glass); color: var(--text-faint);">
             <i class="fas fa-handshake text-4xl mb-3 opacity-50"></i>
             <p>No client portals yet. Create one to start sharing with a client.</p>
         </div>

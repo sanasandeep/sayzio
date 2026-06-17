@@ -15,7 +15,7 @@
     <div class="flex items-start justify-between gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold">{{ $item->name }}</h2>
-            <p class="text-sm text-gray-400 mt-1">
+            <p class="text-sm mt-1" style="color: var(--text-faint);">
                 {{ $item->company }} @if($item->website) · <a href="{{ $item->website }}" target="_blank" class="text-blue-400 hover:underline">{{ $item->website }}</a>@endif
             </p>
         </div>
@@ -32,25 +32,25 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div class="rounded-lg p-3 bg-white/5">
-            <h3 class="text-xs uppercase text-gray-400 mb-2">Emails</h3>
+            <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Emails</h3>
             @forelse($item->emails as $e)
-                <div class="text-sm">{{ $e->email }} <span class="text-xs text-gray-500">{{ $e->label }}</span>@if($e->is_primary)<span class="ml-1 text-[10px] text-amber-400">primary</span>@endif</div>
-            @empty<div class="text-sm text-gray-500">—</div>@endforelse
+                <div class="text-sm">{{ $e->email }} <span class="text-xs" style="color: var(--text-muted);">{{ $e->label }}</span>@if($e->is_primary)<span class="ml-1 text-[10px] text-amber-400">primary</span>@endif</div>
+            @empty<div class="text-sm" style="color: var(--text-muted);">—</div>@endforelse
         </div>
         <div class="rounded-lg p-3 bg-white/5">
-            <h3 class="text-xs uppercase text-gray-400 mb-2">Phones</h3>
+            <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Phones</h3>
             @forelse($item->phones as $p)
-                <div class="text-sm">{{ $p->phone }} <span class="text-xs text-gray-500">{{ $p->label }}</span>@if($p->is_primary)<span class="ml-1 text-[10px] text-amber-400">primary</span>@endif</div>
-            @empty<div class="text-sm text-gray-500">—</div>@endforelse
+                <div class="text-sm">{{ $p->phone }} <span class="text-xs" style="color: var(--text-muted);">{{ $p->label }}</span>@if($p->is_primary)<span class="ml-1 text-[10px] text-amber-400">primary</span>@endif</div>
+            @empty<div class="text-sm" style="color: var(--text-muted);">—</div>@endforelse
         </div>
     </div>
 
     @if($item->addresses->count())
         <div class="rounded-lg p-3 bg-white/5 mb-6">
-            <h3 class="text-xs uppercase text-gray-400 mb-2">Addresses</h3>
+            <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Addresses</h3>
             @foreach($item->addresses as $a)
                 <div class="text-sm py-1">
-                    <span class="text-gray-500 text-xs">{{ $a->label }}</span>
+                    <span class="text-xs" style="color: var(--text-muted);">{{ $a->label }}</span>
                     {{ collect([$a->line1, $a->line2, $a->city, $a->region, $a->postal_code, $a->country])->filter()->implode(', ') }}
                 </div>
             @endforeach
@@ -58,22 +58,22 @@
     @endif
 
     <div class="rounded-lg p-3 bg-white/5 mb-6">
-        <h3 class="text-xs uppercase text-gray-400 mb-2 flex items-center justify-between">
+        <h3 class="text-xs uppercase mb-2 flex items-center justify-between" style="color: var(--text-faint);">
             <span>Notes (encrypted)</span>
             <button @click="reveal()" class="text-amber-400 hover:underline text-xs"><i class="fas fa-eye mr-1"></i><span x-text="shown ? 'Hide' : 'Reveal'"></span></button>
         </h3>
         <pre x-show="shown" class="whitespace-pre-wrap text-sm" x-text="value"></pre>
-        <p x-show="!shown" class="text-sm text-gray-500">Hidden — click reveal to view (logged).</p>
+        <p x-show="!shown" class="text-sm" style="color: var(--text-muted);">Hidden — click reveal to view (logged).</p>
         <p x-show="error" class="text-red-300 text-xs mt-2" x-text="error"></p>
     </div>
 
     @if(!empty($socials))
         <div class="rounded-lg p-3 bg-white/5 mb-6">
-            <h3 class="text-xs uppercase text-gray-400 mb-2">Social handles</h3>
+            <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Social handles</h3>
             <ul class="text-sm space-y-1">
                 @foreach($socials as $s)
                     <li>
-                        <span class="text-gray-400 text-xs uppercase mr-2">{{ $s['network'] ?? '' }}</span>
+                        <span class="text-xs uppercase mr-2" style="color: var(--text-faint);">{{ $s['network'] ?? '' }}</span>
                         <span class="font-mono">{{ $s['handle'] ?? '' }}</span>
                         @if(!empty($s['url']))<a href="{{ $s['url'] }}" target="_blank" class="ml-2 text-blue-400 hover:underline text-xs">{{ $s['url'] }}</a>@endif
                     </li>
@@ -84,10 +84,10 @@
 
     @if(!empty($fields))
         <div class="rounded-lg p-3 bg-white/5 mb-6">
-            <h3 class="text-xs uppercase text-gray-400 mb-2">Custom fields</h3>
+            <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Custom fields</h3>
             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 @foreach($fields as $row)
-                    <div class="flex"><dt class="w-1/3 text-xs text-gray-400">{{ $row['key'] ?? '' }}</dt><dd class="text-sm font-mono">{{ $row['value'] ?? '' }}</dd></div>
+                    <div class="flex"><dt class="w-1/3 text-xs" style="color: var(--text-faint);">{{ $row['key'] ?? '' }}</dt><dd class="text-sm font-mono">{{ $row['value'] ?? '' }}</dd></div>
                 @endforeach
             </dl>
         </div>
@@ -101,7 +101,7 @@
 
     <div class="rounded-lg p-3 bg-white/5">
         <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xs uppercase text-gray-400">Attachments</h3>
+            <h3 class="text-xs uppercase" style="color: var(--text-faint);">Attachments</h3>
             @if($canEdit)
                 <form method="post" enctype="multipart/form-data" action="{{ route('user.vault.attachments.store', $item) }}" class="flex items-center gap-2">
                     @csrf
@@ -113,7 +113,7 @@
         @forelse($item->attachments as $a)
             <div class="flex items-center justify-between py-1 text-sm">
                 <a href="{{ route('user.vault.attachments.download', $a) }}" class="text-blue-400 hover:underline">{{ $a->filename }}</a>
-                <span class="text-xs text-gray-500">{{ number_format($a->size / 1024, 1) }} KB</span>
+                <span class="text-xs" style="color: var(--text-muted);">{{ number_format($a->size / 1024, 1) }} KB</span>
                 @if($canDelete)
                     <form method="post" action="{{ route('user.vault.attachments.destroy', $a) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this attachment?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
@@ -121,7 +121,7 @@
                     </form>
                 @endif
             </div>
-        @empty<div class="text-sm text-gray-500">No attachments.</div>@endforelse
+        @empty<div class="text-sm" style="color: var(--text-muted);">No attachments.</div>@endforelse
     </div>
 </div>
 

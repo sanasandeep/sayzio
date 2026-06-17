@@ -14,8 +14,8 @@
         </div>
     @endif
 
-    <h1 class="text-2xl font-bold text-slate-900">Adult content (18+)</h1>
-    <p class="text-sm text-slate-600 mt-1">
+    <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Adult content (18+)</h1>
+    <p class="text-sm mt-1" style="color: var(--text-muted);">
         Toggle 18+ content on your profile. Visitors will see an age-verification screen before
         viewing your profile, and the directory will only surface your profile to viewers who have
         opted in to adult content. <strong>1INME takes 0%</strong> &mdash; you'll receive 100% of
@@ -42,12 +42,12 @@
     @endif
 
     <div x-data="{ open: {{ $isEnabled ? 'true' : 'false' }}, age: false, legal: false, processor: false }"
-         class="mt-6 p-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+         class="mt-6 p-6 rounded-2xl border shadow-sm" style="background: var(--bg-card); border-color: var(--border-glass);">
 
         <div class="flex items-center justify-between gap-4 mb-2">
             <div>
-                <div class="text-base font-bold text-slate-900">Enable 18+ on my profile</div>
-                <p class="text-xs text-slate-500 mt-1">
+                <div class="text-base font-bold" style="color: var(--text-primary);">Enable 18+ on my profile</div>
+                <p class="text-xs mt-1" style="color: var(--text-muted);">
                     @if($isEnabled)
                         Enabled {{ $user->adult_content_enabled_at?->diffForHumans() }}.
                         Last age affirmation {{ $user->age_verified_at?->diffForHumans() }}.
@@ -73,19 +73,19 @@
                     <p class="text-sm font-semibold text-rose-900">
                         Please confirm all three statements:
                     </p>
-                    <label class="flex items-start gap-3 text-sm text-slate-800">
+                    <label class="flex items-start gap-3 text-sm" style="color: var(--text-secondary);">
                         <input type="checkbox" x-model="age" name="confirm_age" value="1"
                                class="mt-0.5 rounded border-rose-300 text-rose-600 focus:ring-rose-500">
                         <span>I am at least <strong>18 years old</strong> (or the age of majority in
                             my jurisdiction) and have legal authority to publish adult content.</span>
                     </label>
-                    <label class="flex items-start gap-3 text-sm text-slate-800">
+                    <label class="flex items-start gap-3 text-sm" style="color: var(--text-secondary);">
                         <input type="checkbox" x-model="legal" name="confirm_legal" value="1"
                                class="mt-0.5 rounded border-rose-300 text-rose-600 focus:ring-rose-500">
                         <span>The content I will publish does <strong>NOT include illegal material
                             or minors</strong>, and complies with the laws of my jurisdiction.</span>
                     </label>
-                    <label class="flex items-start gap-3 text-sm text-slate-800">
+                    <label class="flex items-start gap-3 text-sm" style="color: var(--text-secondary);">
                         <input type="checkbox" x-model="processor" name="confirm_processor" value="1"
                                class="mt-0.5 rounded border-rose-300 text-rose-600 focus:ring-rose-500">
                         <span>I understand my <strong>default payout will be locked to an
@@ -114,7 +114,7 @@
                     </span>
                 </button>
                 <a href="{{ route('user.payouts.show') }}"
-                   class="text-xs text-slate-500 hover:text-slate-800 inline-flex items-center gap-1">
+                   class="text-xs inline-flex items-center gap-1" style="color: var(--text-muted);">
                     Manage payout providers <i class="fas fa-arrow-right text-[10px]"></i>
                 </a>
             </div>
@@ -122,17 +122,17 @@
     </div>
 
     {{-- Adult-friendly processors callout --}}
-    <div class="mt-6 p-5 rounded-2xl border border-slate-200 bg-slate-50">
-        <h3 class="text-sm font-bold text-slate-900 mb-2">Adult-friendly processors</h3>
+    <div class="mt-6 p-5 rounded-2xl border" style="background: var(--bg-glass); border-color: var(--border-glass);">
+        <h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">Adult-friendly processors</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             @foreach($adultProviders as $p)
-                <div class="p-3 rounded-lg bg-white border border-slate-200">
-                    <div class="font-semibold text-slate-800 inline-flex items-center gap-2">
+                <div class="p-3 rounded-lg border" style="background: var(--bg-card); border-color: var(--border-glass);">
+                    <div class="font-semibold inline-flex items-center gap-2" style="color: var(--text-secondary);">
                         <i class="{{ $p['icon'] }}" style="color: {{ $p['tint'] }};"></i>
                         {{ $p['name'] }}
                     </div>
-                    <p class="text-xs text-slate-600 mt-1">{{ $p['short'] }}</p>
-                    <p class="text-[11px] text-slate-500 mt-2">{{ $p['fees'] }}</p>
+                    <p class="text-xs mt-1" style="color: var(--text-muted);">{{ $p['short'] }}</p>
+                    <p class="text-[11px] mt-2" style="color: var(--text-muted);">{{ $p['fees'] }}</p>
                 </div>
             @endforeach
         </div>

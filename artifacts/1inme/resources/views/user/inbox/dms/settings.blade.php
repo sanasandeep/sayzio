@@ -29,21 +29,21 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label class="block text-sm">
-                <span class="text-slate-300">Pay-to-message price (USD)</span>
+                <span style="color: var(--text-muted);">Pay-to-message price (USD)</span>
                 <input type="number" min="0" max="100000" step="1"
                        name="dm_pay_price_cents"
                        value="{{ (int)($user->dm_pay_price_cents ?? 0) }}"
                        class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-                <span class="text-[11px] text-slate-500">In cents — e.g. 500 = $5.00.</span>
+                <span class="text-[11px]" style="color: var(--text-muted);">In cents — e.g. 500 = $5.00.</span>
             </label>
             <label class="block text-sm">
-                <span class="text-slate-300">Currency</span>
+                <span style="color: var(--text-muted);">Currency</span>
                 <input type="text" name="dm_pay_currency" maxlength="3"
                        value="{{ strtoupper($user->dm_pay_currency ?? 'USD') }}"
                        class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm uppercase">
             </label>
             <label class="block text-sm">
-                <span class="text-slate-300">Min subscription tier (subs-only)</span>
+                <span style="color: var(--text-muted);">Min subscription tier (subs-only)</span>
                 <select name="dm_min_tier_id" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                     <option value="">— Any tier —</option>
                     @foreach($tiers as $t)
@@ -60,7 +60,7 @@
         </label>
 
         <div class="flex items-center justify-between pt-2 border-t border-white/10">
-            <div class="text-xs text-slate-500">Once a fan pays the message fee, they keep posting until you reply.</div>
+            <div class="text-xs" style="color: var(--text-muted);">Once a fan pays the message fee, they keep posting until you reply.</div>
             <button class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold">Save</button>
         </div>
     </form>

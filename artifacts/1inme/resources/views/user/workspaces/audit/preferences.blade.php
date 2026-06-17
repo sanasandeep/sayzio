@@ -35,12 +35,12 @@
                 <li class="px-5 py-4 flex items-center justify-between gap-4">
                     <div>
                         <div class="font-semibold" style="color: var(--text-primary);">{{ $row['label'] }}</div>
-                        <div class="text-xs text-gray-500 mt-0.5">
+                        <div class="text-xs mt-0.5" style="color: var(--text-muted);">
                             <code class="text-[11px] bg-white/5 px-1.5 py-0.5 rounded">{{ $action }}</code>
                             @if($row['default'])
                                 <span class="ml-2 text-emerald-400">on by default</span>
                             @else
-                                <span class="ml-2 text-gray-500">off by default</span>
+                                <span class="ml-2" style="color: var(--text-muted);">off by default</span>
                             @endif
                         </div>
                     </div>
@@ -65,7 +65,7 @@
         </div>
     </form>
 
-    <p class="text-xs text-gray-500 mt-4">
+    <p class="text-xs mt-4" style="color: var(--text-muted);">
         Audit rows are always written, even when alerts are off.
         Turning a toggle off only stops the email — the action still
         appears in the log.

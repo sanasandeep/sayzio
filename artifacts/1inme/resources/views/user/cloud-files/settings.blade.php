@@ -25,7 +25,7 @@
                     </div>
                     <div>
                         <div class="font-semibold">{{ $label }}</div>
-                        <div class="text-xs text-gray-400">Redirect URI: <code class="text-gray-300">{{ str_replace('__provider__', $provider, $callback) }}</code></div>
+                        <div class="text-xs" style="color: var(--text-faint);">Redirect URI: <code class="text-gray-300">{{ str_replace('__provider__', $provider, $callback) }}</code></div>
                     </div>
                 </div>
                 <label class="inline-flex items-center gap-2 cursor-pointer">
@@ -38,17 +38,17 @@
 
             <div class="grid gap-3 md:grid-cols-2">
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Client ID</label>
+                    <label class="block text-xs mb-1" style="color: var(--text-faint);">Client ID</label>
                     <input type="text" name="client_id" value="{{ old('client_id', $row?->client_id) }}"
                            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm" autocomplete="off">
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Client Secret @if($row && $row->client_secret_encrypted)<span class="text-gray-500">(leave blank to keep {{ $row->maskedSecret() }})</span>@endif</label>
+                    <label class="block text-xs mb-1" style="color: var(--text-faint);">Client Secret @if($row && $row->client_secret_encrypted)<span style="color: var(--text-muted);">(leave blank to keep {{ $row->maskedSecret() }})</span>@endif</label>
                     <input type="password" name="client_secret" value=""
                            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm" autocomplete="off">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs text-gray-400 mb-1">Custom redirect URI <span class="text-gray-500">(optional — leave blank to use the default above)</span></label>
+                    <label class="block text-xs mb-1" style="color: var(--text-faint);">Custom redirect URI <span style="color: var(--text-muted);">(optional — leave blank to use the default above)</span></label>
                     <input type="url" name="redirect_uri" value="{{ old('redirect_uri', $row?->redirect_uri) }}"
                            placeholder="{{ str_replace('__provider__', $provider, $callback) }}"
                            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm" autocomplete="off">

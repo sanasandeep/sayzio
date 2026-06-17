@@ -5,9 +5,9 @@
 @section('content')
 <div class="max-w-3xl mx-auto p-6">
     <div class="mb-6">
-        <a href="{{ route('user.links.edit', $link->id) }}" class="text-sm text-gray-500 hover:text-gray-700">&larr; Back to link</a>
+        <a href="{{ route('user.links.edit', $link->id) }}" class="text-sm" style="color: var(--text-muted);">&larr; Back to link</a>
         <h1 class="text-2xl font-semibold mt-2">Link Insurance</h1>
-        <p class="text-gray-600 mt-1">
+        <p class="mt-1" style="color: var(--text-muted);">
             Add up to {{ $maxBackups }} backup destinations. If your primary URL goes down,
             we'll automatically redirect new clicks to the next healthy backup until the primary is back.
         </p>
@@ -20,7 +20,7 @@
         <div class="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-800">{{ session('error') }}</div>
     @endif
 
-    <div class="mb-6 p-4 rounded border bg-white">
+    <div class="mb-6 p-4 rounded border" style="background: var(--bg-card); border-color: var(--border-glass);">
         <h2 class="font-medium mb-2">Current state</h2>
         <p>
             <span class="inline-block px-2 py-1 rounded text-sm
@@ -30,17 +30,17 @@
                 {{ ucfirst($link->insurance_state) }}
             </span>
             @if ($link->insurance_state === 'failover' && $link->insurance_active_url)
-                <span class="text-sm text-gray-600 ml-2">Serving: {{ $link->insurance_active_url }}</span>
+                <span class="text-sm ml-2" style="color: var(--text-muted);">Serving: {{ $link->insurance_active_url }}</span>
             @endif
         </p>
         @if ($link->insurance_last_checked_at)
-            <p class="text-sm text-gray-500 mt-2">Last checked {{ $link->insurance_last_checked_at->diffForHumans() }}</p>
+            <p class="text-sm mt-2" style="color: var(--text-muted);">Last checked {{ $link->insurance_last_checked_at->diffForHumans() }}</p>
         @endif
 
         <div class="mt-3 flex gap-2">
             <form method="POST" action="{{ route('user.links.insurance.probe', $link->id) }}">
                 @csrf
-                <button class="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm">Test now</button>
+                <button class="px-3 py-1.5 rounded btn-ghost text-sm">Test now</button>
             </form>
             @if ($link->insurance_state !== 'primary')
                 <form method="POST" action="{{ route('user.links.insurance.restore', $link->id) }}">
@@ -54,7 +54,7 @@
     <form method="POST" action="{{ route('user.links.insurance.update', $link->id) }}" class="space-y-6">
         @csrf
 
-        <div class="p-4 rounded border bg-white">
+        <div class="p-4 rounded border" style="background: var(--bg-card); border-color: var(--border-glass);">
             <label class="flex items-center gap-3">
                 <input type="checkbox" name="insurance_enabled" value="1"
                        @checked($link->insurance_enabled) class="rounded">
@@ -62,7 +62,7 @@
             </label>
         </div>
 
-        <div class="p-4 rounded border bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-4 rounded border grid grid-cols-1 md:grid-cols-2 gap-4" style="background: var(--bg-card); border-color: var(--border-glass);">
             <div>
                 <label class="block text-sm font-medium mb-1">Check every</label>
                 <select name="insurance_cadence_minutes" class="w-full border rounded px-3 py-2">
@@ -101,7 +101,7 @@
             </div>
         </div>
 
-        <div class="p-4 rounded border bg-white">
+        <div class="p-4 rounded border" style="background: var(--bg-card); border-color: var(--border-glass);">
             <h2 class="font-medium mb-3">Backup destinations</h2>
             @php $existing = $link->backups; @endphp
             @for ($i = 0; $i < $maxBackups; $i++)
@@ -116,7 +116,7 @@
                            placeholder="Label (optional)"
                            class="border rounded px-3 py-2">
                     @if ($b && $b->last_status)
-                        <div class="md:col-span-3 text-xs text-gray-500 -mt-2">
+                        <div class="md:col-span-3 text-xs -mt-2" style="color: var(--text-muted);">
                             Last probe: {{ $b->last_status }}
                             @if ($b->last_http_code) (HTTP {{ $b->last_http_code }}) @endif
                             @if ($b->last_checked_at) — {{ $b->last_checked_at->diffForHumans() }} @endif
@@ -132,10 +132,10 @@
     </form>
 
     @if ($recentChecks->isNotEmpty())
-        <div class="mt-8 p-4 rounded border bg-white">
+        <div class="mt-8 p-4 rounded border" style="background: var(--bg-card); border-color: var(--border-glass);">
             <h2 class="font-medium mb-3">Recent probes</h2>
             <table class="w-full text-sm">
-                <thead class="text-left text-gray-500">
+                <thead class="text-left" style="color: var(--text-muted);">
                     <tr>
                         <th class="pb-2">When</th>
                         <th>Target</th>

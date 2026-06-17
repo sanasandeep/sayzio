@@ -17,7 +17,7 @@
         @csrf
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label class="text-sm">
-                <span class="text-slate-300">Trigger</span>
+                <span style="color: var(--text-muted);">Trigger</span>
                 <select name="trigger" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                     @foreach($triggers as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
@@ -25,7 +25,7 @@
                 </select>
             </label>
             <label class="text-sm sm:col-span-2">
-                <span class="text-slate-300">Limit to tier (subscriber trigger only)</span>
+                <span style="color: var(--text-muted);">Limit to tier (subscriber trigger only)</span>
                 <select name="tier_id" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                     <option value="">— Any tier —</option>
                     @foreach($tiers as $t)
@@ -35,7 +35,7 @@
             </label>
         </div>
         <label class="block text-sm">
-            <span class="text-slate-300">Message</span>
+            <span style="color: var(--text-muted);">Message</span>
             <textarea name="body" rows="4" required maxlength="5000"
                       class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
                       placeholder="Welcome! Here's a little something just for you…"></textarea>
@@ -70,7 +70,7 @@
         @forelse($rules as $rule)
             <div class="bg-white/5 border border-white/10 rounded-xl p-4 flex items-start gap-4">
                 <div class="flex-1 min-w-0">
-                    <div class="text-xs text-slate-400 mb-1">
+                    <div class="text-xs mb-1" style="color: var(--text-faint);">
                         {{ $triggers[$rule->trigger] ?? $rule->trigger }}
                         @if($rule->tier_id)
                             · Tier #{{ $rule->tier_id }}
@@ -93,7 +93,7 @@
                 </div>
             </div>
         @empty
-            <div class="text-slate-500 text-sm">No welcome rules yet.</div>
+            <div class="text-sm" style="color: var(--text-muted);">No welcome rules yet.</div>
         @endforelse
     </div>
 </div>

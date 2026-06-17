@@ -23,7 +23,7 @@
         </div>
         <div class="flex items-center gap-2">
             <form action="{{ route('feed.notifications.read') }}" method="POST">@csrf
-                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-ghost">
                     Mark all read @if($unreadNotifs)<span class="ml-1 inline-block px-1.5 rounded-full bg-rose-500 text-white">{{ $unreadNotifs }}</span>@endif
                 </button>
             </form>

@@ -23,12 +23,12 @@
         <div class="flex items-center gap-2">
             @if(!empty($canEditRoles))
                 <a href="{{ route('user.team.roles.index') }}"
-                   class="px-3 py-2 rounded-lg text-sm font-semibold border hover:bg-gray-50"
+                   class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
                    style="border-color: var(--border-strong); color: var(--text-primary);">
                     <i class="fas fa-sliders-h mr-1"></i> Roles &amp; permissions
                 </a>
                 <a href="{{ route('user.workspaces.activity.index') }}"
-                   class="px-3 py-2 rounded-lg text-sm font-semibold border hover:bg-gray-50"
+                   class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
                    style="border-color: var(--border-strong); color: var(--text-primary);">
                     <i class="fas fa-clipboard-list mr-1"></i> Activity log
                 </a>
@@ -155,7 +155,7 @@
                                 <div class="text-xs opacity-60" x-text="m.email"></div>
                             </td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 capitalize" x-text="m.role"></span>
+                                <span class="px-2 py-0.5 rounded text-xs capitalize" style="background: var(--bg-glass-light); color: var(--text-secondary);" x-text="m.role"></span>
                             </td>
                             <td class="px-4 py-3">
                                 <span class="px-2 py-0.5 rounded text-xs"
@@ -208,7 +208,7 @@
                     @foreach($pendingInvites as $inv)
                         <tr class="border-t" style="border-color: var(--border-strong);">
                             <td class="px-4 py-3">{{ $inv->email }}</td>
-                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 capitalize">{{ $inv->role }}</span></td>
+                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs capitalize" style="background: var(--bg-glass-light); color: var(--text-secondary);">{{ $inv->role }}</span></td>
                             <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800">Pending invite</span></td>
                             <td class="px-4 py-3 text-xs opacity-60">Expires {{ optional($inv->expires_at)->diffForHumans() }}</td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
@@ -279,7 +279,7 @@
             @if($twoFactorRequired)
                 <span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">Required</span>
             @else
-                <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">Optional</span>
+                <span class="px-2 py-0.5 rounded text-xs" style="background: var(--bg-glass-light); color: var(--text-secondary);">Optional</span>
             @endif
         </div>
 
@@ -361,7 +361,7 @@
                                             <i class="fas fa-check-circle"></i> Enrolled
                                         </span>
                                     @elseif($row['is_owner'])
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs" style="background: var(--bg-glass-light); color: var(--text-muted);">
                                             Not enrolled
                                         </span>
                                     @else

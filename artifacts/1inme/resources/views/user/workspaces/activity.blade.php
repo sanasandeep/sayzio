@@ -13,7 +13,7 @@
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('user.team.index') }}"
-               class="px-3 py-2 rounded-lg text-sm font-semibold border hover:bg-gray-50"
+               class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
                style="border-color: var(--border-strong); color: var(--text-primary);">
                 <i class="fas fa-users mr-1"></i> Back to Team
             </a>

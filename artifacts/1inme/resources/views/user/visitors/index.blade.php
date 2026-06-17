@@ -179,7 +179,7 @@
                                     @if($followerSet->has($row->id))
                                         <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">Follower</span>
                                     @else
-                                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Visitor</span>
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background: var(--bg-glass-light); color: var(--text-muted);">Visitor</span>
                                     @endif
                                 </td>
                             </tr>

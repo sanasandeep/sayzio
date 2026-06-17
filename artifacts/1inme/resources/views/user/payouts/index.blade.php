@@ -17,14 +17,14 @@
     {{-- ─────── Header ─────── --}}
     <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900">Earnings & Payouts</h1>
-            <p class="text-sm text-slate-600 mt-1">
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Earnings & Payouts</h1>
+            <p class="text-sm mt-1" style="color: var(--text-muted);">
                 Connect a payout provider to receive subscriptions, tips, and per-post unlocks.
                 <strong>1INME takes 0% of your earnings</strong> &mdash; the fee shown next to each
                 provider is theirs.
             </p>
         </div>
-        <div class="text-xs text-slate-500 inline-flex items-center gap-2">
+        <div class="text-xs inline-flex items-center gap-2" style="color: var(--text-muted);">
             <i class="fas fa-shield-halved text-emerald-500"></i> Hosted onboarding &middot; KYC handled by the provider
         </div>
     </div>
@@ -43,10 +43,10 @@
 
     {{-- ─────── Connections summary ─────── --}}
     @if($default)
-        <div class="mb-8 p-5 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-between">
+        <div class="mb-8 p-5 rounded-2xl border shadow-sm flex items-center justify-between" style="background: var(--bg-card); border-color: var(--border-glass);">
             <div>
-                <div class="text-xs uppercase tracking-wide font-semibold text-slate-500">Current default payout</div>
-                <div class="mt-1 text-lg font-bold text-slate-900 inline-flex items-center gap-2">
+                <div class="text-xs uppercase tracking-wide font-semibold" style="color: var(--text-muted);">Current default payout</div>
+                <div class="mt-1 text-lg font-bold inline-flex items-center gap-2" style="color: var(--text-primary);">
                     <i class="{{ $providers[$default->provider]['icon'] ?? 'fas fa-credit-card' }} text-xl"
                        style="color: {{ $providers[$default->provider]['tint'] ?? '#475569' }};"></i>
                     {{ $providers[$default->provider]['name'] ?? ucfirst($default->provider) }}
@@ -54,10 +54,10 @@
                 <div class="mt-1 text-xs text-{{ $default->statusColor() }}-600 font-semibold inline-flex items-center gap-1.5">
                     <span class="inline-block w-1.5 h-1.5 rounded-full bg-{{ $default->statusColor() }}-500"></span>
                     {{ $default->statusLabel() }}
-                    @if($default->status_reason)<span class="text-slate-500 font-normal"> &middot; {{ $default->status_reason }}</span>@endif
+                    @if($default->status_reason)<span class="font-normal" style="color: var(--text-muted);"> &middot; {{ $default->status_reason }}</span>@endif
                 </div>
             </div>
-            <div class="text-xs text-slate-400">
+            <div class="text-xs" style="color: var(--text-faint);">
                 @if($default->last_sync_at)Synced {{ $default->last_sync_at->diffForHumans() }}@else Not yet synced @endif
             </div>
         </div>
@@ -67,7 +67,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         @foreach($providers as $slug => $p)
             @php $conn = $connections[$slug] ?? null; @endphp
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col {{ $p['adult_friendly'] ? 'ring-1 ring-rose-200' : '' }}">
+            <div class="rounded-2xl border p-5 flex flex-col {{ $p['adult_friendly'] ? 'ring-1 ring-rose-200' : '' }}" style="background: var(--bg-card); border-color: var(--border-glass);">
                 <div class="flex items-start gap-3">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl"
                          style="background-color: {{ $p['tint'] }};">
@@ -75,7 +75,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="font-bold text-slate-900">{{ $p['name'] }}</h3>
+                            <h3 class="font-bold" style="color: var(--text-primary);">{{ $p['name'] }}</h3>
                             @if($p['adult_friendly'])
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold uppercase tracking-wide">
                                     <i class="fas fa-fire"></i> 18+ ok
@@ -87,29 +87,29 @@
                                 </span>
                             @endif
                         </div>
-                        <p class="text-sm text-slate-600 mt-1 leading-snug">{{ $p['short'] }}</p>
+                        <p class="text-sm mt-1 leading-snug" style="color: var(--text-muted);">{{ $p['short'] }}</p>
                     </div>
                 </div>
 
                 <dl class="mt-4 grid grid-cols-1 gap-1.5 text-xs">
-                    <div class="flex justify-between gap-3"><dt class="text-slate-500">Countries</dt><dd class="text-slate-800 text-right">{{ $p['countries'] }}</dd></div>
-                    <div class="flex justify-between gap-3"><dt class="text-slate-500">Payout speed</dt><dd class="text-slate-800 text-right">{{ $p['payout_speed'] }}</dd></div>
-                    <div class="flex justify-between gap-3"><dt class="text-slate-500">Provider fees</dt><dd class="text-slate-800 text-right">{{ $p['fees'] }}</dd></div>
+                    <div class="flex justify-between gap-3"><dt style="color: var(--text-muted);">Countries</dt><dd class="text-right" style="color: var(--text-secondary);">{{ $p['countries'] }}</dd></div>
+                    <div class="flex justify-between gap-3"><dt style="color: var(--text-muted);">Payout speed</dt><dd class="text-right" style="color: var(--text-secondary);">{{ $p['payout_speed'] }}</dd></div>
+                    <div class="flex justify-between gap-3"><dt style="color: var(--text-muted);">Provider fees</dt><dd class="text-right" style="color: var(--text-secondary);">{{ $p['fees'] }}</dd></div>
                 </dl>
 
                 @if($conn)
-                    <div class="mt-4 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                    <div class="mt-4 px-3 py-2 rounded-lg border text-xs" style="background: var(--bg-glass); border-color: var(--border-glass);">
                         <div class="flex items-center gap-2">
                             <span class="inline-block w-2 h-2 rounded-full bg-{{ $conn->statusColor() }}-500"></span>
-                            <span class="font-semibold text-slate-700">{{ $conn->statusLabel() }}</span>
+                            <span class="font-semibold" style="color: var(--text-secondary);">{{ $conn->statusLabel() }}</span>
                             @if($conn->payouts_enabled)<span class="text-emerald-700">&middot; payouts on</span>@endif
                             @if($conn->charges_enabled)<span class="text-emerald-700">&middot; charges on</span>@endif
                         </div>
                         @if($conn->status_reason)
-                            <div class="text-slate-500 mt-1">{{ $conn->status_reason }}</div>
+                            <div class="mt-1" style="color: var(--text-muted);">{{ $conn->status_reason }}</div>
                         @endif
                         @if($conn->account_id)
-                            <div class="text-slate-400 mt-1 truncate"><span class="font-mono">{{ $conn->account_id }}</span></div>
+                            <div class="mt-1 truncate" style="color: var(--text-faint);"><span class="font-mono">{{ $conn->account_id }}</span></div>
                         @endif
                     </div>
                 @endif
@@ -133,14 +133,14 @@
                         @endif
                         <form method="POST" action="{{ route('user.payouts.sync', ['connection' => $conn->id]) }}">
                             @csrf
-                            <button class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">
+                            <button class="px-3 py-2 rounded-lg text-xs font-semibold btn-ghost">
                                 <i class="fas fa-arrows-rotate"></i> Refresh
                             </button>
                         </form>
                         @php $dash = \App\Services\CreatorPayouts\PayoutProviderRegistry::adapter($slug)->dashboardUrl($conn); @endphp
                         @if($dash)
                             <a href="{{ $dash }}" target="_blank" rel="noopener"
-                               class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">
+                               class="px-3 py-2 rounded-lg text-xs font-semibold btn-ghost">
                                 <i class="fas fa-arrow-up-right-from-square"></i> Manage
                             </a>
                         @endif
@@ -153,7 +153,7 @@
                         </form>
                     @endif
                     <a href="{{ $p['docs_url'] }}" target="_blank" rel="noopener"
-                       class="ml-auto text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
+                       class="ml-auto text-xs inline-flex items-center gap-1" style="color: var(--text-muted);">
                         Learn more <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
                     </a>
                 </div>
@@ -162,11 +162,11 @@
     </div>
 
     @if(!$adultEnabled)
-        <div class="mt-8 p-5 rounded-2xl border border-dashed border-slate-300 text-sm text-slate-600">
+        <div class="mt-8 p-5 rounded-2xl border border-dashed text-sm" style="border-color: var(--border-glass); color: var(--text-muted);">
             <div class="flex items-start gap-3">
                 <i class="fas fa-fire text-rose-500 mt-0.5"></i>
                 <div class="flex-1">
-                    <strong class="text-slate-900">Publishing 18+ content?</strong>
+                    <strong style="color: var(--text-primary);">Publishing 18+ content?</strong>
                     Enable the adult-content toggle in
                     <a href="{{ route('user.adult-content.show') }}" class="text-violet-700 hover:underline font-semibold">Adult content settings</a>
                     to unlock CCBill and Segpay as payout providers.

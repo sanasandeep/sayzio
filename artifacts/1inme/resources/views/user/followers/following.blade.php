@@ -31,7 +31,7 @@
                     </div>
                     <form onsubmit="event.preventDefault(); var f=this; fetch(f.action, {method:'POST', headers:{'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept':'application/json'}}).then(r=>r.json()).then(()=>f.closest('div.flex').remove());" action="{{ route('viewer.follow.toggle', $u->id) }}">
                         @csrf
-                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-rose-100 hover:text-rose-700">Unfollow</button>
+                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-ghost hover:bg-rose-100 hover:text-rose-700">Unfollow</button>
                     </form>
                 </div>
                 @endif

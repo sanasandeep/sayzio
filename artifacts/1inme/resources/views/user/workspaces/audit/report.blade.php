@@ -37,35 +37,35 @@
 
         <dl class="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-sm">
             <div>
-                <dt class="text-xs text-gray-500 uppercase">When</dt>
+                <dt class="text-xs uppercase" style="color: var(--text-muted);">When</dt>
                 <dd>{{ $event->occurred_at?->toDayDateTimeString() }}</dd>
             </div>
             <div>
-                <dt class="text-xs text-gray-500 uppercase">Actor</dt>
+                <dt class="text-xs uppercase" style="color: var(--text-muted);">Actor</dt>
                 <dd>{{ $event->actor?->name ?? $event->actor?->email ?? 'Unknown' }}</dd>
             </div>
             <div>
-                <dt class="text-xs text-gray-500 uppercase">Target</dt>
+                <dt class="text-xs uppercase" style="color: var(--text-muted);">Target</dt>
                 <dd>{{ $event->target_label ?: '—' }}
                     @if($event->target_type)
-                        <span class="text-xs text-gray-500 ml-1">({{ $event->target_type }}{{ $event->target_id ? ' #'.$event->target_id : '' }})</span>
+                        <span class="text-xs ml-1" style="color: var(--text-muted);">({{ $event->target_type }}{{ $event->target_id ? ' #'.$event->target_id : '' }})</span>
                     @endif
                 </dd>
             </div>
             <div>
-                <dt class="text-xs text-gray-500 uppercase">IP</dt>
+                <dt class="text-xs uppercase" style="color: var(--text-muted);">IP</dt>
                 <dd class="font-mono">{{ $event->ip ?: '—' }}</dd>
             </div>
         </dl>
 
         @if(!empty($event->payload))
             <div class="mt-4">
-                <div class="text-xs text-gray-500 uppercase mb-1">Context</div>
+                <div class="text-xs uppercase mb-1" style="color: var(--text-muted);">Context</div>
                 <pre class="text-xs bg-black/30 p-3 rounded overflow-auto"><code>{{ json_encode($event->payload, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</code></pre>
             </div>
         @endif
 
-        <div class="mt-4 text-xs text-gray-500">
+        <div class="mt-4 text-xs" style="color: var(--text-muted);">
             Hash: <code class="font-mono">{{ substr($event->hash, 0, 20) }}…</code>
             @if($chain['ok'])
                 <span class="ml-2 text-emerald-400"><i class="fas fa-check"></i> chain intact</span>
@@ -95,7 +95,7 @@
                       style="border-color: var(--border-strong); color: var(--text-primary);"></textarea>
             <div class="flex items-center justify-between mt-4">
                 <a href="https://help.{{ parse_url(config('app.url'), PHP_URL_HOST) }}/support"
-                   class="text-xs text-gray-400 hover:text-gray-200">Need to undo this? Contact support →</a>
+                   class="text-xs hover:text-gray-200" style="color: var(--text-faint);">Need to undo this? Contact support →</a>
                 <button type="submit"
                         class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700">
                     File "wasn't me" report
@@ -114,10 +114,10 @@
                             <div>
                                 <div class="font-semibold">{{ $r->reporter?->name ?? $r->reporter_email ?? 'Recipient' }}</div>
                                 @if($r->note)
-                                    <div class="text-gray-400 mt-1">{{ $r->note }}</div>
+                                    <div class="mt-1" style="color: var(--text-faint);">{{ $r->note }}</div>
                                 @endif
                             </div>
-                            <div class="text-xs text-gray-500">{{ $r->created_at?->diffForHumans() }} · {{ $r->ip }}</div>
+                            <div class="text-xs" style="color: var(--text-muted);">{{ $r->created_at?->diffForHumans() }} · {{ $r->ip }}</div>
                         </div>
                     </li>
                 @endforeach
@@ -133,12 +133,12 @@
             <ul class="divide-y divide-white/5 text-sm">
                 @foreach($surrounding as $s)
                     <li class="py-2 flex items-baseline gap-3">
-                        <span class="text-xs text-gray-500 w-40 shrink-0">{{ $s->occurred_at?->toDateTimeString() }}</span>
+                        <span class="text-xs w-40 shrink-0" style="color: var(--text-muted);">{{ $s->occurred_at?->toDateTimeString() }}</span>
                         <span class="px-2 py-0.5 text-[10px] rounded bg-white/10 uppercase tracking-wide">
                             {{ SensitiveActionLogger::label($s->action) }}
                         </span>
-                        <span class="text-gray-400">{{ $s->actor?->name ?? '—' }}</span>
-                        <span class="text-gray-500 truncate">{{ $s->target_label }}</span>
+                        <span style="color: var(--text-faint);">{{ $s->actor?->name ?? '—' }}</span>
+                        <span class="truncate" style="color: var(--text-muted);">{{ $s->target_label }}</span>
                     </li>
                 @endforeach
             </ul>

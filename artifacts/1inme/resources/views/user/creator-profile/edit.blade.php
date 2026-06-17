@@ -157,7 +157,7 @@
                         <input type="hidden" name="sections[{{ $key }}]" value="0">
                         <input type="checkbox" name="sections[{{ $key }}]" value="1"
                                {{ ($sections[$key] ?? $default) ? 'checked' : '' }}
-                               class="rounded border-slate-300 text-violet-600 focus:ring-violet-500">
+                               class="rounded text-violet-600 focus:ring-violet-500" style="border-color: var(--border-glass);">
                         <span class="text-xs font-semibold capitalize" style="color: var(--text-primary);">{{ $key }}</span>
                     </label>
                 @endforeach
@@ -184,16 +184,16 @@
                 <div>
                     <label class="text-xs font-semibold" style="color: var(--text-primary);">Mute words on your comments</label>
                     <textarea name="mute_words_text" rows="2" placeholder="slur1, slur2, scammer"
-                              class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">{{ old('mute_words_text', $muteWords) }}</textarea>
+                              class="mt-1 w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">{{ old('mute_words_text', $muteWords) }}</textarea>
                     <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Comma- or newline-separated. Matched comments are silently hidden — admins still see them.</p>
                 </div>
 
                 {{-- Watermarking --}}
-                <div class="rounded-lg p-3 border border-slate-200">
+                <div class="rounded-lg p-3 border" style="border-color: var(--border-glass);">
                     <label class="flex items-start gap-2">
                         <input type="hidden" name="watermark_enabled" value="0">
                         <input type="checkbox" name="watermark_enabled" value="1" {{ old('watermark_enabled', $wmEnabled) ? 'checked' : '' }}
-                               class="mt-0.5 rounded border-slate-300 text-violet-600">
+                               class="mt-0.5 rounded text-violet-600" style="border-color: var(--border-glass);">
                         <span>
                             <span class="text-sm font-semibold" style="color: var(--text-primary);">Watermark images with viewer's name</span>
                             <span class="block text-[11px]" style="color: var(--text-dimmed);">Adds "@your-handle • @their-handle" to every image so screenshots are traceable.</span>
@@ -203,11 +203,11 @@
                         <div>
                             <label class="font-semibold block" style="color: var(--text-primary);">Opacity</label>
                             <input type="number" name="watermark_opacity" min="10" max="90" value="{{ old('watermark_opacity', $wmOpacity) }}"
-                                   class="mt-1 w-full px-2 py-1.5 rounded-lg border border-slate-200 text-sm"/>
+                                   class="mt-1 w-full px-2 py-1.5 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);"/>
                         </div>
                         <div>
                             <label class="font-semibold block" style="color: var(--text-primary);">Position</label>
-                            <select name="watermark_position" class="mt-1 w-full px-2 py-1.5 rounded-lg border border-slate-200 text-sm">
+                            <select name="watermark_position" class="mt-1 w-full px-2 py-1.5 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
                                 @foreach(['tl' => 'Top left', 'tr' => 'Top right', 'bl' => 'Bottom left', 'br' => 'Bottom right', 'center' => 'Centre'] as $k => $label)
                                     <option value="{{ $k }}" {{ old('watermark_position', $wmPosition) === $k ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
@@ -216,7 +216,7 @@
                         <div>
                             <label class="font-semibold block" style="color: var(--text-primary);">Template</label>
                             <input name="watermark_text_template" maxlength="120" value="{{ old('watermark_text_template', $wmTpl) }}"
-                                   class="mt-1 w-full px-2 py-1.5 rounded-lg border border-slate-200 text-sm"/>
+                                   class="mt-1 w-full px-2 py-1.5 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);"/>
                         </div>
                     </div>
                 </div>
@@ -227,14 +227,14 @@
                         <label class="text-xs font-semibold" style="color: var(--text-primary);">Block from countries</label>
                         <input name="country_block_text" value="{{ old('country_block_text', $cBlock) }}"
                                placeholder="US, GB, DE"
-                               class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm uppercase"/>
+                               class="mt-1 w-full px-3 py-2 rounded-lg border text-sm uppercase" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);"/>
                         <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">2-letter ISO codes. Leave empty for "everywhere".</p>
                     </div>
                     <div>
                         <label class="text-xs font-semibold" style="color: var(--text-primary);">Allow only from countries</label>
                         <input name="country_allow_text" value="{{ old('country_allow_text', $cAllow) }}"
                                placeholder="US, CA"
-                               class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm uppercase"/>
+                               class="mt-1 w-full px-3 py-2 rounded-lg border text-sm uppercase" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);"/>
                         <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">When set, every other country is blocked. Allow wins over block.</p>
                     </div>
                 </div>
@@ -244,7 +244,7 @@
                     <label class="text-xs font-semibold" style="color: var(--text-primary);">DMCA contact email</label>
                     <input type="email" name="dmca_email" maxlength="255" value="{{ old('dmca_email', $user->dmca_email) }}"
                            placeholder="legal@yourdomain.com"
-                           class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm"/>
+                           class="mt-1 w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);"/>
                     <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Used when admins forward you a takedown notice. Defaults to your account email.</p>
                 </div>
 
@@ -266,7 +266,7 @@
                 <input type="hidden" name="profile_published" value="0">
                 <input type="checkbox" name="profile_published" value="1"
                        {{ $user->profile_published ? 'checked' : '' }}
-                       class="mt-0.5 rounded border-slate-300 text-violet-600 focus:ring-violet-500">
+                       class="mt-0.5 rounded text-violet-600 focus:ring-violet-500" style="border-color: var(--border-glass);">
                 <div>
                     <p class="text-sm font-semibold" style="color: var(--text-primary);">My profile is live at /@{{ $user->handle ?: 'handle' }}</p>
                     <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">When off, only you can see it. (You'll need a handle first.)</p>

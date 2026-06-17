@@ -22,7 +22,7 @@
             <p class="text-xs text-amber-800 mb-3">Store these somewhere safe. Each code can be used once if you lose access to your authenticator app. They won't be shown again.</p>
             <div class="grid grid-cols-2 gap-2 font-mono text-sm">
                 @foreach($recoveryCodes as $code)
-                    <div class="bg-white border border-amber-200 rounded px-3 py-2">{{ $code }}</div>
+                    <div class="border border-amber-200 rounded px-3 py-2" style="background: var(--bg-glass-light); color: var(--text-primary);">{{ $code }}</div>
                 @endforeach
             </div>
         </div>
@@ -73,7 +73,7 @@
                 <div class="bg-white rounded-lg p-3 border">{!! $qrSvg !!}</div>
                 <div class="flex-1">
                     <label class="block text-xs uppercase tracking-wider opacity-70 mb-1">Manual secret key</label>
-                    <code class="block bg-gray-100 px-3 py-2 rounded text-sm font-mono break-all">{{ $secret }}</code>
+                    <code class="block px-3 py-2 rounded text-sm font-mono break-all" style="background: var(--bg-glass-light); color: var(--text-primary);">{{ $secret }}</code>
                     <p class="text-xs opacity-60 mt-1">Keep this private — anyone with it can generate codes for your account.</p>
 
                     <form method="POST" action="{{ route('user.account.two-factor.confirm') }}" class="mt-5">

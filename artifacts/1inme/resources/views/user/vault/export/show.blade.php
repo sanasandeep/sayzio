@@ -5,7 +5,7 @@
 
 <div class="max-w-xl">
     <h2 class="text-lg font-semibold mb-2">Export the vault</h2>
-    <p class="text-sm text-gray-400 mb-6">
+    <p class="text-sm mb-6" style="color: var(--text-muted);">
         Download every credential and client record as an AES-256-GCM encrypted JSON file.
         Choose a strong passphrase — it is the only thing that can open the export and is
         never stored on the server.
@@ -14,7 +14,7 @@
         @csrf
         @error('passphrase')<div class="text-red-300 text-sm">{{ $message }}</div>@enderror
         <label class="block">
-            <span class="text-xs uppercase tracking-wider text-gray-400">Passphrase (min 8 chars)</span>
+            <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Passphrase (min 8 chars)</span>
             <input type="password" name="passphrase" required minlength="8" autocomplete="new-password"
                    class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
         </label>

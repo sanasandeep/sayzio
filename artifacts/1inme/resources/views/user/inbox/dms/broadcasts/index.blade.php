@@ -20,7 +20,7 @@
         @csrf
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label class="text-sm">
-                <span class="text-slate-300">Audience</span>
+                <span style="color: var(--text-muted);">Audience</span>
                 <select name="audience_kind" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                     @foreach($audiences as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
@@ -28,7 +28,7 @@
                 </select>
             </label>
             <label class="text-sm sm:col-span-2">
-                <span class="text-slate-300">Tier (only when audience = "Tier")</span>
+                <span style="color: var(--text-muted);">Tier (only when audience = "Tier")</span>
                 <select name="audience_value" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                     <option value="">—</option>
                     @foreach($tiers as $t)
@@ -38,7 +38,7 @@
             </label>
         </div>
         <label class="block text-sm">
-            <span class="text-slate-300">Message</span>
+            <span style="color: var(--text-muted);">Message</span>
             <textarea name="body" rows="4" required maxlength="5000"
                       class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
                       placeholder="Hey friends — just dropped a new behind-the-scenes set 🔥"></textarea>
@@ -73,7 +73,7 @@
             <div class="bg-white/5 border border-white/10 rounded-xl p-4 flex items-start gap-4">
                 <div class="flex-1 min-w-0">
                     <div class="text-sm">{{ \Illuminate\Support\Str::limit($b->body, 200, '…') }}</div>
-                    <div class="text-[11px] text-slate-500 mt-1">
+                    <div class="text-[11px] mt-1" style="color: var(--text-muted);">
                         Audience: {{ $b->audience_kind }}@if($b->audience_value) (#{{ $b->audience_value }})@endif ·
                         Status: <span class="font-semibold">{{ $b->status }}</span> ·
                         @if($b->status === 'sent')
@@ -96,7 +96,7 @@
                 </div>
             </div>
         @empty
-            <div class="text-slate-500 text-sm">No broadcasts yet.</div>
+            <div class="text-sm" style="color: var(--text-muted);">No broadcasts yet.</div>
         @endforelse
     </div>
 
