@@ -35,6 +35,7 @@ class MailSettingsController extends Controller
             'maskedPassword'   => MailSettings::maskedPassword(),
             'fromAddress'      => MailSettings::fromAddress(),
             'fromName'         => MailSettings::fromName(),
+            'verifiedAt'       => MailSettings::verifiedAt(),
             'encryptionOptions' => MailSettings::ENCRYPTION_OPTIONS,
         ]);
     }
@@ -77,8 +78,39 @@ class MailSettingsController extends Controller
             MailSettings::setPassword($data['password']);
         }
 
-        return redirect()->route('admin.mail-settings.index')
+        $redirect = redirect()->route('admin.mail-settings.index')
             ->with('success', 'Email / SMTP settings saved.');
+
+        // Lightweight connection check on save so typos / bad credentials are
+        // caught now rather than silently breaking every outbound email. The
+        // check never blocks the save — the values are already persisted above;
+        // a failure is surfaced inline alongside the success message.
+        if ($data['mailer'] === 'smtp') {
+            $result = MailSettings::verifyConnection();
+            if (!$result['ok']) {
+                $redirect->with('error', 'Settings saved, but the SMTP connection check failed: ' . $result['error']);
+            } else {
+                $redirect->with('info', 'SMTP connection verified successfully.');
+            }
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * Explicit "Verify connection" action: attempts an SMTP handshake/auth
+     * against the saved transport without sending a message, surfacing the
+     * result inline.
+     */
+    public function verify(Request $request)
+    {
+        $result = MailSettings::verifyConnection();
+
+        if ($result['ok']) {
+            return back()->with('success', 'SMTP connection verified successfully.');
+        }
+
+        return back()->with('error', 'SMTP connection check failed: ' . $result['error']);
     }
 
     /**

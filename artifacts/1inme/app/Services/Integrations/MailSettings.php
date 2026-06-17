@@ -3,7 +3,10 @@
 namespace App\Services\Integrations;
 
 use App\Modules\Admin\Models\AppSetting;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Transport\Smtp\SmtpTransport;
 
 /**
  * Typed accessor for the platform's outbound mail transport, managed from
@@ -28,6 +31,7 @@ class MailSettings
     public const KEY_PASSWORD_ENC = 'mail.password_enc';
     public const KEY_FROM_ADDRESS = 'mail.from_address';
     public const KEY_FROM_NAME    = 'mail.from_name';
+    public const KEY_VERIFIED_AT  = 'mail.verified_at';
 
     public const ENCRYPTION_OPTIONS = ['tls', 'ssl', 'none'];
 
@@ -148,6 +152,73 @@ class MailSettings
     public static function setFromName(?string $v): void
     {
         AppSetting::put(self::KEY_FROM_NAME, self::cleanScalar($v));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Connection verification
+    // ─────────────────────────────────────────────────────────────
+
+    /** Timestamp of the last successful SMTP handshake, or null. */
+    public static function verifiedAt(): ?Carbon
+    {
+        $v = AppSetting::get(self::KEY_VERIFIED_AT);
+        if (!is_string($v) || trim($v) === '') return null;
+        try {
+            return Carbon::parse($v);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /** Stamp (or clear, with null) the last-verified-OK timestamp. */
+    public static function setVerifiedAt(?Carbon $when): void
+    {
+        AppSetting::put(self::KEY_VERIFIED_AT, $when?->toIso8601String());
+    }
+
+    /**
+     * Attempt an SMTP handshake/auth against the effective transport without
+     * sending a message. Opens the socket, runs EHLO + STARTTLS + AUTH, then
+     * disconnects. On success stamps the last-verified-OK timestamp.
+     *
+     * @return array{ok:bool,error:?string}
+     */
+    public static function verifyConnection(int $timeout = 10): array
+    {
+        self::applyRuntimeConfig();
+
+        if (self::mailer() !== 'smtp') {
+            return [
+                'ok'    => false,
+                'error' => 'Connection check only applies to the SMTP mailer (current mailer: "' . self::mailer() . '").',
+            ];
+        }
+
+        if (self::host() === null) {
+            return ['ok' => false, 'error' => 'No SMTP host is configured.'];
+        }
+
+        try {
+            // Force a fresh transport built from the values just applied.
+            Mail::purge('smtp');
+            $transport = Mail::mailer('smtp')->getSymfonyTransport();
+
+            if (!$transport instanceof SmtpTransport) {
+                return ['ok' => false, 'error' => 'The configured transport does not support a connection check.'];
+            }
+
+            // Bound the socket so a bad host can't hang the request.
+            $transport->getStream()->setTimeout((float) $timeout);
+
+            $transport->start();
+            $transport->stop();
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+
+        self::setVerifiedAt(Carbon::now());
+
+        return ['ok' => true, 'error' => null];
     }
 
     // ─────────────────────────────────────────────────────────────

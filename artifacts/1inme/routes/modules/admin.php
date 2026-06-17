@@ -271,6 +271,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('test', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'sendTest'])->middleware(CheckPermission::class . ':settings.manage')->name('test');
+            Route::post('verify', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'verify'])->middleware(CheckPermission::class . ':settings.manage')->name('verify');
         });
 
         Route::prefix('marketing-settings')->name('marketing-settings.')->group(function () {

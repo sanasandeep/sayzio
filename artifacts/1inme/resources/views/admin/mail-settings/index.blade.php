@@ -46,9 +46,22 @@
                     </h3>
                     <p class="text-xs text-white/40">Pick the mailer and, for SMTP, its connection details.</p>
                 </div>
-                <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($status['tone']) }}">
-                    {{ $status['label'] }}
-                </span>
+                <div class="shrink-0 flex flex-col items-end gap-1">
+                    <span class="px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($status['tone']) }}">
+                        {{ $status['label'] }}
+                    </span>
+                    @if($verifiedAt)
+                        <span class="text-[11px] text-emerald-300/80 flex items-center gap-1"
+                              title="Last successful SMTP handshake: {{ $verifiedAt->toDayDateTimeString() }}">
+                            <i class="fas fa-check-circle"></i>
+                            Verified OK {{ $verifiedAt->diffForHumans() }}
+                        </span>
+                    @else
+                        <span class="text-[11px] text-white/30 flex items-center gap-1">
+                            <i class="fas fa-circle-question"></i> Connection not verified yet
+                        </span>
+                    @endif
+                </div>
             </div>
 
             <div>
@@ -136,13 +149,32 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
                 <i class="fas fa-save mr-1"></i> Save settings
             </button>
-            <span class="text-xs text-white/30">Save before sending a test so the new values are used.</span>
+            <span class="text-xs text-white/30">Saving runs a connection check automatically.</span>
         </div>
     </form>
+
+    {{-- ============================================================ --}}
+    {{-- Verify connection (handshake/auth only, no message sent)     --}}
+    {{-- ============================================================ --}}
+    <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
+        <h3 class="font-semibold text-white text-sm flex items-center gap-2">
+            <i class="fas fa-plug text-amber-400"></i> Verify connection
+        </h3>
+        <p class="text-xs text-white/40">
+            Opens an SMTP handshake and authenticates against the saved transport &mdash; without sending a message &mdash;
+            so bad credentials or hosts surface immediately. Save your changes first so the check uses the latest values.
+        </p>
+        <form method="POST" action="{{ route('admin.mail-settings.verify') }}">
+            @csrf
+            <button type="submit" class="px-3 py-2 bg-amber-600 text-white rounded-xl text-xs font-medium hover:bg-amber-700 whitespace-nowrap">
+                <i class="fas fa-plug mr-1"></i> Verify connection
+            </button>
+        </form>
+    </div>
 
     {{-- ============================================================ --}}
     {{-- Test email                                                   --}}
