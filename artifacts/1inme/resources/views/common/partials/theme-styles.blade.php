@@ -874,6 +874,39 @@
 
     .gsm-empty { color: var(--text-dimmed); }
     .gsm-empty-query { color: var(--text-secondary); }
+
+    /* =====================================================================
+       LIGHT MODE — accent text colors & very-light grays
+       The global utility remap (injected below) handles white / gray / slate
+       / zinc / neutral / stone text. Tailwind's LIGHT accent shades
+       (*-100/200/300/400, e.g. text-violet-400, text-emerald-300) are tuned
+       for the dark canvas and go low-contrast on the white light-mode surface.
+       They're used overwhelmingly as colored labels/icons and on SOFT same-hue
+       tints (e.g. bg-emerald-500/10) which stay pale in light mode, so darkening
+       the text to a saturated, readable value improves contrast everywhere.
+       (Audited: no solid/gradient saturated bg pairs a light accent text, so
+       no white-on-color labels are harmed.) Dark mode is untouched — these
+       rules only apply under html.light-mode.
+       ===================================================================== */
+    html.light-mode .text-violet-100,  html.light-mode .text-violet-200,  html.light-mode .text-violet-300,  html.light-mode .text-violet-400,
+    html.light-mode .text-purple-100,  html.light-mode .text-purple-200,  html.light-mode .text-purple-300,  html.light-mode .text-purple-400 { color: #6d28d9 !important; }
+    html.light-mode .text-fuchsia-100, html.light-mode .text-fuchsia-200, html.light-mode .text-fuchsia-300, html.light-mode .text-fuchsia-400 { color: #a21caf !important; }
+    html.light-mode .text-pink-100,    html.light-mode .text-pink-200,    html.light-mode .text-pink-300,    html.light-mode .text-pink-400 { color: #be185d !important; }
+    html.light-mode .text-rose-100,    html.light-mode .text-rose-200,    html.light-mode .text-rose-300,    html.light-mode .text-rose-400 { color: #be123c !important; }
+    html.light-mode .text-red-100,     html.light-mode .text-red-200,     html.light-mode .text-red-300,     html.light-mode .text-red-400 { color: #b91c1c !important; }
+    html.light-mode .text-emerald-100, html.light-mode .text-emerald-200, html.light-mode .text-emerald-300, html.light-mode .text-emerald-400,
+    html.light-mode .text-green-100,   html.light-mode .text-green-200,   html.light-mode .text-green-300,   html.light-mode .text-green-400 { color: #047857 !important; }
+    html.light-mode .text-teal-100,    html.light-mode .text-teal-200,    html.light-mode .text-teal-300,    html.light-mode .text-teal-400 { color: #0f766e !important; }
+    html.light-mode .text-amber-100,   html.light-mode .text-amber-200,   html.light-mode .text-amber-300,   html.light-mode .text-amber-400,
+    html.light-mode .text-yellow-100,  html.light-mode .text-yellow-200,  html.light-mode .text-yellow-300,  html.light-mode .text-yellow-400 { color: #b45309 !important; }
+    html.light-mode .text-orange-100,  html.light-mode .text-orange-200,  html.light-mode .text-orange-300,  html.light-mode .text-orange-400 { color: #c2410c !important; }
+    html.light-mode .text-sky-100,     html.light-mode .text-sky-200,     html.light-mode .text-sky-300,     html.light-mode .text-sky-400 { color: #0369a1 !important; }
+    html.light-mode .text-cyan-100,    html.light-mode .text-cyan-200,    html.light-mode .text-cyan-300,    html.light-mode .text-cyan-400 { color: #0e7490 !important; }
+    html.light-mode .text-blue-100,    html.light-mode .text-blue-200,    html.light-mode .text-blue-300,    html.light-mode .text-blue-400 { color: #1d4ed8 !important; }
+    html.light-mode .text-indigo-100,  html.light-mode .text-indigo-200,  html.light-mode .text-indigo-300,  html.light-mode .text-indigo-400 { color: #4338ca !important; }
+    /* Very-light gray text (gray-100/200) — even lighter than the gray-3+ steps
+       the global remap already covers; map to a muted readable token. */
+    html.light-mode .text-gray-100, html.light-mode .text-gray-200 { color: var(--text-muted) !important; }
 </style>
 <script>
 (function(){

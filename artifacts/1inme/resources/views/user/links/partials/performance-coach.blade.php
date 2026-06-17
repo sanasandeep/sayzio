@@ -215,15 +215,15 @@
                 @endif
                 <div class="mt-2">
                     @if($deltaUp)
-                        <span class="pc-trend" style="background:rgba(16,185,129,0.15); color:#6ee7b7; border-color:rgba(16,185,129,0.3);">
+                        <span class="pc-trend text-emerald-300" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3);">
                             <i class="fas fa-arrow-trend-up text-[9px]"></i> {{ $p['delta_label'] }}
                         </span>
                     @elseif($deltaDown)
-                        <span class="pc-trend" style="background:rgba(239,68,68,0.15); color:#fca5a5; border-color:rgba(239,68,68,0.3);">
+                        <span class="pc-trend text-red-300" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3);">
                             <i class="fas fa-arrow-trend-down text-[9px]"></i> {{ $p['delta_label'] }}
                         </span>
                     @else
-                        <span class="pc-trend" style="background:rgba(148,163,184,0.15); color:#cbd5e1; border-color:rgba(148,163,184,0.3);">
+                        <span class="pc-trend text-slate-300" style="background:rgba(148,163,184,0.15); border-color:rgba(148,163,184,0.3);">
                             <i class="fas fa-minus text-[9px]"></i> {{ $p['delta_label'] }}
                         </span>
                     @endif

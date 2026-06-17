@@ -33,3 +33,32 @@ utilities once in marketing-anim.css; grep each marketing page's scoped `<style>
 for hardcoded light hex text colors and add `html.light-mode` counterparts.
 Standalone pages that don't load `site.blade.php` (e.g. `age-gate.blade.php`,
 which is always-dark `bg-slate-950` on Tailwind CDN) are out of scope.
+
+## Signed-in dashboard equivalent (User/Admin/Super Admin)
+
+The dashboard does NOT load `marketing-anim.css`. Its shared CSS + light-mode
+remap is the inlined partial
+`artifacts/1inme/resources/views/common/partials/theme-styles.blade.php`
+(theme-aware via CSS vars `--text-primary` etc.; loaded by user/admin layouts and
+the auth/login views). Two layers, same idea:
+
+1. **Global utility remap** — a JS-injected `<style id="light-mode-overrides">`
+   already remaps text-white(/opacity), gray/slate/zinc/neutral/stone-1..6,
+   bg-white/black, bg-slate/zinc-7..9. A **static** `<style>` block (just before
+   its closing tag) now also darkens LIGHT ACCENT TEXT shades `*-100..400`
+   (violet/purple→#6d28d9, fuchsia→#a21caf, pink→#be185d, rose→#be123c,
+   red→#b91c1c, emerald/green→#047857, teal→#0f766e, amber/yellow→#b45309,
+   orange→#c2410c, sky→#0369a1, cyan→#0e7490, blue→#1d4ed8, indigo→#4338ca) plus
+   text-gray-100/200→var(--text-muted). All under `html.light-mode` w/ `!important`
+   (beats Tailwind CDN). It's inlined per-request — NO `?v=N` cache bump needed.
+   **Why safe to darken accent text:** audited the dashboard — light accent text
+   sits only on SOFT same-hue tints (`bg-emerald-500/10`) that stay pale on white;
+   ZERO pairings with solid/gradient saturated bg, so no white-on-color labels
+   are harmed. Dark mode untouched.
+
+2. **Per-page scoped `<style>` counterparts** — most already exist
+   (`social-proofs/edit .bz-label`, `links/show .stat-tile-*`). Inline per-variant
+   hex colors (e.g. `performance-coach.blade.php` `.pc-trend`) are best fixed by
+   swapping the inline `color:` for a Tailwind accent class so the global remap
+   handles both modes. White-on-purple/gradient badges (followers `.pill-active`,
+   dashboard `.dash-tab-active`, integrations `.tab-active`) are correct as-is.
