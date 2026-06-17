@@ -378,6 +378,12 @@ uri = "file://artifacts/1inme-deck/public/hero-ai.png"
 type = "image"
 title = "ai hero"
 
+[[generated]]
+id = "NPy29avNbXqageQ0KevRG"
+uri = "file://artifacts/1inme-com/public/hero-mockup.png"
+type = "image"
+title = "Phone mockup of a biolink profile"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

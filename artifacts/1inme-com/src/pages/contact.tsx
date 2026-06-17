@@ -1,0 +1,213 @@
+import { PageLayout } from "@/components/layout/page-layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { motion } from "framer-motion";
+import { Mail, MapPin, Clock, Languages, Zap, Handshake, Lightbulb, Check } from "lucide-react";
+import { useState } from "react";
+
+const SUPPORT_EMAIL = "support@1inme.com";
+
+export default function Contact() {
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+
+  // NOTE: This marketing site is frontend-only — there is no backend to receive
+  // submissions. We show a success state and offer a mailto fallback. Wire this
+  // up to a real endpoint (or form service) when a backend becomes available.
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+  };
+
+  const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
+    form.subject || "Hello from 1inme.com",
+  )}&body=${encodeURIComponent(
+    `${form.message}\n\n— ${form.name} (${form.email})`,
+  )}`;
+
+  const cards = [
+    {
+      icon: Zap,
+      title: "Fast replies",
+      description: "We answer within one business day.",
+    },
+    {
+      icon: Handshake,
+      title: "Partnerships",
+      description: "Let's build something together.",
+    },
+    {
+      icon: Lightbulb,
+      title: "Feature ideas",
+      description: "Tell us what would make 1INME better.",
+    },
+  ];
+
+  return (
+    <PageLayout
+      title="Contact"
+      description="We love hearing from you. Reach the 1INME team — we reply within one business day."
+    >
+      <section className="py-20 lg:py-32">
+        <div className="container mx-auto px-6">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
+              Contact us
+            </p>
+            <h1 className="text-4xl lg:text-6xl font-bold tracking-tight mb-6">
+              We love{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent-foreground">
+                hearing from you.
+              </span>
+            </h1>
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" /> Replies within 1 business day
+              </span>
+              <span className="flex items-center gap-2">
+                <Languages className="w-4 h-4 text-primary" /> EN · हिन्दी
+              </span>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-5 gap-12 max-w-5xl mx-auto">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="glass-card p-6 rounded-3xl">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                  <Mail className="w-6 h-6" />
+                </div>
+                <h3 className="font-semibold mb-1">Email us</h3>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="text-muted-foreground hover:text-primary transition-colors break-all"
+                >
+                  {SUPPORT_EMAIL}
+                </a>
+              </div>
+
+              <div className="glass-card p-6 rounded-3xl">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <h3 className="font-semibold mb-1">Where we are</h3>
+                <p className="text-muted-foreground">Hyderabad · India</p>
+              </div>
+
+              <div className="space-y-3">
+                {cards.map((card) => (
+                  <div
+                    key={card.title}
+                    className="flex items-start gap-4 p-4 rounded-2xl border bg-card/30"
+                  >
+                    <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <card.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm">{card.title}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {card.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="lg:col-span-3 glass-card p-8 rounded-3xl"
+            >
+              {submitted ? (
+                <div className="h-full flex flex-col items-center justify-center text-center py-12">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-6">
+                    <Check className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">Thanks for reaching out</h3>
+                  <p className="text-muted-foreground mb-8 max-w-sm">
+                    We've received your message and will reply within one business
+                    day. Prefer email? Send it directly below.
+                  </p>
+                  <Button asChild variant="outline" className="rounded-full">
+                    <a href={mailtoHref}>Email us directly</a>
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Your name</Label>
+                      <Input
+                        id="name"
+                        required
+                        value={form.name}
+                        onChange={(e) =>
+                          setForm({ ...form, name: e.target.value })
+                        }
+                        placeholder="Jane Doe"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        required
+                        value={form.email}
+                        onChange={(e) =>
+                          setForm({ ...form, email: e.target.value })
+                        }
+                        placeholder="jane@example.com"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input
+                      id="subject"
+                      required
+                      value={form.subject}
+                      onChange={(e) =>
+                        setForm({ ...form, subject: e.target.value })
+                      }
+                      placeholder="How can we help?"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message</Label>
+                    <Textarea
+                      id="message"
+                      required
+                      rows={6}
+                      value={form.message}
+                      onChange={(e) =>
+                        setForm({ ...form, message: e.target.value })
+                      }
+                      placeholder="Tell us a little more..."
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full rounded-full h-12"
+                  >
+                    Send message
+                  </Button>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        </div>
+      </section>
+    </PageLayout>
+  );
+}
