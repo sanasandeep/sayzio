@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -294,6 +295,16 @@ export default function EditLinkScreen() {
               onPress={() =>
                 router.push(`/links/${id}/restaurant-orders` as any)
               }
+            />
+          ) : null}
+          {meta.kind === "resume" ? (
+            <ActionTile
+              icon="file-text"
+              label="View resume"
+              onPress={() => {
+                if (l.short_url)
+                  WebBrowser.openBrowserAsync(l.short_url).catch(() => {});
+              }}
             />
           ) : null}
           {l.type === "reviews" ? (

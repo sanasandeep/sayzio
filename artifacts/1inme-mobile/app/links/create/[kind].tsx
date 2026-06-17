@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -101,6 +102,15 @@ export default function CreateLinkScreen() {
         router.replace(`/links/${link.id}/ai-chat` as any);
       } else if (meta.kind === "restaurant_menu") {
         router.replace(`/links/${link.id}/restaurant-orders` as any);
+      } else if (meta.kind === "resume") {
+        // Resume / Portfolio links bridge to the standalone resume builder
+        // (web-only editor). Open the public resume page — which resolves
+        // through the short link and exposes the PDF download — in the
+        // in-app browser, then land on the generic link editor.
+        router.replace(`/links/${link.id}/edit` as any);
+        if (link.short_url) {
+          WebBrowser.openBrowserAsync(link.short_url).catch(() => {});
+        }
       } else {
         router.replace(`/links/${link.id}/edit` as any);
       }

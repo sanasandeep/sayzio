@@ -7,6 +7,7 @@ export type LinkKind =
   | "vcard"
   | "calendar"
   | "ai_chat"
+  | "resume"
   | "conversational"
   | "slides"
   | "restaurant_menu";
@@ -22,6 +23,7 @@ export type LinkKindMeta = {
     | "vcard"
     | "event"
     | "ai_chat"
+    | "resume"
     | "conversational"
     | "slides"
     | "restaurant_menu";
@@ -72,6 +74,13 @@ export const LINK_KINDS: LinkKindMeta[] = [
     label: "Event invite",
     blurb: "Calendar invite (.ics) saved with one tap.",
     icon: "calendar",
+  },
+  {
+    kind: "resume",
+    apiType: "resume",
+    label: "Resume / Portfolio",
+    blurb: "A shareable resume page with PDF download.",
+    icon: "file-text",
   },
 ];
 
