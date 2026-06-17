@@ -53,7 +53,23 @@ class AppServiceProvider extends ServiceProvider
                 // the child serves with the user-content disks falling back to
                 // local (USER_CONTENT_DISK absent) and no S3 credentials.
                 ['USER_CONTENT_DISK', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_DEFAULT_REGION', 'AWS_BUCKET', 'AWS_URL', 'AWS_ENDPOINT', 'AWS_USE_PATH_STYLE_ENDPOINT'],
+                // SMTP mail transport. MAIL_PASSWORD (and often the rest) is a
+                // Replit secret; without forwarding it the child sends mail with
+                // an empty password and SMTP auth fails. Admin-configured values
+                // (app_settings) override these at runtime, but the env values
+                // remain the fallback.
+                ['MAIL_MAILER', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_SCHEME', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME', 'MAIL_EHLO_DOMAIN'],
             )));
+        }
+
+        // Override the mail transport with the admin-configured SMTP settings
+        // (Settings → Email / SMTP) so notifications, newsletters and email
+        // OTP all use them without a redeploy. Falls back to env/config when
+        // unset. Best-effort: never let a settings read break the whole boot.
+        try {
+            \App\Services\Integrations\MailSettings::applyRuntimeConfig();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('MailSettings runtime override failed: ' . $e->getMessage());
         }
 
         \Illuminate\Support\Facades\View::composer(

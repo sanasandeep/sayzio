@@ -260,6 +260,14 @@
             <span class="sidebar-tooltip">Login &amp; OTP</span>
         </a>
 
+        <a href="{{ route('admin.mail-settings.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.mail-settings.*') ? 'active' : '' }}"
+           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-envelope"></i></div>
+            <span class="nav-label">Email / SMTP</span>
+            <span class="sidebar-tooltip">Email / SMTP</span>
+        </a>
+
         <a href="{{ route('admin.marketing-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
