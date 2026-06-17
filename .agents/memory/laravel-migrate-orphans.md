@@ -69,6 +69,18 @@ count (e.g. 279 rows vs 231 files) because concurrent agents insert their own ro
 trust `migrate:status | grep -c Pending` (against the real migrator) over the raw
 `migrations` count to judge convergence.
 
+**"Nothing to migrate" does NOT guarantee schema correctness on the shared RDS.** A
+concurrent `migrate:fresh` can drop+recreate a table *after* an alter-migration was
+already logged, silently wiping that migration's added columns while the ledger still
+shows it ran (e.g. `column form_submissions.workspace_id does not exist` 42703 even
+though migrate:status is 0 pending). Fix without disturbing the ledger: re-apply the
+idempotent column-adding portion directly. Do NOT re-run the whole `up()` of a
+create-tables migration — its top-level `Schema::create()` calls are unguarded and blow
+up 42P07; only the `Schema::hasColumn`-guarded `Schema::table()` loop is safe to replay.
+The 2026_05_02 workspaces migration adds `workspace_id` (+ `created_by_user_id` on
+non-visitor tables) to ~21 user-scoped tables; replaying just that loop re-adds whatever
+a concurrent fresh dropped.
+
 **Note:** transient `42P01 does not exist` / `42P07 already exists` lines in
 `storage/logs/laravel.log` during the migration window are expected (a page hit a
 table before its migration ran, or a reconcile pass hit an orphan). Only errors
