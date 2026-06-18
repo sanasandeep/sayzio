@@ -110,8 +110,6 @@ export default function CreateLinkScreen() {
         router.replace(`/links/${link.id}/blocks` as any);
       } else if (meta.kind === "ai_chat") {
         router.replace(`/links/${link.id}/ai-chat` as any);
-      } else if (meta.kind === "restaurant_menu") {
-        router.replace(`/links/${link.id}/restaurant-orders` as any);
       } else if (meta.kind === "resume") {
         // Resume / Portfolio links bridge to the native resume builder.
         // Land on the generic link editor (which now surfaces an

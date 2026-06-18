@@ -143,6 +143,61 @@ function Art({ kind }: { kind: LinkKind }) {
           <Path d="M120 30 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#2dd4bf" />
         </>
       );
+    case "slides":
+      return (
+        <>
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#e879f9" fillOpacity={0.1} stroke="#e879f9" strokeOpacity={0.3} />
+          <Rect x={30} y={22} width={88} height={48} rx={7} fill="#94a3b8" fillOpacity={0.12} transform="rotate(-5 74 46)" />
+          <Rect x={42} y={24} width={88} height={48} rx={7} fill="#e879f9" fillOpacity={0.18} stroke="#e879f9" strokeOpacity={0.5} />
+          <Rect x={52} y={34} width={40} height={6} rx={3} fill="#e879f9" fillOpacity={0.7} />
+          <Rect x={52} y={46} width={60} height={4} rx={2} fill="#e879f9" fillOpacity={0.4} />
+          <Rect x={52} y={54} width={48} height={4} rx={2} fill="#e879f9" fillOpacity={0.4} />
+          <Circle cx={68} cy={82} r={3} fill="#94a3b8" fillOpacity={0.5} />
+          <Circle cx={80} cy={82} r={3.5} fill="#e879f9" />
+          <Circle cx={92} cy={82} r={3} fill="#94a3b8" fillOpacity={0.5} />
+        </>
+      );
+    case "restaurant_menu":
+      return (
+        <>
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#fb923c" fillOpacity={0.1} stroke="#fb923c" strokeOpacity={0.3} />
+          <Rect x={20} y={18} width={48} height={8} rx={4} fill="#fb923c" fillOpacity={0.7} />
+          <Rect x={20} y={36} width={74} height={7} rx={3.5} fill="#94a3b8" fillOpacity={0.4} />
+          <Rect x={112} y={36} width={28} height={7} rx={3.5} fill="#fb923c" fillOpacity={0.6} />
+          <Rect x={20} y={52} width={62} height={7} rx={3.5} fill="#94a3b8" fillOpacity={0.4} />
+          <Rect x={112} y={52} width={28} height={7} rx={3.5} fill="#fb923c" fillOpacity={0.6} />
+          <Rect x={20} y={68} width={70} height={7} rx={3.5} fill="#94a3b8" fillOpacity={0.4} />
+          <Rect x={112} y={68} width={28} height={7} rx={3.5} fill="#fb923c" fillOpacity={0.6} />
+        </>
+      );
+    case "reviews":
+      return (
+        <>
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#facc15" fillOpacity={0.1} stroke="#facc15" strokeOpacity={0.3} />
+          <G fill="#facc15">
+            <Path transform="translate(36 32)" d="M0,-7 L2.05,-2.84 L6.66,-2.16 L3.33,1.08 L4.11,5.66 L0,3.5 L-4.11,5.66 L-3.33,1.08 L-6.66,-2.16 L-2.05,-2.84 Z" />
+            <Path transform="translate(58 32)" d="M0,-7 L2.05,-2.84 L6.66,-2.16 L3.33,1.08 L4.11,5.66 L0,3.5 L-4.11,5.66 L-3.33,1.08 L-6.66,-2.16 L-2.05,-2.84 Z" />
+            <Path transform="translate(80 32)" d="M0,-7 L2.05,-2.84 L6.66,-2.16 L3.33,1.08 L4.11,5.66 L0,3.5 L-4.11,5.66 L-3.33,1.08 L-6.66,-2.16 L-2.05,-2.84 Z" />
+            <Path transform="translate(102 32)" d="M0,-7 L2.05,-2.84 L6.66,-2.16 L3.33,1.08 L4.11,5.66 L0,3.5 L-4.11,5.66 L-3.33,1.08 L-6.66,-2.16 L-2.05,-2.84 Z" />
+          </G>
+          <Path transform="translate(124 32)" d="M0,-7 L2.05,-2.84 L6.66,-2.16 L3.33,1.08 L4.11,5.66 L0,3.5 L-4.11,5.66 L-3.33,1.08 L-6.66,-2.16 L-2.05,-2.84 Z" fill="#facc15" fillOpacity={0.3} />
+          <Rect x={22} y={52} width={116} height={6} rx={3} fill="#94a3b8" fillOpacity={0.4} />
+          <Rect x={22} y={64} width={92} height={6} rx={3} fill="#94a3b8" fillOpacity={0.4} />
+        </>
+      );
+    case "conversational":
+      return (
+        <>
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#38bdf8" fillOpacity={0.1} stroke="#38bdf8" strokeOpacity={0.3} />
+          <Path d="M22 24 h62 a9 9 0 0 1 9 9 v6 a9 9 0 0 1 -9 9 h-52 l-10 8 v-32 a9 9 0 0 1 0 -0 z" fill="#94a3b8" fillOpacity={0.16} />
+          <Circle cx={34} cy={36} r={2.5} fill="#94a3b8" />
+          <Circle cx={44} cy={36} r={2.5} fill="#94a3b8" />
+          <Circle cx={54} cy={36} r={2.5} fill="#94a3b8" />
+          <Path d="M76 56 h62 a9 9 0 0 1 9 9 v6 a9 9 0 0 1 -9 9 h-52 l-10 8 v-32 a9 9 0 0 1 0 -0 z" fill="#38bdf8" fillOpacity={0.25} stroke="#38bdf8" strokeOpacity={0.5} />
+          <Rect x={88} y={64} width={44} height={5} rx={2.5} fill="#38bdf8" fillOpacity={0.7} />
+          <Rect x={88} y={73} width={30} height={5} rx={2.5} fill="#38bdf8" fillOpacity={0.5} />
+        </>
+      );
     default:
       return (
         <Rect x={4} y={4} width={152} height={88} rx={14} fill="#94a3b8" fillOpacity={0.1} stroke="#94a3b8" strokeOpacity={0.3} />

@@ -11,7 +11,8 @@ export type LinkKind =
   | "paid_page"
   | "conversational"
   | "slides"
-  | "restaurant_menu";
+  | "restaurant_menu"
+  | "reviews";
 
 type IconName = keyof typeof Feather.glyphMap;
 
@@ -28,7 +29,8 @@ export type LinkKindMeta = {
     | "paid_page"
     | "conversational"
     | "slides"
-    | "restaurant_menu";
+    | "restaurant_menu"
+    | "reviews";
   label: string;
   blurb: string;
   icon: IconName;
@@ -92,6 +94,34 @@ export const LINK_KINDS: LinkKindMeta[] = [
       "A themeable home that automatically shows all your posts, tiers & tips — no linking needed.",
     icon: "award",
   },
+  {
+    kind: "slides",
+    apiType: "slides",
+    label: "Slides",
+    blurb: "Present a swipeable deck of slides from a single link.",
+    icon: "layers",
+  },
+  {
+    kind: "restaurant_menu",
+    apiType: "restaurant_menu",
+    label: "Restaurant Menu",
+    blurb: "A digital menu with sections, items and prices.",
+    icon: "coffee",
+  },
+  {
+    kind: "reviews",
+    apiType: "reviews",
+    label: "Reviews",
+    blurb: "Collect and showcase reviews from your audience.",
+    icon: "star",
+  },
+  {
+    kind: "conversational",
+    apiType: "conversational",
+    label: "Conversational",
+    blurb: "A guided, chat-style page that responds as visitors tap.",
+    icon: "message-square",
+  },
 ];
 
 // Grouped presentation for the "Create a new link" picker. Mirrors the
@@ -115,52 +145,21 @@ export const LINK_KIND_CATEGORIES: LinkKindCategory[] = [
   {
     label: "Pages & mini-sites",
     desc: "Full, customizable pages that live at a single link — no website needed.",
-    kinds: ["biolink", "resume"],
+    kinds: ["biolink", "slides", "restaurant_menu", "resume"],
   },
   {
     label: "Business & monetization",
     desc: "Grow your reputation and earn from your audience.",
-    kinds: ["paid_page"],
+    kinds: ["paid_page", "reviews"],
   },
   {
     label: "AI-powered",
     desc: "Let AI answer and guide your visitors for you.",
-    kinds: ["ai_chat"],
+    kinds: ["ai_chat", "conversational"],
   },
 ];
 
-// Biolink-family types that the mobile app recognizes (right icon/label in
-// the link list + editor header) but doesn't yet offer in the create
-// picker — their dedicated editors live on the web. Kept out of
-// LINK_KINDS so the "Pick a kind" screen only shows creatable types.
-const EXTRA_KIND_META: LinkKindMeta[] = [
-  {
-    kind: "conversational",
-    apiType: "conversational",
-    label: "Conversational",
-    blurb: "A guided, chat-style biolink experience.",
-    icon: "message-square",
-  },
-  {
-    kind: "slides",
-    apiType: "slides",
-    label: "Slides",
-    blurb: "A swipeable slide-deck biolink.",
-    icon: "layers",
-  },
-  {
-    kind: "restaurant_menu",
-    apiType: "restaurant_menu",
-    label: "Restaurant Menu",
-    blurb: "A digital menu with optional order-at-table.",
-    icon: "coffee",
-  },
-];
-
-export const KINDS_BY_API: Record<string, LinkKindMeta> = [
-  ...LINK_KINDS,
-  ...EXTRA_KIND_META,
-].reduce(
+export const KINDS_BY_API: Record<string, LinkKindMeta> = LINK_KINDS.reduce(
   (acc, m) => {
     acc[m.apiType] = m;
     return acc;
@@ -174,8 +173,5 @@ export function metaForApiType(t: string | null | undefined): LinkKindMeta {
 }
 
 export function metaForKind(k: LinkKind): LinkKindMeta {
-  return (
-    [...LINK_KINDS, ...EXTRA_KIND_META].find((m) => m.kind === k) ??
-    LINK_KINDS[0]
-  );
+  return LINK_KINDS.find((m) => m.kind === k) ?? LINK_KINDS[0];
 }

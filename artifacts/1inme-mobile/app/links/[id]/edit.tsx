@@ -21,6 +21,7 @@ import { DomainPicker } from "@/components/DomainPicker";
 import { NfcWriteSheet } from "@/components/NfcWriteSheet";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { getBaseUrl } from "@/lib/api";
 import { listAvailableDomains } from "@/lib/api/domains";
 import {
   deleteLink,
@@ -254,6 +255,21 @@ export default function EditLinkScreen() {
   const l = q.data;
   const meta = metaForApiType(l.type);
 
+  // Dedicated editors for slides / conversational / restaurant-menu pages
+  // live on the web; open them in the authenticated in-app browser so the
+  // freshly-created link is fully usable from mobile.
+  const openWebEditor = (path: string) => {
+    const url = `${getBaseUrl()}${path}`;
+    if (Platform.OS === "web") {
+      window.location.href = url;
+      return;
+    }
+    WebBrowser.openBrowserAsync(url, {
+      toolbarColor: colors.background,
+      controlsColor: colors.primary,
+    }).catch(() => {});
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen
@@ -324,6 +340,27 @@ export default function EditLinkScreen() {
               onPress={() =>
                 router.push(`/links/${id}/restaurant-orders` as any)
               }
+            />
+          ) : null}
+          {meta.kind === "restaurant_menu" ? (
+            <ActionTile
+              icon="edit-3"
+              label="Edit menu"
+              onPress={() => openWebEditor(`/user/links/${id}/restaurant`)}
+            />
+          ) : null}
+          {meta.kind === "slides" ? (
+            <ActionTile
+              icon="edit-3"
+              label="Edit slides"
+              onPress={() => openWebEditor(`/user/links/${id}/slides`)}
+            />
+          ) : null}
+          {meta.kind === "conversational" ? (
+            <ActionTile
+              icon="edit-3"
+              label="Edit flow"
+              onPress={() => openWebEditor(`/user/links/${id}/conversational`)}
             />
           ) : null}
           {meta.kind === "resume" ? (
@@ -450,7 +487,12 @@ export default function EditLinkScreen() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          {meta.kind !== "biolink" && meta.kind !== "vcard" ? (
+          {meta.kind !== "biolink" &&
+          meta.kind !== "vcard" &&
+          meta.kind !== "slides" &&
+          meta.kind !== "conversational" &&
+          meta.kind !== "restaurant_menu" &&
+          meta.kind !== "reviews" ? (
             <TextField
               label="Destination URL"
               value={longUrl}
