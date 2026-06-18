@@ -536,6 +536,20 @@ Route::prefix('v1')->group(function () {
         Route::get ('/restaurant/links/{link}/orders/poll',           [RestaurantController::class, 'ownerPoll'])->whereNumber('link');
         Route::post('/restaurant/links/{link}/orders/{order}/status', [RestaurantController::class, 'updateOrderStatus'])->whereNumber('link')->whereNumber('order');
 
+        // Restaurant menu builder (Task #1689) — native mobile editor parity
+        // with the web RestaurantMenuController editor.
+        Route::get   ('/restaurant/links/{link}/menu',                          [RestaurantController::class, 'ownerMenu'])->whereNumber('link');
+        Route::post  ('/restaurant/links/{link}/menu/settings',                 [RestaurantController::class, 'saveMenuSettings'])->whereNumber('link');
+        Route::post  ('/restaurant/links/{link}/menu/photo',                    [RestaurantController::class, 'uploadItemPhoto'])->whereNumber('link');
+        Route::post  ('/restaurant/links/{link}/menu/categories',               [RestaurantController::class, 'storeCategory'])->whereNumber('link');
+        Route::put   ('/restaurant/links/{link}/menu/categories/{category}',    [RestaurantController::class, 'updateCategory'])->whereNumber('link')->whereNumber('category');
+        Route::delete('/restaurant/links/{link}/menu/categories/{category}',    [RestaurantController::class, 'destroyCategory'])->whereNumber('link')->whereNumber('category');
+        Route::post  ('/restaurant/links/{link}/menu/items',                    [RestaurantController::class, 'storeItem'])->whereNumber('link');
+        Route::put   ('/restaurant/links/{link}/menu/items/{item}',             [RestaurantController::class, 'updateItem'])->whereNumber('link')->whereNumber('item');
+        Route::delete('/restaurant/links/{link}/menu/items/{item}',             [RestaurantController::class, 'destroyItem'])->whereNumber('link')->whereNumber('item');
+        Route::post  ('/restaurant/links/{link}/menu/tables',                   [RestaurantController::class, 'storeTable'])->whereNumber('link');
+        Route::delete('/restaurant/links/{link}/menu/tables/{table}',           [RestaurantController::class, 'destroyTable'])->whereNumber('link')->whereNumber('table');
+
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);
         Route::post  ('/social/connections',                 [SocialAccountController::class, 'connect']);

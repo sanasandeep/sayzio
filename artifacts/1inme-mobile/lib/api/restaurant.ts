@@ -1,4 +1,5 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
+import { getToken } from "@/lib/secure";
 
 export type RestaurantMenuItem = {
   id: number;
@@ -162,3 +163,207 @@ export const ORDER_ACTION_LABELS: Record<string, string> = {
 };
 
 export const OPEN_ORDER_STATUSES = ["new", "accepted", "preparing", "ready"];
+
+// ── Owner menu builder (Task #1689) ──────────────────────────────
+
+export type OwnerMenuItem = {
+  id: number;
+  category_id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  photo_url: string | null;
+  is_sold_out: boolean;
+  is_active: boolean;
+};
+
+export type OwnerMenuCategory = {
+  id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  items: OwnerMenuItem[];
+};
+
+export type OwnerMenuTable = {
+  id: number;
+  label: string;
+  code: string;
+  order_url: string;
+};
+
+export type OwnerMenu = {
+  mode: "display" | "order";
+  currency: string;
+  accent_color: string | null;
+  order_enabled: boolean;
+  public_url: string;
+  categories: OwnerMenuCategory[];
+  tables: OwnerMenuTable[];
+};
+
+export async function getOwnerMenu(
+  linkId: number | string,
+): Promise<OwnerMenu> {
+  const res = await apiFetch<{ data: { menu: OwnerMenu } }>(
+    `/restaurant/links/${linkId}/menu`,
+  );
+  return res.data.menu;
+}
+
+export async function saveOwnerMenuSettings(
+  linkId: number | string,
+  input: { mode: "display" | "order"; currency: string; accent_color?: string | null },
+): Promise<OwnerMenu> {
+  const res = await apiFetch<{ data: { menu: OwnerMenu } }>(
+    `/restaurant/links/${linkId}/menu/settings`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.menu;
+}
+
+export async function createMenuCategory(
+  linkId: number | string,
+  input: { name: string; description?: string | null },
+): Promise<OwnerMenuCategory> {
+  const res = await apiFetch<{ data: { category: OwnerMenuCategory } }>(
+    `/restaurant/links/${linkId}/menu/categories`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.category;
+}
+
+export async function updateMenuCategory(
+  linkId: number | string,
+  categoryId: number,
+  input: { name?: string; description?: string | null; is_active?: boolean },
+): Promise<OwnerMenuCategory> {
+  const res = await apiFetch<{ data: { category: OwnerMenuCategory } }>(
+    `/restaurant/links/${linkId}/menu/categories/${categoryId}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+  return res.data.category;
+}
+
+export async function deleteMenuCategory(
+  linkId: number | string,
+  categoryId: number,
+): Promise<void> {
+  await apiFetch(`/restaurant/links/${linkId}/menu/categories/${categoryId}`, {
+    method: "DELETE",
+  });
+}
+
+export type MenuItemInput = {
+  category_id: number;
+  name: string;
+  description?: string | null;
+  price?: number | null;
+  photo_url?: string | null;
+  is_sold_out?: boolean;
+};
+
+export async function createMenuItem(
+  linkId: number | string,
+  input: MenuItemInput,
+): Promise<OwnerMenuItem> {
+  const res = await apiFetch<{ data: { item: OwnerMenuItem } }>(
+    `/restaurant/links/${linkId}/menu/items`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.item;
+}
+
+export async function updateMenuItem(
+  linkId: number | string,
+  itemId: number,
+  input: Partial<MenuItemInput> & { is_active?: boolean },
+): Promise<OwnerMenuItem> {
+  const res = await apiFetch<{ data: { item: OwnerMenuItem } }>(
+    `/restaurant/links/${linkId}/menu/items/${itemId}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+  return res.data.item;
+}
+
+export async function deleteMenuItem(
+  linkId: number | string,
+  itemId: number,
+): Promise<void> {
+  await apiFetch(`/restaurant/links/${linkId}/menu/items/${itemId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function createMenuTable(
+  linkId: number | string,
+  label: string,
+): Promise<OwnerMenuTable> {
+  const res = await apiFetch<{ data: { table: OwnerMenuTable } }>(
+    `/restaurant/links/${linkId}/menu/tables`,
+    { method: "POST", body: JSON.stringify({ label }) },
+  );
+  return res.data.table;
+}
+
+export async function deleteMenuTable(
+  linkId: number | string,
+  tableId: number,
+): Promise<void> {
+  await apiFetch(`/restaurant/links/${linkId}/menu/tables/${tableId}`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Upload a menu-item photo from the device. Posted as multipart/form-data
+ * to mirror the web editor's upload flow; the server stores it in the vault
+ * and returns the public URL to stamp onto the item.
+ */
+export async function uploadMenuItemPhoto(
+  linkId: number | string,
+  args: { uri: string; name?: string; mime?: string },
+): Promise<string> {
+  const token = await getToken();
+  const fd = new FormData();
+  const mime = args.mime || "image/jpeg";
+  const ext = mime.split("/")[1] || "jpg";
+  fd.append("photo", {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore – RN-specific FormData entry shape.
+    uri: args.uri,
+    name: args.name || `menu-item.${ext}`,
+    type: mime,
+  } as unknown as Blob);
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+    // NB: do NOT set Content-Type — RN fills the multipart boundary in.
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(
+    `${getBaseUrl()}/api/v1/restaurant/links/${linkId}/menu/photo`,
+    { method: "POST", body: fd as unknown as BodyInit, headers },
+  );
+  const text = await res.text();
+  const body = text ? (JSON.parse(text) as Record<string, unknown>) : null;
+  if (!res.ok) {
+    const nested =
+      body && typeof body.error === "object" && body.error !== null
+        ? (body.error as Record<string, unknown>)
+        : null;
+    const message =
+      (nested && typeof nested.message === "string"
+        ? (nested.message as string)
+        : null) ||
+      (body && typeof body.message === "string"
+        ? (body.message as string)
+        : null) ||
+      `Upload failed (${res.status})`;
+    throw { status: res.status, message };
+  }
+  return (body as { data: { photo_url: string } }).data.photo_url;
+}

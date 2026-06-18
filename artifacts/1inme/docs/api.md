@@ -686,6 +686,33 @@ curl -X POST $BASE/adult-content \
 | PATCH  | `/splash-pages/{id}`          | yes  | Update a splash page. |
 | DELETE | `/splash-pages/{id}`          | yes  | Delete a splash page. |
 
+## Restaurant menu
+
+Public ordering surface plus the owner-facing builder and orders dashboard.
+Builder endpoints mirror the web `RestaurantMenuController` editor so a
+restaurant-menu link can be created and fully populated from mobile. The
+`{link}` segment is the numeric link id.
+
+| Method | Path                                                      | Auth     | Description                                            |
+| ------ | -------------------------------------------------------- | -------- | ----------------------------------------------------- |
+| GET    | `/restaurant/{alias}`                                    | optional | Public menu by alias (`?t={code}` for a table).       |
+| POST   | `/restaurant/{alias}/order`                              | optional | Place a guest order (order mode). Throttle: 30/min.   |
+| GET    | `/restaurant/orders/{token}/status`                      | no       | Poll a guest order by its public token.               |
+| GET    | `/restaurant/links/{link}/menu`                          | yes      | Owner: full menu (settings, categories+items, tables).|
+| POST   | `/restaurant/links/{link}/menu/settings`                | yes      | Owner: update mode/currency/accent color.             |
+| POST   | `/restaurant/links/{link}/menu/photo`                   | yes      | Owner: upload an item photo (multipart `photo`).      |
+| POST   | `/restaurant/links/{link}/menu/categories`              | yes      | Owner: create a category.                             |
+| PUT    | `/restaurant/links/{link}/menu/categories/{category}`   | yes      | Owner: update a category.                             |
+| DELETE | `/restaurant/links/{link}/menu/categories/{category}`   | yes      | Owner: delete a category (and its items).             |
+| POST   | `/restaurant/links/{link}/menu/items`                   | yes      | Owner: create an item.                                |
+| PUT    | `/restaurant/links/{link}/menu/items/{item}`            | yes      | Owner: update an item.                                |
+| DELETE | `/restaurant/links/{link}/menu/items/{item}`            | yes      | Owner: delete an item.                                |
+| POST   | `/restaurant/links/{link}/menu/tables`                  | yes      | Owner: create a table (auto QR code/url).             |
+| DELETE | `/restaurant/links/{link}/menu/tables/{table}`          | yes      | Owner: delete a table.                                |
+| GET    | `/restaurant/links/{link}/orders`                       | yes      | Owner: recent orders + open count.                    |
+| GET    | `/restaurant/links/{link}/orders/poll`                  | yes      | Owner: incremental poll (`?since=` cursor).           |
+| POST   | `/restaurant/links/{link}/orders/{order}/status`        | yes      | Owner: advance an order's status.                     |
+
 ## Workspaces
 
 | Method | Path                          | Auth | Description                |

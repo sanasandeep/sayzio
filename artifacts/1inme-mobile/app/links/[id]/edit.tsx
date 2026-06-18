@@ -346,7 +346,7 @@ export default function EditLinkScreen() {
             <ActionTile
               icon="edit-3"
               label="Edit menu"
-              onPress={() => openWebEditor(`/user/links/${id}/restaurant`)}
+              onPress={() => router.push(`/links/${id}/restaurant-menu` as any)}
             />
           ) : null}
           {meta.kind === "slides" ? (

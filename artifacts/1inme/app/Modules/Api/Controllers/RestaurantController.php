@@ -7,8 +7,12 @@ use App\Modules\Common\Services\RestaurantOrderService;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\RestaurantMenu;
+use App\Modules\User\Models\RestaurantMenuCategory;
+use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\RestaurantOrder;
+use App\Modules\User\Models\RestaurantTable;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -278,7 +282,299 @@ class RestaurantController extends Controller
         return $this->ok(['order' => $this->ownerOrder($order->fresh('items'))]);
     }
 
+    // ── Owner builder (Sanctum) ──────────────────────────────────
+
+    /** Owner: full menu config — settings, categories+items, tables. */
+    public function ownerMenu(Request $request, Link $link)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu) {
+            return $this->notFound('Menu not found');
+        }
+
+        return $this->ok(['menu' => $this->ownerMenuPayload($menu, $link)]);
+    }
+
+    /** Owner: update menu settings (mode/currency/accent). */
+    public function saveMenuSettings(Request $request, Link $link)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu) {
+            return $this->notFound('Menu not found');
+        }
+
+        $data = $request->validate([
+            'mode'         => 'required|in:display,order',
+            'currency'     => 'required|string|size:3',
+            'accent_color' => 'nullable|string|max:16',
+        ]);
+
+        $menu->update([
+            'mode'         => $data['mode'],
+            'currency'     => strtoupper($data['currency']),
+            'accent_color' => $data['accent_color'] ?? $menu->accent_color,
+        ]);
+
+        return $this->ok(['menu' => $this->ownerMenuPayload($menu->fresh(), $link)]);
+    }
+
+    // ── Categories ───────────────────────────────────────────────
+    public function storeCategory(Request $request, Link $link)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu) {
+            return $this->notFound('Menu not found');
+        }
+
+        $data = $request->validate([
+            'name'        => 'required|string|max:120',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $category = RestaurantMenuCategory::create([
+            'menu_id'     => $menu->id,
+            'name'        => $data['name'],
+            'description' => $data['description'] ?? null,
+            'sort_order'  => (int) RestaurantMenuCategory::where('menu_id', $menu->id)->max('sort_order') + 1,
+        ]);
+
+        return $this->created(['category' => $this->ownerCategory($category, collect())]);
+    }
+
+    public function updateCategory(Request $request, Link $link, RestaurantMenuCategory $category)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu || (int) $category->menu_id !== (int) $menu->id) {
+            return $this->notFound('Category not found');
+        }
+
+        $data = $request->validate([
+            'name'        => 'sometimes|required|string|max:120',
+            'description' => 'nullable|string|max:500',
+            'is_active'   => 'sometimes|boolean',
+        ]);
+
+        $category->update($data);
+
+        $items = $menu->items()->where('category_id', $category->id)->get();
+
+        return $this->ok(['category' => $this->ownerCategory($category->fresh(), $items)]);
+    }
+
+    public function destroyCategory(Request $request, Link $link, RestaurantMenuCategory $category)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu || (int) $category->menu_id !== (int) $menu->id) {
+            return $this->notFound('Category not found');
+        }
+
+        RestaurantMenuItem::where('category_id', $category->id)->delete();
+        $category->delete();
+
+        return $this->ok(['deleted' => true]);
+    }
+
+    // ── Items ────────────────────────────────────────────────────
+    public function storeItem(Request $request, Link $link)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu) {
+            return $this->notFound('Menu not found');
+        }
+
+        $data = $request->validate([
+            'category_id' => 'required|integer',
+            'name'        => 'required|string|max:160',
+            'description' => 'nullable|string|max:800',
+            'price'       => 'nullable|numeric|min:0|max:9999999',
+            'photo_url'   => 'nullable|string|max:1024',
+            'is_sold_out' => 'sometimes|boolean',
+        ]);
+
+        $category = RestaurantMenuCategory::where('menu_id', $menu->id)->find($data['category_id']);
+        if (!$category) {
+            return $this->fail('Category not found', 422, 'invalid_category');
+        }
+
+        $item = RestaurantMenuItem::create([
+            'menu_id'     => $menu->id,
+            'category_id' => $category->id,
+            'name'        => $data['name'],
+            'description' => $data['description'] ?? null,
+            'price'       => $data['price'] ?? 0,
+            'photo_url'   => $data['photo_url'] ?? null,
+            'is_sold_out' => (bool) ($data['is_sold_out'] ?? false),
+            'sort_order'  => (int) RestaurantMenuItem::where('category_id', $category->id)->max('sort_order') + 1,
+        ]);
+
+        return $this->created(['item' => $this->ownerItem($item)]);
+    }
+
+    public function updateItem(Request $request, Link $link, RestaurantMenuItem $item)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu || (int) $item->menu_id !== (int) $menu->id) {
+            return $this->notFound('Item not found');
+        }
+
+        $data = $request->validate([
+            'category_id' => 'sometimes|integer',
+            'name'        => 'sometimes|required|string|max:160',
+            'description' => 'nullable|string|max:800',
+            'price'       => 'sometimes|numeric|min:0|max:9999999',
+            'photo_url'   => 'nullable|string|max:1024',
+            'is_sold_out' => 'sometimes|boolean',
+            'is_active'   => 'sometimes|boolean',
+        ]);
+
+        if (isset($data['category_id'])) {
+            $owned = RestaurantMenuCategory::where('menu_id', $menu->id)->find($data['category_id']);
+            if (!$owned) {
+                return $this->fail('Category not found', 422, 'invalid_category');
+            }
+        }
+
+        $item->update($data);
+
+        return $this->ok(['item' => $this->ownerItem($item->fresh())]);
+    }
+
+    public function destroyItem(Request $request, Link $link, RestaurantMenuItem $item)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu || (int) $item->menu_id !== (int) $menu->id) {
+            return $this->notFound('Item not found');
+        }
+
+        $item->delete();
+
+        return $this->ok(['deleted' => true]);
+    }
+
+    /** Owner: upload a photo for a menu item; returns the public URL. */
+    public function uploadItemPhoto(Request $request, Link $link)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu) {
+            return $this->notFound('Menu not found');
+        }
+
+        $request->validate([
+            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+        ]);
+
+        $user = $request->user();
+
+        try {
+            $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
+                'max_size_mb'    => 5,
+                'compress_image' => true,
+                'max_width'      => 1000,
+                'max_height'     => 1000,
+                'quality'        => 85,
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'upload_failed');
+        }
+
+        // The sanctum API path doesn't bind the active workspace, so the
+        // shared createFromUpload() lands the vault file with workspace_id =
+        // null. workspace_id isn't mass-assignable, so set it directly.
+        if ($userFile->workspace_id === null) {
+            $userFile->workspace_id = $this->activeWorkspaceId($user);
+            $userFile->save();
+        }
+
+        return $this->ok(['photo_url' => $userFile->url]);
+    }
+
+    // ── Tables (order mode) ──────────────────────────────────────
+    public function storeTable(Request $request, Link $link)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu) {
+            return $this->notFound('Menu not found');
+        }
+
+        $data = $request->validate(['label' => 'required|string|max:80']);
+
+        $table = RestaurantTable::create([
+            'menu_id'    => $menu->id,
+            'label'      => $data['label'],
+            'sort_order' => (int) RestaurantTable::where('menu_id', $menu->id)->max('sort_order') + 1,
+        ]);
+
+        return $this->created(['table' => $this->ownerTable($table->fresh(), $link)]);
+    }
+
+    public function destroyTable(Request $request, Link $link, RestaurantTable $table)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu || (int) $table->menu_id !== (int) $menu->id) {
+            return $this->notFound('Table not found');
+        }
+
+        $table->delete();
+
+        return $this->ok(['deleted' => true]);
+    }
+
     // ── Serializers ──────────────────────────────────────────────
+
+    /** Full owner-facing menu (includes inactive rows the builder edits). */
+    protected function ownerMenuPayload(RestaurantMenu $menu, Link $link): array
+    {
+        $menu->load(['categories', 'items', 'tables']);
+        $itemsByCat = $menu->items->groupBy('category_id');
+
+        return [
+            'mode'         => $menu->mode,
+            'currency'     => $menu->currency,
+            'accent_color' => $menu->accent_color,
+            'order_enabled'=> $menu->isOrderMode(),
+            'public_url'   => url('/' . $link->alias),
+            'categories'   => $menu->categories->map(fn ($c) => $this->ownerCategory(
+                $c,
+                $itemsByCat->get($c->id) ?? collect(),
+            ))->values(),
+            'tables'       => $menu->tables->map(fn ($t) => $this->ownerTable($t, $link))->values(),
+        ];
+    }
+
+    protected function ownerCategory(RestaurantMenuCategory $category, $items): array
+    {
+        return [
+            'id'          => $category->id,
+            'name'        => $category->name,
+            'description' => $category->description,
+            'is_active'   => (bool) ($category->is_active ?? true),
+            'items'       => collect($items)->map(fn ($i) => $this->ownerItem($i))->values(),
+        ];
+    }
+
+    protected function ownerItem(RestaurantMenuItem $item): array
+    {
+        return [
+            'id'          => $item->id,
+            'category_id' => $item->category_id,
+            'name'        => $item->name,
+            'description' => $item->description,
+            'price'       => $item->price,
+            'photo_url'   => $item->photo_url,
+            'is_sold_out' => (bool) $item->is_sold_out,
+            'is_active'   => (bool) ($item->is_active ?? true),
+        ];
+    }
+
+    protected function ownerTable(RestaurantTable $table, Link $link): array
+    {
+        return [
+            'id'        => $table->id,
+            'label'     => $table->label,
+            'code'      => $table->code,
+            'order_url' => url('/' . $link->alias) . '?t=' . $table->code,
+        ];
+    }
 
     protected function openCount(int $menuId): int
     {
