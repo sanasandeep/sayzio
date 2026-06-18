@@ -127,6 +127,43 @@ function openPushTarget(target: string): void {
 }
 
 /**
+ * Decide what a tapped push should do, purely from its `data` payload.
+ * Kept side-effect free (no markRead / navigation here) so the branch
+ * logic that guards deep-linking + mark-read can be unit-tested in
+ * isolation — see `scripts/test-push-action.mjs`.
+ *
+ *   - `markReadId`: the originating in-app row to mark read, or null when
+ *     the payload carried no usable `notification_id`.
+ *   - `navigation`: open the deep-link `target` when the server stamped a
+ *     `url`; otherwise fall back by type (API-usage warnings → the usage
+ *     screen, everything else → the notifications list).
+ */
+export function decidePushAction(data: Record<string, unknown> | undefined): {
+  markReadId: number | null;
+  navigation:
+    | { kind: "open"; target: string }
+    | { kind: "route"; path: string };
+} {
+  const rawId = data?.notification_id;
+  const id =
+    typeof rawId === "number"
+      ? rawId
+      : typeof rawId === "string" && rawId.trim() !== ""
+        ? Number(rawId)
+        : NaN;
+  const markReadId = Number.isFinite(id) ? id : null;
+
+  const target = typeof data?.url === "string" ? data.url : null;
+  if (target) {
+    return { markReadId, navigation: { kind: "open", target } };
+  }
+
+  const type = typeof data?.type === "string" ? data.type : null;
+  const path = type === "api.usage_warning" ? "/api-usage" : "/notifications";
+  return { markReadId, navigation: { kind: "route", path } };
+}
+
+/**
  * Route to the right destination when the user taps a push notification.
  * We deep-link to the exact same target the in-app row uses (carried as
  * `url` in the push data, resolved server-side by the single source of
@@ -140,32 +177,18 @@ export function addPushResponseListener(): Notifications.EventSubscription {
       | Record<string, unknown>
       | undefined;
 
+    const { markReadId, navigation } = decidePushAction(data);
+
     // Mark just the originating row read (best-effort), so the badge/list
     // stay in sync with the tap.
-    const rawId = data?.notification_id;
-    const id =
-      typeof rawId === "number"
-        ? rawId
-        : typeof rawId === "string" && rawId.trim() !== ""
-          ? Number(rawId)
-          : NaN;
-    if (Number.isFinite(id)) {
-      markRead(id).catch(() => {});
+    if (markReadId !== null) {
+      markRead(markReadId).catch(() => {});
     }
 
-    // Deep-link to the same place the in-app row opens, when present.
-    const target = typeof data?.url === "string" ? data.url : null;
-    if (target) {
-      openPushTarget(target);
+    if (navigation.kind === "open") {
+      openPushTarget(navigation.target);
       return;
     }
-
-    // Graceful fallbacks when there's no target URL.
-    const type = typeof data?.type === "string" ? data.type : null;
-    if (type === "api.usage_warning") {
-      router.push("/api-usage");
-    } else {
-      router.push("/notifications");
-    }
+    router.push(navigation.path as "/api-usage" | "/notifications");
   });
 }
