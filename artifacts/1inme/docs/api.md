@@ -491,12 +491,40 @@ curl $BASE/forms -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json'
 
 ### Dialer
 
-| Method | Path                | Auth | Description                                              |
-| ------ | ------------------- | ---- | ------------------------------------------------------- |
-| POST   | `/dialer/lookup`    | yes  | Resolve a phone number to a 1INME biolink. Throttle: 60/min. |
-| GET    | `/dialer/history`   | yes  | Recent dialer lookups.                                  |
+The dialer is an everyday tool with full web parity: caller-ID lookup, speed-dial
+favorites, smart grouped recents + a frequently-contacted strip, per-user spam/block
+flags, a call-log mini-CRM (outcome/note/tag), and call-back reminders. All responses
+use the unified `{data}` / `{error}` envelope.
+
+| Method | Path                       | Auth | Description                                                                    |
+| ------ | -------------------------- | ---- | ----------------------------------------------------------------------------- |
+| POST   | `/dialer/lookup`           | yes  | Resolve an E.164 number → caller-ID. Returns `is_spam`/`is_blocked`/`is_favorite`, matched `contact`, `biolink`, and recent `activity`. Throttle: 60/min. |
+| GET    | `/dialer/history`          | yes  | `{ recents, frequent }` — grouped recents (by number, with call counts, last-call time, outcome/note/tag, spam/block) plus the frequently-contacted strip. |
+| GET    | `/dialer/favorites`        | yes  | Ordered speed-dial favorites (`{ items }`).                                    |
+| POST   | `/dialer/favorites`        | yes  | Add a favorite by `contact_id` or `number` (+ optional `label`). Returns `{ favorite, already? }`. |
+| POST   | `/dialer/favorites/reorder`| yes  | Persist favorite order from an `order` array of favorite ids.                  |
+| DELETE | `/dialer/favorites/{id}`   | yes  | Remove a favorite.                                                             |
+| POST   | `/dialer/flag`             | yes  | Set per-user `is_spam` / `is_blocked` for an E.164 `number`. Returns the merged flag state. |
+| POST   | `/dialer/log`              | yes  | Log a call against a `number` (+ optional `contact_id`, `outcome`, `note`, `tag`). Returns `{ log }`. |
+| POST   | `/dialer/callback`         | yes  | Set a call-back reminder (`number`, future `callback_at`, optional `note`). Delivered in-app + scheduled. Returns `{ callback }`. |
+| DELETE | `/dialer/callback/{id}`    | yes  | Clear a pending call-back reminder.                                            |
+
+`outcome` is one of `called`, `messaged`, `no_answer`, `voicemail`, `busy`,
+`wrong_number`, `completed`. Call-back reminders are delivered via the
+`dialer.callback_due` notification, swept every five minutes by the
+`dialer:send-callback-reminders` scheduled command.
 
 ```bash
+# Resolve a number to its caller-ID profile
+curl -X POST $BASE/dialer/lookup -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json' \
+  -d '{"number_e164":"+14155551234"}'
+
+# Log a call outcome with a note + tag
+curl -X POST $BASE/dialer/log -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json' \
+  -d '{"number":"+14155551234","outcome":"completed","note":"Sent quote","tag":"lead"}'
+
 # Save a contact from the mobile dialer
 curl -X POST $BASE/contacts -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -H 'Accept: application/json' \

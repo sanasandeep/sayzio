@@ -9,6 +9,7 @@ import {
   Alert,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,8 +19,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import {
-  type DialerHistoryItem,
+  type DialerFavorite,
+  type DialerFrequent,
+  type DialerRecent,
   dialerHistory,
+  listFavorites,
   lookupNumber,
 } from "@/lib/api/dialer";
 import { type Contact, listContacts } from "@/lib/api/contacts";
@@ -66,6 +70,35 @@ const KEYS: { v: string; sub?: string }[] = [
 // satisfy this are eligible for the server lookup/history POST.
 const E164 = /^\+[1-9]\d{6,14}$/;
 
+// T9 keypad letter map for client-side smart-dial name matching.
+const T9_MAP: Record<string, string> = {
+  a: "2", b: "2", c: "2",
+  d: "3", e: "3", f: "3",
+  g: "4", h: "4", i: "4",
+  j: "5", k: "5", l: "5",
+  m: "6", n: "6", o: "6",
+  p: "7", q: "7", r: "7", s: "7",
+  t: "8", u: "8", v: "8",
+  w: "9", x: "9", y: "9", z: "9",
+};
+
+function t9Encode(name: string): string {
+  return name
+    .toLowerCase()
+    .split("")
+    .map((ch) => T9_MAP[ch] ?? "")
+    .join("");
+}
+
+function contactName(c: Contact): string {
+  return (
+    c.display_name?.trim() ||
+    [c.given_name, c.family_name].filter(Boolean).join(" ").trim() ||
+    c.phones[0]?.value ||
+    ""
+  );
+}
+
 async function loadLocalRecent(): Promise<LocalRecent[]> {
   try {
     const raw = await AsyncStorage.getItem(RECENT_KEY);
@@ -86,18 +119,6 @@ async function saveLocalRecent(list: LocalRecent[]): Promise<void> {
   }
 }
 
-function formatRelative(at: number | string | null): string {
-  if (!at) return "";
-  const ms = typeof at === "number" ? at : new Date(at).getTime();
-  if (Number.isNaN(ms)) return "";
-  const diff = Date.now() - ms;
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  if (diff < 7 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d ago`;
-  return new Date(ms).toLocaleDateString();
-}
-
 export default function DialerScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -116,36 +137,52 @@ export default function DialerScreen() {
   );
 
   const [localRecent, setLocalRecent] = useState<LocalRecent[]>([]);
-  const [serverHistory, setServerHistory] = useState<DialerHistoryItem[]>([]);
+  const [recents, setRecents] = useState<DialerRecent[]>([]);
+  const [frequent, setFrequent] = useState<DialerFrequent[]>([]);
+  const [favorites, setFavorites] = useState<DialerFavorite[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
 
   const [contactsQuery, setContactsQuery] = useState("");
   const [appContacts, setAppContacts] = useState<Contact[]>([]);
+  const [keypadMatches, setKeypadMatches] = useState<Contact[]>([]);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [deviceAccess, setDeviceAccess] = useState<
     "unknown" | "granted" | "denied"
   >("unknown");
 
-  // Initial recent load.
+  // Initial load.
   useEffect(() => {
     void refreshRecent();
+    void refreshFavorites();
   }, []);
 
-  // Debounced contacts search.
+  // Debounced contacts search (Contacts tab).
   useEffect(() => {
     if (tab !== "contacts") return;
     const t = setTimeout(() => void refreshContacts(contactsQuery), 250);
     return () => clearTimeout(t);
   }, [tab, contactsQuery]);
 
+  // Debounced T9 smart-dial as the user types on the keypad.
+  useEffect(() => {
+    const q = number.trim();
+    if (q.length < 2) {
+      setKeypadMatches([]);
+      return;
+    }
+    const t = setTimeout(() => void runT9Search(q), 200);
+    return () => clearTimeout(t);
+  }, [number]);
+
   const refreshRecent = useCallback(async () => {
     setRecentLoading(true);
     const local = await loadLocalRecent();
     setLocalRecent(local);
     try {
-      const items = await dialerHistory();
-      setServerHistory(items);
+      const hist = await dialerHistory();
+      setRecents(hist.recents);
+      setFrequent(hist.frequent);
     } catch {
       /* ignore — local list is the primary surface */
     } finally {
@@ -153,16 +190,49 @@ export default function DialerScreen() {
     }
   }, []);
 
+  const refreshFavorites = useCallback(async () => {
+    try {
+      setFavorites(await listFavorites());
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const refreshContacts = useCallback(async (q: string) => {
     setContactsLoading(true);
     try {
       const res = await listContacts(q || undefined);
-      // Only contacts that have at least one phone are dialable.
       setAppContacts(res.items.filter((c) => (c.phones?.length ?? 0) > 0));
     } catch {
       setAppContacts([]);
     } finally {
       setContactsLoading(false);
+    }
+  }, []);
+
+  // T9 smart-dial: a pure digit sequence matches phone numbers (server)
+  // OR keypad-spelled names (client-side over the same result set + a
+  // broader fetch). Text queries match names/numbers server-side.
+  const runT9Search = useCallback(async (q: string) => {
+    try {
+      const isDigits = /^[+\d*#]+$/.test(q);
+      const res = await listContacts(q || undefined);
+      let items = res.items.filter((c) => (c.phones?.length ?? 0) > 0);
+
+      if (isDigits) {
+        const seq = q.replace(/\D+/g, "");
+        if (seq.length >= 2) {
+          const broad = await listContacts();
+          const have = new Set(items.map((c) => c.id));
+          const t9Hits = broad.items
+            .filter((c) => (c.phones?.length ?? 0) > 0 && !have.has(c.id))
+            .filter((c) => t9Encode(contactName(c)).includes(seq));
+          items = [...items, ...t9Hits];
+        }
+      }
+      setKeypadMatches(items.slice(0, 8));
+    } catch {
+      setKeypadMatches([]);
     }
   }, []);
 
@@ -180,8 +250,6 @@ export default function DialerScreen() {
       const list = (data as unknown as DeviceContact[]).filter(
         (c) => (c.phoneNumbers?.length ?? 0) > 0,
       );
-      // Sort client-side so we don't depend on expo-contacts' SortTypes
-      // (it moves between releases). Plain locale-aware A→Z by name.
       list.sort((a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", undefined, {
           sensitivity: "base",
@@ -193,53 +261,60 @@ export default function DialerScreen() {
     }
   }, []);
 
-  // Combined recent list — server history is the cross-device source of
-  // truth for numbers; we layer the *local* device-only labels on top
-  // when we recognise a match by number, so the redial button shows the
-  // friendly name even if the server didn't resolve a contact.
-  const recentList = useMemo(() => {
-    const byNumber = new Map<string, LocalRecent>();
-    for (const r of localRecent) byNumber.set(r.number, r);
-
+  // Smart grouped recents from the server, layered with local-only labels
+  // (numbers dialed before a server roundtrip, or non-E.164 rejects).
+  const recentRows = useMemo(() => {
     type Row = {
       key: string;
       number: string;
       label: string | null;
-      at: number;
-      source: "server" | "local";
+      contactId: number | null;
+      calls: number;
+      isSpam: boolean;
+      isBlocked: boolean;
+      biolink: boolean;
+      sub: string;
     };
-    const rows: Row[] = [];
+    const localByNumber = new Map<string, LocalRecent>();
+    for (const r of localRecent) localByNumber.set(r.number, r);
 
-    for (const s of serverHistory) {
-      const local = byNumber.get(s.number_e164);
+    const rows: Row[] = [];
+    const seen = new Set<string>();
+    for (const r of recents) {
+      const num = r.number || "";
+      if (!num) continue;
+      seen.add(num);
       rows.push({
-        key: `s${s.id}`,
-        number: s.number_e164,
-        label: local?.label ?? null,
-        at: s.looked_up_at ? new Date(s.looked_up_at).getTime() : 0,
-        source: "server",
+        key: `s${num}`,
+        number: num,
+        label: r.name && r.name !== num ? r.name : localByNumber.get(num)?.label ?? null,
+        contactId: r.contact_id,
+        calls: r.calls,
+        isSpam: r.is_spam,
+        isBlocked: r.is_blocked,
+        biolink: r.biolink,
+        sub: r.last_human ?? "",
       });
     }
-    // Local-only entries (e.g. dialed before the server roundtrip
-    // succeeded, or non-E.164 numbers the server rejected).
-    const seen = new Set(rows.map((r) => r.number));
     for (const r of localRecent) {
       if (seen.has(r.number)) continue;
       rows.push({
         key: `l${r.number}-${r.at}`,
         number: r.number,
         label: r.label,
-        at: r.at,
-        source: "local",
+        contactId: null,
+        calls: 1,
+        isSpam: false,
+        isBlocked: false,
+        biolink: false,
+        sub: relativeMs(r.at),
       });
     }
-    rows.sort((a, b) => b.at - a.at);
     return rows.slice(0, RECENT_MAX);
-  }, [serverHistory, localRecent]);
+  }, [recents, localRecent]);
 
   // React Native's Pressable fires onPress AFTER onLongPress on release,
   // which would otherwise turn long-press-0 into "+0" instead of "+".
-  // We set a ref when the long-press fires and skip the next onPress.
   const suppressNextPress = useRef(false);
 
   const press = useCallback((v: string) => {
@@ -276,14 +351,8 @@ export default function DialerScreen() {
       }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Update local recents immediately so the Recent tab reflects the
-      // dial even if the device dialer fails to open. Coerce empty/blank
-      // labels to null so the Recent row never renders a blank line where
-      // the name should be.
       const cleanedLabel =
-        typeof label === "string" && label.trim() !== ""
-          ? label.trim()
-          : null;
+        typeof label === "string" && label.trim() !== "" ? label.trim() : null;
       const entry: LocalRecent = {
         number: trimmed,
         label: cleanedLabel,
@@ -296,16 +365,10 @@ export default function DialerScreen() {
       setLocalRecent(next);
       void saveLocalRecent(next);
 
-      // Best-effort cross-device record (E.164 only).
       if (E164.test(trimmed)) {
-        lookupNumber(trimmed).catch(() => {
-          /* swallow — local recents are still authoritative */
-        });
+        lookupNumber(trimmed).catch(() => {});
       }
 
-      // Open the in-app active-call screen instead of the device's
-      // native phone dialer — see task #395. Real telephony is wired
-      // separately; this screen is the UI shell with mute/end controls.
       router.push({
         pathname: "/call/active",
         params: {
@@ -317,9 +380,24 @@ export default function DialerScreen() {
     [localRecent, router],
   );
 
-  // Auto-dial when navigated here with `?prefill=…&autoDial=1` (e.g. a
-  // biolink `tel:` block). Guarded by a ref so re-renders / param echo
-  // can't trigger a second dial.
+  // Open the caller-ID / mini-CRM profile for a number.
+  const openProfile = useCallback(
+    (num: string, opts?: { contactId?: number | null; name?: string | null }) => {
+      const trimmed = num.trim();
+      if (!trimmed) return;
+      router.push({
+        pathname: "/dialer-profile",
+        params: {
+          number: trimmed,
+          ...(opts?.contactId ? { contactId: String(opts.contactId) } : {}),
+          ...(opts?.name ? { name: opts.name } : {}),
+        },
+      });
+    },
+    [router],
+  );
+
+  // Auto-dial when navigated here with `?prefill=…&autoDial=1`.
   const autoDialedRef = useRef(false);
   useEffect(() => {
     if (autoDialedRef.current) return;
@@ -382,90 +460,220 @@ export default function DialerScreen() {
       </View>
 
       {tab === "keypad" && (
-        <View style={styles.keypadWrap}>
-          <View style={styles.numberRow}>
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={[styles.numberDisplay, { color: colors.foreground }]}
-            >
-              {number || " "}
-            </Text>
-            {number.length > 0 && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Favorites / speed dial */}
+          {favorites.length > 0 && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                Speed dial
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {favorites.map((f) => (
+                  <Pressable
+                    key={`fav-${f.id}`}
+                    onPress={() =>
+                      f.number &&
+                      openProfile(f.number, {
+                        contactId: f.contact_id,
+                        name: f.label,
+                      })
+                    }
+                    onLongPress={() => f.number && dial(f.number, f.label)}
+                    style={styles.bubble}
+                  >
+                    <View style={[styles.bubbleAvatar, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.bubbleInitials}>{f.initials}</Text>
+                    </View>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.bubbleLabel, { color: colors.foreground }]}
+                    >
+                      {f.label || f.number}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Frequently contacted */}
+          {frequent.length > 0 && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                Frequently contacted
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {frequent.map((fr, i) => (
+                  <Pressable
+                    key={`freq-${fr.number}-${i}`}
+                    onPress={() =>
+                      fr.number &&
+                      openProfile(fr.number, {
+                        contactId: fr.contact_id,
+                        name: fr.name,
+                      })
+                    }
+                    onLongPress={() => fr.number && dial(fr.number, fr.name)}
+                    style={styles.bubble}
+                  >
+                    <View
+                      style={[
+                        styles.bubbleAvatar,
+                        { backgroundColor: fr.is_spam ? "#ef4444" : colors.primary },
+                      ]}
+                    >
+                      <Text style={styles.bubbleInitials}>{fr.initials}</Text>
+                    </View>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.bubbleLabel, { color: colors.foreground }]}
+                    >
+                      {fr.name || fr.number}
+                    </Text>
+                    <Text style={[styles.bubbleSub, { color: colors.mutedForeground }]}>
+                      {fr.calls} calls
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={styles.keypadWrap}>
+            <View style={styles.numberRow}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.numberDisplay, { color: colors.foreground }]}
+              >
+                {number || " "}
+              </Text>
+              {number.length > 0 && (
+                <Pressable
+                  onPress={backspace}
+                  onLongPress={clearAll}
+                  hitSlop={12}
+                  style={({ pressed }) => [
+                    styles.backspace,
+                    { opacity: pressed ? 0.5 : 1 },
+                  ]}
+                >
+                  <Feather name="delete" size={26} color={colors.mutedForeground} />
+                </Pressable>
+              )}
+            </View>
+
+            {/* T9 live matches */}
+            {keypadMatches.length > 0 && (
+              <View style={styles.t9Wrap}>
+                {keypadMatches.map((c) => {
+                  const phone = c.phones.find((p) => p.is_primary) ?? c.phones[0];
+                  const num = phone?.value_e164 || phone?.value || "";
+                  const name = contactName(c);
+                  return (
+                    <Pressable
+                      key={`t9-${c.id}`}
+                      onPress={() => num && openProfile(num, { contactId: c.id, name })}
+                      style={({ pressed }) => [
+                        styles.t9Row,
+                        { borderColor: colors.border, backgroundColor: pressed ? colors.muted : colors.card },
+                      ]}
+                    >
+                      <View style={[styles.t9Avatar, { backgroundColor: colors.primary }]}>
+                        <Text style={styles.t9Initials}>
+                          {name.slice(0, 2).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text
+                          numberOfLines={1}
+                          style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold" }}
+                        >
+                          {name}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={{ color: colors.mutedForeground, fontSize: 12 }}
+                        >
+                          {phone?.value}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() => num && dial(num, name)}
+                        hitSlop={10}
+                        style={[styles.callPill, { backgroundColor: "#16a34a" }]}
+                      >
+                        <Feather name="phone" size={15} color="#fff" />
+                      </Pressable>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+
+            <View style={styles.keypad}>
+              {KEYS.map((k) => (
+                <Pressable
+                  key={k.v}
+                  onPress={() => press(k.v)}
+                  onLongPress={k.v === "0" ? longPressZero : undefined}
+                  style={({ pressed }) => [
+                    styles.key,
+                    {
+                      backgroundColor: pressed ? colors.muted : colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.keyV, { color: colors.foreground }]}>{k.v}</Text>
+                  {k.sub && (
+                    <Text style={[styles.keySub, { color: colors.mutedForeground }]}>
+                      {k.sub}
+                    </Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.actionRow}>
               <Pressable
-                onPress={backspace}
-                onLongPress={clearAll}
-                hitSlop={12}
+                onPress={() => number && openProfile(number)}
+                disabled={!number}
                 style={({ pressed }) => [
-                  styles.backspace,
-                  { opacity: pressed ? 0.5 : 1 },
+                  styles.secondaryBtn,
+                  { borderColor: colors.border, opacity: !number ? 0.4 : pressed ? 0.7 : 1 },
                 ]}
               >
-                <Feather
-                  name="delete"
-                  size={26}
-                  color={colors.mutedForeground}
-                />
+                <Feather name="info" size={20} color={colors.foreground} />
               </Pressable>
-            )}
-          </View>
-
-          <View style={styles.keypad}>
-            {KEYS.map((k) => (
               <Pressable
-                key={k.v}
-                onPress={() => press(k.v)}
-                onLongPress={k.v === "0" ? longPressZero : undefined}
+                onPress={() => dial(number)}
+                disabled={!number}
                 style={({ pressed }) => [
-                  styles.key,
+                  styles.callBtn,
                   {
-                    backgroundColor: pressed
-                      ? colors.muted
-                      : colors.card,
-                    borderColor: colors.border,
+                    backgroundColor: number ? "#16a34a" : colors.muted,
+                    opacity: pressed ? 0.85 : 1,
                   },
                 ]}
               >
-                <Text style={[styles.keyV, { color: colors.foreground }]}>
-                  {k.v}
-                </Text>
-                {k.sub && (
-                  <Text
-                    style={[styles.keySub, { color: colors.mutedForeground }]}
-                  >
-                    {k.sub}
-                  </Text>
-                )}
+                <Feather name="phone" size={26} color="#fff" />
               </Pressable>
-            ))}
+              <View style={styles.secondaryBtn} />
+            </View>
           </View>
-
-          <Pressable
-            onPress={() => dial(number)}
-            disabled={!number}
-            style={({ pressed }) => [
-              styles.callBtn,
-              {
-                backgroundColor: number
-                  ? "#16a34a"
-                  : colors.muted,
-                opacity: pressed ? 0.85 : 1,
-                marginBottom: insets.bottom + 12,
-              },
-            ]}
-          >
-            <Feather name="phone" size={26} color="#fff" />
-          </Pressable>
-        </View>
+        </ScrollView>
       )}
 
       {tab === "recent" && (
         <FlatList
-          data={recentList}
+          data={recentRows}
           keyExtractor={(r) => r.key}
-          contentContainerStyle={{
-            paddingBottom: insets.bottom + 24,
-          }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           ListEmptyComponent={
             recentLoading ? (
               <View style={styles.loading}>
@@ -473,11 +681,7 @@ export default function DialerScreen() {
               </View>
             ) : (
               <View style={styles.empty}>
-                <Feather
-                  name="phone-missed"
-                  size={28}
-                  color={colors.mutedForeground}
-                />
+                <Feather name="phone-missed" size={28} color={colors.mutedForeground} />
                 <Text
                   style={{
                     color: colors.mutedForeground,
@@ -492,16 +696,14 @@ export default function DialerScreen() {
           }
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => dial(item.number, item.label)}
+              onPress={() =>
+                openProfile(item.number, {
+                  contactId: item.contactId,
+                  name: item.label,
+                })
+              }
               onLongPress={() => {
-                // Server-only entries (those that never went through this
-                // device) can't be removed from this device — the row
-                // re-appears next time we fetch /dialer/history. Be honest
-                // about that rather than presenting a no-op destructive
-                // option.
-                const isLocal = localRecent.some(
-                  (r) => r.number === item.number,
-                );
+                const isLocal = localRecent.some((r) => r.number === item.number);
                 if (!isLocal) {
                   Alert.alert(
                     "Synced from another device",
@@ -509,18 +711,14 @@ export default function DialerScreen() {
                   );
                   return;
                 }
-                Alert.alert(
-                  "Remove from this device's recents?",
-                  item.number,
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Remove",
-                      style: "destructive",
-                      onPress: () => removeRecent(item.number),
-                    },
-                  ],
-                );
+                Alert.alert("Remove from this device's recents?", item.number, [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: () => removeRecent(item.number),
+                  },
+                ]);
               }}
               style={({ pressed }) => [
                 styles.row,
@@ -531,41 +729,41 @@ export default function DialerScreen() {
               ]}
             >
               <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    color: colors.foreground,
-                    fontFamily: "SpaceGrotesk_600SemiBold",
-                    fontSize: 16,
-                  }}
-                >
-                  {item.label ?? item.number}
-                </Text>
-                {item.label && (
+                <View style={styles.rowTitleLine}>
                   <Text
                     style={{
-                      color: colors.mutedForeground,
-                      fontSize: 13,
-                      marginTop: 2,
+                      color: colors.foreground,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      fontSize: 16,
                     }}
                   >
+                    {item.label ?? item.number}
+                  </Text>
+                  {item.calls > 1 && (
+                    <Text style={[styles.countPill, { color: colors.primary }]}>
+                      ×{item.calls}
+                    </Text>
+                  )}
+                  {item.biolink && <MiniTag text="1INME" color="#ec4899" />}
+                  {item.isSpam && <MiniTag text="SPAM" color="#ef4444" />}
+                  {item.isBlocked && <MiniTag text="BLOCKED" color="#9ca3af" />}
+                </View>
+                {item.label && (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>
                     {item.number}
                   </Text>
                 )}
-                <Text
-                  style={{
-                    color: colors.mutedForeground,
-                    fontSize: 12,
-                    marginTop: 2,
-                  }}
-                >
-                  {formatRelative(item.at)}
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
+                  {item.sub}
                 </Text>
               </View>
-              <View
+              <Pressable
+                onPress={() => dial(item.number, item.label)}
+                hitSlop={10}
                 style={[styles.callPill, { backgroundColor: "#16a34a" }]}
               >
                 <Feather name="phone" size={16} color="#fff" />
-              </View>
+              </Pressable>
             </Pressable>
           )}
         />
@@ -599,9 +797,7 @@ export default function DialerScreen() {
           <FlatList
             data={appContacts}
             keyExtractor={(c) => `app-${c.id}`}
-            contentContainerStyle={{
-              paddingBottom: insets.bottom + 24,
-            }}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
             ListHeaderComponent={
               <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
                 <Text
@@ -638,28 +834,20 @@ export default function DialerScreen() {
               )
             }
             renderItem={({ item }) => {
-              const phone =
-                item.phones.find((p) => p.is_primary) ?? item.phones[0];
+              const phone = item.phones.find((p) => p.is_primary) ?? item.phones[0];
               const dialNumber = phone?.value_e164 || phone?.value || "";
-              // join() returns "" (not nullish) when both names are blank,
-              // so use a logical OR chain that treats "" as falsy too.
-              const name =
-                item.display_name?.trim() ||
-                [item.given_name, item.family_name]
-                  .filter(Boolean)
-                  .join(" ")
-                  .trim() ||
-                dialNumber;
+              const name = contactName(item) || dialNumber;
               return (
                 <Pressable
-                  onPress={() => dialNumber && dial(dialNumber, name)}
+                  onPress={() =>
+                    dialNumber && openProfile(dialNumber, { contactId: item.id, name })
+                  }
+                  onLongPress={() => dialNumber && dial(dialNumber, name)}
                   style={({ pressed }) => [
                     styles.row,
                     {
                       borderBottomColor: colors.border,
-                      backgroundColor: pressed
-                        ? colors.muted
-                        : "transparent",
+                      backgroundColor: pressed ? colors.muted : "transparent",
                     },
                   ]}
                 >
@@ -675,24 +863,19 @@ export default function DialerScreen() {
                     </Text>
                     {dialNumber && (
                       <Text
-                        style={{
-                          color: colors.mutedForeground,
-                          fontSize: 13,
-                          marginTop: 2,
-                        }}
+                        style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}
                       >
                         {dialNumber}
                       </Text>
                     )}
                   </View>
-                  <View
-                    style={[
-                      styles.callPill,
-                      { backgroundColor: "#16a34a" },
-                    ]}
+                  <Pressable
+                    onPress={() => dialNumber && dial(dialNumber, name)}
+                    hitSlop={10}
+                    style={[styles.callPill, { backgroundColor: "#16a34a" }]}
                   >
                     <Feather name="phone" size={16} color="#fff" />
-                  </View>
+                  </Pressable>
                 </Pressable>
               );
             }}
@@ -721,11 +904,7 @@ export default function DialerScreen() {
                       },
                     ]}
                   >
-                    <Feather
-                      name="smartphone"
-                      size={16}
-                      color={colors.primary}
-                    />
+                    <Feather name="smartphone" size={16} color={colors.primary} />
                     <Text
                       style={{
                         color: colors.foreground,
@@ -745,8 +924,8 @@ export default function DialerScreen() {
                       fontSize: 13,
                     }}
                   >
-                    Permission denied — enable Contacts access in Settings to
-                    show your phone's address book here.
+                    Permission denied — enable Contacts access in Settings to show
+                    your phone's address book here.
                   </Text>
                 )}
                 {deviceAccess === "granted" &&
@@ -765,14 +944,13 @@ export default function DialerScreen() {
                       return (
                         <Pressable
                           key={`dev-${c.id}`}
-                          onPress={() => phone && dial(phone, c.name ?? null)}
+                          onPress={() => phone && openProfile(phone, { name: c.name ?? null })}
+                          onLongPress={() => phone && dial(phone, c.name ?? null)}
                           style={({ pressed }) => [
                             styles.row,
                             {
                               borderBottomColor: colors.border,
-                              backgroundColor: pressed
-                                ? colors.muted
-                                : "transparent",
+                              backgroundColor: pressed ? colors.muted : "transparent",
                               marginHorizontal: -16,
                             },
                           ]}
@@ -799,14 +977,13 @@ export default function DialerScreen() {
                               </Text>
                             )}
                           </View>
-                          <View
-                            style={[
-                              styles.callPill,
-                              { backgroundColor: "#16a34a" },
-                            ]}
+                          <Pressable
+                            onPress={() => phone && dial(phone, c.name ?? null)}
+                            hitSlop={10}
+                            style={[styles.callPill, { backgroundColor: "#16a34a" }]}
                           >
                             <Feather name="phone" size={16} color="#fff" />
-                          </View>
+                          </Pressable>
                         </Pressable>
                       );
                     })}
@@ -817,6 +994,23 @@ export default function DialerScreen() {
       )}
     </View>
   );
+}
+
+function MiniTag({ text, color }: { text: string; color: string }) {
+  return (
+    <View style={[styles.miniTag, { backgroundColor: `${color}22` }]}>
+      <Text style={[styles.miniTagText, { color }]}>{text}</Text>
+    </View>
+  );
+}
+
+function relativeMs(at: number): string {
+  const diff = Date.now() - at;
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < 7 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d ago`;
+  return new Date(at).toLocaleDateString();
 }
 
 const styles = StyleSheet.create({
@@ -832,16 +1026,36 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  keypadWrap: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
+  section: { paddingTop: 14, paddingLeft: 16 },
+  sectionLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: 10,
   },
+  bubble: { alignItems: "center", width: 76, marginRight: 6 },
+  bubbleAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  bubbleInitials: { color: "#fff", fontFamily: "SpaceGrotesk_700Bold", fontSize: 16 },
+  bubbleLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 11,
+    textAlign: "center",
+  },
+  bubbleSub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 10, marginTop: 1 },
+  keypadWrap: { paddingHorizontal: 16, paddingTop: 8 },
   numberRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 80,
+    minHeight: 72,
     paddingHorizontal: 8,
   },
   numberDisplay: {
@@ -851,53 +1065,59 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 1,
   },
-  backspace: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  backspace: { paddingHorizontal: 12, paddingVertical: 8 },
+  t9Wrap: { marginBottom: 8, gap: 6 },
+  t9Row: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 8,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 10,
   },
+  t9Avatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  t9Initials: { color: "#fff", fontFamily: "SpaceGrotesk_700Bold", fontSize: 13 },
   keypad: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginTop: 12,
+    marginTop: 8,
   },
   key: {
     width: "31%",
-    aspectRatio: 1.4,
+    aspectRatio: 1.5,
     marginBottom: 10,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
   },
-  keyV: {
-    fontFamily: "SpaceGrotesk_600SemiBold",
-    fontSize: 28,
+  keyV: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 28 },
+  keySub: { fontSize: 10, letterSpacing: 1, marginTop: 2 },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
   },
-  keySub: {
-    fontSize: 10,
-    letterSpacing: 1,
-    marginTop: 2,
+  secondaryBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
   },
   callBtn: {
-    alignSelf: "center",
     width: 72,
     height: 72,
     borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
   },
-  loading: {
-    paddingVertical: 48,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  empty: {
-    paddingVertical: 64,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  loading: { paddingVertical: 48, alignItems: "center", justifyContent: "center" },
+  empty: { paddingVertical: 64, alignItems: "center", justifyContent: "center" },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -905,6 +1125,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  rowTitleLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
+  countPill: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
+  miniTag: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
+  miniTagText: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 8, letterSpacing: 0.5 },
   callPill: {
     width: 36,
     height: 36,

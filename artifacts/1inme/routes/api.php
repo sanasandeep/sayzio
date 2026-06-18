@@ -619,7 +619,18 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:30,1');
 
         // Dialer
-        Route::post  ('/dialer/lookup',  [DialerController::class, 'lookup'])->middleware('throttle:60,1');
-        Route::get   ('/dialer/history', [DialerController::class, 'history']);
+        Route::post  ('/dialer/lookup',             [DialerController::class, 'lookup'])->middleware('throttle:60,1');
+        Route::get   ('/dialer/history',            [DialerController::class, 'history']);
+        // Speed-dial favorites.
+        Route::get   ('/dialer/favorites',          [DialerController::class, 'favorites']);
+        Route::post  ('/dialer/favorites',          [DialerController::class, 'addFavorite']);
+        Route::post  ('/dialer/favorites/reorder',  [DialerController::class, 'reorderFavorites']);
+        Route::delete('/dialer/favorites/{id}',     [DialerController::class, 'removeFavorite'])->whereNumber('id');
+        // Per-user spam/block flags.
+        Route::post  ('/dialer/flag',               [DialerController::class, 'flag']);
+        // Call log (outcome/note/tag) + call-back reminders.
+        Route::post  ('/dialer/log',                [DialerController::class, 'logCall']);
+        Route::post  ('/dialer/callback',           [DialerController::class, 'setCallback']);
+        Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
     });
 });

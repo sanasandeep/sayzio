@@ -46,6 +46,13 @@ Schedule::command('contacts:sync')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 5 minutes: deliver due dialer call-back reminders (in-app + push),
+// once each. The command stamps callback_notified_at so reruns are idempotent.
+Schedule::command('dialer:send-callback-reminders')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 4 hours: refresh cached follower counts for every connected social
 // account so biolink Follow buttons show fresh numbers without ever blocking
 // the public page render (renderer always serves the cached value).

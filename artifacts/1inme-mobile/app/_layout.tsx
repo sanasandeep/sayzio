@@ -153,6 +153,7 @@ function RootLayoutNav() {
       <Stack.Screen name="premium-features" options={{ title: "Premium features" }} />
       <Stack.Screen name="api-usage" options={{ title: "API usage" }} />
       <Stack.Screen name="dialer" options={{ title: "Dialer" }} />
+      <Stack.Screen name="dialer-profile" options={{ title: "Profile" }} />
       <Stack.Screen name="call/active" options={{ headerShown: false }} />
       <Stack.Screen name="call/incoming" options={{ headerShown: false }} />
     </Stack>

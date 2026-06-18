@@ -38,3 +38,4 @@
 - [Paid Page mobile render](paid-page-mobile-render.md) — paid_page isn't biolink-family so resolve API won't return it; alias-keyed /paid-page endpoints + PaidPageTemplates::mobileTokens; feed react/comment reuse handle-keyed creator endpoints.
 - [User sidebar dual nav blocks](user-sidebar-dual-nav.md) — app.blade.php has TWO parallel nav menus (desktop aside + mobile drawer); edit both in lockstep or they drift.
 - [Biolink wizard mobile parity](biolink-wizard-mobile-parity.md) — mobile wizard is stateless (no DB drafts); reuses BiolinkWizardQuestions + BiolinkWizardGenerator; image answers are URL-only, plan caps inline JSON not CheckPlanLimit.
+- [Dialer everyday tool](dialer-everyday.md) — DialerData is the single read/transform source for web+API; history is `{recents,frequent}`; caller-ID enrichment only via /dialer/lookup (mobile Contact has no biolink field).

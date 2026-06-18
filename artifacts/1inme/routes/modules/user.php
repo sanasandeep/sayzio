@@ -1053,6 +1053,14 @@ Route::prefix('user')->name('user.')->group(function () {
         // Dialer.
         Route::get('dialer',                                [DialerController::class, 'index'])->middleware('workspace.can:settings.view')->name('dialer.index');
         Route::get('dialer/profile',                        [DialerController::class, 'profile'])->middleware('workspace.can:settings.view')->name('dialer.profile');
+        // Everyday-tool mutations (favorites, flags, call log, callbacks).
+        Route::post  ('dialer/favorites',                   [DialerController::class, 'favoriteStore'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.store');
+        Route::post  ('dialer/favorites/reorder',           [DialerController::class, 'favoritesReorder'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.reorder');
+        Route::delete('dialer/favorites/{favorite}',        [DialerController::class, 'favoriteDestroy'])->whereNumber('favorite')->middleware('workspace.can:settings.edit')->name('dialer.favorites.destroy');
+        Route::post  ('dialer/flag',                        [DialerController::class, 'flag'])->middleware('workspace.can:settings.edit')->name('dialer.flag');
+        Route::post  ('dialer/log',                         [DialerController::class, 'logCall'])->middleware('workspace.can:settings.edit')->name('dialer.log');
+        Route::post  ('dialer/callback',                    [DialerController::class, 'callbackSet'])->middleware('workspace.can:settings.edit')->name('dialer.callback.set');
+        Route::delete('dialer/callback/{log}',              [DialerController::class, 'callbackClear'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.callback.clear');
 
         // ===== Events calendar (month / week / day / list views) =====
         Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index');

@@ -206,6 +206,14 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            // Dialer callback reminders.
+            'dialer.callback_due' => [
+                'label'          => 'Call-back reminders',
+                'description'    => 'When a call-back you scheduled from the dialer is due.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
         ];
     }
 

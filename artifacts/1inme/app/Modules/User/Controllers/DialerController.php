@@ -5,9 +5,14 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactPhone;
+use App\Modules\User\Models\DialerFavorite;
 use App\Modules\User\Models\DialerLookup;
+use App\Modules\User\Models\DialerNumberFlag;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Support\DialerData;
+use App\Modules\User\Support\DialerT9;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class DialerController extends Controller
 {
@@ -18,44 +23,43 @@ class DialerController extends Controller
         $contacts = collect();
 
         if ($q !== '') {
-            $needle = '%' . $q . '%';
-            $phoneNeedle = '%' . ContactPhone::normalize($q) . '%';
-            $contacts = Contact::where('user_id', $user->id)
-                ->with(['phones', 'biolinkUser'])
-                ->where(function ($w) use ($needle, $phoneNeedle) {
-                    $w->where('display_name', 'ilike', $needle)
-                      ->orWhere('given_name', 'ilike', $needle)
-                      ->orWhere('family_name', 'ilike', $needle)
-                      ->orWhereHas('phones', fn ($q2) => $q2->where('value_e164', 'ilike', $phoneNeedle));
-                })
-                ->orderBy('display_name')
-                ->limit(50)->get();
+            $contacts = $this->searchContacts($user->id, $q);
         }
 
-        $recent = DialerLookup::where('user_id', $user->id)
-            ->orderByDesc('looked_up_at')->limit(10)
-            ->with(['contact.phones'])->get();
-
         // JSON branch — used by the dialer's live filter (debounced fetch as
-        // the user types on the keypad or in the search box).
+        // the user types on the keypad or in the search box). Includes T9
+        // smart-dial matching so a digit sequence resolves both numbers and
+        // keypad-spelled names.
         if ($request->wantsJson()) {
+            $flags = DialerData::flagsForContacts($user->id, $contacts);
             return response()->json([
                 'q'       => $q,
-                'matches' => $contacts->map(fn ($c) => [
-                    'id'      => $c->id,
-                    'name'    => $c->nameForDisplay(),
-                    'initials'=> $c->initials(),
-                    'phone'   => $c->phones->first()?->value,
-                    'phone_e164' => $c->phones->first()?->value_e164,
-                    'biolink' => (bool) $c->biolink_user_id,
-                    'profile_url' => $c->phones->first()
-                        ? route('user.dialer.profile', ['number' => $c->phones->first()->value_e164 ?: $c->phones->first()->value, 'contact' => $c->id])
-                        : route('user.contacts.show', $c),
-                ])->values(),
+                'matches' => $contacts->map(function ($c) use ($flags) {
+                    $first = $c->phones->first();
+                    $e164 = $first?->value_e164 ?: $first?->value;
+                    $flag = $e164 ? ($flags[$e164] ?? null) : null;
+                    return [
+                        'id'          => $c->id,
+                        'name'        => $c->nameForDisplay(),
+                        'initials'    => $c->initials(),
+                        'phone'       => $first?->value,
+                        'phone_e164'  => $first?->value_e164,
+                        'biolink'     => (bool) $c->biolink_user_id,
+                        'is_spam'     => (bool) ($flag['is_spam'] ?? false),
+                        'is_blocked'  => (bool) ($flag['is_blocked'] ?? false),
+                        'profile_url' => $first
+                            ? route('user.dialer.profile', ['number' => $e164, 'contact' => $c->id])
+                            : route('user.contacts.show', $c),
+                    ];
+                })->values(),
             ]);
         }
 
-        return view('user.dialer.index', compact('q', 'contacts', 'recent'));
+        $favorites = DialerData::favorites($user->id);
+        $frequent  = DialerData::frequent($user->id);
+        $recent    = DialerData::groupedRecents($user->id);
+
+        return view('user.dialer.index', compact('q', 'contacts', 'favorites', 'frequent', 'recent'));
     }
 
     public function profile(Request $request)
@@ -69,8 +73,8 @@ class DialerController extends Controller
         if ($contactId) {
             $contact = Contact::where('user_id', $user->id)->where('id', $contactId)
                 ->with(['phones', 'emails', 'biolinkUser'])->first();
-            if ($contact) {
-                if (!$number) $number = $contact->phones->first()?->value_e164 ?? '';
+            if ($contact && !$number) {
+                $number = $contact->phones->first()?->value_e164 ?? '';
             }
         }
 
@@ -87,7 +91,7 @@ class DialerController extends Controller
                 ->first();
         }
 
-        // Resolve to a 1INME user (from the contact's attached biolink, or by lookup)
+        // Resolve to a 1INME user (caller-ID for unknown numbers).
         $matchedUser = $contact?->biolinkUser;
         if (!$matchedUser && $needle) {
             $matchedUser = LinkedIdentifier::resolveUser('phone', $needle);
@@ -108,10 +112,15 @@ class DialerController extends Controller
             ]);
         }
 
+        $flag = $needle ? DialerNumberFlag::where('user_id', $user->id)->where('number_e164', $needle)->first() : null;
+
         $payload = [
-            'number'    => $number,
-            'contact'   => $contact,
-            'biolink'   => $matchedUser ? [
+            'number'     => $number,
+            'number_e164'=> $needle,
+            'contact'    => $contact,
+            'is_spam'    => (bool) ($flag?->is_spam),
+            'is_blocked' => (bool) ($flag?->is_blocked),
+            'biolink'    => $matchedUser ? [
                 'user_id' => $matchedUser->id,
                 'name'    => $matchedUser->name,
                 'handle'  => $matchedUser->publicHandle(),
@@ -120,19 +129,236 @@ class DialerController extends Controller
             ] : null,
         ];
 
-        // JSON for future mobile consumers.
         if ($request->wantsJson()) {
             return response()->json($payload);
         }
 
-        // Recent activity for this number/contact (so the profile shows context).
-        $recent = DialerLookup::where('user_id', $user->id)
-            ->where(function ($q) use ($needle, $contact) {
-                if ($needle) $q->where('number_e164', $needle);
-                if ($contact) $q->orWhere('contact_id', $contact->id);
-            })
-            ->orderByDesc('looked_up_at')->limit(10)->get();
+        $recent = DialerData::activityFor($user->id, $needle, $contact?->id);
+        $callback = DialerData::pendingCallback($user->id, $needle, $contact?->id);
+        $isFavorite = DialerData::isFavorite($user->id, $needle, $contact?->id);
 
-        return view('user.dialer.profile', compact('payload', 'contact', 'matchedUser', 'bio', 'number', 'recent'));
+        return view('user.dialer.profile', compact(
+            'payload', 'contact', 'matchedUser', 'bio', 'number', 'recent', 'callback', 'isFavorite'
+        ));
+    }
+
+    // ── Favorites (speed dial) ────────────────────────────────────────
+
+    public function favoriteStore(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'contact_id'  => ['nullable', 'integer'],
+            'number'      => ['nullable', 'string', 'max:40'],
+            'label'       => ['nullable', 'string', 'max:191'],
+        ]);
+
+        $contact = null;
+        if (!empty($data['contact_id'])) {
+            $contact = Contact::where('user_id', $user->id)->with('phones')->find($data['contact_id']);
+            if (!$contact) return response()->json(['error' => ['message' => 'Contact not found', 'code' => 'not_found']], 404);
+        }
+
+        $e164 = null;
+        if (!empty($data['number'])) {
+            $e164 = ContactPhone::normalize($data['number']);
+        } elseif ($contact) {
+            $e164 = $contact->phones->first()?->value_e164 ?: $contact->phones->first()?->value;
+        }
+
+        if (!$contact && !$e164) {
+            return response()->json(['error' => ['message' => 'Nothing to favorite', 'code' => 'invalid']], 422);
+        }
+
+        // Dedupe by contact or number.
+        $existing = DialerFavorite::where('user_id', $user->id)
+            ->when($contact, fn ($q) => $q->where('contact_id', $contact->id))
+            ->when(!$contact && $e164, fn ($q) => $q->where('number_e164', $e164)->whereNull('contact_id'))
+            ->first();
+        if ($existing) {
+            return response()->json(['data' => ['favorite' => DialerData::transformFavorite($existing->load('contact.phones')), 'already' => true]]);
+        }
+
+        $max = (int) DialerFavorite::where('user_id', $user->id)->max('sort_order');
+        $fav = DialerFavorite::create([
+            'user_id'     => $user->id,
+            'contact_id'  => $contact?->id,
+            'number_e164' => $e164,
+            'label'       => $data['label'] ?? $contact?->nameForDisplay(),
+            'sort_order'  => $max + 1,
+        ]);
+
+        return response()->json(['data' => ['favorite' => DialerData::transformFavorite($fav->load('contact.phones'))]]);
+    }
+
+    public function favoriteDestroy(Request $request, int $favorite)
+    {
+        $user = $request->user();
+        $fav = DialerFavorite::where('user_id', $user->id)->find($favorite);
+        if (!$fav) return response()->json(['error' => ['message' => 'Not found', 'code' => 'not_found']], 404);
+        $fav->delete();
+        return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    public function favoritesReorder(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate(['order' => ['required', 'array'], 'order.*' => ['integer']]);
+        $ids = DialerFavorite::where('user_id', $user->id)->pluck('id')->all();
+        $pos = 0;
+        foreach ($data['order'] as $id) {
+            if (!in_array((int) $id, $ids, true)) continue;
+            DialerFavorite::where('user_id', $user->id)->where('id', $id)->update(['sort_order' => $pos++]);
+        }
+        return response()->json(['data' => ['favorites' => DialerData::favorites($user->id)]]);
+    }
+
+    // ── Spam / block flags ────────────────────────────────────────────
+
+    public function flag(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'number'  => ['required', 'string', 'max:40'],
+            'is_spam'    => ['nullable', 'boolean'],
+            'is_blocked' => ['nullable', 'boolean'],
+        ]);
+        $e164 = ContactPhone::normalize($data['number']);
+        if (!$e164) return response()->json(['error' => ['message' => 'Invalid number', 'code' => 'invalid']], 422);
+
+        $flag = DialerNumberFlag::firstOrNew(['user_id' => $user->id, 'number_e164' => $e164]);
+        if ($request->has('is_spam'))    $flag->is_spam = (bool) $data['is_spam'];
+        if ($request->has('is_blocked')) $flag->is_blocked = (bool) $data['is_blocked'];
+        $flag->save();
+
+        return response()->json(['data' => [
+            'number_e164' => $e164,
+            'is_spam'     => (bool) $flag->is_spam,
+            'is_blocked'  => (bool) $flag->is_blocked,
+        ]]);
+    }
+
+    // ── Call log: outcome / note / tag (mini-CRM) ─────────────────────
+
+    public function logCall(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'number'     => ['required', 'string', 'max:40'],
+            'contact_id' => ['nullable', 'integer'],
+            'outcome'    => ['nullable', 'string', 'in:called,messaged,no_answer,voicemail,busy,wrong_number,completed'],
+            'note'       => ['nullable', 'string', 'max:2000'],
+            'tag'        => ['nullable', 'string', 'max:50'],
+        ]);
+        $e164 = ContactPhone::normalize($data['number']);
+        if (!$e164) return response()->json(['error' => ['message' => 'Invalid number', 'code' => 'invalid']], 422);
+
+        $contactId = null;
+        if (!empty($data['contact_id'])) {
+            $contactId = Contact::where('user_id', $user->id)->where('id', $data['contact_id'])->value('id');
+        }
+
+        $log = DialerLookup::create([
+            'user_id'      => $user->id,
+            'number_e164'  => $e164,
+            'contact_id'   => $contactId,
+            'looked_up_at' => now(),
+            'outcome'      => $data['outcome'] ?? null,
+            'note'         => $data['note'] ?? null,
+            'tag'          => $data['tag'] ?? null,
+        ]);
+
+        return response()->json(['data' => ['log' => DialerData::transformLog($log)]]);
+    }
+
+    // ── Callback reminders ────────────────────────────────────────────
+
+    public function callbackSet(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'number'      => ['required', 'string', 'max:40'],
+            'contact_id'  => ['nullable', 'integer'],
+            'callback_at' => ['required', 'date'],
+            'note'        => ['nullable', 'string', 'max:2000'],
+        ]);
+        $e164 = ContactPhone::normalize($data['number']);
+        if (!$e164) return response()->json(['error' => ['message' => 'Invalid number', 'code' => 'invalid']], 422);
+
+        $when = Carbon::parse($data['callback_at']);
+        if ($when->isPast()) {
+            return response()->json(['error' => ['message' => 'Pick a future time', 'code' => 'invalid']], 422);
+        }
+
+        $contactId = null;
+        if (!empty($data['contact_id'])) {
+            $contactId = Contact::where('user_id', $user->id)->where('id', $data['contact_id'])->value('id');
+        }
+
+        $log = DialerLookup::create([
+            'user_id'              => $user->id,
+            'number_e164'          => $e164,
+            'contact_id'           => $contactId,
+            'looked_up_at'         => now(),
+            'note'                 => $data['note'] ?? null,
+            'callback_at'          => $when,
+            'callback_notified_at' => null,
+        ]);
+
+        return response()->json(['data' => ['callback' => DialerData::transformLog($log)]]);
+    }
+
+    public function callbackClear(Request $request, int $log)
+    {
+        $user = $request->user();
+        $row = DialerLookup::where('user_id', $user->id)->whereNotNull('callback_at')->find($log);
+        if (!$row) return response()->json(['error' => ['message' => 'Not found', 'code' => 'not_found']], 404);
+        $row->callback_at = null;
+        $row->callback_notified_at = null;
+        $row->save();
+        return response()->json(['data' => ['cleared' => true]]);
+    }
+
+    /**
+     * Shared contact search supporting T9 smart-dial. A pure digit sequence
+     * matches phone numbers (substring) OR keypad-spelled names; free text
+     * matches names + numbers as before.
+     *
+     * @return \Illuminate\Support\Collection<int, Contact>
+     */
+    private function searchContacts(int $userId, string $q)
+    {
+        $needle = '%' . $q . '%';
+        $phoneNeedle = '%' . ContactPhone::normalize($q) . '%';
+
+        $base = Contact::where('user_id', $userId)
+            ->with(['phones', 'biolinkUser'])
+            ->where(function ($w) use ($needle, $phoneNeedle) {
+                $w->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name', 'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhereHas('phones', fn ($q2) => $q2->where('value_e164', 'ilike', $phoneNeedle));
+            })
+            ->orderBy('display_name')
+            ->limit(50)->get();
+
+        // T9: if the user typed a digit sequence, also surface contacts whose
+        // name spells the digits on the keypad (and merge, de-duped).
+        if (DialerT9::isDigitSequence($q)) {
+            $seq = preg_replace('/\D+/', '', $q);
+            if (strlen($seq) >= 2) {
+                $haveIds = $base->pluck('id')->all();
+                $candidates = Contact::where('user_id', $userId)
+                    ->with(['phones', 'biolinkUser'])
+                    ->whereNotIn('id', $haveIds ?: [0])
+                    ->orderBy('display_name')
+                    ->limit(300)->get()
+                    ->filter(fn ($c) => DialerT9::matches($c->nameForDisplay(), $seq))
+                    ->take(50 - $base->count());
+                $base = $base->concat($candidates)->values();
+            }
+        }
+
+        return $base;
     }
 }
