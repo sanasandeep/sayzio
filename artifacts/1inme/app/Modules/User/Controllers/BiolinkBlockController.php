@@ -1593,6 +1593,33 @@ class BiolinkBlockController extends Controller
             foreach ($settings['socials'] as &$social) {
                 if (isset($social['url'])) $social['url'] = $this->sanitizeUrl($social['url']);
             }
+            unset($social);
+        }
+
+        // Profile-card stat counters (profile_card_v3): keep label/value pairs
+        // as trimmed strings, drop empties, cap the row.
+        if (isset($settings['stats']) && is_array($settings['stats'])) {
+            $stats = [];
+            foreach ($settings['stats'] as $stat) {
+                if (!is_array($stat)) continue;
+                $label = trim((string) ($stat['label'] ?? ''));
+                $value = trim((string) ($stat['value'] ?? ''));
+                if ($label === '' && $value === '') continue;
+                $stats[] = ['label' => $label, 'value' => $value];
+            }
+            $settings['stats'] = array_slice($stats, 0, 6);
+        }
+
+        // Profile-card badge pills (profile_card_v4): accept either {label}
+        // entries or bare strings, normalise to {label}, drop empties, cap.
+        if (isset($settings['badges']) && is_array($settings['badges'])) {
+            $badges = [];
+            foreach ($settings['badges'] as $badge) {
+                $label = is_array($badge) ? trim((string) ($badge['label'] ?? '')) : trim((string) $badge);
+                if ($label === '') continue;
+                $badges[] = ['label' => $label];
+            }
+            $settings['badges'] = array_slice($badges, 0, 12);
         }
 
         if (in_array($type, ['custom_html', 'paragraph_rich']) && isset($settings['html'])) {

@@ -64,6 +64,8 @@ class AiBiolinkBuilderService
         return [
             'profile_card_v1' => ['hint' => 'Hero profile header with avatar, name, title, short bio. Set `design` to the PROFILE DESIGN that best fits the person/brand.', 'fields' => 'name, title, bio, avatar(url), verified(bool), location, website(url), cta_label, cta_url, socials:[{name,url}], design(one of the PROFILE DESIGNS)'],
             'profile_card_v2' => ['hint' => 'Profile header with a wide cover image behind the avatar. Set `design` to the PROFILE DESIGN that best fits the person/brand.', 'fields' => 'name, title, bio, avatar(url), cover(url), verified(bool), location, website(url), cta_label, cta_url, socials:[{name,url}], design(one of the PROFILE DESIGNS)'],
+            'profile_card_v3' => ['hint' => 'Profile header that shows follower/following/post-style stat counters. Pick this when the person/brand wants to flaunt audience numbers. Set `design` to the PROFILE DESIGN that best fits.', 'fields' => 'name, title, bio, avatar(url), verified(bool), location, website(url), cta_label, cta_url, socials:[{name,url}], stats:[{label,value}], design(one of the PROFILE DESIGNS)'],
+            'profile_card_v4' => ['hint' => 'Profile header that shows a row of badge/achievement pills. Pick this when the person/brand wants to highlight credentials, awards, or specialties. Set `design` to the PROFILE DESIGN that best fits.', 'fields' => 'name, title, bio, avatar(url), verified(bool), location, website(url), cta_label, cta_url, socials:[{name,url}], badges:[{label}], design(one of the PROFILE DESIGNS)'],
             'heading'         => ['hint' => 'Section heading / title text.', 'fields' => 'text, size(h1|h2|h3), align(left|center|right)'],
             'paragraph'       => ['hint' => 'A block of descriptive text.', 'fields' => 'text, align(left|center|right)'],
             'link'            => ['hint' => 'A simple tappable link button.', 'fields' => 'url, text'],
@@ -186,7 +188,8 @@ class AiBiolinkBuilderService
             . "- For link/link_big/cta_button blocks, set `url` to one of the SUPPLIED LINKS when relevant; never invent URLs.\n"
             . "- For image/image_grid blocks, use ONLY the SUPPLIED IMAGE URLs. If no images were supplied, do not add image blocks.\n"
             . "- For pdf_document/file blocks, use ONLY the SUPPLIED FILE URLs. If no files were supplied, do not add file blocks.\n"
-            . "- Start the page with a profile_card_v1 (or profile_card_v2 if a cover image was supplied) when the page is about a person or brand.\n";
+            . "- Start the page with a profile_card_v1 (or profile_card_v2 if a cover image was supplied) when the page is about a person or brand.\n"
+            . "- Prefer profile_card_v3 when the person/brand wants to show off audience numbers — fill `stats` with [{label,value}] entries (e.g. {\"label\":\"Followers\",\"value\":\"12.4K\"}). Prefer profile_card_v4 when they want to highlight credentials/awards/specialties — fill `badges` with [{label}] entries (e.g. {\"label\":\"Top Creator\"}). Use only ONE profile_card on the page.\n";
 
         if ($designLines) {
             $schemaHint .= "- For a profile_card block, set `design` to ONE of the PROFILE DESIGNS keys whose vibe best matches the person/brand (e.g. a founder/exec → identity_founder, an everyday creator → identity_classic, a glassy/modern look → identity_glass). Only use a listed key; omit `design` to keep the default look.\n"
