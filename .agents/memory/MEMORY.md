@@ -48,3 +48,4 @@
 - [Page template seeders](page-template-seeders.md) — bump SEED_VERSION + meta.seed_version to auto-refresh untouched rows (firstOrCreate won't update); variant keys are per-links.type, validate via BlockVariantCatalog::find or they silently fall back.
 - [MailFake::raw is a no-op](mailfake-raw-noop.md) — Mail::fake() never records Mail::raw() sends; assert in-app notifications / app_settings state, not email counts.
 - [Maintenance admin-role concept](maintenance-admin-role.md) — "any admin" = admin guard OR web User w/ guard=web role OR token API caller; global middleware runs before auth:sanctum so resolve the token user yourself.
+- [Mobile admin dashboard switch](mobile-admin-switch.md) — mobile admin↔user "switch" is just navigation, no re-login; Sanctum token's web User is bridged to a back-office Admin by email (User::adminAccount), which is the operator's authority for all /api/v1/admin/* gating.

@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { aiCredits as aiCreditsApi, wallet as walletApi } from "@/lib/api";
+import { getAdminContext } from "@/lib/api/admin";
 import {
   formatIdleTimeout,
   formatLockWarningLead,
@@ -181,6 +183,18 @@ export default function Profile() {
   } = useAuth();
   const { pref, setPref } = useThemeControls();
   const webTop = Platform.OS === "web" ? 67 : 0;
+
+  // Whether this account is linked to an active back-office admin record.
+  // Drives the Admin section + "Switch to admin dashboard" entry. The same
+  // token already authorizes the admin endpoints, so switching is navigation,
+  // not a re-login. Fails closed (no admin UI) on error.
+  const adminCtx = useQuery({
+    queryKey: ["admin-context"],
+    queryFn: getAdminContext,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const hasAdminAccess = !!adminCtx.data?.has_admin_access;
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [aiCreditBalance, setAiCreditBalance] = useState<number | null>(null);
   const [biometricBusy, setBiometricBusy] = useState(false);
@@ -909,7 +923,7 @@ export default function Profile() {
           </View>
         </View>
 
-        {user?.role === "super_admin" ? (
+        {user?.role === "super_admin" || hasAdminAccess ? (
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
               Admin
@@ -925,10 +939,27 @@ export default function Profile() {
               ]}
             >
               <Pressable
-                onPress={() => router.push("/mail-settings" as never)}
+                onPress={() => router.push("/admin" as never)}
                 style={({ pressed }) => [
                   styles.listItem,
                   { borderTopWidth: 0, opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Feather name="shield" size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  Switch to admin dashboard
+                </Text>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/mail-settings" as never)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
                 ]}
               >
                 <Feather name="mail" size={18} color={colors.primary} />

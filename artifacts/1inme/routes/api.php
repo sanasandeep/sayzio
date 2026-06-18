@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Api\Controllers\AdminAccessController;
 use App\Modules\Api\Controllers\AuthController;
 use App\Modules\Api\Controllers\BiolinkBlockController;
 use App\Modules\Api\Controllers\BiolinkController;
@@ -259,6 +260,20 @@ Route::prefix('v1')->group(function () {
         Route::get ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'status']);
         Route::put ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'update']);
         Route::post('/admin/mail-settings/test', [\App\Modules\Api\Controllers\MailSettingsController::class, 'sendTest'])->middleware('throttle:10,1');
+
+        // Admin dashboard switch, role / admin-access assignment and
+        // impersonation (mobile parity for the back-office tooling). The
+        // operator's authority comes from their email-linked back-office
+        // Admin record, so a mobile user with an active admin account can
+        // reach these with the same token — no re-login. Each action is
+        // gated behind the same admin-guard permission the web routes use.
+        Route::get   ('/admin/context',                       [AdminAccessController::class, 'context']);
+        Route::get   ('/admin/users',                         [AdminAccessController::class, 'users']);
+        Route::get   ('/admin/users/{user}/roles',            [AdminAccessController::class, 'userRoles'])->whereNumber('user');
+        Route::put   ('/admin/users/{user}/roles',            [AdminAccessController::class, 'updateRoles'])->whereNumber('user');
+        Route::post  ('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'grantAdminAccess'])->whereNumber('user');
+        Route::delete('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'revokeAdminAccess'])->whereNumber('user');
+        Route::post  ('/admin/users/{user}/impersonate',      [AdminAccessController::class, 'impersonate'])->whereNumber('user')->middleware('throttle:20,1');
 
         // Wallet & coins (mobile parity).
         Route::get ('/wallet',              [WalletController::class, 'balance']);

@@ -3,6 +3,10 @@ import { Platform } from "react-native";
 
 const TOKEN_KEY = "1inme.auth.token";
 const USER_KEY = "1inme.auth.user";
+// Stash for the operator's own session while they impersonate another user,
+// so "Stop impersonating" (or an app restart mid-impersonation) can restore
+// the admin's token/user without a re-login.
+const IMPERSONATOR_KEY = "1inme.auth.impersonator";
 const ONBOARDING_KEY = "1inme.onboarding.complete";
 const THEME_KEY = "1inme.theme";
 const BIOMETRIC_ENABLED_KEY = "1inme.auth.biometric.enabled";
@@ -86,6 +90,23 @@ export const getStoredUser = async <T = unknown>(): Promise<T | null> => {
 };
 export const setStoredUser = (user: unknown | null) =>
   setItem(USER_KEY, user ? JSON.stringify(user) : null);
+
+// The operator's own {token, user} saved while impersonating someone else.
+export type ImpersonatorStash<T = unknown> = { token: string; user: T };
+export const getImpersonator = async <
+  T = unknown,
+>(): Promise<ImpersonatorStash<T> | null> => {
+  const raw = await getItem(IMPERSONATOR_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as ImpersonatorStash<T>;
+    return parsed && typeof parsed.token === "string" ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+export const setImpersonator = (stash: ImpersonatorStash | null) =>
+  setItem(IMPERSONATOR_KEY, stash ? JSON.stringify(stash) : null);
 
 export const getOnboardingComplete = async () =>
   (await getItem(ONBOARDING_KEY)) === "1";
