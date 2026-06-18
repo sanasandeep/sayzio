@@ -109,5 +109,8 @@ Key points:
 - [`artifacts/1inme/docs/api.md`](../artifacts/1inme/docs/api.md) — the full
   `/api/v1` REST reference for the Laravel app (endpoints, envelope, auth,
   visibility tiers). This documentation set links to it rather than duplicating it.
+- [`artifacts/1inme/docs/knowledge-base.md`](../artifacts/1inme/docs/knowledge-base.md) —
+  the end-user knowledge base + FAQ covering every user-facing feature in plain
+  language (intended as chatbot training material, not a developer reference).
 - [`artifacts/1inme/docs/blade-lint.md`](../artifacts/1inme/docs/blade-lint.md) —
   Blade template linting notes for the Laravel app.
