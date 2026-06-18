@@ -16,7 +16,16 @@
         </div>
     </div>
 
-    @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif
+    @if(session('dismissed_id'))
+        <div class="mb-4 p-3 rounded-lg bg-slate-800/90 text-white text-sm flex items-center justify-between gap-3">
+            <span><i class="fas fa-check-circle mr-1 text-emerald-400"></i> Notification removed.</span>
+            <form action="{{ route('user.notifications.restore', session('dismissed_id')) }}" method="POST">@csrf
+                <button type="submit" class="px-3 py-1 rounded-md bg-white/15 hover:bg-white/25 font-semibold text-xs transition-colors">
+                    <i class="fas fa-rotate-left mr-1"></i> Undo
+                </button>
+            </form>
+        </div>
+    @elseif(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif
 
     @if($notifications->count() === 0)
         <div class="text-center py-16 rounded-2xl border" style="background: var(--bg-card); border-color: var(--border-soft);">
@@ -171,6 +180,38 @@
             @endforeach
         </div>
         <div class="mt-6">{{ $notifications->links() }}</div>
+    @endif
+
+    @if(!empty($dismissed) && $dismissed->count() > 0)
+        <div class="mt-10">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fas fa-trash-can-arrow-up text-sm" style="color: var(--text-faint);"></i>
+                <h2 class="text-sm font-semibold" style="color: var(--text-muted);">Recently dismissed</h2>
+                <span class="text-xs" style="color: var(--text-faint);">— restore within 30 days</span>
+            </div>
+            <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
+                @foreach($dismissed as $n)
+                    @php $d = $n->data ?? []; @endphp
+                    <div class="p-4 flex items-start gap-3 opacity-75">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                             style="background: rgba(148,163,184,0.15); color: var(--text-faint);">
+                            <i class="fas fa-bell-slash"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm truncate" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
+                            <p class="text-xs mt-1" style="color: var(--text-faint);">dismissed {{ $n->dismissed_at->diffForHumans() }}</p>
+                        </div>
+                        <form action="{{ route('user.notifications.restore', $n->id) }}" method="POST" class="flex-shrink-0">@csrf
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border hover:bg-violet-500/10 transition-colors"
+                                    style="border-color: var(--border-soft); color: var(--text-primary);">
+                                <i class="fas fa-rotate-left"></i> Restore
+                            </button>
+                        </form>
+                    </div>
+                @endforeach
+            </div>
+        </div>
     @endif
 </div>
 @endsection

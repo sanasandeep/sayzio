@@ -13,12 +13,28 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class NotificationController extends Controller
 {
+    /**
+     * How long a dismissed notification stays restorable from the
+     * "Recently dismissed" list before it ages out of view.
+     */
+    private const DISMISSED_WINDOW_DAYS = 30;
+
     public function index()
     {
         $notifications = UserNotification::where('user_id', auth()->id())
             ->orderByDesc('created_at')
             ->paginate(30);
-        return view('user.notifications.index', compact('notifications'));
+
+        // Recently dismissed (soft-deleted) notifications the user can still
+        // restore, newest-first, capped to the retention window.
+        $dismissed = UserNotification::onlyTrashed()
+            ->where('user_id', auth()->id())
+            ->where('dismissed_at', '>=', now()->subDays(self::DISMISSED_WINDOW_DAYS))
+            ->orderByDesc('dismissed_at')
+            ->limit(30)
+            ->get();
+
+        return view('user.notifications.index', compact('notifications', 'dismissed'));
     }
 
     public function markRead(Request $request)
@@ -45,13 +61,39 @@ class NotificationController extends Controller
     }
 
     /**
-     * Delete/dismiss a single notification owned by the signed-in user.
-     * Removed items no longer appear in the feed nor count toward unread.
+     * Dismiss a single notification owned by the signed-in user. This is a
+     * soft delete (stamps `dismissed_at`) rather than a permanent removal,
+     * so the dismissal can be undone via the toast affordance or restored
+     * later from the "Recently dismissed" list. Dismissed items no longer
+     * appear in the feed nor count toward unread.
      */
     public function destroy(Request $request, int $id)
     {
-        UserNotification::where('user_id', auth()->id())->where('id', $id)->delete();
-        return back()->with('success', 'Notification removed.');
+        $n = UserNotification::where('user_id', auth()->id())->find($id);
+        if ($n) {
+            $n->delete();
+            // Surface an inline Undo affordance keyed to the just-dismissed id.
+            return back()->with('dismissed_id', $n->id)->with('success', 'Notification removed.');
+        }
+        return back();
+    }
+
+    /**
+     * Restore a previously dismissed notification owned by the signed-in
+     * user. Powers both the Undo toast and the "Recently dismissed" list.
+     * Silently no-ops on an unknown / not-dismissed / other-user id rather
+     * than leaking existence via a 404.
+     */
+    public function restore(Request $request, int $id)
+    {
+        $n = UserNotification::onlyTrashed()
+            ->where('user_id', auth()->id())
+            ->find($id);
+        if ($n) {
+            $n->restore();
+            return back()->with('success', 'Notification restored.');
+        }
+        return back();
     }
 
     public function preferences(BacklinkDigestService $backlinkDigest)

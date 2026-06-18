@@ -306,6 +306,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('notifications/read', [\App\Modules\User\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
         Route::post('notifications/{id}/read', [\App\Modules\User\Controllers\NotificationController::class, 'markOneRead'])->name('notifications.read-one')->whereNumber('id');
         Route::delete('notifications/{id}', [\App\Modules\User\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy')->whereNumber('id');
+        Route::post('notifications/{id}/restore', [\App\Modules\User\Controllers\NotificationController::class, 'restore'])->name('notifications.restore')->whereNumber('id');
         Route::get('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'preferences'])->name('notifications.preferences');
         Route::put('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'updatePreferences'])->name('notifications.preferences.update');
         // On-demand "Send sample now" preview for the weekly backlink

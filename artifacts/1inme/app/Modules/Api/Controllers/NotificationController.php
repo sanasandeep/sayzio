@@ -60,8 +60,58 @@ class NotificationController extends Controller
     {
         $n = UserNotification::where('user_id', $request->user()->id)->find($id);
         if (!$n) return $this->notFound('Notification not found');
+        // Soft delete (stamps `dismissed_at`) so the dismissal can be undone
+        // via the mobile Undo toast or restored later. Hidden from the feed
+        // and unread counts by the model's global scope.
         $n->delete();
-        return $this->ok(['deleted' => true]);
+        return $this->ok(['deleted' => true, 'id' => $n->id]);
+    }
+
+    /**
+     * Restore a previously dismissed (soft-deleted) notification. Powers the
+     * mobile "Removed — Undo" toast and the "Recently dismissed" list.
+     */
+    public function restore(Request $request, int $id)
+    {
+        $n = UserNotification::onlyTrashed()
+            ->where('user_id', $request->user()->id)
+            ->find($id);
+        if (!$n) return $this->notFound('Notification not found');
+        $n->restore();
+        return $this->ok(['restored' => true, 'id' => $n->id]);
+    }
+
+    /**
+     * List recently dismissed notifications the user can still restore,
+     * newest-first, within a 30-day retention window.
+     */
+    public function dismissed(Request $request)
+    {
+        $page = UserNotification::onlyTrashed()
+            ->where('user_id', $request->user()->id)
+            ->where('dismissed_at', '>=', now()->subDays(30))
+            ->orderByDesc('dismissed_at')
+            ->paginate(min(100, max(1, (int) $request->input('per_page', 30))));
+
+        return $this->ok([
+            'items' => collect($page->items())->map(fn ($n) => [
+                'id'           => $n->id,
+                'type'         => $n->type ?? null,
+                'title'        => $n->title ?? null,
+                'body'         => $n->body ?? $n->message ?? null,
+                'data'         => $n->data ?? null,
+                'url'          => $n->url ?? null,
+                'read_at'      => optional($n->read_at)->toIso8601String(),
+                'created_at'   => optional($n->created_at)->toIso8601String(),
+                'dismissed_at' => optional($n->dismissed_at)->toIso8601String(),
+            ])->all(),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'per_page'     => $page->perPage(),
+                'total'        => $page->total(),
+                'last_page'    => $page->lastPage(),
+            ],
+        ]);
     }
 
     /**

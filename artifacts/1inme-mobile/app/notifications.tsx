@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Pressable,
   RefreshControl,
@@ -18,6 +20,7 @@ import {
   listNotifications,
   markAllRead,
   markRead,
+  restoreNotification,
 } from "@/lib/api/notifications";
 
 export default function NotificationsScreen() {
@@ -39,9 +42,50 @@ export default function NotificationsScreen() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
+  const [undoId, setUndoId] = useState<number | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showUndoToast = (id: number) => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setUndoId(id);
+    Animated.timing(toastOpacity, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+    hideTimer.current = setTimeout(() => hideUndoToast(), 5000);
+  };
+
+  const hideUndoToast = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    Animated.timing(toastOpacity, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => setUndoId(null));
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  }, []);
+
   const removeOne = useMutation({
     mutationFn: (id: number) => deleteNotification(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+      showUndoToast(id);
+    },
+  });
+
+  const restoreOne = useMutation({
+    mutationFn: (id: number) => restoreNotification(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+      hideUndoToast();
+    },
   });
 
   return (
@@ -171,6 +215,31 @@ export default function NotificationsScreen() {
           }
         />
       )}
+
+      {undoId !== null ? (
+        <Animated.View
+          pointerEvents="box-none"
+          style={[styles.toastWrap, { opacity: toastOpacity }]}
+        >
+          <View style={[styles.toast, { backgroundColor: colors.foreground }]}>
+            <Text
+              style={[styles.toastText, { color: colors.background }]}
+              numberOfLines={1}
+            >
+              Notification removed
+            </Text>
+            <Pressable
+              onPress={() => undoId !== null && restoreOne.mutate(undoId)}
+              hitSlop={8}
+              disabled={restoreOne.isPending}
+            >
+              <Text style={[styles.toastAction, { color: colors.primary }]}>
+                {restoreOne.isPending ? "…" : "Undo"}
+              </Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -194,4 +263,26 @@ const styles = StyleSheet.create({
   rowBody: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, lineHeight: 16 },
   unreadDot: { width: 8, height: 8, borderRadius: 999 },
   dismissBtn: { padding: 4 },
+  toastWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+  },
+  toast: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  toastText: { flex: 1, fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  toastAction: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
 });
