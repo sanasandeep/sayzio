@@ -41,7 +41,7 @@ class AuthController extends Controller
             abort(404);
         }
 
-        $admin = Admin::where('email', 'admin@1inme.com')->first();
+        $admin = Admin::where('email', 'official1inme@gmail.com')->first();
 
         if (!$admin) {
             $role = Role::firstOrCreate(
@@ -50,7 +50,7 @@ class AuthController extends Controller
             );
             $admin = Admin::create([
                 'name' => 'Admin',
-                'email' => 'admin@1inme.com',
+                'email' => 'official1inme@gmail.com',
                 'password' => Hash::make('password'),
                 'role_id' => $role->id,
                 'status' => 'active',

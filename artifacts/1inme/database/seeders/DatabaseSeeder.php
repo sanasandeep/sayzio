@@ -112,7 +112,7 @@ class DatabaseSeeder extends Seeder
 
         Admin::create([
             'name' => 'Admin',
-            'email' => 'admin@1inme.com',
+            'email' => 'official1inme@gmail.com',
             'password' => Hash::make('password'),
             'role_id' => $superAdminRole->id,
             'status' => 'active',
