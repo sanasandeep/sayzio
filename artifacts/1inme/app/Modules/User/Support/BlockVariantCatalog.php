@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 6;
+    public const VERSION = 7;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1963,6 +1963,99 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'social_profile',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#3b82f6', 'radius' => 18, 'border' => '#e5e7eb'],
+                ],
+
+                // ─── Task #1745: six layout-driven identity designs ──────
+                //
+                // These extend the ten looks above and are distinguished
+                // primarily by STRUCTURE (not colour): a horizontal name
+                // card, a corporate ID badge with a lanyard, a perforated
+                // ticket stub, a tilted polaroid, a developer terminal, and
+                // a left sidebar accent bar. Each carries a `_profile_layout`
+                // token the public renderer dispatches on; padding stays 0
+                // because each layout owns its internal spacing.
+                [
+                    'key' => 'identity_business',
+                    'name' => 'Business Card',
+                    'tags' => ['pro', 'corporate', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'business_card',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 14, 'border' => '#e5e7eb'],
+                ],
+                [
+                    'key' => 'identity_id_badge',
+                    'name' => 'ID Badge',
+                    'tags' => ['corporate', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#cbd5e1',
+                        'border_radius' => '16', 'shadow_preset' => 'medium',
+                        'padding' => '0', '_profile_layout' => 'id_badge',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#2563eb', 'radius' => 16, 'border' => '#cbd5e1'],
+                ],
+                [
+                    'key' => 'identity_ticket',
+                    'name' => 'Ticket Stub',
+                    'tags' => ['playful', 'retro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fffbeb',
+                        'text_color' => '#78350f',
+                        'border_style' => 'none', 'border_radius' => '14',
+                        'shadow_preset' => 'soft',
+                        'font_family' => 'JetBrains Mono',
+                        'padding' => '0', '_profile_layout' => 'ticket_stub',
+                    ],
+                    'preview' => ['bg' => '#fffbeb', 'text' => '#78350f', 'radius' => 14, 'border' => '#f59e0b', 'dashed' => true],
+                ],
+                [
+                    'key' => 'identity_polaroid',
+                    'name' => 'Polaroid',
+                    'tags' => ['playful', 'handwritten'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#1f2937',
+                        'border_style' => 'none', 'border_radius' => '6',
+                        'shadow_type' => 'hard', 'shadow_color' => '#00000033',
+                        'shadow_x' => 0, 'shadow_y' => 10, 'shadow_blur' => 24,
+                        'font_family' => 'Caveat',
+                        'padding' => '0', '_profile_layout' => 'polaroid',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1f2937', 'radius' => 6, 'shadow' => '0 10px 24px #00000033'],
+                ],
+                [
+                    'key' => 'identity_terminal',
+                    'name' => 'Terminal',
+                    'tags' => ['dark', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#020617',
+                        'text_color' => '#4ade80',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#22c55e55',
+                        'border_radius' => '10', 'shadow_type' => 'glow',
+                        'shadow_color' => '#22c55e33', 'shadow_blur' => 20,
+                        'font_family' => 'JetBrains Mono',
+                        'padding' => '0', '_profile_layout' => 'terminal',
+                    ],
+                    'preview' => ['bg' => '#020617', 'text' => '#4ade80', 'radius' => 10, 'border' => '#22c55e'],
+                ],
+                [
+                    'key' => 'identity_sidebar',
+                    'name' => 'Sidebar Accent',
+                    'tags' => ['minimal', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '16', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'sidebar_accent',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(90deg,#7c3aed 0,#7c3aed 14%,#ffffff 14%)', 'text' => '#0f172a', 'radius' => 16, 'border' => '#e5e7eb'],
                 ],
             ],
         ];

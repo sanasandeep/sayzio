@@ -11,9 +11,9 @@
       $accent      accent colour for the chip
       $chip        chip style: glass | solid | plain | accent_outline
 --}}
-@php $chip = $chip ?? 'glass'; @endphp
+@php $chip = $chip ?? 'glass'; $align = $align ?? 'center'; @endphp
 @if(!empty($psocials))
-<div class="flex flex-wrap justify-center gap-2.5 mt-4">
+<div class="flex flex-wrap gap-2.5 mt-4 {{ $align === 'left' ? 'justify-start' : 'justify-center' }}">
     @foreach($psocials as $soc)
         @php
             $sn   = $soc['name'] ?? '';

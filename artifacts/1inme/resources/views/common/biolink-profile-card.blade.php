@@ -63,6 +63,10 @@
         'gradient'                 => '#ffffff',
         'glass'                    => '#c4b5fd',
         'minimal_dark', 'cover_hero' => '#a78bfa',
+        'business_card', 'id_badge' => '#2563eb',
+        'ticket_stub'              => '#b45309',
+        'terminal'                 => '#4ade80',
+        'polaroid', 'sidebar_accent' => '#7c3aed',
         default                    => '#7c3aed',
     };
 
@@ -271,6 +275,163 @@
             @endif
             @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline'])
+        </div>
+    </div>
+
+{{-- ───────────────────────────── BUSINESS CARD ─────────────────────── --}}
+@elseif($layout === 'business_card')
+    <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="flex items-center gap-4 p-5">
+            <div class="shrink-0">
+                @if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-xl object-cover" style="border:1px solid rgba(0,0,0,0.08)" alt="">
+                @else<div class="w-20 h-20 rounded-xl flex items-center justify-center text-2xl font-bold" style="background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif
+            </div>
+            <div class="min-w-0 flex-1" style="border-left:2px solid {{ $accent }}33;padding-left:1rem">
+                @if($name)<p class="text-lg font-bold leading-tight">{{ $name }}@if($verified)<i class="fas fa-circle-check ml-1" style="color:{{ $accent }}"></i>@endif</p>@endif
+                @if($title)<p class="text-[11px] font-semibold uppercase tracking-[0.18em]" style="color:{{ $accent }}">{{ $title }}</p>@endif
+                @if($bio)<p class="text-sm mt-2" style="opacity:.72">{{ $bio }}</p>@endif
+                @if($location || $website)
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs" style="opacity:.7">
+                        @if($location)<span><i class="fas fa-location-dot mr-1" style="color:{{ $accent }}"></i>{{ $location }}</span>@endif
+                        @if($website)<a href="{{ $website }}" target="_blank" rel="noopener" class="hover:underline" style="color:{{ $accent }}"><i class="fas fa-link mr-1"></i>{{ preg_replace('#^https?://(www\.)?#', '', $website) }}</a>@endif
+                    </div>
+                @endif
+                @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline', 'align' => 'left'])
+            </div>
+        </div>
+    </div>
+
+{{-- ───────────────────────────── ID BADGE / LANYARD ────────────────── --}}
+@elseif($layout === 'id_badge')
+    @php $idBar = $blockStyle['text_color'] ?? '#1e293b'; @endphp
+    <div class="mb-4 flex flex-col items-center">
+        {{-- Lanyard strap + clip --}}
+        <div class="flex flex-col items-center" aria-hidden="true">
+            <div style="width:8px;height:20px;background:{{ $accent }};border-radius:3px 3px 0 0;opacity:.85"></div>
+            <div style="width:36px;height:11px;border:2px solid {{ $accent }};border-radius:6px;background:transparent;margin-top:-2px"></div>
+        </div>
+        <div class="w-full overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+            {{-- Punch hole --}}
+            <div class="flex justify-center pt-3" aria-hidden="true">
+                <div style="width:46px;height:8px;border-radius:999px;background:rgba(15,23,42,0.14)"></div>
+            </div>
+            {{-- Accent header band --}}
+            <div class="mt-3 px-5 py-2.5 text-center" style="background:{{ $accent }};color:#fff">
+                <p class="text-[10px] font-bold uppercase tracking-[0.3em]">Identification</p>
+            </div>
+            <div class="px-5 py-5 text-center">
+                <div class="flex justify-center">
+                    @if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-lg object-cover" style="border:3px solid {{ $accent }}" alt="">
+                    @else<div class="w-20 h-20 rounded-lg flex items-center justify-center text-xl font-bold" style="border:3px solid {{ $accent }};background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif
+                </div>
+                @if($name)<p class="mt-3 text-lg font-bold tracking-tight">{{ $name }}@if($verified)<i class="fas fa-circle-check ml-1" style="color:{{ $accent }}"></i>@endif</p>@endif
+                @if($title)<div class="mt-1 inline-block px-3 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider" style="background:{{ $accent }}1a;color:{{ $accent }}">{{ $title }}</div>@endif
+                @if($bio)<p class="text-sm mt-3" style="opacity:.7">{{ $bio }}</p>@endif
+                {{-- Barcode footer --}}
+                <div class="mt-4 flex justify-center items-end gap-[3px]" aria-hidden="true" style="opacity:.55">
+                    @foreach([3,1,2,1,3,1,1,2,1,3,2,1,1,3,1,2] as $bw)<span style="display:inline-block;width:{{ $bw }}px;height:22px;background:{{ $idBar }}"></span>@endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
+{{-- ───────────────────────────── TICKET STUB ───────────────────────── --}}
+@elseif($layout === 'ticket_stub')
+    <div class="mb-4 relative overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        {{-- Perforation notches --}}
+        <div class="absolute rounded-full" style="width:22px;height:22px;background:rgba(0,0,0,0.16);left:-11px;top:50%;transform:translateY(-50%)" aria-hidden="true"></div>
+        <div class="absolute rounded-full" style="width:22px;height:22px;background:rgba(0,0,0,0.16);right:-11px;top:50%;transform:translateY(-50%)" aria-hidden="true"></div>
+        <div class="flex items-stretch">
+            <div class="flex-1 p-5 text-center">
+                <p class="text-[10px] font-bold uppercase tracking-[0.25em]" style="color:{{ $accent }};opacity:.85">Admit One</p>
+                <div class="flex justify-center mt-3">
+                    @if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid {{ $accent }}" alt="">
+                    @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold" style="border:2px solid {{ $accent }};background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif
+                </div>
+                @if($name)<p class="mt-3 text-xl font-bold leading-tight">{{ $name }}</p>@endif
+                @if($bio)<p class="text-sm mt-2" style="opacity:.7">{{ $bio }}</p>@endif
+            </div>
+            <div class="self-stretch" style="border-left:2px dashed {{ $accent }}66" aria-hidden="true"></div>
+            <div class="w-24 shrink-0 flex flex-col items-center justify-center p-3 text-center">
+                <p class="text-[9px] font-bold uppercase tracking-wider" style="opacity:.55">Section</p>
+                <p class="text-sm font-bold mt-1" style="color:{{ $accent }}">{{ $title !== '' ? $title : 'GA' }}</p>
+                <div class="mt-2 flex items-end gap-[2px]" aria-hidden="true" style="opacity:.5">
+                    @foreach([2,1,3,1,2,1,3,1] as $bw)<span style="display:inline-block;width:{{ $bw }}px;height:28px;background:{{ $accent }}"></span>@endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
+{{-- ───────────────────────────── POLAROID ──────────────────────────── --}}
+@elseif($layout === 'polaroid')
+    <div class="mb-6 flex justify-center">
+        <div class="{{ $baseClass }}" style="{{ $cardStyle }};transform:rotate(-2.5deg);max-width:18rem;width:100%">
+            <div class="p-3 pb-1">
+                <div class="w-full aspect-square overflow-hidden" style="background:{{ $avatarBg }}">
+                    @if($avatar)<img src="{{ $avatar }}" class="w-full h-full object-cover" alt="">
+                    @else<div class="w-full h-full flex items-center justify-center text-6xl font-bold" style="color:{{ $accent }}">{{ $initial }}</div>@endif
+                </div>
+            </div>
+            <div class="px-4 pb-5 pt-2 text-center">
+                @if($name)<p class="text-2xl leading-tight" style="font-family:'Caveat',cursive;color:#1f2937">{{ $name }}</p>@endif
+                @if($title)<p class="text-base" style="font-family:'Caveat',cursive;opacity:.75;color:#374151">{{ $title }}</p>@endif
+                @if($bio)<p class="text-base mt-1" style="font-family:'Caveat',cursive;opacity:.6;color:#374151">{{ $bio }}</p>@endif
+            </div>
+        </div>
+    </div>
+
+{{-- ───────────────────────────── TERMINAL / CODE ───────────────────── --}}
+@elseif($layout === 'terminal')
+    <style>
+        @keyframes tcblink{0%,49%{opacity:1}50%,100%{opacity:0}}
+        .terminal-cursor{animation:tcblink 1s steps(1) infinite}
+        @media (prefers-reduced-motion: reduce){.terminal-cursor{animation:none}}
+    </style>
+    <div class="mb-4 overflow-hidden rounded-xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="flex items-center gap-1.5 px-4 py-2" style="background:rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.08)">
+            <span style="width:11px;height:11px;border-radius:999px;background:#ff5f56;display:inline-block"></span>
+            <span style="width:11px;height:11px;border-radius:999px;background:#ffbd2e;display:inline-block"></span>
+            <span style="width:11px;height:11px;border-radius:999px;background:#27c93f;display:inline-block"></span>
+            <span class="ml-2 text-[10px]" style="font-family:'JetBrains Mono',monospace;opacity:.6">~ /profile</span>
+        </div>
+        <div class="p-4" style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7">
+            <div><span style="opacity:.6">$</span> <span>whoami</span></div>
+            @if($avatar || $name)
+                <div class="flex items-center gap-3 mt-2 mb-1">
+                    @if($avatar)<img src="{{ $avatar }}" class="w-12 h-12 rounded object-cover" style="border:1px solid {{ $accent }}55" alt="">@endif
+                    @if($name)<span class="text-base font-bold">{{ $name }}</span>@endif
+                </div>
+            @endif
+            @if($title)<div><span style="opacity:.6">role:</span> <span style="color:{{ $accent }}">{{ $title }}</span></div>@endif
+            @if($bio)<div class="mt-1" style="opacity:.85"><span style="opacity:.6">bio:</span> {{ $bio }}</div>@endif
+            @if($location)<div style="opacity:.85"><span style="opacity:.6">loc:</span> {{ $location }}</div>@endif
+            @if($website)<div><span style="opacity:.6">url:</span> <a href="{{ $website }}" target="_blank" rel="noopener" style="color:{{ $accent }};text-decoration:underline">{{ preg_replace('#^https?://(www\.)?#', '', $website) }}</a></div>@endif
+            <div class="flex items-center gap-2 mt-2">
+                <span style="opacity:.6">$</span>
+                <span class="terminal-cursor" style="display:inline-block;width:8px;height:16px;background:{{ $accent }}"></span>
+            </div>
+        </div>
+    </div>
+
+{{-- ───────────────────────────── SIDEBAR ACCENT ────────────────────── --}}
+@elseif($layout === 'sidebar_accent')
+    <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="flex items-stretch">
+            <div class="shrink-0" style="width:10px;background:linear-gradient(180deg,{{ $accent }},{{ $accent }}99)" aria-hidden="true"></div>
+            <div class="flex-1 p-5">
+                <div class="flex items-center gap-4">
+                    <div class="shrink-0">
+                        @if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid {{ $accent }}33" alt="">
+                        @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="border:2px solid {{ $accent }}33;background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif
+                    </div>
+                    <div class="min-w-0">
+                        @if($name)<p class="text-lg font-bold leading-tight">{{ $name }}@if($verified)<i class="fas fa-circle-check ml-1" style="color:{{ $accent }}"></i>@endif</p>@endif
+                        @if($title)<p class="text-sm font-semibold" style="color:{{ $accent }}">{{ $title }}</p>@endif
+                    </div>
+                </div>
+                @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
+                @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline', 'align' => 'left'])
+            </div>
         </div>
     </div>
 
