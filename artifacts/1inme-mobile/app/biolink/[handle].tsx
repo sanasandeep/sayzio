@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +19,7 @@ import {
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -35,6 +37,7 @@ import { ReviewsWall } from "@/components/ReviewsWall";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import { variantOverlay } from "@/lib/blockVariants";
+import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 
 // Build the card style override that should overlay any default
 // `blockCardStyle(block, colors)` style.
@@ -1389,6 +1392,22 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     );
   }
 
+  // Profile / identity card family (profile_card_v1..v4). Dispatches on the
+  // `_profile_layout` token carried in _style (set when a curated
+  // `profile_identity` design is applied), falling back to the historical
+  // per-type layout for older blocks.
+  if (canonicalBlockType(t) === "profile_card") {
+    return (
+      <ProfileCardView
+        block={block}
+        s={s as Record<string, unknown>}
+        colors={colors}
+        cardOverlay={cardOverlay}
+        onTap={handleTap}
+      />
+    );
+  }
+
   // Generic URL fallback: many block types share a settings.url.
   const fallbackUrl = pickStr(s, "url", "link", "href");
   if (fallbackUrl && isSafeUrl(fallbackUrl)) {
@@ -1420,6 +1439,774 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
         Tap to view this block in your browser
       </Text>
     </Pressable>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Profile / identity card renderer — the mobile counterpart of
+// common/biolink-profile-card.blade.php. Ten layouts dispatched on the
+// `_profile_layout` token (with a per-type fallback for older blocks).
+// ───────────────────────────────────────────────────────────────────
+
+type ProfileSocialRow = { name: string; url: string };
+
+// Map a social platform slug to a Feather brand icon, falling back to the
+// generic "link" glyph for platforms Feather doesn't ship (tiktok, twitch,
+// etc.). The web uses FontAwesome's far richer brand set; mobile only has
+// Feather, so unmapped platforms still render a recognisable chip.
+function profileSocialIcon(name: string): React.ComponentProps<typeof Feather>["name"] {
+  switch (name.trim().toLowerCase()) {
+    case "instagram":
+      return "instagram";
+    case "twitter":
+    case "x":
+      return "twitter";
+    case "facebook":
+      return "facebook";
+    case "youtube":
+      return "youtube";
+    case "linkedin":
+      return "linkedin";
+    case "github":
+      return "github";
+    default:
+      return "link";
+  }
+}
+
+function normalizeProfileSocialRows(raw: unknown): ProfileSocialRow[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((i) => {
+      const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+      const name =
+        typeof o.name === "string"
+          ? o.name
+          : typeof o.platform === "string"
+            ? o.platform
+            : "";
+      const url = typeof o.url === "string" ? o.url : "";
+      return { name, url };
+    })
+    .filter((s) => s.name !== "" || s.url !== "");
+}
+
+function profileLayout(block: BiolinkBlock, s: Record<string, unknown>): string {
+  const style = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+    string,
+    unknown
+  >;
+  const tok = typeof style._profile_layout === "string" ? style._profile_layout : "";
+  if (tok) return tok;
+  switch (block.type) {
+    case "profile_card_v2":
+      return "cover_hero";
+    case "profile_card_v3":
+      return "stats";
+    case "profile_card_v4":
+      return "badges";
+    default:
+      return "classic_creator";
+  }
+}
+
+function profileAccent(layout: string): string {
+  switch (layout) {
+    case "founder":
+      return "#d4af37";
+    case "social_profile":
+      return "#3b82f6";
+    case "gradient":
+      return "#ffffff";
+    case "glass":
+      return "#c4b5fd";
+    case "minimal_dark":
+    case "cover_hero":
+      return "#a78bfa";
+    default:
+      return "#7c3aed";
+  }
+}
+
+const PROFILE_AVATAR_BG = "rgba(124,58,237,0.20)";
+
+function ProfileAvatar({
+  avatar,
+  initial,
+  size,
+  border,
+  textColor,
+}: {
+  avatar: string;
+  initial: string;
+  size: number;
+  border?: { borderWidth?: number; borderColor?: string; borderRadius?: number };
+  textColor?: string;
+}) {
+  if (avatar && isSafeUrl(avatar)) {
+    return (
+      <Image
+        source={{ uri: avatar }}
+        style={[{ width: size, height: size, borderRadius: size / 2 }, border]}
+      />
+    );
+  }
+  return (
+    <View
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: PROFILE_AVATAR_BG,
+        },
+        border,
+      ]}
+    >
+      <Text style={{ fontSize: size * 0.4, fontWeight: "700", color: textColor ?? "#fff" }}>
+        {initial}
+      </Text>
+    </View>
+  );
+}
+
+function ProfileSocialsRow({
+  socials,
+  accent,
+  onTap,
+  chip = "glass",
+}: {
+  socials: ProfileSocialRow[];
+  accent: string;
+  onTap: (url: string) => void;
+  chip?: "glass" | "accent_outline";
+}) {
+  if (socials.length === 0) return null;
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        gap: 10,
+        marginTop: 16,
+      }}
+    >
+      {socials.map((soc, i) => {
+        const chipStyle: ViewStyle =
+          chip === "accent_outline"
+            ? { borderWidth: 1.5, borderColor: `${accent}66` }
+            : {
+                backgroundColor: "rgba(255,255,255,0.10)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.20)",
+              };
+        return (
+          <Pressable
+            key={i}
+            onPress={() => (soc.url && isSafeUrl(soc.url) ? onTap(soc.url) : undefined)}
+            style={[
+              {
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                alignItems: "center",
+                justifyContent: "center",
+              },
+              chipStyle,
+            ]}
+          >
+            <Feather name={profileSocialIcon(soc.name)} size={16} color={accent} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function ProfileCardView({
+  block,
+  s,
+  colors,
+  cardOverlay,
+  onTap,
+}: {
+  block: BiolinkBlock;
+  s: Record<string, unknown>;
+  colors: ReturnType<typeof useColors>;
+  cardOverlay: ViewStyle | null;
+  onTap: (url: string) => void;
+}) {
+  const avatar = pickStr(s, "avatar") ?? "";
+  const name = (pickStr(s, "name") ?? "").trim();
+  const title = (pickStr(s, "title") ?? "").trim();
+  const bio = (pickStr(s, "bio") ?? "").trim();
+  const cover = pickStr(s, "cover") ?? "";
+  const verified = pickBool(s, "verified");
+  const location = (pickStr(s, "location") ?? "").trim();
+  const website = (pickStr(s, "website") ?? "").trim();
+  const ctaLabel = (pickStr(s, "cta_label") ?? "").trim();
+  const ctaUrl = (pickStr(s, "cta_url") ?? "").trim();
+  const socials = normalizeProfileSocialRows(s.socials);
+  const stats = Array.isArray(s.stats) ? (s.stats as Record<string, unknown>[]) : [];
+  const badges = Array.isArray(s.badges) ? (s.badges as unknown[]) : [];
+
+  const layout = profileLayout(block, s);
+  const accent = profileAccent(layout);
+  const initial = (name !== "" ? name : "U").charAt(0).toUpperCase();
+  const hasCover = cover !== "" && isSafeUrl(cover);
+
+  // Outer card surface. The design's bg/border/radius arrive via cardOverlay;
+  // with no design we keep the page's translucent card look.
+  const surface: ViewStyle = {
+    borderRadius: 18,
+    overflow: "hidden",
+    marginBottom: 16,
+    backgroundColor: colors.card,
+    ...(cardOverlay ?? {}),
+  };
+  const themeText = colors.foreground;
+
+  // ───────────── CLASSIC CREATOR ─────────────
+  if (layout === "classic_creator") {
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <Image source={{ uri: cover }} style={{ height: 112, width: "100%" }} />
+        ) : null}
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingBottom: 24,
+            alignItems: "center",
+            marginTop: hasCover ? -48 : 0,
+            paddingTop: hasCover ? 0 : 24,
+          }}
+        >
+          <ProfileAvatar
+            avatar={avatar}
+            initial={initial}
+            size={96}
+            border={{ borderWidth: 4, borderColor: "#fff" }}
+          />
+          {name ? (
+            <Text style={{ marginTop: 12, fontSize: 18, fontWeight: "700", color: themeText }}>
+              {name}
+            </Text>
+          ) : null}
+          {title ? (
+            <Text style={{ fontSize: 13, fontWeight: "600", color: accent }}>{title}</Text>
+          ) : null}
+          {bio ? (
+            <Text
+              style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.72, textAlign: "center" }}
+            >
+              {bio}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── MODERN GLASSMORPHISM ─────────────
+  if (layout === "glass") {
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <Image
+            source={{ uri: cover }}
+            style={{ ...StyleSheet.absoluteFillObject, opacity: 0.3 }}
+          />
+        ) : null}
+        {hasCover ? (
+          <LinearGradient
+            colors={["rgba(124,58,237,0.40)", "rgba(236,72,153,0.28)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        ) : null}
+        <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
+          <ProfileAvatar
+            avatar={avatar}
+            initial={initial}
+            size={80}
+            border={{ borderWidth: 3, borderColor: "rgba(255,255,255,0.55)" }}
+          />
+          {name ? (
+            <Text style={{ marginTop: 12, fontSize: 18, fontWeight: "700", color: "#fff" }}>
+              {name}
+            </Text>
+          ) : null}
+          {title ? <Text style={{ fontSize: 13, color: accent }}>{title}</Text> : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: "rgba(255,255,255,0.8)", textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+          <ProfileSocialsRow socials={socials} accent="#ffffff" onTap={onTap} />
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── COVER OVERLAY HERO ─────────────
+  if (layout === "cover_hero") {
+    const inner = (
+      <View style={{ minHeight: 300, justifyContent: "flex-end" }}>
+        <LinearGradient
+          colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.88)"]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={{ padding: 20 }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
+            <ProfileAvatar
+              avatar={avatar}
+              initial={initial}
+              size={64}
+              border={{ borderWidth: 3, borderColor: "rgba(255,255,255,0.85)" }}
+            />
+            <View style={{ flex: 1 }}>
+              {name ? (
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#fff" }}>{name}</Text>
+              ) : null}
+              {title ? <Text style={{ fontSize: 13, color: accent }}>{title}</Text> : null}
+            </View>
+          </View>
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: "rgba(255,255,255,0.8)" }}>
+              {bio}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    );
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <ImageBackground source={{ uri: cover }} style={{ width: "100%" }}>
+            {inner}
+          </ImageBackground>
+        ) : (
+          <View style={{ backgroundColor: "#0b0b0f" }}>{inner}</View>
+        )}
+      </View>
+    );
+  }
+
+  // ───────────── SPLIT CARD ─────────────
+  if (layout === "split") {
+    return (
+      <View style={surface}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 20, padding: 20 }}>
+          <ProfileAvatar avatar={avatar} initial={initial} size={96} border={{ borderRadius: 16 }} />
+          <View style={{ flex: 1 }}>
+            {name ? (
+              <Text style={{ fontSize: 18, fontWeight: "700", color: themeText }}>{name}</Text>
+            ) : null}
+            {title ? (
+              <Text style={{ fontSize: 13, fontWeight: "600", color: accent }}>{title}</Text>
+            ) : null}
+            {bio ? (
+              <Text style={{ fontSize: 13, marginTop: 8, color: themeText, opacity: 0.72 }}>
+                {bio}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── FLOATING AVATAR ─────────────
+  if (layout === "floating") {
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <Image source={{ uri: cover }} style={{ height: 96, width: "100%" }} />
+        ) : (
+          <LinearGradient
+            colors={["#7c3aed", "#d946ef"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ height: 96, width: "100%" }}
+          />
+        )}
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingBottom: 24,
+            marginTop: -48,
+            alignItems: "center",
+          }}
+        >
+          <ProfileAvatar
+            avatar={avatar}
+            initial={initial}
+            size={96}
+            border={{ borderWidth: 5, borderColor: "#fff" }}
+          />
+          {name ? (
+            <Text style={{ marginTop: 12, fontSize: 18, fontWeight: "700", color: themeText }}>
+              {name}
+            </Text>
+          ) : null}
+          {title ? (
+            <Text style={{ fontSize: 13, fontWeight: "600", color: accent }}>{title}</Text>
+          ) : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.72, textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── GRADIENT IDENTITY ─────────────
+  if (layout === "gradient") {
+    const grad = (
+      <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
+        <ProfileAvatar
+          avatar={avatar}
+          initial={initial}
+          size={80}
+          border={{ borderWidth: 3, borderColor: "rgba(255,255,255,0.65)" }}
+        />
+        {name ? (
+          <Text style={{ marginTop: 12, fontSize: 18, fontWeight: "700", color: "#fff" }}>
+            {name}
+          </Text>
+        ) : null}
+        {title ? (
+          <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)" }}>{title}</Text>
+        ) : null}
+        {bio ? (
+          <Text style={{ fontSize: 13, marginTop: 12, color: "rgba(255,255,255,0.8)", textAlign: "center" }}>
+            {bio}
+          </Text>
+        ) : null}
+        <ProfileSocialsRow socials={socials} accent="#ffffff" onTap={onTap} />
+      </View>
+    );
+    // Honour a flat bg from the design; otherwise paint our own gradient
+    // (RN can't take a CSS linear-gradient string as a backgroundColor).
+    const hasFlatBg = cardOverlay?.backgroundColor != null;
+    return (
+      <View style={surface}>
+        {hasFlatBg ? (
+          grad
+        ) : (
+          <LinearGradient
+            colors={["#7c3aed", "#d946ef"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            {grad}
+          </LinearGradient>
+        )}
+      </View>
+    );
+  }
+
+  // ───────────── PREMIUM FOUNDER ─────────────
+  if (layout === "founder") {
+    const inner = (
+      <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
+        <ProfileAvatar
+          avatar={avatar}
+          initial={initial}
+          size={80}
+          border={{ borderWidth: 3, borderColor: "#d4af37" }}
+        />
+        {name ? (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, gap: 6 }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: accent }}>{name}</Text>
+            {verified ? <Feather name="check-circle" size={16} color={accent} /> : null}
+          </View>
+        ) : null}
+        {title ? <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{title}</Text> : null}
+        {bio ? (
+          <Text style={{ fontSize: 13, marginTop: 12, color: "rgba(255,255,255,0.75)", textAlign: "center" }}>
+            {bio}
+          </Text>
+        ) : null}
+        {ctaLabel ? (
+          <Pressable
+            onPress={() => (ctaUrl && isSafeUrl(ctaUrl) ? onTap(ctaUrl) : undefined)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 20,
+              paddingHorizontal: 24,
+              paddingVertical: 10,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: "#d4af37",
+              backgroundColor: "rgba(212,175,55,0.06)",
+            }}
+          >
+            <Feather name="award" size={14} color="#d4af37" />
+            <Text style={{ color: "#d4af37", fontSize: 13, fontWeight: "600" }}>{ctaLabel}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    );
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <ImageBackground source={{ uri: cover }} imageStyle={{ opacity: 0.35 }}>
+            <LinearGradient
+              colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.92)"]}
+              style={StyleSheet.absoluteFillObject}
+            />
+            {inner}
+          </ImageBackground>
+        ) : (
+          <View style={{ backgroundColor: "#0b0b0f" }}>{inner}</View>
+        )}
+      </View>
+    );
+  }
+
+  // ───────────── MINIMAL DARK ─────────────
+  if (layout === "minimal_dark") {
+    return (
+      <View style={[surface, cardOverlay?.backgroundColor == null ? { backgroundColor: "#0b0b0f" } : null]}>
+        <View style={{ paddingHorizontal: 20, paddingVertical: 32, alignItems: "center" }}>
+          <ProfileAvatar
+            avatar={avatar}
+            initial={initial}
+            size={80}
+            border={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" }}
+          />
+          {name ? (
+            <Text style={{ marginTop: 16, fontSize: 20, fontWeight: "700", color: "#fff" }}>
+              {name}
+            </Text>
+          ) : null}
+          {title ? <Text style={{ fontSize: 13, color: accent }}>{title}</Text> : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: "rgba(255,255,255,0.65)", textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+          <ProfileSocialsRow socials={socials} accent="#ffffff" onTap={onTap} />
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── MAGAZINE LAYOUT ─────────────
+  if (layout === "magazine") {
+    return (
+      <View style={[surface, { borderRadius: 12 }]}>
+        {hasCover ? <Image source={{ uri: cover }} style={{ height: 128, width: "100%" }} /> : null}
+        <View style={{ padding: 20 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <ProfileAvatar avatar={avatar} initial={initial} size={56} />
+            <View style={{ flex: 1 }}>
+              {title ? (
+                <Text
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: 2,
+                    fontWeight: "600",
+                    color: accent,
+                  }}
+                >
+                  {title}
+                </Text>
+              ) : null}
+              {name ? (
+                <Text style={{ fontSize: 20, fontWeight: "700", color: themeText }}>{name}</Text>
+              ) : null}
+            </View>
+          </View>
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 16, color: themeText, opacity: 0.78, lineHeight: 20 }}>
+              {bio}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── SOCIAL PROFILE STYLE ─────────────
+  if (layout === "social_profile") {
+    const cleanWeb = website.replace(/^https?:\/\/(www\.)?/, "");
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <Image source={{ uri: cover }} style={{ height: 96, width: "100%" }} />
+        ) : (
+          <LinearGradient
+            colors={["#3b82f6", "#06b6d4"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ height: 96, width: "100%" }}
+          />
+        )}
+        <View style={{ paddingHorizontal: 20, paddingBottom: 24, marginTop: -44, alignItems: "center" }}>
+          <ProfileAvatar
+            avatar={avatar}
+            initial={initial}
+            size={88}
+            border={{ borderWidth: 4, borderColor: "#fff" }}
+          />
+          {name ? (
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, gap: 6 }}>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: themeText }}>{name}</Text>
+              {verified ? <Feather name="check-circle" size={16} color={accent} /> : null}
+            </View>
+          ) : null}
+          {title ? (
+            <Text style={{ fontSize: 13, fontWeight: "600", color: accent }}>{title}</Text>
+          ) : null}
+          {location || website ? (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 12,
+                marginTop: 8,
+              }}
+            >
+              {location ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Feather name="map-pin" size={12} color={themeText} />
+                  <Text style={{ fontSize: 12, color: themeText, opacity: 0.7 }}>{location}</Text>
+                </View>
+              ) : null}
+              {website ? (
+                <Pressable
+                  onPress={() => (isSafeUrl(website) ? onTap(website) : undefined)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                >
+                  <Feather name="link" size={12} color={accent} />
+                  <Text style={{ fontSize: 12, color: accent }}>{cleanWeb}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.72, textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+          <ProfileSocialsRow socials={socials} accent={accent} onTap={onTap} chip="accent_outline" />
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── LEGACY: STATS (v3 default) ─────────────
+  if (layout === "stats") {
+    return (
+      <View style={surface}>
+        <View style={{ padding: 20, alignItems: "center" }}>
+          <ProfileAvatar
+            avatar={avatar}
+            initial={initial}
+            size={64}
+            border={{ borderWidth: 2, borderColor: "rgba(255,255,255,0.12)" }}
+          />
+          {name ? (
+            <Text style={{ marginTop: 12, fontWeight: "600", color: themeText }}>{name}</Text>
+          ) : null}
+          {title ? <Text style={{ fontSize: 12, color: accent }}>{title}</Text> : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.6, textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+          {stats.length > 0 ? (
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 24, marginTop: 16 }}>
+              {stats.map((stat, i) => (
+                <View key={i} style={{ alignItems: "center" }}>
+                  <Text style={{ fontWeight: "700", color: themeText }}>
+                    {typeof stat.value === "string" || typeof stat.value === "number"
+                      ? String(stat.value)
+                      : "0"}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: themeText, opacity: 0.45 }}>
+                    {typeof stat.label === "string" ? stat.label : ""}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── LEGACY: BADGES (v4 default) & FALLBACK ─────────────
+  return (
+    <View style={surface}>
+      <View style={{ padding: 20, alignItems: "center" }}>
+        <ProfileAvatar
+          avatar={avatar}
+          initial={initial}
+          size={64}
+          border={{ borderWidth: 2, borderColor: "rgba(255,255,255,0.12)" }}
+        />
+        {name ? (
+          <Text style={{ marginTop: 12, fontWeight: "600", color: themeText }}>{name}</Text>
+        ) : null}
+        {title ? <Text style={{ fontSize: 12, color: accent }}>{title}</Text> : null}
+        {bio ? (
+          <Text style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.6, textAlign: "center" }}>
+            {bio}
+          </Text>
+        ) : null}
+        {badges.length > 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 16,
+            }}
+          >
+            {badges.map((badge, i) => {
+              const label =
+                badge && typeof badge === "object"
+                  ? typeof (badge as Record<string, unknown>).label === "string"
+                    ? ((badge as Record<string, unknown>).label as string)
+                    : ""
+                  : typeof badge === "string"
+                    ? badge
+                    : "";
+              if (label === "") return null;
+              return (
+                <View
+                  key={i}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 4,
+                    borderRadius: 999,
+                    backgroundColor: "rgba(124,58,237,0.18)",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: accent }}>{label}</Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+      </View>
+    </View>
   );
 }
 

@@ -21,7 +21,14 @@ export type MobileVariant = {
     radius: number;
     border?: string;
     dashed?: boolean;
+    serif?: boolean;
   };
+  // Profile-card identity designs carry a structural `_profile_layout`
+  // token (mirrors the web `profile_identity` bundle). When present, the
+  // editor stamps it into `_style._profile_layout` on apply so the public
+  // renderer can dispatch on the chosen layout. Other bundles leave this
+  // undefined.
+  profileLayout?: string;
 };
 
 const COMMON: MobileVariant[] = [
@@ -187,6 +194,24 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "cover_brutalist",  name: "Brutalist Cover",  tags: ["brutalist", "bold"],          preview: { bg: "#ffffff", text: "#000", radius: 0, border: "#000" } },
     { key: "cover_y2k",        name: "Y2K Cover",        tags: ["y2k", "retro", "playful"],    preview: { bg: "#a5f3fc", text: "#1e1b4b", radius: 24, border: "#7c3aed" } },
   ],
+
+  // ─── Task #1741: profile-card identity designs ─────────────────────
+  // Mirror of the PHP `profile_identity` bundle. Each variant carries a
+  // `profileLayout` token the editor stamps into `_style._profile_layout`
+  // on apply; the public renderer dispatches on it to pick one of the ten
+  // structural layouts. Variant keys MUST match `BlockVariantCatalog.php`.
+  profile_identity: [
+    { key: "identity_classic",      name: "Classic Creator",        tags: ["minimal", "pro"],       preview: { bg: "#ffffff", text: "#0f172a", radius: 20, border: "#e5e7eb" },           profileLayout: "classic_creator" },
+    { key: "identity_glass",        name: "Modern Glassmorphism",   tags: ["glass", "pro"],         preview: { bg: "rgba(255,255,255,0.10)", text: "#ffffff", radius: 24, border: "#ffffff40" }, profileLayout: "glass" },
+    { key: "identity_cover_hero",   name: "Cover Overlay Hero",     tags: ["bold", "editorial"],    preview: { bg: "#0b0b0f", text: "#ffffff", radius: 20 },                              profileLayout: "cover_hero" },
+    { key: "identity_split",        name: "Split Card",             tags: ["minimal", "editorial"], preview: { bg: "#f8fafc", text: "#0f172a", radius: 18, border: "#e2e8f0" },           profileLayout: "split" },
+    { key: "identity_floating",     name: "Floating Avatar",        tags: ["playful", "pro"],       preview: { bg: "#ffffff", text: "#0f172a", radius: 22, border: "#e5e7eb" },           profileLayout: "floating" },
+    { key: "identity_gradient",     name: "Gradient Identity Card", tags: ["bold", "playful"],      preview: { bg: "linear-gradient(150deg,#7c3aed,#d946ef,#fb7185)", text: "#ffffff", radius: 22 }, profileLayout: "gradient" },
+    { key: "identity_founder",      name: "Premium Founder Card",   tags: ["pro", "dark"],          preview: { bg: "#0a0a0c", text: "#d4af37", radius: 20, border: "#d4af37" },           profileLayout: "founder" },
+    { key: "identity_minimal_dark", name: "Minimal Dark",           tags: ["minimal", "dark"],      preview: { bg: "#0b0b0f", text: "#ffffff", radius: 18, border: "#ffffff20" },         profileLayout: "minimal_dark" },
+    { key: "identity_magazine",     name: "Magazine Layout",        tags: ["editorial", "pro"],     preview: { bg: "#ffffff", text: "#1c1917", radius: 14, border: "#e7e5e4", serif: true }, profileLayout: "magazine" },
+    { key: "identity_social",       name: "Social Profile Style",   tags: ["minimal", "pro"],       preview: { bg: "#ffffff", text: "#3b82f6", radius: 18, border: "#e5e7eb" },           profileLayout: "social_profile" },
+  ],
 };
 
 /**
@@ -243,7 +268,7 @@ const TYPE_BUNDLES: Record<string, string[]> = {
   image_grid: ["gallery", "gallery_layouts"],
   image_slider: ["gallery"],
 
-  profile_card: ["cover_profile"],
+  profile_card: ["profile_identity", "cover_profile"],
 
   spotify: ["music"],
   apple_music: ["music"],

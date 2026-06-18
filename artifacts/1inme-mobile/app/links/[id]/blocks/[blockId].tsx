@@ -90,6 +90,28 @@ function normalizePricingItems(raw: unknown): PricingItem[] {
   return out.length > 0 ? out : [emptyPricingItem()];
 }
 
+// Profile-card socials row. Accepts both the profile-card `{name,url}`
+// shape and the legacy socials `{platform,url}` shape on the way in,
+// always persisting `{name,url}`.
+type ProfileSocial = { name: string; url: string };
+
+function normalizeProfileSocials(raw: unknown): ProfileSocial[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((i) => {
+      const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+      const name =
+        typeof o.name === "string"
+          ? o.name
+          : typeof o.platform === "string"
+            ? o.platform
+            : "";
+      const url = typeof o.url === "string" ? o.url : "";
+      return { name, url };
+    })
+    .filter((s) => s.name !== "" || s.url !== "");
+}
+
 function emptyPricingItem(): PricingItem {
   return {
     name: "",
@@ -124,6 +146,7 @@ import {
   type Block,
 } from "@/lib/api/blocks";
 import { variantsForType, findVariant } from "@/lib/blockVariants";
+import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 
 // Mirrors the catalog-version constant on the PHP side. Bumped whenever a
 // variant payload changes in a way clients should re-apply. Stored
@@ -266,6 +289,13 @@ export default function EditBlockScreen() {
   const isListNumbered = block?.type === "list_numbered";
   const isPricing = block?.type === "list_pricing";
   const isAnyList = isList || isListNumbered || isPricing;
+  // Profile-card identity blocks (profile_card_v1..v4). Their text content
+  // (name/title/bio/avatar/cover/location/website/cta_*) lives in the
+  // generic string `values` map, but `verified` (boolean) and `socials`
+  // (array) need their own buckets — edited via a bespoke section below.
+  const isProfileCard = canonicalBlockType(block?.type ?? "") === "profile_card";
+  const [profileVerified, setProfileVerified] = useState<boolean>(false);
+  const [profileSocials, setProfileSocials] = useState<ProfileSocial[]>([]);
   // Selected design variant for this block. Mirrors `_style._variant` from
   // the web editor — empty string means "no variant chosen" (treated as
   // Custom in the gallery).
@@ -372,6 +402,13 @@ export default function EditBlockScreen() {
       setListStyle(typeof savedStyle === "string" && savedStyle ? savedStyle : "classic");
       setPricingItems(normalizePricingItems(block.settings?.items));
     }
+    // Hydrate profile-card-specific buckets (verified flag + socials list).
+    // The string fields ride along in the generic `values` map above.
+    if (canonicalBlockType(block.type) === "profile_card") {
+      const v = block.settings?.verified;
+      setProfileVerified(v === true || v === 1 || v === "1" || v === "true");
+      setProfileSocials(normalizeProfileSocials(block.settings?.socials));
+    }
   }, [block]);
 
   // Hydrate favorites from AsyncStorage once we know the block's type
@@ -468,6 +505,10 @@ export default function EditBlockScreen() {
         replaced.border_style = "none";
       }
       if (typeof p?.radius === "number") replaced.border_radius = String(p.radius);
+      // Profile-card identity designs carry a structural layout token. Stamp
+      // it into `_style._profile_layout` so the public renderer dispatches on
+      // the chosen layout (mirrors the web `profile_identity` payload).
+      if (variant?.profileLayout) replaced._profile_layout = variant.profileLayout;
       settings._style = replaced;
       return settings;
     },
@@ -629,6 +670,16 @@ export default function EditBlockScreen() {
             thumbnail: it.thumbnail,
             icon: it.icon,
           }));
+      }
+      // Profile-card identity blocks: persist the boolean `verified` flag
+      // and the `socials` repeater (dropping fully-empty rows). The string
+      // fields (name/title/bio/avatar/cover/location/website/cta_*) already
+      // round-trip through the generic `values` spread above.
+      if (isProfileCard) {
+        nextSettings.verified = profileVerified;
+        nextSettings.socials = profileSocials
+          .map((s) => ({ name: s.name.trim(), url: s.url.trim() }))
+          .filter((s) => s.name !== "" || s.url !== "");
       }
       // Stamp the limits config alongside any existing settings — this
       // is a merge by the time the backend sanitizer sees it (the web
@@ -1273,6 +1324,177 @@ export default function EditBlockScreen() {
                 <Feather name="plus" size={14} color={colors.primary} />
                 <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
                   Add item
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {isProfileCard ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              Profile
+            </Text>
+            <TextField
+              label="Name"
+              value={values.name ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, name: t }))}
+            />
+            <TextField
+              label="Title / tagline"
+              value={values.title ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, title: t }))}
+            />
+            <TextField
+              label="Bio"
+              value={values.bio ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, bio: t }))}
+              multiline
+              numberOfLines={4}
+              style={{ height: 110, textAlignVertical: "top", paddingTop: 12 }}
+            />
+            <TextField
+              label="Avatar image URL"
+              hint="Square image works best."
+              value={values.avatar ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, avatar: t }))}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+            <TextField
+              label="Cover image URL"
+              hint="Used by cover / hero / floating layouts."
+              value={values.cover ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, cover: t }))}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+
+            {/* Verified toggle — shown next to the name on founder/social
+                layouts (mirrors the web editor's verified checkbox). */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>
+                  Verified badge
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                  Shows a check next to the name.
+                </Text>
+              </View>
+              <Switch
+                value={profileVerified}
+                onValueChange={setProfileVerified}
+                trackColor={{ false: colors.border, true: colors.primary }}
+              />
+            </View>
+
+            <TextField
+              label="Location"
+              value={values.location ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, location: t }))}
+            />
+            <TextField
+              label="Website"
+              value={values.website ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, website: t }))}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+            <TextField
+              label="Button label"
+              hint="Shown on the founder layout."
+              value={values.cta_label ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, cta_label: t }))}
+            />
+            <TextField
+              label="Button URL"
+              value={values.cta_url ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, cta_url: t }))}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+
+            {/* Socials repeater — name + URL rows. Renders as icon chips on
+                the glass/gradient/minimal-dark/social layouts. */}
+            <View style={{ gap: 8 }}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                Social links
+              </Text>
+              {profileSocials.map((soc, idx) => (
+                <View
+                  key={idx}
+                  style={{
+                    gap: 8,
+                    padding: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <TextField
+                        label="Platform"
+                        hint="e.g. instagram, twitter, github"
+                        value={soc.name}
+                        onChangeText={(t) =>
+                          setProfileSocials((p) =>
+                            p.map((s, i) => (i === idx ? { ...s, name: t } : s)),
+                          )
+                        }
+                        autoCapitalize="none"
+                      />
+                    </View>
+                    <Pressable
+                      onPress={() =>
+                        setProfileSocials((p) => p.filter((_, i) => i !== idx))
+                      }
+                      hitSlop={8}
+                      style={{ padding: 6, marginTop: 18 }}
+                    >
+                      <Feather name="trash-2" size={18} color={colors.destructive} />
+                    </Pressable>
+                  </View>
+                  <TextField
+                    label="URL"
+                    value={soc.url}
+                    onChangeText={(t) =>
+                      setProfileSocials((p) =>
+                        p.map((s, i) => (i === idx ? { ...s, url: t } : s)),
+                      )
+                    }
+                    keyboardType="url"
+                    autoCapitalize="none"
+                  />
+                </View>
+              ))}
+              <Pressable
+                onPress={() =>
+                  setProfileSocials((p) => [...p, { name: "", url: "" }])
+                }
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.primary,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <Feather name="plus" size={14} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                  Add social link
                 </Text>
               </Pressable>
             </View>
