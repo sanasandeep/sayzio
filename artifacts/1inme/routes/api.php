@@ -3,6 +3,7 @@
 use App\Modules\Api\Controllers\AuthController;
 use App\Modules\Api\Controllers\BiolinkBlockController;
 use App\Modules\Api\Controllers\BiolinkController;
+use App\Modules\Api\Controllers\BiolinkWizardController;
 use App\Modules\Api\Controllers\ContactController;
 use App\Modules\Api\Controllers\CreatorPostController;
 use App\Modules\Api\Controllers\DiscoveryController;
@@ -296,6 +297,13 @@ Route::prefix('v1')->group(function () {
         // Links
         Route::get('/links',         [LinkController::class, 'index']);
         Route::post('/links',        [LinkController::class, 'store']);
+        // Guided Link-in-Bio wizard (mobile parity for web user.links.wizard.*).
+        // Stateless: the client drives the steps and submits all answers to
+        // /generate. Literal `wizard` segments win over `/links/{id}` (which is
+        // whereNumber-guarded), so ordering here is purely cosmetic.
+        Route::get ('/links/wizard/taxonomy',  [BiolinkWizardController::class, 'taxonomy']);
+        Route::get ('/links/wizard/questions', [BiolinkWizardController::class, 'questions']);
+        Route::post('/links/wizard/generate',  [BiolinkWizardController::class, 'generate']);
         // A/B test endpoints — registered BEFORE the `/links/{id}` show
         // route so the literal segments (`ab`) win over the integer id
         // matcher and we don't accidentally treat "ab" as a link id.

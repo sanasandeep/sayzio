@@ -602,4 +602,103 @@ class BiolinkWizardQuestions
             'event'       => '#f59e0b',
         ][$category] ?? '#7c3aed';
     }
+
+    /**
+     * The answer keys that can serve as the page's display name / title, in
+     * priority order. The wizard requires at least one to be present and uses
+     * the first non-empty value as the generated Link's title. Shared by the
+     * web wizard (BiolinkWizardController::finish) and the mobile API wizard
+     * so both honour exactly the same "needs a name" contract.
+     */
+    public static function nameKeys(): array
+    {
+        return [
+            'display_name', 'business_name', 'event_name', 'couple', 'venue_name',
+            'agency_name', 'store_name', 'artist_name', 'band_name', 'dj_name',
+            'agent_name', 'coach_name', 'firm_name', 'org_name', 'product_name',
+            'truck_name', 'tutor_name',
+        ];
+    }
+
+    /** True when the answers contain at least one usable name field. */
+    public static function hasName(array $answers): bool
+    {
+        foreach (self::nameKeys() as $k) {
+            if (!empty($answers[$k])) return true;
+        }
+        return false;
+    }
+
+    /** First non-empty name field, or a friendly default. */
+    public static function resolveTitle(array $answers): string
+    {
+        foreach (self::nameKeys() as $k) {
+            if (!empty($answers[$k])) return (string) $answers[$k];
+        }
+        return 'My Link in Bio';
+    }
+
+    /**
+     * Sanitise a flat JSON answers map against the question set for a combo.
+     *
+     * Mirrors the per-type validation the web wizard applies in
+     * BiolinkWizardController::collectAnswers() for non-file fields. Used by
+     * the mobile API wizard, which submits every answer as JSON — including
+     * image fields, which here accept a URL string (file uploads remain a
+     * web-only nicety). Unknown keys are dropped; values that fail their
+     * type's validation are silently skipped, matching the web behaviour.
+     */
+    public static function sanitizeAnswers(string $category, string $pageType, ?string $industry, array $raw): array
+    {
+        $questions = self::questions($category, $pageType, $industry);
+        $out = [];
+
+        foreach ($questions as $q) {
+            $key  = $q['key'];
+            $type = $q['type'] ?? 'text';
+
+            if (!array_key_exists($key, $raw)) continue;
+            $val = $raw[$key];
+            if (!is_string($val)) continue;
+            $val = trim($val);
+            if ($val === '') continue;
+
+            switch ($type) {
+                case 'url':
+                    if (!preg_match('#^https?://#i', $val)) {
+                        $val = 'https://' . ltrim($val, '/');
+                    }
+                    if (!filter_var($val, FILTER_VALIDATE_URL)) continue 2;
+                    $val = mb_substr($val, 0, 2048);
+                    break;
+                case 'email':
+                    if (!filter_var($val, FILTER_VALIDATE_EMAIL)) continue 2;
+                    $val = mb_substr($val, 0, 255);
+                    break;
+                case 'color':
+                    if (!preg_match('/^#[0-9a-f]{3,8}$/i', $val)) continue 2;
+                    break;
+                case 'phone':
+                    $val = mb_substr(preg_replace('/[^\d+\s\-()]/', '', $val), 0, 30);
+                    break;
+                case 'select':
+                    $opts = array_column($q['options'] ?? [], 'v');
+                    if (!in_array($val, $opts, true)) continue 2;
+                    break;
+                case 'image':
+                    // Accept a URL string; uploads are web-only.
+                    $val = mb_substr($val, 0, 2048);
+                    break;
+                case 'textarea':
+                    $val = mb_substr($val, 0, 2000);
+                    break;
+                default:
+                    $val = mb_substr($val, 0, 500);
+            }
+
+            $out[$key] = $val;
+        }
+
+        return $out;
+    }
 }

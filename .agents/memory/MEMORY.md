@@ -37,3 +37,4 @@
 - [Paid Page link type](paid-page-link-type.md) — paid_page is a standalone links.type (like resume/reviews), reuses creator feed/gating; per-link template in settings['paid_page'], page gate via links.visibility.
 - [Paid Page mobile render](paid-page-mobile-render.md) — paid_page isn't biolink-family so resolve API won't return it; alias-keyed /paid-page endpoints + PaidPageTemplates::mobileTokens; feed react/comment reuse handle-keyed creator endpoints.
 - [User sidebar dual nav blocks](user-sidebar-dual-nav.md) — app.blade.php has TWO parallel nav menus (desktop aside + mobile drawer); edit both in lockstep or they drift.
+- [Biolink wizard mobile parity](biolink-wizard-mobile-parity.md) — mobile wizard is stateless (no DB drafts); reuses BiolinkWizardQuestions + BiolinkWizardGenerator; image answers are URL-only, plan caps inline JSON not CheckPlanLimit.

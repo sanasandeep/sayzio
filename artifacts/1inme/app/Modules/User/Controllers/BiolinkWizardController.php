@@ -3,12 +3,12 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Admin\Services\TemplateService;
 use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\BiolinkPageRecipes;
+use App\Modules\User\Services\BiolinkWizardGenerator;
 use App\Modules\User\Services\BiolinkWizardQuestions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -35,7 +35,7 @@ use Throwable;
  */
 class BiolinkWizardController extends Controller
 {
-    public function __construct(private TemplateService $templates) {}
+    public function __construct(private BiolinkWizardGenerator $generator) {}
 
     /**
      * Discard any in-flight draft and land on the first step. Useful for the
@@ -209,24 +209,7 @@ class BiolinkWizardController extends Controller
         $answers = $draft->answers ?? [];
 
         // Required: display_name (or, for events, the per-event name field).
-        $hasName = !empty($answers['display_name'])
-            || !empty($answers['business_name'])
-            || !empty($answers['venue_name'])
-            || !empty($answers['agent_name'])
-            || !empty($answers['coach_name'])
-            || !empty($answers['artist_name'])
-            || !empty($answers['band_name'])
-            || !empty($answers['dj_name'])
-            || !empty($answers['firm_name'])
-            || !empty($answers['org_name'])
-            || !empty($answers['product_name'])
-            || !empty($answers['agency_name'])
-            || !empty($answers['truck_name'])
-            || !empty($answers['couple'])
-            || !empty($answers['event_name'])
-            || !empty($answers['tutor_name'])
-            || !empty($answers['store_name']);
-        if (!$hasName) {
+        if (!BiolinkWizardQuestions::hasName($answers)) {
             return back()->with('error', 'Please fill in at least the name field before generating your page.');
         }
 
@@ -251,44 +234,16 @@ class BiolinkWizardController extends Controller
             }
         }
 
-        $title = $answers['display_name']
-            ?? $answers['business_name']
-            ?? $answers['event_name']
-            ?? $answers['couple']
-            ?? $answers['venue_name']
-            ?? $answers['agency_name']
-            ?? $answers['store_name']
-            ?? $answers['artist_name']
-            ?? $answers['band_name']
-            ?? $answers['dj_name']
-            ?? $answers['agent_name']
-            ?? $answers['coach_name']
-            ?? $answers['firm_name']
-            ?? $answers['org_name']
-            ?? $answers['product_name']
-            ?? $answers['truck_name']
-            ?? $answers['tutor_name']
-            ?? 'My Link in Bio';
-
         // Atomically: create the Link, paint blocks from the recipe, and
         // discard the draft. If applyPageToLink throws (e.g. unknown block
         // type), the transaction rolls back and we won't leave an empty link
-        // sitting in the user's dashboard.
+        // sitting in the user's dashboard. The recipe → Link generation core
+        // lives in BiolinkWizardGenerator, shared with the mobile API wizard.
         try {
-            $link = DB::transaction(function () use ($owner, $title, $draft, $answers) {
-                $newLink = Link::create([
-                    'user_id'   => $owner->id,
-                    'type'      => 'biolink',
-                    'alias'     => Link::generateAlias(),
-                    'title'     => mb_substr((string) $title, 0, 255),
-                    'is_active' => true,
-                ]);
-
-                $snapshot = BiolinkPageRecipes::build(
-                    $draft->category, $draft->page_type, $draft->industry, $answers,
+            $link = DB::transaction(function () use ($owner, $draft, $answers) {
+                $newLink = $this->generator->generate(
+                    $owner, $draft->category, $draft->page_type, $draft->industry, $answers,
                 );
-
-                $this->templates->applyPageToLink($newLink, $snapshot, /*replace*/ true);
 
                 // Wizard is single-shot — discard the draft now that the
                 // page exists. Done inside the transaction so a failure

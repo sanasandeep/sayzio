@@ -69,6 +69,40 @@ export default function CreateTab() {
         </Text>
       </View>
 
+      <Pressable
+        onPress={() => router.push("/links/wizard" as any)}
+        style={({ pressed }) => [
+          styles.wizardCard,
+          {
+            backgroundColor: colors.primary + "14",
+            borderColor: colors.primary + "55",
+            borderRadius: colors.radius,
+            opacity: pressed ? 0.9 : 1,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.wizardBadge,
+            { backgroundColor: colors.primary + "26" },
+          ]}
+        >
+          <Feather name="zap" size={18} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={[styles.wizardTitle, { color: colors.foreground }]}>
+            Build a Link in Bio with the guided wizard
+          </Text>
+          <Text
+            style={[styles.wizardBlurb, { color: colors.mutedForeground }]}
+          >
+            Answer a few questions and we&apos;ll auto-generate a tailored page
+            for you.
+          </Text>
+        </View>
+        <Feather name="chevron-right" size={20} color={colors.primary} />
+      </Pressable>
+
       {(() => {
         let cardIndex = 0;
         return LINK_KIND_CATEGORIES.map((category) => (
@@ -225,6 +259,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginTop: 6,
+  },
+  wizardCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderWidth: 1,
+  },
+  wizardBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  wizardTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
+  wizardBlurb: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    lineHeight: 16,
   },
   categoryLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16 },
   categoryDesc: {
