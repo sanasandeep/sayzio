@@ -51,8 +51,8 @@ class LinkTypeCategories
                 'label' => 'Business & monetization',
                 'desc'  => 'Grow your reputation and earn from your audience.',
                 'types' => [
-                    ['value' => 'paid_page', 'icon' => 'fa-crown', 'badge' => 'bg-rose-500/15 text-rose-300',     'label' => 'Bizs Profile', 'desc' => 'A themeable home that automatically shows all your posts, tiers & tips — no linking needed.'],
-                    ['value' => 'reviews',   'icon' => 'fa-star',  'badge' => 'bg-yellow-500/15 text-yellow-300', 'label' => 'Reviews',      'desc' => 'Collect and showcase reviews from your audience.'],
+                    ['value' => 'paid_page', 'icon' => 'fa-crown', 'badge' => 'bg-rose-500/15 text-rose-300',     'label' => 'Bizs Profile',  'desc' => 'A themeable home that automatically shows all your posts, tiers & tips — no linking needed.'],
+                    ['value' => 'reviews',   'icon' => 'fa-star',  'badge' => 'bg-yellow-500/15 text-yellow-300', 'label' => 'Reviews Page',  'desc' => 'Collect and showcase reviews from your audience.'],
                 ],
             ],
             [
@@ -64,5 +64,37 @@ class LinkTypeCategories
                 ],
             ],
         ];
+    }
+
+    /**
+     * Flat, value-keyed view of every link type in the catalog. Lets surfaces
+     * that work one type at a time (e.g. a per-link type badge) look up a
+     * type's label/icon/badge/desc without re-flattening the groups.
+     *
+     * @return array<string, array{value:string, icon:string, badge:string, label:string, desc:string}>
+     */
+    public static function types(): array
+    {
+        $out = [];
+        foreach (self::categories() as $cat) {
+            foreach ($cat['types'] as $type) {
+                $out[$type['value']] = $type;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Value => human-readable label map derived from the catalog. This is the
+     * single source the rest of the app should use for friendly type names.
+     *
+     * @return array<string, string>
+     */
+    public static function labels(): array
+    {
+        static $labels = null;
+
+        return $labels ??= array_map(static fn (array $type): string => $type['label'], self::types());
     }
 }

@@ -605,25 +605,6 @@ protected $fillable = [
         return $query->whereIn('type', self::BIOLINK_FAMILY);
     }
 
-    /**
-     * Friendly user-facing labels for link types. Internal slugs
-     * (`url`, `biolink`, `file`, `ics`, `vcf`) remain unchanged.
-     */
-    public const TYPE_LABELS = [
-        'url'            => 'Short Link',
-        'biolink'        => 'Link in Bio',
-        'conversational' => 'Conversational',
-        'slides'         => 'Slides',
-        'ai_chat'        => 'AI Chatbot',
-        'restaurant_menu' => 'Restaurant Menu',
-        'file'           => 'File Share',
-        'ics'            => 'Event',
-        'vcf'            => 'Contact Card',
-        'reviews'        => 'Reviews Page',
-        'resume'         => 'Resume / Portfolio',
-        'paid_page'      => 'Bizs Profile',
-    ];
-
     /** Reviews relationship — native reviews submitted on this link. */
     public function reviews()
     {
@@ -640,9 +621,14 @@ protected $fillable = [
         return $this->belongsTo(Resume::class);
     }
 
+    /**
+     * Friendly user-facing label for a link type, derived from the shared
+     * link-type catalog (single source of truth). Internal slugs
+     * (`url`, `biolink`, `file`, `ics`, `vcf`, …) remain unchanged.
+     */
     public static function typeLabel(?string $type): string
     {
-        return self::TYPE_LABELS[$type] ?? ucfirst($type ?? 'link');
+        return \App\Modules\User\Support\LinkTypeCategories::labels()[$type] ?? ucfirst($type ?? 'link');
     }
 
     public function getTypeLabelAttribute(): string

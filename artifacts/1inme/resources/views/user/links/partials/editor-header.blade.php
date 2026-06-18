@@ -1,12 +1,8 @@
 @php
     $activeMainTab = $activeMainTab ?? 'blocks';
-    $__typeIcons = [
-        'biolink'        => 'fa-th-large',
-        'conversational' => 'fa-comments',
-        'slides'         => 'fa-images',
-        'ai_chat'        => 'fa-robot',
-    ];
-    $__typeIcon = $__typeIcons[$link->type] ?? 'fa-link';
+    // Icon comes from the shared link-type catalog so it stays in step with
+    // the rest of the app (links list, create picker, etc.).
+    $__typeIcon = \App\Modules\User\Support\LinkTypeCategories::types()[$link->type]['icon'] ?? 'fa-link';
     $favSrc = $link->favicon
         ?? ($link->settings['biolink']['favicons']['icon_512'] ?? null)
         ?? ($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null);

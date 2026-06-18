@@ -49,11 +49,13 @@
             <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Type</label>
             <select name="type" class="theme-input appearance-none pr-8">
                 <option value="" class="bg-[#0a0612]">All Types</option>
-                <option value="url" {{ request('type') === 'url' ? 'selected' : '' }} class="bg-[#0a0612]">Short Link</option>
-                <option value="biolink" {{ request('type') === 'biolink' ? 'selected' : '' }} class="bg-[#0a0612]">Link in Bio</option>
-                <option value="file" {{ request('type') === 'file' ? 'selected' : '' }} class="bg-[#0a0612]">File Share</option>
-                <option value="ics" {{ request('type') === 'ics' ? 'selected' : '' }} class="bg-[#0a0612]">Event</option>
-                <option value="vcf" {{ request('type') === 'vcf' ? 'selected' : '' }} class="bg-[#0a0612]">Contact Card</option>
+                @foreach(\App\Modules\User\Support\LinkTypeCategories::categories() as $__typeCat)
+                    <optgroup label="{{ $__typeCat['label'] }}">
+                        @foreach($__typeCat['types'] as $__type)
+                            <option value="{{ $__type['value'] }}" {{ request('type') === $__type['value'] ? 'selected' : '' }} class="bg-[#0a0612]">{{ $__type['label'] }}</option>
+                        @endforeach
+                    </optgroup>
+                @endforeach
             </select>
         </div>
         <div>
@@ -140,19 +142,35 @@
 </div>
 @endif
 
+@php
+    // Label + icon come from the shared link-type catalog so they never drift
+    // from the rest of the app; only the list-specific accent colours are kept
+    // here (the catalog carries Tailwind badge classes, not the rgba tones
+    // these rows use). Unknown/uncoloured types fall back to the violet accent
+    // but still get their real label/icon. Resolved once, outside the loop.
+    $linkTypes  = \App\Modules\User\Support\LinkTypeCategories::types();
+    $typeColors = [
+        'url'     => ['bg' => 'rgba(124,58,237,0.08)', 'border' => 'rgba(124,58,237,0.12)', 'color' => '#a78bfa'],
+        'biolink' => ['bg' => 'rgba(236,72,153,0.08)', 'border' => 'rgba(236,72,153,0.12)', 'color' => '#f472b6'],
+        'file'    => ['bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399'],
+        'ics'     => ['bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24'],
+        'vcf'     => ['bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee'],
+        'reviews' => ['bg' => 'rgba(234,179,8,0.08)',  'border' => 'rgba(234,179,8,0.12)',  'color' => '#fde047'],
+        'resume'  => ['bg' => 'rgba(99,102,241,0.08)', 'border' => 'rgba(99,102,241,0.12)', 'color' => '#a5b4fc'],
+    ];
+@endphp
 <div class="space-y-2.5">
     @foreach($links as $link)
     @php
-        $typeStyles = [
-            'url'     => ['icon' => 'fa-link',         'bg' => 'rgba(124,58,237,0.08)', 'border' => 'rgba(124,58,237,0.12)', 'color' => '#a78bfa', 'label' => 'Short Link'],
-            'biolink' => ['icon' => 'fa-id-card',      'bg' => 'rgba(236,72,153,0.08)', 'border' => 'rgba(236,72,153,0.12)', 'color' => '#f472b6', 'label' => 'Link in Bio'],
-            'file'    => ['icon' => 'fa-file',         'bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399', 'label' => 'File Share'],
-            'ics'     => ['icon' => 'fa-calendar',     'bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24', 'label' => 'Event'],
-            'vcf'     => ['icon' => 'fa-address-card', 'bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee', 'label' => 'Contact Card'],
-            'reviews' => ['icon' => 'fa-star',         'bg' => 'rgba(234,179,8,0.08)',  'border' => 'rgba(234,179,8,0.12)',  'color' => '#fde047', 'label' => 'Reviews Page'],
-            'resume'  => ['icon' => 'fa-file-lines',   'bg' => 'rgba(99,102,241,0.08)', 'border' => 'rgba(99,102,241,0.12)', 'color' => '#a5b4fc', 'label' => 'Resume / Portfolio'],
+        $typeMeta  = $linkTypes[$link->type] ?? $linkTypes['url'];
+        $typeColor = $typeColors[$link->type] ?? $typeColors['url'];
+        $ts = [
+            'icon'   => $typeMeta['icon'],
+            'label'  => $typeMeta['label'],
+            'bg'     => $typeColor['bg'],
+            'border' => $typeColor['border'],
+            'color'  => $typeColor['color'],
         ];
-        $ts = $typeStyles[$link->type] ?? $typeStyles['url'];
 
         // For File Share links, swap in an extension-aware icon + colour so
         // a PDF looks like a PDF, an image looks like an image, etc.

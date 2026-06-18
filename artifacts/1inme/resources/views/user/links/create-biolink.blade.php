@@ -1,21 +1,24 @@
 @extends('user.layouts.app')
 @php
     $linkType = $linkType ?? 'biolink';
-    $typeMeta = [
-        'biolink'        => ['label' => 'Link in Bio',     'placeholder' => 'My Link in Bio'],
-        'conversational' => ['label' => 'Conversational',  'placeholder' => 'My Conversational Page'],
-        'slides'         => ['label' => 'Slides',          'placeholder' => 'My Slides Page'],
-        'ai_chat'        => ['label' => 'AI Chatbot',      'placeholder' => 'My AI Chatbot'],
-    ][$linkType] ?? ['label' => 'Link in Bio', 'placeholder' => 'My Link in Bio'];
+    // Label comes from the shared link-type catalog so it never drifts from
+    // the rest of the app; only the title placeholder copy is view-specific.
+    $typeLabel   = \App\Modules\User\Models\Link::typeLabel($linkType);
+    $placeholder = [
+        'biolink'        => 'My Link in Bio',
+        'conversational' => 'My Conversational Page',
+        'slides'         => 'My Slides Page',
+        'ai_chat'        => 'My AI Chatbot',
+    ][$linkType] ?? 'My ' . $typeLabel;
 @endphp
-@section('title', 'Create ' . $typeMeta['label'])
+@section('title', 'Create ' . $typeLabel)
 
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white transition-colors" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
-            <h1 class="text-2xl font-bold text-white">{{ $typeMeta['label'] }}</h1>
+            <h1 class="text-2xl font-bold text-white">{{ $typeLabel }}</h1>
             <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
         </div>
     </div>
@@ -27,7 +30,7 @@
         <div class="glass rounded-2xl p-6 mb-6 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Title</label>
-                <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="{{ $typeMeta['placeholder'] }}"
+                <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="{{ $placeholder }}"
                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
                 <p class="text-xs text-white/30 mt-1">Shown in your dashboard. Visitors won't see this directly.</p>
                 @error('title') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
