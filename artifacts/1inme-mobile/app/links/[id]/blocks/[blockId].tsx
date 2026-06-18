@@ -114,7 +114,8 @@ function normalizeProfileSocials(raw: unknown): ProfileSocial[] {
 
 // Profile-card stat row (used by the "stats" layout). The renderer reads
 // `[{label, value}]`; value may arrive as a string or number, so coerce
-// to a string for the editable field.
+// to a string for the editable field. The sanitizer drops fully-empty
+// rows and caps the list at 6.
 type ProfileStat = { label: string; value: string };
 
 function normalizeProfileStats(raw: unknown): ProfileStat[] {
@@ -136,7 +137,8 @@ function normalizeProfileStats(raw: unknown): ProfileStat[] {
 
 // Profile-card badge row (used by the "badges" layout). The renderer
 // accepts either `{label}` objects or bare strings; we always persist
-// `{label}` to match the web editor.
+// `{label}` to match the web editor. The sanitizer drops empties and
+// caps the list at 12.
 type ProfileBadge = { label: string };
 
 function normalizeProfileBadges(raw: unknown): ProfileBadge[] {
@@ -748,14 +750,22 @@ export default function EditBlockScreen() {
         nextSettings.socials = profileSocials
           .map((s) => ({ name: s.name.trim(), url: s.url.trim() }))
           .filter((s) => s.name !== "" || s.url !== "");
-        // Stats + badges round-trip in the same shapes the web editor and
-        // the public renderer expect: `[{label,value}]` and `[{label}]`.
+      }
+      // Stats + badges round-trip in the same shapes the web editor and the
+      // public renderer expect: `[{label,value}]` and `[{label}]`. They ride
+      // only on the layout that actually paints them (stats / badges), and
+      // the caps mirror the backend sanitizer (6 stats, 12 badges).
+      if (profileCardLayout === "stats") {
         nextSettings.stats = profileStats
           .map((s) => ({ label: s.label.trim(), value: s.value.trim() }))
-          .filter((s) => s.label !== "" || s.value !== "");
+          .filter((s) => s.label !== "" || s.value !== "")
+          .slice(0, 6);
+      }
+      if (profileCardLayout === "badges") {
         nextSettings.badges = profileBadges
           .map((b) => ({ label: b.label.trim() }))
-          .filter((b) => b.label !== "");
+          .filter((b) => b.label !== "")
+          .slice(0, 12);
       }
       // Stamp the limits config alongside any existing settings — this
       // is a merge by the time the backend sanitizer sees it (the web
@@ -1575,9 +1585,10 @@ export default function EditBlockScreen() {
               </Pressable>
             </View>
 
-            {/* Stats repeater — label + value rows. Only the "stats" layout
-                paints these, so gate the editor to it (mirrors the web
-                editor + public renderer). */}
+            {/* Stats repeater — value + label rows, reorderable with
+                up/down. Only the "stats" layout paints these, so gate the
+                editor to it (mirrors the web editor + public renderer).
+                Capped at 6 by the backend sanitizer. */}
             {profileCardLayout === "stats" ? (
               <View style={{ gap: 8 }}>
                 <Text style={[styles.rowLabel, { color: colors.foreground }]}>
@@ -1612,6 +1623,40 @@ export default function EditBlockScreen() {
                         />
                       </View>
                       <Pressable
+                        disabled={idx === 0}
+                        onPress={() =>
+                          setProfileStats((p) => {
+                            if (idx === 0) return p;
+                            const next = [...p];
+                            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                            return next;
+                          })
+                        }
+                        hitSlop={8}
+                        style={{ padding: 6, marginTop: 18, opacity: idx === 0 ? 0.25 : 1 }}
+                      >
+                        <Feather name="arrow-up" size={18} color={colors.foreground} />
+                      </Pressable>
+                      <Pressable
+                        disabled={idx === profileStats.length - 1}
+                        onPress={() =>
+                          setProfileStats((p) => {
+                            if (idx === p.length - 1) return p;
+                            const next = [...p];
+                            [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                            return next;
+                          })
+                        }
+                        hitSlop={8}
+                        style={{
+                          padding: 6,
+                          marginTop: 18,
+                          opacity: idx === profileStats.length - 1 ? 0.25 : 1,
+                        }}
+                      >
+                        <Feather name="arrow-down" size={18} color={colors.foreground} />
+                      </Pressable>
+                      <Pressable
                         onPress={() =>
                           setProfileStats((p) => p.filter((_, i) => i !== idx))
                         }
@@ -1633,32 +1678,39 @@ export default function EditBlockScreen() {
                     />
                   </View>
                 ))}
-                <Pressable
-                  onPress={() =>
-                    setProfileStats((p) => [...p, { label: "", value: "" }])
-                  }
-                  style={{
-                    padding: 12,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderStyle: "dashed",
-                    borderColor: colors.primary,
-                    alignItems: "center",
-                    flexDirection: "row",
-                    justifyContent: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Feather name="plus" size={14} color={colors.primary} />
-                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
-                    Add stat
+                {profileStats.length < 6 ? (
+                  <Pressable
+                    onPress={() =>
+                      setProfileStats((p) => [...p, { label: "", value: "" }])
+                    }
+                    style={{
+                      padding: 12,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderStyle: "dashed",
+                      borderColor: colors.primary,
+                      alignItems: "center",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Feather name="plus" size={14} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                      Add stat
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                    Up to 6 stats.
                   </Text>
-                </Pressable>
+                )}
               </View>
             ) : null}
 
             {/* Badges repeater — label-only chips. Only the "badges" layout
-                paints these, so gate the editor to it. */}
+                paints these, so gate the editor to it. Capped at 12 by the
+                backend sanitizer. */}
             {profileCardLayout === "badges" ? (
               <View style={{ gap: 8 }}>
                 <Text style={[styles.rowLabel, { color: colors.foreground }]}>
@@ -1704,25 +1756,31 @@ export default function EditBlockScreen() {
                     </Pressable>
                   </View>
                 ))}
-                <Pressable
-                  onPress={() => setProfileBadges((p) => [...p, { label: "" }])}
-                  style={{
-                    padding: 12,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderStyle: "dashed",
-                    borderColor: colors.primary,
-                    alignItems: "center",
-                    flexDirection: "row",
-                    justifyContent: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Feather name="plus" size={14} color={colors.primary} />
-                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
-                    Add badge
+                {profileBadges.length < 12 ? (
+                  <Pressable
+                    onPress={() => setProfileBadges((p) => [...p, { label: "" }])}
+                    style={{
+                      padding: 12,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderStyle: "dashed",
+                      borderColor: colors.primary,
+                      alignItems: "center",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Feather name="plus" size={14} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                      Add badge
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                    Up to 12 badges.
                   </Text>
-                </Pressable>
+                )}
               </View>
             ) : null}
           </View>
