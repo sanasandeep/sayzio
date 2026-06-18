@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import type { Block } from "@/lib/api/blocks";
+import type { BiolinkBlock } from "@/lib/api/biolinks";
 import type {
   CardTemplateChildSummary,
   PreviewLayoutCell,
@@ -40,6 +41,35 @@ export type PageTemplateGallery = {
   items: PageTemplate[];
   categories: Record<string, string>;
 };
+
+/**
+ * The full, sanitized block tree for a single page template — enough to
+ * render a true visual preview with the native biolink block renderer
+ * before the user replaces their page. Blocks share the public biolink
+ * payload's shape ({id,type,sort_order,parent_id,settings}); ids are
+ * synthetic (preview-only, not persisted). Only active blocks are returned.
+ */
+export type PageTemplatePreview = {
+  id: number;
+  name: string;
+  category: string;
+  category_label: string;
+  description: string | null;
+  plan_tier: string | null;
+  locked: boolean;
+  biolink: Record<string, unknown>;
+  blocks: BiolinkBlock[];
+};
+
+export async function getPageTemplatePreview(
+  linkId: number,
+  templateId: number,
+): Promise<PageTemplatePreview> {
+  const res = await apiFetch<{ data: PageTemplatePreview }>(
+    `/links/${linkId}/page-templates/${templateId}`,
+  );
+  return res.data;
+}
 
 export async function listPageTemplates(
   linkId: number,

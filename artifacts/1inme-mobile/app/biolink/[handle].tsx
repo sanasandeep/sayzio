@@ -963,7 +963,7 @@ function NativeProductBlock({
   );
 }
 
-function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
+export function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const colors = useColors();
   const router = useRouter();
   const s = block.settings ?? {};
@@ -2772,7 +2772,7 @@ function SlidesViewer({
 // Provides the in-page storefront cart and renders the floating cart bar +
 // checkout drawer. Wraps the biolink content so any nested Product block
 // (even inside card containers) can add to the cart via context.
-function StoreCartProvider({ alias, children }: { alias: string; children: React.ReactNode }) {
+export function StoreCartProvider({ alias, children }: { alias: string; children: React.ReactNode }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();

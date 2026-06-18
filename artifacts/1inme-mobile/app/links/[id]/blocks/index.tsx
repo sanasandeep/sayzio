@@ -64,9 +64,11 @@ import {
 } from "@/lib/api/cardTemplates";
 import {
   applyPageTemplate,
+  getPageTemplatePreview,
   listPageTemplates,
   type PageTemplate,
 } from "@/lib/api/pageTemplates";
+import { BlockView, StoreCartProvider } from "@/app/biolink/[handle]";
 import { listForms, createForm, FORM_TEMPLATES } from "@/lib/api/forms";
 import {
   listSocialProofs,
@@ -80,6 +82,16 @@ import {
   createAiPersona,
 } from "@/lib/api/aiCompanions";
 import { getProfile } from "@/lib/api/profile";
+
+// The design preview renders blocks read-only; embed taps are inert there
+// (no WebView modal), so a stable no-op satisfies BlockView's openEmbed prop
+// without re-creating the callback on every render.
+const NOOP_EMBED = () => {};
+
+// A synthetic alias for the design preview. Block taps inside the preview
+// fire best-effort analytics against this handle; it resolves to nothing
+// server-side, so previews never pollute a real biolink's stats.
+const PREVIEW_ALIAS = "__design_preview__";
 
 function confirm(title: string, msg: string, onYes: () => void) {
   if (Platform.OS === "web") {
@@ -1602,6 +1614,223 @@ function chipsFromChildren(
   return Array.from(groups.values());
 }
 
+/**
+ * Full-screen visual preview for a page design. Tapping a design opens this
+ * sheet, which fetches the template's real (sanitized, no-DB-write) block
+ * tree and renders it with the *same* native block renderer (`BlockView`)
+ * the public biolink page uses — so the user sees a true picture of the
+ * finished page before replacing their current one. From here they can
+ * apply directly or back out. Card/grid nesting is preserved because the
+ * full flattened tree (with parent ids) is handed to every BlockView.
+ */
+function PageDesignPreview({
+  linkId,
+  template,
+  applying,
+  onApply,
+  onClose,
+}: {
+  linkId: number;
+  template: PageTemplate | null;
+  applying: boolean;
+  onApply: () => void;
+  onClose: () => void;
+}) {
+  const colors = useColors();
+
+  const previewQ = useQuery({
+    queryKey: ["page-template-preview", linkId, template?.id],
+    queryFn: () => getPageTemplatePreview(linkId, template!.id),
+    enabled: !!template && Number.isFinite(linkId),
+    staleTime: 60_000,
+  });
+
+  const blocks = previewQ.data?.blocks ?? [];
+  const rootBlocks = useMemo(
+    () => blocks.filter((b) => !b.parent_id),
+    [blocks],
+  );
+
+  return (
+    <Modal
+      visible={!!template}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Header: back out + template name */}
+        <View
+          style={[
+            styles.previewBar,
+            { borderColor: colors.border, backgroundColor: colors.background },
+          ]}
+        >
+          <Pressable
+            onPress={onClose}
+            hitSlop={8}
+            style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+          >
+            <Feather name="chevron-left" size={22} color={colors.foreground} />
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 15,
+                fontFamily: "SpaceGrotesk_600SemiBold",
+              }}
+            >
+              Back
+            </Text>
+          </Pressable>
+          <Text
+            numberOfLines={1}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              color: colors.foreground,
+              fontSize: 15,
+              fontFamily: "SpaceGrotesk_700Bold",
+            }}
+          >
+            {template?.name ?? "Preview"}
+          </Text>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Feather name="x" size={22} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+
+        {/* Subtitle: category / recommended / lock */}
+        {template ? (
+          <Text
+            style={{
+              color: colors.mutedForeground,
+              fontSize: 12,
+              fontFamily: "SpaceGrotesk_500Medium",
+              paddingHorizontal: 16,
+              paddingTop: 8,
+              textAlign: "center",
+            }}
+          >
+            {template.category_label}
+            {template.recommended ? " · Recommended for you" : ""}
+            {template.locked
+              ? ` · ${template.plan_tier?.toUpperCase() || "PRO"} only`
+              : ""}
+          </Text>
+        ) : null}
+
+        {/* Body: rendered blocks */}
+        {previewQ.isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.primary} />
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                marginTop: 8,
+                fontFamily: "SpaceGrotesk_400Regular",
+                fontSize: 13,
+              }}
+            >
+              Building preview…
+            </Text>
+          </View>
+        ) : previewQ.isError ? (
+          <View style={styles.center}>
+            <Feather
+              name="alert-circle"
+              size={32}
+              color={colors.mutedForeground}
+            />
+            <Text
+              style={{
+                color: colors.foreground,
+                textAlign: "center",
+                marginTop: 8,
+                fontFamily: "SpaceGrotesk_500Medium",
+              }}
+            >
+              Couldn&apos;t load this preview.
+            </Text>
+            <View style={{ marginTop: 12 }}>
+              <Button label="Retry" onPress={() => previewQ.refetch()} />
+            </View>
+          </View>
+        ) : rootBlocks.length === 0 ? (
+          <View style={styles.center}>
+            <Feather name="layout" size={32} color={colors.mutedForeground} />
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                textAlign: "center",
+                marginTop: 8,
+                fontFamily: "SpaceGrotesk_400Regular",
+              }}
+            >
+              This design has no visible blocks to preview.
+            </Text>
+          </View>
+        ) : (
+          <StoreCartProvider alias={PREVIEW_ALIAS}>
+            <ScrollView
+              contentContainerStyle={{
+                paddingHorizontal: 20,
+                paddingTop: 14,
+                paddingBottom: 32,
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
+              <View style={{ width: "100%", maxWidth: 480, gap: 10 }}>
+                {rootBlocks.map((b) => (
+                  <BlockView
+                    key={b.id}
+                    block={b}
+                    alias={PREVIEW_ALIAS}
+                    allBlocks={blocks}
+                    openEmbed={NOOP_EMBED}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          </StoreCartProvider>
+        )}
+
+        {/* Footer: apply / lock hint / cancel */}
+        <View
+          style={[
+            styles.previewFooter,
+            { borderColor: colors.border, backgroundColor: colors.background },
+          ]}
+        >
+          {template?.locked ? (
+            <View
+              style={[styles.lockHint, { borderColor: colors.primary + "55" }]}
+            >
+              <Feather name="lock" size={14} color={colors.primary} />
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 12,
+                  flex: 1,
+                  fontFamily: "SpaceGrotesk_500Medium",
+                }}
+              >
+                Upgrade to {template.plan_tier?.toUpperCase() || "PRO"} to use
+                this design.
+              </Text>
+            </View>
+          ) : (
+            <Button
+              label={applying ? "Applying…" : "Use this design"}
+              onPress={onApply}
+              disabled={applying}
+            />
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function SpecialPanel(props: SpecialPanelProps) {
   const colors = useColors();
   const {
@@ -2694,176 +2923,17 @@ function SpecialPanel(props: SpecialPanelProps) {
         )}
       </Modal>
 
-      <Modal
-        visible={!!previewPage}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setPreviewPage(null)}
-      >
-        {previewPage ? (
-          <View style={styles.modalBackdrop}>
-            <View
-              style={[
-                styles.modalCard,
-                {
-                  backgroundColor: colors.background,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.modalHeader}>
-                <Text
-                  style={[styles.modalTitle, { color: colors.foreground }]}
-                  numberOfLines={1}
-                >
-                  {previewPage.name}
-                </Text>
-                <Pressable onPress={() => setPreviewPage(null)} hitSlop={8}>
-                  <Feather name="x" size={20} color={colors.mutedForeground} />
-                </Pressable>
-              </View>
-
-              <Text
-                style={{
-                  color: colors.mutedForeground,
-                  fontSize: 12,
-                  fontFamily: "SpaceGrotesk_500Medium",
-                  marginBottom: 4,
-                }}
-              >
-                {previewPage.category_label}
-                {previewPage.recommended ? " · Recommended for you" : ""}
-                {previewPage.locked
-                  ? ` · ${previewPage.plan_tier?.toUpperCase() || "PRO"} only`
-                  : ""}
-              </Text>
-              {previewPage.description ? (
-                <Text
-                  style={{
-                    color: colors.foreground,
-                    fontSize: 13,
-                    fontFamily: "SpaceGrotesk_400Regular",
-                  }}
-                >
-                  {previewPage.description}
-                </Text>
-              ) : null}
-
-              <Text
-                style={{
-                  color: colors.mutedForeground,
-                  fontSize: 11,
-                  marginTop: 12,
-                  marginBottom: 6,
-                  fontFamily: "SpaceGrotesk_600SemiBold",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.6,
-                }}
-              >
-                What's inside
-              </Text>
-              <ScrollView
-                style={{ maxHeight: 260 }}
-                contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
-              >
-                {previewPage.content.map((c, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.childRow,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        borderRadius: colors.radius,
-                      },
-                    ]}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <Feather
-                        name={featherFor(c.icon)}
-                        size={12}
-                        color={colors.primary}
-                      />
-                      <Text
-                        style={{
-                          color: colors.foreground,
-                          fontSize: 12,
-                          fontFamily: "SpaceGrotesk_600SemiBold",
-                        }}
-                      >
-                        {c.label}
-                        {c.children && c.children.length
-                          ? ` · ${c.children.length} inside`
-                          : ""}
-                      </Text>
-                    </View>
-                    {c.preview ? (
-                      <Text
-                        numberOfLines={2}
-                        style={{
-                          color: colors.mutedForeground,
-                          fontSize: 11,
-                          fontFamily: "SpaceGrotesk_400Regular",
-                        }}
-                      >
-                        {c.preview}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))}
-              </ScrollView>
-
-              <View style={{ gap: 8, marginTop: 14 }}>
-                {previewPage.locked ? (
-                  <View
-                    style={[
-                      styles.lockHint,
-                      { borderColor: colors.primary + "55" },
-                    ]}
-                  >
-                    <Feather name="lock" size={14} color={colors.primary} />
-                    <Text
-                      style={{
-                        color: colors.primary,
-                        fontSize: 12,
-                        flex: 1,
-                        fontFamily: "SpaceGrotesk_500Medium",
-                      }}
-                    >
-                      Upgrade to {previewPage.plan_tier?.toUpperCase() || "PRO"}{" "}
-                      to use this design.
-                    </Text>
-                  </View>
-                ) : (
-                  <Button
-                    label={applyPage.isPending ? "Applying…" : "Use this design"}
-                    onPress={() =>
-                      applyPage.mutate({
-                        templateId: previewPage.id,
-                        confirm: false,
-                      })
-                    }
-                    disabled={applyPage.isPending}
-                  />
-                )}
-                <Button
-                  label="Cancel"
-                  variant="ghost"
-                  onPress={() => setPreviewPage(null)}
-                />
-              </View>
-            </View>
-          </View>
-        ) : (
-          <View />
-        )}
-      </Modal>
+      <PageDesignPreview
+        linkId={linkId}
+        template={previewPage}
+        applying={applyPage.isPending}
+        onApply={() => {
+          if (previewPage) {
+            applyPage.mutate({ templateId: previewPage.id, confirm: false });
+          }
+        }}
+        onClose={() => setPreviewPage(null)}
+      />
 
       {mode === "forms" || mode === "buzz" || mode === "ai" ? (
         <SpecialCreateModal
@@ -3738,5 +3808,20 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 1,
     borderRadius: 12,
+  },
+  previewBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 52,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  previewFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 28,
+    borderTopWidth: 1,
   },
 });

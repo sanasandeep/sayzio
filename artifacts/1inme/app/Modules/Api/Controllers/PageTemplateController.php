@@ -110,6 +110,59 @@ class PageTemplateController extends Controller
         ]);
     }
 
+    /**
+     * Return the full, sanitized block tree for a single page template so the
+     * mobile editor can render a true visual preview with its native block
+     * renderer *before* the user commits to replacing their page.
+     *
+     * No DB writes: blocks are built off the stored snapshot via
+     * TemplateService::buildPreviewLink (the same sanitizer applyPage uses),
+     * then flattened to the same {id,type,sort_order,parent_id,settings} shape
+     * the public biolink payload returns, so the renderer needs no special
+     * casing. Only active blocks are emitted — inactive ones won't appear on
+     * the live page, so they shouldn't appear in the preview either.
+     */
+    public function show(Request $request, int $id, int $template): JsonResponse
+    {
+        $link = Link::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+        abort_if(!$link->isBiolinkFamily(), 403);
+
+        $tpl = PageTemplate::active()->where('id', $template)->firstOrFail();
+
+        $user = auth()->user();
+        $userPlanSlug = $user?->plan?->slug;
+        $categories = PageTemplate::categories();
+
+        $snapshot = is_array($tpl->snapshot) ? $tpl->snapshot : [];
+        $previewLink = $this->templates->buildPreviewLink($snapshot, $user, (string) $tpl->name);
+
+        $blocks = $previewLink->previewBlocks
+            ->filter(fn ($b) => (bool) $b->is_active)
+            ->map(fn ($b) => [
+                'id'         => $b->id,
+                'type'       => $b->type,
+                'sort_order' => $b->sort_order,
+                'parent_id'  => $b->parent_id,
+                'settings'   => $b->settings,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => [
+                'id'             => $tpl->id,
+                'name'           => $tpl->name,
+                'category'       => $tpl->category,
+                'category_label' => $categories[$tpl->category] ?? ucfirst((string) $tpl->category),
+                'description'    => $tpl->description,
+                'plan_tier'      => $tpl->plan_tier,
+                'locked'         => $this->isLocked($tpl->plan_tier, $userPlanSlug),
+                'biolink'        => (array) ($snapshot['biolink'] ?? []),
+                'blocks'         => $blocks,
+            ],
+        ]);
+    }
+
     public function apply(Request $request, int $id): JsonResponse
     {
         $link = Link::where('id', $id)->where('user_id', auth()->id())->firstOrFail();

@@ -357,6 +357,10 @@ Route::prefix('v1')->group(function () {
         // Applying replaces the link's blocks, so apply honours an overwrite
         // confirmation guard (409 when the link already has blocks).
         Route::get ('/links/{id}/page-templates',         [\App\Modules\Api\Controllers\PageTemplateController::class, 'index'])->whereNumber('id');
+        // Full block tree for a single page template (no DB writes) so the
+        // mobile editor can render a true visual preview with the native
+        // block renderer before the user commits to replacing their page.
+        Route::get ('/links/{id}/page-templates/{template}', [\App\Modules\Api\Controllers\PageTemplateController::class, 'show'])->whereNumber('id')->whereNumber('template');
         Route::post('/links/{id}/page-templates/apply',   [\App\Modules\Api\Controllers\PageTemplateController::class, 'apply'])->whereNumber('id');
 
         // Biolink blocks (authoring)
