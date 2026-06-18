@@ -39,3 +39,4 @@
 - [User sidebar dual nav blocks](user-sidebar-dual-nav.md) — app.blade.php has TWO parallel nav menus (desktop aside + mobile drawer); edit both in lockstep or they drift.
 - [Biolink wizard mobile parity](biolink-wizard-mobile-parity.md) — mobile wizard is stateless (no DB drafts); reuses BiolinkWizardQuestions + BiolinkWizardGenerator; image answers are URL-only, plan caps inline JSON not CheckPlanLimit.
 - [Dialer everyday tool](dialer-everyday.md) — DialerData is the single read/transform source for web+API; history is `{recents,frequent}`; caller-ID enrichment only via /dialer/lookup (mobile Contact has no biolink field).
+- [Map picker geocoding pattern](map-picker-geocoding.md) — web reuses vendored Leaflet + divIcon SVG pin + Nominatim reverse/forward; mobile uses WebView (CDN Leaflet) posting points back + expo-location; coords stay strings/numbers, no PHP shape change.

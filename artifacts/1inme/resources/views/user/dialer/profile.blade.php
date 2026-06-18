@@ -286,6 +286,21 @@
 
     {{-- Manual editor — owner-entered channels / socials / location --}}
     @if($contact)
+        <link rel="stylesheet" href="{{ asset('css/vendor/leaflet.min.css') }}" />
+        <script src="{{ asset('js/vendor/leaflet.min.js') }}"></script>
+        <style>
+            [x-cloak] { display: none !important; }
+            .dialer-loc-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
+            html.light-mode .dialer-loc-map .leaflet-container { background:#e6e9f0 !important; }
+            .dialer-loc-map .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
+            .dialer-loc-map .leaflet-control-attribution a { color:#a78bfa !important; }
+            .dialer-loc-map .leaflet-control-zoom a {
+                background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important;
+            }
+            .dialer-loc-map .leaflet-control-zoom a:hover { background:#7c3aed !important; }
+            .dialer-loc-marker { width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
+            .dialer-loc-marker svg { width:100%; height:100%; display:block; }
+        </style>
         <div class="card-premium p-5 mt-4" x-data="dialerManual({
                 channels: {{ Illuminate\Support\Js::from(collect($payload['manual']['channels'] ?? [])->map(fn($c) => ['type'=>$c['type'],'label'=>$c['label'],'value'=>$c['value']])->values()) }},
                 socials: {{ Illuminate\Support\Js::from(collect($payload['manual']['socials'] ?? [])->map(fn($s) => ['platform'=>$s['platform'],'label'=>$s['label'],'url'=>$s['url']])->values()) }},
@@ -338,22 +353,151 @@
 
                 {{-- Location --}}
                 <div>
-                    <div class="text-xs font-semibold mb-2" style="color:var(--text-muted);">Location</div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-xs font-semibold" style="color:var(--text-muted);">Location</div>
+                        <button type="button" @click="toggleMap()" class="text-[11px] font-medium" style="color:#a78bfa;">
+                            <i class="fas fa-map-location-dot mr-1"></i> <span x-text="showMap ? 'Hide map' : 'Pick on map'"></span>
+                        </button>
+                    </div>
+
+                    <div x-show="showMap" x-cloak class="mb-3">
+                        <div class="flex gap-2 mb-2">
+                            <input x-model="searchQuery" @keydown.enter.prevent="searchAddress()" type="text" placeholder="Search a place or address…" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <button type="button" @click="searchAddress()" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)">
+                                <i class="fas fa-magnifying-glass"></i>
+                            </button>
+                        </div>
+                        <div x-ref="map" class="dialer-loc-map" style="height:260px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.10);background:#1e2330;"></div>
+                        <p class="text-[11px] mt-1.5" style="color:var(--text-faint);">
+                            <i class="fas fa-circle-info mr-1"></i> Tap the map or drag the pin — we'll fill in the address and coordinates for you.
+                        </p>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-2">
                         <input name="location[label]" x-model="location.label" placeholder="Label (e.g. Office)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
                         <input name="location[address]" x-model="location.address" placeholder="Address" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
-                        <input name="location[lat]" x-model="location.lat" placeholder="Latitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
-                        <input name="location[lng]" x-model="location.lng" placeholder="Longitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                        <input name="location[lat]" x-model="location.lat" @input="syncMapFromInputs()" placeholder="Latitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                        <input name="location[lng]" x-model="location.lng" @input="syncMapFromInputs()" placeholder="Longitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
                     </div>
                 </div>
             </form>
         </div>
         <script>
+            const DIALER_PIN_SVG = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+                '<defs><linearGradient id="dlm-g" x1="0" y1="0" x2="0" y2="1">' +
+                '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+                '</linearGradient></defs>' +
+                '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#dlm-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
+                '<circle cx="17" cy="16" r="6" fill="#fff"/>' +
+                '<text x="17" y="19.5" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" fill="#7c3aed">1</text>' +
+                '</svg>';
+
             function dialerManual(initial) {
                 return {
                     channels: initial.channels || [],
                     socials: initial.socials || [],
                     location: initial.location || {label:'',address:'',lat:'',lng:''},
+                    showMap: false,
+                    searchQuery: '',
+                    map: null,
+                    marker: null,
+                    _suppressMapSync: false,
+                    _geoTimer: null,
+
+                    toggleMap() {
+                        this.showMap = !this.showMap;
+                        if (this.showMap) this.$nextTick(() => this.initMap());
+                    },
+
+                    _coord(v) { var n = parseFloat(v); return isFinite(n) ? n : null; },
+
+                    initMap() {
+                        if (typeof L === 'undefined' || !this.$refs.map) return;
+                        if (this.map) { setTimeout(() => this.map.invalidateSize(), 60); return; }
+
+                        var lat = this._coord(this.location.lat);
+                        var lng = this._coord(this.location.lng);
+                        var hasPoint = lat !== null && lng !== null;
+                        var center = hasPoint ? [lat, lng] : [20, 0];
+                        var zoom = hasPoint ? 15 : 2;
+
+                        var map = L.map(this.$refs.map, { center: center, zoom: zoom, scrollWheelZoom: true, zoomControl: true });
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        }).addTo(map);
+
+                        var icon = L.divIcon({
+                            className: '',
+                            html: '<div class="dialer-loc-marker">' + DIALER_PIN_SVG + '</div>',
+                            iconSize: [30, 40], iconAnchor: [15, 40]
+                        });
+
+                        var marker = L.marker(center, { icon: icon, draggable: true }).addTo(map);
+                        if (!hasPoint) marker.setOpacity(0);
+
+                        marker.on('dragend', () => {
+                            var p = marker.getLatLng();
+                            this.applyPoint(p.lat, p.lng, false);
+                        });
+                        map.on('click', (e) => {
+                            marker.setLatLng(e.latlng);
+                            marker.setOpacity(1);
+                            this.applyPoint(e.latlng.lat, e.latlng.lng, false);
+                        });
+
+                        this.map = map;
+                        this.marker = marker;
+                        setTimeout(() => map.invalidateSize(), 80);
+                    },
+
+                    applyPoint(lat, lng, recenter) {
+                        this._suppressMapSync = true;
+                        this.location.lat = (Math.round(lat * 1e6) / 1e6).toString();
+                        this.location.lng = (Math.round(lng * 1e6) / 1e6).toString();
+                        this._suppressMapSync = false;
+                        if (recenter && this.map) this.map.setView([lat, lng], Math.max(this.map.getZoom(), 15), { animate: false });
+                        this.reverseGeocode(lat, lng);
+                    },
+
+                    syncMapFromInputs() {
+                        if (this._suppressMapSync || !this.map || !this.marker) return;
+                        var lat = this._coord(this.location.lat);
+                        var lng = this._coord(this.location.lng);
+                        if (lat === null || lng === null) return;
+                        this.marker.setLatLng([lat, lng]);
+                        this.marker.setOpacity(1);
+                        this.map.setView([lat, lng], Math.max(this.map.getZoom(), 13), { animate: false });
+                    },
+
+                    reverseGeocode(lat, lng) {
+                        clearTimeout(this._geoTimer);
+                        this._geoTimer = setTimeout(() => {
+                            fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng, { headers: { 'Accept': 'application/json' } })
+                                .then(r => r.ok ? r.json() : null)
+                                .then(d => { if (d && d.display_name) this.location.address = d.display_name; })
+                                .catch(() => {});
+                        }, 250);
+                    },
+
+                    searchAddress() {
+                        var q = (this.searchQuery || '').trim();
+                        if (!q) return;
+                        fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                            .then(r => r.ok ? r.json() : null)
+                            .then(d => {
+                                if (!d || !d.length) { if (window.showToast) window.showToast('No matching place found'); return; }
+                                var lat = parseFloat(d[0].lat), lng = parseFloat(d[0].lon);
+                                this._suppressMapSync = true;
+                                this.location.lat = (Math.round(lat * 1e6) / 1e6).toString();
+                                this.location.lng = (Math.round(lng * 1e6) / 1e6).toString();
+                                if (d[0].display_name) this.location.address = d[0].display_name;
+                                this._suppressMapSync = false;
+                                if (this.marker) { this.marker.setLatLng([lat, lng]); this.marker.setOpacity(1); }
+                                if (this.map) this.map.setView([lat, lng], 15, { animate: false });
+                            })
+                            .catch(() => {});
+                    },
                 };
             }
         </script>

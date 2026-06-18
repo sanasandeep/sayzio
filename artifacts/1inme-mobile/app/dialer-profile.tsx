@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
 import { useColors } from "@/hooks/useColors";
 import {
   type ManualChannel,
@@ -141,6 +142,7 @@ export default function DialerProfileScreen() {
     lat: null,
     lng: null,
   });
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
 
   const e164 = useMemo(() => (E164.test(number) ? number : null), [number]);
 
@@ -1268,14 +1270,41 @@ export default function DialerProfileScreen() {
                 </Pressable>
 
                 {/* Location */}
-                <Text
-                  style={[
-                    styles.subLabel,
-                    { color: colors.foreground, marginTop: 16 },
-                  ]}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 16,
+                  }}
                 >
-                  Location
-                </Text>
+                  <Text style={[styles.subLabel, { color: colors.foreground }]}>
+                    Location
+                  </Text>
+                  <Pressable
+                    onPress={() => setMapPickerOpen(true)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: colors.primary + "22",
+                    }}
+                  >
+                    <Feather name="map-pin" size={13} color={colors.primary} />
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        fontSize: 12,
+                      }}
+                    >
+                      Pick on map
+                    </Text>
+                  </Pressable>
+                </View>
                 <TextInput
                   value={draftLocation.label}
                   onChangeText={(v) =>
@@ -1352,6 +1381,20 @@ export default function DialerProfileScreen() {
           </View>
         )}
       </ScrollView>
+      <MapPickerModal
+        visible={mapPickerOpen}
+        initialLat={draftLocation.lat}
+        initialLng={draftLocation.lng}
+        onClose={() => setMapPickerOpen(false)}
+        onPick={(point: PickedPoint) =>
+          setDraftLocation((p) => ({
+            ...p,
+            lat: point.lat,
+            lng: point.lng,
+            address: point.address || p.address,
+          }))
+        }
+      />
     </KeyboardAvoidingView>
   );
 }
