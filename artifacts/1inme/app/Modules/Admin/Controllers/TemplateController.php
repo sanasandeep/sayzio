@@ -9,6 +9,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Services\TemplateService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Support\TemplateSnapshotValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -335,6 +336,25 @@ class TemplateController extends Controller
      */
     private function resolveSnapshot(string $kind, array $input, ?array $existing): ?array
     {
+        $snapshot = $this->buildSnapshot($kind, $input, $existing);
+
+        // Only validate a freshly-supplied/changed snapshot — re-using the
+        // existing stored snapshot unchanged (e.g. an admin editing only the
+        // name) must not be blocked by a pre-existing design issue.
+        if ($snapshot !== null && $snapshot !== $existing) {
+            $this->validateSnapshotDesign($kind, $snapshot);
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * Build the snapshot for store/update.
+     * Priority: pasted JSON (if valid & non-empty) > source-link/card capture > existing.
+     * Returns null only if nothing is available (caller should error).
+     */
+    private function buildSnapshot(string $kind, array $input, ?array $existing): ?array
+    {
         $json = trim((string) ($input['snapshot_json'] ?? ''));
         if ($json !== '') {
             $decoded = json_decode($json, true);
@@ -377,6 +397,26 @@ class TemplateController extends Controller
         $link = Link::where('id', $linkId)->where('type', 'biolink')->first();
         if (!$link) return null;
         return $this->templates->captureFromLink($link);
+    }
+
+    /**
+     * Reject a snapshot whose blocks use an unknown type or a baked
+     * design-variant key that no longer resolves — the same checks the
+     * seeder test enforces at CI time, applied to admin-authored
+     * snapshots so a hand-edited stale key/typo can't silently degrade
+     * the public page.
+     */
+    private function validateSnapshotDesign(string $kind, array $snapshot): void
+    {
+        $issues = TemplateSnapshotValidator::issues($snapshot, $kind);
+        if (!empty($issues)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'snapshot_json' => array_merge(
+                    ['This template has design problems that would silently degrade on the public page:'],
+                    $issues
+                ),
+            ]);
+        }
     }
 
     private function resolve(string $kind, int $id)
