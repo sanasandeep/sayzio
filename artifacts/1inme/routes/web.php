@@ -14,6 +14,32 @@ use App\Modules\User\Controllers\UserFileController;
 Route::get('/extension/handshake', [ExtensionHandshakeController::class, 'show'])
     ->name('extension.handshake');
 
+// ---- Schema readiness probe (Task #1679) ----
+// Lightweight, unauthenticated readiness signal for deployment monitoring.
+// Reports whether the DB schema is in sync (no pending migrations) and returns
+// HTTP 503 when it is out of date, so external uptime/monitoring can catch an
+// incomplete deploy without a human reading the deploy log. Only exposes a
+// count (never table/column internals); the admin dashboard banner carries the
+// detailed pending-migration list. Note: this is a *separate* signal from the
+// deploy's own startup health check (which stays on `/` so the app keeps
+// serving on a partial schema — see artifact.toml).
+Route::get('/up/schema', function () {
+    $report = \App\Modules\Common\Support\SchemaHealth::cached();
+
+    if (! ($report['available'] ?? false)) {
+        return response()->json([
+            'status'             => 'unknown',
+            'pending_migrations' => null,
+        ], 200);
+    }
+
+    $count = count($report['pending'] ?? []);
+    return response()->json([
+        'status'             => $count === 0 ? 'ok' : 'out_of_date',
+        'pending_migrations' => $count,
+    ], $count === 0 ? 200 : 503);
+})->name('health.schema');
+
 Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve'])
     ->where('filename', '.*')
     ->name('admin.assets.serve');

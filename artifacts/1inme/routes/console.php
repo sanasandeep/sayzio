@@ -263,6 +263,17 @@ Schedule::command('reviews:sync')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: detect an out-of-date DB schema (pending migrations) and alert
+// admins (in-app + email) before users hit 500s. The production deploy keeps
+// serving even when `migrate --force` fails, so this is the automated safety
+// net that turns "incomplete schema" into a proactive alert instead of a
+// user-facing error. No-op when the schema is in sync; cooldown-guarded so a
+// per-hour cadence won't spam admins.
+Schedule::command('db:check-pending-migrations')
+    ->hourlyAt(10)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Task #1211 — weekly creator digest. Mondays 08:00 UTC. The service
 // itself dedupes by users.creator_digest_last_sent_at so reruns inside
 // the same week are no-ops, and only emails creators with at least one

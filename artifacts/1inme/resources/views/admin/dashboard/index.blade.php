@@ -3,6 +3,38 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
+@if(!empty($schemaHealth['available']) && !empty($schemaHealth['pending']))
+@php($pendingMigrations = $schemaHealth['pending'])
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-red-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-database text-red-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-semibold text-red-300">Database schema is out of date</h2>
+            <p class="text-sm text-white/70 mt-1">
+                {{ count($pendingMigrations) }} {{ \Illuminate\Support\Str::plural('migration', count($pendingMigrations)) }}
+                {{ count($pendingMigrations) === 1 ? 'has' : 'have' }} not been applied. This usually means the deploy's
+                <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code> step failed,
+                leaving tables/columns missing — some pages may return errors until it's fixed.
+                Run <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code> against production.
+            </p>
+            <details class="mt-3">
+                <summary class="text-xs text-red-300/80 cursor-pointer select-none">Show pending migrations</summary>
+                <ul class="mt-2 space-y-1 text-xs text-white/50 font-mono">
+                    @foreach(array_slice($pendingMigrations, 0, 20) as $m)
+                        <li>{{ $m }}</li>
+                    @endforeach
+                    @if(count($pendingMigrations) > 20)
+                        <li class="text-white/40">…and {{ count($pendingMigrations) - 20 }} more</li>
+                    @endif
+                </ul>
+            </details>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="glass rounded-2xl p-6 border border-white/10 ">
         <div class="flex items-center justify-between">
