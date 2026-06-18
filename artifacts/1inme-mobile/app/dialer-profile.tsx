@@ -784,6 +784,7 @@ export default function DialerProfileScreen() {
                   lat: l.lat as number,
                   lng: l.lng as number,
                   label: l.label,
+                  address: l.address,
                   url: l.maps_url,
                 }))}
                 onMarkerPress={openUrl}
@@ -797,6 +798,18 @@ export default function DialerProfileScreen() {
                 typeof loc.lng === "number" &&
                 isFinite(loc.lng);
               const showThumb = hasPoint && mapLocations.length < 2;
+              const showBadge = hasPoint && mapLocations.length >= 2;
+              const badgeNum = showBadge
+                ? allLocations
+                    .slice(0, i + 1)
+                    .filter(
+                      (l) =>
+                        typeof l.lat === "number" &&
+                        isFinite(l.lat) &&
+                        typeof l.lng === "number" &&
+                        isFinite(l.lng),
+                    ).length
+                : 0;
               return (
               <Pressable
                 key={`${loc.maps_url}-${i}`}
@@ -817,7 +830,13 @@ export default function DialerProfileScreen() {
                   />
                 )}
                 <View style={showThumb ? styles.locationCardBody : styles.locationRowBody}>
-                <Feather name="map-pin" size={16} color="#f87171" />
+                {showBadge ? (
+                  <View style={styles.locationBadge}>
+                    <Text style={styles.locationBadgeText}>{badgeNum}</Text>
+                  </View>
+                ) : (
+                  <Feather name="map-pin" size={16} color="#f87171" />
+                )}
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text
                     numberOfLines={1}
@@ -1678,6 +1697,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   locationRowBody: { flex: 1, flexDirection: "row", alignItems: "center" },
+  locationBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#7c3aed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  locationBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_600SemiBold",
+  },
   locationCard: {
     borderWidth: 1,
     borderRadius: 12,

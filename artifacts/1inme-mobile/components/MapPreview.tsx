@@ -49,10 +49,12 @@ function buildHtml(lat: number, lng: number): string {
 
 function buildMultiHtml(markers: MapMarker[]): string {
   const pts = JSON.stringify(
-    markers.map((m) => ({
+    markers.map((m, i) => ({
+      n: i + 1,
       lat: m.lat,
       lng: m.lng,
       label: m.label ?? "",
+      address: m.address ?? "",
       url: m.url ?? "",
     })),
   );
@@ -62,8 +64,9 @@ function buildMultiHtml(markers: MapMarker[]): string {
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   html, body, #map { height: 100%; margin: 0; padding: 0; background: #1e2330; }
-  .pin { width: 30px; height: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); cursor: pointer; }
+  .pin { position: relative; width: 30px; height: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); cursor: pointer; }
   .pin svg { width: 100%; height: 100%; display: block; }
+  .pin .badge { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; line-height: 14px; text-align: center; font-size: 10px; font-weight: 700; color: #7c3aed; font-family: sans-serif; }
   .leaflet-control-attribution { font-size: 8px; }
 </style>
 </head><body>
@@ -80,11 +83,13 @@ function buildMultiHtml(markers: MapMarker[]): string {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-  var icon = L.divIcon({ className: '', html: '<div class="pin">${PIN_SVG}</div>', iconSize: [30,40], iconAnchor: [15,40] });
   var latlngs = [];
   pts.forEach(function (p) {
     if (!isFinite(p.lat) || !isFinite(p.lng)) return;
-    var m = L.marker([p.lat, p.lng], { icon: icon, title: p.label }).addTo(map);
+    var icon = L.divIcon({ className: '', html: '<div class="pin">${PIN_SVG}<span class="badge">' + (p.n || '') + '</span></div>', iconSize: [30,40], iconAnchor: [15,40] });
+    var title = p.label || '';
+    if (p.address) { title = title ? (title + ' — ' + p.address) : p.address; }
+    var m = L.marker([p.lat, p.lng], { icon: icon, title: title }).addTo(map);
     m.on('click', function () {
       if (window.ReactNativeWebView && p.url) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ url: p.url }));
@@ -113,6 +118,7 @@ export type MapMarker = {
   lat: number;
   lng: number;
   label?: string;
+  address?: string;
   url?: string;
 };
 

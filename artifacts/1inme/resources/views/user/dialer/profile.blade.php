@@ -279,8 +279,9 @@
                 background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important;
             }
             .dialer-loc-map .leaflet-control-zoom a:hover { background:#7c3aed !important; }
-            .dialer-loc-marker { width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
+            .dialer-loc-marker { position:relative; width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
             .dialer-loc-marker svg { width:100%; height:100%; display:block; }
+            .dialer-loc-badge { position:absolute; top:5px; left:50%; transform:translateX(-50%); width:14px; height:14px; line-height:14px; text-align:center; font-size:10px; font-weight:700; color:#7c3aed; font-family:'Space Grotesk', sans-serif; pointer-events:none; }
             /* Read-only map preview: non-interactive, taps fall through to open Maps. */
             .dialer-loc-thumb { pointer-events:none; }
             /* Combined map: pan/zoom disabled, but markers stay clickable to open Maps. */
@@ -293,12 +294,15 @@
             <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Locations</h3>
             @if($combinedLocMap)
                 <div class="dialer-loc-combined rounded-xl overflow-hidden mb-3"
-                     data-points="{{ json_encode($mapLocations->map(fn ($l) => ['lat' => (float) $l['lat'], 'lng' => (float) $l['lng'], 'label' => $l['label'] ?? '', 'url' => $l['maps_url'] ?? ''])->values(), JSON_HEX_APOS | JSON_HEX_QUOT) }}"
+                     data-points="{{ json_encode($mapLocations->values()->map(fn ($l, $i) => ['n' => $i + 1, 'lat' => (float) $l['lat'], 'lng' => (float) $l['lng'], 'label' => $l['label'] ?? '', 'address' => $l['address'] ?? '', 'url' => $l['maps_url'] ?? ''])->values(), JSON_HEX_APOS | JSON_HEX_QUOT) }}"
                      style="height:220px;width:100%;background:#1e2330;border:1px solid rgba(255,255,255,.08);"></div>
             @endif
             <div class="space-y-3">
                 @foreach($allLocations as $loc)
-                    @php $hasPt = is_numeric($loc['lat'] ?? null) && is_numeric($loc['lng'] ?? null); @endphp
+                    @php
+                        $hasPt = is_numeric($loc['lat'] ?? null) && is_numeric($loc['lng'] ?? null);
+                        $locNum = ($combinedLocMap && $hasPt) ? (($locNum ?? 0) + 1) : ($locNum ?? 0);
+                    @endphp
                     <a href="{{ $loc['maps_url'] }}" target="_blank" rel="noopener"
                        class="block rounded-xl overflow-hidden" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);">
                         @if($hasPt && !$combinedLocMap)
@@ -306,7 +310,11 @@
                                  style="height:140px;width:100%;background:#1e2330;"></div>
                         @endif
                         <span class="flex items-center gap-3 px-3 py-2.5">
-                            <i class="fas fa-location-dot" style="color:#f87171;"></i>
+                            @if($combinedLocMap && $hasPt)
+                                <span class="inline-flex items-center justify-center shrink-0" style="width:20px;height:20px;border-radius:9999px;background:linear-gradient(#a78bfa,#7c3aed);color:#fff;font-size:11px;font-weight:700;">{{ $locNum }}</span>
+                            @else
+                                <i class="fas fa-location-dot" style="color:#f87171;"></i>
+                            @endif
                             <span class="min-w-0 flex-1">
                                 <span class="block text-sm font-medium truncate" style="color:var(--text-primary);">{{ $loc['label'] }}</span>
                                 @if(!empty($loc['address']))
@@ -380,15 +388,17 @@
                                 maxZoom: 19,
                                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             }).addTo(map);
-                            var icon = L.divIcon({
-                                className: '',
-                                html: '<div class="dialer-loc-marker">' + pin + '</div>',
-                                iconSize: [30, 40], iconAnchor: [15, 40]
-                            });
                             var latlngs = [];
                             points.forEach(function (p) {
                                 if (!isFinite(p.lat) || !isFinite(p.lng)) return;
-                                var m = L.marker([p.lat, p.lng], { icon: icon, title: p.label || '', keyboard: false }).addTo(map);
+                                var icon = L.divIcon({
+                                    className: '',
+                                    html: '<div class="dialer-loc-marker">' + pin + '<span class="dialer-loc-badge">' + (p.n || '') + '</span></div>',
+                                    iconSize: [30, 40], iconAnchor: [15, 40]
+                                });
+                                var title = p.label || '';
+                                if (p.address) { title = title ? (title + ' — ' + p.address) : p.address; }
+                                var m = L.marker([p.lat, p.lng], { icon: icon, title: title, keyboard: false }).addTo(map);
                                 if (p.url) {
                                     m.on('click', function () { window.open(p.url, '_blank', 'noopener'); });
                                 }
