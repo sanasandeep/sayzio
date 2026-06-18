@@ -21,6 +21,7 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import {
   createQrCode,
   deleteQrCode,
@@ -66,6 +67,7 @@ export default function QrScreen() {
       qc.invalidateQueries({ queryKey: ["qr-codes"] });
     },
     onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
       if (e?.errors) {
         const flat: Record<string, string> = {};
         Object.entries(e.errors).forEach(([k, v]) => {

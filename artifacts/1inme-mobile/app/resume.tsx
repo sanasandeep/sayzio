@@ -30,6 +30,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import {
   createResumeItem,
   createResumeVersion,
@@ -226,8 +227,10 @@ function ResumeEditor({
   const templateMut = useMutation({
     mutationFn: (id: string) => updateResumeTemplate(id),
     onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
-    onError: (e: { message?: string }) =>
-      Alert.alert("Template locked", e?.message ?? "Upgrade to use this template."),
+    onError: (e: { message?: string }) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Template locked", e?.message ?? "Upgrade to use this template.");
+    },
   });
 
   const themeMut = useMutation({

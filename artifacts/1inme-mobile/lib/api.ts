@@ -58,6 +58,13 @@ export function getConfiguredBaseUrl(): string | null {
 export type ApiError = {
   status: number;
   message: string;
+  /**
+   * Machine-readable error code from the `{error: {code}}` envelope, e.g.
+   * `plan_upgrade_required` / `plan_limit_reached`. Used to detect plan-gated
+   * actions and surface an "Upgrade your plan" prompt — see
+   * `lib/upgradePrompt.ts`.
+   */
+  code?: string;
   errors?: Record<string, string[]>;
 };
 
@@ -93,6 +100,10 @@ export async function apiFetch<T = unknown>(
     const err: ApiError = {
       status: res.status,
       message,
+      code:
+        (nested && typeof nested.code === "string" ? nested.code : null) ||
+        (body && typeof body.code === "string" ? body.code : null) ||
+        undefined,
       errors: body?.errors ?? nested?.details,
     };
     throw err;

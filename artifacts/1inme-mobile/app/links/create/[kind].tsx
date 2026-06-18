@@ -17,6 +17,7 @@ import { listAvailableDomains } from "@/lib/api/domains";
 import { createLink } from "@/lib/api/links";
 import { metaForKind, type LinkKind } from "@/lib/linkKinds";
 import { PAID_PAGE_TEMPLATES } from "@/lib/paidPage";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
 
 export default function CreateLinkScreen() {
   const colors = useColors();
@@ -121,7 +122,11 @@ export default function CreateLinkScreen() {
         router.replace(`/links/${link.id}/edit` as any);
       }
     } catch (e: any) {
-      setError(e?.message || "Failed to create link");
+      if (handlePlanLockedError(e)) {
+        setError(null);
+      } else {
+        setError(e?.message || "Failed to create link");
+      }
     } finally {
       setBusy(false);
     }

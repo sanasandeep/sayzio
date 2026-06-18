@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import {
   createMenuCategory,
   createMenuItem,
@@ -104,8 +105,10 @@ export default function RestaurantMenuBuilderScreen() {
         accent_color: accent.trim() || null,
       }),
     onSuccess: (menu) => qc.setQueryData(["restaurant-owner-menu", linkId], menu),
-    onError: (e: any) =>
-      Alert.alert("Couldn't save settings", e?.message ?? "Try again."),
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Couldn't save settings", e?.message ?? "Try again.");
+    },
   });
 
   // ── Category modal ──
@@ -125,8 +128,10 @@ export default function RestaurantMenuBuilderScreen() {
       setCatModal(null);
       invalidate();
     },
-    onError: (e: any) =>
-      Alert.alert("Couldn't save category", e?.message ?? "Try again."),
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Couldn't save category", e?.message ?? "Try again.");
+    },
   });
   const delCatMut = useMutation({
     mutationFn: (id: number) => deleteMenuCategory(linkId, id),
@@ -154,8 +159,10 @@ export default function RestaurantMenuBuilderScreen() {
       setItemModal(null);
       invalidate();
     },
-    onError: (e: any) =>
-      Alert.alert("Couldn't save item", e?.message ?? "Try again."),
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Couldn't save item", e?.message ?? "Try again.");
+    },
   });
   const delItemMut = useMutation({
     mutationFn: (id: number) => deleteMenuItem(linkId, id),
@@ -170,8 +177,10 @@ export default function RestaurantMenuBuilderScreen() {
       setTableLabel("");
       invalidate();
     },
-    onError: (e: any) =>
-      Alert.alert("Couldn't add table", e?.message ?? "Try again."),
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Couldn't add table", e?.message ?? "Try again.");
+    },
   });
   const delTableMut = useMutation({
     mutationFn: (id: number) => deleteMenuTable(linkId, id),
@@ -205,7 +214,9 @@ export default function RestaurantMenuBuilderScreen() {
       });
       setItemModal((prev) => (prev ? { ...prev, photo_url: url } : prev));
     } catch (e: any) {
-      Alert.alert("Upload failed", e?.message ?? "Try again.");
+      if (!handlePlanLockedError(e)) {
+        Alert.alert("Upload failed", e?.message ?? "Try again.");
+      }
     } finally {
       setPhotoUploading(false);
     }

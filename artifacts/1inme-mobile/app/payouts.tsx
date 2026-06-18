@@ -16,6 +16,7 @@ import {
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import {
   getAdultContent,
   getPayouts,
@@ -54,7 +55,10 @@ export default function PayoutsScreen() {
         Linking.openURL(r.onboarding_url);
       }
     },
-    onError: (e: any) => Alert.alert("Connect failed", e?.message ?? "Unknown error"),
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Connect failed", e?.message ?? "Unknown error");
+    },
   });
 
   const refresh = useMutation({

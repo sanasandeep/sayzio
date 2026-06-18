@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import {
   generateWizardPage,
   getWizardQuestions,
@@ -114,7 +115,11 @@ export default function BiolinkWizardScreen() {
       });
       router.replace(`/links/${link.id}/blocks` as any);
     } catch (e: any) {
-      setError(e?.message || "Failed to generate your page");
+      if (handlePlanLockedError(e)) {
+        setError(null);
+      } else {
+        setError(e?.message || "Failed to generate your page");
+      }
     } finally {
       setBusy(false);
     }
