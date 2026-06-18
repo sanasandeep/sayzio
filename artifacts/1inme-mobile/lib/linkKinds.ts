@@ -94,6 +94,41 @@ export const LINK_KINDS: LinkKindMeta[] = [
   },
 ];
 
+// Grouped presentation for the "Create a new link" picker. Mirrors the
+// four labelled categories + wording used by the web Create Link page
+// (artifacts/1inme/resources/views/user/links/create.blade.php) so the
+// experience is consistent across surfaces. Only kinds that are actually
+// creatable on mobile (i.e. present in LINK_KINDS) are listed — the set of
+// available types is unchanged, just regrouped.
+export type LinkKindCategory = {
+  label: string;
+  desc: string;
+  kinds: LinkKind[];
+};
+
+export const LINK_KIND_CATEGORIES: LinkKindCategory[] = [
+  {
+    label: "Everyday links",
+    desc: "Quick, single-purpose links you can share anywhere in seconds.",
+    kinds: ["url", "file", "calendar", "vcard"],
+  },
+  {
+    label: "Pages & mini-sites",
+    desc: "Full, customizable pages that live at a single link — no website needed.",
+    kinds: ["biolink", "resume"],
+  },
+  {
+    label: "Business & monetization",
+    desc: "Grow your reputation and earn from your audience.",
+    kinds: ["paid_page"],
+  },
+  {
+    label: "AI-powered",
+    desc: "Let AI answer and guide your visitors for you.",
+    kinds: ["ai_chat"],
+  },
+];
+
 // Biolink-family types that the mobile app recognizes (right icon/label in
 // the link list + editor header) but doesn't yet offer in the create
 // picker — their dedicated editors live on the web. Kept out of

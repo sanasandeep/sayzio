@@ -1,6 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
   Platform,
   Pressable,
   ScrollView,
@@ -10,14 +14,37 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LinkTypeArt } from "@/components/LinkTypeArt";
 import { useColors } from "@/hooks/useColors";
-import { LINK_KINDS } from "@/lib/linkKinds";
+import {
+  LINK_KIND_CATEGORIES,
+  metaForKind,
+  type LinkKind,
+} from "@/lib/linkKinds";
 
 export default function CreateTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const webTop = Platform.OS === "web" ? 67 : 0;
+
+  // Respect the OS "reduce motion" setting — when on, cards render in their
+  // final position with no reveal animation.
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((on) => {
+      if (mounted) setReduceMotion(on);
+    });
+    const sub = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (on) => setReduceMotion(on),
+    );
+    return () => {
+      mounted = false;
+      sub.remove();
+    };
+  }, []);
 
   return (
     <ScrollView
@@ -26,7 +53,7 @@ export default function CreateTab() {
         paddingTop: insets.top + 16 + webTop,
         paddingBottom: 32,
         paddingHorizontal: 20,
-        gap: 16,
+        gap: 24,
       }}
     >
       <View>
@@ -36,46 +63,152 @@ export default function CreateTab() {
         <Text style={[styles.title, { color: colors.foreground }]}>
           Create a new link
         </Text>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+          Pick one to continue — we&apos;ll only ask for the fields that matter
+          for that type.
+        </Text>
       </View>
 
-      <View style={{ gap: 10 }}>
-        {LINK_KINDS.map((m) => (
-          <Pressable
-            key={m.kind}
-            onPress={() => router.push(`/links/create/${m.kind}`)}
-            style={({ pressed }) => [
-              styles.card,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderRadius: colors.radius,
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.iconWrap,
-                { backgroundColor: colors.primary + "1c" },
-              ]}
-            >
-              <Feather name={m.icon} size={22} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                {m.label}
+      {(() => {
+        let cardIndex = 0;
+        return LINK_KIND_CATEGORIES.map((category) => (
+          <View key={category.label} style={{ gap: 12 }}>
+            <View style={{ gap: 2 }}>
+              <Text
+                style={[styles.categoryLabel, { color: colors.foreground }]}
+              >
+                {category.label}
               </Text>
               <Text
-                style={[styles.cardBlurb, { color: colors.mutedForeground }]}
+                style={[styles.categoryDesc, { color: colors.mutedForeground }]}
               >
-                {m.blurb}
+                {category.desc}
               </Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.mutedForeground} />
-          </Pressable>
-        ))}
-      </View>
+
+            <View style={{ gap: 10 }}>
+              {category.kinds.map((kind) => {
+                const meta = metaForKind(kind as LinkKind);
+                return (
+                  <RevealCard
+                    key={meta.kind}
+                    index={cardIndex++}
+                    reduceMotion={reduceMotion}
+                  >
+                    <Pressable
+                      onPress={() =>
+                        router.push(`/links/create/${meta.kind}`)
+                      }
+                      style={({ pressed }) => [
+                        styles.card,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderRadius: colors.radius,
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}
+                    >
+                      <View style={styles.artWrap}>
+                        <LinkTypeArt
+                          kind={meta.kind}
+                          width={72}
+                          height={43}
+                        />
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <View style={styles.cardTitleRow}>
+                          <View
+                            style={[
+                              styles.iconBadge,
+                              { backgroundColor: colors.primary + "1c" },
+                            ]}
+                          >
+                            <Feather
+                              name={meta.icon}
+                              size={14}
+                              color={colors.primary}
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              styles.cardTitle,
+                              { color: colors.foreground },
+                            ]}
+                          >
+                            {meta.label}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.cardBlurb,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          {meta.blurb}
+                        </Text>
+                      </View>
+                      <Feather
+                        name="chevron-right"
+                        size={20}
+                        color={colors.mutedForeground}
+                      />
+                    </Pressable>
+                  </RevealCard>
+                );
+              })}
+            </View>
+          </View>
+        ));
+      })()}
     </ScrollView>
+  );
+}
+
+function RevealCard({
+  index,
+  reduceMotion,
+  children,
+}: {
+  index: number;
+  reduceMotion: boolean;
+  children: React.ReactNode;
+}) {
+  const anim = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      anim.setValue(1);
+      return;
+    }
+    anim.setValue(0);
+    const animation = Animated.timing(anim, {
+      toValue: 1,
+      duration: 360,
+      delay: Math.min(index * 45, 540),
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [anim, index, reduceMotion]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [
+          {
+            translateY: anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [12, 0],
+            }),
+          },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
@@ -87,20 +220,45 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   title: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 28, marginTop: 2 },
+  subtitle: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 6,
+  },
+  categoryLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16 },
+  categoryDesc: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    lineHeight: 16,
+  },
   card: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
   },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 999,
+  artWrap: {
+    width: 72,
+    height: 43,
+    borderRadius: 10,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16 },
-  cardBlurb: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, lineHeight: 18 },
+  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  iconBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16, flex: 1 },
+  cardBlurb: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 13,
+    lineHeight: 18,
+  },
 });

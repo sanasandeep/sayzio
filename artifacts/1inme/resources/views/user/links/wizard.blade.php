@@ -21,6 +21,17 @@
 @section('content')
 <div class="max-w-3xl mx-auto pb-20">
 
+    {{-- Shared reveal animation — matches the categorized picker on the
+         Create Link page so the guided wizard's cards feel consistent.
+         Disabled under prefers-reduced-motion. --}}
+    <style>
+        @media (prefers-reduced-motion: no-preference) {
+            .lt-card-reveal { opacity: 0; transform: translateY(12px); animation: ltCardReveal .5s cubic-bezier(.21,.6,.35,1) forwards; }
+            @keyframes ltCardReveal { to { opacity: 1; transform: none; } }
+        }
+    </style>
+
+
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.create') }}" class="text-white/30 hover:text-white transition-colors" title="Skip the wizard">
             <i class="fas fa-arrow-left"></i>
@@ -88,21 +99,34 @@
             <h2 class="text-xl font-semibold text-white mb-1">What kind of page is this?</h2>
             <p class="text-sm text-white/50 mb-6">Pick the closest match — you can change anything later.</p>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            @php $catIndex = 0; @endphp
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($categories as $cat)
                     <button type="submit" name="category" value="{{ $cat['slug'] }}"
-                        class="group glass rounded-2xl p-5 text-left transition-all hover:bg-white/[0.06] hover:border-violet-500/40 border border-white/5
-                               {{ $draft?->category === $cat['slug'] ? 'ring-2 ring-violet-500/50' : '' }}">
-                        <div class="flex items-start gap-4">
-                            <div class="w-11 h-11 rounded-xl bg-violet-500/15 text-violet-300 flex items-center justify-center flex-shrink-0">
-                                <i class="fas {{ $cat['icon'] }} text-lg"></i>
+                        class="lt-card-reveal group text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:hover:-translate-y-1
+                               {{ $draft?->category === $cat['slug']
+                                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                    : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20' }}"
+                        style="animation-delay: {{ min($catIndex++ * 45, 540) }}ms">
+                        <div class="relative rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] aspect-[5/3]">
+                            <img src="{{ url('/wizard-placeholders/' . $cat['slug'] . '.svg') }}"
+                                 alt="{{ $cat['label'] }} preview" loading="lazy"
+                                 class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.06]"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="absolute inset-0 hidden items-center justify-center bg-violet-500/15 text-violet-300">
+                                <i class="fas {{ $cat['icon'] }} text-3xl"></i>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-white font-medium">{{ $cat['label'] }}</div>
-                                <div class="text-xs text-white/40 mt-1">{{ $cat['blurb'] }}</div>
-                            </div>
-                            <i class="fas fa-arrow-right text-white/20 group-hover:text-violet-400 transition-colors mt-2"></i>
                         </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-9 h-9 rounded-lg bg-violet-500/15 text-violet-300 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas {{ $cat['icon'] }}"></i>
+                                </div>
+                                <div class="text-sm font-semibold text-white truncate">{{ $cat['label'] }}</div>
+                            </div>
+                            <i class="fas fa-arrow-right text-white/20 group-hover:text-violet-400 transition-colors flex-shrink-0"></i>
+                        </div>
+                        <div class="text-xs text-white/50 leading-relaxed">{{ $cat['blurb'] }}</div>
                     </button>
                 @endforeach
             </div>
@@ -120,11 +144,13 @@
             <h2 class="text-xl font-semibold text-white mb-1">More specifically — what fits best?</h2>
             <p class="text-sm text-white/50 mb-6">We'll tailor the questions and the layout to this choice.</p>
 
+            @php $ptIndex = 0; @endphp
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 @foreach($pageTypes as $pt)
                     <button type="submit" name="page_type" value="{{ $pt['slug'] }}"
-                        class="group glass rounded-2xl p-5 text-left transition-all hover:bg-white/[0.06] hover:border-violet-500/40 border border-white/5
-                               {{ $draft?->page_type === $pt['slug'] ? 'ring-2 ring-violet-500/50' : '' }}">
+                        class="lt-card-reveal group glass rounded-2xl p-5 text-left transition-all hover:bg-white/[0.06] hover:border-violet-500/40 border border-white/5
+                               {{ $draft?->page_type === $pt['slug'] ? 'ring-2 ring-violet-500/50' : '' }}"
+                        style="animation-delay: {{ min($ptIndex++ * 45, 540) }}ms">
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex-1 min-w-0">
                                 <div class="text-white font-medium">{{ $pt['label'] }}</div>
