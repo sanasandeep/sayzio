@@ -2262,6 +2262,26 @@
         html.light-mode .grad-bar .text-white\/80 { color: rgba(255,255,255,.85) !important; }
         html.light-mode .grad-bar .text-white\/70 { color: rgba(255,255,255,.78) !important; }
         html.light-mode .grad-bar .text-white\/60 { color: rgba(255,255,255,.70) !important; }
+        /* ---- Hero floating metric cards (custom classes + inline color:#fff) ----
+           .float-card sets its own translucent surface + white text that the
+           Tailwind-utility light-mode rules above never reach. Flip the card to
+           a real white surface with dark text so every value/label reads on the
+           white hero background. Per-variant colored box-shadows stay (they glow
+           fine on white). The .hero-mstat row is the mobile equivalent. */
+        html.light-mode .float-card {
+            background: #ffffff;
+            border-color: rgba(15,23,42,.10);
+            color: #0f172a;
+            box-shadow: 0 18px 40px -16px rgba(15,23,42,.18);
+        }
+        html.light-mode .float-card-label,
+        html.light-mode .hero-mstat .lbl,
+        html.light-mode .hero-mstat .sub { color: #64748b; }
+        html.light-mode .hero-mstat {
+            background: #ffffff;
+            border-color: rgba(15,23,42,.10);
+        }
+        html.light-mode .hero-mstat .val { color: #0f172a; }
         html.live, /* sentinel — keeps the file parseable */
         html.light-mode .text-gray-200                    { color: #1f2937; }
         html.light-mode .text-gray-300                    { color: #334155; }
