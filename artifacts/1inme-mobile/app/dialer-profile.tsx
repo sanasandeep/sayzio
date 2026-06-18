@@ -20,7 +20,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
-import { MapPreview } from "@/components/MapPreview";
+import { MapMarkersPreview, MapPreview } from "@/components/MapPreview";
 import { useColors } from "@/hooks/useColors";
 import {
   type ManualChannel,
@@ -476,6 +476,13 @@ export default function DialerProfileScreen() {
         ...(profile.manual.location ? [profile.manual.location] : []),
       ]
     : [];
+  const mapLocations = allLocations.filter(
+    (l) =>
+      typeof l.lat === "number" &&
+      isFinite(l.lat) &&
+      typeof l.lng === "number" &&
+      isFinite(l.lng),
+  );
 
   return (
     <KeyboardAvoidingView
@@ -771,32 +778,45 @@ export default function DialerProfileScreen() {
             >
               LOCATIONS
             </Text>
+            {mapLocations.length >= 2 && (
+              <MapMarkersPreview
+                markers={mapLocations.map((l) => ({
+                  lat: l.lat as number,
+                  lng: l.lng as number,
+                  label: l.label,
+                  url: l.maps_url,
+                }))}
+                onMarkerPress={openUrl}
+                style={[styles.combinedMap, { borderColor: colors.border }]}
+              />
+            )}
             {allLocations.map((loc, i) => {
               const hasPoint =
                 typeof loc.lat === "number" &&
                 isFinite(loc.lat) &&
                 typeof loc.lng === "number" &&
                 isFinite(loc.lng);
+              const showThumb = hasPoint && mapLocations.length < 2;
               return (
               <Pressable
                 key={`${loc.maps_url}-${i}`}
                 onPress={() => openUrl(loc.maps_url)}
                 style={({ pressed }) => [
-                  hasPoint ? styles.locationCard : styles.locationRow,
+                  showThumb ? styles.locationCard : styles.locationRow,
                   {
                     borderColor: colors.border,
                     backgroundColor: pressed ? colors.muted : "transparent",
                   },
                 ]}
               >
-                {hasPoint && (
+                {showThumb && (
                   <MapPreview
                     lat={loc.lat as number}
                     lng={loc.lng as number}
                     style={styles.locationMap}
                   />
                 )}
-                <View style={hasPoint ? styles.locationCardBody : styles.locationRowBody}>
+                <View style={showThumb ? styles.locationCardBody : styles.locationRowBody}>
                 <Feather name="map-pin" size={16} color="#f87171" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text
@@ -1665,6 +1685,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   locationMap: { width: "100%" },
+  combinedMap: {
+    width: "100%",
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginTop: 10,
+    marginBottom: 4,
+  },
   locationCardBody: {
     flexDirection: "row",
     alignItems: "center",

@@ -259,7 +259,11 @@
     @php
         $allLocations = $payload['locations'] ?? [];
         if (!empty($payload['manual']['location'])) $allLocations[] = $payload['manual']['location'];
-        $hasLocMap = collect($allLocations)->contains(fn ($l) => is_numeric($l['lat'] ?? null) && is_numeric($l['lng'] ?? null));
+        $mapLocations = collect($allLocations)
+            ->filter(fn ($l) => is_numeric($l['lat'] ?? null) && is_numeric($l['lng'] ?? null))
+            ->values();
+        $hasLocMap = $mapLocations->isNotEmpty();
+        $combinedLocMap = $mapLocations->count() >= 2;
     @endphp
 
     {{-- Leaflet assets — shared by the read-only location previews and the manual map picker below. --}}
@@ -279,18 +283,25 @@
             .dialer-loc-marker svg { width:100%; height:100%; display:block; }
             /* Read-only map preview: non-interactive, taps fall through to open Maps. */
             .dialer-loc-thumb { pointer-events:none; }
+            /* Combined map: pan/zoom disabled, but markers stay clickable to open Maps. */
+            .dialer-loc-combined .leaflet-container, .dialer-loc-combined .dialer-loc-marker { cursor:pointer; }
         </style>
     @endif
 
     @if(!empty($allLocations))
         <div class="card-premium p-5 mt-4">
             <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Locations</h3>
+            @if($combinedLocMap)
+                <div class="dialer-loc-combined rounded-xl overflow-hidden mb-3"
+                     data-points="{{ json_encode($mapLocations->map(fn ($l) => ['lat' => (float) $l['lat'], 'lng' => (float) $l['lng'], 'label' => $l['label'] ?? '', 'url' => $l['maps_url'] ?? ''])->values(), JSON_HEX_APOS | JSON_HEX_QUOT) }}"
+                     style="height:220px;width:100%;background:#1e2330;border:1px solid rgba(255,255,255,.08);"></div>
+            @endif
             <div class="space-y-3">
                 @foreach($allLocations as $loc)
                     @php $hasPt = is_numeric($loc['lat'] ?? null) && is_numeric($loc['lng'] ?? null); @endphp
                     <a href="{{ $loc['maps_url'] }}" target="_blank" rel="noopener"
                        class="block rounded-xl overflow-hidden" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);">
-                        @if($hasPt)
+                        @if($hasPt && !$combinedLocMap)
                             <div class="dialer-loc-thumb" data-lat="{{ $loc['lat'] }}" data-lng="{{ $loc['lng'] }}"
                                  style="height:140px;width:100%;background:#1e2330;"></div>
                         @endif
@@ -346,10 +357,56 @@
                             setTimeout(function () { map.invalidateSize(); }, 80);
                         });
                     }
+                    function initLocCombined() {
+                        if (typeof L === 'undefined') return;
+                        var pin = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+                            '<defs><linearGradient id="dlc-g" x1="0" y1="0" x2="0" y2="1">' +
+                            '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+                            '</linearGradient></defs>' +
+                            '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#dlc-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
+                            '<circle cx="17" cy="16" r="6" fill="#fff"/></svg>';
+                        document.querySelectorAll('.dialer-loc-combined').forEach(function (el) {
+                            if (el.dataset.mapInit) return;
+                            var points;
+                            try { points = JSON.parse(el.dataset.points || '[]'); } catch (e) { return; }
+                            if (!points || !points.length) return;
+                            el.dataset.mapInit = '1';
+                            var map = L.map(el, {
+                                zoomControl: false, attributionControl: true,
+                                dragging: false, touchZoom: false, scrollWheelZoom: false,
+                                doubleClickZoom: false, boxZoom: false, keyboard: false,
+                            });
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                maxZoom: 19,
+                                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            }).addTo(map);
+                            var icon = L.divIcon({
+                                className: '',
+                                html: '<div class="dialer-loc-marker">' + pin + '</div>',
+                                iconSize: [30, 40], iconAnchor: [15, 40]
+                            });
+                            var latlngs = [];
+                            points.forEach(function (p) {
+                                if (!isFinite(p.lat) || !isFinite(p.lng)) return;
+                                var m = L.marker([p.lat, p.lng], { icon: icon, title: p.label || '', keyboard: false }).addTo(map);
+                                if (p.url) {
+                                    m.on('click', function () { window.open(p.url, '_blank', 'noopener'); });
+                                }
+                                latlngs.push([p.lat, p.lng]);
+                            });
+                            if (latlngs.length > 1) {
+                                map.fitBounds(latlngs, { padding: [30, 30], maxZoom: 16 });
+                            } else if (latlngs.length === 1) {
+                                map.setView(latlngs[0], 15);
+                            }
+                            setTimeout(function () { map.invalidateSize(); }, 80);
+                        });
+                    }
+                    function initLocMaps() { initLocThumbs(); initLocCombined(); }
                     if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', initLocThumbs);
+                        document.addEventListener('DOMContentLoaded', initLocMaps);
                     } else {
-                        initLocThumbs();
+                        initLocMaps();
                     }
                 })();
             </script>
