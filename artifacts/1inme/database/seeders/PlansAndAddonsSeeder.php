@@ -328,7 +328,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_protection' => true,
                     'seo_settings' => true,
                     'teams' => true,
-                    'ecommerce' => false,
+                    // Pro's block_types_allowed is '*', which already includes the
+                    // `product` block, so the "Sell from your bio" flag must be on
+                    // to keep the pricing matrix honest with real enforcement.
+                    'ecommerce' => true,
                     'custom_forms' => true,
                     // New feature gates (Pro tier)
                     'block_types_allowed' => '*',

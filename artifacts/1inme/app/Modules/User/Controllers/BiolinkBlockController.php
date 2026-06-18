@@ -249,6 +249,22 @@ class BiolinkBlockController extends Controller
             return back()->with('error', $message);
         }
 
+        // Selling gate: the product block powers "Sell from your bio", which
+        // is the `ecommerce` plan feature shown in the pricing matrix. Tiers
+        // whose block allowlist includes `product` set ecommerce=true (see
+        // PlansAndAddonsSeeder), so this flag is the authoritative gate and
+        // keeps the pricing matrix honest with real enforcement. Super-admins
+        // bypass via the plan-limits permission, matching userCanUseBlockType.
+        if (\App\Modules\User\Support\BlockTypeRegistry::canonical($validated['type']) === 'product'
+            && !workspace_owner()->hasPermission('user.plan_limits.bypass')
+            && !workspace_owner()->planFeatureEnabled('ecommerce')) {
+            $message = "Selling from your bio isn't available on your current plan. Upgrade to add product blocks with checkout.";
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'error' => $message], 403);
+            }
+            return back()->with('error', $message);
+        }
+
         $parentId = $validated['parent_id'] ?? null;
         $insertAfterId = $validated['insert_after'] ?? null;
 
