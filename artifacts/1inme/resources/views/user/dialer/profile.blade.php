@@ -440,6 +440,14 @@
                         <input name="location[lat]" x-model="location.lat" @input="syncMapFromInputs()" placeholder="Latitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
                         <input name="location[lng]" x-model="location.lng" @input="syncMapFromInputs()" placeholder="Longitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
                     </div>
+
+                    {{-- Live preview of the pending point (before saving) --}}
+                    <div x-show="hasPreviewPoint()" x-cloak class="mt-3">
+                        <div x-ref="preview" class="dialer-loc-thumb" style="height:150px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.10);background:#1e2330;"></div>
+                        <p class="text-[11px] mt-1.5" style="color:var(--text-faint);">
+                            <i class="fas fa-eye mr-1"></i> Preview of the point you'll save — updates as you adjust the coordinates.
+                        </p>
+                    </div>
                 </div>
             </form>
         </div>
@@ -462,8 +470,16 @@
                     searchQuery: '',
                     map: null,
                     marker: null,
+                    previewMap: null,
+                    previewMarker: null,
                     _suppressMapSync: false,
                     _geoTimer: null,
+
+                    init() {
+                        this.$nextTick(() => { if (this.hasPreviewPoint()) this.initPreview(); });
+                        this.$watch('location.lat', () => this.refreshPreview());
+                        this.$watch('location.lng', () => this.refreshPreview());
+                    },
 
                     toggleMap() {
                         this.showMap = !this.showMap;
@@ -471,6 +487,50 @@
                     },
 
                     _coord(v) { var n = parseFloat(v); return isFinite(n) ? n : null; },
+
+                    hasPreviewPoint() {
+                        return this._coord(this.location.lat) !== null && this._coord(this.location.lng) !== null;
+                    },
+
+                    initPreview() {
+                        if (typeof L === 'undefined' || !this.$refs.preview) return;
+                        var lat = this._coord(this.location.lat), lng = this._coord(this.location.lng);
+                        if (lat === null || lng === null) return;
+                        if (this.previewMap) { this.updatePreview(); return; }
+
+                        var map = L.map(this.$refs.preview, {
+                            center: [lat, lng], zoom: 15,
+                            zoomControl: false, attributionControl: true,
+                            dragging: false, touchZoom: false, scrollWheelZoom: false,
+                            doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false,
+                        });
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        }).addTo(map);
+                        var icon = L.divIcon({
+                            className: '',
+                            html: '<div class="dialer-loc-marker">' + DIALER_PIN_SVG + '</div>',
+                            iconSize: [30, 40], iconAnchor: [15, 40]
+                        });
+                        this.previewMarker = L.marker([lat, lng], { icon: icon, interactive: false, keyboard: false }).addTo(map);
+                        this.previewMap = map;
+                        setTimeout(() => map.invalidateSize(), 80);
+                    },
+
+                    updatePreview() {
+                        var lat = this._coord(this.location.lat), lng = this._coord(this.location.lng);
+                        if (lat === null || lng === null || !this.previewMap) return;
+                        this.previewMarker.setLatLng([lat, lng]);
+                        this.previewMap.setView([lat, lng], this.previewMap.getZoom(), { animate: false });
+                        setTimeout(() => this.previewMap.invalidateSize(), 60);
+                    },
+
+                    refreshPreview() {
+                        if (!this.hasPreviewPoint()) return;
+                        if (this.previewMap) this.updatePreview();
+                        else this.$nextTick(() => this.initPreview());
+                    },
 
                     initMap() {
                         if (typeof L === 'undefined' || !this.$refs.map) return;

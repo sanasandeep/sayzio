@@ -1393,6 +1393,34 @@ export default function DialerProfileScreen() {
                     ]}
                   />
                 </View>
+                {draftLocation.lat != null &&
+                  draftLocation.lng != null &&
+                  isFinite(draftLocation.lat) &&
+                  isFinite(draftLocation.lng) && (
+                    <View style={{ marginTop: 8 }}>
+                      <MapPreview
+                        lat={draftLocation.lat}
+                        lng={draftLocation.lng}
+                        height={140}
+                        style={{
+                          borderRadius: 12,
+                          overflow: "hidden",
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                        }}
+                      />
+                      <Text
+                        style={{
+                          color: colors.mutedForeground,
+                          fontFamily: "SpaceGrotesk_400Regular",
+                          fontSize: 11,
+                          marginTop: 6,
+                        }}
+                      >
+                        Preview of the point you'll save.
+                      </Text>
+                    </View>
+                  )}
               </View>
             )}
           </View>
