@@ -97,10 +97,12 @@ const TOOL_PAGES: {
     | "/insider"
     | "/leaderboard"
     | "/vault-audit"
+    | "/orders"
     | "/links/conversational";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
+  { href: "/orders", label: "Orders", icon: "shopping-bag" },
   { href: "/posts", label: "Posts", icon: "message-square" },
   { href: "/contacts", label: "Contacts", icon: "users" },
   { href: "/dialer", label: "Dialer", icon: "phone" },

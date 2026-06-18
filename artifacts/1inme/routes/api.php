@@ -120,6 +120,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/creator/subscribers',  [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerSubscribers']);
         Route::get('/me/creator/payments',     [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerPayments']);
         Route::get('/me/creator/tiers',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerTiers']);
+
+        // In-page Product storefront (Task #1763). The cart lives in the app
+        // (no session on the Sanctum path) and is posted as line items.
+        Route::post('/store/{alias}/buy',      [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'buy'])->middleware('throttle:30,1');
+        Route::post('/store/{alias}/checkout', [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'checkout'])->middleware('throttle:30,1');
+        Route::get ('/store/orders/{order}',   [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'order'])->whereNumber('order');
+        Route::get ('/me/creator/orders',                [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'ownerOrders']);
+        Route::post('/me/creator/orders/{order}/fulfill',[\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'fulfillOrder'])->whereNumber('order');
     });
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])

@@ -3,15 +3,26 @@ import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import * as React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   FlatList,
   Image,
   ImageBackground,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -34,10 +45,50 @@ import {
 import { BrandWordmark } from "@/components/Brand";
 import { EmbedModal } from "@/components/EmbedModal";
 import { ReviewsWall } from "@/components/ReviewsWall";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
+import { buyProduct, checkoutCart } from "@/lib/api/store";
 import { variantOverlay } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
+
+// ── In-page Product storefront cart (Task #1763) ────────────────────
+// The web storefront keeps the cart in the HTTP session; the Sanctum
+// mobile path has no session, so the cart lives here in app state and is
+// posted as line items to /store/{alias}/checkout. Prices are always
+// re-read server-side from the block — these snapshots are display-only.
+
+export type CartLine = {
+  blockId: number;
+  name: string;
+  priceCents: number;
+  currency: string;
+  image: string | null;
+  productType: "digital" | "physical";
+  qty: number;
+};
+
+type CartContextValue = {
+  lines: CartLine[];
+  count: number;
+  subtotalCents: number;
+  currency: string | null;
+  add: (line: Omit<CartLine, "qty">) => void;
+  setQty: (blockId: number, qty: number) => void;
+  remove: (blockId: number) => void;
+  clear: () => void;
+  open: () => void;
+};
+
+const CartContext = createContext<CartContextValue | null>(null);
+
+function useCart(): CartContextValue {
+  const ctx = useContext(CartContext);
+  if (!ctx) {
+    throw new Error("useCart must be used within a CartProvider");
+  }
+  return ctx;
+}
 
 // Build the card style override that should overlay any default
 // `blockCardStyle(block, colors)` style.
@@ -135,6 +186,14 @@ function isSafeUrl(u: string): boolean {
   } catch {
     return false;
   }
+}
+// Display-only money formatter for the storefront. The server is the source
+// of truth for the amount actually charged — this only renders snapshots.
+function fmtMoney(cents: number, currency: string): string {
+  const amount = (cents / 100).toFixed(cents % 100 ? 2 : 0);
+  const cur = (currency || "USD").toUpperCase();
+  const symbol = cur === "USD" ? "$" : cur === "EUR" ? "€" : cur === "GBP" ? "£" : "";
+  return symbol ? `${symbol}${amount}` : `${amount} ${cur}`;
 }
 function openSafe(u: string, router: ReturnType<typeof useRouter>) {
   if (!isSafeUrl(u)) return;
@@ -744,6 +803,166 @@ function useRememberedResponse(alias: string, blockId: number) {
 }
 
 
+// Native-checkout Product block (Task #1763). Renders the storefront card
+// with in-app Buy Now + Add to Cart. Buying opens the hosted-checkout URL in
+// the system browser (provider rules) then routes to the order/thank-you
+// screen which polls for the paid status and exposes digital downloads.
+function NativeProductBlock({
+  block,
+  alias,
+  colors,
+}: {
+  block: BiolinkBlock;
+  alias: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const router = useRouter();
+  const cart = useCart();
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+
+  const s = block.settings ?? {};
+  const name = (pickStr(s, "name", "title") ?? "Product").trim() || "Product";
+  const desc = pickStr(s, "description", "subtitle");
+  const priceCents = pickNum(s, "price_cents") ?? 0;
+  const currency = (pickStr(s, "currency") ?? "USD").toUpperCase();
+  const productType = pickStr(s, "product_type") === "physical" ? "physical" : "digital";
+  const image = pickStr(s, "image", "thumbnail");
+
+  const inCart = cart.lines.some((l) => l.blockId === block.id);
+
+  const ensureAuthed = (): boolean => {
+    if (user) return true;
+    Alert.alert(
+      "Sign in to buy",
+      "Create a free account or sign in to complete your purchase.",
+      [
+        { text: "Not now", style: "cancel" },
+        { text: "Sign in", onPress: () => router.push("/(auth)" as any) },
+      ],
+    );
+    return false;
+  };
+
+  const handleBuyNow = async () => {
+    if (busy) return;
+    if (!ensureAuthed()) return;
+    setBusy(true);
+    try {
+      const res = await buyProduct(alias, block.id);
+      if (res.checkout_url) {
+        try {
+          await WebBrowser.openBrowserAsync(res.checkout_url);
+        } catch {
+          Linking.openURL(res.checkout_url);
+        }
+      }
+      router.push(`/store/order/${res.order.id}` as any);
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      if (err.status === 401) {
+        ensureAuthed();
+      } else {
+        Alert.alert("Couldn't start checkout", err.message || "Please try again.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAddToCart = () => {
+    cart.add({
+      blockId: block.id,
+      name,
+      priceCents,
+      currency,
+      image: image ?? null,
+      productType,
+    });
+  };
+
+  return (
+    <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
+      {image ? (
+        <Image
+          source={{ uri: image }}
+          style={[styles.image, { aspectRatio: 16 / 9, marginBottom: 10 }]}
+        />
+      ) : null}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left", flex: 1 }]}>
+          {name}
+        </Text>
+        <View
+          style={{
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 999,
+            backgroundColor: "rgba(124,58,237,0.15)",
+          }}
+        >
+          <Text style={{ fontSize: 10, fontWeight: "700", color: "#a78bfa" }}>
+            {productType === "physical" ? "Ships" : "Digital"}
+          </Text>
+        </View>
+      </View>
+      {desc ? (
+        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 13, marginTop: 2 }]}>
+          {desc}
+        </Text>
+      ) : null}
+      <Text style={[styles.heading, { color: colors.primary, textAlign: "left", fontSize: 20, marginTop: 6 }]}>
+        {fmtMoney(priceCents, currency)}
+      </Text>
+
+      <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+        <Pressable
+          onPress={handleBuyNow}
+          disabled={busy}
+          style={{
+            flex: 1,
+            backgroundColor: colors.primary,
+            borderRadius: 12,
+            paddingVertical: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: busy ? 0.6 : 1,
+          }}
+        >
+          {busy ? (
+            <ActivityIndicator color={colors.primaryForeground ?? "#fff"} />
+          ) : (
+            <Text style={{ color: colors.primaryForeground ?? "#fff", fontWeight: "700" }}>
+              Buy now
+            </Text>
+          )}
+        </Pressable>
+        <Pressable
+          onPress={handleAddToCart}
+          disabled={inCart}
+          style={{
+            paddingHorizontal: 16,
+            borderRadius: 12,
+            paddingVertical: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+            opacity: inCart ? 0.6 : 1,
+          }}
+        >
+          <Feather
+            name={inCart ? "check" : "shopping-cart"}
+            size={18}
+            color={inCart ? colors.primary : colors.foreground}
+          />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const colors = useColors();
   const router = useRouter();
@@ -1195,6 +1414,13 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   }
 
   if (t === "product" || t === "service") {
+    // Native-checkout products (in-page storefront) get the full Buy Now /
+    // Add to Cart UI; everything else falls back to the simple link card.
+    const nativeCheckout = !!(s as Record<string, unknown>).native_checkout;
+    const priceCents = pickNum(s, "price_cents") ?? 0;
+    if (t === "product" && nativeCheckout && priceCents > 0) {
+      return <NativeProductBlock block={block} alias={alias} colors={colors} />;
+    }
     const title = pickStr(s, "title", "name") ?? (t === "product" ? "Product" : "Service");
     const desc = pickStr(s, "description", "subtitle");
     const price = pickStr(s, "price");
@@ -2543,6 +2769,252 @@ function SlidesViewer({
   );
 }
 
+// Provides the in-page storefront cart and renders the floating cart bar +
+// checkout drawer. Wraps the biolink content so any nested Product block
+// (even inside card containers) can add to the cart via context.
+function StoreCartProvider({ alias, children }: { alias: string; children: React.ReactNode }) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { user } = useAuth();
+  const [lines, setLines] = useState<CartLine[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const add = useCallback((line: Omit<CartLine, "qty">) => {
+    setLines((prev) => {
+      const existing = prev.find((l) => l.blockId === line.blockId);
+      if (existing) {
+        return prev.map((l) =>
+          l.blockId === line.blockId ? { ...l, qty: Math.min(99, l.qty + 1) } : l,
+        );
+      }
+      // Single-currency cart: ignore items in a different currency than
+      // what's already there (mirrors the server's single-currency order).
+      if (prev.length > 0 && prev[0].currency !== line.currency) {
+        Alert.alert(
+          "Different currency",
+          "Your cart already has items in another currency. Check out first, then start a new cart.",
+        );
+        return prev;
+      }
+      return [...prev, { ...line, qty: 1 }];
+    });
+  }, []);
+
+  const setQty = useCallback((blockId: number, qty: number) => {
+    setLines((prev) =>
+      qty <= 0
+        ? prev.filter((l) => l.blockId !== blockId)
+        : prev.map((l) => (l.blockId === blockId ? { ...l, qty: Math.min(99, qty) } : l)),
+    );
+  }, []);
+
+  const remove = useCallback((blockId: number) => {
+    setLines((prev) => prev.filter((l) => l.blockId !== blockId));
+  }, []);
+
+  const clear = useCallback(() => setLines([]), []);
+  const open = useCallback(() => setDrawerOpen(true), []);
+
+  const subtotalCents = lines.reduce((sum, l) => sum + l.priceCents * l.qty, 0);
+  const count = lines.reduce((sum, l) => sum + l.qty, 0);
+  const currency = lines[0]?.currency ?? null;
+
+  const value = useMemo<CartContextValue>(
+    () => ({ lines, count, subtotalCents, currency, add, setQty, remove, clear, open }),
+    [lines, count, subtotalCents, currency, add, setQty, remove, clear, open],
+  );
+
+  const handleCheckout = async () => {
+    if (busy || lines.length === 0) return;
+    if (!user) {
+      Alert.alert(
+        "Sign in to check out",
+        "Create a free account or sign in to complete your purchase.",
+        [
+          { text: "Not now", style: "cancel" },
+          { text: "Sign in", onPress: () => router.push("/(auth)" as any) },
+        ],
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await checkoutCart(
+        alias,
+        lines.map((l) => ({ block_id: l.blockId, quantity: l.qty })),
+      );
+      if (res.checkout_url) {
+        try {
+          await WebBrowser.openBrowserAsync(res.checkout_url);
+        } catch {
+          Linking.openURL(res.checkout_url);
+        }
+      }
+      setDrawerOpen(false);
+      clear();
+      router.push(`/store/order/${res.order.id}` as any);
+    } catch (e) {
+      const err = e as { message?: string };
+      Alert.alert("Couldn't check out", err.message || "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+
+      {count > 0 ? (
+        <Pressable
+          onPress={open}
+          style={{
+            position: "absolute",
+            left: 20,
+            right: 20,
+            bottom: insets.bottom + 16,
+            backgroundColor: colors.primary,
+            borderRadius: 16,
+            paddingVertical: 14,
+            paddingHorizontal: 18,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            shadowColor: "#000",
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 6,
+          }}
+        >
+          <Feather name="shopping-cart" size={18} color={colors.primaryForeground ?? "#fff"} />
+          <Text style={{ color: colors.primaryForeground ?? "#fff", fontWeight: "700", flex: 1 }}>
+            View cart ({count})
+          </Text>
+          <Text style={{ color: colors.primaryForeground ?? "#fff", fontWeight: "800" }}>
+            {fmtMoney(subtotalCents, currency ?? "USD")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <Modal
+        visible={drawerOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDrawerOpen(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
+          onPress={() => setDrawerOpen(false)}
+        />
+        <View
+          style={{
+            backgroundColor: colors.background,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            paddingTop: 16,
+            paddingHorizontal: 20,
+            paddingBottom: insets.bottom + 20,
+            maxHeight: "80%",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <Text style={[styles.heading, { color: colors.foreground, fontSize: 20, flex: 1, marginTop: 0 }]}>
+              Your cart
+            </Text>
+            <Pressable onPress={() => setDrawerOpen(false)} hitSlop={12}>
+              <Feather name="x" size={24} color={colors.foreground} />
+            </Pressable>
+          </View>
+
+          <ScrollView style={{ maxHeight: 360 }}>
+            {lines.map((l) => (
+              <View
+                key={l.blockId}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingVertical: 10,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                {l.image ? (
+                  <Image source={{ uri: l.image }} style={{ width: 48, height: 48, borderRadius: 8 }} />
+                ) : (
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 8,
+                      backgroundColor: colors.card,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Feather name="box" size={20} color={colors.mutedForeground} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]} numberOfLines={1}>
+                    {l.name}
+                  </Text>
+                  <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
+                    {fmtMoney(l.priceCents, l.currency)}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <Pressable onPress={() => setQty(l.blockId, l.qty - 1)} hitSlop={8}>
+                    <Feather name="minus-circle" size={22} color={colors.mutedForeground} />
+                  </Pressable>
+                  <Text style={{ color: colors.foreground, fontWeight: "700", minWidth: 18, textAlign: "center" }}>
+                    {l.qty}
+                  </Text>
+                  <Pressable onPress={() => setQty(l.blockId, l.qty + 1)} hitSlop={8}>
+                    <Feather name="plus-circle" size={22} color={colors.primary} />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16, marginBottom: 12 }}>
+            <Text style={[styles.btnLabel, { color: colors.mutedForeground, flex: 1, textAlign: "left" }]}>
+              Subtotal
+            </Text>
+            <Text style={[styles.heading, { color: colors.foreground, fontSize: 20, marginTop: 0 }]}>
+              {fmtMoney(subtotalCents, currency ?? "USD")}
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={handleCheckout}
+            disabled={busy}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 14,
+              paddingVertical: 15,
+              alignItems: "center",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? (
+              <ActivityIndicator color={colors.primaryForeground ?? "#fff"} />
+            ) : (
+              <Text style={{ color: colors.primaryForeground ?? "#fff", fontWeight: "800", fontSize: 16 }}>
+                Checkout
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      </Modal>
+    </CartContext.Provider>
+  );
+}
+
 export default function BiolinkViewer() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -2590,6 +3062,7 @@ export default function BiolinkViewer() {
   }, [q.data, alias, tableCode, router]);
 
   return (
+    <StoreCartProvider alias={alias}>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ headerShown: false }} />
       <View
@@ -2709,6 +3182,7 @@ export default function BiolinkViewer() {
         onClose={closeEmbed}
       />
     </View>
+    </StoreCartProvider>
   );
 }
 
