@@ -369,6 +369,28 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/',  [WalletSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
+        // Integrations hub: one landing page consolidating every
+        // third-party credential surface (AI Engine, WhatsApp & alerts,
+        // Email/SMTP, Payment Gateways, Social OAuth) plus the new env-only
+        // editors managed here — Google Places & Trustpilot reviews keys,
+        // Google Contacts OAuth, and the S3 user-content storage backend.
+        Route::prefix('integrations')->name('integrations.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+
+            Route::get('google-places', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editGooglePlaces'])->middleware(CheckPermission::class . ':settings.manage')->name('google-places.edit');
+            Route::put('google-places', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGooglePlaces'])->middleware(CheckPermission::class . ':settings.manage')->name('google-places.update');
+
+            Route::get('trustpilot', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editTrustpilot'])->middleware(CheckPermission::class . ':settings.manage')->name('trustpilot.edit');
+            Route::put('trustpilot', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateTrustpilot'])->middleware(CheckPermission::class . ':settings.manage')->name('trustpilot.update');
+
+            Route::get('google-contacts', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editGoogleContacts'])->middleware(CheckPermission::class . ':settings.manage')->name('google-contacts.edit');
+            Route::put('google-contacts', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGoogleContacts'])->middleware(CheckPermission::class . ':settings.manage')->name('google-contacts.update');
+
+            Route::get('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.edit');
+            Route::put('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.update');
+            Route::post('storage/test', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'testStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.test');
+        });
+
         // AI Engine: OpenAI key, models/rates, wallet→credits conversion,
         // credit packs, plus per-user usage report and adjustments.
         Route::prefix('ai-engine')->name('ai-engine.')->group(function () {

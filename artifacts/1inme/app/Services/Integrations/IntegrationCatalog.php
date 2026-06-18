@@ -1,0 +1,244 @@
+<?php
+
+namespace App\Services\Integrations;
+
+use App\Services\AI\AiEngineSettings;
+use App\Services\Billing\GatewayManager;
+use App\Modules\User\Services\SocialFollowers\SocialOAuthService;
+
+/**
+ * Single source of truth describing every third-party integration the
+ * platform talks to, grouped by category, for the admin Integrations hub.
+ *
+ * Each integration entry exposes a human label, description, icon, a
+ * {key,label,tone} status descriptor (configured / env fallback / not
+ * configured / preview) and a route to its editor. Some editors are
+ * dedicated pages that already existed (AI Engine, Payment Gateways,
+ * Email/SMTP, Social OAuth, WhatsApp & alerts) and some are the new
+ * env-only editors rendered inside this hub (reviews keys, Google
+ * Contacts OAuth, S3 storage).
+ *
+ * This catalog only *reads* status — it never mutates settings — so it is
+ * safe to call on every hub render.
+ */
+class IntegrationCatalog
+{
+    /**
+     * @return array<int,array{
+     *   key:string,label:string,icon:string,
+     *   items:array<int,array{key:string,label:string,desc:string,icon:string,status:array,route:?string,external:bool}>
+     * }>
+     */
+    public static function categories(): array
+    {
+        return [
+            [
+                'key'   => 'ai',
+                'label' => 'AI & Voice',
+                'icon'  => 'fas fa-brain',
+                'items' => [
+                    [
+                        'key'      => 'ai-engine',
+                        'label'    => 'AI Engine (OpenAI)',
+                        'desc'     => 'OpenAI key powering chat, embeddings and every AI-credit feature, plus Whisper (STT) and ElevenLabs (TTS) for the voice assistant.',
+                        'icon'     => 'fas fa-brain',
+                        'status'   => self::aiEngineStatus(),
+                        'route'    => route('admin.ai-engine.edit'),
+                        'external' => true,
+                    ],
+                ],
+            ],
+            [
+                'key'   => 'messaging',
+                'label' => 'Messaging & Alerts',
+                'icon'  => 'fas fa-comment-dots',
+                'items' => [
+                    [
+                        'key'      => 'whatsapp',
+                        'label'    => 'WhatsApp Cloud API',
+                        'desc'     => 'Delivers login & verification OTPs over WhatsApp. Preview mode (logged, not sent) when unset.',
+                        'icon'     => 'fab fa-whatsapp',
+                        'status'   => IntegrationKeySettings::whatsappStatus(),
+                        'route'    => route('admin.api-keys.index'),
+                        'external' => true,
+                    ],
+                    [
+                        'key'      => 'alerts',
+                        'label'    => 'Internal alerts (Slack / Discord)',
+                        'desc'     => 'Posts system & team alerts (downtime, broadcasts, payment failures) to Slack and/or Discord webhooks.',
+                        'icon'     => 'fas fa-bell',
+                        'status'   => IntegrationKeySettings::alertsStatus(),
+                        'route'    => route('admin.api-keys.index'),
+                        'external' => true,
+                    ],
+                    [
+                        'key'      => 'mail',
+                        'label'    => 'Email / SMTP',
+                        'desc'     => 'Outbound mail transport for notifications, newsletters and email OTPs.',
+                        'icon'     => 'fas fa-envelope',
+                        'status'   => MailSettings::status(),
+                        'route'    => route('admin.mail-settings.index'),
+                        'external' => true,
+                    ],
+                ],
+            ],
+            [
+                'key'   => 'payments',
+                'label' => 'Payments',
+                'icon'  => 'fas fa-credit-card',
+                'items' => [
+                    [
+                        'key'      => 'gateways',
+                        'label'    => 'Payment gateways',
+                        'desc'     => 'Razorpay, Stripe, PayPal, Cashfree and offline — credentials, mode and enablement.',
+                        'icon'     => 'fas fa-credit-card',
+                        'status'   => self::gatewaysStatus(),
+                        'route'    => route('admin.payment-gateways.index'),
+                        'external' => true,
+                    ],
+                ],
+            ],
+            [
+                'key'   => 'social',
+                'label' => 'Social OAuth',
+                'icon'  => 'fas fa-share-nodes',
+                'items' => [
+                    [
+                        'key'      => 'social-oauth',
+                        'label'    => 'Social login & follow OAuth',
+                        'desc'     => 'Facebook, Instagram, LinkedIn, X, Pinterest and TikTok one-click connect for creators.',
+                        'icon'     => 'fas fa-share-nodes',
+                        'status'   => self::socialStatus(),
+                        'route'    => route('admin.social-oauth.index'),
+                        'external' => true,
+                    ],
+                ],
+            ],
+            [
+                'key'   => 'reviews',
+                'label' => 'Reviews',
+                'icon'  => 'fas fa-star',
+                'items' => [
+                    [
+                        'key'      => 'google-places',
+                        'label'    => 'Google Places (reviews)',
+                        'desc'     => 'Imports Google Business Profile reviews. Absent key ⇒ preview mode.',
+                        'icon'     => 'fab fa-google',
+                        'status'   => PlatformServiceSettings::googlePlacesStatus(),
+                        'route'    => route('admin.integrations.google-places.edit'),
+                        'external' => false,
+                    ],
+                    [
+                        'key'      => 'trustpilot',
+                        'label'    => 'Trustpilot (reviews)',
+                        'desc'     => 'Imports Trustpilot Business Unit reviews. Absent key ⇒ preview mode.',
+                        'icon'     => 'fas fa-star',
+                        'status'   => PlatformServiceSettings::trustpilotStatus(),
+                        'route'    => route('admin.integrations.trustpilot.edit'),
+                        'external' => false,
+                    ],
+                ],
+            ],
+            [
+                'key'   => 'contacts',
+                'label' => 'Contacts',
+                'icon'  => 'fas fa-address-book',
+                'items' => [
+                    [
+                        'key'      => 'google-contacts',
+                        'label'    => 'Google Contacts OAuth',
+                        'desc'     => 'OAuth client powering two-way Google Contacts sync (People API).',
+                        'icon'     => 'fab fa-google',
+                        'status'   => PlatformServiceSettings::googleContactsStatus(),
+                        'route'    => route('admin.integrations.google-contacts.edit'),
+                        'external' => false,
+                    ],
+                ],
+            ],
+            [
+                'key'   => 'storage',
+                'label' => 'Storage',
+                'icon'  => 'fas fa-database',
+                'items' => [
+                    [
+                        'key'      => 's3',
+                        'label'    => 'S3 / CloudFront storage',
+                        'desc'     => 'Durable user-content storage for uploads and public assets. Falls back to the local disk when off.',
+                        'icon'     => 'fab fa-aws',
+                        'status'   => PlatformServiceSettings::s3Status(),
+                        'route'    => route('admin.integrations.storage.edit'),
+                        'external' => false,
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /** Flat count of integrations whose status tone is green. */
+    public static function summary(): array
+    {
+        $total = 0;
+        $configured = 0;
+        $attention = 0;
+        foreach (self::categories() as $cat) {
+            foreach ($cat['items'] as $item) {
+                $total++;
+                $tone = $item['status']['tone'] ?? 'slate';
+                if ($tone === 'green') $configured++;
+                elseif ($tone === 'amber') $attention++;
+            }
+        }
+        return ['total' => $total, 'configured' => $configured, 'attention' => $attention];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Per-integration status helpers for systems without their own
+    // status() descriptor.
+    // ─────────────────────────────────────────────────────────────
+
+    private static function aiEngineStatus(): array
+    {
+        $hasKey  = AiEngineSettings::openAiKey() !== null;
+        $enabled = AiEngineSettings::isEnabled();
+        if (!$hasKey) {
+            return ['key' => 'preview', 'label' => 'No key (preview)', 'tone' => 'slate'];
+        }
+        if (!$enabled) {
+            return ['key' => 'disabled', 'label' => 'Key set, engine off', 'tone' => 'amber'];
+        }
+        return ['key' => 'configured', 'label' => 'Configured', 'tone' => 'green'];
+    }
+
+    private static function gatewaysStatus(): array
+    {
+        try {
+            $enabled = app(GatewayManager::class)->enabledAdapters();
+            $count = count($enabled);
+        } catch (\Throwable $e) {
+            $count = 0;
+        }
+        if ($count <= 0) {
+            return ['key' => 'preview', 'label' => 'None enabled', 'tone' => 'slate'];
+        }
+        return ['key' => 'configured', 'label' => $count . ' enabled', 'tone' => 'green'];
+    }
+
+    private static function socialStatus(): array
+    {
+        try {
+            $oauth = app(SocialOAuthService::class);
+            $total = 0;
+            $configured = 0;
+            foreach (array_keys(SocialOAuthService::PROVIDERS) as $key) {
+                $total++;
+                if ($oauth->isConfigured($key)) $configured++;
+            }
+        } catch (\Throwable $e) {
+            return ['key' => 'preview', 'label' => 'Not configured', 'tone' => 'slate'];
+        }
+        if ($configured <= 0) {
+            return ['key' => 'preview', 'label' => 'None configured', 'tone' => 'slate'];
+        }
+        return ['key' => 'configured', 'label' => $configured . '/' . $total . ' configured', 'tone' => 'green'];
+    }
+}

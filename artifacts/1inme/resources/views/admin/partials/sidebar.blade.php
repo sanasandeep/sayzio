@@ -170,14 +170,6 @@
             <span class="sidebar-tooltip">AI Usage</span>
         </a>
 
-        <a href="{{ route('admin.api-keys.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.api-keys.*') ? 'active' : '' }}"
-           style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
-            <div class="nav-icon-wrap"><i class="fas fa-key"></i></div>
-            <span class="nav-label">API Keys &amp; Plugins</span>
-            <span class="sidebar-tooltip">API Keys &amp; Plugins</span>
-        </a>
-
         <a href="{{ route('admin.ai-minds.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
@@ -208,14 +200,6 @@
             <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
             <span class="nav-label">Branding</span>
             <span class="sidebar-tooltip">Branding</span>
-        </a>
-
-        <a href="{{ route('admin.social-oauth.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.social-oauth.*') ? 'active' : '' }}"
-           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
-            <div class="nav-icon-wrap"><i class="fas fa-plug"></i></div>
-            <span class="nav-label">Social OAuth</span>
-            <span class="sidebar-tooltip">Social OAuth</span>
         </a>
 
         <a href="{{ route('admin.assets.index') }}"
@@ -260,12 +244,12 @@
             <span class="sidebar-tooltip">Login &amp; OTP</span>
         </a>
 
-        <a href="{{ route('admin.mail-settings.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.mail-settings.*') ? 'active' : '' }}"
-           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
-            <div class="nav-icon-wrap"><i class="fas fa-envelope"></i></div>
-            <span class="nav-label">Email / SMTP</span>
-            <span class="sidebar-tooltip">Email / SMTP</span>
+        <a href="{{ route('admin.integrations.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.integrations.*') ? 'active' : '' }}"
+           style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div>
+            <span class="nav-label">Integrations</span>
+            <span class="sidebar-tooltip">Integrations</span>
         </a>
 
         <a href="{{ route('admin.marketing-settings.index') }}"

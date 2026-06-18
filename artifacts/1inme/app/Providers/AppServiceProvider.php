@@ -59,6 +59,10 @@ class AppServiceProvider extends ServiceProvider
                 // (app_settings) override these at runtime, but the env values
                 // remain the fallback.
                 ['MAIL_MAILER', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_SCHEME', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME', 'MAIL_EHLO_DOMAIN'],
+                // Env-only platform services now editable from the admin
+                // Integrations hub. These remain the fallback when no admin
+                // value is stored, so the child must still inherit them.
+                ['GOOGLE_PLACES_API_KEY', 'TRUSTPILOT_API_KEY', 'GOOGLE_CONTACTS_CLIENT_ID', 'GOOGLE_CONTACTS_CLIENT_SECRET'],
             )));
         }
 
@@ -70,6 +74,17 @@ class AppServiceProvider extends ServiceProvider
             \App\Services\Integrations\MailSettings::applyRuntimeConfig();
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('MailSettings runtime override failed: ' . $e->getMessage());
+        }
+
+        // Override the env-only platform services (Google Places / Trustpilot
+        // reviews keys, Google Contacts OAuth client, and the S3 user-content
+        // storage backend) with their admin-configured values from the
+        // Integrations hub, falling back to env/config when unset. Best-effort
+        // so a settings read can never break the whole boot.
+        try {
+            \App\Services\Integrations\PlatformServiceSettings::applyRuntimeConfig();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('PlatformServiceSettings runtime override failed: ' . $e->getMessage());
         }
 
         \Illuminate\Support\Facades\View::composer(
