@@ -456,6 +456,126 @@ uri = "file://artifacts/1inme/public/paid-page-bg/mesh-dark.png"
 type = "image"
 title = "mesh dark bg"
 
+[[generated]]
+id = "9ifSMa3dDMnNKTI9sQqJ2"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_short_link.png"
+type = "image"
+title = "a_short_link"
+
+[[generated]]
+id = "_paX4hTy5aaCnfGwcCeDx"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_link_in_bio.png"
+type = "image"
+title = "a_link_in_bio"
+
+[[generated]]
+id = "SSWe672f3UVJA_IYyCz08"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_conversational.png"
+type = "image"
+title = "a_conversational"
+
+[[generated]]
+id = "y0AL8sZf7Wu5e01rfli5g"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_slides.png"
+type = "image"
+title = "a_slides"
+
+[[generated]]
+id = "NAs-W4zH4SVxlpsHL35me"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_ai_chatbot.png"
+type = "image"
+title = "a_ai_chatbot"
+
+[[generated]]
+id = "-ZPcj8CvGNyC-QI6BNzsd"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_restaurant_menu.png"
+type = "image"
+title = "a_restaurant_menu"
+
+[[generated]]
+id = "DHQYqo2ubn5XtpyoYvZUo"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_file_share.png"
+type = "image"
+title = "a_file_share"
+
+[[generated]]
+id = "r6cmLYnaFPIzhzMnGsvzq"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_event.png"
+type = "image"
+title = "a_event"
+
+[[generated]]
+id = "8zgrbEl6L9mUM5-4SluO0"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_contact_card.png"
+type = "image"
+title = "a_contact_card"
+
+[[generated]]
+id = "wmGK5OqdgHQ5883HOOJej"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/a_reviews_page.png"
+type = "image"
+title = "a_reviews_page"
+
+[[generated]]
+id = "14BdRlfcFnRHCBLjiBrVo"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_short_link.png"
+type = "image"
+title = "b_short_link"
+
+[[generated]]
+id = "ltUdusFt_7VDWQOcS2qOP"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_link_in_bio.png"
+type = "image"
+title = "b_link_in_bio"
+
+[[generated]]
+id = "jUOYGrkfWTXB0HNSMfhqi"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_conversational.png"
+type = "image"
+title = "b_conversational"
+
+[[generated]]
+id = "5dMBsBchsXR2QDL_IOj8Q"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_slides.png"
+type = "image"
+title = "b_slides"
+
+[[generated]]
+id = "yV6wn7aaexsRkHZ6nxMvy"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_ai_chatbot.png"
+type = "image"
+title = "b_ai_chatbot"
+
+[[generated]]
+id = "gu7C_Q9Y4vn8voD0K9GjO"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_restaurant_menu.png"
+type = "image"
+title = "b_restaurant_menu"
+
+[[generated]]
+id = "WEtP5j7MdMwUM5sDiIwFy"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_file_share.png"
+type = "image"
+title = "b_file_share"
+
+[[generated]]
+id = "RN0ra9BWg8Pt16K35CkyB"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_event.png"
+type = "image"
+title = "b_event"
+
+[[generated]]
+id = "rlXoJRGZiecKUFSTFx17y"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_contact_card.png"
+type = "image"
+title = "b_contact_card"
+
+[[generated]]
+id = "7-r52VglUMF4EXwv3A76Q"
+uri = "file://deliverables/whatsapp-status-posters/illustrations/b_reviews_page.png"
+type = "image"
+title = "b_reviews_page"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
@@ -551,3 +671,123 @@ id = "92SNGcmskTzogIreXbskh"
 uri = "file://.local/outputs/1INME.pptx"
 type = "slides"
 title = "1INME.pptx"
+
+[[outputs]]
+id = "ySiUidzK1pMmfITi54OeZ"
+uri = "file://deliverables/whatsapp-status-posters/short-link__what-it-is.png"
+type = "image"
+title = "Short Link — What it is"
+
+[[outputs]]
+id = "2dcIWqr6o0mYwTRMrOS2f"
+uri = "file://deliverables/whatsapp-status-posters/short-link__how-1inme-helps.png"
+type = "image"
+title = "Short Link — How 1IN.ME helps"
+
+[[outputs]]
+id = "pxarDYrNYsBAniyvIz3Li"
+uri = "file://deliverables/whatsapp-status-posters/link-in-bio__what-it-is.png"
+type = "image"
+title = "Link in Bio — What it is"
+
+[[outputs]]
+id = "-n7B-5cfI9E7jTg0FFPr9"
+uri = "file://deliverables/whatsapp-status-posters/link-in-bio__how-1inme-helps.png"
+type = "image"
+title = "Link in Bio — How 1IN.ME helps"
+
+[[outputs]]
+id = "-6uzjtYXHcqJCH9vbWTKI"
+uri = "file://deliverables/whatsapp-status-posters/conversational__what-it-is.png"
+type = "image"
+title = "Conversational — What it is"
+
+[[outputs]]
+id = "J00kly-I0SfsNRU3OHIbc"
+uri = "file://deliverables/whatsapp-status-posters/conversational__how-1inme-helps.png"
+type = "image"
+title = "Conversational — How 1IN.ME helps"
+
+[[outputs]]
+id = "rtvi_h9JNU7H3ZOmguNzq"
+uri = "file://deliverables/whatsapp-status-posters/slides__what-it-is.png"
+type = "image"
+title = "Slides — What it is"
+
+[[outputs]]
+id = "T575EkDwRWdowUrD8lzeV"
+uri = "file://deliverables/whatsapp-status-posters/slides__how-1inme-helps.png"
+type = "image"
+title = "Slides — How 1IN.ME helps"
+
+[[outputs]]
+id = "vk4Oq5zd7dsNADl-Oq0q4"
+uri = "file://deliverables/whatsapp-status-posters/ai-chatbot__what-it-is.png"
+type = "image"
+title = "AI Chatbot — What it is"
+
+[[outputs]]
+id = "s6ut_TlXGvAKlnIDflBUw"
+uri = "file://deliverables/whatsapp-status-posters/ai-chatbot__how-1inme-helps.png"
+type = "image"
+title = "AI Chatbot — How 1IN.ME helps"
+
+[[outputs]]
+id = "OcJwJajiELD4a5vQ8k92R"
+uri = "file://deliverables/whatsapp-status-posters/restaurant-menu__what-it-is.png"
+type = "image"
+title = "Restaurant Menu — What it is"
+
+[[outputs]]
+id = "WcmXfDP8nF6yJV9OBDbOA"
+uri = "file://deliverables/whatsapp-status-posters/restaurant-menu__how-1inme-helps.png"
+type = "image"
+title = "Restaurant Menu — How 1IN.ME helps"
+
+[[outputs]]
+id = "9fg1W6VwbOGSgZJ1jQq01"
+uri = "file://deliverables/whatsapp-status-posters/file-share__what-it-is.png"
+type = "image"
+title = "File Share — What it is"
+
+[[outputs]]
+id = "P3D4scMznNv0u4dbTexhn"
+uri = "file://deliverables/whatsapp-status-posters/file-share__how-1inme-helps.png"
+type = "image"
+title = "File Share — How 1IN.ME helps"
+
+[[outputs]]
+id = "9R0rNvDSdESjDLaTNfGNc"
+uri = "file://deliverables/whatsapp-status-posters/event__what-it-is.png"
+type = "image"
+title = "Event — What it is"
+
+[[outputs]]
+id = "4iav2CdCvGuSHCvy9bmIs"
+uri = "file://deliverables/whatsapp-status-posters/event__how-1inme-helps.png"
+type = "image"
+title = "Event — How 1IN.ME helps"
+
+[[outputs]]
+id = "7rt6SgWvLqG9W0Yr3FnxH"
+uri = "file://deliverables/whatsapp-status-posters/contact-card__what-it-is.png"
+type = "image"
+title = "Contact Card — What it is"
+
+[[outputs]]
+id = "Hx8IXWsCJp-ue9t3dKTFj"
+uri = "file://deliverables/whatsapp-status-posters/contact-card__how-1inme-helps.png"
+type = "image"
+title = "Contact Card — How 1IN.ME helps"
+
+[[outputs]]
+id = "Z8Boks5Wa7VwEQcUqfCuV"
+uri = "file://deliverables/whatsapp-status-posters/reviews-page__what-it-is.png"
+type = "image"
+title = "Reviews Page — What it is"
+
+[[outputs]]
+id = "PvmnKS0gR44wG5i2gz-l8"
+uri = "file://deliverables/whatsapp-status-posters/reviews-page__how-1inme-helps.png"
+type = "image"
+title = "Reviews Page — How 1IN.ME helps"
