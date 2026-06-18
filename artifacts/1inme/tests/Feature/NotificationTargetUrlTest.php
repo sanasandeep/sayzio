@@ -124,6 +124,34 @@ class NotificationTargetUrlTest extends TestCase
         $this->assertNull($items[$noTarget->id]['url']);
     }
 
+    public function test_dismissed_feed_returns_resolver_target_url_per_notification(): void
+    {
+        $user = $this->makeUser();
+
+        // A type-derived notification stores no URL — only the resolver knows
+        // its target. Dismiss it so it surfaces in the dismissed feed.
+        $typeDerived = $this->makeNotification($user, 'workspace_access_request', []);
+        $typeDerived->delete();
+
+        $token = $user->createToken('test', ['*'])->plainTextToken;
+
+        $resp = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Accept'        => 'application/json',
+        ])->getJson('/api/v1/notifications/dismissed');
+
+        $resp->assertOk();
+        $items = collect($resp->json('data.items'))->keyBy('id');
+
+        // The dismissed payload must point to the same resolved target the
+        // active feed would — not the raw (and here null) stored url field.
+        $this->assertSame(
+            UserNotification::resolveTargetUrl($typeDerived->data, $typeDerived->type),
+            $items[$typeDerived->id]['url'],
+        );
+        $this->assertNotNull($items[$typeDerived->id]['url']);
+    }
+
     public function test_in_app_row_links_to_resolved_target(): void
     {
         $user = $this->makeUser();
