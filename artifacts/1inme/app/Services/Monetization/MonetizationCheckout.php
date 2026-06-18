@@ -8,6 +8,7 @@ use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\CreatorSubscription;
 use App\Modules\User\Models\CreatorTip;
 use App\Modules\User\Models\PostUnlock;
+use App\Modules\User\Models\ProductOrder;
 use App\Modules\User\Models\SubscriptionPromoCode;
 use App\Modules\User\Models\SubscriptionTier;
 use App\Modules\User\Models\User;
@@ -239,6 +240,7 @@ class MonetizationCheckout
             'tip'          => $this->confirmTip($payload),
             'dm_msg'       => $this->confirmDmPayToMessage($payload),
             'dm_att'       => $this->confirmDmAttachmentUnlock($payload),
+            'product'      => $this->confirmProductOrder($payload),
             default        => null,
         };
     }
@@ -605,6 +607,119 @@ class MonetizationCheckout
         });
     }
 
+    /**
+     * Start a product checkout (Task #1761). The ProductOrder + items must
+     * already be persisted (pending) by the caller — we only attach a
+     * gateway, cache the reconciliation payload and return the provider URL.
+     *
+     * Returns ['url' => string, 'order' => ProductOrder].
+     */
+    public function startProductOrder(User $buyer, User $creator, ProductOrder $order): array
+    {
+        $connection = $creator->defaultPaymentConnection();
+        if (!$connection) {
+            $connection = new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $creator->id]);
+        }
+
+        $order->gateway = $connection->provider;
+        $order->save();
+
+        $token = Str::random(32);
+        cache()->put($this->cacheKey('product', $order->id, $token), [
+            'order_id'   => $order->id,
+            'buyer_id'   => $buyer->id,
+            'creator_id' => $creator->id,
+            'amount'     => (int) $order->subtotal_cents,
+            'currency'   => $order->currency,
+        ], now()->addMinutes(30));
+
+        $url = PayoutProviderRegistry::adapter($connection->provider)->createOneTimeCheckout($connection, [
+            'kind'       => 'product',
+            'reference'  => 'product_' . $order->id,
+            'token'      => $token,
+            'amount'     => (int) $order->subtotal_cents,
+            'currency'   => $order->currency,
+            'fan_email'  => $buyer->email,
+            'return_url' => route('checkout.return', ['kind' => 'product', 'reference' => 'product_' . $order->id, 'token' => $token]),
+        ]);
+
+        return ['url' => $url, 'order' => $order];
+    }
+
+    /**
+     * Reconcile a paid product order: mark paid, log revenue, open a
+     * buyer↔creator DM with a system message, notify the creator. Idempotent.
+     */
+    protected function confirmProductOrder(array $p): array
+    {
+        $order = ProductOrder::with('items')->find($p['order_id'] ?? 0);
+        if (!$order) return ['url' => '/'];
+
+        $thankYou = route('store.thankyou', ['order' => $order->id, 'token' => $order->public_token]);
+
+        // Idempotent: a re-delivered return hand-off must not double-credit.
+        if ($order->isPaid()) {
+            return ['url' => $thankYou, 'message' => 'Purchase complete.'];
+        }
+
+        $creator = $order->creator;
+        $buyer   = $order->buyer;
+
+        $order->status            = ProductOrder::STATUS_PAID;
+        $order->paid_at           = now();
+        $order->gateway_charge_id = $order->gateway_charge_id ?: ('preview_product_' . $order->id);
+
+        // Open a profile DM between buyer and creator with a system receipt.
+        try {
+            $dispatcher = app(\App\Services\Dm\DmDispatcher::class);
+            $conv = $dispatcher->findOrCreateProfileConversation($creator, $buyer);
+            $order->conversation_id = $conv->id;
+
+            $lines = $order->items->map(fn ($it) => '• ' . $it->name . ($it->quantity > 1 ? ' ×' . $it->quantity : ''))->implode("\n");
+            $body  = "🛍️ Order #{$order->id} confirmed\n" . $lines
+                . "\nTotal: " . $this->formatMoney($order->subtotal_cents, $order->currency);
+            $dispatcher->send($conv, $buyer, 'viewer', $body, [], null, false, true);
+        } catch (\Throwable $e) {
+            Log::warning('product.confirm.dm_failed', ['order' => $order->id, 'err' => $e->getMessage()]);
+        }
+
+        $order->save();
+
+        if ($creator) {
+            $this->logEvent(
+                $creator, $buyer,
+                CreatorPaymentEvent::SOURCE_PRODUCT, CreatorPaymentEvent::TYPE_PRODUCT_PURCHASED,
+                $order, (int) $order->subtotal_cents, $order->currency,
+            );
+            $this->notifyCreatorOfProductSale($creator, $buyer, $order);
+        }
+
+        return ['url' => $thankYou, 'message' => 'Purchase complete — thank you!'];
+    }
+
+    protected function notifyCreatorOfProductSale(User $creator, ?User $buyer, ProductOrder $order): void
+    {
+        \App\Modules\User\Models\UserNotification::create([
+            'user_id'    => $creator->id,
+            'type'       => 'product.purchased',
+            'data'       => [
+                'order_id'   => $order->id,
+                'buyer_id'   => $buyer?->id,
+                'buyer_name' => $buyer?->name,
+                'amount'     => $this->formatMoney($order->subtotal_cents, $order->currency),
+                'message'    => ($buyer?->name ?? 'Someone') . ' purchased ' . $order->items->count() . ' item(s) — ' . $this->formatMoney($order->subtotal_cents, $order->currency) . '.',
+                'link'       => route('user.monetization.orders'),
+            ],
+            'created_at' => now(),
+        ]);
+        $this->emailCreatorBestEffort($creator, 'New 1INME product sale', ($buyer?->name ?? 'A customer') . ' just bought from your page.');
+    }
+
+    protected function formatMoney(int $cents, string $currency): string
+    {
+        return strtoupper($currency) . ' ' . number_format($cents / 100, 2);
+    }
+
     protected function logEvent(?User $creator, ?User $fan, string $source, string $type, $reference, int $amount, string $currency): void
     {
         if (!$creator) return;
@@ -733,6 +848,10 @@ class MonetizationCheckout
         if ($kind === 'dm_att' && count($parts) >= 3) {
             // dm_att_{attachmentId}_{fanId}
             return $this->cacheKey('dm_att', (int) $parts[2], $token);
+        }
+        if ($kind === 'product' && count($parts) === 2) {
+            // product_{orderId}
+            return $this->cacheKey('product', (int) $parts[1], $token);
         }
         return null;
     }

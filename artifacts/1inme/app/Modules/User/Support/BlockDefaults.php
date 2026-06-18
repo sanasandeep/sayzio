@@ -299,7 +299,7 @@ class BlockDefaults
                 ['title' => 'Stage 3 — Coming up', 'description' => 'What\'s next on the roadmap.', 'status' => 'planned'],
             ], '_placeholder' => true],
 
-            'product' => ['name' => 'Sample Product', 'description' => 'A short description of what makes this product great.', 'price' => '$29', 'image' => $imgSquareUrl, 'url' => 'https://example.com', 'badge' => 'New', '_placeholder' => true],
+            'product' => ['name' => 'Sample Product', 'description' => 'A short description of what makes this product great.', 'price' => '$29', 'image' => $imgSquareUrl, 'url' => 'https://example.com', 'badge' => 'New', 'native_checkout' => false, 'amount' => '29', 'price_cents' => 2900, 'currency' => 'USD', 'product_type' => 'digital', 'digital_file' => '', 'thank_you_message' => 'Thanks for your purchase! 🎉', '_placeholder' => true],
             'service' => ['name' => 'Sample Service', 'description' => 'What you offer and who it\'s for.', 'price' => 'From $99', 'icon' => 'fa-star', 'url' => 'https://example.com', '_placeholder' => true],
             'catalog' => ['items' => [
                 ['name' => 'Sample Item 1', 'price' => '$19', 'image' => $imgSquareUrl, 'url' => 'https://example.com'],

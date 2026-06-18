@@ -882,6 +882,20 @@
                     ->orderByDesc('pinned_at')
                     ->first()
                 : null;
+
+            // Storefront (Task #1761): count native-checkout products so each
+            // product renders "Buy Now" (single) vs "Add to Cart" (multiple),
+            // and a cart drawer only mounts when at least one exists. Must be
+            // computed BEFORE the blocks loop below.
+            $__storeProducts = $blocks->filter(fn($b) =>
+                $b->type === 'product'
+                && !empty(($b->settings['native_checkout'] ?? false))
+                && (int)($b->settings['price_cents'] ?? 0) > 0
+            );
+            $__storeCount    = $__storeProducts->count();
+            $__storeMultiple = $__storeCount > 1;
+            $__storeAlias    = $link->alias;
+            $__storeCreatorId = $creatorOwner?->id;
         @endphp
 
         @if($pinnedPost)
@@ -1830,15 +1844,33 @@
 
             {{-- BUSINESS --}}
             @elseif($block->type === 'product')
+                @php
+                    $__native = !empty($s['native_checkout']) && (int)($s['price_cents'] ?? 0) > 0;
+                    $__priceLabel = $__native
+                        ? strtoupper($s['currency'] ?? 'USD') . ' ' . number_format(((int)$s['price_cents']) / 100, 2)
+                        : ($s['price'] ?? '');
+                @endphp
                 <div class="mb-4 glass-block rounded-xl overflow-hidden">
                     @if(!empty($s['image']))<img src="{{ $s['image'] }}" alt="{{ $s['name'] ?? '' }}" class="w-full h-48 object-cover">@endif
                     <div class="p-4">
                         <div class="flex items-start justify-between">
-                            <div><p class="font-semibold text-sm">{{ $s['name'] ?? '' }}</p>@if(!empty($s['badge']))<span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/20 text-purple-300">{{ $s['badge'] }}</span>@endif</div>
-                            @if(!empty($s['price']))<span class="font-bold text-lg">{{ $s['price'] }}</span>@endif
+                            <div>
+                                <p class="font-semibold text-sm">{{ $s['name'] ?? '' }}</p>
+                                @if(!empty($s['badge']))<span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/20 text-purple-300">{{ $s['badge'] }}</span>@endif
+                                @if($__native)<span class="inline-block mt-1 ml-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10" style="color:{{ $fontColor }}cc">{{ ($s['product_type'] ?? 'digital') === 'physical' ? 'Physical' : 'Digital' }}</span>@endif
+                            </div>
+                            @if(!empty($__priceLabel))<span class="font-bold text-lg">{{ $__priceLabel }}</span>@endif
                         </div>
                         @if(!empty($s['description']))<p class="text-xs mt-2" style="color:{{ $fontColor }}88">{{ $s['description'] }}</p>@endif
-                        @if(!empty($s['url']))<a href="{{ $s['url'] }}" target="_blank" class="bio-btn block w-full text-center mt-3 py-2.5 text-sm font-medium">Buy Now</a>@endif
+                        @if($__native)
+                            @if($__storeMultiple)
+                                <button type="button" @click="$store.bioStore.add({{ $block->id }})" class="bio-btn block w-full text-center mt-3 py-2.5 text-sm font-medium"><i class="fas fa-cart-plus mr-1.5"></i>Add to Cart</button>
+                            @else
+                                <button type="button" @click="$store.bioStore.buy({{ $block->id }})" class="bio-btn block w-full text-center mt-3 py-2.5 text-sm font-medium">Buy Now</button>
+                            @endif
+                        @elseif(!empty($s['url']))
+                            <a href="{{ $s['url'] }}" target="_blank" class="bio-btn block w-full text-center mt-3 py-2.5 text-sm font-medium">Buy Now</a>
+                        @endif
                     </div>
                 </div>
 
@@ -3295,6 +3327,137 @@
         else document.addEventListener('DOMContentLoaded', init);
     })();
     </script>
+
+    @if(($__storeCount ?? 0) > 0)
+    {{-- In-page storefront: floating cart button + drawer (Task #1761).
+         Only mounts when the page has native-checkout products. --}}
+    <div x-data x-cloak>
+        @if($__storeMultiple)
+        <button type="button" @click="$store.bioStore.open = true"
+                x-show="$store.bioStore.count > 0"
+                class="fixed bottom-5 right-5 z-[50] flex items-center gap-2 px-4 py-3 rounded-full shadow-2xl text-sm font-semibold"
+                style="background:{{ $fontColor }}; color:{{ $bs['background_color'] ?? '#0f172a' }};">
+            <i class="fas fa-shopping-bag"></i>
+            <span x-text="$store.bioStore.count"></span>
+        </button>
+        @endif
+
+        <div x-show="$store.bioStore.open" class="fixed inset-0 z-[60]" style="display:none;">
+            <div class="absolute inset-0 bg-black/60" @click="$store.bioStore.open = false"></div>
+            <div class="absolute right-0 top-0 h-full w-full max-w-sm p-5 overflow-y-auto shadow-2xl"
+                 style="background:{{ $bs['background_color'] ?? '#0f172a' }}; color:{{ $fontColor }};"
+                 @click.stop>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-lg">Your Cart</h3>
+                    <button type="button" @click="$store.bioStore.open = false" class="opacity-70 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+                </div>
+
+                <template x-if="$store.bioStore.items.length === 0">
+                    <p class="text-sm opacity-60 py-8 text-center">Your cart is empty.</p>
+                </template>
+
+                <div class="space-y-3">
+                    <template x-for="it in $store.bioStore.items" :key="it.block_id">
+                        <div class="flex items-center gap-3 rounded-xl p-2" style="background:{{ $fontColor }}10;">
+                            <template x-if="it.image_url">
+                                <img :src="it.image_url" class="w-12 h-12 rounded-lg object-cover" alt="">
+                            </template>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium truncate" x-text="it.name"></p>
+                                <p class="text-xs opacity-60" x-text="$store.bioStore.money(it.price_cents)"></p>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" @click="$store.bioStore.setQty(it, it.quantity - 1)" class="w-6 h-6 rounded-full" style="background:{{ $fontColor }}20;">−</button>
+                                <span class="text-sm w-5 text-center" x-text="it.quantity"></span>
+                                <button type="button" @click="$store.bioStore.setQty(it, it.quantity + 1)" class="w-6 h-6 rounded-full" style="background:{{ $fontColor }}20;">+</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <template x-if="$store.bioStore.items.length > 0">
+                    <div class="mt-5 pt-4 border-t" style="border-color:{{ $fontColor }}20;">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm opacity-70">Total</span>
+                            <span class="font-bold text-lg" x-text="$store.bioStore.money($store.bioStore.total)"></span>
+                        </div>
+                        <button type="button" @click="$store.bioStore.checkout()" :disabled="$store.bioStore.busy"
+                                class="bio-btn block w-full text-center py-3 text-sm font-semibold disabled:opacity-50">
+                            <span x-show="!$store.bioStore.busy">Checkout</span>
+                            <span x-show="$store.bioStore.busy">Processing…</span>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('bioStore', {
+            open: false,
+            busy: false,
+            count: 0,
+            total: 0,
+            currency: 'USD',
+            items: [],
+            alias: @json($__storeAlias),
+            creatorId: {{ (int) ($__storeCreatorId ?? 0) }},
+            _csrf() { return document.querySelector('meta[name=csrf-token]')?.content || ''; },
+            money(cents) {
+                return this.currency + ' ' + (Math.round(cents) / 100).toFixed(2);
+            },
+            _apply(d) {
+                if (!d) return;
+                this.count = d.count || 0;
+                this.total = d.total || 0;
+                this.currency = d.currency || 'USD';
+                this.items = d.items || [];
+            },
+            async _post(url, body) {
+                const r = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': this._csrf(), 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body || {}),
+                });
+                let data = null;
+                try { data = await r.json(); } catch (e) {}
+                if (r.status === 401 && data && data.login_required) {
+                    window.dispatchEvent(new CustomEvent('open-viewer-login', { detail: { creatorId: data.creator_id || this.creatorId } }));
+                    return { _login: true };
+                }
+                if (!r.ok) {
+                    alert((data && data.error) || 'Something went wrong. Please try again.');
+                    return { _error: true };
+                }
+                return data;
+            },
+            async add(blockId) {
+                const d = await this._post('/store/' + encodeURIComponent(this.alias) + '/cart/add', { block_id: blockId });
+                if (d && d.ok) { this._apply(d); this.open = true; }
+            },
+            async setQty(it, qty) {
+                const d = await this._post('/store/' + encodeURIComponent(this.alias) + '/cart/update', { block_id: it.block_id, quantity: qty });
+                if (d && d.ok) this._apply(d);
+            },
+            async buy(blockId) {
+                if (this.busy) return;
+                this.busy = true;
+                const d = await this._post('/store/' + encodeURIComponent(this.alias) + '/buy', { block_id: blockId });
+                this.busy = false;
+                if (d && d.url) window.location = d.url;
+            },
+            async checkout() {
+                if (this.busy) return;
+                this.busy = true;
+                const d = await this._post('/store/' + encodeURIComponent(this.alias) + '/checkout', {});
+                this.busy = false;
+                if (d && d.url) window.location = d.url;
+            },
+        });
+    });
+    </script>
+    @endif
 
     @php
         $modalCreatorId = $__creator?->id;

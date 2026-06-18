@@ -287,6 +287,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('/earnings',     [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'earnings'])->name('earnings');
             Route::get ('/subscribers',  [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'subscribers'])->name('subscribers');
             Route::get ('/payments',     [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'payments'])->name('payments');
+            Route::get ('/orders',       [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'orders'])->name('orders');
+            Route::post('/orders/{order}/fulfill', [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'fulfillOrder'])->name('orders.fulfill');
 
             Route::get ('/tiers',                  [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'tiers'])->name('tiers');
             Route::post('/tiers',                  [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'storeTier'])->name('tiers.store');

@@ -73,8 +73,9 @@
                 ['key' => 'sub', 'label' => 'Subscriptions', 'tint' => '#8b5cf6'],
                 ['key' => 'ppv', 'label' => 'Pay-per-view',  'tint' => '#3b82f6'],
                 ['key' => 'tip', 'label' => 'Tips',          'tint' => '#10b981'],
+                ['key' => 'product', 'label' => 'Products',   'tint' => '#f59e0b'],
             ];
-            $totalPositive = max(1, ($bySource['sub'] ?? 0) + ($bySource['ppv'] ?? 0) + ($bySource['tip'] ?? 0));
+            $totalPositive = max(1, ($bySource['sub'] ?? 0) + ($bySource['ppv'] ?? 0) + ($bySource['tip'] ?? 0) + ($bySource['product'] ?? 0));
         @endphp
         @foreach($sources as $s)
             @php
@@ -130,6 +131,7 @@
                                 'sub' => ['fa-user-plus', '#8b5cf6'],
                                 'ppv' => ['fa-lock-open', '#3b82f6'],
                                 'tip' => ['fa-heart',     '#ec4899'],
+                                'product' => ['fa-bag-shopping', '#f59e0b'],
                             ];
                             [$ic, $tint] = $iconMap[$e->source] ?? ['fa-receipt', '#64748b'];
                         @endphp

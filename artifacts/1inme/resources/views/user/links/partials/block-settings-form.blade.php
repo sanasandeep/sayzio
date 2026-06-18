@@ -823,15 +823,58 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'product')
-<div class="space-y-3">
+<div class="space-y-3" x-data="{ native: {{ !empty($s['native_checkout']) ? 'true' : 'false' }}, ptype: '{{ $s['product_type'] ?? 'digital' }}' }">
     <div><label class="{{ $labelClass }}">Product Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Description</label><textarea name="settings[description]" rows="2" class="{{ $inputClass }}">{{ $s['description'] ?? '' }}</textarea></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Price</label><input type="text" name="settings[price]" value="{{ $s['price'] ?? '' }}" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Display Price</label><input type="text" name="settings[price]" value="{{ $s['price'] ?? '' }}" placeholder="$29" class="{{ $inputClass }}"></div>
         <div><label class="{{ $labelClass }}">Badge</label><input type="text" name="settings[badge]" value="{{ $s['badge'] ?? '' }}" placeholder="Sale, New" class="{{ $inputClass }}"></div>
     </div>
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[image]', 'currentValue' => $s['image'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Product Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
-    <div><label class="{{ $labelClass }}">Buy URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+
+    <label class="flex items-center gap-2 cursor-pointer select-none py-1">
+        <input type="hidden" name="settings[native_checkout]" value="0">
+        <input type="checkbox" name="settings[native_checkout]" value="1" x-model="native" @if(!empty($s['native_checkout'])) checked @endif class="rounded">
+        <span class="text-sm">Sell on this page (cart &amp; checkout)</span>
+    </label>
+
+    {{-- External buy URL only matters when native checkout is OFF --}}
+    <div x-show="!native">
+        <label class="{{ $labelClass }}">Buy URL</label>
+        <input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}">
+    </div>
+
+    {{-- Native checkout configuration --}}
+    <div x-show="native" class="space-y-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="{{ $labelClass }}">Amount</label>
+                <input type="number" step="0.01" min="0" name="settings[amount]" value="{{ $s['amount'] ?? '' }}" placeholder="29.00" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Currency</label>
+                <select name="settings[currency]" class="{{ $inputClass }}">
+                    @foreach(['USD','EUR','GBP','CAD','AUD','INR','BRL','JPY'] as $cur)
+                        <option value="{{ $cur }}" @selected(($s['currency'] ?? 'USD') === $cur)>{{ $cur }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="{{ $labelClass }}">Product Type</label>
+            <div class="flex gap-4 mt-1">
+                <label class="flex items-center gap-1.5 text-sm cursor-pointer"><input type="radio" name="settings[product_type]" value="digital" x-model="ptype" @checked(($s['product_type'] ?? 'digital') === 'digital')> Digital</label>
+                <label class="flex items-center gap-1.5 text-sm cursor-pointer"><input type="radio" name="settings[product_type]" value="physical" x-model="ptype" @checked(($s['product_type'] ?? 'digital') === 'physical')> Physical</label>
+            </div>
+        </div>
+        <div x-show="ptype === 'digital'">
+            @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[digital_file]', 'currentValue' => $s['digital_file'] ?? '', 'acceptTypes' => '*', 'labelText' => 'Digital File (delivered after purchase)', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+        </div>
+        <div>
+            <label class="{{ $labelClass }}">Thank-you Message</label>
+            <textarea name="settings[thank_you_message]" rows="2" placeholder="Thanks for your purchase!" class="{{ $inputClass }}">{{ $s['thank_you_message'] ?? '' }}</textarea>
+        </div>
+    </div>
 </div>
 
 @elseif($block->type === 'service')

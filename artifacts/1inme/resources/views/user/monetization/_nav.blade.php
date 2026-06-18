@@ -8,6 +8,7 @@
         ['key' => 'earnings',    'label' => 'Earnings',    'icon' => 'fa-chart-line',     'route' => 'user.monetization.earnings'],
         ['key' => 'subscribers', 'label' => 'Subscribers', 'icon' => 'fa-users',          'route' => 'user.monetization.subscribers'],
         ['key' => 'payments',    'label' => 'Payments',    'icon' => 'fa-money-bill-wave','route' => 'user.monetization.payments'],
+        ['key' => 'orders',      'label' => 'Orders',      'icon' => 'fa-bag-shopping',   'route' => 'user.monetization.orders'],
         ['key' => 'tiers',       'label' => 'Tiers',       'icon' => 'fa-layer-group',    'route' => 'user.monetization.tiers'],
         ['key' => 'promos',      'label' => 'Promo codes', 'icon' => 'fa-ticket',         'route' => 'user.monetization.promos'],
     ];

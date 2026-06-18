@@ -465,6 +465,24 @@ Route::get('/sustainability/methodology', [\App\Modules\Common\Controllers\Carbo
 Route::get('/sustainability/badge/{link}', [\App\Modules\Common\Controllers\CarbonPublicController::class, 'badge'])
     ->whereNumber('link')->middleware('throttle:60,1')->name('public.carbon.badge');
 
+// In-page biolink storefront (Task #1761). Multi-segment paths so they
+// never collide with the single-segment `/{alias}` catch-all below. Cart
+// ops allow guests (session-backed); buy/checkout require a ViewerSession.
+Route::prefix('store')->name('store.')->group(function () {
+    Route::post('/{alias}/cart/add',    [\App\Modules\Common\Controllers\BiolinkStoreController::class, 'addToCart'])
+        ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('cart.add');
+    Route::post('/{alias}/cart/update', [\App\Modules\Common\Controllers\BiolinkStoreController::class, 'updateCart'])
+        ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('cart.update');
+    Route::post('/{alias}/buy',         [\App\Modules\Common\Controllers\BiolinkStoreController::class, 'buy'])
+        ->where('alias', '[^/]+')->middleware('throttle:30,1')->name('buy');
+    Route::post('/{alias}/checkout',    [\App\Modules\Common\Controllers\BiolinkStoreController::class, 'checkout'])
+        ->where('alias', '[^/]+')->middleware('throttle:30,1')->name('checkout');
+    Route::get('/order/{order}/thankyou', [\App\Modules\Common\Controllers\BiolinkStoreController::class, 'thankYou'])
+        ->whereNumber('order')->name('thankyou');
+    Route::get('/order/{order}/download/{item}', [\App\Modules\Common\Controllers\BiolinkStoreController::class, 'download'])
+        ->whereNumber('order')->whereNumber('item')->name('download');
+});
+
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations|compare|for).*$');
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations|compare|for)[^/]+$');
 // ── Conversational Biolink visitor endpoints ─────────────────────

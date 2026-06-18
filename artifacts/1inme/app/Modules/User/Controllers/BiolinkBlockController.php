@@ -1474,6 +1474,21 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Product blocks (Task #1761): when native checkout is enabled we
+        // need an authoritative numeric price + a constrained product type
+        // and currency. The display `price` string is kept for rendering.
+        if ($type === 'product') {
+            $settings['native_checkout'] = (bool) ($settings['native_checkout'] ?? false);
+            $amount = (float) ($settings['amount'] ?? 0);
+            $settings['amount']      = $amount > 0 ? (string) $amount : '';
+            $settings['price_cents'] = max(0, (int) round($amount * 100));
+            $cur = strtoupper(trim((string) ($settings['currency'] ?? 'USD')));
+            $settings['currency'] = in_array($cur, ['USD','EUR','GBP','CAD','AUD','INR','BRL','JPY'], true) ? $cur : 'USD';
+            $settings['product_type'] = in_array(($settings['product_type'] ?? 'digital'), ['digital','physical'], true)
+                ? $settings['product_type'] : 'digital';
+            $settings['thank_you_message'] = mb_substr(trim((string) ($settings['thank_you_message'] ?? '')), 0, 500);
+        }
+
         // Tip-jar blocks: convert "amounts_csv" form input into a numeric
         // array, dropping non-positive values and capping at 6 entries.
         if (in_array($type, ['buy_me_coffee', 'ko_fi'], true) && array_key_exists('amounts_csv', $settings)) {
@@ -1486,7 +1501,7 @@ class BiolinkBlockController extends Controller
         $urlFields = ['url', 'link', 'thumbnail', 'image', 'image_url', 'video_url',
                        'audio_url', 'file_url', 'embed_url', 'logo_url', 'cover',
                        'website', 'avatar', 'post_url', 'buy_url',
-                       'destination_url', 'href'];
+                       'destination_url', 'href', 'digital_file'];
         foreach ($urlFields as $field) {
             if (isset($settings[$field]) && $settings[$field] !== '') {
                 $settings[$field] = $this->sanitizeUrl($settings[$field]);

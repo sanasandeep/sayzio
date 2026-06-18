@@ -8,6 +8,7 @@ use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\CreatorSubscription;
 use App\Modules\User\Models\CreatorTip;
 use App\Modules\User\Models\PostUnlock;
+use App\Modules\User\Models\ProductOrder;
 use App\Modules\User\Models\SubscriptionPromoCode;
 use App\Modules\User\Models\SubscriptionTier;
 use Illuminate\Http\Request;
@@ -229,6 +230,32 @@ class CreatorMonetizationController extends Controller
             ->orderByDesc('occurred_at')
             ->paginate(40);
         return view('user.monetization.payments', compact('events'));
+    }
+
+    // ─── Product orders (Task #1761) ───────────────────────────────
+    public function orders(Request $request)
+    {
+        $user = $request->user();
+        $orders = ProductOrder::query()
+            ->with(['items', 'buyer:id,name,handle,avatar'])
+            ->where('creator_user_id', $user->id)
+            ->whereIn('status', [ProductOrder::STATUS_PAID, ProductOrder::STATUS_FULFILLED, ProductOrder::STATUS_CANCELLED])
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id')
+            ->paginate(30);
+        return view('user.monetization.orders', compact('orders'));
+    }
+
+    public function fulfillOrder(Request $request, ProductOrder $order)
+    {
+        abort_unless($order->creator_user_id === $request->user()->id, 403);
+        abort_unless($order->status === ProductOrder::STATUS_PAID, 422, 'Only paid orders can be marked fulfilled.');
+
+        $order->status       = ProductOrder::STATUS_FULFILLED;
+        $order->fulfilled_at = now();
+        $order->save();
+
+        return back()->with('success', "Order #{$order->id} marked as fulfilled.");
     }
 
     // ─── Tiers CRUD ────────────────────────────────────────────────

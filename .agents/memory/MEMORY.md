@@ -43,4 +43,5 @@
 - [Dialer everyday tool](dialer-everyday.md) — DialerData is the single read/transform source for web+API; history is `{recents,frequent}`; caller-ID enrichment only via /dialer/lookup (mobile Contact has no biolink field).
 - [Env-only → admin-editable services](env-to-admin-config-override.md) — push admin values into config('services.*')/filesystems at boot; readers do config()?:env() so no call-site edits needed (MailSettings/PlatformServiceSettings pattern).
 - [Blade @endif@if same-line gotcha](blade-endif-if-gotcha.md) — two directives concatenated (no space) silently leave the 2nd literal + orphan endif → compiled-view PHP parse error; insert a separator.
+- [Biolink product storefront](biolink-product-storefront.md) — native-checkout Product block; /store/* routes must precede the {alias} catch-all; earnings bySource is generic groupBy so new sources auto-surface (label/icon only).
 - [Map picker geocoding pattern](map-picker-geocoding.md) — web reuses vendored Leaflet + divIcon SVG pin + Nominatim reverse/forward; mobile uses WebView (CDN Leaflet) posting points back + expo-location; coords stay strings/numbers, no PHP shape change.
