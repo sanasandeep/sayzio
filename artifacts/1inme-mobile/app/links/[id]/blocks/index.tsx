@@ -62,6 +62,11 @@ import {
   type CardTemplateChildSummary,
   type PreviewLayoutCell,
 } from "@/lib/api/cardTemplates";
+import {
+  applyPageTemplate,
+  listPageTemplates,
+  type PageTemplate,
+} from "@/lib/api/pageTemplates";
 import { listForms, createForm, FORM_TEMPLATES } from "@/lib/api/forms";
 import {
   listSocialProofs,
@@ -369,9 +374,18 @@ export default function BlocksScreen() {
             body="Add a header, a link button, an image, or any other block to start building your biolink."
             action={
               <View style={{ gap: 8 }}>
-                <Button label="Add a block" onPress={() => setPicker(true)} />
+                <Button
+                  label="Start from a design"
+                  onPress={() => openSpecial("designs")}
+                />
+                <Button
+                  label="Add a block"
+                  variant="ghost"
+                  onPress={() => setPicker(true)}
+                />
                 <Button
                   label="Templates, forms & more"
+                  variant="ghost"
                   onPress={() => openSpecial("templates")}
                 />
               </View>
@@ -465,6 +479,11 @@ export default function BlocksScreen() {
               );
             })}
             <Button label="Add a block" onPress={() => setPicker(true)} />
+            <Button
+              label="Start from a design"
+              variant="ghost"
+              onPress={() => openSpecial("designs")}
+            />
             <Button
               label="Templates, forms & more"
               variant="ghost"
@@ -713,6 +732,16 @@ export default function BlocksScreen() {
           setSpecialOpen(false);
           setHighlightId(b.id);
         }}
+        onPageApplied={(blocks) => {
+          // A page design replaces the whole page. The apply endpoint
+          // returns the full freshly-created tree (parents first, then
+          // children by sort order), so swap the cache outright rather than
+          // patching in place.
+          qc.setQueryData<Block[]>(["blocks", id], () => blocks);
+          setSpecialOpen(false);
+          setPreviewTpl(null);
+          setHighlightId(blocks[0]?.id ?? null);
+        }}
         previewTpl={previewTpl}
         clearPreview={() => setPreviewTpl(null)}
       />
@@ -722,7 +751,7 @@ export default function BlocksScreen() {
 
 // The four inline-palette tabs the special panel exposes, matching the
 // web editor's special panel (Cards / Forms / Buzz / AI).
-type SpecialMode = "templates" | "forms" | "buzz" | "ai";
+type SpecialMode = "designs" | "templates" | "forms" | "buzz" | "ai";
 
 type SpecialPanelProps = {
   visible: boolean;
@@ -739,6 +768,10 @@ type SpecialPanelProps = {
   // Forms / Buzz / AI insert a single block; hand the full block back so
   // the parent can patch it straight into the cache.
   onInserted: (block: Block) => void;
+  // A full-page design REPLACES the link's blocks; the apply endpoint hands
+  // back the whole freshly-created tree so the parent can swap the list in
+  // place. Page-template preview/apply state lives inside SpecialPanel.
+  onPageApplied: (blocks: Block[]) => void;
   previewTpl: CardTemplate | null;
   clearPreview: () => void;
 };
@@ -1580,6 +1613,7 @@ function SpecialPanel(props: SpecialPanelProps) {
     onClose,
     onPreview,
     onApplied,
+    onPageApplied,
     onInserted,
     previewTpl,
     clearPreview,
@@ -1589,19 +1623,31 @@ function SpecialPanel(props: SpecialPanelProps) {
   const [activeCat, setActiveCat] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  // Page-design preview is kept local to the panel (unlike the card preview,
+  // which the parent owns) — applying a page design is self-contained here.
+  const [previewPage, setPreviewPage] = useState<PageTemplate | null>(null);
 
-  // Reset the search box (and any open create sheet) whenever the user
-  // switches tabs so a query typed on one tab doesn't silently hide
-  // everything on the next.
+  // Reset the search box, category filter and any open sheets whenever the
+  // user switches tabs so a query/category set on one tab doesn't silently
+  // hide everything on the next (card and page categories differ).
   useEffect(() => {
     setSearch("");
     setCreateOpen(false);
+    setActiveCat("all");
+    setPreviewPage(null);
   }, [mode]);
 
   const q = useQuery({
     queryKey: ["card-templates", linkId],
     queryFn: () => listCardTemplates(linkId),
     enabled: visible && mode === "templates" && Number.isFinite(linkId),
+    staleTime: 60_000,
+  });
+
+  const pageQ = useQuery({
+    queryKey: ["page-templates", linkId],
+    queryFn: () => listPageTemplates(linkId),
+    enabled: visible && mode === "designs" && Number.isFinite(linkId),
     staleTime: 60_000,
   });
 
@@ -1633,6 +1679,44 @@ function SpecialPanel(props: SpecialPanelProps) {
         insert_after: insertAfter,
       }),
     onSuccess: (res) => onApplied(res.blocks),
+  });
+
+  // Applying a page design replaces the link's blocks. The server returns
+  // HTTP 409 (`confirm_overwrite`) when the link already has blocks; we
+  // re-issue with confirm_overwrite after the user accepts the alert.
+  const applyPage = useMutation({
+    mutationFn: (vars: { templateId: number; confirm: boolean }) =>
+      applyPageTemplate(linkId, {
+        template_id: vars.templateId,
+        confirm_overwrite: vars.confirm,
+      }),
+    onSuccess: (res) => {
+      setPreviewPage(null);
+      onPageApplied(res.blocks);
+    },
+    onError: (err: unknown, vars) => {
+      const e = err as { status?: number; message?: string };
+      if (e?.status === 409 && !vars.confirm) {
+        Alert.alert(
+          "Replace your page?",
+          "Applying this design will remove your current blocks and replace them with the template. This can't be undone.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Replace",
+              style: "destructive",
+              onPress: () =>
+                applyPage.mutate({ templateId: vars.templateId, confirm: true }),
+            },
+          ],
+        );
+        return;
+      }
+      Alert.alert(
+        "Couldn't apply design",
+        e?.message || "Something went wrong. Please try again.",
+      );
+    },
   });
 
   // Forms / Buzz / AI all resolve to a single block; the settings payload
@@ -1726,11 +1810,65 @@ function SpecialPanel(props: SpecialPanelProps) {
     return list.filter((c) => c.name.toLowerCase().includes(term));
   }, [aiQ.data, search]);
 
+  const pageItems = pageQ.data?.items ?? [];
+  const pageCats = pageQ.data?.categories ?? {};
+
+  const visiblePageItems = useMemo(() => {
+    let list =
+      activeCat === "all"
+        ? pageItems
+        : pageItems.filter((t) => t.category === activeCat);
+    const term = search.trim().toLowerCase();
+    if (term) {
+      list = list.filter(
+        (t) =>
+          t.name.toLowerCase().includes(term) ||
+          (t.description ?? "").toLowerCase().includes(term),
+      );
+    }
+    return list;
+  }, [pageItems, activeCat, search]);
+
+  const pageCatOptions = useMemo(() => {
+    const used = new Set(pageItems.map((t) => t.category));
+    return [
+      { key: "all", label: "All" },
+      ...Object.entries(pageCats)
+        .filter(([key]) => used.has(key))
+        .map(([key, label]) => ({ key, label })),
+    ];
+  }, [pageItems, pageCats]);
+
+  // Warm the page-design thumbnails' placeholder assets, same as the card
+  // gallery does, so blueprint media cells don't flash blank on scroll.
+  const pagePreviewImageUrls = useMemo(() => {
+    const urls = new Set<string>();
+    for (const t of pageItems) {
+      for (const row of t.preview_layout ?? []) {
+        for (const cell of row) {
+          if (cell.img) urls.add(cell.img);
+        }
+      }
+    }
+    return Array.from(urls);
+  }, [pageItems]);
+  useEffect(() => {
+    if (!visible || mode !== "designs") return;
+    for (const url of pagePreviewImageUrls) {
+      if (prefetchedRef.current.has(url)) continue;
+      prefetchedRef.current.add(url);
+      Image.prefetch(url).catch(() => {
+        prefetchedRef.current.delete(url);
+      });
+    }
+  }, [visible, mode, pagePreviewImageUrls]);
+
   const MODE_TABS: Array<{
     key: SpecialMode;
     label: string;
     icon: ComponentProps<typeof Feather>["name"];
   }> = [
+    { key: "designs", label: "Designs", icon: "grid" },
     { key: "templates", label: "Cards", icon: "layers" },
     { key: "forms", label: "Forms", icon: "file-text" },
     { key: "buzz", label: "Buzz", icon: "volume-2" },
@@ -1832,7 +1970,233 @@ function SpecialPanel(props: SpecialPanelProps) {
             ) : null}
           </View>
 
-          {mode === "forms" ? (
+          {mode === "designs" ? (
+            pageQ.isLoading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : pageQ.isError ? (
+              <View style={styles.center}>
+                <Text style={{ color: colors.destructive, padding: 16 }}>
+                  Couldn't load designs. Pull down to retry.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                    fontFamily: "SpaceGrotesk_400Regular",
+                    paddingHorizontal: 2,
+                    paddingBottom: 8,
+                  }}
+                >
+                  Pick a ready-made page design. Applying one replaces your
+                  current blocks.
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.tabs}
+                >
+                  {pageCatOptions.map((c) => {
+                    const active = c.key === activeCat;
+                    return (
+                      <Pressable
+                        key={c.key}
+                        onPress={() => setActiveCat(c.key)}
+                        style={[
+                          styles.tab,
+                          {
+                            backgroundColor: active
+                              ? colors.primary
+                              : colors.card,
+                            borderColor: active
+                              ? colors.primary
+                              : colors.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: active ? "#fff" : colors.foreground,
+                            fontSize: 12,
+                            fontFamily: "SpaceGrotesk_600SemiBold",
+                          }}
+                        >
+                          {c.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+
+                <ScrollView
+                  contentContainerStyle={{ gap: 10, paddingBottom: 24 }}
+                >
+                  {visiblePageItems.length === 0 ? (
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        textAlign: "center",
+                        padding: 24,
+                      }}
+                    >
+                      No designs in this category yet.
+                    </Text>
+                  ) : (
+                    visiblePageItems.map((t) => {
+                      const previewRows = t.preview_layout ?? [];
+                      return (
+                        <Pressable
+                          key={t.id}
+                          onPress={() => setPreviewPage(t)}
+                          style={({ pressed }) => [
+                            styles.tplCard,
+                            {
+                              backgroundColor: colors.card,
+                              borderColor: colors.border,
+                              borderRadius: colors.radius,
+                              opacity: pressed ? 0.85 : 1,
+                            },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.tplThumbStrip,
+                              { backgroundColor: colors.primary + "12" },
+                            ]}
+                          >
+                            {t.thumbnail_url ? (
+                              <Image
+                                source={{ uri: t.thumbnail_url }}
+                                style={styles.tplThumbStripImage}
+                                resizeMode="cover"
+                              />
+                            ) : previewRows.length ? (
+                              <PreviewBlueprint rows={previewRows} height={120} />
+                            ) : (
+                              <View
+                                style={{
+                                  width: "100%",
+                                  height: 120,
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <Feather
+                                  name="grid"
+                                  size={24}
+                                  color={colors.primary}
+                                />
+                              </View>
+                            )}
+                            {t.recommended ? (
+                              <View
+                                style={[
+                                  styles.tplLockBadgeFloating,
+                                  {
+                                    backgroundColor: colors.primary,
+                                    left: 8,
+                                    right: undefined as unknown as number,
+                                  },
+                                ]}
+                              >
+                                <Feather name="star" size={10} color="#fff" />
+                                <Text
+                                  style={{
+                                    color: "#fff",
+                                    fontSize: 10,
+                                    fontFamily: "SpaceGrotesk_600SemiBold",
+                                  }}
+                                >
+                                  FOR YOU
+                                </Text>
+                              </View>
+                            ) : null}
+                            {t.locked ? (
+                              <View
+                                style={[
+                                  styles.tplLockBadgeFloating,
+                                  { backgroundColor: colors.primary },
+                                ]}
+                              >
+                                <Feather name="lock" size={10} color="#fff" />
+                                <Text
+                                  style={{
+                                    color: "#fff",
+                                    fontSize: 10,
+                                    fontFamily: "SpaceGrotesk_600SemiBold",
+                                  }}
+                                >
+                                  {t.plan_tier?.toUpperCase() || "PRO"}
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <View style={{ padding: 12, gap: 8 }}>
+                            <View style={styles.tplTitleRow}>
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  styles.tplName,
+                                  { color: colors.foreground, flex: 1 },
+                                ]}
+                              >
+                                {t.name}
+                              </Text>
+                              <View
+                                style={[
+                                  styles.categoryPill,
+                                  { borderColor: colors.border },
+                                ]}
+                              >
+                                <Text
+                                  style={{
+                                    color: colors.mutedForeground,
+                                    fontSize: 9,
+                                    letterSpacing: 0.5,
+                                    fontFamily: "SpaceGrotesk_600SemiBold",
+                                  }}
+                                >
+                                  {(
+                                    t.category_label || t.category
+                                  ).toUpperCase()}
+                                </Text>
+                              </View>
+                            </View>
+                            {t.description ? (
+                              <Text
+                                numberOfLines={2}
+                                style={{
+                                  color: colors.mutedForeground,
+                                  fontSize: 12,
+                                  fontFamily: "SpaceGrotesk_400Regular",
+                                }}
+                              >
+                                {t.description}
+                              </Text>
+                            ) : null}
+                            <Text
+                              style={{
+                                color: colors.primary,
+                                fontSize: 11,
+                                fontFamily: "SpaceGrotesk_600SemiBold",
+                              }}
+                            >
+                              {t.blocks_count} block
+                              {t.blocks_count === 1 ? "" : "s"}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              </>
+            )
+          ) : mode === "forms" ? (
             <SpecialList
               query={formsQ}
               empty="You don't have any forms yet. Create your first one to drop it in here."
@@ -2321,6 +2685,177 @@ function SpecialPanel(props: SpecialPanelProps) {
                   label="Cancel"
                   variant="ghost"
                   onPress={clearPreview}
+                />
+              </View>
+            </View>
+          </View>
+        ) : (
+          <View />
+        )}
+      </Modal>
+
+      <Modal
+        visible={!!previewPage}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setPreviewPage(null)}
+      >
+        {previewPage ? (
+          <View style={styles.modalBackdrop}>
+            <View
+              style={[
+                styles.modalCard,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View style={styles.modalHeader}>
+                <Text
+                  style={[styles.modalTitle, { color: colors.foreground }]}
+                  numberOfLines={1}
+                >
+                  {previewPage.name}
+                </Text>
+                <Pressable onPress={() => setPreviewPage(null)} hitSlop={8}>
+                  <Feather name="x" size={20} color={colors.mutedForeground} />
+                </Pressable>
+              </View>
+
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 12,
+                  fontFamily: "SpaceGrotesk_500Medium",
+                  marginBottom: 4,
+                }}
+              >
+                {previewPage.category_label}
+                {previewPage.recommended ? " · Recommended for you" : ""}
+                {previewPage.locked
+                  ? ` · ${previewPage.plan_tier?.toUpperCase() || "PRO"} only`
+                  : ""}
+              </Text>
+              {previewPage.description ? (
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontSize: 13,
+                    fontFamily: "SpaceGrotesk_400Regular",
+                  }}
+                >
+                  {previewPage.description}
+                </Text>
+              ) : null}
+
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 11,
+                  marginTop: 12,
+                  marginBottom: 6,
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                }}
+              >
+                What's inside
+              </Text>
+              <ScrollView
+                style={{ maxHeight: 260 }}
+                contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
+              >
+                {previewPage.content.map((c, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.childRow,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderRadius: colors.radius,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <Feather
+                        name={featherFor(c.icon)}
+                        size={12}
+                        color={colors.primary}
+                      />
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontSize: 12,
+                          fontFamily: "SpaceGrotesk_600SemiBold",
+                        }}
+                      >
+                        {c.label}
+                        {c.children && c.children.length
+                          ? ` · ${c.children.length} inside`
+                          : ""}
+                      </Text>
+                    </View>
+                    {c.preview ? (
+                      <Text
+                        numberOfLines={2}
+                        style={{
+                          color: colors.mutedForeground,
+                          fontSize: 11,
+                          fontFamily: "SpaceGrotesk_400Regular",
+                        }}
+                      >
+                        {c.preview}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))}
+              </ScrollView>
+
+              <View style={{ gap: 8, marginTop: 14 }}>
+                {previewPage.locked ? (
+                  <View
+                    style={[
+                      styles.lockHint,
+                      { borderColor: colors.primary + "55" },
+                    ]}
+                  >
+                    <Feather name="lock" size={14} color={colors.primary} />
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 12,
+                        flex: 1,
+                        fontFamily: "SpaceGrotesk_500Medium",
+                      }}
+                    >
+                      Upgrade to {previewPage.plan_tier?.toUpperCase() || "PRO"}{" "}
+                      to use this design.
+                    </Text>
+                  </View>
+                ) : (
+                  <Button
+                    label={applyPage.isPending ? "Applying…" : "Use this design"}
+                    onPress={() =>
+                      applyPage.mutate({
+                        templateId: previewPage.id,
+                        confirm: false,
+                      })
+                    }
+                    disabled={applyPage.isPending}
+                  />
+                )}
+                <Button
+                  label="Cancel"
+                  variant="ghost"
+                  onPress={() => setPreviewPage(null)}
                 />
               </View>
             </View>

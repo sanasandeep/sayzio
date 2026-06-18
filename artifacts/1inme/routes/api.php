@@ -353,6 +353,12 @@ Route::prefix('v1')->group(function () {
         Route::get ('/links/{id}/card-templates',         [\App\Modules\Api\Controllers\CardTemplateController::class, 'index'])->whereNumber('id');
         Route::post('/links/{id}/card-templates/apply',   [\App\Modules\Api\Controllers\CardTemplateController::class, 'apply'])->whereNumber('id');
 
+        // Page templates (mobile parity for the web full-page template picker).
+        // Applying replaces the link's blocks, so apply honours an overwrite
+        // confirmation guard (409 when the link already has blocks).
+        Route::get ('/links/{id}/page-templates',         [\App\Modules\Api\Controllers\PageTemplateController::class, 'index'])->whereNumber('id');
+        Route::post('/links/{id}/page-templates/apply',   [\App\Modules\Api\Controllers\PageTemplateController::class, 'apply'])->whereNumber('id');
+
         // Biolink blocks (authoring)
         // Block-type palette catalog (mobile parity for the web editor
         // palette). User-scoped — categories + picker-visible types with a
