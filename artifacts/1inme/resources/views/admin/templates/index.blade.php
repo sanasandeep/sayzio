@@ -170,6 +170,7 @@
             $tplPersonas = $tab === 'page' ? (array) ($tpl->recommended_personas ?? []) : [];
             $tplCustomized = $tab === 'page' ? $tpl->wasCustomized() : false;
             $tplOutdated = $tab === 'page' ? $tpl->isOutdatedBlueprint() : false;
+            $tplDesignIssues = $tpl->designIssues();
         @endphp
         <div x-show="(category === 'all' || category === '{{ $tpl->category }}')
                   && (persona === 'all' || @json($tplPersonas).includes(persona))
@@ -231,6 +232,13 @@
             <div class="flex items-start justify-between gap-2 mb-1">
                 <h3 class="text-sm font-semibold text-white truncate">{{ $tpl->name }}</h3>
                 <div class="flex items-center gap-1 shrink-0">
+                    @if(!empty($tplDesignIssues))
+                        <a href="{{ route('admin.templates.design.fix', ['kind' => $tab, 'id' => $tpl->id]) }}"
+                           class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                           title="{{ count($tplDesignIssues) }} design issue(s) — unknown block types or stale design-variant keys that would silently degrade on the public page. Click to fix.">
+                            <i class="fas fa-bug mr-1 text-[9px]"></i>Design issues ({{ count($tplDesignIssues) }})
+                        </a>
+                    @endif
                     @if($tab === 'page' && $tplOutdated)
                         <a href="{{ route('admin.templates.blueprint.diff', ['id' => $tpl->id]) }}"
                            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"

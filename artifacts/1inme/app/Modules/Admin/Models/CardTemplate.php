@@ -59,6 +59,22 @@ class CardTemplate extends Model
             > self::EDIT_DRIFT_TOLERANCE;
     }
 
+    /**
+     * Concrete design problems with this row's stored snapshot — unknown
+     * block types and stale design-variant keys that would silently
+     * degrade on the public page. Empty array = clean. Drives the
+     * "Design issues" badge and one-click fix flow on the admin index.
+     *
+     * @return array<int,string>
+     */
+    public function designIssues(): array
+    {
+        return \App\Modules\User\Support\TemplateSnapshotValidator::issues(
+            (array) ($this->snapshot ?? []),
+            'card'
+        );
+    }
+
     public static function categories(): array
     {
         return [

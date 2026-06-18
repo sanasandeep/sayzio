@@ -72,6 +72,64 @@ class TemplateSnapshotValidator
     }
 
     /**
+     * Return a copy of the snapshot with every baked design-variant key
+     * (`settings._style._variant`) that no longer resolves for its block
+     * type removed. This is the surgical "strip the offending stale
+     * variant keys" repair: it leaves all other styling/content intact
+     * and only unsets keys that {@see issues()} would flag as silently
+     * falling back to default styling.
+     *
+     * It cannot fix unknown block types (those need a re-capture), so
+     * callers should re-run {@see issues()} afterwards to confirm.
+     *
+     * @param  array<string,mixed>  $snapshot
+     * @param  string  $kind  'page' or 'card'
+     * @return array<string,mixed>
+     */
+    public static function stripStaleVariants(array $snapshot, string $kind = 'page'): array
+    {
+        if ($kind === 'card') {
+            return self::stripBlock($snapshot);
+        }
+
+        if (isset($snapshot['blocks']) && is_array($snapshot['blocks'])) {
+            $snapshot['blocks'] = array_map(
+                fn($block) => is_array($block) ? self::stripBlock($block) : $block,
+                $snapshot['blocks']
+            );
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * Strip a single block's stale variant key (and recurse into its
+     * children), returning the cleaned block.
+     *
+     * @param  array<string,mixed>  $block
+     * @return array<string,mixed>
+     */
+    private static function stripBlock(array $block): array
+    {
+        $type = $block['type'] ?? null;
+        $variant = $block['settings']['_style']['_variant'] ?? null;
+
+        if (is_string($type) && is_string($variant) && $variant !== ''
+            && BlockVariantCatalog::find($type, $variant) === null) {
+            unset($block['settings']['_style']['_variant']);
+        }
+
+        if (!empty($block['children']) && is_array($block['children'])) {
+            $block['children'] = array_map(
+                fn($child) => is_array($child) ? self::stripBlock($child) : $child,
+                $block['children']
+            );
+        }
+
+        return $block;
+    }
+
+    /**
      * Flatten a block tree (containers carry `children`) into a flat list.
      *
      * @param  array<int,mixed>  $blocks

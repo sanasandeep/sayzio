@@ -294,6 +294,96 @@ class TemplateController extends Controller
             ->with('success', 'Reset "' . $tpl->slug . '" to the current blueprint design.');
     }
 
+    /**
+     * Show the guided design-fix view for a template flagged with design
+     * issues (unknown block types / stale design-variant keys). Lists each
+     * concrete issue and offers two repairs: re-capture from a source Link
+     * in Bio page / card block, or strip the offending stale variant keys.
+     * Admins land here from the "Design issues" badge on the index.
+     */
+    public function designFix(string $kind, int $id)
+    {
+        $tpl = $this->resolve($kind, $id);
+        $kind = $kind === 'card' ? 'card' : 'page';
+
+        $snapshot = (array) ($tpl->snapshot ?? []);
+        $issues = TemplateSnapshotValidator::issues($snapshot, $kind);
+
+        // What would be left if the admin chose the "strip variants" repair?
+        // If empty, stripping alone fully resolves the row; otherwise (e.g.
+        // unknown block types) a re-capture is required.
+        $afterStrip = TemplateSnapshotValidator::issues(
+            TemplateSnapshotValidator::stripStaleVariants($snapshot, $kind),
+            $kind
+        );
+
+        return view('admin.templates.design_fix', [
+            'tpl'        => $tpl,
+            'kind'       => $kind,
+            'issues'     => $issues,
+            'afterStrip' => $afterStrip,
+        ]);
+    }
+
+    /**
+     * Apply a one-click design repair. Two modes:
+     *   - "strip": remove every stale design-variant key from the stored
+     *     snapshot (surgical; preserves all other content/styling).
+     *   - "recapture": replace the snapshot with a fresh capture from a
+     *     chosen source Link in Bio page / card block.
+     * Either way the result is re-validated before saving.
+     */
+    public function repairDesign(Request $request, string $kind, int $id)
+    {
+        $tpl = $this->resolve($kind, $id);
+        $kind = $kind === 'card' ? 'card' : 'page';
+
+        $data = $request->validate([
+            'mode'           => 'required|in:strip,recapture',
+            'source_link_id' => 'nullable|integer|exists:links,id',
+            'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
+        ]);
+
+        if ($data['mode'] === 'strip') {
+            $snapshot = TemplateSnapshotValidator::stripStaleVariants((array) ($tpl->snapshot ?? []), $kind);
+            $tpl->snapshot = $snapshot;
+            $tpl->save();
+
+            $remaining = TemplateSnapshotValidator::issues($snapshot, $kind);
+            if (!empty($remaining)) {
+                return redirect()->route('admin.templates.design.fix', ['kind' => $kind, 'id' => $tpl->id])
+                    ->with('error', 'Stripped stale design-variant keys, but other issues remain (e.g. unknown block types). Re-capture from a source page to fully resolve them.');
+            }
+
+            return redirect()->route('admin.templates.index', ['tab' => $kind])
+                ->with('success', 'Stripped stale design-variant keys from "' . $tpl->slug . '".');
+        }
+
+        // mode === 'recapture'
+        $captured = $this->captureSnapshot($kind, $data);
+        if (!$captured) {
+            return back()->withErrors([
+                'source_link_id' => 'Pick a source ' . ($kind === 'card' ? 'card block' : 'Link in Bio page') . ' to re-capture from.',
+            ]);
+        }
+
+        $issues = TemplateSnapshotValidator::issues($captured, $kind);
+        if (!empty($issues)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'source_link_id' => array_merge(
+                    ['The chosen source still has design problems that would silently degrade on the public page:'],
+                    $issues
+                ),
+            ]);
+        }
+
+        $tpl->snapshot = $captured;
+        $tpl->save();
+
+        return redirect()->route('admin.templates.index', ['tab' => $kind])
+            ->with('success', 'Re-captured the design for "' . $tpl->slug . '" from the chosen source.');
+    }
+
     public function searchLinks(Request $request)
     {
         $kind = $request->get('kind') === 'card' ? 'card' : 'page';

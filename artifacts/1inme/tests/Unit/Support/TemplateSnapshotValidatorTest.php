@@ -98,4 +98,64 @@ class TemplateSnapshotValidatorTest extends TestCase
 
         $this->assertSame([], TemplateSnapshotValidator::issues($snapshot, 'page'));
     }
+
+    public function test_strip_stale_variants_removes_only_unresolved_keys(): void
+    {
+        $snapshot = [
+            'blocks' => [
+                ['type' => 'link', 'settings' => ['_style' => ['_variant' => 'classic', 'color' => '#fff']]],
+                ['type' => 'link', 'settings' => ['_style' => ['_variant' => 'totally_bogus_key', 'color' => '#000']]],
+            ],
+        ];
+
+        $cleaned = TemplateSnapshotValidator::stripStaleVariants($snapshot, 'page');
+
+        // Valid variant + sibling styling untouched.
+        $this->assertSame('classic', $cleaned['blocks'][0]['settings']['_style']['_variant']);
+        // Stale variant gone, but other styling preserved.
+        $this->assertArrayNotHasKey('_variant', $cleaned['blocks'][1]['settings']['_style']);
+        $this->assertSame('#000', $cleaned['blocks'][1]['settings']['_style']['color']);
+        // Stripping fully resolves a variant-only problem.
+        $this->assertSame([], TemplateSnapshotValidator::issues($cleaned, 'page'));
+    }
+
+    public function test_strip_stale_variants_recurses_into_children(): void
+    {
+        $snapshot = [
+            'blocks' => [
+                [
+                    'type' => 'card',
+                    'settings' => [],
+                    'children' => [
+                        ['type' => 'link', 'settings' => ['_style' => ['_variant' => 'still_bogus']]],
+                    ],
+                ],
+            ],
+        ];
+
+        $cleaned = TemplateSnapshotValidator::stripStaleVariants($snapshot, 'page');
+
+        $this->assertArrayNotHasKey('_variant', $cleaned['blocks'][0]['children'][0]['settings']['_style']);
+        $this->assertSame([], TemplateSnapshotValidator::issues($cleaned, 'page'));
+    }
+
+    public function test_strip_stale_variants_cannot_fix_unknown_block_type(): void
+    {
+        $snapshot = ['blocks' => [['type' => 'not_a_real_block', 'settings' => []]]];
+
+        $cleaned = TemplateSnapshotValidator::stripStaleVariants($snapshot, 'page');
+
+        // Unknown types survive stripping and remain flagged.
+        $this->assertNotEmpty(TemplateSnapshotValidator::issues($cleaned, 'page'));
+    }
+
+    public function test_strip_stale_variants_handles_card_root(): void
+    {
+        $snapshot = ['type' => 'card', 'settings' => ['_style' => ['_variant' => 'nope_not_real']]];
+
+        $cleaned = TemplateSnapshotValidator::stripStaleVariants($snapshot, 'card');
+
+        $this->assertArrayNotHasKey('_variant', $cleaned['settings']['_style']);
+        $this->assertSame([], TemplateSnapshotValidator::issues($cleaned, 'card'));
+    }
 }
