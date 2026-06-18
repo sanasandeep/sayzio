@@ -27,6 +27,34 @@ import {
   type Notification,
 } from "@/lib/api/notifications";
 
+// Translate a notification's web target into a native Expo Router route when an
+// equivalent screen exists. Returns null when there's no native counterpart, so
+// the caller falls back to the in-app browser. Matching is done on the path
+// (host/query/hash stripped) since the URL is the canonical target.
+function nativeRouteFor(target: string): string | null {
+  let path = target;
+  try {
+    path = /^https?:\/\//i.test(target)
+      ? new URL(target).pathname
+      : target.split(/[?#]/)[0];
+  } catch {
+    path = target.split(/[?#]/)[0];
+  }
+  if (!path.startsWith("/")) path = `/${path}`;
+
+  // Public creator profile: /@handle (may carry post/roadmap hashes).
+  const profile = path.match(/^\/@([A-Za-z0-9_]+)/);
+  if (profile) return `/profile/${profile[1]}`;
+
+  // In-app dashboard areas that have a native screen.
+  if (path.startsWith("/user/team")) return "/team";
+  if (path.startsWith("/user/posts")) return "/posts";
+  if (path.startsWith("/user/social-accounts")) return "/social";
+  if (path.startsWith("/user/domains")) return "/domains";
+
+  return null;
+}
+
 export default function NotificationsScreen() {
   const colors = useColors();
   const qc = useQueryClient();
@@ -77,13 +105,21 @@ export default function NotificationsScreen() {
   }, []);
 
   // Tapping a row opens the thing it's about (when it carries a target URL)
-  // and marks it read in the same gesture — mirroring the web feed. Targets
-  // are app paths/URLs, so we resolve relative paths against the API host and
-  // hand off to the in-app browser (falling back to the OS handler).
+  // and marks it read in the same gesture — mirroring the web feed. When the
+  // target maps to a real native screen we route there for a polished, native
+  // feel; otherwise we resolve the URL against the API host and hand off to the
+  // in-app browser (falling back to the OS handler).
   const openNotification = (item: Notification) => {
     if (!item.read_at) markOne.mutate(item.id);
     const target = item.url;
     if (!target) return;
+
+    const native = nativeRouteFor(target);
+    if (native) {
+      router.push(native as never);
+      return;
+    }
+
     const absolute = /^https?:\/\//i.test(target)
       ? target
       : `${getBaseUrl()}${target.startsWith("/") ? "" : "/"}${target}`;
