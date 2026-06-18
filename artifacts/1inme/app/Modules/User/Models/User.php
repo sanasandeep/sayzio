@@ -681,6 +681,31 @@ class User extends Authenticatable
     }
 
     /**
+     * True iff this user holds at least one platform role on the web guard.
+     *
+     * Web-guard roles (managed under /user/access) are the platform staff /
+     * admin roles — a regular end-user has none. Used by the admin-only
+     * maintenance lockdown so platform staff keep full access while everyone
+     * else is gated.
+     */
+    public function hasAdminRole(): bool
+    {
+        try {
+            $this->loadMissing('roles');
+            foreach ($this->roles as $role) {
+                if ((string) ($role->guard ?? '') === 'web') {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Defensive: schema not migrated yet (e.g. tests before the
+            // user_roles migration) — treat as a non-admin.
+            return false;
+        }
+        return false;
+    }
+
+    /**
      * Query scope: users that hold the named permission via any role.
      * Useful when picking up "the platform-admin user pool" for tasks
      * such as ops-alert fan-out or platform AI billing fallback.

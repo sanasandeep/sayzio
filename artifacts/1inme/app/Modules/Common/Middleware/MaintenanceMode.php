@@ -28,6 +28,7 @@ class MaintenanceMode
         'user_app'  => 'User dashboard (/user/*)',
         'api'       => 'API (mobile + JSON clients)',
         'biolinks'  => 'Public biolink profile pages',
+        'all'       => 'Entire site (admin-only lockdown)',
     ];
 
     public function handle(Request $request, Closure $next)
@@ -38,9 +39,18 @@ class MaintenanceMode
         }
 
         // Logged-in admins always bypass so they can fix things while the
-        // gate is up.
-        if (Auth::guard('admin')->check()) {
+        // gate is up. This covers the back-office admin guard, a web-guard
+        // user holding a platform admin role, and token-authenticated API
+        // admins.
+        if ($this->isAdminActor($request)) {
             return $next($request);
+        }
+
+        // App-wide admin-only lockdown: when on, EVERY surface is blocked for
+        // non-admins regardless of the per-area toggles below. Admins were
+        // already let through above.
+        if ((bool) AppSetting::get('maintenance_admin_only_enabled', false)) {
+            return $this->blockedResponse($request, 'all');
         }
 
         $area = $this->detectArea($request);
@@ -53,6 +63,60 @@ class MaintenanceMode
             return $next($request);
         }
 
+        return $this->blockedResponse($request, $area);
+    }
+
+    /**
+     * True when the current request is made by a platform admin — covering the
+     * back-office admin guard, a session web-guard user holding a platform
+     * admin role, and a token-authenticated API caller holding one.
+     *
+     * This middleware is registered globally and runs BEFORE the route-level
+     * `auth:sanctum` middleware, so bearer-token API callers are not yet on
+     * the session web guard. We resolve the Sanctum token user here so
+     * admin-role API clients keep full access during an admin-only lockdown.
+     */
+    private function isAdminActor(Request $request): bool
+    {
+        // Back-office admin (session) guard.
+        if (Auth::guard('admin')->check()) {
+            return true;
+        }
+
+        // Session web-guard user holding a platform admin role.
+        if ($this->userHasAdminRole(Auth::guard('web')->user())) {
+            return true;
+        }
+
+        // Token-authenticated API client holding a platform admin role.
+        if ($request->bearerToken()) {
+            try {
+                if ($this->userHasAdminRole(Auth::guard('sanctum')->user())) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                // Sanctum guard unavailable / token resolution failed —
+                // treat as a non-admin and fall through to the gate.
+            }
+        }
+
+        return false;
+    }
+
+    /** True iff the given authenticatable is a platform admin (web role). */
+    private function userHasAdminRole($user): bool
+    {
+        return $user !== null
+            && method_exists($user, 'hasAdminRole')
+            && $user->hasAdminRole();
+    }
+
+    /**
+     * Build the 503 maintenance response for the given area, returning a JSON
+     * envelope for API/JSON clients and the HTML maintenance page otherwise.
+     */
+    private function blockedResponse(Request $request, string $area)
+    {
         $message = trim((string) AppSetting::get('maintenance_message', ''));
         $eta     = trim((string) AppSetting::get('maintenance_eta', ''));
 

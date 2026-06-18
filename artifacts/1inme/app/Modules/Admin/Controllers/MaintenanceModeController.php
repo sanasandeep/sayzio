@@ -27,17 +27,19 @@ class MaintenanceModeController extends Controller
         }
 
         return view('admin.maintenance.index', [
-            'areas'   => $areas,
-            'message' => (string) AppSetting::get('maintenance_message', ''),
-            'eta'     => (string) AppSetting::get('maintenance_eta', ''),
+            'areas'     => $areas,
+            'adminOnly' => (bool) AppSetting::get('maintenance_admin_only_enabled', false),
+            'message'   => (string) AppSetting::get('maintenance_message', ''),
+            'eta'       => (string) AppSetting::get('maintenance_eta', ''),
         ]);
     }
 
     public function update(Request $request)
     {
         $rules = [
-            'message' => ['nullable', 'string', 'max:500'],
-            'eta'     => ['nullable', 'string', 'max:120'],
+            'admin_only' => ['nullable', 'boolean'],
+            'message'    => ['nullable', 'string', 'max:500'],
+            'eta'        => ['nullable', 'string', 'max:120'],
         ];
         foreach (MaintenanceMode::AREAS as $area) {
             $rules['areas.' . $area] = ['nullable', 'boolean'];
@@ -49,6 +51,7 @@ class MaintenanceModeController extends Controller
             AppSetting::put('maintenance_' . $area . '_enabled', $on);
         }
 
+        AppSetting::put('maintenance_admin_only_enabled', (bool) ($data['admin_only'] ?? false));
         AppSetting::put('maintenance_message', trim((string) ($data['message'] ?? '')));
         AppSetting::put('maintenance_eta', trim((string) ($data['eta'] ?? '')));
 

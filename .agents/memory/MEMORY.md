@@ -47,3 +47,4 @@
 - [Map picker geocoding pattern](map-picker-geocoding.md) — web reuses vendored Leaflet + divIcon SVG pin + Nominatim reverse/forward; mobile uses WebView (CDN Leaflet) posting points back + expo-location; coords stay strings/numbers, no PHP shape change.
 - [Page template seeders](page-template-seeders.md) — bump SEED_VERSION + meta.seed_version to auto-refresh untouched rows (firstOrCreate won't update); variant keys are per-links.type, validate via BlockVariantCatalog::find or they silently fall back.
 - [MailFake::raw is a no-op](mailfake-raw-noop.md) — Mail::fake() never records Mail::raw() sends; assert in-app notifications / app_settings state, not email counts.
+- [Maintenance admin-role concept](maintenance-admin-role.md) — "any admin" = admin guard OR web User w/ guard=web role OR token API caller; global middleware runs before auth:sanctum so resolve the token user yourself.

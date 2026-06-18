@@ -22,8 +22,35 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
+                <h2 class="text-base font-semibold text-white">Admin-only lockdown</h2>
+                <p class="text-xs text-white/50">One switch that takes the entire app offline for everyone except staff who hold an admin role.</p>
+            </div>
+
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-amber-400/30 bg-amber-500/[0.06] hover:bg-amber-500/[0.09] transition cursor-pointer">
+                <input type="hidden" name="admin_only" value="0">
+                <input type="checkbox"
+                       name="admin_only"
+                       value="1"
+                       @checked(old('admin_only', $adminOnly))
+                       class="mt-1 w-5 h-5 accent-amber-500 cursor-pointer">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-white">Lock down the whole app (admins only)</span>
+                        @if($adminOnly)
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300">Live now</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-white/50 mt-0.5">
+                        While on, this overrides every area switch below: guests, regular users and API clients all get the maintenance page / a 503. Anyone holding an admin role (admin panel staff or a web user with a platform role) keeps full access across all surfaces.
+                    </p>
+                </div>
+            </label>
+        </div>
+
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
                 <h2 class="text-base font-semibold text-white">Areas</h2>
-                <p class="text-xs text-white/50">Each switch controls one surface independently.</p>
+                <p class="text-xs text-white/50">Each switch controls one surface independently. Ignored while the admin-only lockdown above is on.</p>
             </div>
 
             <div class="space-y-3">
