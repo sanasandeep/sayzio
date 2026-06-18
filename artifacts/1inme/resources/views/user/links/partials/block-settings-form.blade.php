@@ -1012,6 +1012,19 @@ if (typeof window.resetPollVotes !== 'function') {
         $pcSocials[] = ['name' => $soc['name'] ?? $soc['platform'] ?? '', 'url' => $soc['url'] ?? ''];
     }
     $pcSocialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin','github','discord','telegram','whatsapp','snapchat','pinterest','twitch','dribbble','spotify','soundcloud','apple','reddit','medium','behance','website','email'];
+
+    // Stat counters (profile_card_v3) — normalise to {label,value}.
+    $pcStats = [];
+    foreach ((is_array($s['stats'] ?? null) ? $s['stats'] : []) as $stat) {
+        if (!is_array($stat)) continue;
+        $pcStats[] = ['label' => $stat['label'] ?? '', 'value' => $stat['value'] ?? ''];
+    }
+
+    // Badge pills (profile_card_v4) — normalise to {label}, accepting bare strings too.
+    $pcBadges = [];
+    foreach ((is_array($s['badges'] ?? null) ? $s['badges'] : []) as $badge) {
+        $pcBadges[] = ['label' => is_array($badge) ? ($badge['label'] ?? '') : (string) $badge];
+    }
 @endphp
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>
@@ -1058,6 +1071,42 @@ if (typeof window.resetPollVotes !== 'function') {
         </template>
         <button type="button" @click="socials.push({name:'',url:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add social link</button>
     </div>
+
+    {{-- Stat counters — shown by the Stats design (profile_card_v3). Each
+         row is a {label, value} pair (e.g. "Followers" / "12.5k"), capped
+         at 6 by the sanitizer. Reorder with the up/down arrows. --}}
+    @if($block->type === 'profile_card_v3')
+    <div x-data="{ stats: {{ json_encode(array_values($pcStats)) }} }">
+        <label class="{{ $labelClass }}">Stats</label>
+        <template x-for="(stat, i) in stats" :key="i">
+            <div class="flex items-center gap-2 mb-2">
+                <input type="text" x-model="stats[i].value" :name="'settings[stats]['+i+'][value]'" placeholder="Value (e.g. 12.5k)" class="{{ $inputClass }}">
+                <input type="text" x-model="stats[i].label" :name="'settings[stats]['+i+'][label]'" placeholder="Label (e.g. Followers)" class="{{ $inputClass }}">
+                <button type="button" @click="if(i>0){ [stats[i-1],stats[i]]=[stats[i],stats[i-1]] }" :disabled="i===0" class="text-white/40 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed shrink-0"><i class="fas fa-arrow-up"></i></button>
+                <button type="button" @click="if(i<stats.length-1){ [stats[i+1],stats[i]]=[stats[i],stats[i+1]] }" :disabled="i===stats.length-1" class="text-white/40 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed shrink-0"><i class="fas fa-arrow-down"></i></button>
+                <button type="button" @click="stats.splice(i,1)" class="text-red-400/60 hover:text-red-400 shrink-0"><i class="fas fa-times"></i></button>
+            </div>
+        </template>
+        <button type="button" x-show="stats.length < 6" @click="stats.push({label:'',value:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add stat</button>
+        <p x-show="stats.length >= 6" class="text-xs text-white/30">Up to 6 stats.</p>
+    </div>
+    @endif
+
+    {{-- Badge pills — shown by the Badges design (profile_card_v4). Each
+         badge is a single label, capped at 12 by the sanitizer. --}}
+    @if($block->type === 'profile_card_v4')
+    <div x-data="{ badges: {{ json_encode(array_values($pcBadges)) }} }">
+        <label class="{{ $labelClass }}">Badges</label>
+        <template x-for="(badge, i) in badges" :key="i">
+            <div class="flex items-center gap-2 mb-2">
+                <input type="text" x-model="badges[i].label" :name="'settings[badges]['+i+'][label]'" placeholder="Badge label (e.g. Pro Member)" class="{{ $inputClass }}">
+                <button type="button" @click="badges.splice(i,1)" class="text-red-400/60 hover:text-red-400 shrink-0"><i class="fas fa-times"></i></button>
+            </div>
+        </template>
+        <button type="button" x-show="badges.length < 12" @click="badges.push({label:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add badge</button>
+        <p x-show="badges.length >= 12" class="text-xs text-white/30">Up to 12 badges.</p>
+    </div>
+    @endif
 </div>
 
 @elseif($block->type === 'qr_code')
