@@ -2372,6 +2372,134 @@
             --tw-shadow: var(--tw-shadow-colored);
             box-shadow: 0 10px 15px -3px rgba(124,58,237,.12), 0 4px 6px -4px rgba(124,58,237,.10);
         }
+
+        /* ====================================================================
+           LIGHT MODE — section demo widgets (full-page legibility audit)
+           The hero float cards/metric strip were handled above. These rules
+           re-skin the remaining custom-class demo widgets that live on light
+           .glass cards (Share / Workspace / Grow / Buzz) plus the hero
+           showcase tile rail, so white-on-translucent text reads on the light
+           surfaces. Widgets sitting on self-contained dark/colored surfaces
+           (phone mockups .bb-*/.mf-phone, the dark geo-map, the purple coach
+           card, vivid .bz-* icon chips) are intentionally left untouched.
+           Dark mode is unaffected. */
+
+        /* Glass card surfaces (.glass-card handled earlier; add bare .glass/.glass-2) */
+        html.light-mode .glass,
+        html.light-mode .glass-2 {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 14px -8px rgba(15,23,42,.10);
+        }
+
+        /* Keep the two #features product-preview panels dark on white — they
+           frame the biolink "blocks" list + the vivid phone, both built for
+           dark, matching the intentionally-dark hero .stack-card motif. */
+        html.light-mode .feat-preview {
+            background-color: #0a0a14;
+            border-color: rgba(255,255,255,.06);
+        }
+
+        /* ---- Hero showcase tile rail ---- */
+        html.light-mode .hero-tile {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            color: #0f172a;
+        }
+        html.light-mode .hero-tile:hover {
+            border-color: rgba(124,58,237,.35);
+            background: #f8fafc;
+        }
+        html.light-mode .hero-tile.is-active {
+            border-color: rgba(124,58,237,.55);
+            background: rgba(124,58,237,.08);
+        }
+        html.light-mode .hero-tile-thumb { background: #f1f5f9; }
+        html.light-mode .hero-tile-fallback { color: #6d28d9; }
+        html.light-mode .hero-tile-fallback .ftl { color: #475569; text-shadow: none; }
+        html.light-mode .hero-tile-label { color: #475569; }
+
+        /* ---- Share section · branded short link ---- */
+        html.light-mode .sl-pill {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+        html.light-mode .sl-pill .host { color: #475569; }
+        html.light-mode .sl-counter { color: #64748b; }
+        html.light-mode .th-pill {
+            color: #475569;
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+
+        /* ---- Share section · mobile-first stats (phone stays dark) ---- */
+        html.light-mode .mf-stats > div {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+        html.light-mode .mf-stats span { color: #64748b; }
+
+        /* ---- Share section · channel chips ---- */
+        html.light-mode .ch-icon {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+
+        /* ---- Share section · custom-domain DNS bar/records ---- */
+        html.light-mode .cd-bar {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+        }
+        html.light-mode .cd-bar .brand { color: #0f172a; }
+        html.light-mode .cd-bar .sub { color: #64748b; }
+        html.light-mode .cd-bar .tld { color: #7c3aed; }
+        html.light-mode .cd-bar .path { color: #0891b2; }
+        html.light-mode .cd-rec { color: #64748b; }
+        html.light-mode .cd-rec .val { color: #334155; }
+        html.light-mode .cd-rec .ty { color: #6d28d9; }
+
+        /* ---- Workspace section · live activity rows ---- */
+        html.light-mode .ws-row {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+        html.light-mode .ws-name { color: #0f172a; }
+        html.light-mode .ws-task { color: #64748b; }
+        html.light-mode .ws-prog { background: #e2e8f0; }
+        html.light-mode .ws-b-edit    { color: #6d28d9; }
+        html.light-mode .ws-b-up      { color: #0e7490; }
+        html.light-mode .ws-b-comment { color: #be185d; }
+        html.light-mode .ws-b-ok      { color: #15803d; }
+        html.light-mode .ws-b-view    { color: #b45309; }
+
+        /* ---- Grow section · country flag marquee (map stays dark) ---- */
+        html.light-mode .geo-flags {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+        html.light-mode .geo-flags::before { background: linear-gradient(90deg, #ffffff, transparent); }
+        html.light-mode .geo-flags::after  { background: linear-gradient(-90deg, #ffffff, transparent); }
+        html.light-mode .geo-flag { color: #475569; }
+
+        /* ---- Buzz section · live event cards ---- */
+        html.light-mode .buzz-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+        html.light-mode .buzz-card.fresh {
+            border-color: rgba(27,212,217,.5);
+            background: linear-gradient(135deg, rgba(27,212,217,.10), rgba(124,58,237,.06));
+        }
+        html.light-mode .bz-follow .meta,
+        html.light-mode .bz-buy .who,
+        html.light-mode .bz-form .subj,
+        html.light-mode .bz-tip .msg,
+        html.light-mode .bz-qr .meta { color: #64748b; }
+        html.light-mode .bz-views .track,
+        html.light-mode .bz-goal .track { background: #e2e8f0; }
+        html.light-mode .bz-goal .pct { color: #15803d; }
+        html.light-mode .bz-buy .price { color: #15803d; }
+        html.light-mode .bz-tip .amt { color: #ca8a04; text-shadow: none; }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -2653,7 +2781,7 @@
                     <span class="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white" style="background:rgba(124,58,237,.25);color:#c4b5fd"><i class="fas fa-grip-vertical"></i> Drag</span>
                 </div>
                 <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-12 sm:col-span-7 bg-[#0a0a14] rounded-2xl p-3 border border-white/5">
+                    <div class="col-span-12 sm:col-span-7 bg-[#0a0a14] feat-preview rounded-2xl p-3 border border-white/5">
                         <div class="build-list space-y-2">
                             {{-- 1. Hero image --}}
                             <div class="build-row lift" data-bl-style="image">
@@ -2773,7 +2901,7 @@
                         </div>
                     </div>
 
-                    <div class="col-span-12 sm:col-span-5 bg-[#0a0a14] rounded-2xl p-3 border border-white/5 flex items-center justify-center">
+                    <div class="col-span-12 sm:col-span-5 bg-[#0a0a14] feat-preview rounded-2xl p-3 border border-white/5 flex items-center justify-center">
                         <div class="bb-phone">
                             <div class="bb-screen">
                                 <div class="bb-notch" aria-hidden="true"></div>
