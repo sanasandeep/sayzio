@@ -95,6 +95,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+@include('common.partials.announcement-banner', ['surface' => 'site'])
+
 @include('public.partials.header', ['useModal' => $useModal ?? false])
 
 <main class="flex-1">

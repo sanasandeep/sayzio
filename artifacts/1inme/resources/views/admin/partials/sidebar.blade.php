@@ -260,6 +260,14 @@
             <span class="sidebar-tooltip">Marketing</span>
         </a>
 
+        <a href="{{ route('admin.announcements.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
+            <span class="nav-label">Announcements</span>
+            <span class="sidebar-tooltip">Announcements</span>
+        </a>
+
         <a href="{{ route('admin.marketing-seo.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-seo.*') ? 'active' : '' }}"
            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">

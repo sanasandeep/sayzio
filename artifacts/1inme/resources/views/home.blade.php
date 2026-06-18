@@ -2504,6 +2504,8 @@
 </head>
 <body class="overflow-x-hidden">
 
+@include('common.partials.announcement-banner', ['surface' => 'site', 'fixed' => true])
+
 {{-- ============ Aurora background ============ --}}
 <div class="aurora" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
 

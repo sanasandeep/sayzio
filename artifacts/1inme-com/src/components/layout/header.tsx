@@ -68,7 +68,10 @@ export function Header() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 glass-card border-x-0 border-t-0">
+    <header
+      className="fixed inset-x-0 z-50 glass-card border-x-0 border-t-0"
+      style={{ top: "var(--inme-anno-h, 0px)" }}
+    >
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="text-xl font-bold tracking-tight text-primary">

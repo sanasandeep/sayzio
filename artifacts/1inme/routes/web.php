@@ -307,6 +307,13 @@ Route::prefix('blogs')->name('site.blogs.')->controller(\App\Modules\Common\Cont
     Route::post('/{slug}/comments','postComment')->name('comments.store')->where('slug', '[a-z0-9-]+')->middleware('throttle:10,1');
 });
 
+// Public announcements feed — CORS-open JSON consumed by the standalone
+// marketing site (1inme.com). Must precede the catch-all /{alias} routes.
+Route::prefix('announcements')->name('site.announcements.')->controller(\App\Modules\Common\Controllers\AnnouncementController::class)->group(function () {
+    Route::get('/feed.json',     'feed')->name('feed');
+    Route::options('/feed.json', 'feedPreflight');
+});
+
 // Public referral tracking — must precede the catch-all /{alias} routes.
 Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class, 'track'])
     ->name('referrals.track')
