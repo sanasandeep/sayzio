@@ -20,10 +20,12 @@ import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import {
   deleteNotification,
+  listDismissedNotifications,
   listNotifications,
   markAllRead,
   markRead,
   restoreNotification,
+  type DismissedNotification,
   type Notification,
 } from "@/lib/api/notifications";
 
@@ -62,6 +64,11 @@ export default function NotificationsScreen() {
   const q = useQuery({
     queryKey: ["notifications"],
     queryFn: listNotifications,
+  });
+
+  const dismissedQ = useQuery({
+    queryKey: ["notifications", "dismissed"],
+    queryFn: listDismissedNotifications,
   });
 
   const markAll = useMutation({
@@ -109,9 +116,7 @@ export default function NotificationsScreen() {
   // target maps to a real native screen we route there for a polished, native
   // feel; otherwise we resolve the URL against the API host and hand off to the
   // in-app browser (falling back to the OS handler).
-  const openNotification = (item: Notification) => {
-    if (!item.read_at) markOne.mutate(item.id);
-    const target = item.url;
+  const openTarget = (target: string | null) => {
     if (!target) return;
 
     const native = nativeRouteFor(target);
@@ -128,6 +133,11 @@ export default function NotificationsScreen() {
     });
   };
 
+  const openNotification = (item: Notification) => {
+    if (!item.read_at) markOne.mutate(item.id);
+    openTarget(item.url);
+  };
+
   const removeOne = useMutation({
     mutationFn: (id: number) => deleteNotification(id),
     onSuccess: (_data, id) => {
@@ -140,9 +150,82 @@ export default function NotificationsScreen() {
     mutationFn: (id: number) => restoreNotification(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] });
+      qc.invalidateQueries({ queryKey: ["notifications", "dismissed"] });
       hideUndoToast();
     },
   });
+
+  const dismissedItems = dismissedQ.data ?? [];
+
+  // The "Recently dismissed" list mirrors the active feed: tapping a row opens
+  // its resolved target (deep-link or in-app browser). Restoring it returns the
+  // notification to the active feed. Rows without a target URL aren't tappable.
+  const renderDismissed = (item: DismissedNotification) => {
+    const hasTarget = !!item.url;
+    return (
+      <Pressable
+        key={item.id}
+        onPress={hasTarget ? () => openTarget(item.url) : undefined}
+        disabled={!hasTarget}
+        style={[
+          styles.row,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            borderRadius: colors.radius,
+            opacity: 0.85,
+          },
+        ]}
+      >
+        <View
+          style={[styles.iconWrap, { backgroundColor: colors.mutedForeground + "1c" }]}
+        >
+          <Feather name="bell-off" size={16} color={colors.mutedForeground} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text
+            numberOfLines={1}
+            style={[styles.rowTitle, { color: colors.foreground }]}
+          >
+            {item.title || item.type || "Notification"}
+          </Text>
+          {item.body ? (
+            <Text
+              numberOfLines={2}
+              style={[styles.rowBody, { color: colors.mutedForeground }]}
+            >
+              {item.body}
+            </Text>
+          ) : null}
+        </View>
+        <Pressable
+          onPress={() => restoreOne.mutate(item.id)}
+          hitSlop={8}
+          disabled={restoreOne.isPending}
+          style={styles.restoreBtn}
+        >
+          <Text style={[styles.restoreText, { color: colors.primary }]}>
+            Restore
+          </Text>
+        </Pressable>
+      </Pressable>
+    );
+  };
+
+  const DismissedSection = () =>
+    dismissedItems.length > 0 ? (
+      <View style={{ marginTop: 24, gap: 8 }}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+            Recently dismissed
+          </Text>
+          <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>
+            restore within 30 days
+          </Text>
+        </View>
+        {dismissedItems.map(renderDismissed)}
+      </View>
+    ) : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -256,16 +339,25 @@ export default function NotificationsScreen() {
             );
           }}
           ListEmptyComponent={
-            <EmptyState
-              icon="bell"
-              title="No notifications yet"
-              body="Updates about your links and followers appear here."
-            />
+            dismissedItems.length > 0 ? null : (
+              <EmptyState
+                icon="bell"
+                title="No notifications yet"
+                body="Updates about your links and followers appear here."
+              />
+            )
           }
+          ListFooterComponent={<DismissedSection />}
           refreshControl={
             <RefreshControl
-              refreshing={q.isFetching && !q.isLoading}
-              onRefresh={() => q.refetch()}
+              refreshing={
+                (q.isFetching && !q.isLoading) ||
+                (dismissedQ.isFetching && !dismissedQ.isLoading)
+              }
+              onRefresh={() => {
+                q.refetch();
+                dismissedQ.refetch();
+              }}
               tintColor={colors.primary}
             />
           }
@@ -319,6 +411,16 @@ const styles = StyleSheet.create({
   rowBody: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, lineHeight: 16 },
   unreadDot: { width: 8, height: 8, borderRadius: 999 },
   dismissBtn: { padding: 4 },
+  restoreBtn: { paddingVertical: 4, paddingHorizontal: 6 },
+  restoreText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    marginBottom: 2,
+  },
+  sectionTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  sectionHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
   toastWrap: {
     position: "absolute",
     left: 16,

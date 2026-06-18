@@ -11,6 +11,10 @@ export type Notification = {
   created_at: string | null;
 };
 
+export type DismissedNotification = Notification & {
+  dismissed_at: string | null;
+};
+
 export type NotificationPreference = {
   type: string;
   label: string;
@@ -28,6 +32,13 @@ export async function listNotifications(): Promise<{
     data: { items: Notification[]; meta: { unread_count: number } };
   }>(`/notifications`);
   return { items: res.data.items, unreadCount: res.data.meta.unread_count };
+}
+
+export async function listDismissedNotifications(): Promise<DismissedNotification[]> {
+  const res = await apiFetch<{ data: { items: DismissedNotification[] } }>(
+    `/notifications/dismissed`,
+  );
+  return res.data.items;
 }
 
 export async function markAllRead(): Promise<void> {
