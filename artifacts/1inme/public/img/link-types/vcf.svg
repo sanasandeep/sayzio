@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 96" role="img" aria-label="Contact card preview">
+  <rect x="4" y="4" width="152" height="88" rx="14" fill="#22d3ee" fill-opacity="0.10" stroke="#22d3ee" stroke-opacity="0.30"/>
+  <rect x="22" y="26" width="116" height="44" rx="9" fill="#94a3b8" fill-opacity="0.12" stroke="#94a3b8" stroke-opacity="0.4"/>
+  <circle cx="46" cy="48" r="12" fill="#22d3ee" fill-opacity="0.3"/>
+  <circle cx="46" cy="43" r="4.5" fill="#22d3ee"/>
+  <path d="M38 56 a8 7 0 0 1 16 0 z" fill="#22d3ee"/>
+  <rect x="68" y="38" width="54" height="6" rx="3" fill="#22d3ee" fill-opacity="0.65"/>
+  <rect x="68" y="49" width="44" height="5" rx="2.5" fill="#94a3b8" fill-opacity="0.45"/>
+  <rect x="68" y="58" width="36" height="5" rx="2.5" fill="#94a3b8" fill-opacity="0.45"/>
+</svg>

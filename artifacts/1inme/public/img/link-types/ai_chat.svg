@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 96" role="img" aria-label="AI chatbot preview">
+  <rect x="4" y="4" width="152" height="88" rx="14" fill="#2dd4bf" fill-opacity="0.10" stroke="#2dd4bf" stroke-opacity="0.30"/>
+  <line x1="80" y1="20" x2="80" y2="28" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="80" cy="18" r="3" fill="#2dd4bf"/>
+  <rect x="54" y="30" width="52" height="40" rx="12" fill="#2dd4bf" fill-opacity="0.16" stroke="#2dd4bf" stroke-opacity="0.55"/>
+  <circle cx="69" cy="48" r="4" fill="#2dd4bf"/>
+  <circle cx="91" cy="48" r="4" fill="#2dd4bf"/>
+  <rect x="68" y="58" width="24" height="4" rx="2" fill="#2dd4bf" fill-opacity="0.6"/>
+  <path d="M120 30 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#2dd4bf"/>
+</svg>

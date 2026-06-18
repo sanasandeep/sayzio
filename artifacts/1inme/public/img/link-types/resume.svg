@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 96" role="img" aria-label="Resume preview">
+  <rect x="4" y="4" width="152" height="88" rx="14" fill="#818cf8" fill-opacity="0.10" stroke="#818cf8" stroke-opacity="0.30"/>
+  <rect x="50" y="12" width="60" height="72" rx="7" fill="#94a3b8" fill-opacity="0.12" stroke="#94a3b8" stroke-opacity="0.4"/>
+  <rect x="50" y="12" width="60" height="20" rx="7" fill="#818cf8" fill-opacity="0.35"/>
+  <circle cx="62" cy="22" r="5" fill="#818cf8"/>
+  <rect x="72" y="18" width="30" height="4" rx="2" fill="#818cf8" fill-opacity="0.8"/>
+  <rect x="72" y="25" width="22" height="3" rx="1.5" fill="#818cf8" fill-opacity="0.55"/>
+  <rect x="56" y="40" width="20" height="3.5" rx="1.75" fill="#94a3b8" fill-opacity="0.5"/>
+  <rect x="56" y="48" width="48" height="3.5" rx="1.75" fill="#94a3b8" fill-opacity="0.4"/>
+  <rect x="56" y="55" width="40" height="3.5" rx="1.75" fill="#94a3b8" fill-opacity="0.4"/>
+  <rect x="56" y="66" width="20" height="3.5" rx="1.75" fill="#94a3b8" fill-opacity="0.5"/>
+  <rect x="56" y="74" width="48" height="3.5" rx="1.75" fill="#94a3b8" fill-opacity="0.4"/>
+</svg>

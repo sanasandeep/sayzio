@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 96" role="img" aria-label="Event preview">
+  <rect x="4" y="4" width="152" height="88" rx="14" fill="#fbbf24" fill-opacity="0.10" stroke="#fbbf24" stroke-opacity="0.30"/>
+  <rect x="44" y="22" width="72" height="58" rx="8" fill="#94a3b8" fill-opacity="0.12" stroke="#94a3b8" stroke-opacity="0.4"/>
+  <path d="M44 36 a8 8 0 0 1 8 -8 h56 a8 8 0 0 1 8 8 z" fill="#fbbf24" fill-opacity="0.45"/>
+  <line x1="58" y1="18" x2="58" y2="30" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+  <line x1="102" y1="18" x2="102" y2="30" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+  <g fill="#94a3b8" fill-opacity="0.45">
+    <circle cx="58" cy="50" r="3"/><circle cx="72" cy="50" r="3"/><circle cx="100" cy="50" r="3"/>
+    <circle cx="58" cy="64" r="3"/><circle cx="100" cy="64" r="3"/>
+  </g>
+  <circle cx="86" cy="50" r="5" fill="#fbbf24"/>
+  <circle cx="86" cy="64" r="3" fill="#94a3b8" fill-opacity="0.45"/>
+  <circle cx="72" cy="64" r="3" fill="#94a3b8" fill-opacity="0.45"/>
+</svg>

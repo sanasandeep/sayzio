@@ -70,49 +70,105 @@
             </div>
         </a>
 
+        @php
+            $linkCategories = [
+                [
+                    'label' => 'Everyday links',
+                    'desc'  => 'Quick, single-purpose links you can share anywhere in seconds.',
+                    'types' => [
+                        ['value' => 'url',  'icon' => 'fa-link',         'badge' => 'bg-violet-500/15 text-violet-300',  'label' => 'Short Link',   'desc' => 'Shorten any URL with a custom alias and click tracking.'],
+                        ['value' => 'file', 'icon' => 'fa-file',         'badge' => 'bg-emerald-500/15 text-emerald-300','label' => 'File Share',   'desc' => 'Share a downloadable file behind a short link.'],
+                        ['value' => 'ics',  'icon' => 'fa-calendar',     'badge' => 'bg-amber-500/15 text-amber-300',    'label' => 'Event',        'desc' => 'A calendar event visitors can add in a single tap.'],
+                        ['value' => 'vcf',  'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300',      'label' => 'Contact Card', 'desc' => 'A digital business card visitors can save instantly.'],
+                    ],
+                ],
+                [
+                    'label' => 'Pages & mini-sites',
+                    'desc'  => 'Full, customizable pages that live at a single link — no website needed.',
+                    'types' => [
+                        ['value' => 'biolink',         'icon' => 'fa-id-card',    'badge' => 'bg-pink-500/15 text-pink-300',       'label' => 'Link in Bio',        'desc' => 'A mini-site of your links, blocks and media on one page.'],
+                        ['value' => 'slides',          'icon' => 'fa-clone',      'badge' => 'bg-fuchsia-500/15 text-fuchsia-300', 'label' => 'Slides',             'desc' => 'Present a swipeable deck of slides from a single link.'],
+                        ['value' => 'restaurant_menu', 'icon' => 'fa-utensils',   'badge' => 'bg-orange-500/15 text-orange-300',   'label' => 'Restaurant Menu',    'desc' => 'A digital menu with sections, items and prices.'],
+                        ['value' => 'resume',          'icon' => 'fa-file-lines', 'badge' => 'bg-indigo-500/15 text-indigo-300',   'label' => 'Resume / Portfolio', 'desc' => 'A shareable resume / portfolio page with PDF download.'],
+                    ],
+                ],
+                [
+                    'label' => 'Business & monetization',
+                    'desc'  => 'Grow your reputation and earn from your audience.',
+                    'types' => [
+                        ['value' => 'paid_page', 'icon' => 'fa-crown', 'badge' => 'bg-rose-500/15 text-rose-300',     'label' => 'Bizs Profile', 'desc' => 'A themeable home that automatically shows all your posts, tiers & tips — no linking needed.'],
+                        ['value' => 'reviews',   'icon' => 'fa-star',  'badge' => 'bg-yellow-500/15 text-yellow-300', 'label' => 'Reviews',      'desc' => 'Collect and showcase reviews from your audience.'],
+                    ],
+                ],
+                [
+                    'label' => 'AI-powered',
+                    'desc'  => 'Let AI answer and guide your visitors for you.',
+                    'types' => [
+                        ['value' => 'ai_chat',        'icon' => 'fa-robot',    'badge' => 'bg-teal-500/15 text-teal-300', 'label' => 'AI Chatbot',     'desc' => 'An AI assistant that answers your visitors for you.'],
+                        ['value' => 'conversational', 'icon' => 'fa-comments', 'badge' => 'bg-sky-500/15 text-sky-300',   'label' => 'Conversational', 'desc' => 'A guided, chat-style page that responds as visitors tap.'],
+                    ],
+                ],
+            ];
+            $cardIndex = 0;
+        @endphp
+
+        <style>
+            @media (prefers-reduced-motion: no-preference) {
+                .lt-card-reveal { opacity: 0; transform: translateY(12px); animation: ltCardReveal .5s cubic-bezier(.21,.6,.35,1) forwards; }
+                @keyframes ltCardReveal { to { opacity: 1; transform: none; } }
+            }
+        </style>
+
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-base font-semibold text-white mb-1">…or pick a link type manually</h2>
-            <p class="text-xs text-white/40 mb-4">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
+            <p class="text-xs text-white/40 mb-6">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach([
-                    ['value' => 'url',            'icon' => 'fa-link',         'badge' => 'bg-violet-500/15 text-violet-300',  'label' => 'Short Link',      'desc' => 'Shorten any URL with a custom alias and click tracking.'],
-                    ['value' => 'biolink',        'icon' => 'fa-id-card',      'badge' => 'bg-pink-500/15 text-pink-300',      'label' => 'Link in Bio',     'desc' => 'A mini-site of your links, blocks and media on one page.'],
-                    ['value' => 'conversational', 'icon' => 'fa-comments',     'badge' => 'bg-sky-500/15 text-sky-300',        'label' => 'Conversational',  'desc' => 'A guided, chat-style page that responds as visitors tap.'],
-                    ['value' => 'slides',         'icon' => 'fa-clone',        'badge' => 'bg-fuchsia-500/15 text-fuchsia-300','label' => 'Slides',          'desc' => 'Present a swipeable deck of slides from a single link.'],
-                    ['value' => 'ai_chat',        'icon' => 'fa-robot',        'badge' => 'bg-teal-500/15 text-teal-300',      'label' => 'AI Chatbot',      'desc' => 'An AI assistant that answers your visitors for you.'],
-                    ['value' => 'restaurant_menu','icon' => 'fa-utensils',     'badge' => 'bg-orange-500/15 text-orange-300',  'label' => 'Restaurant Menu', 'desc' => 'A digital menu with sections, items and prices.'],
-                    ['value' => 'file',           'icon' => 'fa-file',         'badge' => 'bg-emerald-500/15 text-emerald-300','label' => 'File Share',      'desc' => 'Share a downloadable file behind a short link.'],
-                    ['value' => 'ics',            'icon' => 'fa-calendar',     'badge' => 'bg-amber-500/15 text-amber-300',    'label' => 'Event',           'desc' => 'A calendar event visitors can add in a single tap.'],
-                    ['value' => 'vcf',            'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300',      'label' => 'Contact Card',    'desc' => 'A digital business card visitors can save instantly.'],
-                    ['value' => 'reviews',        'icon' => 'fa-star',         'badge' => 'bg-yellow-500/15 text-yellow-300',  'label' => 'Reviews',         'desc' => 'Collect and showcase reviews from your audience.'],
-                    ['value' => 'resume',         'icon' => 'fa-file-lines',   'badge' => 'bg-indigo-500/15 text-indigo-300',  'label' => 'Resume / Portfolio', 'desc' => 'A shareable resume / portfolio page with PDF download.'],
-                    ['value' => 'paid_page',      'icon' => 'fa-crown',        'badge' => 'bg-rose-500/15 text-rose-300',      'label' => 'Bizs Profile',    'desc' => 'A themeable home that automatically shows all your posts, tiers & tips — no linking needed.'],
-                ] as $opt)
-                    <label class="relative cursor-pointer block group h-full">
-                        <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">
-                        <div class="h-full border rounded-2xl p-5 flex flex-col gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-0.5"
-                             :class="type === '{{ $opt['value'] }}'
-                                ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
-                                : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20'">
-                            <div class="flex items-center justify-between">
-                                <div class="w-11 h-11 rounded-xl flex items-center justify-center {{ $opt['badge'] }}">
-                                    <i class="fas {{ $opt['icon'] }} text-lg"></i>
-                                </div>
-                                <span class="w-5 h-5 rounded-full border flex items-center justify-center transition-all"
-                                      :class="type === '{{ $opt['value'] }}'
-                                        ? 'border-violet-400 bg-violet-500'
-                                        : 'border-white/20'">
-                                    <i class="fas fa-check text-[10px] text-white transition-opacity"
-                                       :class="type === '{{ $opt['value'] }}' ? 'opacity-100' : 'opacity-0'"></i>
-                                </span>
-                            </div>
-                            <div>
-                                <div class="text-base font-semibold text-white">{{ $opt['label'] }}</div>
-                                <div class="text-xs text-white/50 mt-1 leading-relaxed">{{ $opt['desc'] }}</div>
-                            </div>
+            <div class="space-y-8">
+                @foreach($linkCategories as $category)
+                    <section>
+                        <div class="mb-3">
+                            <h3 class="text-sm font-semibold text-white/90">{{ $category['label'] }}</h3>
+                            <p class="text-xs text-white/40 mt-0.5">{{ $category['desc'] }}</p>
                         </div>
-                    </label>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            @foreach($category['types'] as $opt)
+                                <label class="relative cursor-pointer block group h-full lt-card-reveal" style="animation-delay: {{ min($cardIndex++ * 45, 540) }}ms">
+                                    <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">
+                                    <div class="h-full border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-1"
+                                         :class="type === '{{ $opt['value'] }}'
+                                            ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                            : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20'">
+                                        <div class="relative rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] aspect-[5/3]">
+                                            <img src="{{ asset('img/link-types/' . $opt['value'] . '.svg') }}"
+                                                 alt="{{ $opt['label'] }} preview" loading="lazy"
+                                                 class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.06]"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="absolute inset-0 hidden items-center justify-center {{ $opt['badge'] }}">
+                                                <i class="fas {{ $opt['icon'] }} text-3xl"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2.5 min-w-0">
+                                                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 {{ $opt['badge'] }}">
+                                                    <i class="fas {{ $opt['icon'] }}"></i>
+                                                </div>
+                                                <div class="text-sm font-semibold text-white truncate">{{ $opt['label'] }}</div>
+                                            </div>
+                                            <span class="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all"
+                                                  :class="type === '{{ $opt['value'] }}'
+                                                    ? 'border-violet-400 bg-violet-500'
+                                                    : 'border-white/20'">
+                                                <i class="fas fa-check text-[10px] text-white transition-opacity"
+                                                   :class="type === '{{ $opt['value'] }}' ? 'opacity-100' : 'opacity-0'"></i>
+                                            </span>
+                                        </div>
+                                        <div class="text-xs text-white/50 leading-relaxed">{{ $opt['desc'] }}</div>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                    </section>
                 @endforeach
             </div>
             @error('type') <p class="text-red-400 text-sm mt-2">{{ $message }}</p> @enderror
