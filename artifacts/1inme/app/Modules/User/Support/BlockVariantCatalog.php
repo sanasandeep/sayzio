@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 5;
+    public const VERSION = 6;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1108,6 +1108,286 @@ class BlockVariantCatalog
                 ],
             ],
 
+            // ─── Button styles: icon & image placement ──────────────────
+            //
+            // Additive bundle for link-family blocks. Each variant carries a
+            // `link_layout` placement token (rendered by the new branches in
+            // common/blocks/link.blade.php) plus colour/border treatment via
+            // the standard `_style` keys. The Designs gallery's live preview
+            // renders the real partial, so the icon/image arrangement shows
+            // correctly. `border_color` doubles as the badge accent for the
+            // circle/box icon layouts when `border_style` is `none`.
+            'link_buttons' => [
+                [
+                    'key' => 'icon_left_solid',
+                    'name' => 'Icon Left',
+                    'tags' => ['minimal', 'bold'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#7c3aed',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => 'icon_left',
+                    ],
+                    'preview' => ['bg' => '#7c3aed', 'text' => '#ffffff', 'radius' => 14],
+                ],
+                [
+                    'key' => 'icon_right_solid',
+                    'name' => 'Icon Right',
+                    'tags' => ['minimal', 'bold'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#2563eb',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => 'icon_right',
+                    ],
+                    'preview' => ['bg' => '#2563eb', 'text' => '#ffffff', 'radius' => 14],
+                ],
+                [
+                    'key' => 'icon_both_solid',
+                    'name' => 'Icon Both Sides',
+                    'tags' => ['bold', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0f172a',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => 'icon_both',
+                    ],
+                    'preview' => ['bg' => '#0f172a', 'text' => '#ffffff', 'radius' => 14],
+                ],
+                [
+                    'key' => 'icon_only_dark',
+                    'name' => 'Icon Only',
+                    'tags' => ['minimal', 'bold'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#111827',
+                        'border_style' => 'none', 'border_radius' => '12', 'shadow_preset' => 'soft',
+                        'text_color' => '#ffffff', 'padding' => '12', 'font_weight' => '600',
+                        'link_layout' => 'icon_only',
+                    ],
+                    'preview' => ['bg' => '#111827', 'text' => '#ffffff', 'radius' => 12],
+                ],
+                [
+                    'key' => 'icon_circle_left',
+                    'name' => 'Icon Circle Left',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_color' => '#2563eb',
+                        'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '12', 'font_weight' => '600',
+                        'link_layout' => 'icon_circle_left',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14, 'border' => '#2563eb'],
+                ],
+                [
+                    'key' => 'icon_circle_right',
+                    'name' => 'Icon Circle Right',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_color' => '#16a34a',
+                        'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '12', 'font_weight' => '600',
+                        'link_layout' => 'icon_circle_right',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14, 'border' => '#16a34a'],
+                ],
+                [
+                    'key' => 'icon_box_purple',
+                    'name' => 'Icon in Box',
+                    'tags' => ['pro', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_color' => '#6d28d9',
+                        'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '12', 'font_weight' => '600',
+                        'link_layout' => 'icon_box',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14, 'border' => '#6d28d9'],
+                ],
+                [
+                    'key' => 'icon_box_solid',
+                    'name' => 'Solid Icon Box',
+                    'tags' => ['bold', 'playful'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fff7ed',
+                        'border_style' => 'none', 'border_color' => '#f97316',
+                        'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#7c2d12', 'padding' => '12', 'font_weight' => '600',
+                        'link_layout' => 'icon_box',
+                    ],
+                    'preview' => ['bg' => '#fff7ed', 'text' => '#7c2d12', 'radius' => 14, 'border' => '#f97316'],
+                ],
+                [
+                    'key' => 'gradient_icon_left',
+                    'name' => 'Gradient · Icon Left',
+                    'tags' => ['bold', 'playful'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'linear-gradient(135deg,#ec4899,#8b5cf6)',
+                        'border_style' => 'none', 'border_radius' => '999', 'shadow_preset' => 'soft',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '700',
+                        'link_layout' => 'icon_left',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#ec4899,#8b5cf6)', 'text' => '#ffffff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'gradient_icon_right',
+                    'name' => 'Gradient · Icon Right',
+                    'tags' => ['bold', 'playful'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'linear-gradient(135deg,#22d3ee,#3b82f6)',
+                        'border_style' => 'none', 'border_radius' => '999', 'shadow_preset' => 'soft',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '700',
+                        'link_layout' => 'icon_right',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#22d3ee,#3b82f6)', 'text' => '#ffffff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'outline_icon_left',
+                    'name' => 'Outline · Icon Left',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#7c3aed',
+                        'border_radius' => '12', 'shadow_preset' => 'none',
+                        'text_color' => '#7c3aed', 'padding' => '12', 'font_weight' => '600',
+                        'link_layout' => 'icon_left',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#7c3aed', 'radius' => 12, 'border' => '#7c3aed'],
+                ],
+                [
+                    'key' => 'outline_icon_right',
+                    'name' => 'Outline · Icon Right',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#2563eb',
+                        'border_radius' => '12', 'shadow_preset' => 'none',
+                        'text_color' => '#2563eb', 'padding' => '12', 'font_weight' => '600',
+                        'link_layout' => 'icon_right',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#2563eb', 'radius' => 12, 'border' => '#2563eb'],
+                ],
+                [
+                    'key' => 'transparent_icon',
+                    'name' => 'Transparent',
+                    'tags' => ['minimal'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff55',
+                        'border_radius' => '14', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '500',
+                        'link_layout' => 'icon_left',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 14, 'border' => '#ffffff55'],
+                ],
+                [
+                    'key' => 'dotted_icon',
+                    'name' => 'Dotted Border',
+                    'tags' => ['playful', 'editorial'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'dotted', 'border_width' => '2', 'border_color' => '#7c3aed',
+                        'border_radius' => '14', 'shadow_preset' => 'none',
+                        'text_color' => '#7c3aed', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => 'icon_left',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#7c3aed', 'radius' => 14, 'border' => '#7c3aed'],
+                ],
+                [
+                    'key' => 'image_left',
+                    'name' => 'Image Left',
+                    'tags' => ['pro', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '0', 'font_weight' => '600',
+                        'link_layout' => 'image_left',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14],
+                ],
+                [
+                    'key' => 'image_right',
+                    'name' => 'Image Right',
+                    'tags' => ['pro', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '0', 'font_weight' => '600',
+                        'link_layout' => 'image_right',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14],
+                ],
+                [
+                    'key' => 'image_top',
+                    'name' => 'Image Top',
+                    'tags' => ['maximalist', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1a1a2e',
+                        'border_style' => 'none', 'border_radius' => '16', 'shadow_preset' => 'medium',
+                        'text_color' => '#ffffff', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'image_top',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(180deg,#7c3aed,#1a1a2e)', 'text' => '#ffffff', 'radius' => 16],
+                ],
+                [
+                    'key' => 'image_icon_rounded',
+                    'name' => 'Rounded Image Icon',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '8', 'font_weight' => '600',
+                        'link_layout' => 'image_icon_rounded',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14],
+                ],
+                [
+                    'key' => 'image_icon_square',
+                    'name' => 'Square Image Icon',
+                    'tags' => ['minimal', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '8', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '8', 'font_weight' => '600',
+                        'link_layout' => 'image_icon_square',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 8],
+                ],
+                [
+                    'key' => 'image_icon_circle',
+                    'name' => 'Circular Image Icon',
+                    'tags' => ['minimal', 'playful'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '999', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '8', 'font_weight' => '600',
+                        'link_layout' => 'image_icon_circle',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 999],
+                ],
+            ],
+
             // Heading variants. Style keys only — animation cues live
             // in `_animation` which is added to STYLE_DEFAULTS so the
             // sanitizer accepts it; the public renderer reads it as a
@@ -1698,11 +1978,11 @@ class BlockVariantCatalog
     {
         return [
             // Links / CTAs.
-            'link'             => ['link_actions', 'link_shapes'],
-            'link_big'         => ['link_actions', 'link_shapes', 'headings', 'heading_styles'],
-            'featured_pin'     => ['link_actions', 'link_shapes'],
-            'cta_button'       => ['link_actions', 'link_shapes'],
-            'external_item'    => ['link_actions', 'link_shapes'],
+            'link'             => ['link_actions', 'link_shapes', 'link_buttons'],
+            'link_big'         => ['link_actions', 'link_shapes', 'link_buttons', 'headings', 'heading_styles'],
+            'featured_pin'     => ['link_actions', 'link_shapes', 'link_buttons'],
+            'cta_button'       => ['link_actions', 'link_shapes', 'link_buttons'],
+            'external_item'    => ['link_actions', 'link_shapes', 'link_buttons'],
 
             // Headings.
             'heading'          => ['headings', 'heading_styles'],

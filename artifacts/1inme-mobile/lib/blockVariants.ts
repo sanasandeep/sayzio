@@ -122,6 +122,32 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "image_cover_neon",     name: "Cover · Neon Frame",  tags: ["neon", "bold", "maximalist"], preview: { bg: "#0b0420", text: "#a5f3fc", radius: 14, border: "#22d3ee" } },
     { key: "image_cover_arch",     name: "Cover · Arch",        tags: ["editorial", "pro", "minimal"],preview: { bg: "#1a1a2e", text: "#fff", radius: 40 } },
   ],
+  // Mirror of the PHP `link_buttons` bundle (icon & image placement). The
+  // mobile renderer doesn't honor the `link_layout` placement token yet,
+  // so applying these on mobile degrades to the variant's colours; the
+  // keys are mirrored here so the gallery selected-state stays in sync.
+  link_buttons: [
+    { key: "icon_left_solid",    name: "Icon Left",            tags: ["minimal", "bold"],     preview: { bg: "#7c3aed", text: "#fff", radius: 14 } },
+    { key: "icon_right_solid",   name: "Icon Right",           tags: ["minimal", "bold"],     preview: { bg: "#2563eb", text: "#fff", radius: 14 } },
+    { key: "icon_both_solid",    name: "Icon Both Sides",      tags: ["bold", "pro"],         preview: { bg: "#0f172a", text: "#fff", radius: 14 } },
+    { key: "icon_only_dark",     name: "Icon Only",            tags: ["minimal", "bold"],     preview: { bg: "#111827", text: "#fff", radius: 12 } },
+    { key: "icon_circle_left",   name: "Icon Circle Left",     tags: ["minimal", "pro"],      preview: { bg: "#ffffff", text: "#111827", radius: 14, border: "#2563eb" } },
+    { key: "icon_circle_right",  name: "Icon Circle Right",    tags: ["minimal", "pro"],      preview: { bg: "#ffffff", text: "#111827", radius: 14, border: "#16a34a" } },
+    { key: "icon_box_purple",    name: "Icon in Box",          tags: ["pro", "corporate"],    preview: { bg: "#ffffff", text: "#111827", radius: 14, border: "#6d28d9" } },
+    { key: "icon_box_solid",     name: "Solid Icon Box",       tags: ["bold", "playful"],     preview: { bg: "#fff7ed", text: "#7c2d12", radius: 14, border: "#f97316" } },
+    { key: "gradient_icon_left", name: "Gradient · Icon Left", tags: ["bold", "playful"],     preview: { bg: "#ec4899", text: "#fff", radius: 999 } },
+    { key: "gradient_icon_right",name: "Gradient · Icon Right",tags: ["bold", "playful"],     preview: { bg: "#22d3ee", text: "#fff", radius: 999 } },
+    { key: "outline_icon_left",  name: "Outline · Icon Left",  tags: ["minimal", "pro"],      preview: { bg: "transparent", text: "#7c3aed", radius: 12, border: "#7c3aed" } },
+    { key: "outline_icon_right", name: "Outline · Icon Right", tags: ["minimal", "pro"],      preview: { bg: "transparent", text: "#2563eb", radius: 12, border: "#2563eb" } },
+    { key: "transparent_icon",   name: "Transparent",          tags: ["minimal"],             preview: { bg: "transparent", text: "#fff", radius: 14, border: "#ffffff55" } },
+    { key: "dotted_icon",        name: "Dotted Border",        tags: ["playful", "editorial"],preview: { bg: "transparent", text: "#7c3aed", radius: 14, border: "#7c3aed", dashed: true } },
+    { key: "image_left",         name: "Image Left",           tags: ["pro", "editorial"],    preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
+    { key: "image_right",        name: "Image Right",          tags: ["pro", "editorial"],    preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
+    { key: "image_top",          name: "Image Top",            tags: ["maximalist", "editorial"], preview: { bg: "#1a1a2e", text: "#fff", radius: 16 } },
+    { key: "image_icon_rounded", name: "Rounded Image Icon",   tags: ["minimal", "pro"],      preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
+    { key: "image_icon_square",  name: "Square Image Icon",    tags: ["minimal", "corporate"],preview: { bg: "#ffffff", text: "#111827", radius: 8 } },
+    { key: "image_icon_circle",  name: "Circular Image Icon",  tags: ["minimal", "playful"],  preview: { bg: "#ffffff", text: "#111827", radius: 999 } },
+  ],
   heading_styles: [
     { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },
     { key: "gradient_swipe", name: "Gradient Swipe", tags: ["bold", "playful"],      preview: { bg: "transparent", text: "#fff", radius: 0 } },
@@ -170,7 +196,7 @@ const BUNDLES: Record<string, MobileVariant[]> = {
  * their canonical's bundles without duplicate entries here.
  */
 const TYPE_BUNDLES: Record<string, string[]> = {
-  link: ["link_actions", "link_shapes"],
+  link: ["link_actions", "link_shapes", "link_buttons"],
 
   heading: ["headings", "heading_styles"],
 

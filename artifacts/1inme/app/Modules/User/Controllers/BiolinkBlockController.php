@@ -1691,7 +1691,13 @@ class BiolinkBlockController extends Controller
             // foreach skips empty values, only non-default picks
             // ('plain_text' / 'image_cover') will ever be persisted —
             // which is exactly what we want.
-            'link_layout' => ['plain_text', 'image_cover'],
+            'link_layout' => [
+                'plain_text', 'image_cover',
+                'icon_left', 'icon_right', 'icon_both', 'icon_only',
+                'icon_circle_left', 'icon_circle_right', 'icon_box',
+                'image_left', 'image_right', 'image_top',
+                'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
+            ],
         ];
         $numericBounds = [
             'font_size' => [8, 72],

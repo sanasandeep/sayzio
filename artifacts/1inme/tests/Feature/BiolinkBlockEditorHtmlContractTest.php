@@ -174,6 +174,46 @@ class BiolinkBlockEditorHtmlContractTest extends TestCase
         $this->assertStringContainsString((string) $block->id, $childHtml);
     }
 
+    /**
+     * Guards the new icon/image button-style layouts. The "Designs" gallery
+     * persists the chosen placement via `_style.link_layout`; if the value
+     * isn't whitelisted in `sanitizeBlockStyle()` it gets silently stripped
+     * on save and the layout never renders. This asserts every new token
+     * survives a round-trip through update().
+     */
+    public function test_new_link_layout_tokens_survive_sanitizer(): void
+    {
+        $owner = $this->makeOwner();
+        $link  = $this->makeBiolink($owner);
+
+        $this->storeBlock($owner, $link, ['type' => 'link'])->assertOk();
+        $block = BiolinkBlock::where('link_id', $link->id)
+            ->where('type', 'link')
+            ->latest('id')
+            ->firstOrFail();
+
+        $layouts = [
+            'icon_left', 'icon_right', 'icon_both', 'icon_only',
+            'icon_circle_left', 'icon_circle_right', 'icon_box',
+            'image_left', 'image_right', 'image_top',
+            'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
+        ];
+
+        foreach ($layouts as $layout) {
+            $resp = $this->actingAs($owner)
+                ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+                ->put("/user/links/{$link->id}/blocks/{$block->id}", [
+                    'style' => ['link_layout' => $layout],
+                ]);
+
+            $resp->assertOk();
+
+            $saved = $block->fresh()->settings['_style']['link_layout'] ?? null;
+            $this->assertSame($layout, $saved,
+                "link_layout `{$layout}` must survive sanitizeBlockStyle()");
+        }
+    }
+
     public function test_apply_card_template_returns_rendered_html(): void
     {
         $owner = $this->makeOwner();
