@@ -66,6 +66,14 @@ export type ApiError = {
    */
   code?: string;
   errors?: Record<string, string[]>;
+  /**
+   * Raw `{error: {details}}` object from the envelope (when it is a keyed
+   * object rather than a validation-errors map). Plan-gated rejections stamp
+   * `{feature, recommended_plan, recommended_plan_name}` here so the upgrade
+   * prompt can pre-select the plan that unlocks the blocked feature — see
+   * `lib/upgradePrompt.ts`.
+   */
+  details?: Record<string, unknown>;
 };
 
 export async function apiFetch<T = unknown>(
@@ -105,6 +113,12 @@ export async function apiFetch<T = unknown>(
         (body && typeof body.code === "string" ? body.code : null) ||
         undefined,
       errors: body?.errors ?? nested?.details,
+      details:
+        nested?.details &&
+        typeof nested.details === "object" &&
+        !Array.isArray(nested.details)
+          ? (nested.details as Record<string, unknown>)
+          : undefined,
     };
     throw err;
   }

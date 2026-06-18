@@ -122,14 +122,14 @@ class BiolinkWizardController extends Controller
         // (the web CheckPlanLimit middleware redirects, which is no use here).
         $features = $owner->plan?->features ?? [];
         $maxLinks = $features['max_links'] ?? 5;
-        if ($maxLinks !== -1 && $owner->links()->count() >= $maxLinks) {
-            return $this->fail("You've reached your plan's link limit ({$maxLinks}). Upgrade your plan for more links.", 403, 'link_limit');
+        if ($maxLinks !== -1 && ($usedLinks = $owner->links()->count()) >= $maxLinks) {
+            return $this->planGate("You've reached your plan's link limit ({$maxLinks}). Upgrade your plan for more links.", 'max_links', $owner, 403, 'link_limit', $usedLinks);
         }
         $maxBiolinks = $features['max_biolinks'] ?? 1;
         if ($maxBiolinks !== -1) {
             $usedBiolinks = $owner->links()->whereIn('type', Link::BIOLINK_FAMILY)->count();
             if ($usedBiolinks >= $maxBiolinks) {
-                return $this->fail("You've reached your plan's Link in Bio limit ({$maxBiolinks}). Upgrade your plan for more.", 403, 'biolink_limit');
+                return $this->planGate("You've reached your plan's Link in Bio limit ({$maxBiolinks}). Upgrade your plan for more.", 'max_biolinks', $owner, 403, 'biolink_limit', $usedBiolinks);
             }
         }
 

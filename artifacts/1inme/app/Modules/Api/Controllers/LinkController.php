@@ -474,7 +474,7 @@ class LinkController extends Controller
     {
         $user = $request->user();
         if (!$user->planFeatureEnabled('link_smart_rules')) {
-            return $this->fail('Smart links are not available on your current plan.', 402, 'plan_upgrade_required');
+            return $this->planGate('Smart links are not available on your current plan.', 'link_smart_rules', $user);
         }
 
         $data = $request->validate([
@@ -491,7 +491,7 @@ class LinkController extends Controller
         }
         $maxRules = $this->resolveMaxRules($user);
         if (count($rules) > $maxRules) {
-            return $this->fail("Your plan allows up to {$maxRules} rules per smart link.", 422, 'rule_limit_exceeded');
+            return $this->planGate("Your plan allows up to {$maxRules} rules per smart link.", 'max_smart_rules', $user, 422, 'rule_limit_exceeded', count($rules));
         }
 
         $alias = $data['alias'] ?? Str::lower(Str::random(7));
@@ -557,7 +557,7 @@ class LinkController extends Controller
         $link = Link::where('user_id', $user->id)->find($id);
         if (!$link) return $this->notFound('Link not found');
         if (!$user->planFeatureEnabled('link_smart_rules')) {
-            return $this->fail('Smart rules are not available on your current plan.', 402, 'plan_upgrade_required');
+            return $this->planGate('Smart rules are not available on your current plan.', 'link_smart_rules', $user);
         }
 
         $data = $request->validate([
@@ -566,7 +566,7 @@ class LinkController extends Controller
         $rules = UserLinkController::sanitizeSmartRules(json_encode($data['rules']));
         $maxRules = $this->resolveMaxRules($user);
         if (count($rules) > $maxRules) {
-            return $this->fail("Your plan allows up to {$maxRules} rules per smart link.", 422, 'rule_limit_exceeded');
+            return $this->planGate("Your plan allows up to {$maxRules} rules per smart link.", 'max_smart_rules', $user, 422, 'rule_limit_exceeded', count($rules));
         }
 
         $settings = (array) ($link->settings ?? []);

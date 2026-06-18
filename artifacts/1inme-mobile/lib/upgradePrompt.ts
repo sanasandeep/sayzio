@@ -52,6 +52,53 @@ function messageOf(error: unknown, fallback: string): string {
 }
 
 /**
+ * A pre-fill hint for the upgrade screen: the plan that unlocks the feature
+ * the user just hit. The Laravel side computes the cheapest qualifying plan
+ * (`User::planThatUnlocks`) and stamps it into the plan-gated error envelope's
+ * `details` (`recommended_plan` slug + `recommended_plan_name` + `feature`).
+ */
+export type UpgradeHint = {
+  /** Recommended plan slug — the upgrade screen highlights/scrolls to it. */
+  planSlug?: string;
+  /** Human-readable recommended plan name, for the prompt copy. */
+  planName?: string;
+  /** Raw feature key the gate blocked on (fallback resolution on the screen). */
+  feature?: string;
+};
+
+function str(v: unknown): string | undefined {
+  return typeof v === "string" && v.trim() ? v : undefined;
+}
+
+/**
+ * Pull the recommended-plan hint out of a plan-gated API error's `details`.
+ * Returns `undefined` when the backend didn't supply one (older server, or a
+ * gate that has no single qualifying plan) — callers then fall back to the
+ * generic upgrade view.
+ */
+export function upgradeHintFromError(error: unknown): UpgradeHint | undefined {
+  const err = asApiError(error);
+  const details = err?.details;
+  if (!details || typeof details !== "object") return undefined;
+  const planSlug = str((details as Record<string, unknown>).recommended_plan);
+  const planName = str(
+    (details as Record<string, unknown>).recommended_plan_name,
+  );
+  const feature = str((details as Record<string, unknown>).feature);
+  if (!planSlug && !feature) return undefined;
+  return { planSlug, planName, feature };
+}
+
+/** Build the upgrade-screen route, attaching the hint as query params. */
+function upgradeRoute(hint?: UpgradeHint) {
+  const params: Record<string, string> = {};
+  if (hint?.planSlug) params.plan = hint.planSlug;
+  if (hint?.feature) params.feature = hint.feature;
+  if (Object.keys(params).length === 0) return "/upgrade";
+  return { pathname: "/upgrade", params };
+}
+
+/**
  * Show the "Upgrade your plan" prompt with a CTA that opens the in-app
  * upgrade screen. Safe to call from anywhere (uses the imperative
  * `expo-router` `router`); on web falls back to `window.confirm`.
@@ -59,12 +106,14 @@ function messageOf(error: unknown, fallback: string): string {
 export function showUpgradePrompt(opts?: {
   title?: string;
   message?: string;
+  /** Pre-fill hint so the upgrade screen highlights the unlocking plan. */
+  hint?: UpgradeHint;
 }): void {
   const title = opts?.title ?? "Upgrade your plan";
   const message =
     opts?.message ?? "This feature isn't available on your current plan.";
 
-  const goToUpgrade = () => router.push("/upgrade" as never);
+  const goToUpgrade = () => router.push(upgradeRoute(opts?.hint) as never);
 
   if (Platform.OS === "web") {
     const proceed =
@@ -98,6 +147,14 @@ export function handlePlanLockedError(
   fallbackMessage = "This feature requires a plan upgrade.",
 ): boolean {
   if (!isPlanLockedError(error)) return false;
-  showUpgradePrompt({ message: messageOf(error, fallbackMessage) });
+  const hint = upgradeHintFromError(error);
+  let message = messageOf(error, fallbackMessage);
+  // When we know the unlocking plan, name it in the prompt copy so the CTA
+  // lines up with the plan the screen will highlight.
+  if (hint?.planName && !message.includes(hint.planName)) {
+    const sep = /[.!?]\s*$/.test(message) ? "" : ".";
+    message = `${message.trimEnd()}${sep} Upgrade to ${hint.planName} to unlock it.`;
+  }
+  showUpgradePrompt({ message, hint });
   return true;
 }

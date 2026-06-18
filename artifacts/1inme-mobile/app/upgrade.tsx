@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -17,10 +17,59 @@ import { billing, planPrice, type Currency, type Plan } from "@/lib/api/billing"
 
 const CURRENCIES: Currency[] = ["USD", "INR"];
 
+/**
+ * Resolve the plan to pre-highlight from the upgrade hint passed by the
+ * plan-gating prompt (see `lib/upgradePrompt.ts`). Prefers the explicit
+ * `plan` slug the Laravel side computed via `planThatUnlocks`; otherwise
+ * falls back to resolving the cheapest non-current plan whose `features_map`
+ * unlocks the blocked `feature` key. Returns `null` when no hint applies.
+ */
+function resolveRecommended(
+  plans: Plan[],
+  planSlug?: string,
+  feature?: string,
+): Plan | null {
+  if (planSlug) {
+    const bySlug = plans.find((p) => p.slug === planSlug);
+    if (bySlug) return bySlug;
+  }
+  if (feature) {
+    const current = plans.find((p) => p.is_current);
+    const currentVal = Number(current?.features_map?.[feature] ?? 0);
+    const unlocks = (p: Plan): boolean => {
+      if (p.is_current) return false;
+      const raw = p.features_map?.[feature];
+      if (raw == null) return false;
+      // Numeric caps (max_*, storage, contacts): qualify when the plan raises
+      // the current cap (or is unlimited). Boolean flags: any truthy value.
+      if (typeof raw === "number" || /^-?\d+$/.test(String(raw))) {
+        const n = Number(raw);
+        return n === -1 || n > currentVal;
+      }
+      return Boolean(raw);
+    };
+    const candidates = plans
+      .filter(unlocks)
+      .sort(
+        (a, b) =>
+          (a.monthly?.amount_minor ?? 0) - (b.monthly?.amount_minor ?? 0),
+      );
+    if (candidates[0]) return candidates[0];
+  }
+  return null;
+}
+
 export default function UpgradeScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ plan?: string; feature?: string }>();
+  const planHint = typeof params.plan === "string" ? params.plan : undefined;
+  const featureHint =
+    typeof params.feature === "string" ? params.feature : undefined;
+
+  const scrollRef = React.useRef<ScrollView>(null);
+  const [recommendedY, setRecommendedY] = React.useState<number | null>(null);
 
   const plansQuery = useQuery({
     queryKey: ["billing", "plans"],
@@ -53,14 +102,35 @@ export default function UpgradeScreen() {
     plans.find((p) => p.is_popular) ??
     plans.find((p) => (p.monthly?.amount_minor ?? 0) > 0);
 
-  const featured: Plan[] = [free, popular]
+  const recommended = React.useMemo(
+    () => resolveRecommended(plans, planHint, featureHint),
+    [plans, planHint, featureHint],
+  );
+
+  // Lead with the recommended plan so it's the first card the user sees, then
+  // the usual free + popular pair (deduped). Falls back to the generic pair
+  // when there's no hint.
+  const featured: Plan[] = [recommended, free, popular]
     .filter((p): p is Plan => p != null)
     .filter((p, i, arr) => arr.findIndex((q) => q.id === p.id) === i);
+
+  // Once the recommended card has measured its position, scroll it into view.
+  React.useEffect(() => {
+    if (recommended && recommendedY != null) {
+      const y = Math.max(0, recommendedY - 12);
+      const t = setTimeout(
+        () => scrollRef.current?.scrollTo({ y, animated: true }),
+        250,
+      );
+      return () => clearTimeout(t);
+    }
+  }, [recommended, recommendedY]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: "Upgrade", headerShown: true }} />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{
           paddingTop: 16,
           paddingHorizontal: 20,
@@ -69,10 +139,14 @@ export default function UpgradeScreen() {
         }}
       >
         <Text style={[styles.heading, { color: colors.foreground }]}>
-          Pick the plan that fits your work.
+          {recommended
+            ? `${recommended.name} unlocks what you just tried.`
+            : "Pick the plan that fits your work."}
         </Text>
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-          Start free. Upgrade only when you outgrow it.
+          {recommended
+            ? "We've highlighted the cheapest plan that includes it below."
+            : "Start free. Upgrade only when you outgrow it."}
         </Text>
 
         <View style={[styles.toggle, { borderColor: colors.border }]}>
@@ -107,22 +181,36 @@ export default function UpgradeScreen() {
         ) : (
           featured.map((plan) => {
             const price = planPrice(plan, activeCurrency, "monthly");
-            const popularBadge = !!plan.is_popular;
+            const isRecommended = recommended?.id === plan.id;
+            const popularBadge = !!plan.is_popular && !isRecommended;
+            const emphasised = isRecommended || popularBadge;
             return (
               <View
                 key={plan.id}
+                onLayout={
+                  isRecommended
+                    ? (e) => setRecommendedY(e.nativeEvent.layout.y)
+                    : undefined
+                }
                 style={[
                   styles.card,
                   {
                     backgroundColor: colors.card,
-                    borderColor: popularBadge ? colors.primary : colors.border,
+                    borderColor: emphasised ? colors.primary : colors.border,
+                    borderWidth: isRecommended ? 2 : 1,
                     borderRadius: colors.radius,
                   },
                 ]}
               >
                 <View style={styles.cardHeader}>
                   <Text style={[styles.planName, { color: colors.foreground }]}>{plan.name}</Text>
-                  {popularBadge ? (
+                  {isRecommended ? (
+                    <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+                      <Text style={{ color: colors.primaryForeground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 11 }}>
+                        RECOMMENDED
+                      </Text>
+                    </View>
+                  ) : popularBadge ? (
                     <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                       <Text style={{ color: colors.primaryForeground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 11 }}>
                         MOST POPULAR
@@ -160,18 +248,18 @@ export default function UpgradeScreen() {
                   style={[
                     styles.cta,
                     {
-                      backgroundColor: popularBadge ? colors.primary : "transparent",
+                      backgroundColor: emphasised ? colors.primary : "transparent",
                       borderColor: colors.primary,
                     },
                   ]}
                 >
                   <Text
                     style={{
-                      color: popularBadge ? colors.primaryForeground : colors.primary,
+                      color: emphasised ? colors.primaryForeground : colors.primary,
                       fontFamily: "SpaceGrotesk_700Bold",
                     }}
                   >
-                    {popularBadge ? `Choose ${plan.name}` : "Stay on Free"}
+                    {emphasised ? `Choose ${plan.name}` : "Stay on Free"}
                   </Text>
                 </Pressable>
               </View>

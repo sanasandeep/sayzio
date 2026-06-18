@@ -74,6 +74,39 @@ trait ApiResponses
         return response()->json(['error' => $error], $status);
     }
 
+    /**
+     * Plan-gated rejection that also tells the client *which* plan unlocks
+     * the blocked feature. Computes the cheapest active plan that raises /
+     * unlocks $feature via {@see User::planThatUnlocks()} and stamps it into
+     * the error `details` as `recommended_plan` (slug) + `recommended_plan_name`,
+     * alongside the raw `feature` key. The mobile app reads these to pre-select
+     * and scroll to the recommended plan on its /upgrade screen instead of
+     * showing a generic list. Falls back to a plain {@see fail()} (no hint)
+     * when no qualifying plan exists, so older clients keep working.
+     *
+     * @param int|null $current Optional current usage count for numeric caps,
+     *                          forwarded to planThatUnlocks so the suggested
+     *                          plan actually raises the limit the user blew past.
+     */
+    protected function planGate(
+        string $message,
+        string $feature,
+        ?User $user,
+        int $status = 402,
+        string $code = 'plan_upgrade_required',
+        int|null $current = null
+    ): JsonResponse {
+        $details = ['feature' => $feature];
+        if ($user && method_exists($user, 'planThatUnlocks')) {
+            $target = $user->planThatUnlocks($feature, $current);
+            if ($target) {
+                $details['recommended_plan'] = $target->slug;
+                $details['recommended_plan_name'] = $target->name;
+            }
+        }
+        return $this->fail($message, $status, $code, $details);
+    }
+
     protected function notFound(string $message = 'Not found'): JsonResponse
     {
         return $this->fail($message, 404, 'not_found');
