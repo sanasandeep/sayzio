@@ -259,47 +259,108 @@
     @php
         $allLocations = $payload['locations'] ?? [];
         if (!empty($payload['manual']['location'])) $allLocations[] = $payload['manual']['location'];
+        $hasLocMap = collect($allLocations)->contains(fn ($l) => is_numeric($l['lat'] ?? null) && is_numeric($l['lng'] ?? null));
     @endphp
-    @if(!empty($allLocations))
-        <div class="card-premium p-5 mt-4">
-            <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Locations</h3>
-            <div class="space-y-2">
-                @foreach($allLocations as $loc)
-                    <a href="{{ $loc['maps_url'] }}" target="_blank" rel="noopener"
-                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);">
-                        <i class="fas fa-location-dot" style="color:#f87171;"></i>
-                        <span class="min-w-0 flex-1">
-                            <span class="block text-sm font-medium truncate" style="color:var(--text-primary);">{{ $loc['label'] }}</span>
-                            @if(!empty($loc['address']))
-                                <span class="block text-[11px] truncate" style="color:var(--text-faint);">{{ $loc['address'] }}</span>
-                            @endif
-                        </span>
-                        @if(($loc['source'] ?? '') === 'manual')
-                            <span class="text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
-                        @endif
-                        <i class="fas fa-arrow-up-right-from-square text-xs" style="color:var(--text-faint);"></i>
-                    </a>
-                @endforeach
-            </div>
-        </div>
-    @endif
 
-    {{-- Manual editor — owner-entered channels / socials / location --}}
-    @if($contact)
+    {{-- Leaflet assets — shared by the read-only location previews and the manual map picker below. --}}
+    @if($hasLocMap || $contact)
         <link rel="stylesheet" href="{{ asset('css/vendor/leaflet.min.css') }}" />
         <script src="{{ asset('js/vendor/leaflet.min.js') }}"></script>
         <style>
-            [x-cloak] { display: none !important; }
-            .dialer-loc-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
-            html.light-mode .dialer-loc-map .leaflet-container { background:#e6e9f0 !important; }
-            .dialer-loc-map .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
-            .dialer-loc-map .leaflet-control-attribution a { color:#a78bfa !important; }
+            .dialer-loc-map .leaflet-container, .dialer-loc-thumb .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
+            html.light-mode .dialer-loc-map .leaflet-container, html.light-mode .dialer-loc-thumb .leaflet-container { background:#e6e9f0 !important; }
+            .dialer-loc-map .leaflet-control-attribution, .dialer-loc-thumb .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
+            .dialer-loc-map .leaflet-control-attribution a, .dialer-loc-thumb .leaflet-control-attribution a { color:#a78bfa !important; }
             .dialer-loc-map .leaflet-control-zoom a {
                 background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important;
             }
             .dialer-loc-map .leaflet-control-zoom a:hover { background:#7c3aed !important; }
             .dialer-loc-marker { width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
             .dialer-loc-marker svg { width:100%; height:100%; display:block; }
+            /* Read-only map preview: non-interactive, taps fall through to open Maps. */
+            .dialer-loc-thumb { pointer-events:none; }
+        </style>
+    @endif
+
+    @if(!empty($allLocations))
+        <div class="card-premium p-5 mt-4">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Locations</h3>
+            <div class="space-y-3">
+                @foreach($allLocations as $loc)
+                    @php $hasPt = is_numeric($loc['lat'] ?? null) && is_numeric($loc['lng'] ?? null); @endphp
+                    <a href="{{ $loc['maps_url'] }}" target="_blank" rel="noopener"
+                       class="block rounded-xl overflow-hidden" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);">
+                        @if($hasPt)
+                            <div class="dialer-loc-thumb" data-lat="{{ $loc['lat'] }}" data-lng="{{ $loc['lng'] }}"
+                                 style="height:140px;width:100%;background:#1e2330;"></div>
+                        @endif
+                        <span class="flex items-center gap-3 px-3 py-2.5">
+                            <i class="fas fa-location-dot" style="color:#f87171;"></i>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm font-medium truncate" style="color:var(--text-primary);">{{ $loc['label'] }}</span>
+                                @if(!empty($loc['address']))
+                                    <span class="block text-[11px] truncate" style="color:var(--text-faint);">{{ $loc['address'] }}</span>
+                                @endif
+                            </span>
+                            @if(($loc['source'] ?? '') === 'manual')
+                                <span class="text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
+                            @endif
+                            <i class="fas fa-arrow-up-right-from-square text-xs" style="color:var(--text-faint);"></i>
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+        @if($hasLocMap)
+            <script>
+                (function () {
+                    function initLocThumbs() {
+                        if (typeof L === 'undefined') return;
+                        var pin = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+                            '<defs><linearGradient id="dlt-g" x1="0" y1="0" x2="0" y2="1">' +
+                            '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+                            '</linearGradient></defs>' +
+                            '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#dlt-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
+                            '<circle cx="17" cy="16" r="6" fill="#fff"/></svg>';
+                        document.querySelectorAll('.dialer-loc-thumb').forEach(function (el) {
+                            if (el.dataset.mapInit) return;
+                            var lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
+                            if (!isFinite(lat) || !isFinite(lng)) return;
+                            el.dataset.mapInit = '1';
+                            var map = L.map(el, {
+                                center: [lat, lng], zoom: 15,
+                                zoomControl: false, attributionControl: true,
+                                dragging: false, touchZoom: false, scrollWheelZoom: false,
+                                doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false,
+                            });
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                maxZoom: 19,
+                                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            }).addTo(map);
+                            var icon = L.divIcon({
+                                className: '',
+                                html: '<div class="dialer-loc-marker">' + pin + '</div>',
+                                iconSize: [30, 40], iconAnchor: [15, 40]
+                            });
+                            L.marker([lat, lng], { icon: icon, interactive: false, keyboard: false }).addTo(map);
+                            setTimeout(function () { map.invalidateSize(); }, 80);
+                        });
+                    }
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initLocThumbs);
+                    } else {
+                        initLocThumbs();
+                    }
+                })();
+            </script>
+        @endif
+    @endif
+
+    {{-- Manual editor — owner-entered channels / socials / location --}}
+    @if($contact)
+        {{-- Leaflet assets + shared map styles are loaded once above (the Locations section). --}}
+        <style>
+            [x-cloak] { display: none !important; }
         </style>
         <div class="card-premium p-5 mt-4" x-data="dialerManual({
                 channels: {{ Illuminate\Support\Js::from(collect($payload['manual']['channels'] ?? [])->map(fn($c) => ['type'=>$c['type'],'label'=>$c['label'],'value'=>$c['value']])->values()) }},

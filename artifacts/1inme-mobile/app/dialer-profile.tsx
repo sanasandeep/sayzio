@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
+import { MapPreview } from "@/components/MapPreview";
 import { useColors } from "@/hooks/useColors";
 import {
   type ManualChannel,
@@ -770,18 +771,32 @@ export default function DialerProfileScreen() {
             >
               LOCATIONS
             </Text>
-            {allLocations.map((loc, i) => (
+            {allLocations.map((loc, i) => {
+              const hasPoint =
+                typeof loc.lat === "number" &&
+                isFinite(loc.lat) &&
+                typeof loc.lng === "number" &&
+                isFinite(loc.lng);
+              return (
               <Pressable
                 key={`${loc.maps_url}-${i}`}
                 onPress={() => openUrl(loc.maps_url)}
                 style={({ pressed }) => [
-                  styles.locationRow,
+                  hasPoint ? styles.locationCard : styles.locationRow,
                   {
                     borderColor: colors.border,
                     backgroundColor: pressed ? colors.muted : "transparent",
                   },
                 ]}
               >
+                {hasPoint && (
+                  <MapPreview
+                    lat={loc.lat as number}
+                    lng={loc.lng as number}
+                    style={styles.locationMap}
+                  />
+                )}
+                <View style={hasPoint ? styles.locationCardBody : styles.locationRowBody}>
                 <Feather name="map-pin" size={16} color="#f87171" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text
@@ -809,8 +824,10 @@ export default function DialerProfileScreen() {
                     </Text>
                   </View>
                 )}
+                </View>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -1611,6 +1628,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginTop: 10,
+  },
+  locationRowBody: { flex: 1, flexDirection: "row", alignItems: "center" },
+  locationCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    marginTop: 10,
+    overflow: "hidden",
+  },
+  locationMap: { width: "100%" },
+  locationCardBody: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
   },
   tag: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   subLabel: {
