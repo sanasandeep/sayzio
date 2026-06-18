@@ -13,8 +13,11 @@ import {
 
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
+import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
+import { listLinks } from "@/lib/api/links";
 import {
   generateWizardPage,
   getWizardQuestions,
@@ -24,9 +27,20 @@ import {
 
 type Step = "category" | "page_type" | "industry" | "questions";
 
+// Mirrors Link::BIOLINK_FAMILY on the server — the wizard always produces a
+// link of one of these types, so they all count toward the `max_biolinks` cap.
+const BIOLINK_FAMILY = new Set<string>([
+  "biolink",
+  "conversational",
+  "slides",
+  "ai_chat",
+  "restaurant_menu",
+]);
+
 export default function BiolinkWizardScreen() {
   const colors = useColors();
   const router = useRouter();
+  const plan = usePlanFeatures();
 
   const [step, setStep] = useState<Step>("category");
   const [category, setCategory] = useState<string | null>(null);
@@ -66,6 +80,46 @@ export default function BiolinkWizardScreen() {
     enabled: step === "questions" && !!category && !!pageType,
   });
 
+  // The wizard always produces a biolink-family link, so its real upfront
+  // plan gate is the `max_biolinks` / `max_links` quota (mirrors the server
+  // BiolinkWizardController::generate guard). Count current usage so we can
+  // surface the lock BEFORE the user invests time answering questions.
+  const linksQ = useQuery({
+    queryKey: ["links", "wizard-quota"],
+    queryFn: () => listLinks({ per_page: 100 }),
+    staleTime: 60 * 1000,
+  });
+
+  const usedLinks = linksQ.data?.meta.total ?? 0;
+  const usedBiolinks = useMemo(
+    () =>
+      (linksQ.data?.items ?? []).filter((l) => BIOLINK_FAMILY.has(l.type))
+        .length,
+    [linksQ.data],
+  );
+
+  // Only consider a quota "reached" once BOTH plan data and the usage count
+  // have loaded — fail open so we never put up a false barrier.
+  const quotaReady = plan.ready && !linksQ.isLoading && !linksQ.isError;
+  const biolinkCap = plan.numericLimit("max_biolinks");
+  const linkCap = plan.numericLimit("max_links");
+  const biolinkLocked =
+    quotaReady && plan.isQuotaReached("max_biolinks", usedBiolinks);
+  const linkLocked = quotaReady && plan.isQuotaReached("max_links", usedLinks);
+  const quotaLocked = biolinkLocked || linkLocked;
+
+  const lockMessage = biolinkLocked
+    ? `You've reached your plan's Link in Bio limit${
+        biolinkCap !== null ? ` (${biolinkCap})` : ""
+      }. Upgrade to build more.`
+    : `You've reached your plan's link limit${
+        linkCap !== null ? ` (${linkCap})` : ""
+      }. Upgrade for more links.`;
+
+  function promptQuotaUpgrade() {
+    showUpgradePrompt({ message: lockMessage });
+  }
+
   function reset(to: Step) {
     setError(null);
     setStep(to);
@@ -104,6 +158,10 @@ export default function BiolinkWizardScreen() {
 
   async function onGenerate() {
     if (!category || !pageType) return;
+    if (quotaLocked) {
+      promptQuotaUpgrade();
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
@@ -159,6 +217,30 @@ export default function BiolinkWizardScreen() {
               : "We'll generate an opinionated page tailored to your choice."}
           </Text>
         </View>
+
+        {quotaLocked ? (
+          <Pressable
+            onPress={promptQuotaUpgrade}
+            style={[
+              styles.lockBanner,
+              {
+                backgroundColor: colors.primary + "12",
+                borderColor: colors.primary + "44",
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[styles.lockTitle, { color: colors.foreground }]}>
+                {biolinkLocked ? "Link in Bio limit reached" : "Link limit reached"}
+              </Text>
+              <Text style={[styles.lockBody, { color: colors.mutedForeground }]}>
+                {lockMessage} Tap to see your options.
+              </Text>
+            </View>
+            <UpgradeLockBadge />
+          </Pressable>
+        ) : null}
 
         {taxonomyQ.isLoading ? (
           <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />
@@ -432,6 +514,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   back: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 14 },
+  lockBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderWidth: 1,
+  },
+  lockTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  lockBody: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    lineHeight: 16,
+  },
   fieldLabel: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,

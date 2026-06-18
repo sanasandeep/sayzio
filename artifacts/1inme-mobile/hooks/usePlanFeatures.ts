@@ -47,6 +47,19 @@ export type PlanGate = {
   isFeatureLocked: (key: string) => boolean;
   /** A page/link type is locked on the current plan (module off or 0 cap). */
   isLinkTypeLocked: (apiType: string) => boolean;
+  /**
+   * The current plan's numeric cap for a key (e.g. `max_biolinks`,
+   * `max_links`). Returns `-1` for unlimited and `null` when the plan
+   * doesn't declare the key (no cap to enforce). Callers compare it against
+   * a counted usage to gate a quota proactively.
+   */
+  numericLimit: (key: string) => number | null;
+  /**
+   * A usage-based quota is reached on the current plan: data is ready, the
+   * cap is a finite number (>= 0, not unlimited), and `used` meets/exceeds
+   * it. Fails OPEN — returns false until plan data resolves.
+   */
+  isQuotaReached: (key: string, used: number) => boolean;
 };
 
 export function usePlanFeatures(): PlanGate {
@@ -94,6 +107,20 @@ export function usePlanFeatures(): PlanGate {
     return false;
   }
 
+  function numericLimit(key: string): number | null {
+    const v = featureMap[key];
+    if (v === undefined || v === null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function isQuotaReached(key: string, used: number): boolean {
+    if (!ready) return false; // fail open until plan data resolves
+    const cap = numericLimit(key);
+    if (cap === null || cap < 0) return false; // unknown or unlimited (-1)
+    return used >= cap;
+  }
+
   return {
     isLoading: q.isLoading,
     ready,
@@ -101,5 +128,7 @@ export function usePlanFeatures(): PlanGate {
     hasFeature,
     isFeatureLocked,
     isLinkTypeLocked,
+    numericLimit,
+    isQuotaReached,
   };
 }
