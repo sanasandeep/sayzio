@@ -1,0 +1,238 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Services\PersonaCatalog;
+use App\Modules\User\Support\BlockTypeRegistry;
+use App\Modules\User\Support\BlockVariantCatalog;
+use Database\Seeders\ExpandedPageTemplateLibrarySeeder;
+use Database\Seeders\StarterPageTemplatesSeeder;
+use Illuminate\Console\Command;
+use ReflectionMethod;
+
+/**
+ * Lightweight, DB-free validator for the page-template seeders' baked designs.
+ *
+ * Mirrors PageTemplateSeedDesignValidityTest (tests/Feature) so anyone can
+ * validate template designs in seconds without booting the heavy PHPUnit suite
+ * (each test boots ~16s and cross-region RDS makes migrate:fresh impractical).
+ *
+ * It catches two classes of silently-degrading bug:
+ *   1. A baked design-variant key that no longer resolves via
+ *      BlockVariantCatalog::find() for the block type it's applied to. When a
+ *      key doesn't resolve the seeder falls back to default styling with NO
+ *      error, so a stale key silently strips the look.
+ *   2. A block type used in a seeded snapshot that isn't a real, known block
+ *      type — a typo or a removed type would render as a blank/unknown block.
+ *
+ * Both seeders bake snapshots purely in PHP (no DB rows needed), so this
+ * command reflects into their builders and validates the in-memory snapshots
+ * directly — keeping it fast and DB-independent. Exits non-zero on any failure
+ * so it can be wired into a registered validation step.
+ */
+class CheckTemplateDesigns extends Command
+{
+    protected $signature = 'templates:check-designs';
+
+    protected $description = 'Validate page-template seeder designs (variant-kit keys + snapshot block types/variants) without a DB.';
+
+    /**
+     * The link/big-link design variant declared on a kit is applied to BOTH
+     * `link` and `link_big` blocks by the seeders, so a kit's link key must
+     * resolve for both types.
+     */
+    private const LINK_TYPES = ['link', 'link_big'];
+
+    /** @var array<int,string> */
+    private array $failures = [];
+
+    public function handle(): int
+    {
+        $this->checkStarterVariantKits();
+        $this->checkPersonaVariantKits();
+        $this->checkStarterSnapshots();
+        $this->checkPersonaSnapshots();
+
+        if (! empty($this->failures)) {
+            $this->newLine();
+            $this->error(count($this->failures) . ' design problem(s) found:');
+            foreach ($this->failures as $msg) {
+                $this->line('  • ' . $msg);
+            }
+            return self::FAILURE;
+        }
+
+        $this->info('All page-template designs resolve cleanly — variant keys and block types are valid.');
+        return self::SUCCESS;
+    }
+
+    private function checkStarterVariantKits(): void
+    {
+        $kits = $this->invokePrivate(new StarterPageTemplatesSeeder(), 'variantKits');
+
+        foreach ($kits as $name => $kit) {
+            $this->variantResolves($kit['ptype'], $kit['pvar'], "starter kit '{$name}' profile variant");
+            foreach (self::LINK_TYPES as $linkType) {
+                $this->variantResolves($linkType, $kit['link'], "starter kit '{$name}' link variant on {$linkType}");
+            }
+        }
+
+        $this->info('Checked ' . count($kits) . ' starter variant kit(s).');
+    }
+
+    private function checkPersonaVariantKits(): void
+    {
+        $kits = $this->invokePrivate(new ExpandedPageTemplateLibrarySeeder(), 'variantKits');
+
+        foreach ($kits as $i => $kit) {
+            $this->variantResolves($kit['ptype'], $kit['pvar'], "persona kit #{$i} profile variant");
+            foreach (self::LINK_TYPES as $linkType) {
+                $this->variantResolves($linkType, $kit['link'], "persona kit #{$i} link variant on {$linkType}");
+            }
+        }
+
+        $this->info('Checked ' . count($kits) . ' persona variant kit(s).');
+    }
+
+    private function checkStarterSnapshots(): void
+    {
+        $templates = $this->invokePrivate(new StarterPageTemplatesSeeder(), 'templates');
+
+        if (empty($templates)) {
+            $this->failures[] = 'starter seeder produced no templates';
+            return;
+        }
+
+        foreach ($templates as $tpl) {
+            $this->snapshotValid($tpl['slug'], $tpl['snapshot']);
+        }
+
+        $this->info('Checked ' . count($templates) . ' starter snapshot(s).');
+    }
+
+    private function checkPersonaSnapshots(): void
+    {
+        $seeder = new ExpandedPageTemplateLibrarySeeder();
+        $personas = PersonaCatalog::all();
+
+        if (empty($personas)) {
+            $this->failures[] = 'no personas configured to build blueprints for';
+            return;
+        }
+
+        $checked = 0;
+        foreach ($personas as $persona) {
+            $blueprints = $seeder->blueprintsFor($persona);
+            if (empty($blueprints)) {
+                $this->failures[] = "persona '{$persona['slug']}' produced no blueprints";
+                continue;
+            }
+            foreach ($blueprints as $bp) {
+                $slug = 'persona-' . $persona['slug'] . '-' . $bp['key'];
+                $this->snapshotValid($slug, $bp['snapshot']);
+                $checked++;
+            }
+        }
+
+        if ($checked === 0) {
+            $this->failures[] = 'no persona snapshots were checked';
+            return;
+        }
+
+        $this->info('Checked ' . $checked . ' persona snapshot(s).');
+    }
+
+    /* ───────────────────────────── helpers ───────────────────────────── */
+
+    /**
+     * Walk every block (and nested container children) in a snapshot and
+     * record any unknown block type or any baked `_style._variant` that fails
+     * to resolve.
+     *
+     * @param array<string,mixed> $snapshot
+     */
+    private function snapshotValid(string $slug, array $snapshot): void
+    {
+        $blocks = $snapshot['blocks'] ?? [];
+        if (! is_array($blocks)) {
+            $this->failures[] = "snapshot '{$slug}' has no blocks array";
+            return;
+        }
+
+        foreach ($this->flattenBlocks($blocks) as $block) {
+            $type = $block['type'] ?? null;
+            if ($type === null) {
+                $this->failures[] = "snapshot '{$slug}' has a block with no type";
+                continue;
+            }
+            if (! in_array($type, $this->validBlockTypes(), true)) {
+                $this->failures[] = "snapshot '{$slug}' uses unknown block type '{$type}'";
+                continue;
+            }
+
+            $variant = $block['settings']['_style']['_variant'] ?? null;
+            if ($variant !== null && $variant !== '') {
+                $this->variantResolves($type, $variant, "snapshot '{$slug}' baked variant on '{$type}'");
+            }
+        }
+    }
+
+    /**
+     * Flatten a block tree (containers carry `children`) into a flat list.
+     *
+     * @param array<int,array<string,mixed>> $blocks
+     * @return array<int,array<string,mixed>>
+     */
+    private function flattenBlocks(array $blocks): array
+    {
+        $flat = [];
+        foreach ($blocks as $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+            $flat[] = $block;
+            if (! empty($block['children']) && is_array($block['children'])) {
+                $flat = array_merge($flat, $this->flattenBlocks($block['children']));
+            }
+        }
+        return $flat;
+    }
+
+    private function variantResolves(string $type, string $key, string $context): void
+    {
+        if (BlockVariantCatalog::find($type, $key) === null) {
+            $this->failures[] = "{$context}: variant key '{$key}' does not resolve via "
+                . "BlockVariantCatalog::find('{$type}', '{$key}') — it would silently "
+                . 'fall back to default styling.';
+        }
+    }
+
+    /**
+     * Full set of real block types: model TYPES (incl. back-compat aliases the
+     * seeders legitimately use, e.g. link_big / profile_card_v1) plus the
+     * registry's NEW_TYPES.
+     *
+     * @return array<int,string>
+     */
+    private function validBlockTypes(): array
+    {
+        static $types = null;
+        if ($types === null) {
+            $types = array_merge(
+                array_keys(BiolinkBlock::TYPES),
+                array_keys(BlockTypeRegistry::newTypes())
+            );
+        }
+        return $types;
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokePrivate(object $object, string $method)
+    {
+        $ref = new ReflectionMethod($object, $method);
+        return $ref->invoke($object);
+    }
+}
