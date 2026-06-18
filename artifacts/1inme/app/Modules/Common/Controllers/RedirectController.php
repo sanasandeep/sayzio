@@ -1149,8 +1149,10 @@ class RedirectController extends Controller
         $feed = app(CreatorProfilePublicController::class)
             ->buildFeedViewData($creator, $viewer, (bool) $isOwner);
 
-        $template = \App\Modules\User\Support\PaidPageTemplates::get(
-            $link->settings['paid_page']['template'] ?? null
+        $paidSettings = $link->settings['paid_page'] ?? [];
+        $template = \App\Modules\User\Support\PaidPageTemplates::applyCustomBackground(
+            \App\Modules\User\Support\PaidPageTemplates::get($paidSettings['template'] ?? null),
+            $paidSettings
         );
 
         return $this->applyBiolinkFramingHeaders(

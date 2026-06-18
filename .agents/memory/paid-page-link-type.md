@@ -34,3 +34,8 @@ non-reserved alias when smoke-testing.
 LinkController::store allows paid_page and seeds a default template into
 settings['paid_page']. CreatorPost uses `post_type` (not `type`) and has no
 top-level type column.
+
+**Template registry shape (gotcha):** `all()` is an id=>tokens map, but `categories()` returns a LIST of `{key,label,icon,templates[...]}` (each templates item carries its own `id`). Iterating it as an assoc `category=>templates` map silently breaks the editor picker only (public page unaffected).
+
+**Custom background slot:** owners override theme media via `settings['paid_page']['bg_image_url'|'bg_video_url']`; `applyCustomBackground()` overlays them. Absolute custom URLs must skip `asset()` (both the public blade `$resolveBg` and `PaidPageTemplates::resolveBgUrl()`); bundled relative paths still go through `asset()`.
+

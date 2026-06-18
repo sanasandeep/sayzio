@@ -54,8 +54,11 @@ class PaidPageController extends Controller
         return view('user.links.paid-page-editor', [
             'link'        => $link,
             'templates'   => PaidPageTemplates::all(),
+            'categories'  => PaidPageTemplates::categories(),
             'templateId'  => $templateId,
             'isPublic'    => ($link->visibility ?? 'public') === 'public',
+            'bgImageUrl'  => $current['bg_image_url'] ?? '',
+            'bgVideoUrl'  => $current['bg_video_url'] ?? '',
             'postCount'   => $postCount,
             'tierCount'   => $tierCount,
             'publicUrl'   => $link->getShortUrl(),
@@ -67,13 +70,17 @@ class PaidPageController extends Controller
         $this->ownLinkOrFail($link);
 
         $validated = $request->validate([
-            'template'  => 'required|string|in:' . implode(',', PaidPageTemplates::ids()),
-            'is_public' => 'nullable|boolean',
+            'template'     => 'required|string|in:' . implode(',', PaidPageTemplates::ids()),
+            'is_public'    => 'nullable|boolean',
+            'bg_image_url' => 'nullable|url:http,https|max:2048',
+            'bg_video_url' => 'nullable|url:http,https|max:2048',
         ]);
 
         $settings = $link->settings ?? [];
         $settings['paid_page'] = array_merge($settings['paid_page'] ?? [], [
-            'template' => $validated['template'],
+            'template'     => $validated['template'],
+            'bg_image_url' => trim((string) ($validated['bg_image_url'] ?? '')),
+            'bg_video_url' => trim((string) ($validated['bg_video_url'] ?? '')),
         ]);
         $link->settings = $settings;
 

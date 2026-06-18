@@ -2,12 +2,25 @@
 @section('title', 'Bizs Profile Editor')
 
 @section('content')
+@php
+    // Resolve bundled theme media to absolute URLs for the live preview;
+    // custom (owner-supplied) media is already absolute and handled below.
+    $previewTemplates = collect($templates)->map(function ($t) {
+        $t['bg_image'] = !empty($t['bg_image']) ? asset($t['bg_image']) : null;
+        $t['bg_video'] = !empty($t['bg_video']) ? asset($t['bg_video']) : null;
+        return $t;
+    })->all();
+@endphp
 <div class="max-w-5xl mx-auto"
      x-data="{
         tpl: '{{ $templateId }}',
         isPublic: {{ $isPublic ? 'true' : 'false' }},
-        templates: {{ Illuminate\Support\Js::from($templates) }},
-        get current() { return this.templates[this.tpl] || Object.values(this.templates)[0]; }
+        customImage: {{ Illuminate\Support\Js::from($bgImageUrl) }},
+        customVideo: {{ Illuminate\Support\Js::from($bgVideoUrl) }},
+        templates: {{ Illuminate\Support\Js::from($previewTemplates) }},
+        get current() { return this.templates[this.tpl] || Object.values(this.templates)[0]; },
+        get previewImage() { return (this.customImage || '').trim() || this.current.bg_image || null; },
+        get previewVideo() { return (this.customVideo || '').trim() || this.current.bg_video || null; },
      }">
 
     <div class="flex items-center gap-4 mb-6">
@@ -30,6 +43,8 @@
         @csrf
         <input type="hidden" name="template" :value="tpl">
         <input type="hidden" name="is_public" :value="isPublic ? 1 : 0">
+        <input type="hidden" name="bg_image_url" :value="customImage">
+        <input type="hidden" name="bg_video_url" :value="customVideo">
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {{-- ── Left: controls ──────────────────────────────── --}}
@@ -37,18 +52,62 @@
                 {{-- Template picker --}}
                 <div class="glass rounded-2xl p-6">
                     <h2 class="text-sm font-semibold text-white mb-1">Design template</h2>
-                    <p class="text-xs text-white/40 mb-4">Pick a vibe — the preview updates live.</p>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        @foreach($templates as $id => $t)
-                            <button type="button" @click="tpl = '{{ $id }}'"
-                                    :class="tpl === '{{ $id }}' ? 'ring-2 ring-violet-400 border-violet-400' : 'border-white/10 hover:border-white/30'"
-                                    class="text-left rounded-xl border overflow-hidden transition focus:outline-none">
-                                <div class="h-16 relative" style="background: {{ $t['hero_bg'] }};">
-                                    <span class="absolute bottom-1 left-2 text-[10px] font-bold text-white drop-shadow">{{ $t['name'] }}</span>
-                                    <span x-show="tpl === '{{ $id }}'" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-violet-500 text-white text-[9px] flex items-center justify-center"><i class="fas fa-check"></i></span>
+                    <p class="text-xs text-white/40 mb-4">Pick a vibe — the preview updates live. {{ count($templates) }} themes across {{ count($categories) }} styles.</p>
+                    <div class="space-y-5 max-h-[520px] overflow-y-auto pr-1 -mr-1">
+                        @foreach($categories as $group)
+                            <div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    @if(!empty($group['icon']))<i class="fas {{ $group['icon'] }} text-[10px] text-violet-300/90"></i>@endif
+                                    <span class="text-[11px] font-bold uppercase tracking-wide text-violet-300/90">{{ $group['label'] }}</span>
+                                    <span class="text-[10px] text-white/30">{{ count($group['templates']) }}</span>
+                                    <span class="flex-1 h-px bg-white/10"></span>
                                 </div>
-                            </button>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    @foreach($group['templates'] as $t)
+                                        <button type="button" @click="tpl = '{{ $t['id'] }}'"
+                                                :class="tpl === '{{ $t['id'] }}' ? 'ring-2 ring-violet-400 border-violet-400' : 'border-white/10 hover:border-white/30'"
+                                                class="text-left rounded-xl border overflow-hidden transition focus:outline-none">
+                                            <div class="h-16 relative" style="background: {{ $t['hero_bg'] }};">
+                                                @if(!empty($t['bg_image']))
+                                                    <div class="absolute inset-0 bg-cover bg-center opacity-60" style="background-image:url('{{ asset($t['bg_image']) }}');"></div>
+                                                @endif
+                                                @if(!empty($t['bg_video']))
+                                                    <span class="absolute top-1 left-1 text-[8px] font-bold text-white/90 bg-black/40 rounded px-1"><i class="fas fa-film"></i></span>
+                                                @endif
+                                                <span class="absolute bottom-1 left-2 right-2 truncate text-[10px] font-bold text-white drop-shadow">{{ $t['name'] }}</span>
+                                                <span x-show="tpl === '{{ $t['id'] }}'" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-violet-500 text-white text-[9px] flex items-center justify-center"><i class="fas fa-check"></i></span>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
                         @endforeach
+                    </div>
+                </div>
+
+                {{-- Custom background media --}}
+                <div class="glass rounded-2xl p-6">
+                    <h2 class="text-sm font-semibold text-white mb-1">Your own background <span class="text-white/30 font-normal">(optional)</span></h2>
+                    <p class="text-xs text-white/40 mb-4">Paste a full image or video URL to override the theme's background. Leave blank to use the theme's built-in look.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-white/70 mb-1"><i class="fas fa-image mr-1 text-violet-300"></i> Background image URL</label>
+                            <div class="flex gap-2">
+                                <input type="url" x-model="customImage" maxlength="2048"
+                                       class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                       placeholder="https://example.com/background.jpg">
+                                <button type="button" x-show="customImage" @click="customImage = ''" class="px-3 rounded-xl text-white/40 hover:text-white border border-white/10" title="Clear"><i class="fas fa-xmark"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-white/70 mb-1"><i class="fas fa-film mr-1 text-violet-300"></i> Background video URL (mp4)</label>
+                            <div class="flex gap-2">
+                                <input type="url" x-model="customVideo" maxlength="2048"
+                                       class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                       placeholder="https://example.com/loop.mp4">
+                                <button type="button" x-show="customVideo" @click="customVideo = ''" class="px-3 rounded-xl text-white/40 hover:text-white border border-white/10" title="Clear"><i class="fas fa-xmark"></i></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -223,8 +282,15 @@
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/60"></span>
                         <span class="ml-2">Live preview</span>
                     </div>
-                    <div class="p-5 min-h-[420px] transition-all duration-300"
+                    <div class="p-5 min-h-[420px] transition-all duration-300 relative overflow-hidden"
                          :style="`background: ${current.page_bg}; font-family: '${current.font}', sans-serif;`">
+                        {{-- background media layers --}}
+                        <div x-show="previewImage" class="absolute inset-0 bg-cover bg-center" :style="`background-image: url('${previewImage}');`"></div>
+                        <template x-if="previewVideo">
+                            <video class="absolute inset-0 w-full h-full object-cover" autoplay muted loop playsinline :src="previewVideo"></video>
+                        </template>
+                        <div x-show="previewImage || previewVideo" class="absolute inset-0" style="background: linear-gradient(180deg, rgba(4,4,10,0.5) 0%, rgba(4,4,10,0.82) 100%);"></div>
+                        <div class="relative">
                         <div class="rounded-2xl overflow-hidden relative" :style="`background: ${current.hero_bg}; border-radius: ${current.radius};`">
                             <div class="px-5 pt-8 pb-6">
                                 <div class="flex items-end gap-3">
@@ -251,6 +317,7 @@
                                 <span class="px-2 py-1 rounded-lg text-[11px] border" :style="`border-color: ${current.accent}; color: ${current.accent};`">❤️ 12</span>
                                 <span class="px-2 py-1 rounded-lg text-[11px] border border-black/10">🔥 5</span>
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>

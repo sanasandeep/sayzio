@@ -384,6 +384,78 @@ uri = "file://artifacts/1inme-com/public/hero-mockup.png"
 type = "image"
 title = "Phone mockup of a biolink profile"
 
+[[generated]]
+id = "BREbMNuR2Cvsmy_EThIsX"
+uri = "file://artifacts/1inme/public/paid-page-bg/confetti-glow.png"
+type = "image"
+title = "confetti glow bg"
+
+[[generated]]
+id = "kAbKR0dy4UvBAbZw2GHng"
+uri = "file://artifacts/1inme/public/paid-page-bg/noir-grain.png"
+type = "image"
+title = "noir grain bg"
+
+[[generated]]
+id = "qjscZ3QHTN_plIvW8s9LZ"
+uri = "file://artifacts/1inme/public/paid-page-bg/aurora-sky.png"
+type = "image"
+title = "aurora sky bg"
+
+[[generated]]
+id = "yQ5WDp7uld_lAcLbzE7AX"
+uri = "file://artifacts/1inme/public/paid-page-bg/nebula.png"
+type = "image"
+title = "nebula bg"
+
+[[generated]]
+id = "1QM0wM2jxlc7uYAryer0J"
+uri = "file://artifacts/1inme/public/paid-page-bg/forest-mist.png"
+type = "image"
+title = "forest mist bg"
+
+[[generated]]
+id = "G2gqoe5aUoXJ14CIEE-58"
+uri = "file://artifacts/1inme/public/paid-page-bg/ocean-deep.png"
+type = "image"
+title = "deep ocean bg"
+
+[[generated]]
+id = "lCiowM6o1ZM2jxCwP9P3h"
+uri = "file://artifacts/1inme/public/paid-page-bg/black-marble-gold.png"
+type = "image"
+title = "black marble gold bg"
+
+[[generated]]
+id = "y6vakFNv2zdzAlp0A3TQ0"
+uri = "file://artifacts/1inme/public/paid-page-bg/silk-noir.png"
+type = "image"
+title = "silk noir bg"
+
+[[generated]]
+id = "MwLmSkdDO5tRn78q-uzSD"
+uri = "file://artifacts/1inme/public/paid-page-bg/neon-bokeh.png"
+type = "image"
+title = "neon bokeh bg"
+
+[[generated]]
+id = "6bOc_b0jKb7eR2bQMMRRY"
+uri = "file://artifacts/1inme/public/paid-page-bg/synthwave.png"
+type = "image"
+title = "synthwave bg"
+
+[[generated]]
+id = "N5q4jd9QyHlOAKjO6_Dmh"
+uri = "file://artifacts/1inme/public/paid-page-bg/liquid-violet.png"
+type = "image"
+title = "liquid violet bg"
+
+[[generated]]
+id = "kkdpytnI4dAoj-E8Qu43o"
+uri = "file://artifacts/1inme/public/paid-page-bg/mesh-dark.png"
+type = "image"
+title = "mesh dark bg"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

@@ -82,8 +82,9 @@ class CreatorProfileApiController extends Controller
             ? Follow::where('follower_id', $viewer->id)->where('creator_id', $creator->id)->exists()
             : false;
 
-        $template = \App\Modules\User\Support\PaidPageTemplates::get(
-            $link->settings['paid_page']['template'] ?? null
+        $template = \App\Modules\User\Support\PaidPageTemplates::applyCustomBackground(
+            \App\Modules\User\Support\PaidPageTemplates::get($link->settings['paid_page']['template'] ?? null),
+            $link->settings['paid_page'] ?? []
         );
 
         return $this->ok([
