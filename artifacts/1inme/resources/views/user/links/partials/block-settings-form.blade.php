@@ -1040,7 +1040,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Columns</label>
             <select name="settings[columns]" class="{{ $selectClass }}">
-                @foreach([1=>'1 Column',2=>'2 Columns',3=>'3 Columns',4=>'4 Columns'] as $v=>$l)
+                @foreach([1=>'1 Column',2=>'2 Columns',3=>'3 Columns',4=>'4 Columns',6=>'6 Columns',8=>'8 Columns',9=>'9 Columns',12=>'12 Columns'] as $v=>$l)
                 <option value="{{ $v }}" {{ ($s['columns'] ?? 2) == $v ? 'selected' : '' }}>{{ $l }}</option>
                 @endforeach
             </select>
@@ -1098,6 +1098,34 @@ if (typeof window.resetPollVotes !== 'function') {
         </div>
         <div><label class="{{ $labelClass }}">Shadow Color</label><input type="text" name="settings[shadow_color]" value="{{ $s['shadow_color'] ?? '#00000040' }}" class="{{ $inputClass }}"></div>
     </div>
+</div>
+
+@elseif($block->type === 'grid')
+<div class="space-y-4">
+    <p class="text-xs text-white/30">A plain column grid with no background — just columns, gap and padding. Drop blocks inside to lay them out side by side.</p>
+    <div><label class="{{ $labelClass }}">Section Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}" placeholder="Optional section title"></div>
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Columns</label>
+            <select name="settings[columns]" class="{{ $selectClass }}">
+                @foreach([1=>'1 Column',2=>'2 Columns',3=>'3 Columns',4=>'4 Columns',6=>'6 Columns',8=>'8 Columns',9=>'9 Columns',12=>'12 Columns'] as $v=>$l)
+                <option value="{{ $v }}" {{ ($s['columns'] ?? 2) == $v ? 'selected' : '' }}>{{ $l }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+    </div>
+    <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 0 }}" min="0" max="64" class="{{ $inputClass }}"></div>
+</div>
+
+@elseif($block->type === 'grid_auto')
+<div class="space-y-4">
+    <p class="text-xs text-white/30">A responsive auto-fit grid. Columns are created automatically based on the minimum item width — items wrap to new rows as space allows.</p>
+    <div><label class="{{ $labelClass }}">Section Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}" placeholder="Optional section title"></div>
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Min Item Width (px)</label><input type="number" name="settings[min_width]" value="{{ $s['min_width'] ?? 140 }}" min="60" max="600" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+    </div>
+    <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 0 }}" min="0" max="64" class="{{ $inputClass }}"></div>
 </div>
 
 @elseif(in_array($block->type, ['catalog', 'market', 'card_slider', 'scroll_cards', 'nav_menu']))

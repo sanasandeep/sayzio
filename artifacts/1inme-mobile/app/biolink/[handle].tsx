@@ -762,13 +762,21 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
       }
     : null;
 
-  // Card containers nest other blocks via parent_id. Render their direct
-  // children inline so the visual grouping survives on mobile.
-  if (t === "card") {
+  // Layout containers (card / grid / grid_auto) nest other blocks via
+  // parent_id. Render their direct children inline so the visual grouping
+  // survives on mobile. The styled "card" keeps its background/border chrome;
+  // the plain "grid"/"grid_auto" containers render their children with no
+  // chrome (only spacing), matching the web's plain grid behaviour.
+  if (t === "card" || t === "grid" || t === "grid_auto") {
     const children = allBlocks.filter((b) => b.parent_id === block.id);
     const title = pickStr(s, "title");
+    const isCard = t === "card";
+    const pad = pickNum(s, "padding");
+    const containerStyle = isCard
+      ? [styles.cardContainer, blockCardStyle(block, colors)]
+      : [styles.gridContainer, pad != null ? { padding: pad } : null];
     return (
-      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
+      <View style={containerStyle}>
         {title ? <Text style={[styles.heading, { color: colors.foreground, fontSize: 16, marginTop: 0 }]}>{title}</Text> : null}
         {children.map((c) => (
           <BlockView key={c.id} block={c} alias={alias} allBlocks={allBlocks} openEmbed={openEmbed} />
@@ -2047,6 +2055,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
+    gap: 8,
+  },
+  gridContainer: {
+    width: "100%",
     gap: 8,
   },
   listRow: {

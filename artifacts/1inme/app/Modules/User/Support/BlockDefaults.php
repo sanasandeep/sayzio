@@ -51,6 +51,14 @@ class BlockDefaults
                 'glass_preset' => 'light', 'shadow_preset' => 'soft',
             ],
 
+            // Plain grid containers carry no chrome of their own — the public
+            // render reads only the columns/gap/padding settings, so the
+            // per-block _style wrapper stays minimal (no glass / shadow).
+            'grid', 'grid_auto' => [
+                'display_mode' => 'content', 'padding' => '0',
+                'border_radius' => '0',
+            ],
+
             'profile_card_v1', 'profile_card_v2', 'profile_card_v3', 'profile_card_v4' => [
                 'border_radius' => '20', 'padding' => '20',
                 'shadow_preset' => 'soft',
@@ -339,6 +347,21 @@ class BlockDefaults
                 'border_width' => 1,
                 'shadow' => 'none',
                 'shadow_color' => '#00000040',
+            ],
+
+            'grid' => [
+                'title' => 'Grid section',
+                '_placeholder' => true,
+                'columns' => 2,
+                'gap' => 12,
+                'padding' => 0,
+            ],
+            'grid_auto' => [
+                'title' => 'Auto-fit grid',
+                '_placeholder' => true,
+                'min_width' => 140,
+                'gap' => 12,
+                'padding' => 0,
             ],
 
             'card_slider' => ['cards' => [

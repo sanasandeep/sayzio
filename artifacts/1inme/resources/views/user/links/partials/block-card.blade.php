@@ -11,7 +11,7 @@
     <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block after this">
         <i class="fas fa-plus"></i>
     </button>
-    <div class="block-card {{ $block->type === 'card' ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
+    <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
         <div class="flex items-center gap-2 p-3">
             <div class="drag-handle handle">
                 <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
@@ -32,8 +32,8 @@
                     <span class="grid-span-badge editor-pill-badge editor-pill-badge--span text-[10px] px-2 py-0.5 rounded-md" style="{{ $curSpan >= 12 ? 'display:none;' : '' }}" data-span-badge="{{ $block->id }}">{{ $curSpan }}/12</span>
                 </div>
                 <div class="block-preview-content mt-0.5">
-                    @if($block->type === 'card')
-                        <i class="fas fa-layer-group text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $block->children->count() }} block(s) inside{{ !empty($s['title']) ? ' — ' . $s['title'] : '' }}
+                    @if($block->isContainer())
+                        <i class="fas {{ $typeInfo['icon'] }} text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $block->children->count() }} block(s) inside{{ !empty($s['title']) ? ' — ' . $s['title'] : '' }}
                     @elseif(in_array($block->type, ['link', 'link_big']))
                         <i class="fas fa-globe text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? $s['url'] ?? 'No URL set' }}
                     @elseif(in_array($block->type, ['heading', 'heading_logo']))
@@ -79,7 +79,7 @@
             @include('user.links.partials.poll-results-panel', ['block' => $block, 'tally' => $pollTallies[$block->id] ?? null])
         @endif
 
-        @if($block->type === 'card')
+        @if($block->isContainer())
         <div class="card-children-area px-3 pb-3" x-data="{ cardExpanded: true }">
             <div class="rounded-xl overflow-hidden" style="border: 1px dashed var(--border-glass); background: rgba(124,58,237,0.02);">
                 <button type="button" @click="cardExpanded = !cardExpanded" class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold transition-colors hover:bg-white/[0.02]" style="color: var(--text-faint); background: rgba(124,58,237,0.04);">

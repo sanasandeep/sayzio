@@ -999,7 +999,7 @@ $catColors = [
     $allEditBlocks = collect();
     foreach($blocks as $block) {
         $allEditBlocks->push($block);
-        if ($block->type === 'card' && $block->children) {
+        if ($block->isContainer() && $block->children) {
             foreach($block->children as $child) {
                 $allEditBlocks->push($child);
             }
@@ -1781,11 +1781,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var _topSortable = null;
     var _cardSortables = {};
 
+    // Layout-container block types (card / grid / grid_auto). Kept in sync
+    // with BiolinkBlock::CONTAINER_TYPES so the drag rules below treat every
+    // container identically — containers can't nest inside one another.
+    var CONTAINER_TYPES = @json(\App\Modules\User\Models\BiolinkBlock::CONTAINER_TYPES);
+
     // Whether a palette clone (or real block) of the given drag element is
-    // allowed to land inside a Card Container's child list. Cards can't nest
-    // in cards. Kept as a named predicate so the put rule is unit-testable.
+    // allowed to land inside a container's child list. Containers can't nest
+    // in containers. Kept as a named predicate so the put rule is unit-testable.
     function cardPutAllows(dragEl) {
-        if (dragEl.dataset && dragEl.dataset.blockType === 'card') return false;
+        var bt = dragEl.dataset && dragEl.dataset.blockType;
+        if (bt && CONTAINER_TYPES.indexOf(bt) !== -1) return false;
         var inner = dragEl.querySelector && dragEl.querySelector('.card-container-block');
         return !(dragEl.classList.contains('card-container-block') || inner);
     }

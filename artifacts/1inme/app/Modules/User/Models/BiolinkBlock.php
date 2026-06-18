@@ -163,6 +163,28 @@ class BiolinkBlock extends Model
         'maps' => '#22c55e', 'identity' => '#8b5cf6',
     ];
 
+    /**
+     * Block types that act as layout containers: they group child blocks
+     * via `parent_id` and render those children in a CSS grid. `card` is the
+     * styled container (background/overlay/border/shadow); `grid` is a plain
+     * column grid (no background/overlay — only columns/gap/padding); and
+     * `grid_auto` is a responsive auto-fit grid (children wrap by a min item
+     * width). Every container shares the same nesting plumbing, so detection
+     * goes through isContainer()/isContainerType() rather than hardcoded
+     * `=== 'card'` checks scattered across the controllers and views.
+     */
+    public const CONTAINER_TYPES = ['card', 'grid', 'grid_auto'];
+
+    public static function isContainerType(?string $type): bool
+    {
+        return in_array($type, self::CONTAINER_TYPES, true);
+    }
+
+    public function isContainer(): bool
+    {
+        return self::isContainerType($this->type);
+    }
+
     public const TYPES = [
         // ── Essentials ────────────────────────────────────────────────
         'link'             => ['label' => 'Link Button',         'icon' => 'fa-link',                       'category' => 'basic'],
@@ -182,6 +204,8 @@ class BiolinkBlock extends Model
 
         // ── Layout & Profile ──────────────────────────────────────────
         'card'             => ['label' => 'Card Container',      'icon' => 'fa-layer-group',                'category' => 'layout'],
+        'grid'             => ['label' => 'Grid Container',      'icon' => 'fa-th-large',                   'category' => 'layout'],
+        'grid_auto'        => ['label' => 'Auto-Fit Grid',      'icon' => 'fa-border-all',                 'category' => 'layout'],
         'card_slider'      => ['label' => 'Card Carousel',       'icon' => 'fa-clone',                      'category' => 'layout'],
         'scroll_cards'     => ['label' => 'Scrolling Cards',     'icon' => 'fa-columns',                    'category' => 'layout'],
         'profile_card_v1'  => ['label' => 'Profile · Classic',   'icon' => 'fa-id-card',                    'category' => 'layout'],

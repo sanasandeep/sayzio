@@ -271,7 +271,7 @@ class BiolinkBlockController extends Controller
             $sortOrder = $newSortOrder;
         } else {
             if ($parentId) {
-                $parentBlock = BiolinkBlock::where('id', $parentId)->where('link_id', $link->id)->where('type', 'card')->firstOrFail();
+                $parentBlock = BiolinkBlock::where('id', $parentId)->where('link_id', $link->id)->whereIn('type', BiolinkBlock::CONTAINER_TYPES)->firstOrFail();
                 $maxSort = $parentBlock->children()->max('sort_order') ?? -1;
             } else {
                 $maxSort = $link->biolinkBlocks()->whereNull('parent_id')->max('sort_order') ?? -1;

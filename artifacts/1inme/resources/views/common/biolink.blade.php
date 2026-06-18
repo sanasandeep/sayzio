@@ -2153,38 +2153,63 @@
                     <iframe src="https://yandex.com/map-widget/v1/?text={{ $yQ }}&z={{ $s['zoom'] ?? 14 }}" class="w-full h-full rounded-xl" frameborder="0" loading="lazy"></iframe>
                 </div>
 
-            {{-- CARD CONTAINER --}}
-            @elseif($block->type === 'card')
+            {{-- CARD / GRID / AUTO-FIT GRID CONTAINERS --}}
+            @elseif(\App\Modules\User\Models\BiolinkBlock::isContainerType($block->type))
                 @php
                     $cardChildren = $block->activeChildren()->get()->filter(fn($b) => $b->isVisible());
-                    $cols = intval($s['columns'] ?? 2) ?: 2;
                     $gap = intval($s['gap'] ?? 12);
-                    $pad = intval($s['padding'] ?? 16);
-                    $br = intval($s['border_radius'] ?? 16);
-                    $bgType = $s['bg_type'] ?? 'glass';
-                    $bw = intval($s['border_width'] ?? 1);
-                    $bc = $s['border_color'] ?? 'rgba(255,255,255,0.08)';
-                    $shadow = match($s['shadow'] ?? 'none') {
-                        'sm' => '0 1px 3px ' . ($s['shadow_color'] ?? '#00000040'),
-                        'md' => '0 4px 12px ' . ($s['shadow_color'] ?? '#00000040'),
-                        'lg' => '0 10px 30px ' . ($s['shadow_color'] ?? '#00000040'),
-                        'xl' => '0 20px 50px ' . ($s['shadow_color'] ?? '#00000040'),
-                        default => 'none',
-                    };
-                    $bgStyle = match($bgType) {
-                        'glass' => 'background:rgba(255,255,255,' . (intval($s['glass_opacity'] ?? 6) / 100) . ');backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);-webkit-backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);',
-                        'color' => 'background:' . ($s['bg_color'] ?? 'rgba(255,255,255,0.06)') . ';',
-                        'gradient' => 'background:' . ($s['bg_gradient'] ?? 'linear-gradient(135deg,#7c3aed,#ec4899)') . ';',
-                        'image' => 'background:url(' . ($s['bg_image'] ?? '') . ') center/cover no-repeat;',
-                        'transparent' => 'background:transparent;',
-                        default => 'background:rgba(255,255,255,0.06);',
-                    };
+                    $isCard = $block->type === 'card';
+                    $isAutoGrid = $block->type === 'grid_auto';
+
+                    if ($isCard) {
+                        // Styled card container — keeps its background / overlay /
+                        // border / shadow chrome and a fixed column count.
+                        $cols = intval($s['columns'] ?? 2) ?: 2;
+                        $pad = intval($s['padding'] ?? 16);
+                        $br = intval($s['border_radius'] ?? 16);
+                        $bgType = $s['bg_type'] ?? 'glass';
+                        $bw = intval($s['border_width'] ?? 1);
+                        $bc = $s['border_color'] ?? 'rgba(255,255,255,0.08)';
+                        $shadow = match($s['shadow'] ?? 'none') {
+                            'sm' => '0 1px 3px ' . ($s['shadow_color'] ?? '#00000040'),
+                            'md' => '0 4px 12px ' . ($s['shadow_color'] ?? '#00000040'),
+                            'lg' => '0 10px 30px ' . ($s['shadow_color'] ?? '#00000040'),
+                            'xl' => '0 20px 50px ' . ($s['shadow_color'] ?? '#00000040'),
+                            default => 'none',
+                        };
+                        $bgStyle = match($bgType) {
+                            'glass' => 'background:rgba(255,255,255,' . (intval($s['glass_opacity'] ?? 6) / 100) . ');backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);-webkit-backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);',
+                            'color' => 'background:' . ($s['bg_color'] ?? 'rgba(255,255,255,0.06)') . ';',
+                            'gradient' => 'background:' . ($s['bg_gradient'] ?? 'linear-gradient(135deg,#7c3aed,#ec4899)') . ';',
+                            'image' => 'background:url(' . ($s['bg_image'] ?? '') . ') center/cover no-repeat;',
+                            'transparent' => 'background:transparent;',
+                            default => 'background:rgba(255,255,255,0.06);',
+                        };
+                        $containerStyle = $bgStyle . ' padding:' . $pad . 'px; border-radius:' . $br . 'px; border:' . $bw . 'px solid ' . $bc . '; box-shadow:' . $shadow . ';';
+                        $gridTemplate = 'repeat(' . $cols . ', 1fr)';
+                    } elseif ($isAutoGrid) {
+                        // Auto-fit responsive grid — plain (no chrome). Columns are
+                        // derived from a minimum item width; children wrap as space
+                        // allows so each child occupies one auto-sized cell.
+                        $pad = intval($s['padding'] ?? 0);
+                        $minW = intval($s['min_width'] ?? 140) ?: 140;
+                        $cols = 0; // auto-fit: no fixed column count for child span maths
+                        $containerStyle = 'padding:' . $pad . 'px;';
+                        $gridTemplate = 'repeat(auto-fit, minmax(' . $minW . 'px, 1fr))';
+                    } else {
+                        // Plain column grid — no background / overlay, just columns,
+                        // gap and padding.
+                        $cols = intval($s['columns'] ?? 2) ?: 2;
+                        $pad = intval($s['padding'] ?? 0);
+                        $containerStyle = 'padding:' . $pad . 'px;';
+                        $gridTemplate = 'repeat(' . $cols . ', 1fr)';
+                    }
                 @endphp
-                <div class="mb-4 card-container-render" style="{{ $bgStyle }} padding:{{ $pad }}px; border-radius:{{ $br }}px; border:{{ $bw }}px solid {{ $bc }}; box-shadow:{{ $shadow }};">
+                <div class="mb-4 {{ $isCard ? 'card-container-render' : 'grid-container-render' }}" style="{{ $containerStyle }}">
                     @if(!empty($s['title']))
                     <div class="mb-3 text-sm font-semibold" style="color: {{ $fontColor ?? '#fff' }}cc;">{{ $s['title'] }}</div>
                     @endif
-                    <div style="display:grid; grid-template-columns:repeat({{ $cols }}, 1fr); gap:{{ $gap }}px;">
+                    <div style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
                         @foreach($cardChildren as $childBlock)
                             @php
                                 $cs = $childBlock->settings ?? [];
@@ -2194,10 +2219,12 @@
                                 $childIsBtnLike = in_array($childBlock->type, ['link', 'link_big', 'cta_button', 'button']);
                                 $childSkipWrap = in_array($childBlock->type, ['avatar', 'divider', 'spacer', 'social_icons']) || $childIsBtnLike;
                                 $childBtnInline = ($childIsBtnLike && $childHasStyle) ? $childInline : '';
+                                // Fixed-column containers honour the child's grid_span;
+                                // auto-fit grids give every child a single cell.
                                 $childSpanRaw = intval($childStyle['grid_span'] ?? 12) ?: 12;
-                                $childSpan = max(1, (int)round($childSpanRaw / 12 * $cols));
+                                $childSpan = $cols > 0 ? min(max(1, (int)round($childSpanRaw / 12 * $cols)), $cols) : 1;
                             @endphp
-                            <div style="grid-column: span {{ min($childSpan, $cols) }};">
+                            <div style="grid-column: span {{ $childSpan }};">
                             @if($childHasStyle && !$childSkipWrap)<div class="block-styled" style="{{ $childInline }}">@endif
                                 @include('common.partials.biolink-block-render', ['block' => $childBlock, 's' => $cs, 'fontColor' => $fontColor ?? '#fff', 'btnInline' => $childBtnInline])
                             @if($childHasStyle && !$childSkipWrap)</div>@endif

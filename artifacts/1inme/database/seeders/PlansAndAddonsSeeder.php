@@ -259,7 +259,7 @@ class PlansAndAddonsSeeder extends Seeder
                     'ecommerce' => false,
                     'custom_forms' => false,
                     // New feature gates (Starter tier)
-                    'block_types_allowed' => ['heading', 'paragraph', 'avatar', 'link_button', 'social_icons', 'spacer', 'divider', 'image', 'video', 'card', 'badge', 'youtube', 'tiktok', 'instagram', 'twitter', 'spotify', 'soundcloud'],
+                    'block_types_allowed' => ['heading', 'paragraph', 'avatar', 'link_button', 'social_icons', 'spacer', 'divider', 'image', 'video', 'card', 'grid', 'grid_auto', 'badge', 'youtube', 'tiktok', 'instagram', 'twitter', 'spotify', 'soundcloud'],
                     'max_forms' => 5,
                     'buzz_popups' => false,
                     'max_buzz_items' => 0,
