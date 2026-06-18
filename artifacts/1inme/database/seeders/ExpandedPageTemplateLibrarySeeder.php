@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Modules\Admin\Models\BgTemplate;
 use App\Modules\Admin\Models\PageTemplate;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Services\PersonaCatalog;
+use App\Modules\User\Support\BlockVariantCatalog;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -45,7 +47,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      * alone. Redesign block contents/copy/themes freely; rename the
      * `key` only when you also intend to retire the old slug.
      */
-    public const SEED_VERSION = 1;
+    public const SEED_VERSION = 2;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -112,80 +114,101 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
 
         $presets = $this->themePresets();
         $pick = fn(int $i) => $presets[$i % count($presets)];
+        $kits = $this->variantKits();
+        $kit = fn(int $i) => $kits[$i % count($kits)];
 
         return [
-            // 0 — Aurora animated bg, profile + featured links
+            // 0 — Aurora glass: profile, intro, FAQ, featured links, review
             [
                 'key' => 'starter',
                 'name' => "{$label} — Aurora Starter",
-                'description' => "Animated aurora background with profile, top links, and socials.",
+                'description' => "Animated aurora background with a glass profile card, a warm intro, a quick FAQ, and your top links.",
                 'thumb' => $thumb('starter'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 1, 200, 200)),
-                    $this->heading('My Links', 'h3'),
-                    $this->ctaButton('🔥 Featured this week', 'https://example.com', '#7c3aed', '#ffffff'),
-                    $this->link('Website', 'https://example.com', 'fa-globe'),
-                    $this->link('Latest project', 'https://example.com', 'fa-bookmark'),
-                    $this->link('Press kit', 'https://example.com', 'fa-file-lines'),
-                    $this->review('Jordan K.', 5, "Their work speaks for itself — instant fan.", $img('rev', 0, 80, 80)),
+                    $this->profile($label, $blurb, $img('avatar', 1, 200, 200), $kit(0), $img('cover', 1, 1200, 480)),
+                    $this->heading('Start here', 'h3'),
+                    $this->paragraph("Hi, I'm a {$label} and this is my corner of the internet. Everything I'm working on, sharing, and recommending lives right here."),
+                    $this->paragraph("New here? Skim the quick FAQ below, then pick a link to dive in. Questions are always welcome."),
+                    $this->faq([
+                        ['question' => 'Who are you?', 'answer' => "I'm a {$label}. {$blurb}"],
+                        ['question' => 'What will I find here?', 'answer' => 'My latest work, the easiest ways to reach me, and the things I genuinely recommend.'],
+                        ['question' => 'How do we work together?', 'answer' => 'Tap a link below or send a note — I read and reply to everyone who reaches out.'],
+                    ]),
+                    $this->heading('My links', 'h3'),
+                    $this->link('Visit my website', 'https://example.com', 'fa-globe', $kit(0)),
+                    $this->link('See my latest project', 'https://example.com', 'fa-bookmark', $kit(0)),
+                    $this->link('Download my press kit', 'https://example.com', 'fa-file-lines', $kit(0)),
+                    $this->review('Jordan K.', 5, "Their work speaks for itself — I was an instant fan and have been recommending them ever since.", $img('rev', 0, 80, 80)),
                     $this->socials(),
                 ], $pick(0)),
             ],
-            // 1 — Mesh gradient, big featured links + countdown
+            // 1 — Sunset gradient: cover-hero profile, countdown, big links, timeline
             [
                 'key' => 'links-stack',
                 'name' => "{$label} — Featured Links",
-                'description' => "Bold gradient with featured buttons and a launch countdown.",
+                'description' => "Bold sunset gradient with a cover-hero profile, a launch countdown, big featured buttons, and a milestone timeline.",
                 'thumb' => $thumb('links'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 2, 200, 200)),
-                    $this->countdown('Launch in', '+30 days'),
-                    $this->linkBig("What I'm working on now", 'https://example.com', 'fa-rocket'),
-                    $this->linkBig('Latest update', 'https://example.com', 'fa-newspaper'),
+                    $this->profile($label, $blurb, $img('avatar', 2, 200, 200), $kit(1), $img('cover', 2, 1200, 480)),
+                    $this->countdown('Next drop in', '+21 days'),
+                    $this->heading('Latest from me', 'h3'),
+                    $this->linkBig("What I'm working on now", 'https://example.com', 'fa-rocket', $kit(1)),
+                    $this->linkBig('Read the latest update', 'https://example.com', 'fa-newspaper', $kit(1)),
+                    $this->linkBig('Join the waitlist', 'https://example.com', 'fa-bell', $kit(1)),
+                    $this->timeline([
+                        ['title' => 'Where it started', 'description' => 'Began sharing my work publicly and never looked back.', 'date' => '2023'],
+                        ['title' => 'A big milestone', 'description' => 'Hit a goal I once thought was years away.', 'date' => '2024'],
+                        ['title' => 'What I\'m building now', 'description' => 'The next chapter — follow along below.', 'date' => '2025'],
+                    ]),
                     $this->ctaButton('👉 Get the goods', 'https://example.com', '#ec4899', '#ffffff'),
                     $this->socials(),
                 ], $pick(1)),
             ],
-            // 2 — Pastel paper, about + cta + review
+            // 2 — Pastel paper: classic profile, about, review, CTA
             [
                 'key' => 'about-cta',
                 'name' => "{$label} — About + CTA",
-                'description' => "Soft paper look with about-me, a focused CTA, and one glowing review.",
+                'description' => "Soft paper look with a classic profile card, a two-part about-me, a glowing review, and a focused call-to-action.",
                 'thumb' => $thumb('about'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 3, 200, 200)),
+                    $this->profile($label, $blurb, $img('avatar', 3, 200, 200), $kit(2), $img('cover', 3, 1200, 480)),
                     $this->heading('About me', 'h3'),
                     $this->paragraph("I'm a {$label}. {$blurb}"),
+                    $this->paragraph("I care about doing thoughtful work, communicating clearly, and leaving every project better than I found it. If that sounds like a fit, I'd love to hear from you."),
                     $this->divider(),
-                    $this->review('Sam P.', 5, "Working with them was the highlight of our quarter — couldn't recommend more.", $img('rev', 1, 80, 80)),
+                    $this->review('Sam P.', 5, "Working with them was the highlight of our quarter — clear, calm, and genuinely great at what they do. Couldn't recommend more.", $img('rev', 1, 80, 80)),
                     $this->ctaButton('Work with me', 'https://example.com', '#0ea5e9', '#ffffff'),
                     $this->socials(),
                 ], $pick(2)),
             ],
-            // 3 — Mono dark, newsletter + poll
+            // 3 — Mono dark: badge profile, newsletter, poll, quiz
             [
                 'key' => 'newsletter',
                 'name' => "{$label} — Newsletter",
-                'description' => "Sharp mono-dark layout that leads with email signup and a quick poll.",
+                'description' => "Sharp mono-dark layout with a badge profile that leads with email signup, a quick poll, and a fun quiz.",
                 'thumb' => $thumb('news'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 4, 200, 200)),
+                    $this->profile($label, $blurb, $img('avatar', 4, 200, 200), $kit(3), $img('cover', 4, 1200, 480)),
                     $this->heading('Get updates from me', 'h3'),
-                    $this->paragraph('One short note when there is something new. No spam.'),
+                    $this->paragraph('One short note when there is something genuinely new. No spam, no noise — and you can leave any time.'),
                     $this->emailCollector(),
-                    $this->poll('What should I cover next?', ['Behind the scenes', 'Tutorials', 'Q&A', 'Case studies']),
+                    $this->poll('What should I cover next?', ['Behind the scenes', 'Tutorials', 'Q&A sessions', 'Case studies']),
+                    $this->quiz('How well do you know my work?', [
+                        ['question' => 'What do I help people with most?', 'options' => ['Strategy', 'Hands-on building', 'Both'], 'correct' => 2],
+                        ['question' => 'How often do I send updates?', 'options' => ['Daily', 'Only when it matters', 'Never'], 'correct' => 1],
+                    ]),
                     $this->socials(),
                 ], $pick(3)),
             ],
-            // 4 — Photo editorial bg, gallery + image grid
+            // 4 — Editorial photo: magazine profile, gallery, testimonials, product
             [
                 'key' => 'gallery',
                 'name' => "{$label} — Gallery",
-                'description' => "Editorial photo background, six-shot portfolio grid, and inquiry CTA.",
+                'description' => "Editorial photo background with a magazine profile, a six-shot portfolio grid, real testimonials, and a featured product.",
                 'thumb' => $thumb('gallery'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 5, 200, 200)),
-                    $this->heading('Portfolio', 'h3'),
+                    $this->profile($label, $blurb, $img('avatar', 5, 200, 200), $kit(4), $img('cover', 5, 1200, 480)),
+                    $this->heading('Selected work', 'h3'),
                     $this->imageGrid([
                         $img('grid', 1, 400, 400),
                         $img('grid', 2, 400, 400),
@@ -194,95 +217,118 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                         $img('grid', 5, 400, 400),
                         $img('grid', 6, 400, 400),
                     ], 3),
+                    $this->testimonials([
+                        ['name' => 'Dana M.', 'avatar' => $img('t', 4, 80, 80), 'rating' => 5, 'text' => "Every shot in the deck was exactly what we needed. A real eye."],
+                        ['name' => 'Leo T.',  'avatar' => $img('t', 5, 80, 80), 'rating' => 5, 'text' => "Turned a vague brief into something we were proud to ship."],
+                    ]),
+                    $this->product('Signature Print', 'A museum-quality print of one of my favourite pieces, ready to frame.', '$45', $img('prod', 1, 600, 600), 'https://example.com', 'New'),
                     $this->ctaButton('Inquire about my work', 'https://example.com', '#f59e0b', '#0f172a'),
                     $this->socials(),
                 ], $pick(4)),
             ],
-            // 5 — Neon cyber, services + price
+            // 5 — Neon cyber: stats profile, services, pricing, product
             [
                 'key' => 'services',
                 'name' => "{$label} — Services & Pricing",
-                'description' => "Neon-cyber backdrop with service cards, a pricing tier, and booking.",
+                'description' => "Neon-cyber backdrop with a stats profile, service cards, a pricing tier, and a productised offer.",
                 'thumb' => $thumb('services'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 6, 200, 200)),
+                    $this->profile($label, $blurb, $img('avatar', 6, 200, 200), $kit(5), $img('cover', 6, 1200, 480)),
                     $this->heading('What I offer', 'h3'),
-                    $this->service('1:1 Consultation', 'fa-comments', 'from $120 / hr', 'A focused 60-minute working session — bring your toughest question.', 'https://example.com'),
-                    $this->service('Starter Package', 'fa-bolt', '$450', "Get up and running fast. Includes setup, walkthrough, and a follow-up.", 'https://example.com'),
+                    $this->service('1:1 Consultation', 'fa-comments', 'from $120 / hr', 'A focused 60-minute working session — bring your toughest question and leave with a plan.', 'https://example.com'),
+                    $this->service('Starter Package', 'fa-bolt', '$450', "Get up and running fast. Includes setup, a guided walkthrough, and a follow-up check-in.", 'https://example.com'),
                     $this->price('Pro Engagement', '$1,800', '/ project', [
                         'Discovery + audit',
                         'Hands-on implementation',
                         'Two weeks of async support',
                         'Wrap-up review call',
                     ], 'https://example.com'),
+                    $this->product('Template Pack', 'Everything I use to deliver client work, packaged so you can run it yourself.', '$79', $img('prod', 2, 600, 600), 'https://example.com', 'Popular'),
                     $this->ctaButton('Book a call', 'https://example.com', '#a855f7', '#ffffff'),
                     $this->socials(),
                 ], $pick(5)),
             ],
-            // 6 — Ocean gradient, testimonials + review
+            // 6 — Ocean: split profile, testimonials, review, FAQ
             [
                 'key' => 'testimonials',
                 'name' => "{$label} — Social Proof",
-                'description' => "Calm ocean palette stacked with three testimonials and a featured review.",
+                'description' => "Calm ocean palette with a split profile, three testimonials, a featured review, and an objection-busting FAQ.",
                 'thumb' => $thumb('proof'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 7, 200, 200)),
+                    $this->profile($label, $blurb, $img('avatar', 7, 200, 200), $kit(6), $img('cover', 7, 1200, 480)),
                     $this->heading('What people say', 'h3'),
                     $this->testimonials([
                         ['name' => 'Alex R.',    'avatar' => $img('t', 1, 80, 80), 'rating' => 5, 'text' => "Genuinely a delight to work with. Recommend without hesitation."],
                         ['name' => 'Priya S.',   'avatar' => $img('t', 2, 80, 80), 'rating' => 5, 'text' => "Made a real difference for our team. Wish we'd started sooner."],
                         ['name' => 'Marcus L.',  'avatar' => $img('t', 3, 80, 80), 'rating' => 4, 'text' => "Sharp eye, clear communication, on time. What more do you want?"],
                     ]),
+                    $this->review('Nadia F.', 5, "Six months on, the work is still paying off. That's the real test, and it passed.", $img('rev', 2, 80, 80)),
+                    $this->faq([
+                        ['question' => 'Are these reviews real?', 'answer' => 'Every one. Replace them with your own once you make this page yours.'],
+                        ['question' => 'Can I talk to a past client?', 'answer' => 'Ask and I\'ll happily connect you with someone relevant.'],
+                    ]),
                     $this->ctaButton('See more reviews', 'https://example.com', '#06b6d4', '#001018'),
                     $this->socials(),
                 ], $pick(6)),
             ],
-            // 7 — Smoke fog, contact form + vcard + qr
+            // 7 — Smoke fog: floating stats profile, contact form, vCard, QR, FAQ
             [
                 'key' => 'contact',
                 'name' => "{$label} — Contact Hub",
-                'description' => "Moody smoke background, contact form, vCard download, and a scan-me QR.",
+                'description' => "Moody smoke background with a floating profile, a contact form, a vCard download, a scan-me QR, and a short FAQ.",
                 'thumb' => $thumb('contact'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 8, 200, 200)),
+                    $this->profile($label, $blurb, $img('avatar', 8, 200, 200), $kit(7), $img('cover', 8, 1200, 480)),
                     $this->heading('Get in touch', 'h3'),
+                    $this->paragraph('The fastest way to reach me is the form below. Prefer to save my details? Grab the vCard or scan the code.'),
                     $this->contactForm('Send a message', 'Send'),
                     $this->vcard('Your Name', $label, 'Your Company', '+10000000000', 'hi@example.com', 'https://example.com'),
                     $this->qrCode('https://example.com', 220),
+                    $this->faq([
+                        ['question' => 'How soon will you reply?', 'answer' => 'Usually within one business day.'],
+                        ['question' => 'What should I include?', 'answer' => 'A sentence or two about what you need and your timeline is plenty to start.'],
+                    ]),
                     $this->socials(),
                 ], $pick(7)),
             ],
-            // 8 — Prism light, feature image + video + donation
+            // 8 — Prism light: feature image, video, timeline, donation
             [
                 'key' => 'feature',
                 'name' => "{$label} — Feature Story",
-                'description' => "Prism-light hero image and short video with a tip-jar donation block.",
+                'description' => "Prism-light hero image and short video, a journey timeline, and a tip-jar donation block.",
                 'thumb' => $thumb('feature'),
                 'snapshot' => $this->snapshot([
                     $this->image($img('hero', 1, 1200, 600)),
                     $this->heading($label, 'h2'),
                     $this->paragraph($blurb),
+                    $this->paragraph("Here's the story behind the work — where it came from, where it's going, and how you can be part of it."),
                     $this->video('https://download.samplelib.com/mp4/sample-5s.mp4'),
-                    $this->donation('Support my work', 'Every tip helps me keep going — thank you.', [5, 10, 25, 50], 'https://example.com'),
+                    $this->timeline([
+                        ['title' => 'The spark', 'description' => 'A small idea that wouldn\'t leave me alone.', 'date' => '2022'],
+                        ['title' => 'Going all in', 'description' => 'Made it my full-time focus.', 'date' => '2024'],
+                        ['title' => 'Today', 'description' => 'Building in the open and grateful for the support.', 'date' => '2025'],
+                    ]),
+                    $this->donation('Support my work', 'Every tip helps me keep going — thank you for being here.', [5, 10, 25, 50], 'https://example.com'),
                     $this->ctaButton('Learn more', 'https://example.com', '#10b981', '#ffffff'),
                     $this->socials(),
                 ], $pick(8)),
             ],
-            // 9 — Deep ocean, faq + coupon + card grid
+            // 9 — Deep ocean: gradient badge profile, FAQ, coupon, product, card grid
             [
                 'key' => 'faq-contact',
                 'name' => "{$label} — FAQ + Promo",
-                'description' => "Deep-ocean palette: FAQ list, a launch coupon, and a quick-link card grid.",
+                'description' => "Deep-ocean palette with a gradient badge profile, a real FAQ block, a launch coupon, a featured product, and a quick-link card grid.",
                 'thumb' => $thumb('faq'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 9, 200, 200)),
+                    $this->profile($label, $blurb, $img('avatar', 9, 200, 200), $kit(9), $img('cover', 9, 1200, 480)),
                     $this->heading('Frequently asked', 'h3'),
-                    $this->list([
-                        "How do we start? — Drop me a message and we'll set up a quick intro.",
-                        'How much does it cost? — Depends on scope; I share a range upfront.',
-                        'How fast can we start? — Usually within a week or two.',
+                    $this->faq([
+                        ['question' => 'How do we start?', 'answer' => "Drop me a message and we'll set up a quick intro call to see if it's a fit."],
+                        ['question' => 'How much does it cost?', 'answer' => 'It depends on scope, so I always share a clear range upfront — no surprises.'],
+                        ['question' => 'How fast can we start?', 'answer' => 'Usually within a week or two, depending on the current schedule.'],
                     ]),
                     $this->coupon('WELCOME15', 'Save 15% on your first booking.', 'Dec 31, 2026'),
+                    $this->product('Quick-Start Session', 'A single focused session to unblock you — perfect if you just need a push in the right direction.', '$99', $img('prod', 3, 600, 600), 'https://example.com', 'Limited'),
                     $this->cardGrid('Quick links', 2, [
                         $this->link('Email me', 'mailto:hi@example.com', 'fa-envelope'),
                         $this->link('Book a slot', 'https://example.com', 'fa-calendar'),
@@ -294,6 +340,59 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                 ], $pick(9)),
             ],
         ];
+    }
+
+    /**
+     * Per-blueprint "variant kit": the profile block type + identity
+     * variant (which carries the `_profile_layout`) plus the link/big-link
+     * design variant key used across that template. Indexed in lockstep
+     * with the 10 blueprints so each template gets a distinct profile
+     * layout AND a distinct link look (on top of its distinct theme
+     * preset). Keys reference BlockVariantCatalog::forType() — `find()`
+     * tolerates an unknown key (renderer falls back to defaults), but
+     * these are all current catalog keys.
+     *
+     * @return array<int, array{ptype:string,pvar:string,link:string}>
+     */
+    private function variantKits(): array
+    {
+        return [
+            ['ptype' => 'profile_card_v1', 'pvar' => 'identity_glass',       'link' => 'frosted_pill'],
+            ['ptype' => 'profile_card_v2', 'pvar' => 'identity_cover_hero',  'link' => 'pill_solid'],
+            ['ptype' => 'profile_card_v1', 'pvar' => 'identity_classic',     'link' => 'corporate_row'],
+            ['ptype' => 'profile_card_v4', 'pvar' => 'identity_minimal_dark','link' => 'square_sharp'],
+            ['ptype' => 'profile_card_v2', 'pvar' => 'identity_magazine',    'link' => 'outline_pill'],
+            ['ptype' => 'profile_card_v3', 'pvar' => 'identity_founder',     'link' => 'card_lifted'],
+            ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split',       'link' => 'pill_glass_dark'],
+            ['ptype' => 'profile_card_v3', 'pvar' => 'identity_floating',    'link' => 'card_arch'],
+            ['ptype' => 'profile_card_v2', 'pvar' => 'identity_gradient',    'link' => 'brutalist'],
+            ['ptype' => 'profile_card_v4', 'pvar' => 'identity_gradient',    'link' => 'cta_glow'],
+        ];
+    }
+
+    /**
+     * Resolve a curated design variant into a full baked `_style` payload
+     * (STYLE_DEFAULTS + the catalog variant's style + the current catalog
+     * VERSION stamp). Baking the full style — rather than just stashing a
+     * `_variant` key — means BOTH the applied block (via the model's
+     * `retrieved` migrateStaleVariant hook) AND the no-DB template preview
+     * (PreviewBiolinkBlock, which never fires that hook) render the variant
+     * identically. Mirrors BiolinkBlockController::applyVariant() /
+     * BiolinkBlock::migrateStaleVariant().
+     *
+     * @param  array<string,mixed>  $extra  Extra `_style` keys (e.g. grid_span).
+     * @return array<string,mixed>
+     */
+    private function variantStyle(string $type, string $key, array $extra = []): array
+    {
+        $variant = BlockVariantCatalog::find($type, $key);
+        $style = is_array($variant['style'] ?? null) ? $variant['style'] : [];
+        $merged = array_merge(BiolinkBlock::STYLE_DEFAULTS, $style, $extra);
+        if ($variant !== null) {
+            $merged['_variant'] = $key;
+            $merged['_variant_version'] = BlockVariantCatalog::VERSION;
+        }
+        return $merged;
     }
 
     /* ──────────────────────── theme presets ──────────────────────── */
@@ -605,14 +704,60 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         return ['type' => $type, 'settings' => $settings, 'is_active' => true];
     }
 
-    private function profile(string $label, string $blurb, string $avatar = ''): array
+    /**
+     * Rich profile card. The `$kit` selects the profile block type
+     * (profile_card_v1..v4) and the `identity_*` design variant, whose
+     * baked `_style` carries the `_profile_layout`. v3 (Stats) and v4
+     * (Badges) get sensible placeholder stats/badges so they render full.
+     *
+     * @param  array{ptype:string,pvar:string,link:string}  $kit
+     * @param  array<string,mixed>  $extra
+     */
+    private function profile(string $label, string $blurb, string $avatar, array $kit, string $cover = '', array $extra = []): array
     {
-        return $this->block('profile_card_v1', [
-            'name'   => 'Your Name',
-            'title'  => $label,
-            'avatar' => $avatar,
-            'bio'    => $blurb,
-        ]);
+        $type = $kit['ptype'];
+        $settings = array_merge([
+            'name'      => 'Your Name',
+            'title'     => $label,
+            'avatar'    => $avatar,
+            'cover'     => $cover,
+            'bio'       => $blurb,
+            'verified'  => true,
+            'location'  => 'Your City, Country',
+            'website'   => 'https://example.com',
+            'cta_label' => 'Get in touch',
+            'cta_url'   => 'https://example.com',
+            'socials'   => $this->profileSocials(),
+            '_style'    => $this->variantStyle($type, $kit['pvar']),
+        ], $extra);
+
+        if ($type === 'profile_card_v3' && !isset($settings['stats'])) {
+            $settings['stats'] = [
+                ['label' => 'Followers', 'value' => '12.4K'],
+                ['label' => 'Projects',  'value' => '87'],
+                ['label' => 'Years',     'value' => '6'],
+            ];
+        }
+        if ($type === 'profile_card_v4' && !isset($settings['badges'])) {
+            $settings['badges'] = [
+                ['label' => 'Top Rated'],
+                ['label' => 'Verified'],
+                ['label' => 'Fast Replies'],
+            ];
+        }
+
+        return $this->block($type, $settings);
+    }
+
+    /** @return array<int, array{name:string,url:string}> */
+    private function profileSocials(): array
+    {
+        return [
+            ['name' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
+            ['name' => 'tiktok',    'url' => 'https://tiktok.com/@yourhandle'],
+            ['name' => 'youtube',   'url' => 'https://youtube.com/@yourhandle'],
+            ['name' => 'linkedin',  'url' => 'https://linkedin.com/in/yourhandle'],
+        ];
     }
 
     private function heading(string $text, string $size = 'h3'): array
@@ -625,14 +770,55 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         return $this->block('paragraph', ['text' => $text, 'align' => 'center']);
     }
 
-    private function link(string $text, string $url, string $icon = ''): array
+    /** @param  array{ptype:string,pvar:string,link:string}|null  $kit */
+    private function link(string $text, string $url, string $icon = '', ?array $kit = null): array
     {
-        return $this->block('link', ['text' => $text, 'url' => $url, 'icon' => $icon]);
+        $settings = ['text' => $text, 'url' => $url, 'icon' => $icon];
+        if ($kit !== null) {
+            $settings['_style'] = $this->variantStyle('link', $kit['link']);
+        }
+        return $this->block('link', $settings);
     }
 
-    private function linkBig(string $text, string $url, string $icon = ''): array
+    /** @param  array{ptype:string,pvar:string,link:string}|null  $kit */
+    private function linkBig(string $text, string $url, string $icon = '', ?array $kit = null): array
     {
-        return $this->block('link_big', ['text' => $text, 'url' => $url, 'icon' => $icon]);
+        $settings = ['text' => $text, 'url' => $url, 'icon' => $icon];
+        if ($kit !== null) {
+            $settings['_style'] = $this->variantStyle('link_big', $kit['link']);
+        }
+        return $this->block('link_big', $settings);
+    }
+
+    /** @param  array<int, array{question:string,answer:string}>  $items */
+    private function faq(array $items): array
+    {
+        return $this->block('faq', ['items' => array_values($items)]);
+    }
+
+    /** @param  array<int, array{question:string,options:array<int,string>,correct:int}>  $questions */
+    private function quiz(string $title, array $questions): array
+    {
+        return $this->block('quiz', ['title' => $title, 'questions' => array_values($questions)]);
+    }
+
+    /** @param  array<int, array{title:string,description:string,date:string}>  $items */
+    private function timeline(array $items): array
+    {
+        return $this->block('timeline', ['items' => array_values($items)]);
+    }
+
+    private function product(string $name, string $description, string $price, string $image, string $url, string $badge = ''): array
+    {
+        return $this->block('product', [
+            'name'            => $name,
+            'description'     => $description,
+            'price'          => $price,
+            'image'          => $image,
+            'url'            => $url,
+            'badge'          => $badge,
+            'native_checkout' => false,
+        ]);
     }
 
     private function socials(): array

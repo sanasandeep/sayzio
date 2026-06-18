@@ -180,6 +180,23 @@ class TemplatePreviewLayoutBuilder
             'list_numbered'   => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 24, 'icon' => '', 'lines' => 3, 'items' => ['First step', 'Second step', 'Third step']],
             'list_pricing'    => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 28, 'icon' => '', 'lines' => 3, 'items' => ['Starter — $9', 'Pro — $19', 'Team — $49']],
 
+            // Q&A and engagement — expandable rows / option lists.
+            'faq'             => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.20)', 'h' => 26, 'icon' => 'fa-circle-question', 'lines' => 3, 'items' => ['What do you do?', 'How can I reach you?', 'Where are you based?']],
+            'quiz'            => ['shape' => 'list_rows',  'bg' => 'rgba(139,92,246,0.22)',  'h' => 26, 'icon' => 'fa-clipboard-question', 'lines' => 3, 'items' => ['Pick the right answer', 'Option A', 'Option B']],
+            'poll'            => ['shape' => 'list_rows',  'bg' => 'rgba(56,189,248,0.22)',  'h' => 26, 'icon' => 'fa-square-poll-vertical', 'lines' => 3, 'items' => ['What should I cover next?', 'Tutorials', 'Q&A']],
+            'timeline'        => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => 'fa-stream', 'lines' => 3, 'items' => ['Where it started', 'A big milestone', 'What I\'m building now']],
+
+            // Social proof — quote-style review tiles.
+            'testimonials'    => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.14)', 'h' => 28, 'icon' => 'fa-quote-left', 'lines' => 3, 'items' => ['“A real delight to work with.”', '“Made a difference for us.”', '“Sharp and on time.”']],
+            'review'          => ['shape' => 'tile',       'bg' => 'rgba(255,255,255,0.12)', 'h' => 22, 'icon' => 'fa-star', 'text' => '★★★★★ — A glowing review'],
+
+            // Commerce — products, services, pricing, promos.
+            'product'         => ['shape' => 'tile',       'bg' => 'linear-gradient(135deg, rgba(245,158,11,0.30), rgba(244,114,182,0.30))', 'h' => 30, 'icon' => 'fa-bag-shopping', 'text' => 'Featured product'],
+            'service'         => ['shape' => 'tile',       'bg' => 'rgba(139,92,246,0.24)',  'h' => 24, 'icon' => 'fa-briefcase', 'text' => 'What I offer'],
+            'price'           => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.16)', 'h' => 30, 'icon' => 'fa-tags', 'lines' => 3, 'items' => ['Discovery + audit', 'Hands-on work', 'Async support']],
+            'coupon'          => ['shape' => 'tile',       'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.30), rgba(245,158,11,0.30))', 'h' => 20, 'icon' => 'fa-ticket', 'text' => 'WELCOME15'],
+            'vcard'           => ['shape' => 'tile',       'bg' => 'rgba(56,189,248,0.22)',  'h' => 24, 'icon' => 'fa-address-card', 'text' => 'Save my contact'],
+
             // Misc tile-shaped blocks.
             'social_proof'    => ['shape' => 'tile',       'bg' => 'rgba(255,255,255,0.10)', 'h' => 18, 'icon' => 'fa-quote-left'],
             'ai_companion'    => ['shape' => 'tile',       'bg' => 'rgba(139,92,246,0.30)',  'h' => 22, 'icon' => 'fa-robot'],

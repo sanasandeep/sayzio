@@ -45,3 +45,4 @@
 - [Blade @endif@if same-line gotcha](blade-endif-if-gotcha.md) — two directives concatenated (no space) silently leave the 2nd literal + orphan endif → compiled-view PHP parse error; insert a separator.
 - [Biolink product storefront](biolink-product-storefront.md) — native-checkout Product block; /store/* routes must precede the {alias} catch-all; earnings bySource is generic groupBy so new sources auto-surface (label/icon only).
 - [Map picker geocoding pattern](map-picker-geocoding.md) — web reuses vendored Leaflet + divIcon SVG pin + Nominatim reverse/forward; mobile uses WebView (CDN Leaflet) posting points back + expo-location; coords stay strings/numbers, no PHP shape change.
+- [Page template seeders](page-template-seeders.md) — bump SEED_VERSION + meta.seed_version to auto-refresh untouched rows (firstOrCreate won't update); variant keys are per-links.type, validate via BlockVariantCatalog::find or they silently fall back.
