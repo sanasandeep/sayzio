@@ -27,7 +27,7 @@ class ConversationFlowController extends Controller
     public function editor(Link $link)
     {
         $this->authorizeLink($link);
-        $flow = $this->ensureFlow($link);
+        $flow = self::ensureFlow($link);
         $flow->load(['steps.choices', 'actions']);
 
         $blocks = $link->biolinkBlocks()->whereNull('parent_id')->get(['id', 'type', 'settings']);
@@ -44,36 +44,7 @@ class ConversationFlowController extends Controller
             false
         );
 
-        $flowPayload = [
-            'name'           => $flow->name,
-            'intro_message'  => $flow->intro_message,
-            'is_published'   => (bool) $flow->is_published,
-            'settings'       => is_array($flow->settings) ? $flow->settings : [],
-            'actions' => $flow->actions->map(fn ($a) => [
-                'client_id' => 'a' . $a->id,
-                'kind'      => $a->kind,
-                'label'     => $a->label,
-                'payload'   => $a->payload,
-            ])->values(),
-            'steps'   => $flow->steps->map(fn ($s) => [
-                'key'              => $s->key,
-                'kind'             => $s->kind,
-                'message_text'     => $s->message_text,
-                'answer_field'     => $s->answer_field,
-                'is_entry'         => (bool) $s->is_entry,
-                'skip_if_known'    => (bool) $s->skip_if_known,
-                'next_step_key'    => $s->next_step_key,
-                'action_client_id' => $s->action_id ? 'a' . $s->action_id : null,
-                'settings'         => is_array($s->settings) ? $s->settings : [],
-                'choices'          => $s->choices->map(fn ($c) => [
-                    'label'            => $c->label,
-                    'value'            => $c->value,
-                    'next_step_key'    => $c->next_step_key,
-                    'action_client_id' => $c->action_id ? 'a' . $c->action_id : null,
-                    'settings'         => is_array($c->settings) ? $c->settings : [],
-                ])->values(),
-            ])->values(),
-        ];
+        $flowPayload = self::flowPayload($flow);
 
         return view('user.links.conversational.editor', [
             'link'         => $link,
@@ -100,7 +71,7 @@ class ConversationFlowController extends Controller
         $link->update(['settings' => $settings]);
 
         if ($on) {
-            $this->ensureFlow($link);
+            self::ensureFlow($link);
         }
         return response()->json(['ok' => true, 'mode' => $settings['biolink']['mode']]);
     }
@@ -109,9 +80,29 @@ class ConversationFlowController extends Controller
     public function save(Request $request, Link $link)
     {
         $this->authorizeLink($link);
-        $flow = $this->ensureFlow($link);
+        $flow = self::ensureFlow($link);
 
-        $data = $request->validate([
+        $data = $request->validate(self::saveRules());
+
+        if ($err = self::validateFlowData($data)) {
+            return response()->json(['ok' => false, 'error' => $err], 422);
+        }
+
+        $version = self::persistFlow($flow, $data);
+
+        return response()->json([
+            'ok'      => true,
+            'version' => $version,
+        ]);
+    }
+
+    /**
+     * Validation rules for a full flow save. Shared by the web editor and
+     * the mobile REST API so the two surfaces never drift.
+     */
+    public static function saveRules(): array
+    {
+        return [
             'name'          => 'nullable|string|max:120',
             'intro_message' => 'nullable|string|max:2000',
             'is_published'  => 'nullable|boolean',
@@ -138,12 +129,21 @@ class ConversationFlowController extends Controller
             'steps.*.choices.*.next_step_key' => 'nullable|string|max:60',
             'steps.*.choices.*.action_client_id' => 'nullable|string|max:60',
             'steps.*.choices.*.settings'         => 'nullable|array',
-        ]);
+        ];
+    }
 
+    /**
+     * Post-validation flow checks (unique step keys, single entry, per-step
+     * deep validation, dangling references, merge-tag well-formedness).
+     * Mutates $data to default the entry flag. Returns an error string when
+     * invalid, or null when the flow is safe to persist.
+     */
+    public static function validateFlowData(array &$data): ?string
+    {
         // Step keys must be unique within the flow.
         $stepKeys = array_column($data['steps'], 'key');
         if (count($stepKeys) !== count(array_unique($stepKeys))) {
-            return response()->json(['ok' => false, 'error' => 'Step keys must be unique'], 422);
+            return 'Step keys must be unique';
         }
         $stepKeySet = array_flip($stepKeys);
 
@@ -152,52 +152,43 @@ class ConversationFlowController extends Controller
         if ($entryCount === 0) {
             $data['steps'][0]['is_entry'] = true;
         } elseif ($entryCount > 1) {
-            return response()->json(['ok' => false, 'error' => 'Only one step can be the entry point'], 422);
+            return 'Only one step can be the entry point';
         }
 
         // Per-step + per-choice deep validation. Catches bad regex,
         // empty AI intents, dangling step references, malformed merge
         // tags, and out-of-range constraints — anything that would
         // either crash the runtime or silently break the flow.
-        foreach ($data['steps'] as $i => $step) {
-            $err = $this->validateStepSettings($step, $stepKeySet);
+        foreach ($data['steps'] as $step) {
+            $err = self::validateStepSettings($step, $stepKeySet);
             if ($err) {
-                return response()->json([
-                    'ok' => false,
-                    'error' => "Step '{$step['key']}': {$err}",
-                ], 422);
+                return "Step '{$step['key']}': {$err}";
             }
             // Validate dangling next_step_key
             if (!empty($step['next_step_key']) && !isset($stepKeySet[$step['next_step_key']])) {
-                return response()->json([
-                    'ok' => false,
-                    'error' => "Step '{$step['key']}' next step references missing key '{$step['next_step_key']}'",
-                ], 422);
+                return "Step '{$step['key']}' next step references missing key '{$step['next_step_key']}'";
             }
             foreach ($step['choices'] ?? [] as $c) {
                 if (!empty($c['next_step_key']) && !isset($stepKeySet[$c['next_step_key']])) {
-                    return response()->json([
-                        'ok' => false,
-                        'error' => "Step '{$step['key']}' choice '{$c['value']}' references missing step '{$c['next_step_key']}'",
-                    ], 422);
+                    return "Step '{$step['key']}' choice '{$c['value']}' references missing step '{$c['next_step_key']}'";
                 }
-                $cerr = $this->validateChoiceCondition($c, $stepKeySet);
+                $cerr = self::validateChoiceCondition($c, $stepKeySet);
                 if ($cerr) {
-                    return response()->json([
-                        'ok' => false,
-                        'error' => "Step '{$step['key']}' choice '{$c['value']}': {$cerr}",
-                    ], 422);
+                    return "Step '{$step['key']}' choice '{$c['value']}': {$cerr}";
                 }
             }
             // Merge-tag well-formedness on bot text.
-            if ($mtErr = $this->validateMergeTags((string) $step['message_text'])) {
-                return response()->json([
-                    'ok' => false,
-                    'error' => "Step '{$step['key']}' message: {$mtErr}",
-                ], 422);
+            if ($mtErr = self::validateMergeTags((string) $step['message_text'])) {
+                return "Step '{$step['key']}' message: {$mtErr}";
             }
         }
 
+        return null;
+    }
+
+    /** Persist a validated flow definition; returns the new version. */
+    public static function persistFlow(ConversationFlow $flow, array $data): int
+    {
         DB::transaction(function () use ($flow, $data) {
             $flow->update([
                 'name'          => $data['name'] ?? $flow->name,
@@ -253,18 +244,51 @@ class ConversationFlowController extends Controller
             }
         });
 
-        $flow->refresh()->load(['steps.choices', 'actions']);
-        return response()->json([
-            'ok'      => true,
-            'version' => $flow->version,
-        ]);
+        return (int) $flow->fresh()->version;
+    }
+
+    /** Serialise a flow (steps + choices + actions) for the editor UIs. */
+    public static function flowPayload(ConversationFlow $flow): array
+    {
+        $flow->loadMissing(['steps.choices', 'actions']);
+
+        return [
+            'name'           => $flow->name,
+            'intro_message'  => $flow->intro_message,
+            'is_published'   => (bool) $flow->is_published,
+            'settings'       => is_array($flow->settings) ? $flow->settings : [],
+            'actions' => $flow->actions->map(fn ($a) => [
+                'client_id' => 'a' . $a->id,
+                'kind'      => $a->kind,
+                'label'     => $a->label,
+                'payload'   => $a->payload,
+            ])->values(),
+            'steps'   => $flow->steps->map(fn ($s) => [
+                'key'              => $s->key,
+                'kind'             => $s->kind,
+                'message_text'     => $s->message_text,
+                'answer_field'     => $s->answer_field,
+                'is_entry'         => (bool) $s->is_entry,
+                'skip_if_known'    => (bool) $s->skip_if_known,
+                'next_step_key'    => $s->next_step_key,
+                'action_client_id' => $s->action_id ? 'a' . $s->action_id : null,
+                'settings'         => is_array($s->settings) ? $s->settings : [],
+                'choices'          => $s->choices->map(fn ($c) => [
+                    'label'            => $c->label,
+                    'value'            => $c->value,
+                    'next_step_key'    => $c->next_step_key,
+                    'action_client_id' => $c->action_id ? 'a' . $c->action_id : null,
+                    'settings'         => is_array($c->settings) ? $c->settings : [],
+                ])->values(),
+            ])->values(),
+        ];
     }
 
     /**
      * Per-step shape check beyond plain validation rules. Returns an
      * error string when the step is invalid, or null when ok.
      */
-    protected function validateStepSettings(array $step, array $stepKeySet): ?string
+    public static function validateStepSettings(array $step, array $stepKeySet): ?string
     {
         $kind = $step['kind'];
         $s = is_array($step['settings'] ?? null) ? $step['settings'] : [];
@@ -373,7 +397,7 @@ class ConversationFlowController extends Controller
         return null;
     }
 
-    protected function validateChoiceCondition(array $c, array $stepKeySet): ?string
+    public static function validateChoiceCondition(array $c, array $stepKeySet): ?string
     {
         $cs = is_array($c['settings'] ?? null) ? $c['settings'] : [];
         if (empty($cs['condition'])) return null;
@@ -391,7 +415,7 @@ class ConversationFlowController extends Controller
      * and `{{answer:field}}` — anything else we'll treat as literal but
      * still warn on unbalanced braces so the visitor never sees raw `{{`.
      */
-    protected function validateMergeTags(string $text): ?string
+    public static function validateMergeTags(string $text): ?string
     {
         $opens  = substr_count($text, '{{');
         $closes = substr_count($text, '}}');
@@ -412,7 +436,7 @@ class ConversationFlowController extends Controller
     public function analytics(Link $link)
     {
         $this->authorizeLink($link);
-        $flow = $this->ensureFlow($link);
+        $flow = self::ensureFlow($link);
 
         $entered = ConversationStepEvent::where('flow_id', $flow->id)
             ->where('event', ConversationStepEvent::EVENT_ENTERED)
@@ -530,7 +554,7 @@ class ConversationFlowController extends Controller
     public function analyticsPage(Link $link)
     {
         $this->authorizeLink($link);
-        $flow = $this->ensureFlow($link);
+        $flow = self::ensureFlow($link);
         return view('user.links.conversational.analytics', [
             'link' => $link,
             'flow' => $flow,
@@ -544,7 +568,7 @@ class ConversationFlowController extends Controller
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
     }
 
-    protected function ensureFlow(Link $link): ConversationFlow
+    public static function ensureFlow(Link $link): ConversationFlow
     {
         $flow = ConversationFlow::where('link_id', $link->id)->first();
         if ($flow) return $flow;

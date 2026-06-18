@@ -360,7 +360,7 @@ export default function EditLinkScreen() {
             <ActionTile
               icon="edit-3"
               label="Edit flow"
-              onPress={() => openWebEditor(`/user/links/${id}/conversational`)}
+              onPress={() => router.push(`/links/${id}/conversational` as any)}
             />
           ) : null}
           {meta.kind === "resume" ? (

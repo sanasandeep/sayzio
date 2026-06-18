@@ -320,6 +320,12 @@ Route::prefix('v1')->group(function () {
         // Companion infra via the shared AiChatPageManager.
         Route::get ('/links/{id}/ai-chat', [\App\Modules\Api\Controllers\AiChatController::class, 'show'])->whereNumber('id');
         Route::put ('/links/{id}/ai-chat', [\App\Modules\Api\Controllers\AiChatController::class, 'save'])->whereNumber('id');
+
+        // Conversational flow editor (links.type = conversational). Mirrors
+        // the web user.links.conversational.{editor,save} routes, reusing
+        // the shared flow validation/persistence helpers.
+        Route::get ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'show'])->whereNumber('id');
+        Route::put ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'save'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics/blocks/{blockId}', [LinkController::class, 'blockAnalytics'])->whereNumber('id')->whereNumber('blockId');
         Route::post  ('/links/{id}/reset',     [LinkController::class, 'reset'])->whereNumber('id');
