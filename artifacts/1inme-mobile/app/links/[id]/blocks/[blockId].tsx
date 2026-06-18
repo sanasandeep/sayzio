@@ -112,6 +112,65 @@ function normalizeProfileSocials(raw: unknown): ProfileSocial[] {
     .filter((s) => s.name !== "" || s.url !== "");
 }
 
+// Profile-card stat row (used by the "stats" layout). The renderer reads
+// `[{label, value}]`; value may arrive as a string or number, so coerce
+// to a string for the editable field.
+type ProfileStat = { label: string; value: string };
+
+function normalizeProfileStats(raw: unknown): ProfileStat[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((i) => {
+      const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+      const label = typeof o.label === "string" ? o.label : "";
+      const value =
+        typeof o.value === "string"
+          ? o.value
+          : typeof o.value === "number"
+            ? String(o.value)
+            : "";
+      return { label, value };
+    })
+    .filter((s) => s.label !== "" || s.value !== "");
+}
+
+// Profile-card badge row (used by the "badges" layout). The renderer
+// accepts either `{label}` objects or bare strings; we always persist
+// `{label}` to match the web editor.
+type ProfileBadge = { label: string };
+
+function normalizeProfileBadges(raw: unknown): ProfileBadge[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((i) => {
+      if (typeof i === "string") return { label: i };
+      const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+      return { label: typeof o.label === "string" ? o.label : "" };
+    })
+    .filter((b) => b.label !== "");
+}
+
+// Resolve the profile-card structural layout the same way the public
+// renderer does: prefer the `_style._profile_layout` token, falling back
+// to a per-type default for older blocks. Drives which bespoke editors
+// (stats vs badges) are relevant for this block.
+function resolveProfileLayout(block: Block | undefined): string {
+  if (!block) return "";
+  const style = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+  const tok = typeof style._profile_layout === "string" ? style._profile_layout : "";
+  if (tok) return tok;
+  switch (block.type) {
+    case "profile_card_v2":
+      return "cover_hero";
+    case "profile_card_v3":
+      return "stats";
+    case "profile_card_v4":
+      return "badges";
+    default:
+      return "classic_creator";
+  }
+}
+
 function emptyPricingItem(): PricingItem {
   return {
     name: "",
@@ -296,6 +355,13 @@ export default function EditBlockScreen() {
   const isProfileCard = canonicalBlockType(block?.type ?? "") === "profile_card";
   const [profileVerified, setProfileVerified] = useState<boolean>(false);
   const [profileSocials, setProfileSocials] = useState<ProfileSocial[]>([]);
+  // Stats (`[{label,value}]`, "stats" layout) and badges (`[{label}]`,
+  // "badges" layout) repeaters. Edited via bespoke sections below, gated
+  // by the block's resolved profile layout so they only show where the
+  // public renderer actually paints them.
+  const [profileStats, setProfileStats] = useState<ProfileStat[]>([]);
+  const [profileBadges, setProfileBadges] = useState<ProfileBadge[]>([]);
+  const profileCardLayout = useMemo(() => resolveProfileLayout(block), [block]);
   // Selected design variant for this block. Mirrors `_style._variant` from
   // the web editor — empty string means "no variant chosen" (treated as
   // Custom in the gallery).
@@ -408,6 +474,8 @@ export default function EditBlockScreen() {
       const v = block.settings?.verified;
       setProfileVerified(v === true || v === 1 || v === "1" || v === "true");
       setProfileSocials(normalizeProfileSocials(block.settings?.socials));
+      setProfileStats(normalizeProfileStats(block.settings?.stats));
+      setProfileBadges(normalizeProfileBadges(block.settings?.badges));
     }
   }, [block]);
 
@@ -680,6 +748,14 @@ export default function EditBlockScreen() {
         nextSettings.socials = profileSocials
           .map((s) => ({ name: s.name.trim(), url: s.url.trim() }))
           .filter((s) => s.name !== "" || s.url !== "");
+        // Stats + badges round-trip in the same shapes the web editor and
+        // the public renderer expect: `[{label,value}]` and `[{label}]`.
+        nextSettings.stats = profileStats
+          .map((s) => ({ label: s.label.trim(), value: s.value.trim() }))
+          .filter((s) => s.label !== "" || s.value !== "");
+        nextSettings.badges = profileBadges
+          .map((b) => ({ label: b.label.trim() }))
+          .filter((b) => b.label !== "");
       }
       // Stamp the limits config alongside any existing settings — this
       // is a merge by the time the backend sanitizer sees it (the web
@@ -1498,6 +1574,157 @@ export default function EditBlockScreen() {
                 </Text>
               </Pressable>
             </View>
+
+            {/* Stats repeater — label + value rows. Only the "stats" layout
+                paints these, so gate the editor to it (mirrors the web
+                editor + public renderer). */}
+            {profileCardLayout === "stats" ? (
+              <View style={{ gap: 8 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Stats
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: -4 }}>
+                  Shown as a row of figures under the bio.
+                </Text>
+                {profileStats.map((stat, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      gap: 8,
+                      padding: 10,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      backgroundColor: colors.card,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Value"
+                          hint="e.g. 12K, 4.9, 250+"
+                          value={stat.value}
+                          onChangeText={(t) =>
+                            setProfileStats((p) =>
+                              p.map((s, i) => (i === idx ? { ...s, value: t } : s)),
+                            )
+                          }
+                        />
+                      </View>
+                      <Pressable
+                        onPress={() =>
+                          setProfileStats((p) => p.filter((_, i) => i !== idx))
+                        }
+                        hitSlop={8}
+                        style={{ padding: 6, marginTop: 18 }}
+                      >
+                        <Feather name="trash-2" size={18} color={colors.destructive} />
+                      </Pressable>
+                    </View>
+                    <TextField
+                      label="Label"
+                      hint="e.g. Followers, Rating, Projects"
+                      value={stat.label}
+                      onChangeText={(t) =>
+                        setProfileStats((p) =>
+                          p.map((s, i) => (i === idx ? { ...s, label: t } : s)),
+                        )
+                      }
+                    />
+                  </View>
+                ))}
+                <Pressable
+                  onPress={() =>
+                    setProfileStats((p) => [...p, { label: "", value: "" }])
+                  }
+                  style={{
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderStyle: "dashed",
+                    borderColor: colors.primary,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Feather name="plus" size={14} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                    Add stat
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {/* Badges repeater — label-only chips. Only the "badges" layout
+                paints these, so gate the editor to it. */}
+            {profileCardLayout === "badges" ? (
+              <View style={{ gap: 8 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Badges
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: -4 }}>
+                  Shown as a row of pill chips under the bio.
+                </Text>
+                {profileBadges.map((badge, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: 10,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      backgroundColor: colors.card,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <TextField
+                        label="Label"
+                        hint="e.g. Top Creator, Verified, Pro"
+                        value={badge.label}
+                        onChangeText={(t) =>
+                          setProfileBadges((p) =>
+                            p.map((b, i) => (i === idx ? { ...b, label: t } : b)),
+                          )
+                        }
+                      />
+                    </View>
+                    <Pressable
+                      onPress={() =>
+                        setProfileBadges((p) => p.filter((_, i) => i !== idx))
+                      }
+                      hitSlop={8}
+                      style={{ padding: 6, marginTop: 18 }}
+                    >
+                      <Feather name="trash-2" size={18} color={colors.destructive} />
+                    </Pressable>
+                  </View>
+                ))}
+                <Pressable
+                  onPress={() => setProfileBadges((p) => [...p, { label: "" }])}
+                  style={{
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderStyle: "dashed",
+                    borderColor: colors.primary,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Feather name="plus" size={14} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                    Add badge
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         ) : null}
 
