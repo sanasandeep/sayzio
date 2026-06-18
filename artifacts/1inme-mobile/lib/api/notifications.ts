@@ -38,6 +38,10 @@ export async function markRead(id: number): Promise<void> {
   await apiFetch(`/notifications/${id}/read`, { method: "POST" });
 }
 
+export async function deleteNotification(id: number): Promise<void> {
+  await apiFetch(`/notifications/${id}`, { method: "DELETE" });
+}
+
 export async function getNotificationPreferences(): Promise<NotificationPreference[]> {
   const res = await apiFetch<{ data: { items: NotificationPreference[] } }>(
     `/me/notification-preferences`,

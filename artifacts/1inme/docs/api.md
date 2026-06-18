@@ -107,6 +107,7 @@ Used mainly by the mobile app for passwordless and native sign-in.
 | GET    | `/notifications`                  | yes  | Paginated in-app notifications.                     |
 | POST   | `/notifications/read-all`         | yes  | Mark all notifications read.                        |
 | POST   | `/notifications/{id}/read`        | yes  | Mark one notification read.                         |
+| DELETE | `/notifications/{id}`             | yes  | Delete/dismiss one notification.                    |
 | GET    | `/me/notification-preferences`    | yes  | Per-channel notification preferences.              |
 | PUT    | `/me/notification-preferences`    | yes  | Update notification preferences.                   |
 

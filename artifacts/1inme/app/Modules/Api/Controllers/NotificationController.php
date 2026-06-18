@@ -56,6 +56,14 @@ class NotificationController extends Controller
         return $this->ok(['marked_read' => true]);
     }
 
+    public function destroy(Request $request, int $id)
+    {
+        $n = UserNotification::where('user_id', $request->user()->id)->find($id);
+        if (!$n) return $this->notFound('Notification not found');
+        $n->delete();
+        return $this->ok(['deleted' => true]);
+    }
+
     /**
      * Return the catalog of notification types alongside the user's
      * stored preferences (or the catalog defaults when no row exists).

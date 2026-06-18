@@ -391,6 +391,7 @@ Route::prefix('v1')->group(function () {
         Route::get ('/notifications',                  [NotificationController::class, 'index']);
         Route::post('/notifications/read-all',         [NotificationController::class, 'markAllRead']);
         Route::post('/notifications/{id}/read',        [NotificationController::class, 'markRead'])->whereNumber('id');
+        Route::delete('/notifications/{id}',           [NotificationController::class, 'destroy'])->whereNumber('id');
         Route::get ('/me/notification-preferences',    [NotificationController::class, 'preferences']);
         Route::put ('/me/notification-preferences',    [NotificationController::class, 'updatePreferences']);
 

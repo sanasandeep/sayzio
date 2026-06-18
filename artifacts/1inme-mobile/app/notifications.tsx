@@ -14,6 +14,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import {
+  deleteNotification,
   listNotifications,
   markAllRead,
   markRead,
@@ -35,6 +36,11 @@ export default function NotificationsScreen() {
 
   const markOne = useMutation({
     mutationFn: (id: number) => markRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const removeOne = useMutation({
+    mutationFn: (id: number) => deleteNotification(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
@@ -139,6 +145,13 @@ export default function NotificationsScreen() {
                     ]}
                   />
                 ) : null}
+                <Pressable
+                  onPress={() => removeOne.mutate(item.id)}
+                  hitSlop={8}
+                  style={styles.dismissBtn}
+                >
+                  <Feather name="x" size={16} color={colors.mutedForeground} />
+                </Pressable>
               </Pressable>
             );
           }}
@@ -180,4 +193,5 @@ const styles = StyleSheet.create({
   rowTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
   rowBody: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, lineHeight: 16 },
   unreadDot: { width: 8, height: 8, borderRadius: 999 },
+  dismissBtn: { padding: 4 },
 });

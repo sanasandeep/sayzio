@@ -29,6 +29,31 @@ class NotificationController extends Controller
         return back()->with('success', 'Notifications marked read.');
     }
 
+    /**
+     * Mark a single notification (owned by the signed-in user) as read.
+     * Mirrors the per-id read capability already exposed on the REST API
+     * so the web feed reaches parity. Silently no-ops on an unknown or
+     * other-user id rather than leaking existence via a 404.
+     */
+    public function markOneRead(Request $request, int $id)
+    {
+        $n = UserNotification::where('user_id', auth()->id())->find($id);
+        if ($n && ! $n->read_at) {
+            $n->forceFill(['read_at' => now()])->save();
+        }
+        return back();
+    }
+
+    /**
+     * Delete/dismiss a single notification owned by the signed-in user.
+     * Removed items no longer appear in the feed nor count toward unread.
+     */
+    public function destroy(Request $request, int $id)
+    {
+        UserNotification::where('user_id', auth()->id())->where('id', $id)->delete();
+        return back()->with('success', 'Notification removed.');
+    }
+
     public function preferences(BacklinkDigestService $backlinkDigest)
     {
         $catalog = NotificationService::catalog();

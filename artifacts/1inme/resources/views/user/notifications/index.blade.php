@@ -148,6 +148,25 @@
                         @endif
                         <p class="text-xs mt-1" style="color: var(--text-faint);">{{ $n->created_at->diffForHumans() }}</p>
                     </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        @if(!$n->read_at)
+                            <form action="{{ route('user.notifications.read-one', $n->id) }}" method="POST">@csrf
+                                <button type="submit" title="Mark as read"
+                                        class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-violet-500/10 transition-colors"
+                                        style="color: var(--text-faint);">
+                                    <i class="fas fa-check text-xs"></i>
+                                </button>
+                            </form>
+                        @endif
+                        <form action="{{ route('user.notifications.destroy', $n->id) }}" method="POST"
+                              onsubmit="return confirm('Remove this notification?');">@csrf @method('DELETE')
+                            <button type="submit" title="Dismiss"
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-rose-500/10 transition-colors"
+                                    style="color: var(--text-faint);">
+                                <i class="fas fa-xmark text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             @endforeach
         </div>

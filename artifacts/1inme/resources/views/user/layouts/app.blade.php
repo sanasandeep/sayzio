@@ -1142,10 +1142,11 @@
                         @include('common.partials.theme-toggle')
                     </div>
 
-                    <button class="header-icon-btn hidden sm:flex" title="Notifications">
+                    @php $__headerUnread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
+                    <a href="{{ route('user.notifications.index') }}" class="header-icon-btn hidden sm:flex {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}" title="Notifications">
                         <i class="fas fa-bell"></i>
-                        <span class="badge-dot"></span>
-                    </button>
+                        @if($__headerUnread)<span class="badge-dot"></span>@endif
+                    </a>
 
                     <a href="{{ route('user.links.create') }}" class="btn-primary hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
                         <i class="fas fa-plus" style="font-size: 9px;"></i>
