@@ -7,6 +7,7 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\BlockDefaults;
+use App\Modules\User\Support\BlockVariantCatalog;
 use App\Services\AI\AiCreditService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\OpenAiService;
@@ -61,8 +62,8 @@ class AiBiolinkBuilderService
     public static function blockCatalog(): array
     {
         return [
-            'profile_card_v1' => ['hint' => 'Hero profile header with avatar, name, title, short bio.', 'fields' => 'name, title, bio, avatar(url)'],
-            'profile_card_v2' => ['hint' => 'Profile header with a wide cover image behind the avatar.', 'fields' => 'name, title, bio, avatar(url), cover(url)'],
+            'profile_card_v1' => ['hint' => 'Hero profile header with avatar, name, title, short bio. Set `design` to the PROFILE DESIGN that best fits the person/brand.', 'fields' => 'name, title, bio, avatar(url), verified(bool), location, website(url), cta_label, cta_url, socials:[{name,url}], design(one of the PROFILE DESIGNS)'],
+            'profile_card_v2' => ['hint' => 'Profile header with a wide cover image behind the avatar. Set `design` to the PROFILE DESIGN that best fits the person/brand.', 'fields' => 'name, title, bio, avatar(url), cover(url), verified(bool), location, website(url), cta_label, cta_url, socials:[{name,url}], design(one of the PROFILE DESIGNS)'],
             'heading'         => ['hint' => 'Section heading / title text.', 'fields' => 'text, size(h1|h2|h3), align(left|center|right)'],
             'paragraph'       => ['hint' => 'A block of descriptive text.', 'fields' => 'text, align(left|center|right)'],
             'link'            => ['hint' => 'A simple tappable link button.', 'fields' => 'url, text'],
@@ -92,6 +93,29 @@ class AiBiolinkBuilderService
 
     /** Block types permitted as children of a `card` container. */
     private const CARD_CHILD_TYPES = ['link', 'link_big', 'heading', 'paragraph', 'image', 'cta_button'];
+
+    /** Profile-card family slots that accept a ready-made identity design. */
+    private const PROFILE_CARD_TYPES = ['profile_card_v1', 'profile_card_v2', 'profile_card_v3', 'profile_card_v4'];
+
+    /**
+     * Ready-made profile/identity designs (Task #1740) the AI may pick by
+     * key. Derived from the `profile_identity` variant bundle so it can
+     * never drift from the editor's gallery: a design is any variant whose
+     * style carries a structural `_profile_layout` token. Returns a map of
+     * variant key => display name for prompting and validation.
+     *
+     * @return array<string,string>
+     */
+    public static function profileDesigns(): array
+    {
+        $out = [];
+        foreach (BlockVariantCatalog::forType('profile_card_v1') as $variant) {
+            $layout = $variant['style']['_profile_layout'] ?? '';
+            if (!is_string($layout) || $layout === '') continue;
+            $out[$variant['key']] = (string) ($variant['name'] ?? $variant['key']);
+        }
+        return $out;
+    }
 
     /**
      * The block types this specific user is allowed to use, intersecting
@@ -137,6 +161,16 @@ class AiBiolinkBuilderService
             $catalogLines[] = "- {$type}: {$meta['hint']} Fields: {$meta['fields']}";
         }
 
+        // Expose the ready-made identity designs only when this user can
+        // actually emit a profile card, so the prompt stays focused.
+        $profileAllowed = array_values(array_intersect($allowed, self::PROFILE_CARD_TYPES));
+        $designLines = [];
+        if ($profileAllowed) {
+            foreach (self::profileDesigns() as $key => $name) {
+                $designLines[] = "- {$key}: {$name}";
+            }
+        }
+
         $schemaHint = "Return STRICT JSON with this exact shape (no markdown, no commentary, no extra keys):\n"
             . "{\n"
             . "  \"page\": { \"theme_color\": string(hex, optional) },\n"
@@ -152,14 +186,21 @@ class AiBiolinkBuilderService
             . "- For link/link_big/cta_button blocks, set `url` to one of the SUPPLIED LINKS when relevant; never invent URLs.\n"
             . "- For image/image_grid blocks, use ONLY the SUPPLIED IMAGE URLs. If no images were supplied, do not add image blocks.\n"
             . "- For pdf_document/file blocks, use ONLY the SUPPLIED FILE URLs. If no files were supplied, do not add file blocks.\n"
-            . "- Start the page with a profile_card_v1 (or profile_card_v2 if a cover image was supplied) when the page is about a person or brand.\n"
-            . "- Aim for a complete, well-ordered page of roughly 5-12 blocks. Group related links inside a card when it improves layout.\n"
+            . "- Start the page with a profile_card_v1 (or profile_card_v2 if a cover image was supplied) when the page is about a person or brand.\n";
+
+        if ($designLines) {
+            $schemaHint .= "- For a profile_card block, set `design` to ONE of the PROFILE DESIGNS keys whose vibe best matches the person/brand (e.g. a founder/exec → identity_founder, an everyday creator → identity_classic, a glassy/modern look → identity_glass). Only use a listed key; omit `design` to keep the default look.\n"
+                . "- On a profile_card, also fill `verified` (true only if the description clearly implies a public/notable figure), `location`, `website`, `cta_label`/`cta_url`, and `socials` (use SUPPLIED LINKS that are social profiles) when you can infer them; otherwise leave them empty.\n";
+        }
+
+        $schemaHint .= "- Aim for a complete, well-ordered page of roughly 5-12 blocks. Group related links inside a card when it improves layout.\n"
             . "- Use empty strings/arrays rather than null.";
 
         $system = "You are an expert link-in-bio page designer for the 1INME platform. "
             . "You assemble a complete, attractive biolink page from the user's description using ONLY the "
             . "supported block types provided. Be tasteful and concrete.\n\n"
             . "ALLOWED BLOCK TYPES:\n" . implode("\n", $catalogLines) . "\n\n"
+            . ($designLines ? "PROFILE DESIGNS (set `design` on a profile_card to one of these keys):\n" . implode("\n", $designLines) . "\n\n" : '')
             . $schemaHint;
 
         $userParts = ["WHAT THE USER WANTS:\n" . $description];
@@ -436,11 +477,34 @@ class AiBiolinkBuilderService
         // The AI supplies real content, so this isn't a placeholder block.
         unset($settings['_placeholder'], $settings['_placeholder_seed']);
 
+        // `design` is a meta hint for picking a ready-made profile look, not
+        // a real content field — pull it out before it lands in settings.
+        $design = is_string($settings['design'] ?? null) ? trim($settings['design']) : '';
+        unset($settings['design']);
+
         // Seed structural first-paint styling, matching store().
-        $settings['_style'] = array_merge(
+        $style = array_merge(
             BiolinkBlock::STYLE_DEFAULTS,
             BlockDefaults::styleForType($type)
         );
+
+        // Apply a chosen profile/identity design exactly like the editor's
+        // applyVariant: the catalog variant carries the structural
+        // `_profile_layout` token (preserved by the style sanitizer's slug
+        // group on apply) plus the matching skin, and we stamp the variant
+        // bookkeeping so the saved block is indistinguishable from a
+        // hand-picked design. Unknown keys fall through to the default look.
+        if ($design !== '' && in_array($type, self::PROFILE_CARD_TYPES, true)) {
+            $variant = BlockVariantCatalog::find($type, $design);
+            if ($variant && !empty($variant['style'])) {
+                $style = array_merge($style, $variant['style'], [
+                    '_variant'         => $variant['key'],
+                    '_variant_version' => BlockVariantCatalog::VERSION,
+                ]);
+            }
+        }
+
+        $settings['_style'] = $style;
 
         return [
             'type'      => $type,
