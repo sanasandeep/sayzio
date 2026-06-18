@@ -433,6 +433,11 @@ class BiolinkBlock extends Model
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)
+        // Structural layout token for the profile_card family (Task #1740).
+        // Set by the `profile_identity` curated designs; the public renderer
+        // dispatches on it to reposition avatar/cover/text/socials. Empty =
+        // fall back to the block-type's default layout (classic/cover/...).
+        '_profile_layout' => '',   // classic_creator, glass, cover_hero, ...
     ];
 
     public const BLOCK_TEMPLATES = [

@@ -1774,7 +1774,7 @@ class BiolinkBlockController extends Controller
             } elseif ($key === '_variant_version') {
                 $n = (int) $val;
                 if ($n >= 0 && $n < 100000) $result[$key] = $n;
-            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set'], true)) {
+            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only
                 // bound the character set + length so they're safe to

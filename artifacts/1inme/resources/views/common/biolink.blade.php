@@ -937,7 +937,13 @@
                 // padding around the button instead of the button itself.
                 $btnLikeBlocks = ['link', 'link_big', 'cta_button', 'button'];
                 $isBtnLike = in_array($block->type, $btnLikeBlocks);
-                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons']) || $isBtnLike;
+                // Profile cards (Task #1740) own their full card surface — the
+                // identity-design renderer applies $blockInline itself and
+                // needs overflow-hidden to clip cover images — so the generic
+                // .block-styled wrapper must not double-wrap them.
+                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons'])
+                    || str_starts_with($block->type, 'profile_card')
+                    || $isBtnLike;
                 $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
             @endphp
 
@@ -2029,27 +2035,14 @@
                 </div>
 
             @elseif(str_starts_with($block->type, 'profile_card'))
-                <div class="mb-4 glass-block rounded-2xl overflow-hidden">
-                    @if($block->type === 'profile_card_v2' && !empty($s['cover']))
-                        <div class="h-24 bg-cover bg-center" style="background-image: url('{{ $s['cover'] }}')"></div>
-                        <div class="-mt-10 px-4 pb-4">
-                    @else
-                        <div class="p-5">
-                    @endif
-                        <div class="flex {{ in_array($block->type, ['profile_card_v3', 'profile_card_v4']) ? 'flex-col items-center text-center' : 'items-center gap-4' }}">
-                            @if(!empty($s['avatar']))<img src="{{ $s['avatar'] }}" class="w-16 h-16 rounded-full object-cover border-2 border-white/10" alt="">
-                            @else<div class="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center border-2 border-white/10"><span class="text-xl font-bold">{{ strtoupper(substr($s['name'] ?? 'U', 0, 1)) }}</span></div>@endif
-                            <div class="{{ in_array($block->type, ['profile_card_v3', 'profile_card_v4']) ? 'mt-3' : '' }}">
-                                <p class="font-semibold">{{ $s['name'] ?? '' }}</p>
-                                @if(!empty($s['title']))<p class="text-xs text-purple-400">{{ $s['title'] }}</p>@endif
-                            </div>
-                        </div>
-                        @if(!empty($s['bio']))<p class="text-sm mt-3" style="color:{{ $fontColor }}88">{{ $s['bio'] }}</p>@endif
-                        @if($block->type === 'profile_card_v3' && !empty($s['stats']))
-                        <div class="flex justify-center gap-6 mt-3">@foreach(($s['stats'] ?? []) as $stat)<div class="text-center"><p class="font-bold">{{ $stat['value'] ?? '0' }}</p><p class="text-[10px] text-white/40">{{ $stat['label'] ?? '' }}</p></div>@endforeach</div>
-                        @endif
-                    </div>
-                </div>
+                @include('common.biolink-profile-card', [
+                    'block'       => $block,
+                    's'           => $s,
+                    'blockStyle'  => $blockStyle,
+                    'blockInline' => $blockInline,
+                    'fontColor'   => $fontColor,
+                    'socialIcons' => $socialIcons,
+                ])
 
             {{-- INTEGRATIONS --}}
             @elseif($block->type === 'custom_html')

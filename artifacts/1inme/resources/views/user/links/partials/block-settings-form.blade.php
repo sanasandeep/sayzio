@@ -1003,14 +1003,61 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif(in_array($block->type, ['profile_card_v1', 'profile_card_v2', 'profile_card_v3', 'profile_card_v4']))
+@php
+    // Normalise existing socials into {name,url} for the Alpine repeater
+    // (accepts the legacy {platform} shape too).
+    $pcSocials = [];
+    foreach ((is_array($s['socials'] ?? null) ? $s['socials'] : []) as $soc) {
+        if (!is_array($soc)) continue;
+        $pcSocials[] = ['name' => $soc['name'] ?? $soc['platform'] ?? '', 'url' => $soc['url'] ?? ''];
+    }
+    $pcSocialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin','github','discord','telegram','whatsapp','snapchat','pinterest','twitch','dribbble','spotify','soundcloud','apple','reddit','medium','behance','website','email'];
+@endphp
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[avatar]', 'currentValue' => $s['avatar'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Avatar', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
-    <div><label class="{{ $labelClass }}">Bio</label><textarea name="settings[bio]" rows="2" class="{{ $inputClass }}">{{ $s['bio'] ?? '' }}</textarea></div>
-    @if($block->type === 'profile_card_v2')
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[cover]', 'currentValue' => $s['cover'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Cover Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
-    @endif
+    <div><label class="{{ $labelClass }}">Bio</label><textarea name="settings[bio]" rows="2" class="{{ $inputClass }}">{{ $s['bio'] ?? '' }}</textarea></div>
+
+    {{-- Fields below are only shown by some identity designs (verified
+         designs, the Social Profile layout, the Founder CTA pill). They're
+         saved regardless and simply not rendered by layouts that ignore
+         them, so you can switch designs without re-entering them. --}}
+    <label class="flex items-center gap-2 cursor-pointer select-none">
+        <input type="hidden" name="settings[verified]" value="0">
+        <input type="checkbox" name="settings[verified]" value="1" @checked(!empty($s['verified'])) class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/40">
+        <span class="text-sm text-white/80">Show verified badge</span>
+    </label>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Location</label><input type="text" name="settings[location]" value="{{ $s['location'] ?? '' }}" placeholder="City, Country" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Website</label><input type="url" name="settings[website]" value="{{ $s['website'] ?? '' }}" placeholder="https://…" class="{{ $inputClass }}"></div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">CTA Label</label><input type="text" name="settings[cta_label]" value="{{ $s['cta_label'] ?? '' }}" placeholder="e.g. Get in touch" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">CTA Link</label><input type="url" name="settings[cta_url]" value="{{ $s['cta_url'] ?? '' }}" placeholder="https://…" class="{{ $inputClass }}"></div>
+    </div>
+
+    {{-- Social links — shown by the social / glass / gradient / minimal
+         designs as an icon row. --}}
+    <div x-data="{ socials: {{ json_encode(array_values($pcSocials)) }} }">
+        <label class="{{ $labelClass }}">Social Links</label>
+        <template x-for="(soc, i) in socials" :key="i">
+            <div class="flex items-center gap-2 mb-2">
+                <select x-model="socials[i].name" :name="'settings[socials]['+i+'][name]'" class="{{ $inputClass }}">
+                    <option value="" class="bg-[#0d0818]">Select…</option>
+                    @foreach($pcSocialOptions as $opt)
+                        <option value="{{ $opt }}" class="bg-[#0d0818]">{{ ucfirst($opt) }}</option>
+                    @endforeach
+                </select>
+                <input type="url" x-model="socials[i].url" :name="'settings[socials]['+i+'][url]'" placeholder="https://…" class="{{ $inputClass }}">
+                <button type="button" @click="socials.splice(i,1)" class="text-red-400/60 hover:text-red-400 shrink-0"><i class="fas fa-times"></i></button>
+            </div>
+        </template>
+        <button type="button" @click="socials.push({name:'',url:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add social link</button>
+    </div>
 </div>
 
 @elseif($block->type === 'qr_code')

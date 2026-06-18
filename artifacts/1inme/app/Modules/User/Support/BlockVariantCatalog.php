@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 4;
+    public const VERSION = 5;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1537,6 +1537,154 @@ class BlockVariantCatalog
                     'preview' => ['bg' => 'linear-gradient(180deg,#a5f3fc,#fbcfe8)', 'text' => '#1e1b4b', 'radius' => 24, 'border' => '#7c3aed'],
                 ],
             ],
+
+            // ─── Task #1740: ready-made identity / profile-card designs ──
+            //
+            // Ten one-click profile-card looks for the profile_card_v1..v4
+            // family. Unlike `cover_profile` (which only re-colours the
+            // existing cover layout) each of these carries a structural
+            // `_profile_layout` token that the public renderer
+            // (common/biolink-profile-card.blade.php) dispatches on to
+            // reposition the avatar / cover / text / socials. The standard
+            // style keys here (bg/border/radius/shadow/text/effect) skin
+            // the card; `padding => '0'` because the renderer owns all
+            // internal spacing per layout. Web-only — no mobile mirror.
+            'profile_identity' => [
+                [
+                    'key' => 'identity_classic',
+                    'name' => 'Classic Creator',
+                    'tags' => ['minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '20', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'classic_creator',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 20, 'border' => '#e5e7eb'],
+                ],
+                [
+                    'key' => 'identity_glass',
+                    'name' => 'Modern Glassmorphism',
+                    'tags' => ['glass', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff12',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff33',
+                        'border_radius' => '24', 'shadow_preset' => 'medium',
+                        'glass_preset' => 'heavy', 'effect' => 'glass',
+                        'padding' => '0', '_profile_layout' => 'glass',
+                    ],
+                    'preview' => ['bg' => 'rgba(255,255,255,0.10)', 'text' => '#ffffff', 'radius' => 24, 'border' => '#ffffff40'],
+                ],
+                [
+                    'key' => 'identity_cover_hero',
+                    'name' => 'Cover Overlay Hero',
+                    'tags' => ['bold', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0b0b0f',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_preset' => 'medium',
+                        'padding' => '0', '_profile_layout' => 'cover_hero',
+                    ],
+                    'preview' => ['bg' => '#0b0b0f', 'text' => '#ffffff', 'radius' => 20],
+                ],
+                [
+                    'key' => 'identity_split',
+                    'name' => 'Split Card',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f8fafc',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e2e8f0',
+                        'border_radius' => '18', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'split',
+                    ],
+                    'preview' => ['bg' => '#f8fafc', 'text' => '#0f172a', 'radius' => 18, 'border' => '#e2e8f0'],
+                ],
+                [
+                    'key' => 'identity_floating',
+                    'name' => 'Floating Avatar',
+                    'tags' => ['playful', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '22', 'shadow_preset' => 'medium',
+                        'padding' => '0', '_profile_layout' => 'floating',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 22, 'border' => '#e5e7eb'],
+                ],
+                [
+                    'key' => 'identity_gradient',
+                    'name' => 'Gradient Identity Card',
+                    'tags' => ['bold', 'playful'],
+                    'style' => [
+                        'display_mode' => 'card',
+                        'bg_color' => 'linear-gradient(150deg,#7c3aed,#d946ef,#fb7185)',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '22',
+                        'shadow_preset' => 'medium',
+                        'padding' => '0', '_profile_layout' => 'gradient',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(150deg,#7c3aed,#d946ef,#fb7185)', 'text' => '#ffffff', 'radius' => 22],
+                ],
+                [
+                    'key' => 'identity_founder',
+                    'name' => 'Premium Founder Card',
+                    'tags' => ['pro', 'dark'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0a0a0c',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#d4af3766',
+                        'border_radius' => '20', 'shadow_type' => 'glow',
+                        'shadow_color' => '#d4af3733', 'shadow_blur' => 26,
+                        'padding' => '0', '_profile_layout' => 'founder',
+                    ],
+                    'preview' => ['bg' => '#0a0a0c', 'text' => '#d4af37', 'radius' => 20, 'border' => '#d4af37'],
+                ],
+                [
+                    'key' => 'identity_minimal_dark',
+                    'name' => 'Minimal Dark',
+                    'tags' => ['minimal', 'dark'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#0b0b0f',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff14',
+                        'border_radius' => '18', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'minimal_dark',
+                    ],
+                    'preview' => ['bg' => '#0b0b0f', 'text' => '#ffffff', 'radius' => 18, 'border' => '#ffffff20'],
+                ],
+                [
+                    'key' => 'identity_magazine',
+                    'name' => 'Magazine Layout',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#1c1917',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e7e5e4',
+                        'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'font_family' => 'Playfair Display',
+                        'padding' => '0', '_profile_layout' => 'magazine',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1c1917', 'radius' => 14, 'border' => '#e7e5e4', 'serif' => true],
+                ],
+                [
+                    'key' => 'identity_social',
+                    'name' => 'Social Profile Style',
+                    'tags' => ['minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
+                        'border_radius' => '18', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'social_profile',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#3b82f6', 'radius' => 18, 'border' => '#e5e7eb'],
+                ],
+            ],
         ];
     }
 
@@ -1626,7 +1774,13 @@ class BlockVariantCatalog
             'image_slider_v2'  => ['gallery'],
 
             // Profile / cover combo (cover band + avatar + name + title + bio).
-            'profile_card_v2'  => ['cover_profile'],
+            // All four legacy slots share the Task #1740 `profile_identity`
+            // structural designs; v2 also keeps its original `cover_profile`
+            // re-colour bundle for back-compat with blocks styled before.
+            'profile_card_v1'  => ['profile_identity'],
+            'profile_card_v2'  => ['profile_identity', 'cover_profile'],
+            'profile_card_v3'  => ['profile_identity'],
+            'profile_card_v4'  => ['profile_identity'],
 
             // Music / audio.
             'spotify'          => ['music'],
