@@ -10,6 +10,7 @@ use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\DialerNumberFlag;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Support\DialerData;
+use App\Modules\User\Support\DialerIdentity;
 use App\Modules\User\Support\DialerT9;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -68,38 +69,15 @@ class DialerController extends Controller
         $number = trim((string) ($request->query('number') ?? ''));
         $contactId = $request->query('contact');
 
-        $contact = null; $matchedUser = null; $bio = null;
-
-        if ($contactId) {
-            $contact = Contact::where('user_id', $user->id)->where('id', $contactId)
-                ->with(['phones', 'emails', 'biolinkUser'])->first();
-            if ($contact && !$number) {
-                $number = $contact->phones->first()?->value_e164 ?? '';
-            }
-        }
+        $resolved = DialerIdentity::resolve($user, $contactId ? (int) $contactId : null, $number);
+        $contact = $resolved['contact'];
+        $matchedUser = $resolved['matchedUser'];
+        $bio = $resolved['bio'];
+        $number = $resolved['number'];
+        $needle = $resolved['needle'];
 
         if ($number === '' && !$contact) {
             return redirect()->route('user.dialer.index')->with('error', 'No number specified.');
-        }
-
-        $needle = ContactPhone::normalize($number);
-
-        if (!$contact && $needle) {
-            $contact = Contact::where('user_id', $user->id)
-                ->whereHas('phones', fn ($q) => $q->where('value_e164', $needle))
-                ->with(['phones', 'emails', 'biolinkUser'])
-                ->first();
-        }
-
-        // Resolve to a 1INME user (caller-ID for unknown numbers).
-        $matchedUser = $contact?->biolinkUser;
-        if (!$matchedUser && $needle) {
-            $matchedUser = LinkedIdentifier::resolveUser('phone', $needle);
-        }
-        if ($matchedUser) {
-            $bio = \App\Modules\User\Models\Link::where('user_id', $matchedUser->id)
-                ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->where('is_active', true)
-                ->orderByDesc('id')->first();
         }
 
         // Record the lookup (best-effort).
@@ -112,25 +90,17 @@ class DialerController extends Controller
             ]);
         }
 
+        $payload = DialerIdentity::payload($user, $resolved);
+
+        // Fold per-user spam/block flags + normalized number into the identity payload.
         $flag = $needle ? DialerNumberFlag::where('user_id', $user->id)->where('number_e164', $needle)->first() : null;
+        $payload['number_e164'] = $needle;
+        $payload['is_spam'] = (bool) ($flag?->is_spam);
+        $payload['is_blocked'] = (bool) ($flag?->is_blocked);
 
-        $payload = [
-            'number'     => $number,
-            'number_e164'=> $needle,
-            'contact'    => $contact,
-            'is_spam'    => (bool) ($flag?->is_spam),
-            'is_blocked' => (bool) ($flag?->is_blocked),
-            'biolink'    => $matchedUser ? [
-                'user_id' => $matchedUser->id,
-                'name'    => $matchedUser->name,
-                'handle'  => $matchedUser->publicHandle(),
-                'url'     => $bio ? url('/' . $bio->alias) : null,
-                'link_id' => $bio?->id,
-            ] : null,
-        ];
-
+        // JSON for mobile consumers.
         if ($request->wantsJson()) {
-            return response()->json($payload);
+            return response()->json(['data' => $payload]);
         }
 
         $recent = DialerData::activityFor($user->id, $needle, $contact?->id);
@@ -360,5 +330,67 @@ class DialerController extends Controller
         }
 
         return $base;
+    }
+
+    /**
+     * Persist the owner's manual channels / socials / location for a contact.
+     * Manual additions are kept deliberately distinct from the auto-pulled
+     * biolink data; this only ever writes the `manual_profile` column.
+     */
+    public function updateManual(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'contact_id'         => ['required', 'integer'],
+            'channels'           => ['array'],
+            'channels.*.type'    => ['nullable', 'string', 'max:40'],
+            'channels.*.label'   => ['nullable', 'string', 'max:80'],
+            'channels.*.value'   => ['nullable', 'string', 'max:255'],
+            'socials'            => ['array'],
+            'socials.*.platform' => ['nullable', 'string', 'max:40'],
+            'socials.*.label'    => ['nullable', 'string', 'max:80'],
+            'socials.*.url'      => ['nullable', 'string', 'max:255'],
+            'location'           => ['nullable', 'array'],
+            'location.label'     => ['nullable', 'string', 'max:120'],
+            'location.address'   => ['nullable', 'string', 'max:255'],
+            'location.lat'       => ['nullable', 'numeric'],
+            'location.lng'       => ['nullable', 'numeric'],
+        ]);
+
+        $contact = Contact::where('user_id', $user->id)->where('id', $data['contact_id'])->firstOrFail();
+
+        $clean = DialerIdentity::normalizeManual([
+            'channels' => $data['channels'] ?? [],
+            'socials'  => $data['socials'] ?? [],
+            'location' => $data['location'] ?? null,
+        ]);
+
+        // Store the raw editable fields (not the derived url/source/maps_url).
+        $contact->manual_profile = [
+            'channels' => array_map(fn ($c) => [
+                'type'  => $c['type'],
+                'label' => $c['label'],
+                'value' => $c['value'],
+            ], $clean['channels']),
+            'socials'  => array_map(fn ($s) => [
+                'platform' => $s['platform'],
+                'label'    => $s['label'],
+                'url'      => $s['url'],
+            ], $clean['socials']),
+            'location' => $clean['location'] ? [
+                'label'   => $clean['location']['label'],
+                'address' => $clean['location']['address'],
+                'lat'     => $clean['location']['lat'],
+                'lng'     => $clean['location']['lng'],
+            ] : null,
+        ];
+        $contact->save();
+
+        if ($request->wantsJson()) {
+            return response()->json(['data' => ['manual' => $clean]]);
+        }
+
+        return back()->with('status', 'Profile updated.');
     }
 }

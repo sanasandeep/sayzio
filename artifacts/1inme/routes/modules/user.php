@@ -1061,6 +1061,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('dialer/log',                         [DialerController::class, 'logCall'])->middleware('workspace.can:settings.edit')->name('dialer.log');
         Route::post  ('dialer/callback',                    [DialerController::class, 'callbackSet'])->middleware('workspace.can:settings.edit')->name('dialer.callback.set');
         Route::delete('dialer/callback/{log}',              [DialerController::class, 'callbackClear'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.callback.clear');
+        Route::post('dialer/manual',                        [DialerController::class, 'updateManual'])->middleware('workspace.can:settings.edit')->name('dialer.manual');
 
         // ===== Events calendar (month / week / day / list views) =====
         Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index');

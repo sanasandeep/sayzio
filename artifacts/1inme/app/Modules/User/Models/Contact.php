@@ -15,7 +15,7 @@ class Contact extends Model
 protected $fillable = [
         'user_id', 'google_contacts_account_id', 'google_resource_name', 'google_etag',
         'display_name', 'given_name', 'family_name', 'organization', 'job_title',
-        'website', 'socials', 'notes', 'sources', 'tags',
+        'website', 'socials', 'manual_profile', 'notes', 'sources', 'tags',
         'photo_path', 'photo_url',
         'biolink_user_id', 'biolink_attached_at', 'detached_biolink_user_ids',
         'last_synced_at', 'locally_modified_at',
@@ -28,6 +28,7 @@ protected $fillable = [
             'sources'                   => 'array',
             'tags'                      => 'array',
             'socials'                   => 'array',
+            'manual_profile'            => 'array',
             'biolink_attached_at'       => 'datetime',
             'last_synced_at'            => 'datetime',
             'locally_modified_at'       => 'datetime',

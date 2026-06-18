@@ -428,7 +428,60 @@ class ContactController extends Controller
                 'value_e164' => $p->value_e164, 'is_primary' => (bool) $p->is_primary,
             ])->values()->all(),
             'photo_url'    => $c->photoUrl(),
+            'manual_profile' => \App\Modules\User\Support\DialerIdentity::normalizeManual($c->manual_profile),
             'created_at'   => optional($c->created_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * Persist the owner's manual Dialer additions (channels / socials /
+     * location) for a contact, kept distinct from auto-pulled biolink data.
+     */
+    public function updateManualProfile(Request $request, int $id)
+    {
+        $c = Contact::where('user_id', $request->user()->id)->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $data = $request->validate([
+            'channels'           => ['array'],
+            'channels.*.type'    => ['nullable', 'string', 'max:40'],
+            'channels.*.label'   => ['nullable', 'string', 'max:80'],
+            'channels.*.value'   => ['nullable', 'string', 'max:255'],
+            'socials'            => ['array'],
+            'socials.*.platform' => ['nullable', 'string', 'max:40'],
+            'socials.*.label'    => ['nullable', 'string', 'max:80'],
+            'socials.*.url'      => ['nullable', 'string', 'max:255'],
+            'location'           => ['nullable', 'array'],
+            'location.label'     => ['nullable', 'string', 'max:120'],
+            'location.address'   => ['nullable', 'string', 'max:255'],
+            'location.lat'       => ['nullable', 'numeric'],
+            'location.lng'       => ['nullable', 'numeric'],
+        ]);
+
+        $clean = \App\Modules\User\Support\DialerIdentity::normalizeManual([
+            'channels' => $data['channels'] ?? [],
+            'socials'  => $data['socials'] ?? [],
+            'location' => $data['location'] ?? null,
+        ]);
+
+        // Store only the raw editable fields (derived url/source/maps_url are
+        // recomputed on read).
+        $c->manual_profile = [
+            'channels' => array_map(fn ($x) => [
+                'type' => $x['type'], 'label' => $x['label'], 'value' => $x['value'],
+            ], $clean['channels']),
+            'socials'  => array_map(fn ($x) => [
+                'platform' => $x['platform'], 'label' => $x['label'], 'url' => $x['url'],
+            ], $clean['socials']),
+            'location' => $clean['location'] ? [
+                'label'   => $clean['location']['label'],
+                'address' => $clean['location']['address'],
+                'lat'     => $clean['location']['lat'],
+                'lng'     => $clean['location']['lng'],
+            ] : null,
+        ];
+        $c->save();
+
+        return $this->ok(['manual_profile' => $clean]);
     }
 }

@@ -457,6 +457,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/bulk',             [ContactController::class, 'bulkImport']);
         Route::get   ('/contacts/{id}',             [ContactController::class, 'show'])->whereNumber('id');
         Route::patch ('/contacts/{id}',             [ContactController::class, 'update'])->whereNumber('id');
+        Route::post  ('/contacts/{id}/manual-profile', [ContactController::class, 'updateManualProfile'])->whereNumber('id');
         Route::post  ('/contacts/{id}/merge',       [ContactController::class, 'merge'])->whereNumber('id')->middleware('throttle:60,1');
         Route::delete('/contacts/{id}',             [ContactController::class, 'destroy'])->whereNumber('id');
 
@@ -620,6 +621,7 @@ Route::prefix('v1')->group(function () {
 
         // Dialer
         Route::post  ('/dialer/lookup',             [DialerController::class, 'lookup'])->middleware('throttle:60,1');
+        Route::get   ('/dialer/profile',            [DialerController::class, 'profile']);
         Route::get   ('/dialer/history',            [DialerController::class, 'history']);
         // Speed-dial favorites.
         Route::get   ('/dialer/favorites',          [DialerController::class, 'favorites']);

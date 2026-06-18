@@ -44,6 +44,13 @@ Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve
     ->where('filename', '.*')
     ->name('admin.assets.serve');
 
+// Shareable Dialer "Export vCard" link. Signed-URL HMAC is the only
+// authorization (no session/auth) so the owner can hand the URL to anyone;
+// the `u` param scopes resolution to that owner.
+Route::get('/dialer/vcard', [\App\Modules\User\Controllers\DialerVcardController::class, 'show'])
+    ->middleware('signed')
+    ->name('user.dialer.vcard');
+
 // Public hosted "pay this invoice" link delivered by email. Both routes
 // are protected by Laravel signed-URL HMAC, so no session/auth needed.
 Route::get('/pay/invoice/{invoice}',  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'payPage'])->name('client-invoice.pay');

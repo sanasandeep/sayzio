@@ -11,6 +11,7 @@ use App\Modules\User\Models\DialerNumberFlag;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Support\DialerData;
+use App\Modules\User\Support\DialerIdentity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
@@ -89,6 +90,45 @@ class DialerController extends Controller
             ] : null,
             'activity'    => DialerData::activityFor($userId, $e164, $contact?->id),
         ]);
+    }
+
+    /**
+     * Rich Identity Profile for a number / contact: matched 1INME user,
+     * auto-pulled socials / locations / channels from their biolink, the
+     * owner's manual additions, and a shareable Export-vCard URL.
+     */
+    public function profile(Request $request)
+    {
+        $data = $request->validate([
+            'number'  => ['nullable', 'string', 'max:40'],
+            'contact' => ['nullable', 'integer'],
+        ]);
+
+        $user = $request->user();
+        $number = trim((string) ($data['number'] ?? ''));
+        $contactId = isset($data['contact']) ? (int) $data['contact'] : null;
+
+        if ($number === '' && !$contactId) {
+            return $this->fail('Provide a number or contact.', 422, 'invalid_request');
+        }
+
+        $resolved = DialerIdentity::resolve($user, $contactId, $number);
+
+        if ($resolved['number'] === '' && !$resolved['contact']) {
+            return $this->fail('Nothing to resolve.', 404, 'not_found');
+        }
+
+        // Record the lookup (best-effort) when we have a normalized number.
+        if ($resolved['needle']) {
+            DialerLookup::create([
+                'user_id'      => $user->id,
+                'number_e164'  => $resolved['needle'],
+                'contact_id'   => $resolved['contact']?->id,
+                'looked_up_at' => now(),
+            ]);
+        }
+
+        return $this->ok(DialerIdentity::payload($user, $resolved));
     }
 
     public function history(Request $request)

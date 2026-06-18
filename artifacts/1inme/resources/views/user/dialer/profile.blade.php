@@ -46,6 +46,33 @@
                     <p class="text-xs mt-1" style="color:var(--text-muted);">{{ $contact->organization }}</p>
                 @endif
             </div>
+            <div class="flex flex-col gap-2 flex-shrink-0">
+                @if($number)
+                    <a href="tel:{{ $number }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-center" style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)">
+                        <i class="fas fa-phone mr-1"></i> Call
+                    </a>
+                @endif
+                @if($contact && $contact->emails->isNotEmpty())
+                    <a href="mailto:{{ $contact->emails->first()->value }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-center" style="background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,.20)">
+                        <i class="fas fa-envelope mr-1"></i> Email
+                    </a>
+                @endif
+                <a href="{{ $payload['vcard_url'] }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-center" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.20)">
+                    <i class="fas fa-address-card mr-1"></i> vCard
+                </a>
+                @if($contact)
+                    <a href="{{ route('user.contacts.edit', $contact) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-center" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
+                        <i class="fas fa-pen mr-1"></i> Edit
+                    </a>
+                    <a href="{{ route('user.contacts.show', $contact) }}" class="px-3 py-1.5 rounded-lg text-[11px] font-medium text-center" style="color:var(--text-muted);">
+                        Open contact
+                    </a>
+                @else
+                    <a href="{{ route('user.contacts.create', ['phone' => $number]) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-center" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
+                        <i class="fas fa-user-plus mr-1"></i> Save
+                    </a>
+                @endif
+            </div>
         </div>
 
         {{-- Consistent quick-action bar --}}
@@ -176,6 +203,173 @@
                 <button type="button" class="outcome-chip text-[11px] px-2.5 py-1 rounded-full" data-outcome="{{ $val }}"
                         style="background:rgba(255,255,255,.05);color:var(--text-muted);border:1px solid rgba(255,255,255,.08)">{{ $label }}</button>
             @endforeach
+    {{-- Reach via — multi-app calling / messaging chooser --}}
+    @php
+        $iconFor = fn ($t) => match ($t) {
+            'phone' => 'fa-phone', 'sms' => 'fa-comment-sms',
+            'whatsapp' => 'fa-brands fa-whatsapp', 'whatsapp_channel' => 'fa-brands fa-whatsapp',
+            'telegram' => 'fa-brands fa-telegram', 'facetime_audio' => 'fa-video',
+            'facetime_video' => 'fa-video', 'email' => 'fa-envelope',
+            default => 'fa-arrow-up-right-from-square',
+        };
+        $allChannels = array_merge($payload['channels'] ?? [], $payload['manual']['channels'] ?? []);
+    @endphp
+    @if(!empty($allChannels))
+        <div class="card-premium p-5 mt-4">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Reach via</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                @foreach($allChannels as $ch)
+                    <a href="{{ $ch['url'] }}" @if(!\Illuminate\Support\Str::startsWith($ch['url'], ['tel:','sms:','mailto:','facetime'])) target="_blank" rel="noopener" @endif
+                       class="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.08);">
+                        <i class="fas {{ $iconFor($ch['type']) }}" style="color:#a78bfa;width:18px;text-align:center;"></i>
+                        <span class="min-w-0">
+                            <span class="block truncate">{{ $ch['label'] }}</span>
+                            <span class="block text-[11px] truncate" style="color:var(--text-faint);">{{ $ch['value'] }}</span>
+                        </span>
+                        @if(($ch['source'] ?? '') === 'manual')
+                            <span class="ml-auto text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    {{-- Socials (auto-pulled + manual) --}}
+    @php $allSocials = array_merge($payload['socials'] ?? [], $payload['manual']['socials'] ?? []); @endphp
+    @if(!empty($allSocials))
+        <div class="card-premium p-5 mt-4">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Socials</h3>
+            <div class="flex flex-wrap gap-2">
+                @foreach($allSocials as $s)
+                    <a href="{{ $s['url'] }}" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.08);">
+                        <i class="fas fa-globe" style="color:#60a5fa;"></i>
+                        {{ $s['label'] }}
+                        @if(($s['source'] ?? '') === 'manual')
+                            <span class="text-[9px] px-1 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    {{-- Locations (auto-pulled + manual) --}}
+    @php
+        $allLocations = $payload['locations'] ?? [];
+        if (!empty($payload['manual']['location'])) $allLocations[] = $payload['manual']['location'];
+    @endphp
+    @if(!empty($allLocations))
+        <div class="card-premium p-5 mt-4">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Locations</h3>
+            <div class="space-y-2">
+                @foreach($allLocations as $loc)
+                    <a href="{{ $loc['maps_url'] }}" target="_blank" rel="noopener"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);">
+                        <i class="fas fa-location-dot" style="color:#f87171;"></i>
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-medium truncate" style="color:var(--text-primary);">{{ $loc['label'] }}</span>
+                            @if(!empty($loc['address']))
+                                <span class="block text-[11px] truncate" style="color:var(--text-faint);">{{ $loc['address'] }}</span>
+                            @endif
+                        </span>
+                        @if(($loc['source'] ?? '') === 'manual')
+                            <span class="text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
+                        @endif
+                        <i class="fas fa-arrow-up-right-from-square text-xs" style="color:var(--text-faint);"></i>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    {{-- Manual editor — owner-entered channels / socials / location --}}
+    @if($contact)
+        <div class="card-premium p-5 mt-4" x-data="dialerManual({
+                channels: {{ Illuminate\Support\Js::from(collect($payload['manual']['channels'] ?? [])->map(fn($c) => ['type'=>$c['type'],'label'=>$c['label'],'value'=>$c['value']])->values()) }},
+                socials: {{ Illuminate\Support\Js::from(collect($payload['manual']['socials'] ?? [])->map(fn($s) => ['platform'=>$s['platform'],'label'=>$s['label'],'url'=>$s['url']])->values()) }},
+                location: {{ Illuminate\Support\Js::from($payload['manual']['location'] ? ['label'=>$payload['manual']['location']['label'],'address'=>$payload['manual']['location']['address'],'lat'=>$payload['manual']['location']['lat'],'lng'=>$payload['manual']['location']['lng']] : ['label'=>'','address'=>'','lat'=>'','lng'=>'']) }},
+             })">
+            <form method="POST" action="{{ route('user.dialer.manual') }}">
+                @csrf
+                <input type="hidden" name="contact_id" value="{{ $contact->id }}">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--text-faint);">Manual additions</h3>
+                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                        <i class="fas fa-save mr-1"></i> Save
+                    </button>
+                </div>
+
+                {{-- Channels --}}
+                <div class="mb-4">
+                    <div class="text-xs font-semibold mb-2" style="color:var(--text-muted);">Channels</div>
+                    <template x-for="(c, i) in channels" :key="'c'+i">
+                        <div class="flex gap-2 mb-2">
+                            <select :name="`channels[${i}][type]`" x-model="c.type" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                                <option value="phone">Phone</option>
+                                <option value="sms">SMS</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="facetime_audio">FaceTime Audio</option>
+                                <option value="facetime_video">FaceTime</option>
+                                <option value="email">Email</option>
+                                <option value="custom">Custom link</option>
+                            </select>
+                            <input :name="`channels[${i}][value]`" x-model="c.value" placeholder="Number / URL / handle" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <button type="button" @click="channels.splice(i,1)" class="px-2 rounded-lg" style="color:#ef4444;"><i class="fas fa-trash text-xs"></i></button>
+                        </div>
+                    </template>
+                    <button type="button" @click="channels.push({type:'phone',label:'',value:''})" class="text-xs font-medium" style="color:#a78bfa;"><i class="fas fa-plus mr-1"></i> Add channel</button>
+                </div>
+
+                {{-- Socials --}}
+                <div class="mb-4">
+                    <div class="text-xs font-semibold mb-2" style="color:var(--text-muted);">Socials</div>
+                    <template x-for="(s, i) in socials" :key="'s'+i">
+                        <div class="flex gap-2 mb-2">
+                            <input :name="`socials[${i}][platform]`" x-model="s.platform" placeholder="Platform" class="w-28 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <input :name="`socials[${i}][url]`" x-model="s.url" placeholder="https://…" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <button type="button" @click="socials.splice(i,1)" class="px-2 rounded-lg" style="color:#ef4444;"><i class="fas fa-trash text-xs"></i></button>
+                        </div>
+                    </template>
+                    <button type="button" @click="socials.push({platform:'',label:'',url:''})" class="text-xs font-medium" style="color:#a78bfa;"><i class="fas fa-plus mr-1"></i> Add social</button>
+                </div>
+
+                {{-- Location --}}
+                <div>
+                    <div class="text-xs font-semibold mb-2" style="color:var(--text-muted);">Location</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input name="location[label]" x-model="location.label" placeholder="Label (e.g. Office)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                        <input name="location[address]" x-model="location.address" placeholder="Address" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                        <input name="location[lat]" x-model="location.lat" placeholder="Latitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                        <input name="location[lng]" x-model="location.lng" placeholder="Longitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <script>
+            function dialerManual(initial) {
+                return {
+                    channels: initial.channels || [],
+                    socials: initial.socials || [],
+                    location: initial.location || {label:'',address:'',lat:'',lng:''},
+                };
+            }
+        </script>
+    @endif
+
+    @if(!empty($recent) && $recent->isNotEmpty())
+        <div class="card-premium p-5 mt-4">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Recent activity</h3>
+            <div class="space-y-2">
+                @foreach($recent as $r)
+                    <div class="flex items-center justify-between py-1.5" style="border-top: 1px solid rgba(255,255,255,.06);">
+                        <div class="text-xs font-mono" style="color:var(--text-primary);">{{ $r->number_e164 }}</div>
+                        <div class="text-[11px]" style="color:var(--text-faint);">{{ $r->looked_up_at->diffForHumans() }}</div>
+                    </div>
+                @endforeach
+            </div>
         </div>
         <input id="log-tag" type="text" placeholder="Tag (e.g. lead, family, vendor)" maxlength="50"
                class="w-full px-3 py-2 rounded-xl text-sm mb-2" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">

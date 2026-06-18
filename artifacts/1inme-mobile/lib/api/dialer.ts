@@ -188,3 +188,81 @@ export async function setCallback(input: {
 export async function clearCallback(id: number): Promise<void> {
   await apiFetch(`/dialer/callback/${id}`, { method: "DELETE" });
 }
+export type DialerChannel = {
+  type: string;
+  label: string;
+  value: string;
+  url: string;
+  scheme_url?: string;
+  source: string;
+};
+
+export type DialerSocial = {
+  platform: string;
+  label: string;
+  url: string;
+  source?: string;
+};
+
+export type DialerLocation = {
+  label: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  maps_url: string;
+  source?: string;
+};
+
+export type DialerProfileContact = {
+  id: number;
+  display_name: string;
+  organization: string | null;
+  job_title: string | null;
+  photo_url: string | null;
+  phones: { label: string | null; value: string; value_e164: string | null }[];
+  emails: { label: string | null; value: string }[];
+};
+
+export type DialerProfileBiolink = {
+  user_id: number;
+  name: string;
+  handle: string | null;
+  url: string | null;
+  link_id: number | null;
+  avatar_url: string | null;
+};
+
+export type DialerManualProfile = {
+  channels: DialerChannel[];
+  socials: DialerSocial[];
+  location: DialerLocation | null;
+};
+
+export type DialerProfile = {
+  number: string;
+  contact: DialerProfileContact | null;
+  biolink: DialerProfileBiolink | null;
+  socials: DialerSocial[];
+  locations: DialerLocation[];
+  channels: DialerChannel[];
+  manual: DialerManualProfile;
+  vcard_url: string;
+};
+
+/**
+ * Rich Identity Profile for a number / contact: matched 1INME user,
+ * auto-pulled socials / locations / reachable channels from their biolink,
+ * the owner's manual additions, and a shareable Export-vCard URL.
+ */
+export async function dialerProfile(params: {
+  number?: string;
+  contact?: number;
+}): Promise<DialerProfile> {
+  const qs = new URLSearchParams();
+  if (params.number) qs.set("number", params.number);
+  if (params.contact != null) qs.set("contact", String(params.contact));
+  const res = await apiFetch<{ data: DialerProfile }>(
+    `/dialer/profile?${qs.toString()}`,
+  );
+  return res.data;
+}

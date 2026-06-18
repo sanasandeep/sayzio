@@ -15,6 +15,21 @@ export type ContactPhone = {
   is_primary?: boolean;
 };
 
+export type ManualChannel = { type: string; label: string; value: string };
+export type ManualSocial = { platform: string; label: string; url: string };
+export type ManualLocation = {
+  label: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+};
+
+export type ManualProfile = {
+  channels: ManualChannel[];
+  socials: ManualSocial[];
+  location: ManualLocation | null;
+};
+
 export type Contact = {
   id: number;
   display_name: string | null;
@@ -26,6 +41,7 @@ export type Contact = {
   emails: ContactEmail[];
   phones: ContactPhone[];
   photo_url: string | null;
+  manual_profile?: ManualProfile;
   created_at: string | null;
 };
 
@@ -77,6 +93,27 @@ export async function updateContact(
 
 export async function deleteContact(id: number): Promise<void> {
   await apiFetch(`/contacts/${id}`, { method: "DELETE" });
+}
+
+export type ManualProfilePayload = {
+  channels?: ManualChannel[];
+  socials?: ManualSocial[];
+  location?: ManualLocation | null;
+};
+
+/**
+ * Persist the owner's manual Dialer additions (channels / socials /
+ * location) for a contact, kept distinct from auto-pulled biolink data.
+ */
+export async function updateContactManualProfile(
+  id: number,
+  p: ManualProfilePayload,
+): Promise<ManualProfile> {
+  const res = await apiFetch<{ data: { manual_profile: ManualProfile } }>(
+    `/contacts/${id}/manual-profile`,
+    { method: "POST", body: JSON.stringify(p) },
+  );
+  return res.data.manual_profile;
 }
 
 export async function bulkImportContacts(contacts: ContactPayload[]): Promise<{
