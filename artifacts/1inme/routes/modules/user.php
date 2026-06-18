@@ -174,6 +174,9 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::middleware(['auth', 'workspace.scope', 'workspace.2fa'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
+        // Seamless switch from the user dashboard to the matching admin dashboard.
+        Route::post('switch-to-admin', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toAdmin'])->name('switch-to-admin');
+
         // Recent-logins history + the in-app revoke action mirroring
         // the email's "This wasn't me" button.
         Route::get('security/logins', [\App\Modules\User\Controllers\SecurityController::class, 'logins'])

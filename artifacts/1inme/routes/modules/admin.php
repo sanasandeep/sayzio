@@ -48,6 +48,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+        // Seamless switch from the back-office to the matching user dashboard.
+        Route::post('switch-to-user', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toUser'])->name('switch-to-user');
+
         Route::prefix('demo-content')->name('demo-content.')->group(function () {
             Route::get('/',     [DemoContentController::class, 'index'])->name('index');
             Route::post('seed', [DemoContentController::class, 'seed'])->name('seed');
@@ -582,6 +585,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'edit'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.edit');
             Route::put ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.update');
             Route::get ('{user}/roles/audit.csv', [\App\Modules\Admin\Controllers\UserRoleController::class, 'export'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.audit.export');
+            Route::post  ('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'grantAdminAccess'])->middleware(CheckPermission::class . ':staff.create')->whereNumber('user')->name('admin-access.grant');
+            Route::delete('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'revokeAdminAccess'])->middleware(CheckPermission::class . ':staff.delete')->whereNumber('user')->name('admin-access.revoke');
         });
     });
 });

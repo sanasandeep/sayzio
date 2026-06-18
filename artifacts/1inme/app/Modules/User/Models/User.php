@@ -619,6 +619,59 @@ class User extends Authenticatable
     }
 
     /**
+     * Back-office Admin record (if any) that belongs to the same person
+     * as this user. The link is by email (case-insensitive) — the two
+     * auth pools (web `users` / admin `admins`) share no foreign key, so
+     * a matching email is what marks "this user is also an admin".
+     * Resolved lazily and cached for the lifetime of the request.
+     */
+    protected ?\App\Modules\Admin\Models\Admin $cachedAdminAccount = null;
+    protected bool $adminAccountResolved = false;
+
+    public function adminAccount(): ?\App\Modules\Admin\Models\Admin
+    {
+        if ($this->adminAccountResolved) {
+            return $this->cachedAdminAccount;
+        }
+        $this->adminAccountResolved = true;
+
+        $email = strtolower(trim((string) $this->email));
+        if ($email === '') {
+            return $this->cachedAdminAccount = null;
+        }
+
+        try {
+            $this->cachedAdminAccount = \App\Modules\Admin\Models\Admin::query()
+                ->whereRaw('lower(email) = ?', [$email])
+                ->first();
+        } catch (\Throwable $e) {
+            $this->cachedAdminAccount = null;
+        }
+
+        return $this->cachedAdminAccount;
+    }
+
+    /** True when this user has a matching admin record at all. */
+    public function hasAdminAccount(): bool
+    {
+        return $this->adminAccount() !== null;
+    }
+
+    /** True when the matching admin record exists and is active (can switch in). */
+    public function hasActiveAdminAccount(): bool
+    {
+        $admin = $this->adminAccount();
+        return $admin !== null && $admin->status === 'active';
+    }
+
+    /** Drop the cached admin-account lookup (call after grant/revoke). */
+    public function flushAdminAccountCache(): void
+    {
+        $this->cachedAdminAccount = null;
+        $this->adminAccountResolved = false;
+    }
+
+    /**
      * Resolved set of permission slugs across every role attached to
      * this user. Cached on the instance for the lifetime of the request
      * so repeated checks don't re-query the role/permission tables.

@@ -26,6 +26,7 @@
                 <div class="flex justify-between"><span class="text-white/40">Timezone</span><span class="text-white">{{ $user->timezone }}</span></div>
             </div>
 
+            @if(auth('admin')->user()?->hasPermission('users.impersonate'))
             <div class="mt-6 flex gap-2">
                 <form action="{{ route('admin.users.impersonate', $user) }}" method="POST" class="flex-1">
                     @csrf
@@ -34,6 +35,7 @@
                     </button>
                 </form>
             </div>
+            @endif
             <div class="mt-3">
                 <a href="{{ route('admin.users.roles.edit', $user) }}"
                    class="block w-full text-center px-4 py-2 bg-violet-500/10 text-violet-300 rounded-xl text-sm font-medium hover:bg-violet-500/20 transition">

@@ -35,11 +35,23 @@
                     <input type="checkbox" name="role_ids[]" value="{{ $role->id }}"
                            class="mt-1"
                            {{ in_array($role->id, $assigned, true) ? 'checked' : '' }}>
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <div class="text-sm font-medium text-white">{{ $role->name }}</div>
                         <div class="text-xs text-white/40">{{ $role->slug }}</div>
                         @if($role->description)
                             <div class="text-xs text-white/60 mt-1">{{ $role->description }}</div>
+                        @endif
+
+                        {{-- Feature access this role unlocks (Part 1). --}}
+                        @if($role->permissions->isNotEmpty())
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                @foreach($role->permissions as $perm)
+                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] bg-violet-500/10 text-violet-200 border border-violet-500/15"
+                                          title="{{ $perm->slug }}">{{ $perm->name ?: $perm->slug }}</span>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="mt-2 text-[10px] text-white/30">No specific feature permissions — baseline access only.</div>
                         @endif
                     </div>
                 </label>
@@ -53,6 +65,98 @@
                 </button>
             </div>
         </form>
+    </div>
+
+    {{-- Admin access panel (Part 1: promote a user to admin / change the
+         back-office role / revoke). Creating an admin record by matching
+         email is what powers the seamless dashboard switch. --}}
+    <div class="glass rounded-2xl border border-white/10 p-6 mt-6">
+        @if(session('error'))
+            <div class="mb-4 p-3 rounded-xl bg-rose-500/10 text-rose-300 text-sm">{{ session('error') }}</div>
+        @endif
+
+        <div class="flex items-start justify-between gap-3 mb-1">
+            <h3 class="text-sm font-semibold text-white">Back-office admin access</h3>
+            @if($adminAccount)
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium {{ $adminAccount->status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20' }}">
+                    {{ $adminAccount->status === 'active' ? 'Admin · active' : 'Admin · ' . ucfirst($adminAccount->status) }}
+                </span>
+            @else
+                <span class="px-2 py-0.5 rounded-md text-[10px] text-white/40 border border-white/10">Not an admin</span>
+            @endif
+        </div>
+        <p class="text-xs text-white/50 mb-4">
+            Admins are a separate pool linked to this user by email. Promoting
+            grants back-office access and enables seamless dashboard switching.
+        </p>
+
+        @if($adminAccount)
+            <div class="mb-4 text-xs text-white/60">
+                Current role:
+                <span class="text-white font-medium">{{ $adminAccount->role->name ?? '—' }}</span>
+                @if($adminAccount->role && $adminAccount->role->slug === 'super-admin')
+                    <span class="ml-1 px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 text-[10px]">full access</span>
+                @endif
+            </div>
+        @endif
+
+        @if($canGrantAdmin)
+            @if($adminRoles->isEmpty())
+                <p class="text-xs text-white/40">No admin-guard roles are defined yet.</p>
+            @else
+                <form method="POST" action="{{ route('admin.users.admin-access.grant', $user) }}" class="flex flex-wrap items-end gap-2">
+                    @csrf
+                    <label class="block">
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Admin role</span>
+                        <select name="role_id"
+                                class="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            @foreach($adminRoles as $r)
+                                <option value="{{ $r->id }}"
+                                    @selected($adminAccount && (int) $adminAccount->role_id === (int) $r->id)>
+                                    {{ $r->name }} ({{ $r->permissions->count() }} permissions)
+                                </option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 text-xs font-medium">
+                        <i class="fas fa-user-shield mr-1"></i>{{ $adminAccount ? 'Update admin role' : 'Promote to admin' }}
+                    </button>
+                </form>
+
+                {{-- Show what each admin role unlocks. --}}
+                <div class="mt-4 space-y-2">
+                    @foreach($adminRoles as $r)
+                        <div class="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                            <div class="text-xs font-medium text-white">{{ $r->name }} <span class="text-white/30">· {{ $r->slug }}</span></div>
+                            @if($r->slug === 'super-admin')
+                                <div class="mt-1 text-[10px] text-violet-200">Unrestricted — every permission.</div>
+                            @elseif($r->permissions->isNotEmpty())
+                                <div class="mt-1.5 flex flex-wrap gap-1">
+                                    @foreach($r->permissions as $perm)
+                                        <span class="px-1.5 py-0.5 rounded-md text-[10px] bg-white/5 text-white/60 border border-white/10"
+                                              title="{{ $perm->slug }}">{{ $perm->name ?: $perm->slug }}</span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="mt-1 text-[10px] text-white/30">No permissions assigned.</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        @else
+            <p class="text-xs text-white/40">You don't have permission to change admin access.</p>
+        @endif
+
+        @if($adminAccount && $canRevokeAdmin)
+            <form method="POST" action="{{ route('admin.users.admin-access.revoke', $user) }}" class="mt-4 pt-4 border-t border-white/5"
+                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Revoke admin access?', message: 'This deletes the back-office admin record. The user account is untouched.', confirmText: 'Revoke', confirmIcon: 'fa-user-slash', iconClass: 'fa-user-slash'})">
+                @csrf @method('DELETE')
+                <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 text-xs font-medium">
+                    <i class="fas fa-user-slash mr-1"></i> Revoke admin access
+                </button>
+            </form>
+        @endif
     </div>
 
     @php

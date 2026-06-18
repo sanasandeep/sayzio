@@ -165,6 +165,19 @@
                     <a href="{{ route('admin.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div><span>AI Companions</span></a>
                     <a href="{{ route('admin.assets.index') }}" class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div><span>Asset Vault</span></a>
                 </nav>
+                @if(!session('impersonate_user_id') && auth()->guard('admin')->user()?->hasUserAccount())
+                <div class="p-3" style="border-top: 1px solid var(--border-strong);">
+                    <form action="{{ route('admin.switch-to-user') }}" method="POST">
+                        @csrf
+                        <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                                style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);">
+                            <i class="fas fa-arrow-right-arrow-left" style="font-size: 11px;"></i>
+                            <span>Switch back to user</span>
+                        </button>
+                    </form>
+                </div>
+                @endif
             </div>
         </div>
 

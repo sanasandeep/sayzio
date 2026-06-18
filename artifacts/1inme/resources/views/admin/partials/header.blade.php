@@ -21,6 +21,19 @@
             </div>
         @endif
 
+        @if(!session('impersonate_user_id') && auth()->guard('admin')->user()?->hasUserAccount())
+            <form action="{{ route('admin.switch-to-user') }}" method="POST" class="hidden sm:inline">
+                @csrf
+                <button type="submit"
+                        class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
+                        style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);"
+                        title="Switch back to your user dashboard">
+                    <i class="fas fa-arrow-right-arrow-left"></i>
+                    <span>Switch to user</span>
+                </button>
+            </form>
+        @endif
+
         <div class="hidden lg:block">
             @include('common.partials.theme-toggle')
         </div>

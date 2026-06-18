@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserRoleAudit;
@@ -10,18 +11,39 @@ use App\Modules\User\Models\UserRoleAuditExport;
 use App\Modules\User\Services\UserRoleAuditCsvExporter;
 use App\Modules\User\Services\UserRoleAuditLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserRoleController extends Controller
 {
     public function edit(Request $request, User $user)
     {
+        // Web-guard roles assignable to this user, each eager-loaded with
+        // its permissions so the screen can spell out exactly what feature
+        // access each role grants (Part 1: "show each role's availability").
         $roles = Role::query()
             ->where('guard', 'web')
+            ->with(['permissions' => fn ($q) => $q->orderBy('group')->orderBy('name')])
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'description']);
+            ->get();
 
         $assigned = $user->roles()->pluck('roles.id')->all();
+
+        // Admin-access panel data. The admin pool is a separate table
+        // (admin guard) linked to a user by email; promoting a user to
+        // admin creates/repoints that record so the same person can use
+        // the back-office and the seamless dashboard switch.
+        $operator        = Auth::guard('admin')->user();
+        $adminAccount    = $user->adminAccount();
+        $adminRoles      = Role::query()
+            ->where('guard', 'admin')
+            ->with(['permissions' => fn ($q) => $q->orderBy('group')->orderBy('name')])
+            ->orderBy('name')
+            ->get();
+        $canGrantAdmin   = $operator && $operator->hasPermission('staff.create');
+        $canRevokeAdmin  = $operator && $operator->hasPermission('staff.delete');
 
         // Per-user role-change history. Surfaced to anyone with
         // `users.edit` (the existing route guard) so back-office
@@ -56,6 +78,10 @@ class UserRoleController extends Controller
             'user'           => $user,
             'roles'          => $roles,
             'assigned'       => $assigned,
+            'adminAccount'   => $adminAccount,
+            'adminRoles'     => $adminRoles,
+            'canGrantAdmin'  => $canGrantAdmin,
+            'canRevokeAdmin' => $canRevokeAdmin,
             'audits'         => $audits,
             'auditFilters'   => $auditFilters,
             'auditRoleSlugs' => UserRoleAudit::distinctRoleSlugs(),
@@ -108,6 +134,83 @@ class UserRoleController extends Controller
         return redirect()
             ->route('admin.users.roles.edit', $user)
             ->with('success', 'Roles updated for ' . $user->name . '.');
+    }
+
+    /**
+     * Promote a user to admin (or change their back-office role).
+     *
+     * The admin pool is a separate table (admin guard). We create — or
+     * repoint — an Admin record matching this user's name/email so the
+     * same person can sign into the back-office and use the seamless
+     * dashboard switch. The chosen role must be an admin-guard role.
+     */
+    public function grantAdminAccess(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'role_id' => 'required|integer|exists:roles,id',
+        ]);
+
+        $role = Role::query()
+            ->where('guard', 'admin')
+            ->find((int) $validated['role_id']);
+
+        if (! $role) {
+            return back()->with('error', 'That is not a valid admin role.');
+        }
+
+        $admin = $user->adminAccount();
+
+        if ($admin) {
+            $admin->update([
+                'role_id' => $role->id,
+                'status'  => 'active',
+            ]);
+            $message = $user->name . ' is now a ' . $role->name . ' admin.';
+        } else {
+            Admin::create([
+                'name'     => $user->name,
+                'email'    => $user->email,
+                // Random password — this account signs in via the
+                // dashboard switch / OTP, never with a known password.
+                'password' => Hash::make(Str::random(40)),
+                'role_id'  => $role->id,
+                'status'   => 'active',
+            ]);
+            $message = $user->name . ' was promoted to admin (' . $role->name . ').';
+        }
+
+        $user->flushAdminAccountCache();
+
+        return redirect()
+            ->route('admin.users.roles.edit', $user)
+            ->with('success', $message);
+    }
+
+    /**
+     * Revoke a user's back-office admin access by deleting the matching
+     * Admin record. The user account itself is untouched.
+     */
+    public function revokeAdminAccess(User $user)
+    {
+        $admin = $user->adminAccount();
+
+        if (! $admin) {
+            return back()->with('error', 'This user does not have admin access.');
+        }
+
+        // Guard against an operator removing their own admin access while
+        // signed in — that would lock them out mid-request.
+        $operator = Auth::guard('admin')->user();
+        if ($operator && (int) $operator->id === (int) $admin->id) {
+            return back()->with('error', 'You cannot revoke your own admin access.');
+        }
+
+        $admin->delete();
+        $user->flushAdminAccountCache();
+
+        return redirect()
+            ->route('admin.users.roles.edit', $user)
+            ->with('success', 'Admin access revoked for ' . $user->name . '.');
     }
 
     /**

@@ -48,4 +48,42 @@ class Admin extends Authenticatable
     {
         return $this->role && $this->role->slug === 'super-admin';
     }
+
+    /**
+     * Web-guard User record (if any) that belongs to the same person as
+     * this admin. Matched by email (case-insensitive) — the two auth
+     * pools share no foreign key, so a matching email is what bridges a
+     * back-office admin to a user dashboard. Cached per request.
+     */
+    protected ?\App\Modules\User\Models\User $cachedUserAccount = null;
+    protected bool $userAccountResolved = false;
+
+    public function userAccount(): ?\App\Modules\User\Models\User
+    {
+        if ($this->userAccountResolved) {
+            return $this->cachedUserAccount;
+        }
+        $this->userAccountResolved = true;
+
+        $email = strtolower(trim((string) $this->email));
+        if ($email === '') {
+            return $this->cachedUserAccount = null;
+        }
+
+        try {
+            $this->cachedUserAccount = \App\Modules\User\Models\User::query()
+                ->whereRaw('lower(email) = ?', [$email])
+                ->first();
+        } catch (\Throwable $e) {
+            $this->cachedUserAccount = null;
+        }
+
+        return $this->cachedUserAccount;
+    }
+
+    /** True when this admin has a matching user record. */
+    public function hasUserAccount(): bool
+    {
+        return $this->userAccount() !== null;
+    }
 }

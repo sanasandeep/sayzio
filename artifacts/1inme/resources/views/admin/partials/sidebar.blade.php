@@ -357,6 +357,30 @@
         </a>
     </nav>
 
+    @php $__switchUser = !session('impersonate_user_id') && auth()->guard('admin')->user()?->hasUserAccount(); @endphp
+    @if($__switchUser)
+    <div class="px-3 pt-3" x-show="sidebarMode !== 'icons'" x-cloak>
+        <form action="{{ route('admin.switch-to-user') }}" method="POST">
+            @csrf
+            <button type="submit"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                    style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);"
+                    title="Switch back to your user dashboard">
+                <i class="fas fa-arrow-right-arrow-left" style="font-size: 11px;"></i>
+                <span>Switch back to user</span>
+            </button>
+        </form>
+    </div>
+    <div class="px-3 pt-3 flex justify-center" x-show="sidebarMode === 'icons'" x-cloak>
+        <form action="{{ route('admin.switch-to-user') }}" method="POST">
+            @csrf
+            <button type="submit" class="logout-btn" title="Switch back to user dashboard" style="color: var(--accent-light);">
+                <i class="fas fa-arrow-right-arrow-left text-xs"></i>
+            </button>
+        </form>
+    </div>
+    @endif
+
     {{-- Footer / user --}}
     <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
         <div class="flex items-center gap-3"

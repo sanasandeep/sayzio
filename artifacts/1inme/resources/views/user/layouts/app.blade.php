@@ -1071,6 +1071,29 @@
                 </div>
             </div>
 
+            @if(!session('impersonate_user_id') && auth()->user()->hasActiveAdminAccount())
+            <div class="px-3 pb-2" x-show="sidebarMode !== 'icons'" x-cloak>
+                <form action="{{ route('user.switch-to-admin') }}" method="POST">
+                    @csrf
+                    <button type="submit"
+                            class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                            style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);"
+                            title="Switch to the admin dashboard">
+                        <i class="fas fa-user-shield" style="font-size: 11px;"></i>
+                        <span>Switch to admin</span>
+                    </button>
+                </form>
+            </div>
+            <div class="px-3 pb-1" x-show="sidebarMode === 'icons'" x-cloak>
+                <form action="{{ route('user.switch-to-admin') }}" method="POST" class="flex justify-center">
+                    @csrf
+                    <button type="submit" class="logout-btn" title="Switch to admin dashboard" style="color: var(--accent-light);">
+                        <i class="fas fa-user-shield text-xs"></i>
+                    </button>
+                </form>
+            </div>
+            @endif
+
             <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
                 <div class="flex items-center" :class="sidebarMode === 'icons' ? 'justify-center' : 'gap-3'">
                     <div class="user-avatar-ring flex-shrink-0">
@@ -1423,6 +1446,17 @@
                         @endif
                     </nav>
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
+                        @if(!session('impersonate_user_id') && auth()->user()->hasActiveAdminAccount())
+                        <form action="{{ route('user.switch-to-admin') }}" method="POST" class="mb-2">
+                            @csrf
+                            <button type="submit"
+                                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                                    style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);">
+                                <i class="fas fa-user-shield" style="font-size: 11px;"></i>
+                                <span>Switch to admin</span>
+                            </button>
+                        </form>
+                        @endif
                         <div class="flex items-center gap-2 mb-2">
                             @include('common.partials.theme-toggle')
                             <span class="text-[10px]" style="color: var(--text-dimmed);">Theme</span>
