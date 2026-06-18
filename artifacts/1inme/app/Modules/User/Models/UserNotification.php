@@ -35,8 +35,21 @@ class UserNotification extends Model
      */
     public function targetUrl(): ?string
     {
-        $data = $this->data ?? [];
+        return self::resolveTargetUrl($this->data ?? [], $this->type);
+    }
 
+    /**
+     * Resolve the canonical target URL from a raw data payload + type,
+     * without needing a persisted model. This keeps the web row, the
+     * open-redirect route, the REST feed, and the push payload assembly
+     * (so a tapped push deep-links to the exact same place) all in
+     * lockstep off one implementation. Returns null when there is nothing
+     * meaningful to open.
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function resolveTargetUrl(array $data, ?string $type = null): ?string
+    {
         foreach (['url', 'target_url', 'fix_url'] as $key) {
             $candidate = $data[$key] ?? null;
             if (is_string($candidate) && $candidate !== '') {
@@ -45,7 +58,7 @@ class UserNotification extends Model
         }
 
         // Type-derived destinations for notifications that don't store a URL.
-        if ($this->type === 'workspace_access_request') {
+        if ($type === 'workspace_access_request') {
             return route('user.team.index');
         }
 

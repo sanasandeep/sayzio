@@ -2,8 +2,11 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
-import { Platform } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { Linking, Platform } from "react-native";
 
+import { getBaseUrl } from "@/lib/api";
+import { markRead } from "@/lib/api/notifications";
 import { registerPushToken, unregisterPushToken } from "@/lib/api/push";
 
 let handlerConfigured = false;
@@ -109,15 +112,55 @@ export async function clearPushRegistration(): Promise<void> {
 }
 
 /**
- * Route to the right screen when the user taps a push notification. API
- * usage warnings deep-link to the usage screen; everything else lands on
- * the notifications list.
+ * Open the target a tapped push points at, mirroring the in-app row
+ * gesture. Targets are app web paths/URLs, so relative paths resolve
+ * against the API host and hand off to the in-app browser (falling back
+ * to the OS handler).
+ */
+function openPushTarget(target: string): void {
+  const absolute = /^https?:\/\//i.test(target)
+    ? target
+    : `${getBaseUrl()}${target.startsWith("/") ? "" : "/"}${target}`;
+  WebBrowser.openBrowserAsync(absolute).catch(() => {
+    Linking.openURL(absolute).catch(() => {});
+  });
+}
+
+/**
+ * Route to the right destination when the user taps a push notification.
+ * We deep-link to the exact same target the in-app row uses (carried as
+ * `url` in the push data, resolved server-side by the single source of
+ * truth) and mark the originating row read in the same gesture. When no
+ * target is present we fall back gracefully: API-usage warnings to the
+ * usage screen, everything else to the notifications list.
  */
 export function addPushResponseListener(): Notifications.EventSubscription {
   return Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as
       | Record<string, unknown>
       | undefined;
+
+    // Mark just the originating row read (best-effort), so the badge/list
+    // stay in sync with the tap.
+    const rawId = data?.notification_id;
+    const id =
+      typeof rawId === "number"
+        ? rawId
+        : typeof rawId === "string" && rawId.trim() !== ""
+          ? Number(rawId)
+          : NaN;
+    if (Number.isFinite(id)) {
+      markRead(id).catch(() => {});
+    }
+
+    // Deep-link to the same place the in-app row opens, when present.
+    const target = typeof data?.url === "string" ? data.url : null;
+    if (target) {
+      openPushTarget(target);
+      return;
+    }
+
+    // Graceful fallbacks when there's no target URL.
     const type = typeof data?.type === "string" ? data.type : null;
     if (type === "api.usage_warning") {
       router.push("/api-usage");

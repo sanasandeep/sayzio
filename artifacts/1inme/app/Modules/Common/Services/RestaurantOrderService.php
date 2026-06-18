@@ -107,8 +107,10 @@ class RestaurantOrderService
             . number_format((float) $order->subtotal, 2)
             . " on \"{$link->title}\".";
 
+        $ordersUrl = route('user.links.restaurant.orders', $link);
+        $notification = null;
         try {
-            $this->notifications->notify($owner, 'restaurant.new_order', [
+            $notification = $this->notifications->notify($owner, 'restaurant.new_order', [
                 'subject'      => $subject,
                 'message'      => $body,
                 'link_id'      => $link->id,
@@ -117,7 +119,7 @@ class RestaurantOrderService
                 'table_label'  => $order->table_label,
                 'subtotal'     => $order->subtotal,
                 'currency'     => $order->currency,
-                'url'          => route('user.links.restaurant.orders', $link),
+                'url'          => $ordersUrl,
             ]);
         } catch (\Throwable $e) {
             Log::warning('restaurant new_order in-app notify failed: ' . $e->getMessage());
@@ -125,8 +127,7 @@ class RestaurantOrderService
 
         if ($owner->email && $this->notifications->prefersChannel($owner->id, 'restaurant.new_order', 'email')) {
             try {
-                $url = route('user.links.restaurant.orders', $link);
-                Mail::raw($body . "\n\nManage orders: " . $url, function ($m) use ($owner, $subject) {
+                Mail::raw($body . "\n\nManage orders: " . $ordersUrl, function ($m) use ($owner, $subject) {
                     $m->to($owner->email)->subject($subject);
                 });
             } catch (\Throwable $e) {
@@ -134,15 +135,22 @@ class RestaurantOrderService
             }
         }
 
+        // Carry the same target URL the in-app row uses (so a tapped push
+        // opens the orders dashboard) and the originating notification id
+        // (so the tap can mark that row read).
         $this->notifications->pushToUser(
             $owner,
             'restaurant.new_order',
             $subject,
             $body,
-            [
-                'link_id'  => $link->id,
-                'order_id' => $order->id,
-            ],
+            array_merge(
+                [
+                    'link_id'  => $link->id,
+                    'order_id' => $order->id,
+                    'url'      => $ordersUrl,
+                ],
+                $notification ? ['notification_id' => $notification->id] : [],
+            ),
         );
     }
 }

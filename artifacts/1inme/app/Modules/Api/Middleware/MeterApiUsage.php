@@ -296,7 +296,7 @@ class MeterApiUsage
 
         foreach ($notes as $note) {
             try {
-                $notifications->notify($user, $note['type'], array_merge($note['data'], [
+                $created = $notifications->notify($user, $note['type'], array_merge($note['data'], [
                     'subject' => $note['subject'],
                     'body'    => $note['body'],
                     'message' => $note['body'],
@@ -313,12 +313,15 @@ class MeterApiUsage
                 // Push to the 1inme-mobile app (task #1403). Preference-aware
                 // and best-effort: pushToUser swallows transport failures so a
                 // dead token can't break the metered call we're finishing.
+                // Carry the originating notification id so a tapped push can
+                // mark that row read (these warnings deep-link to the usage
+                // screen, which has no per-row target URL).
                 $notifications->pushToUser(
                     $user,
                     $note['type'],
                     $note['subject'],
                     $note['body'],
-                    $note['data'],
+                    array_merge($note['data'], $created ? ['notification_id' => $created->id] : []),
                 );
             } catch (\Throwable $e) {
                 Log::warning('API usage warning delivery failed: ' . $e->getMessage(), ['user_id' => $user->id]);

@@ -272,12 +272,25 @@ class NotificationService
             return 0;
         }
 
+        // Stamp the canonical target URL — resolved by the same single
+        // source of truth the in-app row, open-redirect route and REST feed
+        // use — so a tapped push deep-links to the exact same destination
+        // instead of dumping the user on the generic list. Never clobber a
+        // URL the caller already put in the payload.
+        $payload = array_merge($data, ['type' => $type]);
+        if (empty($payload['url'])) {
+            $url = UserNotification::resolveTargetUrl($data, $type);
+            if ($url !== null) {
+                $payload['url'] = $url;
+            }
+        }
+
         try {
             return app(ExpoPushNotifier::class)->sendToUser(
                 $user->id,
                 $title,
                 $body,
-                array_merge($data, ['type' => $type]),
+                $payload,
             );
         } catch (\Throwable $e) {
             Log::warning('Push notification delivery failed: ' . $e->getMessage(), [
