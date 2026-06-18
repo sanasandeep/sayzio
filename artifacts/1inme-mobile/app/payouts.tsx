@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -15,8 +16,10 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
+import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 import {
   getAdultContent,
   getPayouts,
@@ -42,8 +45,16 @@ import {
 export default function PayoutsScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const plan = usePlanFeatures();
+  const sellLocked = plan.isFeatureLocked("ecommerce");
   const payouts = useQuery({ queryKey: ["payouts"], queryFn: getPayouts });
   const adult = useQuery({ queryKey: ["adult-content"], queryFn: getAdultContent });
+
+  const promptSellUpgrade = () =>
+    showUpgradePrompt({
+      message:
+        "Earning from your bio (subscriptions, tips and per-post unlocks) is a plan feature. Upgrade to start accepting payouts.",
+    });
 
   const connect = useMutation({
     mutationFn: (slug: string) => startConnect(slug),
@@ -88,6 +99,32 @@ export default function PayoutsScreen() {
           Connect a payout provider to receive subscriptions, tips, and per-post unlocks.
           1INME takes 0% — the fee shown next to each provider is theirs.
         </Text>
+
+        {sellLocked ? (
+          <Pressable
+            onPress={promptSellUpgrade}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              padding: 14,
+              borderWidth: 1,
+              borderRadius: colors.radius,
+              backgroundColor: colors.primary + "12",
+              borderColor: colors.primary + "44",
+            }}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>
+                Payouts are a plan feature
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 16 }}>
+                Upgrade to start earning from your bio. Tap to see your options.
+              </Text>
+            </View>
+            <UpgradeLockBadge />
+          </Pressable>
+        ) : null}
 
         {payouts.isLoading ? (
           <ActivityIndicator />
@@ -159,8 +196,18 @@ export default function PayoutsScreen() {
                 <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
                   {(!conn || !conn.payouts_enabled) && (
                     <Button
-                      label={conn ? "Resume" : "Connect"}
-                      onPress={() => connect.mutate(p.slug)}
+                      label={
+                        sellLocked
+                          ? "Upgrade to connect"
+                          : conn
+                            ? "Resume"
+                            : "Connect"
+                      }
+                      onPress={() =>
+                        sellLocked
+                          ? promptSellUpgrade()
+                          : connect.mutate(p.slug)
+                      }
                       disabled={connect.isPending}
                     />
                   )}

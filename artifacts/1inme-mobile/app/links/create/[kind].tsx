@@ -12,18 +12,22 @@ import {
 import { Button } from "@/components/Button";
 import { DomainPicker } from "@/components/DomainPicker";
 import { TextField } from "@/components/TextField";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { listAvailableDomains } from "@/lib/api/domains";
 import { createLink } from "@/lib/api/links";
 import { metaForKind, type LinkKind } from "@/lib/linkKinds";
 import { PAID_PAGE_TEMPLATES } from "@/lib/paidPage";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 
 export default function CreateLinkScreen() {
   const colors = useColors();
   const router = useRouter();
   const { kind } = useLocalSearchParams<{ kind: LinkKind }>();
   const meta = metaForKind((kind as LinkKind) || "url");
+  const plan = usePlanFeatures();
+  const locked = plan.isLinkTypeLocked(meta.apiType);
 
   const [title, setTitle] = useState("");
   const [alias, setAlias] = useState("");
@@ -63,6 +67,12 @@ export default function CreateLinkScreen() {
   }, [domainsQ.data?.primary_domain_id, domainTouched]);
 
   async function onSubmit() {
+    if (locked) {
+      showUpgradePrompt({
+        message: `${meta.label} isn't available on your current plan. Upgrade to unlock it.`,
+      });
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
@@ -139,6 +149,34 @@ export default function CreateLinkScreen() {
         <Text style={[styles.blurb, { color: colors.mutedForeground }]}>
           {meta.blurb}
         </Text>
+
+        {locked ? (
+          <Pressable
+            onPress={() =>
+              showUpgradePrompt({
+                message: `${meta.label} isn't available on your current plan. Upgrade to unlock it.`,
+              })
+            }
+            style={[
+              styles.lockBanner,
+              {
+                backgroundColor: colors.primary + "12",
+                borderColor: colors.primary + "44",
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[styles.lockTitle, { color: colors.foreground }]}>
+                {meta.label} is a plan feature
+              </Text>
+              <Text style={[styles.lockBody, { color: colors.mutedForeground }]}>
+                Upgrade your plan to create this. Tap to see your options.
+              </Text>
+            </View>
+            <UpgradeLockBadge />
+          </Pressable>
+        ) : null}
 
         <TextField
           label="Title"
@@ -310,6 +348,19 @@ export default function CreateLinkScreen() {
 const styles = StyleSheet.create({
   body: { padding: 20, gap: 14, paddingBottom: 40 },
   blurb: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
+  lockBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderWidth: 1,
+  },
+  lockTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  lockBody: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    lineHeight: 16,
+  },
   pickLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
   tplGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   tplCard: {

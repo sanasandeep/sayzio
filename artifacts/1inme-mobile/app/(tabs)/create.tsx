@@ -15,17 +15,21 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LinkTypeArt } from "@/components/LinkTypeArt";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import {
   LINK_KIND_CATEGORIES,
   metaForKind,
   type LinkKind,
 } from "@/lib/linkKinds";
+import { showUpgradePrompt } from "@/lib/upgradePrompt";
 
 export default function CreateTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const plan = usePlanFeatures();
   const webTop = Platform.OS === "web" ? 67 : 0;
 
   // Respect the OS "reduce motion" setting — when on, cards render in their
@@ -123,6 +127,7 @@ export default function CreateTab() {
             <View style={{ gap: 10 }}>
               {category.kinds.map((kind) => {
                 const meta = metaForKind(kind as LinkKind);
+                const locked = plan.isLinkTypeLocked(meta.apiType);
                 return (
                   <RevealCard
                     key={meta.kind}
@@ -131,7 +136,11 @@ export default function CreateTab() {
                   >
                     <Pressable
                       onPress={() =>
-                        router.push(`/links/create/${meta.kind}`)
+                        locked
+                          ? showUpgradePrompt({
+                              message: `${meta.label} isn't available on your current plan. Upgrade to unlock it.`,
+                            })
+                          : router.push(`/links/create/${meta.kind}`)
                       }
                       style={({ pressed }) => [
                         styles.card,
@@ -172,6 +181,7 @@ export default function CreateTab() {
                           >
                             {meta.label}
                           </Text>
+                          {locked ? <UpgradeLockBadge /> : null}
                         </View>
                         <Text
                           style={[

@@ -20,8 +20,10 @@ import {
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
+import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 import {
   createQrCode,
   deleteQrCode,
@@ -40,6 +42,8 @@ const TYPES = [
 export default function QrScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const plan = usePlanFeatures();
+  const designLocked = plan.isFeatureLocked("qr_customization");
   const [showNew, setShowNew] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<string>("url");
@@ -212,20 +216,38 @@ export default function QrScreen() {
             />
             {(catalog.data?.presets?.length ?? 0) > 0 && (
               <View style={{ gap: 8 }}>
-                <Text style={[styles.sub, { color: colors.mutedForeground }]}>TEMPLATE</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={[styles.sub, { color: colors.mutedForeground }]}>TEMPLATE</Text>
+                  {designLocked ? <UpgradeLockBadge /> : null}
+                </View>
+                {designLocked ? (
+                  <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
+                    Styled QR templates are a plan feature. Your QR is created
+                    with the default look — upgrade to customize colors, dots and
+                    frames.
+                  </Text>
+                ) : null}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                   {catalog.data!.presets.map((p) => {
-                    const active = preset?.id === p.id;
+                    const active = !designLocked && preset?.id === p.id;
                     return (
                       <Pressable
                         key={p.id}
-                        onPress={() => setPreset(active ? null : p)}
+                        onPress={() =>
+                          designLocked
+                            ? showUpgradePrompt({
+                                message:
+                                  "Custom QR templates aren't available on your current plan. Upgrade to style your QR codes.",
+                              })
+                            : setPreset(preset?.id === p.id ? null : p)
+                        }
                         style={[
                           styles.presetChip,
                           {
                             backgroundColor: active ? colors.primary : colors.card,
                             borderColor: active ? colors.primary : colors.border,
                             borderRadius: colors.radius - 4,
+                            opacity: designLocked ? 0.55 : 1,
                           },
                         ]}
                       >
@@ -281,5 +303,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderWidth: 1,
+  },
+  lockHint: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 11,
+    lineHeight: 15,
   },
 });
