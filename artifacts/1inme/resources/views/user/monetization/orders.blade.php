@@ -16,6 +16,7 @@
                             \App\Modules\User\Models\ProductOrder::STATUS_PAID       => '#3b82f6',
                             \App\Modules\User\Models\ProductOrder::STATUS_FULFILLED  => '#10b981',
                             \App\Modules\User\Models\ProductOrder::STATUS_CANCELLED  => '#ef4444',
+                            \App\Modules\User\Models\ProductOrder::STATUS_REFUNDED   => '#f59e0b',
                             default => '#64748b',
                         };
                     @endphp
@@ -56,6 +57,30 @@
                                         </button>
                                     </form>
                                 @endif
+                                @if($order->isRefundable())
+                                    <div x-data="{ open: false }" class="relative">
+                                        <button type="button" @click="open = true" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold" style="background: rgba(239,68,68,0.12); color: #ef4444;">
+                                            <i class="fas fa-rotate-left"></i> Refund
+                                        </button>
+                                        <div x-show="open" x-cloak @keydown.escape.window="open = false" class="fixed inset-0 z-[60] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5);">
+                                            <div @click.outside="open = false" class="w-full max-w-md rounded-xl border p-5" style="border-color: var(--border-color); background: var(--bg-card);">
+                                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Refund & cancel order #{{ $order->id }}?</h3>
+                                                <p class="mt-1 text-xs" style="color: var(--text-faint);">
+                                                    This refunds {{ strtoupper($order->currency) }} {{ number_format($order->subtotal_cents / 100, 2) }} to the buyer, cancels the order@if($order->contains_digital) and revokes their digital downloads@endif. This can't be undone.
+                                                </p>
+                                                <form method="POST" action="{{ route('user.monetization.orders.refund', $order->id) }}" class="mt-4">
+                                                    @csrf
+                                                    <label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Reason (optional, shared with buyer)</label>
+                                                    <input type="text" name="refund_reason" maxlength="280" placeholder="e.g. Out of stock" class="w-full px-3 py-2 rounded-lg text-sm border bg-transparent" style="border-color: var(--border-color); color: var(--text-primary);">
+                                                    <div class="mt-4 flex justify-end gap-2">
+                                                        <button type="button" @click="open = false" class="px-3 py-2 rounded-lg text-xs font-semibold border" style="border-color: var(--border-color); color: var(--text-secondary);">Cancel</button>
+                                                        <button type="submit" class="px-3 py-2 rounded-lg text-xs font-semibold" style="background: #ef4444; color: #fff;">Refund & cancel</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
                                 @if($order->conversation_id)
                                     <a href="{{ route('user.inbox.dms.thread', $order->conversation_id) }}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border" style="border-color: var(--border-color); color: var(--text-secondary);">
                                         <i class="fas fa-comment"></i> Message
@@ -63,6 +88,13 @@
                                 @endif
                             </div>
                         </div>
+
+                        @if($order->status === \App\Modules\User\Models\ProductOrder::STATUS_REFUNDED && ($order->refunded_at || $order->refund_reason))
+                            <div class="mt-2 text-xs" style="color: #f59e0b;">
+                                <i class="fas fa-rotate-left mr-1"></i>
+                                Refunded{{ $order->refunded_at ? ' on '.$order->refunded_at->format('M j, Y') : '' }}@if($order->refund_reason) · {{ $order->refund_reason }}@endif
+                            </div>
+                        @endif
 
                         <div class="mt-3 pl-13 space-y-1.5">
                             @foreach($order->items as $item)

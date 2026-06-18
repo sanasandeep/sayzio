@@ -26,6 +26,7 @@ class CreatorPaymentEvent extends Model
     public const TYPE_TIP_RECEIVED  = 'tip.received';
     public const TYPE_TIP_REFUNDED  = 'tip.refunded';
     public const TYPE_PRODUCT_PURCHASED = 'product.purchased';
+    public const TYPE_PRODUCT_REFUNDED  = 'product.refunded';
 
     protected $fillable = [
         'creator_user_id', 'fan_user_id',
@@ -63,6 +64,7 @@ class CreatorPaymentEvent extends Model
             self::TYPE_TIP_RECEIVED => 'Tip received',
             self::TYPE_TIP_REFUNDED => 'Tip refunded',
             self::TYPE_PRODUCT_PURCHASED => 'Product sale',
+            self::TYPE_PRODUCT_REFUNDED  => 'Product refund',
             default                 => $this->type,
         };
     }

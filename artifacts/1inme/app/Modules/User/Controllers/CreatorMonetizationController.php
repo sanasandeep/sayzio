@@ -258,6 +258,29 @@ class CreatorMonetizationController extends Controller
         return back()->with('success', "Order #{$order->id} marked as fulfilled.");
     }
 
+    /**
+     * Refund + cancel a paid product order (Task #1764). Reverses the
+     * charge, flips the order to refunded (revoking digital downloads),
+     * writes a negative ledger row, and DMs the buyer.
+     */
+    public function refundOrder(Request $request, ProductOrder $order)
+    {
+        abort_unless($order->creator_user_id === $request->user()->id, 403);
+        abort_unless($order->isRefundable(), 422, 'Only paid orders can be refunded.');
+
+        $data = $request->validate([
+            'refund_reason' => 'nullable|string|max:280',
+        ]);
+
+        $ok = app(\App\Services\Monetization\MonetizationCheckout::class)
+            ->refundProductOrder($order->id, $data['refund_reason'] ?? null);
+
+        return back()->with(
+            $ok ? 'success' : 'error',
+            $ok ? "Order #{$order->id} refunded and cancelled." : 'Could not refund this order.',
+        );
+    }
+
     // ─── Tiers CRUD ────────────────────────────────────────────────
     public function tiers(Request $request)
     {

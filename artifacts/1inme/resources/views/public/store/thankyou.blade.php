@@ -16,7 +16,7 @@
                         <p class="text-sm font-medium truncate" style="color: var(--text-primary);">{{ $item->name }}@if($item->quantity > 1) <span style="color: var(--text-faint);">×{{ $item->quantity }}</span>@endif</p>
                         <p class="text-xs" style="color: var(--text-faint);">{{ ucfirst($item->product_type) }} · {{ strtoupper($item->currency) }} {{ number_format($item->unit_price_cents / 100, 2) }}</p>
                     </div>
-                    @if($isBuyer && $item->isDigital() && $item->digital_file_url)
+                    @if($order->isPaid() && $isBuyer && $item->isDigital() && $item->digital_file_url)
                         <a href="{{ route('store.download', ['order' => $order->id, 'item' => $item->id, 'token' => $order->public_token]) }}"
                            class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold"
                            style="background: rgba(99,91,255,0.12); color:#635bff;">
@@ -27,7 +27,12 @@
             @endforeach
         </div>
 
-        @if($order->contains_physical)
+        @if($order->status === \App\Modules\User\Models\ProductOrder::STATUS_REFUNDED)
+            <div class="mt-5 rounded-xl p-3 text-left" style="background: rgba(245,158,11,0.12); color:#f59e0b;">
+                <p class="text-sm font-semibold"><i class="fas fa-rotate-left mr-1"></i>This order was refunded.</p>
+                <p class="mt-1 text-xs">{{ strtoupper($order->currency) }} {{ number_format($order->subtotal_cents / 100, 2) }} was returned to your original payment method@if($order->contains_digital) and any digital downloads have been revoked@endif.@if($order->refund_reason) Reason: {{ $order->refund_reason }}@endif</p>
+            </div>
+        @elseif($order->contains_physical)
             <p class="mt-5 text-xs" style="color: var(--text-faint);">The seller has been notified and will arrange delivery of your physical item(s).</p>
         @endif
 

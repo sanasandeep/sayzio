@@ -510,11 +510,92 @@ class MonetizationCheckout
     public function refund(string $source, int $referenceId): bool
     {
         return match ($source) {
-            CreatorPaymentEvent::SOURCE_TIP => $this->refundTip($referenceId),
-            CreatorPaymentEvent::SOURCE_PPV => $this->refundPpv($referenceId),
-            CreatorPaymentEvent::SOURCE_SUB => $this->refundSubscription($referenceId),
+            CreatorPaymentEvent::SOURCE_TIP     => $this->refundTip($referenceId),
+            CreatorPaymentEvent::SOURCE_PPV     => $this->refundPpv($referenceId),
+            CreatorPaymentEvent::SOURCE_SUB     => $this->refundSubscription($referenceId),
+            CreatorPaymentEvent::SOURCE_PRODUCT => $this->refundProductOrder($referenceId),
             default => false,
         };
+    }
+
+    /**
+     * Refund + cancel a paid product order (Task #1764). Reverses the
+     * gateway charge (best-effort; works in preview mode), flips the order
+     * to `refunded` (which immediately revokes digital download links since
+     * those gate on isPaid()), writes a negative ledger row, and notifies
+     * the buyer with a DM system message. Idempotent: a second call on an
+     * already-refunded order is a no-op. Returns true on success.
+     */
+    public function refundProductOrder(int $id, ?string $reason = null): bool
+    {
+        $order = ProductOrder::with('items')->find($id);
+        if (!$order || !$order->isRefundable()) {
+            return false;
+        }
+
+        try {
+            if ($order->gateway && $order->gateway_charge_id) {
+                PayoutProviderRegistry::adapter($order->gateway)->refundCharge($order->gateway_charge_id, $order->subtotal_cents);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('refund.product.adapter_failed', ['order' => $id, 'err' => $e->getMessage()]);
+        }
+
+        $order->status        = ProductOrder::STATUS_REFUNDED;
+        $order->refunded_at   = now();
+        $order->refund_reason = $reason ? mb_substr(trim($reason), 0, 280) : null;
+        $order->save();
+
+        $creator = $order->creator;
+        $buyer   = $order->buyer;
+
+        $this->logEvent(
+            $creator, $buyer,
+            CreatorPaymentEvent::SOURCE_PRODUCT, CreatorPaymentEvent::TYPE_PRODUCT_REFUNDED,
+            $order, -1 * (int) $order->subtotal_cents, $order->currency,
+        );
+
+        // DM the buyer a system receipt for the refund.
+        try {
+            $dispatcher = app(\App\Services\Dm\DmDispatcher::class);
+            $conv = $order->conversation;
+            if (!$conv && $creator && $buyer) {
+                $conv = $dispatcher->findOrCreateProfileConversation($creator, $buyer);
+                $order->conversation_id = $conv->id;
+                $order->save();
+            }
+            if ($conv && $buyer) {
+                $body = "↩️ Order #{$order->id} refunded\n"
+                    . "We've refunded " . $this->formatMoney((int) $order->subtotal_cents, $order->currency) . " to your original payment method."
+                    . ($order->refund_reason ? "\nReason: " . $order->refund_reason : '')
+                    . ($order->contains_digital ? "\nAccess to any digital downloads from this order has been removed." : '');
+                $dispatcher->send($conv, $buyer, 'viewer', $body, [], null, false, true);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('refund.product.dm_failed', ['order' => $id, 'err' => $e->getMessage()]);
+        }
+
+        if ($buyer) {
+            $this->notifyBuyerOfRefund($buyer, $order);
+        }
+
+        return true;
+    }
+
+    protected function notifyBuyerOfRefund(User $buyer, ProductOrder $order): void
+    {
+        \App\Modules\User\Models\UserNotification::create([
+            'user_id'    => $buyer->id,
+            'type'       => 'product.refunded',
+            'data'       => [
+                'order_id' => $order->id,
+                'amount'   => $this->formatMoney((int) $order->subtotal_cents, $order->currency),
+                'message'  => 'Your order #' . $order->id . ' was refunded — ' . $this->formatMoney((int) $order->subtotal_cents, $order->currency) . '.',
+                'link'     => $order->conversation_id ? route('user.inbox.dms.thread', $order->conversation_id) : null,
+            ],
+            'created_at' => now(),
+        ]);
+        $this->emailCreatorBestEffort($buyer, 'Your 1INME order was refunded', 'Order #' . $order->id . ' has been refunded for ' . $this->formatMoney((int) $order->subtotal_cents, $order->currency) . '.');
     }
 
     protected function refundTip(int $id): bool

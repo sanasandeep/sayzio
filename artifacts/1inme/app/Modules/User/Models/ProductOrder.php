@@ -18,6 +18,7 @@ class ProductOrder extends Model
     public const STATUS_PAID      = 'paid';
     public const STATUS_FULFILLED = 'fulfilled';
     public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_REFUNDED  = 'refunded';
 
     protected $fillable = [
         'buyer_user_id', 'creator_user_id', 'link_id',
@@ -25,7 +26,7 @@ class ProductOrder extends Model
         'gateway', 'gateway_charge_id',
         'contains_physical', 'contains_digital',
         'conversation_id', 'public_token',
-        'paid_at', 'fulfilled_at', 'metadata',
+        'paid_at', 'fulfilled_at', 'refunded_at', 'refund_reason', 'metadata',
     ];
 
     protected function casts(): array
@@ -36,6 +37,7 @@ class ProductOrder extends Model
             'contains_digital'  => 'boolean',
             'paid_at'           => 'datetime',
             'fulfilled_at'      => 'datetime',
+            'refunded_at'       => 'datetime',
             'metadata'          => 'array',
         ];
     }
@@ -70,6 +72,15 @@ class ProductOrder extends Model
         return in_array($this->status, [self::STATUS_PAID, self::STATUS_FULFILLED], true);
     }
 
+    /**
+     * Only a still-paid order (not already refunded/cancelled) can be
+     * refunded. Pending orders never charged the buyer.
+     */
+    public function isRefundable(): bool
+    {
+        return $this->isPaid();
+    }
+
     public function statusLabel(): string
     {
         return match ($this->status) {
@@ -77,6 +88,7 @@ class ProductOrder extends Model
             self::STATUS_PAID      => 'Paid',
             self::STATUS_FULFILLED => 'Fulfilled',
             self::STATUS_CANCELLED => 'Cancelled',
+            self::STATUS_REFUNDED  => 'Refunded',
             default                => ucfirst((string) $this->status),
         };
     }
