@@ -20,4 +20,35 @@ class UserNotification extends Model
     protected $casts = ['data' => 'array', 'read_at' => 'datetime', 'emailed_at' => 'datetime', 'created_at' => 'datetime', 'dismissed_at' => 'datetime'];
 
     public function user() { return $this->belongsTo(User::class); }
+
+    /**
+     * Resolve the single canonical "thing this notification is about" URL.
+     *
+     * Most notifications stash their action target in the data payload under
+     * a handful of historically-used keys (`url` is canonical, `target_url`
+     * is a legacy alias, `fix_url` is used by the social-connection alerts).
+     * A few types derive their destination from their kind rather than a
+     * stored URL (e.g. a workspace access request always points at the team
+     * page). This is the one place web, the open-redirect route, and the
+     * REST API all consult so the row, its primary link, and mobile stay in
+     * lockstep. Returns null when there is nothing meaningful to open.
+     */
+    public function targetUrl(): ?string
+    {
+        $data = $this->data ?? [];
+
+        foreach (['url', 'target_url', 'fix_url'] as $key) {
+            $candidate = $data[$key] ?? null;
+            if (is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        // Type-derived destinations for notifications that don't store a URL.
+        if ($this->type === 'workspace_access_request') {
+            return route('user.team.index');
+        }
+
+        return null;
+    }
 }

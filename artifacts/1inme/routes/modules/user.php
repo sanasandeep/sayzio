@@ -305,6 +305,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('notifications',  [\App\Modules\User\Controllers\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/read', [\App\Modules\User\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
         Route::post('notifications/{id}/read', [\App\Modules\User\Controllers\NotificationController::class, 'markOneRead'])->name('notifications.read-one')->whereNumber('id');
+        Route::get('notifications/{id}/open', [\App\Modules\User\Controllers\NotificationController::class, 'open'])->name('notifications.open')->whereNumber('id');
         Route::delete('notifications/{id}', [\App\Modules\User\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy')->whereNumber('id');
         Route::post('notifications/{id}/restore', [\App\Modules\User\Controllers\NotificationController::class, 'restore'])->name('notifications.restore')->whereNumber('id');
         Route::get('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'preferences'])->name('notifications.preferences');

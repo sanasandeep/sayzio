@@ -61,6 +61,57 @@ class NotificationController extends Controller
     }
 
     /**
+     * Open a notification: mark it read (if owned and unread) and redirect
+     * straight to whatever it's about, in one step. This powers the
+     * whole-row / primary-action click on the feed so users no longer have
+     * to read-then-navigate separately. Notifications without a resolvable
+     * target simply fall back to the feed.
+     *
+     * The redirect target is constrained to this app's own host (or a
+     * relative path) to keep this from becoming an open-redirect, since the
+     * resolved URL ultimately originates from stored notification data.
+     */
+    public function open(Request $request, int $id)
+    {
+        $n = UserNotification::where('user_id', auth()->id())->find($id);
+        if (! $n) {
+            return redirect()->route('user.notifications.index');
+        }
+
+        if (! $n->read_at) {
+            $n->forceFill(['read_at' => now()])->save();
+        }
+
+        $url = $n->targetUrl();
+        if (! $url || ! $this->isSafeRedirect($request, $url)) {
+            return redirect()->route('user.notifications.index');
+        }
+
+        return redirect()->to($url);
+    }
+
+    /**
+     * Only allow redirects to a relative path or a URL on this app's own
+     * host. Anything pointing elsewhere is rejected so a crafted/legacy
+     * notification payload can't bounce a signed-in user off-site.
+     */
+    private function isSafeRedirect(Request $request, string $url): bool
+    {
+        // Relative path (but not a protocol-relative "//evil.com").
+        if (str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+            return true;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+        if ($host === null) {
+            // No host component (e.g. a bare fragment/query) — treat as local.
+            return true;
+        }
+
+        return strcasecmp($host, $request->getHost()) === 0;
+    }
+
+    /**
      * Dismiss a single notification owned by the signed-in user. This is a
      * soft delete (stamps `dismissed_at`) rather than a permanent removal,
      * so the dismissal can be undone via the toast affordance or restored

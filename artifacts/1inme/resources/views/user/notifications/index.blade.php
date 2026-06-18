@@ -35,8 +35,15 @@
     @else
         <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
             @foreach($notifications as $n)
-                @php $d = $n->data ?? []; @endphp
-                <div class="p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'bg-violet-50/30' }}">
+                @php $d = $n->data ?? []; $target = $n->targetUrl(); @endphp
+                <div class="relative p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'bg-violet-50/30' }} {{ $target ? 'hover:bg-violet-500/5 transition-colors' : '' }}">
+                    @if($target)
+                        {{-- Stretched link: clicking anywhere on the row opens the
+                             target and marks this notification read in one step.
+                             The dismiss / mark-read controls sit above it (z-10). --}}
+                        <a href="{{ route('user.notifications.open', $n->id) }}"
+                           class="absolute inset-0 z-0" aria-label="Open notification"></a>
+                    @endif
                     @if($n->type === 'social_connection_broken')
                         <div class="w-10 h-10 rounded-full flex items-center justify-center"
                              style="background: rgba(239,68,68,0.12); color:#ef4444;">
@@ -157,7 +164,7 @@
                         @endif
                         <p class="text-xs mt-1" style="color: var(--text-faint);">{{ $n->created_at->diffForHumans() }}</p>
                     </div>
-                    <div class="flex items-center gap-1 flex-shrink-0">
+                    <div class="relative z-10 flex items-center gap-1 flex-shrink-0">
                         @if(!$n->read_at)
                             <form action="{{ route('user.notifications.read-one', $n->id) }}" method="POST">@csrf
                                 <button type="submit" title="Mark as read"

@@ -1,11 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
   FlatList,
+  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -15,12 +17,14 @@ import {
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
+import { getBaseUrl } from "@/lib/api";
 import {
   deleteNotification,
   listNotifications,
   markAllRead,
   markRead,
   restoreNotification,
+  type Notification,
 } from "@/lib/api/notifications";
 
 export default function NotificationsScreen() {
@@ -71,6 +75,22 @@ export default function NotificationsScreen() {
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
   }, []);
+
+  // Tapping a row opens the thing it's about (when it carries a target URL)
+  // and marks it read in the same gesture — mirroring the web feed. Targets
+  // are app paths/URLs, so we resolve relative paths against the API host and
+  // hand off to the in-app browser (falling back to the OS handler).
+  const openNotification = (item: Notification) => {
+    if (!item.read_at) markOne.mutate(item.id);
+    const target = item.url;
+    if (!target) return;
+    const absolute = /^https?:\/\//i.test(target)
+      ? target
+      : `${getBaseUrl()}${target.startsWith("/") ? "" : "/"}${target}`;
+    WebBrowser.openBrowserAsync(absolute).catch(() => {
+      Linking.openURL(absolute).catch(() => {});
+    });
+  };
 
   const removeOne = useMutation({
     mutationFn: (id: number) => deleteNotification(id),
@@ -144,7 +164,7 @@ export default function NotificationsScreen() {
             const unread = !item.read_at;
             return (
               <Pressable
-                onPress={() => unread && markOne.mutate(item.id)}
+                onPress={() => openNotification(item)}
                 style={[
                   styles.row,
                   {

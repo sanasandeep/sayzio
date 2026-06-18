@@ -26,7 +26,7 @@ class NotificationController extends Controller
                 'title'      => $n->title ?? null,
                 'body'       => $n->body ?? $n->message ?? null,
                 'data'       => $n->data ?? null,
-                'url'        => $n->url ?? null,
+                'url'        => $n->targetUrl(),
                 'read_at'    => optional($n->read_at)->toIso8601String(),
                 'created_at' => optional($n->created_at)->toIso8601String(),
             ])->all(),
