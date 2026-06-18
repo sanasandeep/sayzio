@@ -246,7 +246,7 @@ class ResumeController extends Controller
         ]);
 
         if (!ResumeTemplateRegistry::userCanUse($user, $data['template_id'])) {
-            return $this->fail('This template is not available on your current plan.', 403, 'plan_required');
+            return $this->planGate('This template is not available on your current plan.', 'resume.templates', $user, 403, 'plan_required');
         }
 
         $resume = $user->resolveResume($request);

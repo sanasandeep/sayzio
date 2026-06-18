@@ -104,8 +104,9 @@ class TeamController extends Controller
 
         $owner = $ws->owner ?: $request->user();
         $maxSeats = (int) $owner->getPlanFeature('max_seats_per_workspace', 1);
-        if ($maxSeats !== -1 && $ws->seatCount() + $ws->pendingInvites()->count() >= $maxSeats) {
-            return $this->fail("Seat limit reached ({$maxSeats}). Upgrade your plan or remove a member.", 422, 'seat_limit');
+        $usedSeats = $ws->seatCount() + $ws->pendingInvites()->count();
+        if ($maxSeats !== -1 && $usedSeats >= $maxSeats) {
+            return $this->planGate("Seat limit reached ({$maxSeats}). Upgrade your plan or remove a member.", 'max_seats_per_workspace', $owner, 422, 'seat_limit', $usedSeats);
         }
 
         $alreadyMember = $ws->members()->whereHas('user', fn ($q) => $q->where('email', $data['email']))->exists()

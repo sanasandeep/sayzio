@@ -11,15 +11,19 @@ import type { ApiError } from "@/lib/api";
  * "Upgrade your plan" prompt instead of a raw error toast.
  *
  * Covers QR Studio caps, Creator Payouts, and page-type quotas (restaurant
- * menu / reviews / resume / paid page) enforced server-side in Task #1779.
+ * menu / reviews / resume / paid page) enforced server-side in Task #1779,
+ * plus the resume/card/page template `plan_required` gates and workspace
+ * `seat_limit` gate that now carry a recommended-plan hint.
  */
 const PLAN_LOCK_CODES = new Set<string>([
   "plan_upgrade_required",
   "plan_limit_reached",
   "plan_limit",
+  "plan_required",
   "upgrade_required",
   "feature_locked",
   "rule_limit_exceeded",
+  "seat_limit",
   "api_quota_exceeded",
   "api_access_disabled",
   "insufficient_credits",
