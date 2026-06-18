@@ -5,6 +5,20 @@
 
 @section('content')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+{{-- Shared "drop a pin to fill address + lat/lng" map picker, reused by the
+     map_location block settings form (loaded here on the host page since the
+     edit form is injected via AJAX, which strips external <script src> tags). --}}
+<script src="{{ asset('js/map-pin-picker.js') }}"></script>
+<style>
+    .mpp-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
+    html.light-mode .mpp-map .leaflet-container { background:#e6e9f0 !important; }
+    .mpp-map .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
+    .mpp-map .leaflet-control-attribution a { color:#a78bfa !important; }
+    .mpp-map .leaflet-control-zoom a { background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important; }
+    .mpp-map .leaflet-control-zoom a:hover { background:#7c3aed !important; }
+    .mpp-marker { width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
+    .mpp-marker svg { width:100%; height:100%; display:block; }
+</style>
 @include('user.links.partials.themed-confirm')
 
 <style>

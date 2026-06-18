@@ -1234,11 +1234,35 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'map_location')
-<div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Address</label><input type="text" name="settings[address]" value="{{ $s['address'] ?? '' }}" placeholder="123 Main St, City" class="{{ $inputClass }}"></div>
+<div class="space-y-3" x-data="mapPinPicker({
+        address: {{ Illuminate\Support\Js::from($s['address'] ?? '') }},
+        lat: {{ Illuminate\Support\Js::from((string)($s['lat'] ?? '')) }},
+        lng: {{ Illuminate\Support\Js::from((string)($s['lng'] ?? '')) }},
+     })">
+    <div><label class="{{ $labelClass }}">Address</label><input type="text" name="settings[address]" x-model="address" placeholder="123 Main St, City" class="{{ $inputClass }}"></div>
+    <div>
+        <div class="flex items-center justify-between mb-1">
+            <span class="{{ $labelClass }}" style="margin-bottom:0;">Pin location</span>
+            <button type="button" @click="toggleMap()" class="text-[11px] font-medium" style="color:#a78bfa;">
+                <i class="fas fa-map-location-dot mr-1"></i> <span x-text="showMap ? 'Hide map' : 'Pick on map'"></span>
+            </button>
+        </div>
+        <div x-show="showMap" x-cloak class="mb-1">
+            <div class="flex gap-2 mb-2">
+                <input x-model="searchQuery" @keydown.enter.prevent="searchAddress()" type="text" placeholder="Search a place or address…" class="{{ $inputClass }}">
+                <button type="button" @click="searchAddress()" class="px-3 rounded-lg text-xs font-medium flex-shrink-0" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)">
+                    <i class="fas fa-magnifying-glass"></i>
+                </button>
+            </div>
+            <div x-ref="map" class="mpp-map" style="height:240px;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);background:#1e2330;"></div>
+            <p class="text-[11px] mt-1.5 text-white/40">
+                <i class="fas fa-circle-info mr-1"></i> Tap the map or drag the pin — we'll fill in the address and coordinates for you.
+            </p>
+        </div>
+    </div>
     <div class="grid grid-cols-2 gap-2">
-        <div><label class="{{ $labelClass }}">Latitude (optional)</label><input type="text" name="settings[lat]" value="{{ $s['lat'] ?? '' }}" placeholder="37.7749" class="{{ $inputClass }}"></div>
-        <div><label class="{{ $labelClass }}">Longitude (optional)</label><input type="text" name="settings[lng]" value="{{ $s['lng'] ?? '' }}" placeholder="-122.4194" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Latitude (optional)</label><input type="text" name="settings[lat]" x-model="lat" @input="syncMapFromInputs()" placeholder="37.7749" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Longitude (optional)</label><input type="text" name="settings[lng]" x-model="lng" @input="syncMapFromInputs()" placeholder="-122.4194" class="{{ $inputClass }}"></div>
     </div>
     <p class="text-[11px] text-white/40 -mt-1">If both lat/lng are set they take precedence over the address (useful for pin-precise pinning).</p>
     <div><label class="{{ $labelClass }}">Display Label (optional)</label><input type="text" name="settings[label]" value="{{ $s['label'] ?? '' }}" class="{{ $inputClass }}"></div>
