@@ -281,6 +281,18 @@ Schedule::command('db:check-pending-migrations')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily (off-peak): re-validate every active page & card template snapshot
+// with TemplateSnapshotValidator and alert ops admins (in-app + email) when a
+// saved template develops design issues — e.g. a later code change removes a
+// block type or retires a design-variant key, silently degrading a snapshot
+// that was valid when it was saved. No-op when everything validates;
+// cooldown-guarded (with a newly-broken-set bypass) so it won't spam admins,
+// and sends an all-clear once every template is valid again.
+Schedule::command('templates:check-design-health')
+    ->dailyAt('05:10')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Task #1211 — weekly creator digest. Mondays 08:00 UTC. The service
 // itself dedupes by users.creator_digest_last_sent_at so reruns inside
 // the same week are no-ops, and only emails creators with at least one
