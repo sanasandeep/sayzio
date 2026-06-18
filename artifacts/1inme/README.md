@@ -43,7 +43,7 @@ Boost provides your agent 15+ tools and skills that help agents build Laravel ap
 
 ## Contributing
 
-For repo-specific contribution rules (including the **`php artisan migrate:fresh --force` pre-flight check** for any changes to `database/migrations/`), see [CONTRIBUTING.md](CONTRIBUTING.md).
+For repo-specific contribution rules — the **`php artisan migrate:fresh --force` pre-flight check** for any changes to `database/migrations/`, the PostgreSQL-backed PHPUnit suite, and the bounded-memory sharded test runner (`composer test:sharded`) — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Thank you for considering contributing to the Laravel framework! The general contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 

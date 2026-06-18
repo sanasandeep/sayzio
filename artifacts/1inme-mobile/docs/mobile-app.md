@@ -119,10 +119,14 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | Route file | Purpose |
 | ---------- | ------- |
 | `app/links/create/[kind].tsx` | Create a link of a given kind. |
+| `app/links/wizard.tsx` | Guided Link-in-bio wizard. |
 | `app/links/conversational.tsx` | Conversational link setup. |
 | `app/links/[id]/edit.tsx` | Link editor. |
 | `app/links/[id]/analytics.tsx` | Link analytics. |
 | `app/links/[id]/ai-chat.tsx` | AI-chat link config. |
+| `app/links/[id]/conversational.tsx` | Conversational flow editor. |
+| `app/links/[id]/restaurant-menu.tsx` | Restaurant menu builder (categories, items, tables). |
+| `app/links/[id]/restaurant-orders.tsx` | Restaurant orders dashboard. |
 | `app/links/[id]/blocks/index.tsx`, `[blockId].tsx` | Block list + block editor. |
 | `app/links/[id]/settings/{appearance,layout,block-theme,themes,advanced}.tsx` | Biolink settings pages. |
 | `app/biolink/[handle].tsx` | Public biolink viewer. |
@@ -144,6 +148,7 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | ---------- | ------- |
 | `app/contacts/index.tsx`, `new.tsx`, `[id].tsx`, `_form.tsx` | Address book CRUD. |
 | `app/dialer.tsx` | Number-pad dialer + lookup. |
+| `app/dialer-profile.tsx` | Caller-ID profile resolved from a phone number. |
 | `app/call/active.tsx`, `app/call/incoming.tsx` | Call UI (`tel:`-based). |
 
 ### Monetization, wallet & billing
@@ -153,6 +158,8 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | `app/wallet.tsx`, `app/coin-packages.tsx` | Coin balance, ledger, packages. |
 | `app/payouts.tsx` | Creator payouts + inline 18+ adult-content consent. |
 | `app/monetization/{manage,subscribe,tip,unlock}.tsx` | Creator monetization. |
+| `app/paid-page/[alias].tsx` | Standalone paid-page viewer. |
+| `app/orders.tsx`, `app/store/order/[id].tsx` | Product storefront orders + order detail. |
 | `app/plans.tsx`, `app/upgrade.tsx`, `app/premium-features.tsx` | Plans & upsell (RevenueCat). |
 | `app/invoices.tsx`, `app/invoices/[id].tsx` | Invoicing. |
 
@@ -178,6 +185,8 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | `app/workspaces.tsx`, `app/workspace-members.tsx`, `app/team.tsx` | Workspace & team. |
 | `app/integrations.tsx`, `app/calendar.tsx`, `app/verification.tsx` | Integrations, calendar, verification. |
 | `app/backlinks.tsx` | Backlink radar matches. |
+| `app/reviews/[alias].tsx`, `app/reviews/manage.tsx` | Reviews viewer + owner moderation. |
+| `app/restaurant/[alias].tsx` | Public restaurant menu / ordering. |
 
 ### Analytics & community
 
@@ -197,6 +206,16 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | `app/api-usage.tsx` | Developer API-usage meter. |
 | `app/info/{about,help,privacy,terms,nfc}.tsx`, `_layout.tsx` | Info pages. |
 
+### Admin (back-office)
+
+Reachable only by an operator whose Sanctum token is email-linked to a back-office Admin record — switching is navigation, not a re-login. Each screen is gated by the same admin-guard permissions as the web routes.
+
+| Route file | Purpose |
+| ---------- | ------- |
+| `app/admin/index.tsx` | Admin dashboard / entry. |
+| `app/admin/users.tsx`, `app/admin/users/[id].tsx` | User list + roles / admin-access / impersonation. |
+| `app/mail-settings.tsx` | Mail / SMTP settings (status, edit, send test). |
+
 ## Feature parity with the web app
 
 | Feature | Status | Notes |
@@ -208,4 +227,10 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | **AI** | Full | Coach, Ask Coach, personas, credits; native voice via `expo-audio` (`lib/api/voice.ts`). |
 | **Wallet & coins** | Full | Balance, ledger, packages, purchase. |
 | **Payments** | Full | RevenueCat (`react-native-purchases`) with `/billing/revenuecat/activate`. |
+| **Restaurant Menu** | Full | Native builder (settings, categories, items, device-photo upload, tables/QR) + orders dashboard (`app/links/[id]/restaurant-{menu,orders}.tsx`). |
+| **Reviews** | Full | Public viewer + owner approve/hide/pin/reply/delete (`app/reviews/`). |
+| **Product storefront** | Full | Native checkout + owner orders/fulfillment (`app/orders.tsx`, `app/store/order/[id].tsx`). |
+| **Paid pages** | Full | Standalone paid-page viewer (`app/paid-page/[alias].tsx`). |
+| **Link-in-bio wizard** | Full | Stateless guided builder (`app/links/wizard.tsx`). |
+| **Admin back-office** | Full | Users / roles / admin-access / impersonation + mail settings (`app/admin/`, `app/mail-settings.tsx`). |
 | **QR Studio** | Partial | Simple QR is native (`app/qr.tsx`); advanced styling redirects to web (`app/qr-studio.tsx`). |

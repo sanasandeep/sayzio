@@ -115,7 +115,7 @@ php scripts/run-sharded-tests.php --dry-run # print the shard plan, run nothing
 
 How it stays fast despite multiple processes:
 
-- The `migrate:fresh` (224 migrations against remote Postgres — the slow part)
+- The `migrate:fresh` (248 migrations against remote Postgres — the slow part)
   is run **once**, by the first shard, on the shared `1inme_testing` database.
 - Every later shard is launched with `SHARDED_TEST_SKIP_MIGRATION=1`, which
   [`tests/bootstrap.php`](tests/bootstrap.php) uses to tell Laravel's

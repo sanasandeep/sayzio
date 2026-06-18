@@ -23,15 +23,16 @@ see [API usage metering](#api-usage-metering)).
 
 - [Authentication](#authentication) · [OTP / social / demo](#otp-social--demo-auth) · [Sessions & security](#sessions--security)
 - [Profile](#profile) · [Onboarding](#onboarding) · [Dashboard & notifications](#dashboard--notifications) · [Push tokens](#push-tokens)
-- [Links](#links-own-resources) · [A/B links](#ab-links) · [Smart links & rules](#smart-links--rules) · [AI-chat links](#ai-chat-links) · [Card templates](#card-templates) · [NFC writes](#nfc-writes)
+- [Links](#links-own-resources) · [Link-in-bio wizard](#guided-link-in-bio-wizard) · [A/B links](#ab-links) · [Smart links & rules](#smart-links--rules) · [AI-chat links](#ai-chat-links) · [Conversational links](#conversational-links) · [Card templates](#card-templates) · [Page templates](#page-templates) · [NFC writes](#nfc-writes)
 - [Biolinks (public)](#biolinks-public-visibility-aware) · [Blocks](#biolink-blocks-authoring) · [Block live limits & interactions](#block-live-limits--interactions) · [Biolink themes](#biolink-themes)
-- [Reviews (public)](#reviews-public)
-- [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Creator monetization](#creator-monetization) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
+- [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
+- [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Resume](#resume--portfolio) · [Projects](#projects)
-- [Wallet & coins](#wallet--coins) · [AI](#ai-credits) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
-- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms)
+- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-minds-voice-ask-coach-companions) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
+- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
-- [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Pixel tracking](#pixel-tracking)
+- [Admin (mobile back-office)](#admin-mobile-back-office) · [Admin mail / SMTP](#admin-mail--smtp-settings)
+- [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Pixel tracking](#pixel-tracking) · [Health](#health)
 - [Error codes](#error-codes) · [Pagination](#pagination-shape) · [API usage metering](#api-usage-metering)
 
 ---
@@ -138,6 +139,18 @@ Used mainly by the mobile app for passwordless and native sign-in.
 | PATCH  | `/links/{id}/rate-limit`   | yes | Per-biolink visitor rate-limit override (update).                        |
 | GET    | `/links/{id}/rsvps`        | yes | RSVP responses for an event link (see [Calendar](#calendar)).            |
 
+### Guided Link-in-bio wizard
+
+Mobile parity for the web `user.links.wizard.*` flow. Stateless — the client
+drives the steps and submits all answers to `/generate`. Literal `wizard`
+segments win over the integer-guarded `/links/{id}` matcher.
+
+| Method | Path                       | Auth | Description                                            |
+| ------ | -------------------------- | ---- | ----------------------------------------------------- |
+| GET    | `/links/wizard/taxonomy`   | yes  | Category/goal taxonomy that drives the question flow.  |
+| GET    | `/links/wizard/questions`  | yes  | Wizard questions (uses `BiolinkWizardQuestions`).      |
+| POST   | `/links/wizard/generate`   | yes  | Generate a biolink page from collected answers.        |
+
 ### A/B links
 
 Literal `links/ab` segments are registered before `/links/{id}` so they win over the integer-id matcher.
@@ -166,12 +179,35 @@ Full-page AI chat link editor (`links.type = ai_chat`); reuses the AI Companion 
 | GET    | `/links/{id}/ai-chat`   | yes  | Load the AI-chat page config.       |
 | PUT    | `/links/{id}/ai-chat`   | yes  | Save the AI-chat page config.       |
 
+### Conversational links
+
+Conversational-flow editor (`links.type = conversational`); mirrors the web
+`user.links.conversational.{editor,save}` routes via the shared flow
+validation/persistence helpers.
+
+| Method | Path                              | Auth | Description                          |
+| ------ | -------------------------------- | ---- | ----------------------------------- |
+| GET    | `/links/{id}/conversational`     | yes  | Load the conversational flow config. |
+| PUT    | `/links/{id}/conversational`     | yes  | Save the conversational flow config. |
+
 ### Card templates
 
 | Method | Path                              | Auth | Description                              |
 | ------ | --------------------------------- | ---- | --------------------------------------- |
 | GET    | `/links/{id}/card-templates`      | yes  | List card templates for a link.         |
 | POST   | `/links/{id}/card-templates/apply`| yes  | Apply a card template to a link.        |
+
+### Page templates
+
+Mobile parity for the web full-page template picker. Applying **replaces** the
+link's blocks, so `apply` honours an overwrite-confirmation guard (HTTP **409**
+when the link already has blocks).
+
+| Method | Path                                       | Auth | Description                                                  |
+| ------ | ------------------------------------------ | ---- | ----------------------------------------------------------- |
+| GET    | `/links/{id}/page-templates`               | yes  | List available page templates for a link.                   |
+| GET    | `/links/{id}/page-templates/{template}`    | yes  | Full block tree for one template (no writes) for preview.   |
+| POST   | `/links/{id}/page-templates/apply`         | yes  | Apply a page template (409 if the link already has blocks).  |
 
 ### NFC writes
 
@@ -377,6 +413,15 @@ JSON mirror of the `/@handle` web surface so the app can render the same page.
 | POST   | `/creator-profile/{handle}/posts/{post}/react`       | opt  | React to a post. Throttle: 120/min.             |
 | POST   | `/creator-profile/{handle}/posts/{post}/comment`     | opt  | Comment on a post. Throttle: 60/min.            |
 
+## Paid pages (public)
+
+Standalone Paid Page (`links.type = paid_page`) resolved by link alias so the app can render the bold per-link themed design natively. The feed interactions reuse the handle-keyed react/comment endpoints under [Creator profile](#creator-profile-public) (the show response returns the creator handle).
+
+| Method | Path                                | Auth | Description                                       |
+| ------ | ----------------------------------- | ---- | ------------------------------------------------ |
+| GET    | `/paid-page/{alias}`                | opt  | Paid-page header + theme + tabs by link alias.   |
+| GET    | `/paid-page/{alias}/posts`          | opt  | Paginated paid-page post feed.                   |
+
 ## Creator monetization
 
 Public per-creator endpoints; listing tiers is unauthenticated, while subscribing/unlocking/tipping require a bearer token. Owner dashboards require the creator's own token.
@@ -393,6 +438,18 @@ Public per-creator endpoints; listing tiers is unauthenticated, while subscribin
 | GET    | `/me/creator/subscribers`                     | opt  | Owner subscriber list.                             |
 | GET    | `/me/creator/payments`                        | opt  | Owner payment history.                             |
 | GET    | `/me/creator/tiers`                           | opt  | Owner tier management list.                        |
+
+## Product storefront
+
+Native-checkout product storefront for biolink Product blocks. The cart lives in the app (no session on the Sanctum path) and is posted as line items. Buying/checkout require a bearer token; owner order management requires the creator's own token.
+
+| Method | Path                                       | Auth | Description                                       |
+| ------ | ------------------------------------------ | ---- | ------------------------------------------------ |
+| POST   | `/store/{alias}/buy`                       | yes  | Single-product quick buy. Throttle: 30/min.      |
+| POST   | `/store/{alias}/checkout`                  | yes  | Checkout a cart of line items. Throttle: 30/min. |
+| GET    | `/store/orders/{order}`                    | opt  | Order status/receipt by id.                      |
+| GET    | `/me/creator/orders`                       | yes  | Owner: list incoming product orders.             |
+| POST   | `/me/creator/orders/{order}/fulfill`       | yes  | Owner: mark an order fulfilled.                  |
 
 ## Posts (creator feed)
 
@@ -486,6 +543,7 @@ curl $BASE/forms -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json'
 | POST   | `/contacts/bulk`              | yes  | Bulk import contacts.                                   |
 | GET    | `/contacts/{id}`              | yes  | Show a contact.                                         |
 | PATCH  | `/contacts/{id}`              | yes  | Update a contact.                                       |
+| POST   | `/contacts/{id}/manual-profile` | yes | Attach/override a manual biolink profile on a contact. |
 | POST   | `/contacts/{id}/merge`        | yes  | Merge into another contact. Throttle: 60/min.          |
 | DELETE | `/contacts/{id}`              | yes  | Delete a contact.                                       |
 
@@ -833,6 +891,32 @@ DM threads on owned biolinks.
 | ------ | ------------------- | ---- | -------------------------------- |
 | GET    | `/verifications`    | yes  | Creator-badge verification status. |
 | POST   | `/verifications`    | yes  | Submit a verification request.    |
+
+---
+
+## Admin (mobile back-office)
+
+Mobile parity for the back-office role / admin-access tooling and impersonation. The operator's authority comes from their email-linked back-office Admin record, so a mobile user with an active admin account reaches these with the same Sanctum token (no re-login). Each action is gated behind the same admin-guard permission the web routes use.
+
+| Method | Path                                       | Auth | Description                                          |
+| ------ | ------------------------------------------ | ---- | --------------------------------------------------- |
+| GET    | `/admin/context`                           | yes  | Operator's admin context (linked Admin + permissions). |
+| GET    | `/admin/users`                             | yes  | List users for role / admin-access management.      |
+| GET    | `/admin/users/{user}/roles`                | yes  | Show a user's roles.                                |
+| PUT    | `/admin/users/{user}/roles`                | yes  | Update a user's roles.                              |
+| POST   | `/admin/users/{user}/admin-access`         | yes  | Grant back-office admin access to a user.           |
+| DELETE | `/admin/users/{user}/admin-access`         | yes  | Revoke back-office admin access.                    |
+| POST   | `/admin/users/{user}/impersonate`          | yes  | Impersonate a user. Throttle: 20/min.              |
+
+## Admin mail / SMTP settings
+
+Super-admin parity for the mail transport editor, gated behind `settings.manage`. Saving runs a live SMTP handshake; the test action sends a real email.
+
+| Method | Path                              | Auth | Description                                      |
+| ------ | --------------------------------- | ---- | ----------------------------------------------- |
+| GET    | `/admin/mail-settings`            | yes  | Current mail config + status.                   |
+| PUT    | `/admin/mail-settings`            | yes  | Update the SMTP transport.                      |
+| POST   | `/admin/mail-settings/test`       | yes  | Send a test email. Throttle: 10/min.            |
 
 ---
 
