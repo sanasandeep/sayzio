@@ -1076,7 +1076,7 @@ if (typeof window.resetPollVotes !== 'function') {
          row is a {label, value} pair (e.g. "Followers" / "12.5k"), capped
          at 6 by the sanitizer. Reorder with the up/down arrows. --}}
     @if($block->type === 'profile_card_v3')
-    <div x-data="{ stats: {{ json_encode(array_values($pcStats)) }} }">
+    <div x-data="{ stats: {{ json_encode(array_values($pcStats)) }} }" x-effect="window.pcLivePreviewStats && window.pcLivePreviewStats(JSON.stringify(stats))">
         <label class="{{ $labelClass }}">Stats</label>
         <template x-for="(stat, i) in stats" :key="i">
             <div class="flex items-center gap-2 mb-2">
@@ -1095,7 +1095,7 @@ if (typeof window.resetPollVotes !== 'function') {
     {{-- Badge pills — shown by the Badges design (profile_card_v4). Each
          badge is a single label, capped at 12 by the sanitizer. --}}
     @if($block->type === 'profile_card_v4')
-    <div x-data="{ badges: {{ json_encode(array_values($pcBadges)) }} }">
+    <div x-data="{ badges: {{ json_encode(array_values($pcBadges)) }} }" x-effect="window.pcLivePreviewBadges && window.pcLivePreviewBadges(JSON.stringify(badges))">
         <label class="{{ $labelClass }}">Badges</label>
         <template x-for="(badge, i) in badges" :key="i">
             <div class="flex items-center gap-2 mb-2">

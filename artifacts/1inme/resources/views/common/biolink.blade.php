@@ -2982,6 +2982,65 @@
                     }, 1500);
                 }
             }, 500);
+
+            // Live preview for profile-card stats/badges: the editor posts the
+            // current repeater state as the owner types/reorders, and we rebuild
+            // the matching card section in place (no save/reload round-trip).
+            window.addEventListener('message', function (e) {
+                if (e.origin !== window.location.origin) return;
+                var d = e.data;
+                if (!d || d.type !== '1inme-pc-live') return;
+                var block = document.querySelector('[data-block-id="' + d.blockId + '"]');
+                if (!block) return;
+
+                if (Array.isArray(d.stats)) {
+                    var sWrap = block.querySelector('[data-pc-stats]');
+                    if (sWrap) {
+                        var accent = sWrap.getAttribute('data-pc-accent') || '';
+                        var rows = d.stats.slice(0, 6).filter(function (st) {
+                            return (st && ((st.value || '') !== '' || (st.label || '') !== ''));
+                        });
+                        if (rows.length === 0) {
+                            sWrap.style.display = 'none';
+                            sWrap.innerHTML = '';
+                        } else {
+                            sWrap.style.display = '';
+                            sWrap.innerHTML = rows.map(function (st) {
+                                var v = esc(st.value != null && st.value !== '' ? st.value : '0');
+                                var l = esc(st.label || '');
+                                return '<div class="text-center"><p class="font-bold">' + v +
+                                    '</p><p class="text-[10px]" style="opacity:.45">' + l + '</p></div>';
+                            }).join('');
+                        }
+                    }
+                }
+
+                if (Array.isArray(d.badges)) {
+                    var bWrap = block.querySelector('[data-pc-badges]');
+                    if (bWrap) {
+                        var bAccent = bWrap.getAttribute('data-pc-accent') || '';
+                        var labels = d.badges.slice(0, 12).map(function (bd) {
+                            return bd && bd.label != null ? String(bd.label) : '';
+                        }).filter(function (lbl) { return lbl !== ''; });
+                        if (labels.length === 0) {
+                            bWrap.style.display = 'none';
+                            bWrap.innerHTML = '';
+                        } else {
+                            bWrap.style.display = '';
+                            bWrap.innerHTML = labels.map(function (lbl) {
+                                return '<span class="px-3 py-1 rounded-full text-xs" style="background:rgba(124,58,237,0.18);color:' +
+                                    bAccent + '">' + esc(lbl) + '</span>';
+                            }).join('');
+                        }
+                    }
+                }
+
+                function esc(v) {
+                    return String(v).replace(/[&<>"']/g, function (c) {
+                        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                    });
+                }
+            });
         }
     })();
     </script>

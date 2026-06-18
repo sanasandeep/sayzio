@@ -446,16 +446,14 @@
             @if($name)<p class="mt-3 font-semibold">{{ $name }}</p>@endif
             @if($title)<p class="text-xs" style="color:{{ $accent }}">{{ $title }}</p>@endif
             @if($bio)<p class="text-sm mt-3" style="opacity:.6">{{ $bio }}</p>@endif
-            @if(!empty($stats))
-                <div class="flex justify-center gap-6 mt-4">
-                    @foreach($stats as $stat)
-                        <div class="text-center">
-                            <p class="font-bold">{{ $stat['value'] ?? '0' }}</p>
-                            <p class="text-[10px]" style="opacity:.45">{{ $stat['label'] ?? '' }}</p>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
+            <div class="flex justify-center gap-6 mt-4" data-pc-stats data-pc-accent="{{ $accent }}" @if(empty($stats))style="display:none"@endif>
+                @foreach($stats as $stat)
+                    <div class="text-center">
+                        <p class="font-bold">{{ $stat['value'] ?? '0' }}</p>
+                        <p class="text-[10px]" style="opacity:.45">{{ $stat['label'] ?? '' }}</p>
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
 
@@ -470,14 +468,12 @@
             @if($name)<p class="mt-3 font-semibold">{{ $name }}</p>@endif
             @if($title)<p class="text-xs" style="color:{{ $accent }}">{{ $title }}</p>@endif
             @if($bio)<p class="text-sm mt-3" style="opacity:.6">{{ $bio }}</p>@endif
-            @if(!empty($badges))
-                <div class="flex flex-wrap justify-center gap-2 mt-4">
-                    @foreach($badges as $badge)
-                        @php $bLabel = is_array($badge) ? ($badge['label'] ?? '') : $badge; @endphp
-                        @if($bLabel !== '')<span class="px-3 py-1 rounded-full text-xs" style="background:rgba(124,58,237,0.18);color:{{ $accent }}">{{ $bLabel }}</span>@endif
-                    @endforeach
-                </div>
-            @endif
+            <div class="flex flex-wrap justify-center gap-2 mt-4" data-pc-badges data-pc-accent="{{ $accent }}" @if(empty($badges))style="display:none"@endif>
+                @foreach($badges as $badge)
+                    @php $bLabel = is_array($badge) ? ($badge['label'] ?? '') : $badge; @endphp
+                    @if($bLabel !== '')<span class="px-3 py-1 rounded-full text-xs" style="background:rgba(124,58,237,0.18);color:{{ $accent }}">{{ $bLabel }}</span>@endif
+                @endforeach
+            </div>
         </div>
     </div>
 @endif

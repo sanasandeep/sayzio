@@ -1467,6 +1467,28 @@ function _initDrawerAutoSave(container) {
     }, 100);
 }
 
+// Live profile-card preview: push the current stats/badges repeater state into
+// the edit-preview iframe as the owner types/reorders, so the card updates
+// instantly without waiting for the debounced autosave + iframe reload. Caps
+// (6 stats, 12 badges) mirror the renderer/repeaters.
+function _postPcLive(payload) {
+    var pFrame = document.getElementById('editPreviewFrame');
+    if (!pFrame || !pFrame.contentWindow || !_editingBlockId) return;
+    payload.type = '1inme-pc-live';
+    payload.blockId = _editingBlockId;
+    try { pFrame.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+}
+function pcLivePreviewStats(statsJson) {
+    var stats; try { stats = JSON.parse(statsJson); } catch (e) { return; }
+    if (!Array.isArray(stats)) return;
+    _postPcLive({ stats: stats.slice(0, 6) });
+}
+function pcLivePreviewBadges(badgesJson) {
+    var badges; try { badges = JSON.parse(badgesJson); } catch (e) { return; }
+    if (!Array.isArray(badges)) return;
+    _postPcLive({ badges: badges.slice(0, 12) });
+}
+
 var _csrfToken = function() { return document.querySelector('meta[name="csrf-token"]').content; };
 
 function showToast(msg, type) {
