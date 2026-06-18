@@ -30,3 +30,14 @@ generic `link` glyph. Don't assume a Feather brand icon exists for a platform.
 `backgroundColor`. Gradient/social_profile/floating fallback covers and the gradient
 layout background must use `expo-linear-gradient` `<LinearGradient>`, branching on
 whether the design supplied a flat `bg_color`.
+
+**White-text layouts need a self-supplied backdrop when no cover:** any layout that
+hardcodes white text (glass, cover_hero, founder, minimal_dark, floating, gradient,
+social_profile) must paint its own dark/gradient backdrop for the no-cover case —
+mobile has no guaranteed dark themed page behind the card (the public biolink page bg
+follows the device light/dark theme, so light mode = light card). cover_hero/founder/
+minimal_dark fall back to `#0b0b0f`; floating/social_profile/gradient paint a brand
+gradient. glass originally only rendered its overlay gradient when a cover existed, so
+no-cover glass was white-on-white in light mode — fixed by always rendering the
+gradient (translucent tint over a cover, opaque brand gradient when none). When adding
+a white-text layout, verify the no-cover path in **light** mode, not just dark.

@@ -1721,14 +1721,19 @@ function ProfileCardView({
             style={{ ...StyleSheet.absoluteFillObject, opacity: 0.3 }}
           />
         ) : null}
-        {hasCover ? (
-          <LinearGradient
-            colors={["rgba(124,58,237,0.40)", "rgba(236,72,153,0.28)"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        ) : null}
+        {/* Translucent tint over a cover; an opaque brand gradient when there's
+            no cover, so the white glass text stays legible on any page theme
+            (mirrors the floating/social_profile fallback). */}
+        <LinearGradient
+          colors={
+            hasCover
+              ? ["rgba(124,58,237,0.40)", "rgba(236,72,153,0.28)"]
+              : ["#7c3aed", "#d946ef"]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
         <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
           <ProfileAvatar
             avatar={avatar}
