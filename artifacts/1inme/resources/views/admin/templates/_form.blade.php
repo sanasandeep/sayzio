@@ -200,9 +200,32 @@
             <div x-show="showJson" x-cloak>
                 <p class="text-xs text-white/40 mb-2">Paste/edit raw snapshot JSON. If valid, this will override any captured snapshot. All block payloads are re-sanitized on apply.</p>
                 <textarea name="snapshot_json" rows="14" spellcheck="false"
+                    x-model="snapshotJson" @input.debounce.500ms="validateSnapshot()"
                     class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs text-emerald-300 font-mono"
                     placeholder='{"blocks":[…]}'>{{ old('snapshot_json', $isEdit ? json_encode($tpl->snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '') }}</textarea>
                 @error('snapshot_json')<p class="text-red-400 text-xs mt-1">{{ $message }}</p>@enderror
+
+                <div class="mt-2 min-h-[1.25rem]" aria-live="polite">
+                    <p x-show="checking" x-cloak class="text-[11px] text-white/40">
+                        <i class="fas fa-circle-notch fa-spin mr-1"></i>Checking design…
+                    </p>
+                    <div x-show="!checking && snapshotIssues.length" x-cloak
+                        class="rounded-xl border border-red-500/30 bg-red-500/10 p-3">
+                        <p class="text-xs font-medium text-red-300 mb-1.5">
+                            <i class="fas fa-triangle-exclamation mr-1"></i>This snapshot has design problems that would silently degrade on the public page:
+                        </p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <template x-for="issue in snapshotIssues" :key="issue">
+                                <li class="text-[11px] text-red-200/90" x-text="issue"></li>
+                            </template>
+                        </ul>
+                        <p class="text-[10px] text-red-200/60 mt-1.5">Saving is still allowed for valid JSON, but these blocks won't render as designed.</p>
+                    </div>
+                    <p x-show="!checking && snapshotChecked && !snapshotIssues.length && snapshotJson.trim()" x-cloak
+                        class="text-[11px] text-emerald-300">
+                        <i class="fas fa-circle-check mr-1"></i>No design issues found.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -225,6 +248,42 @@ function templateForm() {
         cards: [],
         recapture: false,
         showJson: false,
+        snapshotJson: @json(old('snapshot_json', $isEdit ? json_encode($tpl->snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '')),
+        snapshotIssues: [],
+        snapshotChecked: false,
+        checking: false,
+        _validateSeq: 0,
+        init() {
+            // Validate any pre-filled JSON (edit page or a bounced-back create form)
+            // so issues surface on load, not just on the next keystroke.
+            if (this.snapshotJson && this.snapshotJson.trim()) this.validateSnapshot();
+        },
+        validateSnapshot() {
+            const json = (this.snapshotJson || '').trim();
+            if (!json) { this.snapshotIssues = []; this.snapshotChecked = false; this.checking = false; return; }
+            const seq = ++this._validateSeq;
+            this.checking = true;
+            fetch('{{ route('admin.templates.validate-snapshot') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                },
+                body: JSON.stringify({ kind: '{{ $kind }}', snapshot_json: json }),
+            })
+                .then(r => r.json())
+                .then(d => {
+                    if (seq !== this._validateSeq) return; // a newer request superseded this one
+                    this.snapshotIssues = d.issues || [];
+                    this.snapshotChecked = true;
+                    this.checking = false;
+                })
+                .catch(() => {
+                    if (seq !== this._validateSeq) return;
+                    this.checking = false;
+                });
+        },
         searchLinks() {
             if (this.search.trim().length < 1) { this.results = []; return; }
             fetch('{{ route('admin.templates.search-links') }}?kind={{ $kind }}&q=' + encodeURIComponent(this.search), { headers: { 'Accept': 'application/json' } })

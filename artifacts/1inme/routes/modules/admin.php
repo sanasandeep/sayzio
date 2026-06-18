@@ -108,6 +108,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('create', [TemplateController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/', [TemplateController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
             Route::get('search-links', [TemplateController::class, 'searchLinks'])->middleware(CheckPermission::class . ':settings.manage')->name('search-links');
+            Route::post('validate-snapshot', [TemplateController::class, 'validateSnapshot'])->middleware(CheckPermission::class . ':settings.manage')->name('validate-snapshot');
             Route::get('{kind}/{id}/edit', [TemplateController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{kind}/{id}', [TemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{kind}/{id}/toggle', [TemplateController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');

@@ -330,6 +330,53 @@ class TemplateController extends Controller
     }
 
     /**
+     * Live inline validation of a pasted snapshot JSON, used by the
+     * create/edit forms so admins see design problems (unknown block
+     * type, unresolvable `_style._variant`) as they edit — before they
+     * submit and get bounced back. Returns the same per-issue messages
+     * the server raises on save (structural JSON checks mirrored from
+     * {@see buildSnapshot()} plus {@see TemplateSnapshotValidator::issues()}).
+     */
+    public function validateSnapshot(Request $request)
+    {
+        $kind = $request->input('kind') === 'card' ? 'card' : 'page';
+        $json = trim((string) $request->input('snapshot_json', ''));
+
+        if ($json === '') {
+            return response()->json(['ok' => true, 'issues' => []]);
+        }
+
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return response()->json([
+                'ok' => false,
+                'issues' => ['Snapshot JSON is not valid JSON.'],
+            ]);
+        }
+
+        if ($kind === 'card' && ($decoded['type'] ?? null) !== 'card') {
+            return response()->json([
+                'ok' => false,
+                'issues' => ['Card snapshot must have "type": "card" at the root.'],
+            ]);
+        }
+
+        if ($kind === 'page' && !isset($decoded['blocks']) && !isset($decoded['biolink'])) {
+            return response()->json([
+                'ok' => false,
+                'issues' => ['Page snapshot must include a "blocks" array.'],
+            ]);
+        }
+
+        $issues = TemplateSnapshotValidator::issues($decoded, $kind);
+
+        return response()->json([
+            'ok' => empty($issues),
+            'issues' => array_values($issues),
+        ]);
+    }
+
+    /**
      * Resolve the snapshot for store/update.
      * Priority: pasted JSON (if valid & non-empty) > source-link/card capture > existing.
      * Returns null only if nothing is available (caller should error).
