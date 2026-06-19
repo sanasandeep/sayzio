@@ -6,8 +6,10 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Wallet;
 use App\Modules\User\Models\WalletTransaction;
 use App\Services\Billing\WalletService;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -42,8 +44,31 @@ class AiCreditMigrationTest extends TestCase
         ]);
     }
 
+    /**
+     * The `ai_credit_balances` table has since been dropped from the live
+     * schema (the credit system is fully retired). This conversion
+     * migration is historical but still ships in the repo, so recreate the
+     * legacy table on the fly to keep its value-preservation contract
+     * covered.
+     */
+    private function ensureLegacyTable(): void
+    {
+        if (Schema::hasTable('ai_credit_balances')) {
+            return;
+        }
+        Schema::create('ai_credit_balances', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->bigInteger('balance')->default(0);
+            $table->bigInteger('lifetime_purchased')->default(0);
+            $table->bigInteger('lifetime_spent')->default(0);
+            $table->timestamps();
+        });
+    }
+
     private function seedBalance(User $user, int $balance): void
     {
+        $this->ensureLegacyTable();
         DB::table('ai_credit_balances')->insert([
             'user_id'    => $user->id,
             'balance'    => $balance,
@@ -151,6 +176,7 @@ class AiCreditMigrationTest extends TestCase
     public function test_orphan_balance_row_without_user_is_left_untouched(): void
     {
         // Insert a balance row pointing at a non-existent user id.
+        $this->ensureLegacyTable();
         DB::table('ai_credit_balances')->insert([
             'user_id'    => 999999,
             'balance'    => 30,

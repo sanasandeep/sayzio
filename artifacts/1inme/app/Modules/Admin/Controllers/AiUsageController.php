@@ -3,11 +3,11 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\User\Models\AiCreditTransaction;
 use App\Modules\User\Models\CardScan;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Wallet;
 use App\Modules\User\Models\WalletTransaction;
+use App\Services\AI\AiFeatureCatalog;
 use App\Services\Billing\InsufficientCoinsException;
 use App\Services\Billing\WalletService;
 use Illuminate\Http\Request;
@@ -28,8 +28,8 @@ use Illuminate\Support\Facades\DB;
  * WalletService::adjust (row-locked, audited) and are AI-tagged so they
  * stay visible in this report.
  *
- * The feature catalog/labels are still sourced from
- * {@see AiCreditTransaction} (kept as a read-only constant map).
+ * The feature catalog/labels are sourced from
+ * {@see AiFeatureCatalog} (a read-only constant map).
  */
 class AiUsageController extends Controller
 {
@@ -130,7 +130,7 @@ class AiUsageController extends Controller
             'totals'        => $totals,
             'days'          => $days,
             'feature'       => $feature,
-            'features'      => AiCreditTransaction::FEATURES,
+            'features'      => AiFeatureCatalog::FEATURES,
             'featureRows'   => $featureRows,
             'cardScanStats' => $cardScanStats,
         ]);
