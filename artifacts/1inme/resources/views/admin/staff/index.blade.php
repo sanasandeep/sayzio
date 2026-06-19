@@ -146,11 +146,11 @@
             </template>
         </div>
 
-        <form method="POST" :action="grantUrl" class="mt-4" x-show="selected" x-cloak>
+        <form method="POST" :action="grantUrl" class="mt-4" x-show="selected" x-cloak @submit="if (!handleGrantSubmit($event)) $event.preventDefault()">
             @csrf
             <input type="hidden" name="redirect_to" value="staff">
             <label class="block text-xs font-medium text-white/40 uppercase mb-1">Admin role</label>
-            <select name="role_id" x-model="roleId" required
+            <select name="role_id" x-model="roleId" x-ref="roleSelect" required
                     class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
                 <option value="">Select a role…</option>
                 @foreach($adminRoles as $role)
@@ -199,6 +199,23 @@ function promoteUser() {
             this.selected = user;
             this.results = [];
             this.query = '';
+        },
+        selectedRoleName() {
+            if (!this.roleId || !this.$refs.roleSelect) return 'the selected role';
+            var opt = this.$refs.roleSelect.options[this.$refs.roleSelect.selectedIndex];
+            return opt && opt.value ? opt.text : 'the selected role';
+        },
+        handleGrantSubmit(e) {
+            if (!this.selected || !this.selected.is_admin) {
+                return true;
+            }
+            return window.themedConfirmSubmit(e.target, {
+                title: 'Update admin role?',
+                message: this.selected.name + ' already has back-office admin access. Granting will change their role to ' + this.selectedRoleName() + '.',
+                confirmText: 'Update role',
+                confirmIcon: 'fa-user-shield',
+                iconClass: 'fa-user-shield'
+            });
         },
         async search() {
             const term = this.query.trim();
