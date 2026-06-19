@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
@@ -44,7 +44,7 @@ export default defineConfig({
           ),
         ]
       : []),
-  ],
+  ] as PluginOption[],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),

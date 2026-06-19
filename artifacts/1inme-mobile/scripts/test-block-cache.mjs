@@ -373,14 +373,20 @@ assert.ok(
 );
 // Card-template apply now patches the returned sub-tree in place via
 // insertBlockTree instead of invalidating + refetching the whole list.
+// Scope the checks to the onApplied handler body only — an unbounded
+// search would otherwise reach unrelated invalidateQueries calls
+// elsewhere in this large editor file (e.g. the special-picker modals).
+const onAppliedMatch = editorSrc.match(
+  /onApplied=\{\(blocks\)\s*=>\s*\{([\s\S]*?)\n\s*\}\}/,
+);
+assert.ok(onAppliedMatch, "editor should define an onApplied card-template handler");
+const onAppliedBody = onAppliedMatch[1];
 assert.ok(
-  /onApplied=\{\(blocks\)\s*=>\s*\{[\s\S]*?insertBlockTree\(old, blocks, afterId\)/.test(
-    editorSrc,
-  ),
+  /insertBlockTree\(old, blocks, afterId\)/.test(onAppliedBody),
   "card-template apply should patch the sub-tree in place via insertBlockTree",
 );
 assert.ok(
-  !/onApplied=\{\(blocks\)\s*=>\s*\{[\s\S]*?invalidateQueries/.test(editorSrc),
+  !/invalidateQueries/.test(onAppliedBody),
   "card-template apply should no longer invalidate the whole list",
 );
 ok("editor wires the shared helpers, patches the apply sub-tree, keeps onError re-sync");
