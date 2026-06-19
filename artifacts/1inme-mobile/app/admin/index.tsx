@@ -20,7 +20,7 @@ import { getAdminContext, type AdminCapabilities } from "@/lib/api/admin";
 // /admin/context, mirroring the web back-office.
 
 type Row = {
-  key: keyof AdminCapabilities | "mail";
+  key: keyof AdminCapabilities | "mail" | "schema-audits";
   icon: keyof typeof Feather.glyphMap;
   label: string;
   description: string;

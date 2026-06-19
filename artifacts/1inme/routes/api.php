@@ -272,6 +272,7 @@ Route::prefix('v1')->group(function () {
         // dashboard banner and gated behind `settings.manage`. The repair
         // ALTERs the live schema, so it is rate-limited and writes an audit row.
         Route::get ('/admin/schema-health',        [\App\Modules\Api\Controllers\SchemaHealthController::class, 'status']);
+        Route::get ('/admin/schema-health/audits', [\App\Modules\Api\Controllers\SchemaHealthController::class, 'audits']);
         Route::post('/admin/schema-health/repair', [\App\Modules\Api\Controllers\SchemaHealthController::class, 'repair'])->middleware('throttle:10,1');
 
         // Admin dashboard switch, role / admin-access assignment and

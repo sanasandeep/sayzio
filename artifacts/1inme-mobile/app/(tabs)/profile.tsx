@@ -958,6 +958,23 @@ export default function Profile() {
                 </Text>
                 <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
               </Pressable>
+              <Pressable
+                onPress={() => router.push("/admin/repair-audits" as never)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Feather name="tool" size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  Schema repair log
+                </Text>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </Pressable>
             </View>
           </View>
         ) : null}

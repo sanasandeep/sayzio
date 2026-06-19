@@ -56,6 +56,63 @@ class SchemaHealthController extends Controller
     }
 
     /**
+     * Read-only, paginated timeline of past one-click schema repair runs —
+     * who ran each repair, when, and which columns/tables it touched. Mirrors
+     * the web admin repair-audit page so a reviewer can audit this
+     * destructive-adjacent action from the 1INME Mobile app. Only schema
+     * metadata is returned (added columns per table + whole-missing tables it
+     * could not recreate), never row data.
+     */
+    public function audits(Request $request)
+    {
+        if (! $request->user()->hasPermission('settings.manage')) {
+            return $this->forbidden('You are not allowed to view schema repair audits.');
+        }
+
+        $perPage = (int) $request->integer('per_page', 30);
+        $perPage = max(1, min($perPage, 100));
+
+        $audits = SchemaRepairAudit::query()
+            ->with(['actorAdmin:id,name,email', 'actorUser:id,name,email'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        return $this->ok([
+            'audits' => array_map(fn (SchemaRepairAudit $a) => $this->auditPayload($a), $audits->items()),
+            'meta'   => [
+                'current_page' => $audits->currentPage(),
+                'last_page'    => $audits->lastPage(),
+                'per_page'     => $audits->perPage(),
+                'total'        => $audits->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Shape a single {@see SchemaRepairAudit} row for the mobile list — the
+     * resolved actor label/email, the timestamp, the per-table added columns
+     * and the whole-missing tables it could not repair, plus the convenience
+     * counts the screen renders as badges.
+     */
+    private function auditPayload(SchemaRepairAudit $audit): array
+    {
+        return [
+            'id'                  => $audit->id,
+            'actor_label'         => $audit->actorLabel(),
+            'actor_email'         => $audit->actor_email,
+            'actor_guard'         => $audit->actor_guard,
+            'added'               => (array) ($audit->added ?? []),
+            'unrepairable'        => array_values((array) ($audit->unrepairable ?? [])),
+            'added_columns_count' => (int) $audit->added_columns_count,
+            'added_tables_count'  => (int) $audit->added_tables_count,
+            'unrepairable_count'  => (int) $audit->unrepairable_count,
+            'changed_schema'      => $audit->changedSchema(),
+            'ip'                  => $audit->ip,
+            'created_at'          => optional($audit->created_at)->toIso8601String(),
+        ];
+    }
+
+    /**
      * Add + backfill any missing expected columns in place (idempotent /
      * guarded — {@see ExpectedSchemaHealth::repair()}), record the audit row,
      * then re-check the live schema and report the outcome. Whole-missing

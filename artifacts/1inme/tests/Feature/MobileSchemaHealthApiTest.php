@@ -238,4 +238,128 @@ class MobileSchemaHealthApiTest extends TestCase
         $this->assertNotNull($audit);
         $this->assertSame(0, $audit->added_columns_count);
     }
+
+    public function test_audits_require_authentication(): void
+    {
+        $this->getJson('/api/v1/admin/schema-health/audits')->assertStatus(401);
+    }
+
+    public function test_audits_forbidden_for_a_non_admin_token(): void
+    {
+        $this->asUser($this->makeUser());
+
+        $this->getJson('/api/v1/admin/schema-health/audits')
+            ->assertStatus(403)
+            ->assertJsonPath('error.code', 'forbidden');
+    }
+
+    public function test_audits_return_an_empty_trail_when_no_repairs_have_run(): void
+    {
+        $this->asUser($this->makeAdmin());
+
+        $resp = $this->getJson('/api/v1/admin/schema-health/audits');
+
+        $resp->assertOk();
+        $resp->assertJsonPath('data.audits', []);
+        $resp->assertJsonPath('data.meta.total', 0);
+        $resp->assertJsonPath('data.meta.current_page', 1);
+    }
+
+    public function test_audits_list_past_repairs_newest_first_with_actor_and_schema_metadata(): void
+    {
+        $admin = $this->makeAdmin();
+
+        // Seed two audit rows directly so the listing is deterministic and
+        // independent of the repair engine: an older no-op and a newer run
+        // that added a column and could not recreate a whole-missing table.
+        SchemaRepairAudit::create([
+            'actor_admin_id'      => null,
+            'actor_user_id'       => $admin->id,
+            'actor_guard'         => 'web',
+            'actor_name'          => $admin->name,
+            'actor_email'         => $admin->email,
+            'added'               => [],
+            'unrepairable'        => [],
+            'added_columns_count' => 0,
+            'added_tables_count'  => 0,
+            'unrepairable_count'  => 0,
+            'ip'                  => '10.0.0.1',
+            'created_at'          => now()->subHour(),
+        ]);
+        SchemaRepairAudit::create([
+            'actor_admin_id'      => null,
+            'actor_user_id'       => $admin->id,
+            'actor_guard'         => 'web',
+            'actor_name'          => $admin->name,
+            'actor_email'         => $admin->email,
+            'added'               => ['links' => ['seo_title']],
+            'unrepairable'        => ['link_clicks'],
+            'added_columns_count' => 1,
+            'added_tables_count'  => 1,
+            'unrepairable_count'  => 1,
+            'ip'                  => '10.0.0.2',
+            'created_at'          => now(),
+        ]);
+
+        $this->asUser($admin);
+        $resp = $this->getJson('/api/v1/admin/schema-health/audits');
+
+        $resp->assertOk();
+        $resp->assertJsonPath('data.meta.total', 2);
+
+        $rows = $resp->json('data.audits');
+        $this->assertCount(2, $rows);
+
+        // Newest-first ordering: the column-adding run comes before the no-op.
+        $newest = $rows[0];
+        $this->assertSame(['links' => ['seo_title']], $newest['added']);
+        $this->assertSame(['link_clicks'], $newest['unrepairable']);
+        $this->assertSame(1, $newest['added_columns_count']);
+        $this->assertSame(1, $newest['unrepairable_count']);
+        $this->assertTrue($newest['changed_schema']);
+        $this->assertSame($admin->email, $newest['actor_email']);
+        $this->assertStringContainsString($admin->name, $newest['actor_label']);
+        $this->assertSame('10.0.0.2', $newest['ip']);
+        $this->assertNotNull($newest['created_at']);
+
+        $oldest = $rows[1];
+        $this->assertSame([], $oldest['added']);
+        $this->assertFalse($oldest['changed_schema']);
+    }
+
+    public function test_audits_are_paginated(): void
+    {
+        $admin = $this->makeAdmin();
+
+        foreach (range(1, 3) as $i) {
+            SchemaRepairAudit::create([
+                'actor_admin_id'      => null,
+                'actor_user_id'       => $admin->id,
+                'actor_guard'         => 'web',
+                'actor_name'          => $admin->name,
+                'actor_email'         => $admin->email,
+                'added'               => [],
+                'unrepairable'        => [],
+                'added_columns_count' => 0,
+                'added_tables_count'  => 0,
+                'unrepairable_count'  => 0,
+                'ip'                  => '10.0.0.' . $i,
+                'created_at'          => now()->subMinutes($i),
+            ]);
+        }
+
+        $this->asUser($admin);
+
+        $page1 = $this->getJson('/api/v1/admin/schema-health/audits?per_page=2');
+        $page1->assertOk();
+        $page1->assertJsonPath('data.meta.total', 3);
+        $page1->assertJsonPath('data.meta.per_page', 2);
+        $page1->assertJsonPath('data.meta.last_page', 2);
+        $this->assertCount(2, $page1->json('data.audits'));
+
+        $page2 = $this->getJson('/api/v1/admin/schema-health/audits?per_page=2&page=2');
+        $page2->assertOk();
+        $page2->assertJsonPath('data.meta.current_page', 2);
+        $this->assertCount(1, $page2->json('data.audits'));
+    }
 }
