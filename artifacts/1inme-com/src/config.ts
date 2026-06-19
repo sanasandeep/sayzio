@@ -25,3 +25,54 @@ export const SIGNUP_URL: string =
  */
 export const PRICING_URL: string =
   import.meta.env.VITE_PRICING_URL ?? DEFAULT_PRICING_URL;
+
+/**
+ * Official 1INME social media profiles, surfaced in the marketing footer.
+ * `icon` names the lucide-react component to render; "threads" has no lucide
+ * icon, so the footer renders an inline brand SVG for it.
+ */
+export interface SocialLink {
+  label: string;
+  handle: string;
+  url: string;
+  icon: "instagram" | "threads" | "x" | "facebook" | "youtube" | "linkedin";
+}
+
+export const SOCIAL_LINKS: SocialLink[] = [
+  {
+    label: "Instagram",
+    handle: "@1in.me",
+    url: "https://instagram.com/1in.me",
+    icon: "instagram",
+  },
+  {
+    label: "Threads",
+    handle: "@1in.me",
+    url: "https://www.threads.net/@1in.me",
+    icon: "threads",
+  },
+  {
+    label: "X",
+    handle: "@1INMEOfficial",
+    url: "https://x.com/1INMEOfficial",
+    icon: "x",
+  },
+  {
+    label: "Facebook",
+    handle: "@1INMEOfficial",
+    url: "https://facebook.com/1INMEOfficial",
+    icon: "facebook",
+  },
+  {
+    label: "YouTube",
+    handle: "@1INMEOfficial",
+    url: "https://youtube.com/@1INMEOfficial",
+    icon: "youtube",
+  },
+  {
+    label: "LinkedIn",
+    handle: "/company/1INME",
+    url: "https://linkedin.com/company/1INME",
+    icon: "linkedin",
+  },
+];
