@@ -267,6 +267,13 @@ Route::prefix('v1')->group(function () {
         Route::put ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'update']);
         Route::post('/admin/mail-settings/test', [\App\Modules\Api\Controllers\MailSettingsController::class, 'sendTest'])->middleware('throttle:10,1');
 
+        // Schema-column repair (super-admin parity). Read-only drift report
+        // plus the destructive-adjacent one-click repair, mirroring the web
+        // dashboard banner and gated behind `settings.manage`. The repair
+        // ALTERs the live schema, so it is rate-limited and writes an audit row.
+        Route::get ('/admin/schema-health',        [\App\Modules\Api\Controllers\SchemaHealthController::class, 'status']);
+        Route::post('/admin/schema-health/repair', [\App\Modules\Api\Controllers\SchemaHealthController::class, 'repair'])->middleware('throttle:10,1');
+
         // Admin dashboard switch, role / admin-access assignment and
         // impersonation (mobile parity for the back-office tooling). The
         // operator's authority comes from their email-linked back-office
