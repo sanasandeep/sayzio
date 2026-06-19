@@ -22,18 +22,34 @@ class AuthSettingsController extends Controller
         $credsConfigured = config('whatsapp.phone_number_id') && config('whatsapp.access_token');
 
         return view('admin.auth-settings.index', [
-            'mobileLoginEnabled' => AuthMethods::mobileLoginEnabled(),
-            'allowedCodesText'   => implode("\n", AuthMethods::allowedCountryCodes()),
-            'credsConfigured'    => (bool) $credsConfigured,
+            'mobileLoginEnabled'   => AuthMethods::mobileLoginEnabled(),
+            'emailPasswordEnabled' => AuthMethods::emailPasswordEnabled(),
+            'emailOtpEnabled'      => AuthMethods::emailOtpEnabled(),
+            'allowedCodesText'     => implode("\n", AuthMethods::allowedCountryCodes()),
+            'credsConfigured'      => (bool) $credsConfigured,
         ]);
     }
 
     public function update(Request $request)
     {
         $data = $request->validate([
-            'mobile_login_enabled' => ['nullable', 'boolean'],
-            'allowed_country_codes' => ['nullable', 'string', 'max:2000'],
+            'email_password_enabled' => ['nullable', 'boolean'],
+            'email_otp_enabled'      => ['nullable', 'boolean'],
+            'mobile_login_enabled'   => ['nullable', 'boolean'],
+            'allowed_country_codes'  => ['nullable', 'string', 'max:2000'],
         ]);
+
+        $emailPasswordEnabled = (bool) ($data['email_password_enabled'] ?? false);
+        $emailOtpEnabled      = (bool) ($data['email_otp_enabled'] ?? false);
+
+        // At least one email-based login method must stay on — otherwise an
+        // admin could lock every user out (WhatsApp alone can't recover an
+        // account and isn't available to everyone).
+        if (!$emailPasswordEnabled && !$emailOtpEnabled) {
+            return back()
+                ->withErrors(['email_otp_enabled' => 'At least one email login method (password or one-time code) must stay enabled.'])
+                ->withInput();
+        }
 
         $codes = AuthMethods::normalizeCodes(
             preg_split('/[\s,]+/', (string) ($data['allowed_country_codes'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: []
@@ -45,6 +61,8 @@ class AuthSettingsController extends Controller
             $codes = AuthMethods::DEFAULT_ALLOWED_CODES;
         }
 
+        AppSetting::put(AuthMethods::SETTING_EMAIL_PASSWORD_ENABLED, $emailPasswordEnabled);
+        AppSetting::put(AuthMethods::SETTING_EMAIL_OTP_ENABLED, $emailOtpEnabled);
         AppSetting::put(AuthMethods::SETTING_MOBILE_ENABLED, (bool) ($data['mobile_login_enabled'] ?? false));
         AppSetting::put(AuthMethods::SETTING_ALLOWED_CODES, $codes);
 

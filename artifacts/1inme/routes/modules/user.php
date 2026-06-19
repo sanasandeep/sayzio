@@ -81,6 +81,10 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('throttle:auth-register')
         ->name('register.submit');
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
+    // Email + password sign-in (only honored when the admin has enabled it).
+    Route::post('login', [AuthController::class, 'loginWithPassword'])
+        ->middleware('throttle:auth-credentials')
+        ->name('login.submit');
     Route::get('demo-login', fn () => redirect()->route('user.login'));
     Route::post('demo-login', [AuthController::class, 'demoLogin'])->middleware('throttle:5,1')->name('demo.login');
     // OTP send/verify now go through identifier-aware named limiters

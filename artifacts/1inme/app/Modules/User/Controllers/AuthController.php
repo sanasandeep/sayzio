@@ -23,7 +23,10 @@ class AuthController extends Controller
     {
         if (Auth::check()) return redirect()->route('user.dashboard');
         $prefilledRef = $request->query('ref') ?: $request->cookie(ReferralService::COOKIE_NAME);
-        return view('user.auth.register', ['prefilledRef' => $prefilledRef]);
+        return view('user.auth.register', [
+            'prefilledRef'         => $prefilledRef,
+            'emailPasswordEnabled' => AuthMethods::emailPasswordEnabled(),
+        ]);
     }
 
     public function register(Request $request, ReferralService $referrals)
@@ -38,6 +41,8 @@ class AuthController extends Controller
                 ->with('status', 'If your account was created, we sent a code to your inbox.');
         }
 
+        $passwordEnabled = AuthMethods::emailPasswordEnabled();
+
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:190|unique:users,email',
@@ -45,6 +50,12 @@ class AuthController extends Controller
             'referral_code' => 'nullable|string|max:32',
             'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ];
+        // When password login is enabled, the sign-up form captures a
+        // password the user chooses (confirmed). When it's off, the form has
+        // no password field and accounts keep their random, unused password.
+        if ($passwordEnabled) {
+            $rules['password'] = ['required', 'string', 'min:8', 'max:72', 'confirmed'];
+        }
         $validated = $request->validate($rules);
         $validated['email'] = strtolower($validated['email']);
         if (!empty($validated['country'])) {
@@ -64,9 +75,11 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'mobile' => $validated['mobile'] ?? null,
-            // Password column is NOT NULL but unused — fill with an
-            // unguessable random hash so the OTP flow is the only way in.
-            'password' => Hash::make(Str::random(48)),
+            // When password login is enabled, store the user's chosen
+            // password. Otherwise the column is NOT NULL but unused — fill
+            // it with an unguessable random hash so the OTP flow is the
+            // only way in.
+            'password' => Hash::make($passwordEnabled ? $validated['password'] : Str::random(48)),
             'plan_id' => $freePlan?->id,
             'status' => 'active',
             'referral_code' => $referrals->generateUniqueCode(),
@@ -79,6 +92,30 @@ class AuthController extends Controller
         // Every new user starts with a personal workspace. Team workspaces
         // (if their plan allows) can be created later from the switcher.
         $user->ensureDefaultWorkspace();
+
+        // When email OTP login is switched off (password-only mode), there's
+        // no code to verify — the user already chose a password — so sign
+        // them straight in rather than routing through an OTP they can't use.
+        if ($passwordEnabled && !AuthMethods::emailOtpEnabled()) {
+            Auth::login($user, true);
+            $user->update(['last_login_at' => now()]);
+            $request->session()->regenerate();
+            $request->session()->regenerateToken();
+
+            app(\App\Modules\Common\Services\LoginAlertService::class)->record(
+                $user,
+                $request,
+                'web_register_password',
+                ['session_id' => $request->session()->getId()]
+            );
+
+            \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
+
+            if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
+                return $redirect;
+            }
+            return redirect()->route('user.dashboard')->with('success', 'Account created. Welcome to 1INME!');
+        }
 
         // Send a login OTP and route the new user through verification.
         $otpService = new OtpService();
@@ -109,9 +146,82 @@ class AuthController extends Controller
     {
         if (Auth::check()) return redirect()->route('user.dashboard');
         return view('user.auth.login', [
-            'mobileLoginEnabled'  => AuthMethods::mobileLoginEnabled(),
-            'allowedCountryCodes' => AuthMethods::allowedCountryCodes(),
+            'mobileLoginEnabled'   => AuthMethods::mobileLoginEnabled(),
+            'emailPasswordEnabled' => AuthMethods::emailPasswordEnabled(),
+            'emailOtpEnabled'      => AuthMethods::emailOtpEnabled(),
+            'allowedCountryCodes'  => AuthMethods::allowedCountryCodes(),
         ]);
+    }
+
+    /**
+     * Email + password sign-in. Only available when an admin has enabled
+     * the email-password login method. Validates against the user's stored
+     * password hash and routes through the existing 2FA/TOTP challenge when
+     * the user has an authenticator enrolled.
+     */
+    public function loginWithPassword(Request $request)
+    {
+        if (!AuthMethods::emailPasswordEnabled()) {
+            return redirect()->route('user.login')
+                ->withErrors(['password' => 'Password login is not available. Please sign in with a one-time code.']);
+        }
+
+        $data = $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $email = strtolower($data['email']);
+        $user  = $this->resolveUserByIdentifier($email, 'email');
+
+        // Always run a Hash::check, even when no user matches, so an attacker
+        // can't tell "unknown email" apart from "known email + wrong password"
+        // by timing the response.
+        $hashedAttempt = $user ? $user->password : '$2y$12$.invalid.dummy.hash.to.equalize.timing.zzzzzzzzzzzzzz';
+        $passwordOk    = Hash::check($data['password'], $hashedAttempt);
+
+        if (!$user || !$passwordOk) {
+            return back()->withErrors(['password' => 'Invalid email or password.'])->withInput($request->only('email'));
+        }
+
+        if (($user->status ?? 'active') !== 'active') {
+            return back()->withErrors(['email' => 'Your account is not active. Please contact support.'])->withInput($request->only('email'));
+        }
+
+        // Opportunistic re-hash if Laravel's hasher parameters have rotated
+        // since this password was set.
+        if (Hash::needsRehash($user->password)) {
+            $user->forceFill(['password' => Hash::make($data['password'])])->save();
+        }
+
+        // If the user has a confirmed TOTP authenticator, gate the rest of
+        // login behind the existing second-factor challenge.
+        $policy = app(TwoFactorPolicy::class);
+        if ($policy->userHasEnrolledTotp($user)) {
+            $request->session()->regenerate();
+            $request->session()->put('2fa_pending_user_id', $user->id);
+            $request->session()->put('2fa_pending_remember', true);
+            return redirect()->route('user.account.two-factor.challenge');
+        }
+
+        Auth::login($user, true);
+        $user->update(['last_login_at' => now()]);
+        $request->session()->regenerate();
+
+        app(\App\Modules\Common\Services\LoginAlertService::class)->record(
+            $user,
+            $request,
+            'web_password',
+            ['session_id' => $request->session()->getId()]
+        );
+
+        $user->ensureDefaultWorkspace();
+        \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
+
+        if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
+            return $redirect;
+        }
+        return redirect()->intended(route('user.dashboard'));
     }
 
     public function sendOtp(Request $request)
@@ -123,6 +233,13 @@ class AuthController extends Controller
 
         $identifier = $request->identifier;
         $type = $request->type;
+
+        // Honor the email-OTP toggle: when an admin has switched it off
+        // (password-only mode), reject email one-time-code requests even if
+        // someone crafts the POST directly.
+        if ($type === 'email' && !AuthMethods::emailOtpEnabled()) {
+            return back()->withErrors(['identifier' => 'Email one-time-code login is not available. Please sign in with your password.'])->withInput();
+        }
 
         // Email is the only login identifier unless an admin has switched on
         // WhatsApp (mobile) login. Reject mobile attempts when it's off and
@@ -177,6 +294,13 @@ class AuthController extends Controller
         if ($type === 'mobile' && (!AuthMethods::mobileLoginEnabled() || !AuthMethods::isAllowedMobile($identifier))) {
             return redirect()->route('user.login')
                 ->withErrors(['identifier' => 'Mobile login is not available. Please sign in with your email.']);
+        }
+
+        // Likewise, don't re-issue an email code once email OTP login has
+        // been switched off.
+        if ($type === 'email' && !AuthMethods::emailOtpEnabled()) {
+            return redirect()->route('user.login')
+                ->withErrors(['identifier' => 'Email one-time-code login is not available. Please sign in with your password.']);
         }
 
         // Only generate/send when a real user matches the session identifier.

@@ -21,13 +21,42 @@ class AuthMethods
     public const SETTING_MOBILE_ENABLED = 'auth_mobile_login_enabled';
     public const SETTING_ALLOWED_CODES  = 'auth_allowed_country_codes';
 
+    public const SETTING_EMAIL_PASSWORD_ENABLED = 'auth_email_password_enabled';
+    public const SETTING_EMAIL_OTP_ENABLED      = 'auth_email_otp_enabled';
+
     /** Seeded defaults when an admin has never saved the settings. */
     public const DEFAULT_ALLOWED_CODES = ['+91', '+1'];
+
+    /**
+     * Defaults preserve today's behaviour: email OTP is on (the historical
+     * hardcoded primary method) and email + password login is off (accounts
+     * are created with a random, unused password).
+     */
+    public const DEFAULT_EMAIL_OTP_ENABLED      = true;
+    public const DEFAULT_EMAIL_PASSWORD_ENABLED = false;
 
     /** Is WhatsApp (mobile) login switched on by an admin? */
     public static function mobileLoginEnabled(): bool
     {
         return (bool) AppSetting::get(self::SETTING_MOBILE_ENABLED, false);
+    }
+
+    /** Can users sign in with their email address + a chosen password? */
+    public static function emailPasswordEnabled(): bool
+    {
+        return (bool) AppSetting::get(
+            self::SETTING_EMAIL_PASSWORD_ENABLED,
+            self::DEFAULT_EMAIL_PASSWORD_ENABLED
+        );
+    }
+
+    /** Can users sign in with a one-time code emailed to them? */
+    public static function emailOtpEnabled(): bool
+    {
+        return (bool) AppSetting::get(
+            self::SETTING_EMAIL_OTP_ENABLED,
+            self::DEFAULT_EMAIL_OTP_ENABLED
+        );
     }
 
     /**

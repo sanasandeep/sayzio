@@ -42,7 +42,7 @@
 
                 <div class="hidden lg:block mb-7">
                     <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Create your account</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">No password needed — we'll email you a code each time.</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ ($emailPasswordEnabled ?? false) ? 'Choose a password to sign in with your email.' : "No password needed — we'll email you a code each time." }}</p>
                 </div>
 
                 <div class="lg:hidden text-center mb-6">
@@ -72,6 +72,19 @@
                             <input type="email" name="email" value="{{ old('email') }}" required placeholder="you@example.com" class="theme-input w-full">
                             @error('email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                         </div>
+
+                        @if($emailPasswordEnabled ?? false)
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
+                            <input type="password" name="password" required placeholder="At least 8 characters" autocomplete="new-password" class="theme-input w-full">
+                            @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Confirm Password</label>
+                            <input type="password" name="password_confirmation" required placeholder="Re-enter your password" autocomplete="new-password" class="theme-input w-full">
+                        </div>
+                        @endif
 
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Mobile <span style="color: var(--text-faint);">(optional)</span></label>
@@ -110,7 +123,7 @@
 
                         <div class="rounded-xl px-3 py-2.5 text-[11px] flex items-start gap-2" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.18); color: var(--text-dimmed);">
                             <i class="fas fa-shield-alt text-violet-400 mt-0.5"></i>
-                            <span>No password needed. We'll email you a 6-digit code to sign in every time.</span>
+                            <span>{{ ($emailPasswordEnabled ?? false) ? "Use your email and password to sign in. Keep your password somewhere safe — it can't be reset yet." : "No password needed. We'll email you a 6-digit code to sign in every time." }}</span>
                         </div>
 
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">

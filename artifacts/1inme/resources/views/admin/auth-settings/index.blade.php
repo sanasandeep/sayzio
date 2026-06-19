@@ -12,13 +12,66 @@
     <div class="glass rounded-2xl p-6">
         <h1 class="text-xl font-semibold text-white">Login &amp; OTP</h1>
         <p class="text-sm text-white/60 mt-1">
-            Email is always accepted as a login and account-recovery identifier. You can additionally let users sign in with a one-time code sent over <strong class="text-white/80">WhatsApp</strong>, restricted to an allow-list of country dialling codes.
+            Choose how users sign in. You can independently enable <strong class="text-white/80">email + password</strong> and a one-time code sent over <strong class="text-white/80">email</strong> — at least one of these must stay on. You can additionally let users sign in with a one-time code sent over <strong class="text-white/80">WhatsApp</strong>, restricted to an allow-list of country dialling codes.
         </p>
     </div>
+
+    @if($errors->any())
+        <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">
+            {{ $errors->first() }}
+        </div>
+    @endif
 
     <form method="POST" action="{{ route('admin.auth-settings.update') }}" class="space-y-6">
         @csrf
         @method('PUT')
+
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+                <h2 class="text-base font-semibold text-white">Email login methods</h2>
+                <p class="text-xs text-white/50">At least one of these must stay enabled so users can always reach their account by email.</p>
+            </div>
+
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
+                <input type="hidden" name="email_password_enabled" value="0">
+                <input type="checkbox"
+                       name="email_password_enabled"
+                       value="1"
+                       @checked(old('email_password_enabled', $emailPasswordEnabled))
+                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-white">Enable email + password login</span>
+                        @if($emailPasswordEnabled)
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-white/50 mt-0.5">
+                        Users set a password when they sign up and sign in with their email + password. (Password reset is not yet available.)
+                    </p>
+                </div>
+            </label>
+
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
+                <input type="hidden" name="email_otp_enabled" value="0">
+                <input type="checkbox"
+                       name="email_otp_enabled"
+                       value="1"
+                       @checked(old('email_otp_enabled', $emailOtpEnabled))
+                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-white">Enable email one-time-code login</span>
+                        @if($emailOtpEnabled)
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-white/50 mt-0.5">
+                        Users request a 6-digit code emailed to them each time they sign in — no password required.
+                    </p>
+                </div>
+            </label>
+        </div>
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>

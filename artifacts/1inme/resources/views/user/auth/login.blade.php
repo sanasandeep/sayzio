@@ -46,14 +46,23 @@
                     </a>
                 </div>
 
+                @php
+                    $mobileLoginEnabled   = $mobileLoginEnabled ?? false;
+                    $emailPasswordEnabled = $emailPasswordEnabled ?? false;
+                    $emailOtpEnabled      = $emailOtpEnabled ?? true;
+                    $passwordOn = $emailPasswordEnabled;
+                    $defaultMethod = old('login_method')
+                        ?: ($emailPasswordEnabled ? 'password' : ($emailOtpEnabled ? 'email_otp' : 'mobile'));
+                    $methodCount = ($emailPasswordEnabled ? 1 : 0) + ($emailOtpEnabled ? 1 : 0) + ($mobileLoginEnabled ? 1 : 0);
+                @endphp
                 <div class="hidden lg:block mb-7">
                     <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">We'll send you a 6-digit code — no password needed.</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ $passwordOn ? 'Sign in to your account.' : "We'll send you a 6-digit code — no password needed." }}</p>
                 </div>
 
                 <div class="lg:hidden text-center mb-6">
                     <h2 class="text-xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">Sign in with a one-time code</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ $passwordOn ? 'Sign in to your account' : 'Sign in with a one-time code' }}</p>
                 </div>
 
                 @if(session('status'))
@@ -62,49 +71,91 @@
                     </div>
                 @endif
 
-                @php($mobileLoginEnabled = $mobileLoginEnabled ?? false)
-                @if($mobileLoginEnabled)
-                <form method="POST" action="{{ route('user.otp.send') }}" x-data="{ otpType: 'email' }">
-                    @csrf
-                    <div class="space-y-4">
-                        <div class="flex gap-2">
-                            <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
-                                <i class="fas fa-envelope mr-1"></i> Email
-                            </button>
-                            <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
-                                <i class="fab fa-whatsapp mr-1"></i> WhatsApp
-                            </button>
-                        </div>
-                        <input type="hidden" name="type" :value="otpType">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);" x-text="otpType === 'email' ? 'Email Address' : 'WhatsApp Number'"></label>
-                            <input type="text" name="identifier" value="{{ old('identifier') }}" required autofocus :placeholder="otpType === 'email' ? 'you@example.com' : '+1234567890'" class="theme-input w-full">
-                            @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-                            <p x-show="otpType === 'mobile'" x-cloak class="mt-1.5 text-[10px]" style="color: var(--text-faint);">
-                                <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
-                            </p>
-                        </div>
-                        <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
-                            <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
+                <div x-data="{ method: '{{ $defaultMethod }}' }">
+                    @if($methodCount > 1)
+                    <div class="flex gap-2 mb-4">
+                        @if($emailPasswordEnabled)
+                        <button type="button" @click="method = 'password'" :class="method === 'password' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'password' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                            <i class="fas fa-key mr-1"></i> Password
                         </button>
+                        @endif
+                        @if($emailOtpEnabled)
+                        <button type="button" @click="method = 'email_otp'" :class="method === 'email_otp' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'email_otp' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                            <i class="fas fa-envelope mr-1"></i> Email code
+                        </button>
+                        @endif
+                        @if($mobileLoginEnabled)
+                        <button type="button" @click="method = 'mobile'" :class="method === 'mobile' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                            <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+                        </button>
+                        @endif
                     </div>
-                </form>
-                @else
-                <form method="POST" action="{{ route('user.otp.send') }}">
-                    @csrf
-                    <div class="space-y-4">
+                    @endif
+
+                    @if($emailPasswordEnabled)
+                    {{-- Email + password sign-in --}}
+                    <form method="POST" action="{{ route('user.login.submit') }}" x-show="method === 'password'" @if($methodCount > 1)x-cloak @endif>
+                        @csrf
+                        <input type="hidden" name="login_method" value="password">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email Address</label>
+                                <input type="email" name="email" value="{{ old('email') }}" required placeholder="you@example.com" class="theme-input w-full">
+                                @error('email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
+                                <input type="password" name="password" required placeholder="Your password" autocomplete="current-password" class="theme-input w-full">
+                                @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                            <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                                <i class="fas fa-arrow-right-to-bracket text-xs"></i> Sign In
+                            </button>
+                        </div>
+                    </form>
+                    @endif
+
+                    @if($emailOtpEnabled)
+                    {{-- Email one-time-code sign-in --}}
+                    <form method="POST" action="{{ route('user.otp.send') }}" x-show="method === 'email_otp'" @if($methodCount > 1)x-cloak @endif>
+                        @csrf
+                        <input type="hidden" name="login_method" value="email_otp">
                         <input type="hidden" name="type" value="email">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email Address</label>
-                            <input type="email" name="identifier" value="{{ old('identifier') }}" required autofocus placeholder="you@example.com" class="theme-input w-full">
-                            @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email Address</label>
+                                <input type="email" name="identifier" value="{{ old('identifier') }}" required placeholder="you@example.com" class="theme-input w-full">
+                                @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                            <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                                <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
+                            </button>
                         </div>
-                        <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
-                            <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
-                        </button>
-                    </div>
-                </form>
-                @endif
+                    </form>
+                    @endif
+
+                    @if($mobileLoginEnabled)
+                    {{-- WhatsApp one-time-code sign-in --}}
+                    <form method="POST" action="{{ route('user.otp.send') }}" x-show="method === 'mobile'" @if($methodCount > 1)x-cloak @endif>
+                        @csrf
+                        <input type="hidden" name="login_method" value="mobile">
+                        <input type="hidden" name="type" value="mobile">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">WhatsApp Number</label>
+                                <input type="text" name="identifier" value="{{ old('identifier') }}" required placeholder="+1234567890" class="theme-input w-full">
+                                @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <p class="mt-1.5 text-[10px]" style="color: var(--text-faint);">
+                                    <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
+                                </p>
+                            </div>
+                            <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                                <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
+                            </button>
+                        </div>
+                    </form>
+                    @endif
+                </div>
 
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
                     <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Or sign in with</p>
