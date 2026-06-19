@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Support\SchemaHealth;
+use App\Modules\Common\Support\WorkspaceColumnHealth;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Plan;
@@ -27,6 +28,11 @@ class DashboardController extends Controller
         // dashboard render.
         $schemaHealth = SchemaHealth::cached();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth'));
+        // Proactive half-applied-migration warning: workspace-scoping columns
+        // that are missing from the live DB despite their migration being logged
+        // as ran (the failure class SchemaHealth is blind to). Cached.
+        $workspaceColumnHealth = WorkspaceColumnHealth::cached();
+
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth'));
     }
 }

@@ -281,6 +281,19 @@ Schedule::command('db:check-pending-migrations')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: probe the live DB for workspace-scoping columns (workspace_id /
+// created_by_user_id) that are MISSING despite their migration being recorded
+// as ran — the half-applied/interrupted-migration failure class that
+// db:check-pending-migrations is blind to (it only diffs migration files vs the
+// migrations table). When any column is missing, alerts ops admins (in-app +
+// email) before users hit SQLSTATE[42703] 500s. Detect-only by default;
+// `--repair` adds + backfills in place. No-op when every column is present;
+// cooldown-guarded (with a newly-missing-set bypass) so it won't spam admins.
+Schedule::command('db:check-workspace-columns')
+    ->hourlyAt(25)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Daily (off-peak): re-validate every active page & card template snapshot
 // with TemplateSnapshotValidator and alert ops admins (in-app + email) when a
 // saved template develops design issues — e.g. a later code change removes a

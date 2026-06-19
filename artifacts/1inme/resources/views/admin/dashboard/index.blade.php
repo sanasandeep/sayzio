@@ -35,6 +35,41 @@
 </div>
 @endif
 
+@if(!empty($workspaceColumnHealth['available']) && !empty($workspaceColumnHealth['missing']))
+@php($missingColumns = $workspaceColumnHealth['missing'])
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-red-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-table-columns text-red-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-semibold text-red-300">Workspace columns are missing</h2>
+            <p class="text-sm text-white/70 mt-1">
+                {{ count($missingColumns) }} {{ \Illuminate\Support\Str::plural('table', count($missingColumns)) }}
+                {{ count($missingColumns) === 1 ? 'is' : 'are' }} missing a
+                <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">workspace_id</code> /
+                <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">created_by_user_id</code> column even though
+                their migration is recorded as applied — a half-applied migration. Workspace-scoped pages for these
+                tables will return errors until it's fixed. Run
+                <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan db:check-workspace-columns --repair</code>
+                against production.
+            </p>
+            <details class="mt-3">
+                <summary class="text-xs text-red-300/80 cursor-pointer select-none">Show affected tables</summary>
+                <ul class="mt-2 space-y-1 text-xs text-white/50 font-mono">
+                    @foreach(array_slice($missingColumns, 0, 25) as $m)
+                        <li>{{ $m['table'] }} &mdash; {{ implode(', ', $m['columns']) }}</li>
+                    @endforeach
+                    @if(count($missingColumns) > 25)
+                        <li class="text-white/40">…and {{ count($missingColumns) - 25 }} more</li>
+                    @endif
+                </ul>
+            </details>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="glass rounded-2xl p-6 border border-white/10 ">
         <div class="flex items-center justify-between">
