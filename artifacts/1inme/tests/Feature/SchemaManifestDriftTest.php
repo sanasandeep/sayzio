@@ -124,6 +124,96 @@ class SchemaManifestDriftTest extends TestCase
         }
     }
 
+    public function test_repair_recreates_a_dropped_column_with_correct_type_nullable_default(): void
+    {
+        // `links.visibility` has a full repair spec in ExpectedSchemaHealth::EXPECTED
+        // (string(20), NOT NULL, default 'public') — the most demanding case since
+        // it must land a default on existing rows. Drop it (rolled back with the
+        // test transaction) and confirm repair() puts it back faithfully.
+        $table  = 'links';
+        $column = 'visibility';
+
+        $this->assertTrue(Schema::hasColumn($table, $column), "$table.$column should exist before the drop");
+
+        Schema::table($table, function (Blueprint $t) use ($column) {
+            $t->dropColumn($column);
+        });
+        $this->assertFalse(Schema::hasColumn($table, $column), "$table.$column should be gone after the drop");
+
+        ExpectedSchemaHealth::flush();
+        $result = ExpectedSchemaHealth::repair();
+
+        // The column is reported as added under its table and nothing was flagged
+        // as an unrepairable whole-missing table.
+        $this->assertArrayHasKey($table, $result['added'], 'repair should report the table it touched');
+        $this->assertContains($column, $result['added'][$table], "repair should report re-adding $table.$column");
+        $this->assertEmpty($result['unrepairable'], 'a column-only drift must not be reported unrepairable');
+
+        // The column is physically back in the live schema.
+        $this->assertTrue(Schema::hasColumn($table, $column), "repair should re-create $table.$column");
+
+        // Type / nullability / default match the EXPECTED spec (string(20), NOT
+        // NULL, default 'public'). Verify directly against information_schema so a
+        // wrong type or missing backfill default is caught, not just presence.
+        $meta = collect(\DB::select(
+            'select data_type, is_nullable, column_default, character_maximum_length '
+            . 'from information_schema.columns where table_name = ? and column_name = ?',
+            [$table, $column]
+        ))->first();
+
+        $this->assertNotNull($meta, "information_schema should describe the re-created $table.$column");
+        $this->assertSame('character varying', $meta->data_type, 'visibility should be a string column');
+        $this->assertSame(20, (int) $meta->character_maximum_length, 'visibility length should match the spec (20)');
+        $this->assertSame('NO', $meta->is_nullable, 'visibility should be NOT NULL per the spec');
+        $this->assertStringContainsString("'public'", (string) $meta->column_default, "visibility should default to 'public'");
+
+        // The default backfilled onto the column means rows are readable again.
+        $row = \DB::table($table)->first();
+        if ($row !== null) {
+            $this->assertSame('public', $row->visibility, 'existing rows should be backfilled with the default');
+        }
+    }
+
+    public function test_repair_is_idempotent_on_a_second_run(): void
+    {
+        $table  = 'links';
+        $column = 'visibility';
+
+        Schema::table($table, function (Blueprint $t) use ($column) {
+            $t->dropColumn($column);
+        });
+
+        ExpectedSchemaHealth::flush();
+        $first = ExpectedSchemaHealth::repair();
+        $this->assertContains($column, $first['added'][$table] ?? [], 'first run should add the column');
+
+        // Second run: the column is already present, so repair must be a no-op —
+        // nothing added, nothing unrepairable, and no exception from re-adding.
+        ExpectedSchemaHealth::flush();
+        $second = ExpectedSchemaHealth::repair();
+
+        $this->assertSame([], $second['added'], 'second run should add nothing (idempotent)');
+        $this->assertSame([], $second['unrepairable'], 'second run should report nothing unrepairable');
+        $this->assertTrue(Schema::hasColumn($table, $column), 'column should remain present after the second run');
+    }
+
+    public function test_repair_reports_whole_missing_table_as_unrepairable(): void
+    {
+        // A whole-missing table can't be re-created in place (no full schema), so
+        // repair() must surface it under `unrepairable` rather than silently
+        // dropping it or throwing.
+        $missing = [[
+            'table'         => 'a_table_that_does_not_exist',
+            'table_missing' => true,
+            'columns'       => ['some_column'],
+        ]];
+
+        $result = ExpectedSchemaHealth::repair($missing);
+
+        $this->assertSame([], $result['added']);
+        $this->assertContains('a_table_that_does_not_exist', $result['unrepairable']);
+    }
+
     /**
      * Collect the reported-missing columns for a given table from a compute()
      * report.
