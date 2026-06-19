@@ -576,6 +576,24 @@ uri = "file://deliverables/whatsapp-status-posters/illustrations/b_reviews_page.
 type = "image"
 title = "b_reviews_page"
 
+[[generated]]
+id = "PgJRn9R10GMj3bPr75Nmx"
+uri = "file://attached_assets/banner_assets/phone_biolink.png"
+type = "image"
+title = "phone biolink mockup"
+
+[[generated]]
+id = "KzQ7KmvgyBowdlGRsXLvP"
+uri = "file://attached_assets/banner_assets/bg_hero_dark.png"
+type = "image"
+title = "dark hero background"
+
+[[generated]]
+id = "DS8M4E6DeDsgcSyfLLIqv"
+uri = "file://attached_assets/banner_assets/bg_features_light.png"
+type = "image"
+title = "light features background"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
@@ -791,3 +809,15 @@ id = "PvmnKS0gR44wG5i2gz-l8"
 uri = "file://deliverables/whatsapp-status-posters/reviews-page__how-1inme-helps.png"
 type = "image"
 title = "Reviews Page — How 1IN.ME helps"
+
+[[outputs]]
+id = "sgaZYQNNAOXUB4d5Dk7RN"
+uri = "file://attached_assets/banners/1inme_banner_1_hero.png"
+type = "image"
+title = "Banner 1 — Hero: \"One link. All of you.\" (6ft x 3ft, 1:2)"
+
+[[outputs]]
+id = "Se2DfC-oIfcA0fDdeNdDr"
+uri = "file://attached_assets/banners/1inme_banner_2_features.png"
+type = "image"
+title = "Banner 2 — Features: \"Everything you can create\" (6ft x 3ft, 1:2)"
