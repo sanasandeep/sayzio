@@ -144,6 +144,11 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
+    // In-app email verification by 6-digit code (powers the post-sign-up
+    // reminder banner for users who skipped verification at registration).
+    Route::post('verify-email/code/send', [AuthController::class, 'sendEmailVerifyCode'])->middleware(['auth', 'throttle:otp-send'])->name('verification.code.send');
+    Route::post('verify-email/code/confirm', [AuthController::class, 'confirmEmailVerifyCode'])->middleware(['auth', 'throttle:otp-verify'])->name('verification.code.confirm');
+
     // ---- Workspace invite landing (public — no workspace context yet) ----
     Route::get('workspaces/invites/{token}', [\App\Modules\User\Controllers\AcceptInviteController::class, 'show'])
         ->name('workspaces.invite.show');

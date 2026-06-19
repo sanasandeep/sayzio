@@ -86,6 +86,21 @@ class AuthMethods
     }
 
     /**
+     * Is verifying a user's email address meaningful under the current
+     * login policy? Email verification only matters when email is actually
+     * used to sign in — either with a one-time code or a password. In a
+     * (hypothetical) mobile-only configuration where both email login
+     * methods are switched off the email address never authenticates the
+     * account, so an "verify your email" nudge would be pointless. Used to
+     * gate the post-sign-up verification reminder banner so it never shows
+     * for accounts that can never (meaningfully) verify.
+     */
+    public static function emailVerificationMeaningful(): bool
+    {
+        return self::emailOtpEnabled() || self::emailPasswordEnabled();
+    }
+
+    /**
      * The login identifier types currently accepted. Email is always
      * present; mobile only when the admin has enabled it.
      *

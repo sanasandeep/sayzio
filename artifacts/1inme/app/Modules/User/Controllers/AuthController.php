@@ -524,6 +524,68 @@ class AuthController extends Controller
         return back()->with('status', 'Verification link sent.');
     }
 
+    /**
+     * Send a 6-digit verification code to the signed-in user's email so
+     * they can verify it after having skipped verification at sign-up.
+     * Reuses the existing OtpService (the same engine that powers login
+     * one-time codes) under a dedicated "verify_email" purpose so it never
+     * doubles as a login code. Powers the in-app reminder banner.
+     */
+    public function sendEmailVerifyCode(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->email_verified_at) {
+            return back()->with('status', 'Your email is already verified.');
+        }
+
+        // Mirror the banner's visibility rule: never issue a code when email
+        // verification can't meaningfully apply (e.g. a mobile-only login
+        // policy, or an account with no email on file).
+        if (!AuthMethods::emailVerificationMeaningful() || !filled($user->email)) {
+            return back();
+        }
+
+        $otpService = new OtpService();
+        $code = $otpService->generate($user->email, 'email', 'verify_email', 'web', $request->ip());
+        try {
+            $otpService->sendEmail($user->email, $code);
+        } catch (\Exception $e) {
+            \Log::warning('Email verification code send failed: ' . $e->getMessage());
+        }
+
+        return back()
+            ->with('verify_email_code_sent', true)
+            ->with('status', 'We sent a 6-digit code to ' . $user->email . '. Enter it below to verify.');
+    }
+
+    /**
+     * Verify the signed-in user's email using the 6-digit code emailed by
+     * sendEmailVerifyCode(). On success stamps email_verified_at, which
+     * makes the reminder banner disappear.
+     */
+    public function confirmEmailVerifyCode(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->email_verified_at) {
+            return back()->with('success', 'Your email is already verified.');
+        }
+
+        $request->validate(['code' => 'required|string|size:6']);
+
+        $otpService = new OtpService();
+        if (!$otpService->verify($user->email, $request->code, 'email', 'verify_email', 'web')) {
+            return back()
+                ->withErrors(['verify_email_code' => 'Invalid or expired code. Please request a new one.'])
+                ->with('verify_email_code_sent', true);
+        }
+
+        $user->update(['email_verified_at' => now()]);
+
+        return back()->with('success', 'Your email has been verified. Thanks!');
+    }
+
     public function logout(Request $request)
     {
         if (session()->has('admin_id')) {
