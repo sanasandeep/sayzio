@@ -1,6 +1,7 @@
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { CTABand } from "@/components/marketing/marketing";
+import { LinkTypesShowcase } from "@/components/marketing/link-types-showcase";
 import { motion, useReducedMotion } from "framer-motion";
 import { SIGNUP_URL } from "@/config";
 import { Link } from "wouter";
@@ -18,59 +19,6 @@ const ROLES = [
   "Podcaster",
   "Writer",
   "Designer",
-];
-
-const LINK_TYPES = [
-  {
-    name: "Short Link",
-    new: false,
-    desc: "Clean, branded short links you can repoint anytime — with click analytics and expiry controls.",
-  },
-  {
-    name: "Link in Bio",
-    new: false,
-    desc: "A drag-and-drop one-link page with a deep block library, custom themes and a guided wizard.",
-  },
-  {
-    name: "Conversational",
-    new: true,
-    desc: "A chat-style page that greets visitors and guides them through your links one message at a time.",
-  },
-  {
-    name: "Slides",
-    new: true,
-    desc: "A swipeable, story-style page that presents your content as full-screen slides.",
-  },
-  {
-    name: "AI Chatbot",
-    new: false,
-    desc: "An AI page that answers visitor questions about you using your own content, around the clock.",
-  },
-  {
-    name: "Restaurant Menu",
-    new: true,
-    desc: "A digital menu with categories, photos and prices — plus optional table-side ordering by QR.",
-  },
-  {
-    name: "File Share",
-    new: true,
-    desc: "Upload a file and share it through a short link that streams the download to visitors.",
-  },
-  {
-    name: "Event",
-    new: false,
-    desc: "A shareable calendar event visitors can add to their own calendar in a single tap.",
-  },
-  {
-    name: "Contact Card",
-    new: true,
-    desc: "A downloadable vCard so people can save your full contact details with one tap.",
-  },
-  {
-    name: "Reviews Page",
-    new: true,
-    desc: "A review wall that collects and shows star ratings and feedback from your visitors.",
-  },
 ];
 
 export default function Home() {
@@ -180,41 +128,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What you can create */}
-      <section className="py-24 bg-card/50 border-y">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Ten kinds of link. One simple dashboard.</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              From a classic link-in-bio to short links, QR codes, menus, events
-              and AI chat — create whatever your audience needs from a single place.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {LINK_TYPES.map((type, i) => (
-              <motion.div
-                key={type.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.45, delay: (i % 3) * 0.08 }}
-                className="glass-card p-6 rounded-2xl"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold">{type.name}</h3>
-                  {type.new && (
-                    <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-primary/10 text-primary">
-                      New
-                    </span>
-                  )}
-                </div>
-                <p className="text-muted-foreground text-sm leading-relaxed">{type.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* What you can create — grouped 12-link-types poster recreation */}
+      <LinkTypesShowcase />
 
       <CTABand
         title="Your audience is already searching for you."
