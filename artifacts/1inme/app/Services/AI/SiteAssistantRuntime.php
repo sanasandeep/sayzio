@@ -158,7 +158,7 @@ class SiteAssistantRuntime
             'remaining_replies' => $remaining,
             'avg_reply_credits' => $avg,
             'message'           => $msg,
-            'topup_url'         => $this->safeRoute('user.ai-credits.show'),
+            'topup_url'         => $this->safeRoute('user.wallet.buy'),
             'topup_label'       => $customLabel !== '' ? $customLabel : 'Top up',
         ];
     }

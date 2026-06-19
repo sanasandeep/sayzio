@@ -4,7 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
-use App\Modules\User\Models\AiCreditTransaction;
+use App\Modules\User\Models\WalletTransaction;
 use App\Modules\User\Models\AskCoachMessage;
 use App\Modules\User\Models\AskCoachThread;
 use App\Services\AI\AiEngineSettings;
@@ -44,11 +44,12 @@ class AskCoachAdminController extends Controller
             ->where('created_at', '>=', $since)
             ->where('feedback', 'down')->count();
 
-        $creditsSpent = (int) AiCreditTransaction::query()
-            ->where('feature', 'like', 'ask_coach%')
-            ->where('kind', 'spend')
+        $creditsSpent = (int) WalletTransaction::query()
+            ->where('meta->ai', true)
+            ->where('meta->feature', 'like', 'ask_coach%')
+            ->where('type', 'spend')
             ->where('created_at', '>=', $since)
-            ->sum('credits');
+            ->sum('delta_coins');
         $creditsSpent = abs($creditsSpent);
 
         $recentDowns = AskCoachMessage::query()

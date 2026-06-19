@@ -234,7 +234,7 @@ class AiBiolinkBuilderService
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildMessages($user, $description, $links, $images, $files);
-        return $this->openai->estimateChatCredits($model, $messages, self::MAX_OUTPUT_TOKENS);
+        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS);
     }
 
     /**

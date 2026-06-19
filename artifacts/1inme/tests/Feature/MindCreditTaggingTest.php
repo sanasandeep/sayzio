@@ -2,12 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Modules\User\Models\AiCreditTransaction;
+use App\Modules\User\Models\WalletTransaction;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindSource;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiCreditService;
 use App\Services\AI\AiEngineSettings;
+use App\Services\Billing\WalletService;
 use App\Services\AI\AiMindIngestor;
 use App\Services\AI\AiMindQueryService;
 use App\Services\AI\OpenAiService;
@@ -120,7 +121,7 @@ class MindCreditTaggingTest extends TestCase
         $source = $this->makeTextSource($mind);
 
         // Enough headroom for the embed charge to land.
-        app(AiCreditService::class)->grant($user, 10_000);
+        app(WalletService::class)->credit($user, 10_000, ['reason' => 'test seed']);
 
         // Fake the embeddings endpoint. Inspect the inbound payload so
         // we can return the matching number of vectors regardless of
@@ -142,8 +143,9 @@ class MindCreditTaggingTest extends TestCase
             "Ingest should succeed end-to-end. status_message: {$source->status_message}"
         );
 
-        $spend = AiCreditTransaction::where('user_id', $user->id)
+        $spend = WalletTransaction::where('user_id', $user->id)
             ->where('type', 'spend')
+            ->where('meta->ai', true)
             ->orderBy('id')
             ->get();
 
@@ -154,9 +156,9 @@ class MindCreditTaggingTest extends TestCase
         );
 
         foreach ($spend as $tx) {
-            $this->assertSame('mind', $tx->feature, "feature must be 'mind'");
-            $this->assertSame((int) $source->id, (int) $tx->related_id, 'related_id must point to the source');
             $this->assertIsArray($tx->meta);
+            $this->assertSame('mind', $tx->meta['feature'] ?? null, "feature must be 'mind'");
+            $this->assertSame((int) $source->id, (int) ($tx->meta['related_id'] ?? null), 'related_id must point to the source');
             $this->assertSame('ingest', $tx->meta['kind'] ?? null, "meta.kind must be 'ingest'");
             $this->assertSame((int) $mind->id, (int) ($tx->meta['mind_id'] ?? null), 'meta.mind_id must point to the mind');
             $this->assertSame((int) $source->id, (int) ($tx->meta['source_id'] ?? null), 'meta.source_id must point to the source');
@@ -168,7 +170,7 @@ class MindCreditTaggingTest extends TestCase
         $user = $this->makeUser();
         $mind = $this->makeMind($user);
 
-        app(AiCreditService::class)->grant($user, 10_000);
+        app(WalletService::class)->credit($user, 10_000, ['reason' => 'test seed']);
 
         Http::fake([
             'api.openai.com/v1/embeddings'      => function ($request) {
@@ -182,8 +184,9 @@ class MindCreditTaggingTest extends TestCase
         $result = app(AiMindQueryService::class)->ask($user, [$mind], 'What does this Mind know?');
         $this->assertNotSame('', $result['answer']);
 
-        $spend = AiCreditTransaction::where('user_id', $user->id)
+        $spend = WalletTransaction::where('user_id', $user->id)
             ->where('type', 'spend')
+            ->where('meta->ai', true)
             ->orderBy('id')
             ->get();
 
@@ -194,8 +197,8 @@ class MindCreditTaggingTest extends TestCase
         );
 
         foreach ($spend as $tx) {
-            $this->assertSame('mind', $tx->feature, "feature must be 'mind'");
             $this->assertIsArray($tx->meta);
+            $this->assertSame('mind', $tx->meta['feature'] ?? null, "feature must be 'mind'");
             $this->assertSame('query', $tx->meta['kind'] ?? null, "meta.kind must be 'query'");
             $this->assertSame(
                 (int) $mind->id,
@@ -204,18 +207,18 @@ class MindCreditTaggingTest extends TestCase
             );
             // Both embed and chat in the query path use the focused Mind
             // as related_id so the row groups under that Mind.
-            $this->assertSame((int) $mind->id, (int) $tx->related_id, 'related_id must be the focused Mind id');
+            $this->assertSame((int) $mind->id, (int) ($tx->meta['related_id'] ?? null), 'related_id must be the focused Mind id');
         }
 
         // At least one spend row must be the chat (carries token_out > 0)
         // and at least one must be the embedding (token_out == 0). Proves
         // both producer code paths emit the right tags, not just one.
         $this->assertTrue(
-            $spend->contains(fn ($tx) => (int) $tx->tokens_out > 0),
+            $spend->contains(fn ($tx) => (int) ($tx->meta['tokens_out'] ?? 0) > 0),
             'Expected a chat spend row from the ask() chat call.'
         );
         $this->assertTrue(
-            $spend->contains(fn ($tx) => (int) $tx->tokens_out === 0),
+            $spend->contains(fn ($tx) => (int) ($tx->meta['tokens_out'] ?? 0) === 0),
             'Expected an embedding spend row from the ask() context retrieval.'
         );
     }
@@ -229,7 +232,7 @@ class MindCreditTaggingTest extends TestCase
         $user = $this->makeUser();
         $mind = $this->makeMind($user);
 
-        app(AiCreditService::class)->grant($user, 10_000);
+        app(WalletService::class)->credit($user, 10_000, ['reason' => 'test seed']);
 
         Http::fake([
             'api.openai.com/v1/embeddings'       => function ($request) {
@@ -247,8 +250,9 @@ class MindCreditTaggingTest extends TestCase
             // expected
         }
 
-        $spend = AiCreditTransaction::where('user_id', $user->id)
+        $spend = WalletTransaction::where('user_id', $user->id)
             ->where('type', 'spend')
+            ->where('meta->ai', true)
             ->get();
 
         $this->assertGreaterThan(
@@ -258,12 +262,12 @@ class MindCreditTaggingTest extends TestCase
         );
 
         foreach ($spend as $tx) {
-            $this->assertSame('mind', $tx->feature);
+            $this->assertSame('mind', $tx->meta['feature'] ?? null);
             $this->assertSame('query', $tx->meta['kind'] ?? null);
             $this->assertSame((int) $mind->id, (int) ($tx->meta['mind_id'] ?? null));
-            $this->assertSame((int) $mind->id, (int) $tx->related_id);
+            $this->assertSame((int) $mind->id, (int) ($tx->meta['related_id'] ?? null));
             // No completion tokens — these are all retrieval embeddings.
-            $this->assertSame(0, (int) $tx->tokens_out);
+            $this->assertSame(0, (int) ($tx->meta['tokens_out'] ?? 0));
         }
     }
 
@@ -281,7 +285,7 @@ class MindCreditTaggingTest extends TestCase
         $mind = $this->makeMind($user);
 
         $credits = app(AiCreditService::class);
-        $credits->grant($user, 100);
+        app(WalletService::class)->credit($user, 100, ['reason' => 'test seed']);
         $charge = $credits->charge($user, 25, [
             'feature'    => 'mind',
             'related_id' => $mind->id,
@@ -297,8 +301,8 @@ class MindCreditTaggingTest extends TestCase
         ]);
 
         $this->assertSame('refund', $refund->type);
-        $this->assertSame('mind', $refund->feature);
-        $this->assertSame((int) $mind->id, (int) $refund->related_id);
+        $this->assertSame('mind', $refund->meta['feature'] ?? null);
+        $this->assertSame((int) $mind->id, (int) ($refund->meta['related_id'] ?? null));
         $this->assertSame('query', $refund->meta['kind'] ?? null);
         $this->assertSame((int) $mind->id, (int) ($refund->meta['mind_id'] ?? null));
     }

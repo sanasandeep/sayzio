@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Admin\Models\Permission;
 use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\AiCompanion;
-use App\Modules\User\Models\AiCreditTransaction;
+use App\Modules\User\Models\WalletTransaction;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindSource;
 use App\Modules\User\Models\AiPersonaAgent;
@@ -18,6 +18,7 @@ use App\Services\AI\CompanionRuntime;
 use App\Services\AI\InsufficientAiCreditsException;
 use App\Services\AI\OpenAiService;
 use App\Services\AI\SiteAssistantRuntime;
+use App\Services\Billing\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -109,8 +110,8 @@ class AiCreditMeteringTest extends TestCase
     {
         $caller  = $this->makeUser('caller');
         $other   = $this->makeUser('other');
-        app(AiCreditService::class)->grant($caller, 10_000);
-        app(AiCreditService::class)->grant($other, 10_000);
+        app(WalletService::class)->credit($caller, 10_000, ['reason' => 'test seed']);
+        app(WalletService::class)->credit($other, 10_000, ['reason' => 'test seed']);
 
         Http::fake(['api.openai.com/v1/chat/completions' => Http::response($this->fakeChatResponse())]);
 
@@ -120,8 +121,8 @@ class AiCreditMeteringTest extends TestCase
 
         $this->assertGreaterThan(0, $result['credits_spent']);
 
-        $callerSpend = AiCreditTransaction::where('user_id', $caller->id)->where('type', 'spend')->sum('delta_credits');
-        $otherSpend  = AiCreditTransaction::where('user_id', $other->id)->where('type', 'spend')->count();
+        $callerSpend = WalletTransaction::where('user_id', $caller->id)->where('type', 'spend')->where('meta->ai', true)->sum('delta_coins');
+        $otherSpend  = WalletTransaction::where('user_id', $other->id)->where('type', 'spend')->where('meta->ai', true)->count();
 
         $this->assertGreaterThan(0, abs((int) $callerSpend), 'Caller must be charged for their own call.');
         $this->assertSame(0, (int) $otherSpend, "A different user's balance must never be touched.");
@@ -154,7 +155,7 @@ class AiCreditMeteringTest extends TestCase
         Http::assertNothingSent();
         $this->assertSame(
             0,
-            AiCreditTransaction::where('user_id', $broke->id)->where('type', 'spend')->count(),
+            WalletTransaction::where('user_id', $broke->id)->where('type', 'spend')->where('meta->ai', true)->count(),
             'A rejected pre-call gate must not write a spend row.'
         );
     }
@@ -199,7 +200,7 @@ class AiCreditMeteringTest extends TestCase
     public function test_companion_turn_charges_the_owner_not_the_visitor(): void
     {
         $owner = $this->makeUser('owner');
-        app(AiCreditService::class)->grant($owner, 10_000);
+        app(WalletService::class)->credit($owner, 10_000, ['reason' => 'test seed']);
 
         $persona = AiPersonaAgent::create([
             'user_id'          => $owner->id,
@@ -237,7 +238,7 @@ class AiCreditMeteringTest extends TestCase
 
         $this->assertTrue($result['ok'], 'Companion turn should succeed: '.($result['error'] ?? ''));
 
-        $ownerSpend = AiCreditTransaction::where('user_id', $owner->id)->where('type', 'spend')->count();
+        $ownerSpend = WalletTransaction::where('user_id', $owner->id)->where('type', 'spend')->where('meta->ai', true)->count();
         $this->assertGreaterThan(0, $ownerSpend, 'The companion owner must be charged for the turn.');
         $this->assertLessThan(10_000, app(AiCreditService::class)->getBalance($owner));
     }
@@ -283,7 +284,7 @@ class AiCreditMeteringTest extends TestCase
 
         $this->assertFalse($result['ok'], 'Turn must fail when the owner is out of credits.');
         Http::assertNothingSent();
-        $this->assertSame(0, AiCreditTransaction::where('user_id', $owner->id)->where('type', 'spend')->count());
+        $this->assertSame(0, WalletTransaction::where('user_id', $owner->id)->where('type', 'spend')->where('meta->ai', true)->count());
     }
 
     // ── Documented exception: platform AI Mind ingest → admin ──
@@ -295,7 +296,7 @@ class AiCreditMeteringTest extends TestCase
         // AI permission, not on some arbitrary account.
         $admin = $this->makeUser('mindadmin');
         $this->grantPermission($admin, 'user.ai_minds.manage_platform');
-        app(AiCreditService::class)->grant($admin, 10_000);
+        app(WalletService::class)->credit($admin, 10_000, ['reason' => 'test seed']);
 
         $mind = AiMind::create([
             'user_id'     => null,
@@ -330,7 +331,7 @@ class AiCreditMeteringTest extends TestCase
             "Ingest should succeed. status_message: {$source->status_message}"
         );
 
-        $adminSpend = AiCreditTransaction::where('user_id', $admin->id)->where('type', 'spend')->count();
+        $adminSpend = WalletTransaction::where('user_id', $admin->id)->where('type', 'spend')->where('meta->ai', true)->count();
         $this->assertGreaterThan(0, $adminSpend, 'Platform-mind ingest must charge the manage-platform admin.');
         $this->assertLessThan(10_000, app(AiCreditService::class)->getBalance($admin));
     }
@@ -343,7 +344,7 @@ class AiCreditMeteringTest extends TestCase
         // stack with a genuine Bearer token (never Sanctum::actingAs) so
         // the charge is attributed to the authenticated caller.
         $caller = $this->makeUser('coach');
-        app(AiCreditService::class)->grant($caller, 10_000);
+        app(WalletService::class)->credit($caller, 10_000, ['reason' => 'test seed']);
 
         $token = $caller->createToken('test')->plainTextToken;
 
@@ -369,7 +370,7 @@ class AiCreditMeteringTest extends TestCase
 
         $this->assertGreaterThan(
             0,
-            AiCreditTransaction::where('user_id', $caller->id)->where('type', 'spend')->count(),
+            WalletTransaction::where('user_id', $caller->id)->where('type', 'spend')->where('meta->ai', true)->count(),
             'The authenticated caller must be charged for their Ask Coach turn.'
         );
         $this->assertLessThan(10_000, app(AiCreditService::class)->getBalance($caller));

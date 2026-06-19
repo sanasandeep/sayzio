@@ -93,7 +93,7 @@
                         <label class="text-[11px] uppercase tracking-wider text-white/50">Chat model *</label>
                         <select name="model" required class="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                             @foreach($engineModels as $m)
-                                <option value="{{ $m['name'] }}" @selected(old('model', $persona->model) === $m['name'])>{{ $m['name'] }} ({{ $m['credits_per_1k_in'] ?? 0 }}/{{ $m['credits_per_1k_out'] ?? 0 }} cr)</option>
+                                <option value="{{ $m['name'] }}" @selected(old('model', $persona->model) === $m['name'])>{{ $m['name'] }} ({{ $m['in_coins_per_1k'] ?? 0 }}/{{ $m['out_coins_per_1k'] ?? 0 }} coins/1k)</option>
                             @endforeach
                         </select>
                         @error('model')<p class="text-xs text-red-400 mt-1">{{ $message }}</p>@enderror

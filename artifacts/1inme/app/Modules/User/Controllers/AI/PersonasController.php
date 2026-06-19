@@ -303,8 +303,8 @@ class PersonasController extends Controller
             );
         } catch (InsufficientAiCreditsException $e) {
             return response()->json([
-                'error'  => "Need {$e->required} AI credits — only {$e->balance} available.",
-                'top_up' => route('user.ai-credits.show'),
+                'error'  => "Need {$e->required} coins — only {$e->balance} available.",
+                'top_up' => route('user.wallet.buy'),
             ], 402);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], 422);

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\User\Models\User;
 use App\Services\AI\AiCreditService;
+use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\ElevenLabsService;
 use App\Services\AI\OpenAiService;
@@ -171,7 +172,7 @@ class VoiceAssistantTest extends TestCase
 
         $user = $this->makeUser('p1');
         // Even with full balance and working services, plan gate must win first.
-        app(AiCreditService::class)->grant($user, 500, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
         $this->mockVoiceServices([
             ['content' => 'Should never speak', 'tool_calls' => [], 'credits_spent' => 7],
         ]);
@@ -217,7 +218,7 @@ class VoiceAssistantTest extends TestCase
     public function test_happy_path_returns_transcript_audio_and_per_stage_credit_breakdown(): void
     {
         $user = $this->makeUser('h1');
-        app(AiCreditService::class)->grant($user, 500, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
 
         $this->mockVoiceServices([
             ['content' => 'Hi there!', 'tool_calls' => [], 'credits_spent' => 7],
@@ -253,7 +254,7 @@ class VoiceAssistantTest extends TestCase
     public function test_destructive_tool_call_is_short_circuited_into_confirm_required(): void
     {
         $user = $this->makeUser('d1');
-        app(AiCreditService::class)->grant($user, 500, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
 
         // The model asks to switch_plan (destructive). Without the
         // user's confirmation the registry MUST refuse to execute and
@@ -298,7 +299,7 @@ class VoiceAssistantTest extends TestCase
     public function test_confirmed_destructive_tool_executes_on_re_run_and_loop_continues(): void
     {
         $user = $this->makeUser('d2');
-        app(AiCreditService::class)->grant($user, 500, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
 
         // Two LLM calls this time: first asks for the destructive tool,
         // second (after the tool result is fed back) emits the final

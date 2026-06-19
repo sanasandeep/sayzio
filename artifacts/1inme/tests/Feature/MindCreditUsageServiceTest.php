@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Modules\User\Models\AiCreditBalance;
-use App\Modules\User\Models\AiCreditTransaction;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\Wallet;
+use App\Modules\User\Models\WalletTransaction;
 use App\Services\AI\MindCreditUsageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -62,21 +62,31 @@ class MindCreditUsageServiceTest extends TestCase
         ?int $relatedId = null,
         ?Carbon $at = null,
         string $feature = 'mind',
-    ): AiCreditTransaction {
-        $balance = AiCreditBalance::firstOrCreate(
+    ): WalletTransaction {
+        $wallet = Wallet::firstOrCreate(
             ['user_id' => $user->id],
             ['balance' => 0],
         );
 
-        return AiCreditTransaction::create([
-            'balance_id'    => $balance->id,
+        // Mirror the producer tagging: feature/related_id live in meta
+        // alongside ai=true, and a null related_id is omitted entirely
+        // (not stored as JSON null) so whereNotNull('meta->related_id')
+        // behaves exactly as it does for real charges.
+        $fullMeta = array_merge($meta, [
+            'ai'      => true,
+            'feature' => $feature,
+        ]);
+        if ($relatedId !== null) {
+            $fullMeta['related_id'] = $relatedId;
+        }
+
+        return WalletTransaction::create([
+            'wallet_id'     => $wallet->id,
             'user_id'       => $user->id,
             'type'          => 'spend',
-            'delta_credits' => -$amount,
+            'delta_coins'   => -$amount,
             'balance_after' => 0,
-            'feature'       => $feature,
-            'related_id'    => $relatedId,
-            'meta'          => $meta,
+            'meta'          => $fullMeta,
             'created_at'    => $at ?? Carbon::now(),
         ]);
     }

@@ -331,7 +331,7 @@ function MessageBubble({
           </Pressable>
           {meta.credits_spent ? (
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
-              {meta.credits_spent} ✦
+              {meta.credits_spent} 🪙
             </Text>
           ) : null}
         </View>

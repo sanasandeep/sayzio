@@ -68,7 +68,7 @@ function mapNavTarget(url: string | undefined): string | null {
   if (u.includes("/user/inbox")) return "/(tabs)/inbox";
   if (u.includes("/user/notifications")) return "/(tabs)/notifications";
   if (u.includes("/user/wallet")) return "/wallet";
-  if (u.includes("/user/ai/credits")) return "/ai-credits";
+  if (u.includes("/user/ai/credits")) return "/wallet";
   if (u.includes("/user/ai/companion")) return "/ai-coach";
   if (u.includes("/user/ai/ask-coach") || u.includes("/user/ai/coach"))
     return "/ask-coach";
@@ -315,7 +315,7 @@ export function VoiceAssistant() {
         const err = e as { status?: number; message?: string } | undefined;
         if (err?.status === 402) {
           setError(
-            err.message ?? "You're out of AI credits — top up to keep going.",
+            err.message ?? "You're out of coins — top up to keep going.",
           );
         } else {
           setError(err?.message ?? "Something went wrong. Try again.");
@@ -827,7 +827,7 @@ function SessionView(props: {
           ]}
         >
           <Text style={[styles.creditsTitle, { color: colors.foreground }]}>
-            Credits used this turn
+            Coins used this turn
           </Text>
           {(["stt", "llm", "tts"] as const).map((k) => (
             <View key={k} style={styles.creditsRow}>
@@ -853,7 +853,7 @@ function SessionView(props: {
           </View>
           {balance !== null ? (
             <Text style={[styles.balanceLine, { color: colors.mutedForeground }]}>
-              Balance: {balance.toLocaleString()} AI credits
+              Balance: {balance.toLocaleString()} coins
             </Text>
           ) : null}
         </View>
@@ -952,9 +952,9 @@ function HelpView(props: {
       </View>
 
       <Text style={[styles.helpFootnote, { color: colors.mutedForeground }]}>
-        Pricing: ~{capabilities.pricing.stt_credits_per_minute} credits per
-        minute of audio, ~{capabilities.pricing.tts_credits_per_1k_chars}{" "}
-        credits per 1k characters spoken back. Up to{" "}
+        Pricing: ~{capabilities.pricing.stt_coins_per_minute} coins per
+        minute of audio, ~{capabilities.pricing.tts_coins_per_1k_chars}{" "}
+        coins per 1k characters spoken back. Up to{" "}
         {capabilities.rate_limit} turns per minute.
       </Text>
     </ScrollView>

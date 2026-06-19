@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Modules\Common\Models\SiteAssistantConversation;
-use App\Modules\User\Models\AiCreditBalance;
 use App\Modules\User\Models\User;
+use App\Services\Billing\WalletService;
 use App\Services\AI\AiCreditService;
 use App\Services\AI\AiMindQueryService;
 use App\Services\AI\OpenAiService;
@@ -71,7 +71,9 @@ class SiteAssistantLowBalanceTest extends TestCase
             'status'   => 'active',
             'role'     => 'user',
         ]);
-        AiCreditBalance::create(['user_id' => $user->id, 'balance' => $balance]);
+        if ($balance > 0) {
+            app(WalletService::class)->credit($user, $balance, ['reason' => 'test seed']);
+        }
         return $user;
     }
 

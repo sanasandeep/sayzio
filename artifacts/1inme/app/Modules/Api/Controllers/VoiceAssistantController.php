@@ -176,8 +176,8 @@ class VoiceAssistantController extends Controller
             'balance'     => $this->credits->getBalance($user),
             'rate_limit'  => AiEngineSettings::voiceTurnsPerMinute(),
             'pricing'     => [
-                'stt_credits_per_minute'   => AiEngineSettings::voiceSttCreditsPerMinute(),
-                'tts_credits_per_1k_chars' => AiEngineSettings::voiceTtsCreditsPer1kChars(),
+                'stt_coins_per_minute'   => AiEngineSettings::voiceSttCoinsPerMinute(),
+                'tts_coins_per_1k_chars' => AiEngineSettings::voiceTtsCoinsPer1kChars(),
             ],
             'tools'       => $grouped,
             'limitations' => [

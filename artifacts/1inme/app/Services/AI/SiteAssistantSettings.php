@@ -175,19 +175,20 @@ P;
     }
 
     /**
-     * Total credits charged to the assistant in the current calendar
+     * Total coins charged to the assistant in the current calendar
      * month — covers BOTH chat completions and embeddings/retrieval as
-     * long as those calls were tagged with feature='site_assistant'.
+     * long as those wallet charges were tagged meta.feature='site_assistant'.
      * Sums absolute spend (debits are negative deltas in the ledger).
      */
     public static function monthlySpend(): int
     {
         try {
-            $sum = (int) \DB::table('ai_credit_transactions')
-                ->where('feature', 'site_assistant')
+            $sum = (int) \DB::table('wallet_transactions')
+                ->where('meta->feature', 'site_assistant')
+                ->where('meta->ai', true)
                 ->where('type', 'spend')
                 ->where('created_at', '>=', now()->startOfMonth())
-                ->sum(\DB::raw('ABS(delta_credits)'));
+                ->sum(\DB::raw('ABS(delta_coins)'));
             if ($sum > 0) return $sum;
         } catch (\Throwable $e) {
             // table may be missing in early test envs — fall back below

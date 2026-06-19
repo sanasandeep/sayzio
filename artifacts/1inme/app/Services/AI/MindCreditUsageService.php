@@ -2,33 +2,34 @@
 
 namespace App\Services\AI;
 
-use App\Modules\User\Models\AiCreditTransaction;
 use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\WalletTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Per-Mind credit usage analytics. Reads the existing
- * `ai_credit_transactions` ledger and groups feature='mind' spend by
- * the originating Mind (and source for the ingestion side), so the
- * UI can show users which Mind / which source is burning credits.
+ * Per-Mind coin usage analytics. Reads the coin wallet ledger
+ * (`wallet_transactions`) and groups AI spend tagged meta.feature='mind'
+ * by the originating Mind (and source for the ingestion side), so the
+ * UI can show users which Mind / which source is burning coins.
  *
  * Attribution lives in the transaction `meta` payload:
- *   - meta.mind_id  — the Mind the spend belongs to
- *   - meta.kind     — 'ingest' or 'query'
- * For ingestion, `related_id` is the source_id (legacy) so we can
- * still break ingestion spend down per source. For queries,
- * `related_id` is the focused mind_id.
+ *   - meta.ai         — true for AI charges
+ *   - meta.feature    — 'mind'
+ *   - meta.mind_id    — the Mind the spend belongs to
+ *   - meta.kind       — 'ingest' or 'query'
+ *   - meta.related_id — for ingestion, the source_id; for queries, the
+ *                       focused mind_id.
  *
  * Only `spend` rows are counted. Refunds are netted in via
- * |delta_credits| with their natural sign.
+ * |delta_coins| with their natural sign.
  */
 class MindCreditUsageService
 {
     public const DEFAULT_WINDOW_DAYS = 30;
 
     /**
-     * Total credits spent on a Mind in the given window, split by
+     * Total coins spent on a Mind in the given window, split by
      * ingestion vs. live questions.
      *
      * @return array{ingest:int, query:int, total:int, days:int}
@@ -37,18 +38,19 @@ class MindCreditUsageService
     {
         $since = Carbon::now()->subDays($days);
 
-        $rows = AiCreditTransaction::query()
-            ->where('feature', 'mind')
+        $rows = WalletTransaction::query()
+            ->where('meta->ai', true)
+            ->where('meta->feature', 'mind')
             ->where('type', 'spend')
             ->where('meta->mind_id', $mindId)
             ->where('created_at', '>=', $since)
-            ->get(['delta_credits', 'meta']);
+            ->get(['delta_coins', 'meta']);
 
         $ingest = 0;
         $query  = 0;
         foreach ($rows as $tx) {
             $kind = (string) data_get($tx->meta, 'kind', '');
-            $cost = (int) abs((int) $tx->delta_credits);
+            $cost = (int) abs((int) $tx->delta_coins);
             if ($kind === 'query')  $query  += $cost;
             else                    $ingest += $cost;
         }
@@ -62,8 +64,8 @@ class MindCreditUsageService
     }
 
     /**
-     * Credits spent ingesting each source of a Mind in the window.
-     * Returns a map of source_id => credits.
+     * Coins spent ingesting each source of a Mind in the window.
+     * Returns a map of source_id => coins.
      *
      * @return array<int,int>
      */
@@ -71,26 +73,27 @@ class MindCreditUsageService
     {
         $since = Carbon::now()->subDays($days);
 
-        $rows = AiCreditTransaction::query()
-            ->where('feature', 'mind')
+        $rows = WalletTransaction::query()
+            ->where('meta->ai', true)
+            ->where('meta->feature', 'mind')
             ->where('type', 'spend')
             ->where('meta->mind_id', $mindId)
             ->where('meta->kind', 'ingest')
             ->where('created_at', '>=', $since)
-            ->whereNotNull('related_id')
-            ->get(['delta_credits', 'related_id']);
+            ->whereNotNull('meta->related_id')
+            ->get(['delta_coins', 'meta']);
 
         $out = [];
         foreach ($rows as $tx) {
-            $sid = (int) $tx->related_id;
+            $sid = (int) data_get($tx->meta, 'related_id', 0);
             if ($sid <= 0) continue;
-            $out[$sid] = ($out[$sid] ?? 0) + (int) abs((int) $tx->delta_credits);
+            $out[$sid] = ($out[$sid] ?? 0) + (int) abs((int) $tx->delta_coins);
         }
         return $out;
     }
 
     /**
-     * Daily-bucketed credit spend for one Mind, split by ingestion vs.
+     * Daily-bucketed coin spend for one Mind, split by ingestion vs.
      * questions. Always returns exactly $days rows in chronological
      * order, padded with zeros so the UI can render a fixed-width chart.
      *
@@ -100,18 +103,19 @@ class MindCreditUsageService
     {
         $since = Carbon::now()->subDays($days - 1)->startOfDay();
 
-        $rows = AiCreditTransaction::query()
-            ->where('feature', 'mind')
+        $rows = WalletTransaction::query()
+            ->where('meta->ai', true)
+            ->where('meta->feature', 'mind')
             ->where('type', 'spend')
             ->where('meta->mind_id', $mindId)
             ->where('created_at', '>=', $since)
-            ->get(['delta_credits', 'meta', 'created_at']);
+            ->get(['delta_coins', 'meta', 'created_at']);
 
         return $this->bucketByDay($rows, $since, $days);
     }
 
     /**
-     * Daily-bucketed credit spend across every Mind on the platform.
+     * Daily-bucketed coin spend across every Mind on the platform.
      *
      * @return array<int,array{date:string, ingest:int, query:int}>
      */
@@ -119,18 +123,18 @@ class MindCreditUsageService
     {
         $since = Carbon::now()->subDays($days - 1)->startOfDay();
 
-        $rows = AiCreditTransaction::query()
-            ->where('feature', 'mind')
+        $rows = WalletTransaction::query()
+            ->where('meta->ai', true)
+            ->where('meta->feature', 'mind')
             ->where('type', 'spend')
-            ->whereNotNull('meta')
             ->where('created_at', '>=', $since)
-            ->get(['delta_credits', 'meta', 'created_at']);
+            ->get(['delta_coins', 'meta', 'created_at']);
 
         return $this->bucketByDay($rows, $since, $days);
     }
 
     /**
-     * @param  iterable<int,AiCreditTransaction>  $rows
+     * @param  iterable<int,WalletTransaction>  $rows
      * @return array<int,array{date:string, ingest:int, query:int}>
      */
     private function bucketByDay(iterable $rows, Carbon $since, int $days): array
@@ -144,7 +148,7 @@ class MindCreditUsageService
             $d = Carbon::parse($tx->created_at)->toDateString();
             if (!isset($buckets[$d])) continue;
             $kind = (string) data_get($tx->meta, 'kind', '');
-            $cost = (int) abs((int) $tx->delta_credits);
+            $cost = (int) abs((int) $tx->delta_coins);
             if ($kind === 'query')  $buckets[$d]['query']  += $cost;
             else                    $buckets[$d]['ingest'] += $cost;
         }
@@ -152,7 +156,7 @@ class MindCreditUsageService
     }
 
     /**
-     * Top Minds by credit spend in the window. Each row carries the
+     * Top Minds by coin spend in the window. Each row carries the
      * Mind model (with owner) plus split totals.
      *
      * @return Collection<int,array{mind:AiMind, ingest:int, query:int, total:int}>
@@ -161,19 +165,19 @@ class MindCreditUsageService
     {
         $since = Carbon::now()->subDays($days);
 
-        $rows = AiCreditTransaction::query()
-            ->where('feature', 'mind')
+        $rows = WalletTransaction::query()
+            ->where('meta->ai', true)
+            ->where('meta->feature', 'mind')
             ->where('type', 'spend')
-            ->whereNotNull('meta')
             ->where('created_at', '>=', $since)
-            ->get(['delta_credits', 'meta']);
+            ->get(['delta_coins', 'meta']);
 
         $totals = [];
         foreach ($rows as $tx) {
             $mid = (int) data_get($tx->meta, 'mind_id', 0);
             if ($mid <= 0) continue;
             $kind = (string) data_get($tx->meta, 'kind', '');
-            $cost = (int) abs((int) $tx->delta_credits);
+            $cost = (int) abs((int) $tx->delta_coins);
             if (!isset($totals[$mid])) {
                 $totals[$mid] = ['ingest' => 0, 'query' => 0];
             }

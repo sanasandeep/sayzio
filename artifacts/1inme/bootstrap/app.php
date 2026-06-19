@@ -69,23 +69,24 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // AI features throw InsufficientAiCreditsException when the user
-        // tries to spend more credits than they have. Surface it as a
-        // friendly redirect to the top-up page (or JSON for API/AJAX)
-        // rather than a 500 — the message includes a clear CTA.
+        // tries to spend more coins than they have in their wallet. AI
+        // usage is now charged straight from the coin wallet, so surface
+        // it as a friendly redirect to the wallet top-up page (or JSON
+        // for API/AJAX) rather than a 500 — the message includes a CTA.
         $exceptions->render(function (\App\Services\AI\InsufficientAiCreditsException $e, \Illuminate\Http\Request $request) {
-            $msg = "You need {$e->required} AI credits to do that — you have {$e->balance}. Top up to continue.";
+            $msg = "You need {$e->required} coins to do that — you have {$e->balance}. Top up your wallet to continue.";
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'error' => [
                         'message'  => $msg,
-                        'code'     => 'insufficient_ai_credits',
+                        'code'     => 'insufficient_coins',
                         'required' => $e->required,
                         'balance'  => $e->balance,
-                        'top_up'   => route('user.ai-credits.show'),
+                        'top_up'   => route('user.wallet.buy'),
                     ],
                 ], 402);
             }
-            return redirect()->route('user.ai-credits.show')->with('error', $msg);
+            return redirect()->route('user.wallet.buy')->with('error', $msg);
         });
 
         // Developer-experience safety net for a fundamentally un-migrated DB.

@@ -343,7 +343,7 @@ class VoiceToolRegistry
         $register('feed',          'user.posts.index');
         $register('contacts',      'user.contacts.index');
         $register('wallet',        'user.wallet.index');
-        $register('ai_credits',    'user.ai-credits.show');
+        $register('ai_credits',    'user.wallet.show');
         $register('qr_codes',      'user.qr-codes.index');
         $register('settings',      'user.settings.index');
         $register('workspaces',    'user.workspaces.index');
@@ -469,20 +469,23 @@ class VoiceToolRegistry
     protected function doAdminGrantCredits(User $admin, array $args): array
     {
         $targetId = (int) ($args['user_id'] ?? 0);
-        $credits  = (int) ($args['credits'] ?? 0);
+        $coins    = (int) ($args['credits'] ?? 0);
         if ($targetId <= 0) return ['error' => 'I need a valid user id.'];
-        if ($credits  <= 0) return ['error' => 'Credit amount must be positive.'];
+        if ($coins    <= 0) return ['error' => 'Coin amount must be positive.'];
 
         $target = User::find($targetId);
         if (!$target) return ['error' => "I couldn't find that user."];
 
-        $this->credits->grant($target, $credits, [
-            'feature'  => 'voice_admin_grant',
-            'admin_id' => $admin->id,
-        ]);
+        $this->wallets->adjust(
+            $target,
+            $coins,
+            "Voice admin grant by {$admin->email}",
+            $admin->id,
+            ['meta' => ['source' => 'voice_admin_grant']],
+        );
 
         return [
-            'summary'     => "Granted {$credits} AI credits to {$target->email}.",
+            'summary'     => "Granted {$coins} coins to {$target->email}.",
             'navigate_to' => Route::has('admin.users.edit')
                 ? route('admin.users.edit', $targetId)
                 : route('admin.dashboard'),

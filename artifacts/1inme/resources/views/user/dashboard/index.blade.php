@@ -250,12 +250,13 @@
     </div>
 </a>
 
-{{-- AI credits at-a-glance card (only visible when the engine is on). --}}
+{{-- Coin balance at-a-glance card (only visible when the AI engine is
+     on, since AI usage is now charged straight from the coin wallet). --}}
 @if(\App\Services\AI\AiEngineSettings::isEnabled())
     @php
-        $aiBal = app(\App\Services\AI\AiCreditService::class)->balanceFor($user);
+        $aiCoins = app(\App\Services\Billing\WalletService::class)->getBalance($user);
     @endphp
-    <a href="{{ route('user.ai-credits.show') }}" class="block mb-8">
+    <a href="{{ route('user.wallet.show') }}" class="block mb-8">
         <div class="card-premium px-5 py-4 flex items-center justify-between hover:border-violet-500/40 transition-colors">
             <div class="flex items-center gap-4">
                 <div class="w-11 h-11 rounded-xl flex items-center justify-center"
@@ -263,15 +264,15 @@
                     <i class="fas fa-brain text-violet-300"></i>
                 </div>
                 <div>
-                    <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">AI credits</p>
+                    <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Coin balance</p>
                     <p class="text-2xl font-bold" style="color: var(--text-primary);">
-                        {{ number_format($aiBal->balance) }} <span class="text-violet-300">✦</span>
+                        {{ number_format($aiCoins) }} <span class="text-violet-300">coins</span>
                     </p>
                 </div>
             </div>
             <div class="text-right">
                 <p class="text-xs" style="color: var(--text-faint);">
-                    Spent {{ number_format($aiBal->lifetime_spent) }} lifetime
+                    AI usage is paid from your wallet
                 </p>
                 <p class="text-xs text-violet-300 mt-1">Manage &amp; top up <i class="fas fa-arrow-right ml-1"></i></p>
             </div>

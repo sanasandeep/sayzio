@@ -161,7 +161,6 @@ class UserSidebarMenuGatingTest extends TestCase
         AiEngineSettings::setEnabled(false);
         $u = $this->user($this->plan());
         $this->assertNavItem($u, 'user.ai.mind.show', false);
-        $this->assertNavItem($u, 'user.ai-credits.show', false);
     }
 
     public function test_ai_section_shown_when_engine_enabled(): void
@@ -169,7 +168,6 @@ class UserSidebarMenuGatingTest extends TestCase
         AiEngineSettings::setEnabled(true);
         $u = $this->user($this->plan());
         $this->assertNavItem($u, 'user.ai.mind.show', true);
-        $this->assertNavItem($u, 'user.ai-credits.show', true);
     }
 
     // ===== Ask Coach — AI-engine + per-plan allow-list gate =====

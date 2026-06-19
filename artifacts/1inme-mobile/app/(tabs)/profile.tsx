@@ -23,7 +23,7 @@ import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
-import { aiCredits as aiCreditsApi, wallet as walletApi } from "@/lib/api";
+import { wallet as walletApi } from "@/lib/api";
 import { getAdminContext } from "@/lib/api/admin";
 import {
   formatIdleTimeout,
@@ -196,7 +196,6 @@ export default function Profile() {
   });
   const hasAdminAccess = !!adminCtx.data?.has_admin_access;
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
-  const [aiCreditBalance, setAiCreditBalance] = useState<number | null>(null);
   const [biometricBusy, setBiometricBusy] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabledState] = useState(false);
   const [wakeWordBusy, setWakeWordBusy] = useState(false);
@@ -363,15 +362,6 @@ export default function Profile() {
         })
         .catch(() => {
           if (!cancelled) setCoinBalance(null);
-        });
-      aiCreditsApi
-        .balance()
-        .then((b) => {
-          if (cancelled) return;
-          setAiCreditBalance(b.enabled ? b.balance : null);
-        })
-        .catch(() => {
-          if (!cancelled) setAiCreditBalance(null);
         });
       return () => {
         cancelled = true;
@@ -1008,32 +998,6 @@ export default function Profile() {
                 color={colors.mutedForeground}
               />
             </Pressable>
-            {aiCreditBalance !== null ? (
-              <Pressable
-                onPress={() => router.push("/ai-credits" as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name="cpu" size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  AI credits
-                </Text>
-                <Text style={[styles.balancePill, { color: colors.primary, backgroundColor: colors.primary + "1a" }]}>
-                  {aiCreditBalance.toLocaleString()} ✦
-                </Text>
-                <Feather
-                  name="chevron-right"
-                  size={18}
-                  color={colors.mutedForeground}
-                />
-              </Pressable>
-            ) : null}
             <Pressable
               onPress={() => router.push("/upgrade" as never)}
               style={({ pressed }) => [

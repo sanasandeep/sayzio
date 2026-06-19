@@ -122,6 +122,21 @@ class WalletService
     }
 
     /**
+     * Give coins back to a user as a `refund` (positive delta). Used when
+     * a previously-charged action (e.g. an AI call that failed after the
+     * OpenAI request) needs to be made whole. Unlike credit() this does
+     * NOT count as a purchase, so it never fires the "you bought coins"
+     * notification or pollutes purchase analytics.
+     */
+    public function refundCoins(User $user, int $coins, array $opts = []): WalletTransaction
+    {
+        if ($coins <= 0) {
+            throw new \InvalidArgumentException('Refund amount must be positive.');
+        }
+        return $this->record($user, $coins, 'refund', $opts);
+    }
+
+    /**
      * Core ledger writer. Locks the wallet row, enforces non-negative
      * balance for spends/refunds, computes balance_after, and writes
      * the transaction atomically.

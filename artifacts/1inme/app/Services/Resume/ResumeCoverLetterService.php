@@ -53,7 +53,7 @@ class ResumeCoverLetterService
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildMessages($resume, $jd, $tone, $personaId);
-        return $this->openai->estimateChatCredits($model, $messages, self::MAX_OUTPUT_TOKENS);
+        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS);
     }
 
     /** Estimate cost for regenerating a single section (smaller prompt). */
@@ -65,7 +65,7 @@ class ResumeCoverLetterService
     ): int {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildSectionMessages($resume, $letter, $section, $instruction);
-        return $this->openai->estimateChatCredits($model, $messages, 700);
+        return $this->openai->estimateChatCoins($model, $messages, 700);
     }
 
     /**

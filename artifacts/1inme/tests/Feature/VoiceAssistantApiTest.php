@@ -6,6 +6,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Services\AI\AiCreditService;
+use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\ElevenLabsService;
 use App\Services\AI\OpenAiService;
@@ -171,7 +172,7 @@ class VoiceAssistantApiTest extends TestCase
     public function test_mobile_turn_endpoint_returns_per_stage_credit_breakdown(): void
     {
         $user = $this->makeUser('h');
-        app(AiCreditService::class)->grant($user, 500, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
 
         $this->mockVoiceServices([
             ['content' => 'Hello from mobile.', 'tool_calls' => [], 'credits_spent' => 8],
@@ -244,7 +245,7 @@ class VoiceAssistantApiTest extends TestCase
     public function test_destructive_tool_returns_confirm_required_until_confirmed_tools_is_set(): void
     {
         $user = $this->makeUser('d');
-        app(AiCreditService::class)->grant($user, 500, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
 
         // First request: model asks for switch_plan (destructive). The
         // orchestrator must short-circuit into a confirm_required

@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 /**
  * Shared OpenAI client used by every AI feature (Mind, Persona,
  * Companion, Coach). Centralising here means key rotation, model
- * gating, retries, and credit metering live in one place.
+ * gating, retries, and coin metering live in one place.
  *
  * Usage:
  *   $svc->chat($user, 'gpt-4o-mini', $messages, ['feature' => 'coach']);
@@ -22,9 +22,10 @@ use Illuminate\Support\Str;
  *   2. Pre-check the user can afford the worst-case cost (a tiny
  *      prepaid floor) so we fail fast before hitting OpenAI.
  *   3. Execute the HTTP call.
- *   4. Compute the actual credits spent from returned token usage and
- *      the admin's per-model rate.
- *   5. Write a `spend` AiCreditTransaction tagged with the feature.
+ *   4. Compute the actual coins spent from returned token usage and
+ *      the admin's per-model coins-per-1k-token rate.
+ *   5. Charge the coin wallet via {@see AiCreditService}, tagged with
+ *      the feature.
  */
 class OpenAiService
 {
@@ -114,7 +115,7 @@ class OpenAiService
             'finish_reason' => $finish,
             'tokens_in'     => $tokensIn,
             'tokens_out'    => $tokensOut,
-            'credits_spent' => $tx ? (int) abs($tx->delta_credits) : 0,
+            'credits_spent' => $tx ? (int) abs($tx->delta_coins) : 0,
             'model'         => $model,
             'raw'           => $response,
         ];
@@ -186,8 +187,8 @@ class OpenAiService
         // reply would silently push the balance below zero, charge for
         // it, and leave the visitor unable to continue with no warning.
         $startBalance = $this->credits->getBalance($user);
-        $hasRates     = ((int) $modelCfg['in_credits_per_1k']) > 0
-                     || ((int) $modelCfg['out_credits_per_1k']) > 0;
+        $hasRates     = ((float) $modelCfg['in_coins_per_1k']) > 0
+                     || ((float) $modelCfg['out_coins_per_1k']) > 0;
         $exhausted    = false;
 
         while (!$body->eof()) {
@@ -275,7 +276,7 @@ class OpenAiService
             ])
             : null;
 
-        $creditsSpent = $tx ? (int) abs($tx->delta_credits) : 0;
+        $creditsSpent = $tx ? (int) abs($tx->delta_coins) : 0;
 
         if ($exhausted) {
             // Surface a typed signal to the runtime so it can persist
@@ -343,7 +344,7 @@ class OpenAiService
         return [
             'vectors'       => $vectors,
             'tokens_in'     => $tokensIn,
-            'credits_spent' => $tx ? (int) abs($tx->delta_credits) : 0,
+            'credits_spent' => $tx ? (int) abs($tx->delta_coins) : 0,
             'model'         => $model,
         ];
     }
@@ -376,12 +377,12 @@ class OpenAiService
     }
 
     /**
-     * Public worst-case estimator for "how many credits will this chat
+     * Public worst-case estimator for "how many coins will this chat
      * call cost?" Used by features that surface the price before the
      * user clicks Run (e.g. resume tailoring). Returns 0 when the model
      * isn't enabled or the admin's per-token rates are zero.
      */
-    public function estimateChatCredits(string $model, array $messages, int $maxOutputTokens = self::DEFAULT_MAX_OUTPUT_TOKENS): int
+    public function estimateChatCoins(string $model, array $messages, int $maxOutputTokens = self::DEFAULT_MAX_OUTPUT_TOKENS): int
     {
         if (!AiEngineSettings::isEnabled()) return 0;
         $cfg = AiEngineSettings::model($model);
@@ -413,12 +414,18 @@ class OpenAiService
         return max(1, $total + 2); // closing assistant priming
     }
 
+    /**
+     * Per-call cost in whole coins. Rates are fractional coins per 1 000
+     * tokens; we sum the exact float cost and ceil() so the wallet (an
+     * integer coin balance) is never under-charged and never left
+     * negative. A non-zero-rate call always costs at least 1 coin.
+     */
     protected function computeCost(array $modelCfg, int $tokensIn, int $tokensOut): int
     {
-        $inRate  = (int) $modelCfg['in_credits_per_1k'];
-        $outRate = (int) $modelCfg['out_credits_per_1k'];
-        $cost = (int) ceil(($tokensIn * $inRate + $tokensOut * $outRate) / 1000);
-        return max(0, $cost);
+        $inRate  = (float) ($modelCfg['in_coins_per_1k'] ?? 0);
+        $outRate = (float) ($modelCfg['out_coins_per_1k'] ?? 0);
+        $cost = ($tokensIn * $inRate + $tokensOut * $outRate) / 1000;
+        return max(0, (int) ceil($cost));
     }
 
     /**

@@ -4,7 +4,6 @@ namespace App\Services\AI\AskCoach;
 
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
 use App\Services\Billing\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -29,9 +28,7 @@ use Illuminate\Support\Facades\Schema;
  */
 class AskCoachToolRegistry
 {
-    public function __construct(
-        protected AiCreditService $credits,
-    ) {}
+
 
     /**
      * Catalogue (id => label + summary). Surfaced to the user in the
@@ -45,9 +42,9 @@ class AskCoachToolRegistry
             'biolinks'    => ['label' => 'Biolinks',    'description' => 'Recent biolink pages, click counts, active state.'],
             'links'       => ['label' => 'Short Links', 'description' => 'Per-link clicks, top performers, dead links.'],
             'analytics'   => ['label' => 'Analytics',   'description' => 'Clicks over time, device split, drop-off funnel.'],
-            'payments'    => ['label' => 'Payments',    'description' => 'Wallet balance, AI credits, billing plan.'],
+            'payments'    => ['label' => 'Payments',    'description' => 'Wallet coin balance, billing plan.'],
             'audience'    => ['label' => 'Audience',    'description' => 'Followers, subscribers, recent growth.'],
-            'account'     => ['label' => 'Account',     'description' => 'Plan, AI credits, wallet, recent invoices.'],
+            'account'     => ['label' => 'Account',     'description' => 'Plan, wallet coins, recent invoices.'],
         ];
     }
 
@@ -373,13 +370,12 @@ class AskCoachToolRegistry
         $plan = $user->plan_id
             ? (optional($user->plan)->slug ?? "plan #{$user->plan_id}")
             : 'free';
-        $aiCredits = (int) $this->credits->getBalance($user);
         $coins = 0;
         try { $coins = (int) app(WalletService::class)->getBalance($user); } catch (\Throwable $e) {}
 
         $lines = [
             "Current plan: {$plan}.",
-            "AI credits: {$aiCredits}; wallet coins: {$coins}.",
+            "Wallet coins: {$coins} (AI usage is charged from your coin wallet).",
         ];
 
         return [
@@ -388,12 +384,11 @@ class AskCoachToolRegistry
                 'kind'  => 'kv',
                 'pairs' => [
                     ['key' => 'Plan',       'value' => $plan],
-                    ['key' => 'AI credits', 'value' => (string) $aiCredits],
                     ['key' => 'Coins',      'value' => (string) $coins],
                 ],
             ],
             'actions' => [
-                $this->action('Top up credits', 'user.ai-credits.show', 'Buy more AI credits to keep chatting with Coach.'),
+                $this->action('Top up coins', 'user.wallet.buy', 'Buy more coins to keep chatting with Coach.'),
             ],
             'citation'=> ['label' => 'Account & billing', 'source' => 'account'],
         ];

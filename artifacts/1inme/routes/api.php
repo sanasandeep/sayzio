@@ -281,12 +281,6 @@ Route::prefix('v1')->group(function () {
         Route::get ('/wallet/packages',     [WalletController::class, 'packages']);
         Route::post('/wallet/purchase',     [WalletController::class, 'purchase']);
 
-        // AI credits (mobile parity for Mind/Persona/Companion/Coach).
-        Route::get ('/ai/credits',              [\App\Modules\Api\Controllers\AiCreditsController::class, 'balance']);
-        Route::get ('/ai/credits/transactions', [\App\Modules\Api\Controllers\AiCreditsController::class, 'transactions']);
-        Route::get ('/ai/credits/packs',        [\App\Modules\Api\Controllers\AiCreditsController::class, 'packs']);
-        Route::post('/ai/credits/purchase',     [\App\Modules\Api\Controllers\AiCreditsController::class, 'purchase']);
-
         // AI Mind picker defaults (Persona / Coach mobile parity).
         Route::get   ('/ai/minds',                  [\App\Modules\Api\Controllers\AiMindPickerController::class, 'minds']);
         Route::get   ('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'getDefaults'])->whereIn('feature', ['persona', 'coach']);

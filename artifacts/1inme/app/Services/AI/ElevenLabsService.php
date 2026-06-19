@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * Text-to-speech via ElevenLabs. Returns the raw MP3 bytes plus a
- * ledger row tagged `feature => voice_tts`. Spend is metered per
- * 1 000 characters using the admin-configured rate.
+ * Text-to-speech via ElevenLabs. Returns the raw MP3 bytes plus a coin
+ * wallet charge tagged `feature => voice_tts`. Spend is metered per
+ * 1 000 characters using the admin-configured fractional coin rate.
  */
 class ElevenLabsService
 {
@@ -36,7 +36,7 @@ class ElevenLabsService
         $model   = $opts['model']    ?? AiEngineSettings::elevenLabsModel();
         $chars   = (int) mb_strlen($text);
 
-        $cost = (int) ceil($chars * AiEngineSettings::voiceTtsCreditsPer1kChars() / 1000);
+        $cost = (int) ceil($chars * AiEngineSettings::voiceTtsCoinsPer1kChars() / 1000);
         if ($cost > 0) $this->ensureCanAfford($user, $cost);
 
         $res = Http::withHeaders([
@@ -72,7 +72,7 @@ class ElevenLabsService
             'audio'         => $res->body(),
             'mime'          => 'audio/mpeg',
             'characters'    => $chars,
-            'credits_spent' => $tx ? (int) abs($tx->delta_credits) : 0,
+            'credits_spent' => $tx ? (int) abs($tx->delta_coins) : 0,
             'model'         => $model,
             'voice_id'      => $voiceId,
         ];

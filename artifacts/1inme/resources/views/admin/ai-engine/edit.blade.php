@@ -47,12 +47,12 @@
         </div>
     </div>
 
-    {{-- Models with per-1k credit rates --}}
+    {{-- Models with per-1k coin rates --}}
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="font-semibold text-white">Models &amp; rates</h3>
-                <p class="text-xs text-white/40">Credits charged per 1 000 tokens. Set both input and output rates.</p>
+                <p class="text-xs text-white/40">Coins charged per 1 000 tokens (fractional allowed). Per-call cost is rounded up to whole coins.</p>
             </div>
             <button type="button" onclick="addModelRow()"
                     class="px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700">
@@ -105,8 +105,8 @@
                             <span data-disable-warning-text></span>
                         </p>
                     </td>
-                    <td class="text-right"><input type="number" min="0" name="models[{{ $i }}][in_credits_per_1k]" value="{{ $m['in_credits_per_1k'] }}" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
-                    <td class="text-right"><input type="number" min="0" name="models[{{ $i }}][out_credits_per_1k]" value="{{ $m['out_credits_per_1k'] }}" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
+                    <td class="text-right"><input type="number" min="0" step="0.01" name="models[{{ $i }}][in_coins_per_1k]" value="{{ $m['in_coins_per_1k'] }}" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
+                    <td class="text-right"><input type="number" min="0" step="0.01" name="models[{{ $i }}][out_coins_per_1k]" value="{{ $m['out_coins_per_1k'] }}" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
                     <td class="text-right"><button type="button" onclick="this.closest('tr').remove()" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button></td>
                 </tr>
             @endforeach
@@ -200,58 +200,12 @@
         @endif
     </div>
 
-    {{-- Wallet -> credits conversion --}}
-    <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
-        <h3 class="font-semibold text-white">Wallet → AI credits</h3>
-        <p class="text-xs text-white/40">Conversion rate when users exchange wallet coins for AI credits.</p>
-        <div class="flex items-center gap-2 text-sm text-white">
-            <span>1 wallet coin =</span>
-            <input type="number" min="1" name="wallet_to_credits_rate" value="{{ $walletRate }}"
-                   class="w-24 bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm">
-            <span>AI credits</span>
-        </div>
-    </div>
-
-    {{-- Credit packs --}}
-    <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="font-semibold text-white">Credit packs</h3>
-                <p class="text-xs text-white/40">Bundles users can buy from their dashboard with wallet coins.</p>
-            </div>
-            <button type="button" onclick="addPackRow()"
-                    class="px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700">
-                <i class="fas fa-plus mr-1"></i> Add pack
-            </button>
-        </div>
-        <table class="w-full text-sm">
-            <thead><tr class="text-white/40 text-xs uppercase tracking-wider">
-                <th class="text-left py-2">ID (slug)</th>
-                <th class="text-left">Label</th>
-                <th class="text-right">Credits</th>
-                <th class="text-right">Wallet cost (coins)</th>
-                <th></th>
-            </tr></thead>
-            <tbody id="packs-tbody">
-            @foreach($packs as $i => $p)
-                <tr class="border-t border-white/5">
-                    <td class="py-2"><input name="packs[{{ $i }}][id]"  value="{{ $p['id'] }}" pattern="[a-z0-9_-]+" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm font-mono" required></td>
-                    <td><input name="packs[{{ $i }}][label]" value="{{ $p['label'] }}" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
-                    <td class="text-right"><input type="number" min="1" name="packs[{{ $i }}][credits]" value="{{ $p['credits'] }}" class="w-28 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
-                    <td class="text-right"><input type="number" min="1" name="packs[{{ $i }}][wallet_cost]" value="{{ $p['wallet_cost'] }}" class="w-28 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
-                    <td class="text-right"><button type="button" onclick="this.closest('tr').remove()" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button></td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-    </div>
-
     {{-- ── Voice Assistant ─────────────────────────────────── --}}
     <div class="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5">
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h3 class="text-white text-base font-semibold">Voice Assistant</h3>
-                <p class="text-white/50 text-xs mt-1">Whisper transcribes, GPT reasons &amp; calls tools, ElevenLabs speaks. Each stage is metered separately on the AI credits ledger.</p>
+                <p class="text-white/50 text-xs mt-1">Whisper transcribes, GPT reasons &amp; calls tools, ElevenLabs speaks. Each stage is metered separately and charged from the coin wallet.</p>
             </div>
             <label class="inline-flex items-center gap-2 cursor-pointer">
                 <input type="hidden" name="voice_enabled" value="0">
@@ -307,13 +261,13 @@
                        class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
             </div>
             <div>
-                <label class="text-white/70 text-xs">STT credits per minute of audio</label>
-                <input type="number" min="0" name="voice_price_stt" value="{{ $voicePriceStt }}"
+                <label class="text-white/70 text-xs">STT coins per minute of audio</label>
+                <input type="number" min="0" step="0.01" name="voice_price_stt" value="{{ $voicePriceStt }}"
                        class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
             </div>
             <div>
-                <label class="text-white/70 text-xs">TTS credits per 1 000 characters</label>
-                <input type="number" min="0" name="voice_price_tts" value="{{ $voicePriceTts }}"
+                <label class="text-white/70 text-xs">TTS coins per 1 000 characters</label>
+                <input type="number" min="0" step="0.01" name="voice_price_tts" value="{{ $voicePriceTts }}"
                        class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
             </div>
             <div>
@@ -367,8 +321,8 @@ function addModelRow() {
         <td class="py-2"><span class="text-white/30 text-xs">—</span></td>
         <td><select name="models[${i}][kind]" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"><option value="chat">chat</option><option value="embedding">embedding</option></select></td>
         <td><input type="hidden" name="models[${i}][enabled]" value="0"><input type="checkbox" data-enabled-toggle name="models[${i}][enabled]" value="1" checked class="accent-violet-500"><p data-disable-warning class="hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1"><i class="fas fa-triangle-exclamation mt-0.5"></i><span data-disable-warning-text></span></p></td>
-        <td class="text-right"><input type="number" min="0" name="models[${i}][in_credits_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
-        <td class="text-right"><input type="number" min="0" name="models[${i}][out_credits_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
+        <td class="text-right"><input type="number" min="0" step="0.01" name="models[${i}][in_coins_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
+        <td class="text-right"><input type="number" min="0" step="0.01" name="models[${i}][out_coins_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
         <td class="text-right"><button type="button" onclick="this.closest('tr').remove()" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button></td>`;
     tb.appendChild(row);
 }
@@ -438,18 +392,5 @@ function addModelRow() {
         }
     });
 })();
-function addPackRow() {
-    const tb = document.getElementById('packs-tbody');
-    const i = tb.children.length;
-    const row = document.createElement('tr');
-    row.className = 'border-t border-white/5';
-    row.innerHTML = `
-        <td class="py-2"><input name="packs[${i}][id]" pattern="[a-z0-9_-]+" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm font-mono" required></td>
-        <td><input name="packs[${i}][label]" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
-        <td class="text-right"><input type="number" min="1" name="packs[${i}][credits]" value="1000" class="w-28 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
-        <td class="text-right"><input type="number" min="1" name="packs[${i}][wallet_cost]" value="100" class="w-28 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
-        <td class="text-right"><button type="button" onclick="this.closest('tr').remove()" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button></td>`;
-    tb.appendChild(row);
-}
 </script>
 @endsection

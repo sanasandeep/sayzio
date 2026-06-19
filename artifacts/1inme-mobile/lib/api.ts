@@ -197,70 +197,6 @@ export const wallet = {
     }),
 };
 
-// ── AI credits ────────────────────────────────────────────────────
-export type AiCreditBalance = {
-  enabled: boolean;
-  balance: number;
-  lifetime_purchased: number;
-  lifetime_spent: number;
-  wallet_to_credits_rate: number;
-};
-export type AiCreditTransaction = {
-  id: number;
-  type: "purchase" | "spend" | "refund" | "grant" | "admin_adjustment";
-  delta_credits: number;
-  balance_after: number;
-  feature: string | null;
-  model: string | null;
-  tokens_in: number | null;
-  tokens_out: number | null;
-  reason: string | null;
-  created_at: string | null;
-};
-export type AiCreditPack = {
-  id: string;
-  label: string;
-  credits: number;
-  wallet_cost: number;
-};
-export type AiCreditPurchaseResponse = {
-  transaction_id: number;
-  credits_added: number;
-  balance: number;
-};
-
-export const aiCredits = {
-  balance: async (): Promise<AiCreditBalance> => {
-    const r = await apiFetch<{ data: AiCreditBalance }>("/ai/credits");
-    return r.data;
-  },
-  transactions: async (
-    limit = 25,
-  ): Promise<{ items: AiCreditTransaction[] }> => {
-    const r = await apiFetch<{ data: { items: AiCreditTransaction[] } }>(
-      `/ai/credits/transactions?limit=${limit}`,
-    );
-    return r.data;
-  },
-  packs: async (): Promise<{ items: AiCreditPack[]; rate: number }> => {
-    const r = await apiFetch<{
-      data: { items: AiCreditPack[]; rate: number };
-    }>("/ai/credits/packs");
-    return r.data;
-  },
-  purchase: async (
-    input:
-      | { pack_id: string; idempotency_key?: string }
-      | { credits: number; idempotency_key?: string },
-  ): Promise<AiCreditPurchaseResponse> => {
-    const r = await apiFetch<{ data: AiCreditPurchaseResponse }>(
-      "/ai/credits/purchase",
-      { method: "POST", body: JSON.stringify(input) },
-    );
-    return r.data;
-  },
-};
-
 // ── AI Mind picker (Persona / Coach defaults) ─────────────────────
 export type AiMindSummary = { id: number; name: string };
 export type AiMindList = {
@@ -343,8 +279,8 @@ export type VoiceCapabilities = {
   balance: number;
   rate_limit: number;
   pricing: {
-    stt_credits_per_minute: number;
-    tts_credits_per_1k_chars: number;
+    stt_coins_per_minute: number;
+    tts_coins_per_1k_chars: number;
   };
   tools: Record<string, VoiceCapability[]>;
   limitations: string[];

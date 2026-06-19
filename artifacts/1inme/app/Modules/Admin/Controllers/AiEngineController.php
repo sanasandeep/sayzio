@@ -34,8 +34,6 @@ class AiEngineController extends Controller
             'maskedKey'       => AiEngineSettings::maskedOpenAiKey(),
             'hasKey'          => AiEngineSettings::openAiKey() !== null,
             'models'          => AiEngineSettings::models(),
-            'walletRate'      => AiEngineSettings::walletToCreditsRate(),
-            'packs'           => AiEngineSettings::packs(),
             'features'        => AiEngineSettings::FEATURES,
             'featureModels'   => AiEngineSettings::featureModels(),
             'featureStatus'   => $featureStatus,
@@ -53,8 +51,8 @@ class AiEngineController extends Controller
             'hasElevenKey'         => AiEngineSettings::elevenLabsKey() !== null,
             'elevenVoiceId'        => AiEngineSettings::elevenLabsVoiceId(),
             'elevenModel'          => AiEngineSettings::elevenLabsModel(),
-            'voicePriceStt'        => AiEngineSettings::voiceSttCreditsPerMinute(),
-            'voicePriceTts'        => AiEngineSettings::voiceTtsCreditsPer1kChars(),
+            'voicePriceStt'        => AiEngineSettings::voiceSttCoinsPerMinute(),
+            'voicePriceTts'        => AiEngineSettings::voiceTtsCoinsPer1kChars(),
             'voiceRateLimit'       => AiEngineSettings::voiceTurnsPerMinute(),
         ]);
     }
@@ -65,18 +63,12 @@ class AiEngineController extends Controller
             'enabled'                       => 'nullable|boolean',
             'openai_api_key'                => 'nullable|string|max:255',
             'clear_openai_api_key'          => 'nullable|boolean',
-            'wallet_to_credits_rate'        => 'nullable|integer|min:1|max:1000000',
             'models'                        => 'array',
             'models.*.name'                 => 'required_with:models|string|max:64',
             'models.*.kind'                 => 'required_with:models|in:chat,embedding',
             'models.*.enabled'              => 'nullable|boolean',
-            'models.*.in_credits_per_1k'    => 'nullable|integer|min:0',
-            'models.*.out_credits_per_1k'   => 'nullable|integer|min:0',
-            'packs'                         => 'array',
-            'packs.*.id'                    => 'required_with:packs|string|max:32',
-            'packs.*.label'                 => 'required_with:packs|string|max:64',
-            'packs.*.credits'               => 'required_with:packs|integer|min:1',
-            'packs.*.wallet_cost'           => 'required_with:packs|integer|min:1',
+            'models.*.in_coins_per_1k'      => 'nullable|numeric|min:0|max:100000',
+            'models.*.out_coins_per_1k'     => 'nullable|numeric|min:0|max:100000',
             'feature_models'                => 'array',
             'feature_models.*'              => 'nullable|string|max:64',
 
@@ -92,8 +84,8 @@ class AiEngineController extends Controller
             'clear_elevenlabs_api_key'      => 'nullable|boolean',
             'elevenlabs_voice_id'           => 'nullable|string|max:64',
             'elevenlabs_model'              => 'nullable|string|max:64',
-            'voice_price_stt'               => 'nullable|integer|min:0|max:100000',
-            'voice_price_tts'               => 'nullable|integer|min:0|max:100000',
+            'voice_price_stt'               => 'nullable|numeric|min:0|max:100000',
+            'voice_price_tts'               => 'nullable|numeric|min:0|max:100000',
             'voice_rate_per_minute'         => 'nullable|integer|min:1|max:600',
         ]);
 
@@ -152,20 +144,13 @@ class AiEngineController extends Controller
             AiEngineSettings::setOpenAiKey($data['openai_api_key']);
         }
 
-        if (isset($data['wallet_to_credits_rate'])) {
-            AiEngineSettings::setWalletToCreditsRate((int) $data['wallet_to_credits_rate']);
-        }
-
-        // Models / packs: update only when the form actually submitted
-        // them (admin may save just the toggle without re-posting tables).
+        // Models: update only when the form actually submitted them
+        // (admin may save just the toggle without re-posting the table).
         if (array_key_exists('models', $data)) {
             AiEngineSettings::setModels(array_map(function ($m) {
                 $m['enabled'] = (bool) ($m['enabled'] ?? false);
                 return $m;
             }, $data['models']));
-        }
-        if (array_key_exists('packs', $data)) {
-            AiEngineSettings::setPacks($data['packs']);
         }
         if (array_key_exists('feature_models', $data)) {
             $admin = Auth::guard('admin')->user() ?: $request->user();
@@ -206,10 +191,10 @@ class AiEngineController extends Controller
             AiEngineSettings::setElevenLabsModel($data['elevenlabs_model']);
         }
         if (isset($data['voice_price_stt'])) {
-            AiEngineSettings::setVoiceSttCreditsPerMinute((int) $data['voice_price_stt']);
+            AiEngineSettings::setVoiceSttCoinsPerMinute((float) $data['voice_price_stt']);
         }
         if (isset($data['voice_price_tts'])) {
-            AiEngineSettings::setVoiceTtsCreditsPer1kChars((int) $data['voice_price_tts']);
+            AiEngineSettings::setVoiceTtsCoinsPer1kChars((float) $data['voice_price_tts']);
         }
         if (isset($data['voice_rate_per_minute'])) {
             AiEngineSettings::setVoiceTurnsPerMinute((int) $data['voice_rate_per_minute']);

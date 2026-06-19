@@ -828,13 +828,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buyHandoff'])->name('wallet.buy.handoff');
         Route::post('addons/{addon}/activate-with-coins', [\App\Modules\User\Controllers\WalletController::class, 'activateAddon'])->name('addons.activate-with-coins');
 
-        // AI credits — separate ledger from the wallet. Buying converts
-        // wallet coins into AI credits at the admin-set rate.
-        Route::get ('ai-credits',              [\App\Modules\User\Controllers\AiCreditsController::class, 'show'])->name('ai-credits.show');
-        Route::get ('ai-credits/transactions', [\App\Modules\User\Controllers\AiCreditsController::class, 'transactions'])->name('ai-credits.transactions');
-        Route::post('ai-credits/buy',          [\App\Modules\User\Controllers\AiCreditsController::class, 'buy'])->name('ai-credits.buy');
-
-        // ---- AI features (spend credits via OpenAiService) ----
+        // ---- AI features (charge coins from the wallet via OpenAiService) ----
         // Each feature charges through OpenAiService::chat() with a
         // unique `feature` tag so admin reporting can attribute spend
         // back to the right product on /admin/ai-usage.

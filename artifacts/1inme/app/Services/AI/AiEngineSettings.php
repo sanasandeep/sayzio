@@ -13,20 +13,21 @@ use Illuminate\Support\Facades\DB;
  * All values live in the `app_settings` key/value store:
  *   ai.enabled                  bool                — master switch.
  *   ai.openai_api_key_enc       string              — Crypt-encrypted key.
- *   ai.models                   list<modelConfig>   — enabled model rates.
- *   ai.wallet_to_credits_rate   int                 — credits per 1 wallet coin.
- *   ai.credit_packs             list<packConfig>    — buyable packs.
+ *   ai.models                   list<modelConfig>   — enabled model rates,
+ *                                                     priced in coins per
+ *                                                     1 000 tokens (float).
+ *
+ * AI usage is billed straight from the coin wallet at call time — there
+ * is no separate AI-credit balance, exchange rate, or buyable packs.
  *
  * Keeping these helpers in one place stops every feature from
- * re-implementing key rotation, model gating, and pack lookup.
+ * re-implementing key rotation and model gating.
  */
 class AiEngineSettings
 {
     public const KEY_ENABLED        = 'ai.enabled';
     public const KEY_OPENAI_KEY_ENC = 'ai.openai_api_key_enc';
     public const KEY_MODELS         = 'ai.models';
-    public const KEY_WALLET_RATE    = 'ai.wallet_to_credits_rate';
-    public const KEY_PACKS          = 'ai.credit_packs';
     public const KEY_FEATURE_MODELS = 'ai.feature_models';
 
     // ── Voice Assistant (Whisper STT + GPT + ElevenLabs TTS) ──────
@@ -38,8 +39,8 @@ class AiEngineSettings
     public const KEY_VOICE_ELEVEN_KEY_ENC   = 'ai.voice.elevenlabs_api_key_enc';
     public const KEY_VOICE_ELEVEN_VOICE_ID  = 'ai.voice.elevenlabs_voice_id';
     public const KEY_VOICE_ELEVEN_MODEL     = 'ai.voice.elevenlabs_model';
-    public const KEY_VOICE_PRICE_STT        = 'ai.voice.price.stt_credits_per_minute';
-    public const KEY_VOICE_PRICE_TTS        = 'ai.voice.price.tts_credits_per_1k_chars';
+    public const KEY_VOICE_PRICE_STT        = 'ai.voice.price.stt_coins_per_minute';
+    public const KEY_VOICE_PRICE_TTS        = 'ai.voice.price.tts_coins_per_1k_chars';
     public const KEY_VOICE_RATE_PER_MINUTE  = 'ai.voice.rate.turns_per_minute';
 
     public const DEFAULT_WHISPER_MODEL  = 'whisper-1';
@@ -161,7 +162,11 @@ PROMPT;
     }
 
     /**
-     * @return array<int, array{name:string,kind:string,enabled:bool,in_credits_per_1k:int,out_credits_per_1k:int}>
+     * Per-model token pricing in COINS per 1 000 tokens. Rates are
+     * fractional (e.g. 0.5 coins / 1k input tokens); OpenAiService sums
+     * the exact float cost and ceil()s to whole coins at charge time.
+     *
+     * @return array<int, array{name:string,kind:string,enabled:bool,in_coins_per_1k:float,out_coins_per_1k:float}>
      */
     public static function models(): array
     {
@@ -171,11 +176,11 @@ PROMPT;
         foreach ($stored as $m) {
             if (!is_array($m) || empty($m['name'])) continue;
             $out[] = [
-                'name'                => (string) $m['name'],
-                'kind'                => (string) ($m['kind'] ?? 'chat'),
-                'enabled'             => (bool) ($m['enabled'] ?? true),
-                'in_credits_per_1k'   => max(0, (int) ($m['in_credits_per_1k'] ?? 0)),
-                'out_credits_per_1k'  => max(0, (int) ($m['out_credits_per_1k'] ?? 0)),
+                'name'              => (string) $m['name'],
+                'kind'              => (string) ($m['kind'] ?? 'chat'),
+                'enabled'           => (bool) ($m['enabled'] ?? true),
+                'in_coins_per_1k'   => max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)),
+                'out_coins_per_1k'  => max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)),
             ];
         }
         return $out ?: self::defaultModels();
@@ -185,9 +190,9 @@ PROMPT;
     public static function defaultModels(): array
     {
         return [
-            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_credits_per_1k' => 50,  'out_credits_per_1k' => 150],
-            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_credits_per_1k' => 5,   'out_credits_per_1k' => 15],
-            ['name' => 'text-embedding-3-small',  'kind' => 'embedding', 'enabled' => true,  'in_credits_per_1k' => 1,   'out_credits_per_1k' => 0],
+            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 15.0],
+            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 1.5],
+            ['name' => 'text-embedding-3-small',  'kind' => 'embedding', 'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.0],
         ];
     }
 
@@ -197,84 +202,21 @@ PROMPT;
         foreach ($models as $m) {
             if (!is_array($m) || empty($m['name'])) continue;
             $clean[] = [
-                'name'                => trim((string) $m['name']),
-                'kind'                => in_array(($m['kind'] ?? 'chat'), ['chat','embedding'], true) ? $m['kind'] : 'chat',
-                'enabled'             => (bool) ($m['enabled'] ?? false),
-                'in_credits_per_1k'   => max(0, (int) ($m['in_credits_per_1k'] ?? 0)),
-                'out_credits_per_1k'  => max(0, (int) ($m['out_credits_per_1k'] ?? 0)),
+                'name'              => trim((string) $m['name']),
+                'kind'              => in_array(($m['kind'] ?? 'chat'), ['chat','embedding'], true) ? $m['kind'] : 'chat',
+                'enabled'           => (bool) ($m['enabled'] ?? false),
+                'in_coins_per_1k'   => round(max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)), 4),
+                'out_coins_per_1k'  => round(max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)), 4),
             ];
         }
         AppSetting::put(self::KEY_MODELS, $clean);
     }
 
-    /** @return array{name:string,kind:string,enabled:bool,in_credits_per_1k:int,out_credits_per_1k:int}|null */
+    /** @return array{name:string,kind:string,enabled:bool,in_coins_per_1k:float,out_coins_per_1k:float}|null */
     public static function model(string $name): ?array
     {
         foreach (self::models() as $m) {
             if (strcasecmp($m['name'], $name) === 0) return $m;
-        }
-        return null;
-    }
-
-    /** Wallet-coins-to-AI-credits conversion factor (credits per 1 coin). */
-    public static function walletToCreditsRate(): int
-    {
-        return max(1, (int) AppSetting::get(self::KEY_WALLET_RATE, 10));
-    }
-
-    public static function setWalletToCreditsRate(int $rate): void
-    {
-        AppSetting::put(self::KEY_WALLET_RATE, max(1, $rate));
-    }
-
-    /**
-     * @return array<int, array{id:string,label:string,credits:int,wallet_cost:int}>
-     */
-    public static function packs(): array
-    {
-        $stored = AppSetting::get(self::KEY_PACKS);
-        if (!is_array($stored) || !$stored) return self::defaultPacks();
-        $out = [];
-        foreach ($stored as $p) {
-            if (!is_array($p) || empty($p['id'])) continue;
-            $out[] = [
-                'id'          => (string) $p['id'],
-                'label'       => (string) ($p['label'] ?? $p['id']),
-                'credits'     => max(0, (int) ($p['credits'] ?? 0)),
-                'wallet_cost' => max(0, (int) ($p['wallet_cost'] ?? 0)),
-            ];
-        }
-        return $out ?: self::defaultPacks();
-    }
-
-    public static function defaultPacks(): array
-    {
-        return [
-            ['id' => 'small',  'label' => 'Starter',     'credits' => 1000,  'wallet_cost' => 100],
-            ['id' => 'medium', 'label' => 'Creator',     'credits' => 5000,  'wallet_cost' => 450],
-            ['id' => 'large',  'label' => 'Power user',  'credits' => 25000, 'wallet_cost' => 2000],
-        ];
-    }
-
-    public static function setPacks(array $packs): void
-    {
-        $clean = [];
-        foreach ($packs as $p) {
-            if (!is_array($p) || empty($p['id'])) continue;
-            $clean[] = [
-                'id'          => preg_replace('/[^a-z0-9_-]/i', '', (string) $p['id']),
-                'label'       => trim((string) ($p['label'] ?? $p['id'])),
-                'credits'     => max(1, (int) ($p['credits'] ?? 0)),
-                'wallet_cost' => max(1, (int) ($p['wallet_cost'] ?? 0)),
-            ];
-        }
-        AppSetting::put(self::KEY_PACKS, $clean);
-    }
-
-    public static function pack(string $id): ?array
-    {
-        foreach (self::packs() as $p) {
-            if ($p['id'] === $id) return $p;
         }
         return null;
     }
@@ -532,26 +474,26 @@ PROMPT;
         AppSetting::put(self::KEY_VOICE_ELEVEN_MODEL, is_string($name) ? trim($name) : null);
     }
 
-    /** Credits charged per minute of audio sent to Whisper. */
-    public static function voiceSttCreditsPerMinute(): int
+    /** Coins charged per minute of audio sent to Whisper (fractional). */
+    public static function voiceSttCoinsPerMinute(): float
     {
-        return max(0, (int) AppSetting::get(self::KEY_VOICE_PRICE_STT, 30));
+        return max(0.0, (float) AppSetting::get(self::KEY_VOICE_PRICE_STT, 3.0));
     }
 
-    public static function setVoiceSttCreditsPerMinute(int $n): void
+    public static function setVoiceSttCoinsPerMinute(float $n): void
     {
-        AppSetting::put(self::KEY_VOICE_PRICE_STT, max(0, $n));
+        AppSetting::put(self::KEY_VOICE_PRICE_STT, round(max(0.0, $n), 4));
     }
 
-    /** Credits charged per 1 000 characters of TTS reply. */
-    public static function voiceTtsCreditsPer1kChars(): int
+    /** Coins charged per 1 000 characters of TTS reply (fractional). */
+    public static function voiceTtsCoinsPer1kChars(): float
     {
-        return max(0, (int) AppSetting::get(self::KEY_VOICE_PRICE_TTS, 50));
+        return max(0.0, (float) AppSetting::get(self::KEY_VOICE_PRICE_TTS, 5.0));
     }
 
-    public static function setVoiceTtsCreditsPer1kChars(int $n): void
+    public static function setVoiceTtsCoinsPer1kChars(float $n): void
     {
-        AppSetting::put(self::KEY_VOICE_PRICE_TTS, max(0, $n));
+        AppSetting::put(self::KEY_VOICE_PRICE_TTS, round(max(0.0, $n), 4));
     }
 
     public static function voiceTurnsPerMinute(): int

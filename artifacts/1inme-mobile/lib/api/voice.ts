@@ -60,8 +60,8 @@ export type VoiceCapabilities = {
   balance: number;
   rate_limit: number;
   pricing: {
-    stt_credits_per_minute: number;
-    tts_credits_per_1k_chars: number;
+    stt_coins_per_minute: number;
+    tts_coins_per_1k_chars: number;
   };
   tools: Record<string, VoiceCapabilityTool[]>;
   limitations: string[];

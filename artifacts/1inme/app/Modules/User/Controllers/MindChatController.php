@@ -51,8 +51,8 @@ class MindChatController extends Controller
             $result = $this->svc->ask($user, $minds, $data['question']);
         } catch (InsufficientAiCreditsException $e) {
             return $this->respond($request, [
-                'error'    => "Need {$e->required} AI credits — only {$e->balance} available.",
-                'top_up'   => route('user.ai-credits.show'),
+                'error'    => "Need {$e->required} coins — only {$e->balance} available.",
+                'top_up'   => route('user.wallet.buy'),
             ], 402);
         } catch (\Throwable $e) {
             return $this->respond($request, ['error' => $e->getMessage()], 422);

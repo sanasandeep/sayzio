@@ -10,12 +10,12 @@ use Illuminate\Support\Str;
 
 /**
  * Speech-to-text via OpenAI Whisper. Sibling of {@see OpenAiService} —
- * shares the encrypted key store + AiCreditService ledger so every
- * voice-stage spend lands in the same audit trail.
+ * shares the encrypted key store + coin wallet so every voice-stage
+ * spend lands in the same audit trail.
  *
  * Spend is metered per-minute (rounded up) using the admin-configured
- * `voice.price.stt_credits_per_minute`. Each charge is tagged
- * `feature => voice_stt` and the model used is recorded.
+ * `voice.price.stt_coins_per_minute` (fractional coins). Each charge is
+ * tagged `feature => voice_stt` and the model used is recorded.
  */
 class WhisperService
 {
@@ -38,7 +38,7 @@ class WhisperService
         // and can roughly estimate duration; otherwise assume 60s.
         $estSec = $this->estimateDurationSeconds($audio);
         $estMin = max(1, (int) ceil($estSec / 60));
-        $worstCase = $estMin * AiEngineSettings::voiceSttCreditsPerMinute();
+        $worstCase = (int) ceil($estMin * AiEngineSettings::voiceSttCoinsPerMinute());
         $noCharge = !empty($opts['no_charge']);
         if (!$noCharge && $worstCase > 0) $this->ensureCanAfford($user, $worstCase);
 
@@ -66,7 +66,7 @@ class WhisperService
         $duration = (float) ($body['duration'] ?? $estSec);
 
         $minutes = max(1, (int) ceil($duration / 60));
-        $cost    = $minutes * AiEngineSettings::voiceSttCreditsPerMinute();
+        $cost    = (int) ceil($minutes * AiEngineSettings::voiceSttCoinsPerMinute());
 
         $tx = ($cost > 0 && !$noCharge)
             ? $this->credits->charge($user, $cost, [
@@ -84,7 +84,7 @@ class WhisperService
         return [
             'text'             => $text,
             'duration_seconds' => $duration,
-            'credits_spent'    => $tx ? (int) abs($tx->delta_credits) : 0,
+            'credits_spent'    => $tx ? (int) abs($tx->delta_coins) : 0,
             'model'            => $model,
         ];
     }

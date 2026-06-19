@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\User\Models\User;
 use App\Services\AI\AiCreditService;
+use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -61,7 +62,7 @@ class VoiceAssistantCapabilitiesTest extends TestCase
         AiEngineSettings::setVoiceTurnsPerMinute(12);
 
         $user = $this->makeUser('shape');
-        app(AiCreditService::class)->grant($user, 250, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 250, ['reason' => 'test seed']);
 
         $resp = $this->actingAs($user)->getJson(route('user.ai.voice.capabilities'));
 

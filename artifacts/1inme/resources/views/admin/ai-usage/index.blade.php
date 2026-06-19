@@ -22,17 +22,16 @@
     <a href="{{ route('admin.ai-engine.edit') }}" class="text-xs text-violet-300 hover:underline ml-auto">AI Engine settings →</a>
 </form>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+<div class="grid grid-cols-3 gap-3 mb-6">
     @foreach([
         ['Spent',     $totals['spent'],     'text-red-300'],
-        ['Purchased', $totals['purchased'], 'text-emerald-300'],
         ['Refunded',  $totals['refunded'],  'text-violet-300'],
         ['Adjusted',  $totals['adjusted'],  'text-amber-300'],
     ] as $card)
         <div class="glass rounded-2xl border border-white/10 p-4">
             <p class="text-[10px] uppercase tracking-wider text-white/40">{{ $card[0] }}</p>
             <p class="text-2xl font-bold {{ $card[2] }}">{{ number_format($card[1]) }}</p>
-            <p class="text-[10px] text-white/30 mt-1">credits</p>
+            <p class="text-[10px] text-white/30 mt-1">coins</p>
         </div>
     @endforeach
 </div>
@@ -58,7 +57,7 @@
 @if($featureRows->isNotEmpty())
     <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
         <h3 class="font-semibold text-white mb-1">Per-feature spend</h3>
-        <p class="text-xs text-white/40 mb-4">Where credits are being burned in this window.</p>
+        <p class="text-xs text-white/40 mb-4">Where coins are being burned in this window.</p>
         <table class="w-full text-sm">
             <thead><tr class="text-white/40 text-xs uppercase tracking-wider">
                 <th class="text-left py-2">Feature</th>
@@ -66,7 +65,7 @@
                 <th class="text-right">Users</th>
                 <th class="text-right">Tokens in</th>
                 <th class="text-right">Tokens out</th>
-                <th class="text-right">Credits spent</th>
+                <th class="text-right">Coins spent</th>
             </tr></thead>
             <tbody>
             @foreach($featureRows as $f)
@@ -102,10 +101,8 @@
         <table class="w-full text-sm">
             <thead><tr class="text-white/40 text-xs uppercase tracking-wider">
                 <th class="text-left py-2">User</th>
-                <th class="text-right">Balance</th>
-                <th class="text-right">Lifetime ⇡ / ⇣</th>
+                <th class="text-right">Coin balance</th>
                 <th class="text-right">Spent</th>
-                <th class="text-right">Purchased</th>
                 <th class="text-right">Refunded</th>
                 <th class="text-right">Adjusted</th>
                 <th class="text-right">Calls</th>
@@ -124,13 +121,7 @@
                         <div class="text-[11px] text-white/40">{{ $u->email ?? '' }}</div>
                     </td>
                     <td class="text-right text-violet-200 font-semibold">{{ number_format((int) ($b->balance ?? 0)) }}</td>
-                    <td class="text-right text-white/60 text-xs">
-                        {{ number_format((int) ($b->lifetime_purchased ?? 0)) }}
-                        <span class="text-white/30">/</span>
-                        {{ number_format((int) ($b->lifetime_spent ?? 0)) }}
-                    </td>
                     <td class="text-right text-red-300">{{ number_format($r->spent) }}</td>
-                    <td class="text-right text-emerald-300">{{ number_format($r->purchased) }}</td>
                     <td class="text-right text-violet-300">{{ number_format($r->refunded) }}</td>
                     <td class="text-right text-amber-300">{{ number_format($r->adjusted) }}</td>
                     <td class="text-right text-white/70">{{ number_format($r->calls) }}</td>

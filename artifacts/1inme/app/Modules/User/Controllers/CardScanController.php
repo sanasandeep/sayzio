@@ -73,8 +73,8 @@ class CardScanController extends Controller
         try {
             $scan = $this->extractor->extract($owner, $actor, $uploads);
         } catch (InsufficientAiCreditsException $e) {
-            return redirect()->route('user.ai-credits.show')
-                ->with('error', "You need {$e->required} AI credits to scan a card (you have {$e->balance}).");
+            return redirect()->route('user.wallet.buy')
+                ->with('error', "You need {$e->required} coins to scan a card (you have {$e->balance}).");
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {

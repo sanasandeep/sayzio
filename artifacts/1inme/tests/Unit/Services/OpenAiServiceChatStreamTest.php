@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Modules\User\Models\User;
 use App\Services\AI\AiCreditService;
+use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\OpenAiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,7 +62,7 @@ class OpenAiServiceChatStreamTest extends TestCase
         $user = $this->makeUser();
         // Fund the user so the worst-case prepay gate clears even
         // though our test rates are deliberately generous.
-        app(AiCreditService::class)->grant($user, 5_000, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 5_000, ['reason' => 'test seed']);
 
         // Canned SSE body exercising the realistic shape OpenAI sends:
         //   - multiple delta frames whose content concatenates into the
@@ -120,14 +121,15 @@ class OpenAiServiceChatStreamTest extends TestCase
         $this->assertSame(59, $result['credits_spent']);
         $this->assertSame('gpt-test', $result['model']);
 
-        $tx = \App\Modules\User\Models\AiCreditTransaction::where('user_id', $user->id)
+        $tx = \App\Modules\User\Models\WalletTransaction::where('user_id', $user->id)
             ->where('type', 'spend')
-            ->where('feature', 'unit_test')
+            ->where('meta->ai', true)
+            ->where('meta->feature', 'unit_test')
             ->latest('id')->first();
         $this->assertNotNull($tx);
-        $this->assertSame(-59, (int) $tx->delta_credits);
-        $this->assertSame(42,  (int) $tx->tokens_in);
-        $this->assertSame(17,  (int) $tx->tokens_out);
+        $this->assertSame(-59, (int) $tx->delta_coins);
+        $this->assertSame(42,  (int) ($tx->meta['tokens_in'] ?? null));
+        $this->assertSame(17,  (int) ($tx->meta['tokens_out'] ?? null));
         // The streamed call_id from the SSE frames must round-trip
         // into meta so support can correlate ledger rows with OpenAI
         // dashboard entries when investigating disputes.
@@ -138,7 +140,7 @@ class OpenAiServiceChatStreamTest extends TestCase
     public function test_chat_stream_falls_back_to_estimates_when_usage_frame_is_missing(): void
     {
         $user = $this->makeUser();
-        app(AiCreditService::class)->grant($user, 5_000, ['feature' => 'test_grant']);
+        app(WalletService::class)->credit($user, 5_000, ['reason' => 'test seed']);
 
         // No usage frame here — older OpenAI compat servers and some
         // proxies omit it. The helper must fall back to its own

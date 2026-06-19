@@ -2,7 +2,7 @@
 
 namespace App\Services\Resume;
 
-use App\Modules\User\Models\AiCreditTransaction;
+use App\Modules\User\Models\WalletTransaction;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Models\User;
@@ -21,8 +21,8 @@ use RuntimeException;
  *
  * Credits are charged inside OpenAiService::chat() against the
  * `resume_tailor` feature so admins can tune the model independently.
- * Recent runs are surfaced via AiCreditTransaction queries (no extra
- * table needed) so the audit trail is the source of truth.
+ * Recent runs are surfaced via AI-tagged coin wallet transactions (no
+ * extra table needed) so the audit trail is the source of truth.
  *
  * Out of scope here: scraping JDs from URLs (paste-only by design),
  * saving the tailored resume as a new version (depends on the
@@ -98,7 +98,7 @@ class ResumeTailorService
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildMessages($resume, $jobDescription);
-        return $this->openai->estimateChatCredits($model, $messages, self::MAX_OUTPUT_TOKENS);
+        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS);
     }
 
     /**
@@ -222,29 +222,30 @@ class ResumeTailorService
     }
 
     /**
-     * Most recent tailoring runs for this user, derived from the AI
-     * credit ledger. Each row has the JD excerpt (stored in `meta`),
-     * how much it cost, and the timestamp.
+     * Most recent tailoring runs for this user, derived from the coin
+     * wallet ledger. Each row has the JD excerpt (stored in `meta`),
+     * how much it cost (coins), and the timestamp.
      *
      * @return list<array{id:int,when:string,credits:int,jd_excerpt:string,model:?string}>
      */
     public function recentRuns(User $user, int $limit = 10): array
     {
-        $rows = AiCreditTransaction::where('user_id', $user->id)
-            ->where('feature', self::FEATURE)
+        $rows = WalletTransaction::where('user_id', $user->id)
+            ->where('meta->ai', true)
+            ->where('meta->feature', self::FEATURE)
             ->where('type', 'spend')
             ->orderByDesc('id')
             ->limit($limit)
-            ->get(['id', 'created_at', 'delta_credits', 'meta', 'model']);
+            ->get(['id', 'created_at', 'delta_coins', 'meta']);
 
-        return $rows->map(function (AiCreditTransaction $tx) {
+        return $rows->map(function (WalletTransaction $tx) {
             $meta = is_array($tx->meta) ? $tx->meta : [];
             return [
                 'id'         => (int) $tx->id,
                 'when'       => optional($tx->created_at)->toIso8601String(),
-                'credits'    => abs((int) $tx->delta_credits),
+                'credits'    => abs((int) $tx->delta_coins),
                 'jd_excerpt' => (string) ($meta['jd_excerpt'] ?? ''),
-                'model'      => $tx->model,
+                'model'      => $meta['model'] ?? null,
             ];
         })->all();
     }

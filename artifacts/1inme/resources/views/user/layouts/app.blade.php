@@ -834,7 +834,7 @@
 
                 {{-- ========== AI (collapsible) ========== --}}
                 @if(\App\Services\AI\AiEngineSettings::isEnabled())
-                @php $grpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*') || request()->routeIs('user.ai-credits.*'); @endphp
+                @php $grpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*'); @endphp
                 <div x-data="{ open: {{ $grpAiActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -902,13 +902,6 @@
                             <span class="sidebar-tooltip">Ask Coach</span>
                         </a>
                         @endif
-                        <a href="{{ route('user.ai-credits.show') }}"
-                           class="sidebar-link {{ request()->routeIs('user.ai-credits.*') ? 'active' : '' }}"
-                           style="--nav-tint:#c4b5fd; --nav-tint-soft:rgba(196,181,253,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-sparkles"></i></div>
-                            <span class="nav-label">AI Credits</span>
-                            <span class="sidebar-tooltip">AI Credits</span>
-                        </a>
                     </div>
                 </div>
                 @endif
@@ -1345,7 +1338,7 @@
 
                         {{-- ========== AI (collapsible) ========== --}}
                         @if(\App\Services\AI\AiEngineSettings::isEnabled())
-                        @php $mGrpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*') || request()->routeIs('user.ai-credits.*'); @endphp
+                        @php $mGrpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*'); @endphp
                         <div x-data="{ open: {{ $mGrpAiActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1365,7 +1358,6 @@
                                 @if(\App\Services\AI\AiEngineSettings::isEnabled() && auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                                 <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Ask Coach</span></a>
                                 @endif
-                                <a href="{{ route('user.ai-credits.show') }}" class="sidebar-link {{ request()->routeIs('user.ai-credits.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sparkles"></i></div> <span>AI Credits</span></a>
                             </div>
                         </div>
                         @endif

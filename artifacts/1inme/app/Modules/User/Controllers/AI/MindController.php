@@ -15,12 +15,12 @@ use Illuminate\Support\Facades\Log;
  * the AI returns a tight summary + actionable next steps.
  *
  *   GET  /user/ai/mind          form + last result (session-scoped)
- *   POST /user/ai/mind/think    runs the chat call, charges credits
+ *   POST /user/ai/mind/think    runs the chat call, charges coins
  *
  * Spend is tagged `feature => 'mind'` so /admin/ai-usage can attribute
- * cost back to this product. Insufficient-credit responses bubble up
- * via the global exception handler which redirects to /user/ai-credits
- * with a clear top-up CTA.
+ * cost back to this product. Insufficient-coin responses bubble up
+ * via the global exception handler which redirects to the wallet
+ * top-up page with a clear CTA.
  */
 class MindController extends Controller
 {
