@@ -22,9 +22,15 @@
             <i class="fas fa-user-shield mr-2"></i>Promote existing user
         </button>
         @endif
+        @if(auth('admin')->user()?->hasPermission('staff.create'))
+        <button type="button" @click="$dispatch('open-add-staff')" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition" title="Create a brand-new back-office staff member">
+            <i class="fas fa-plus mr-2"></i>Add Staff
+        </button>
+        @else
         <a href="{{ route('admin.staff.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
             <i class="fas fa-plus mr-2"></i>Add Staff
         </a>
+        @endif
     </div>
 </div>
 
@@ -167,8 +173,96 @@
     </div>
 </div>
 
+<div x-data="addStaff()"
+     x-show="open"
+     x-cloak
+     @open-add-staff.window="show()"
+     @keydown.escape.window="close()"
+     class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+     style="display:none">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close()"></div>
+    <div class="relative glass border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-white"><i class="fas fa-user-plus text-violet-400 mr-2"></i>Add staff member</h3>
+                <p class="text-sm text-white/40 mt-1">Create a brand-new back-office account and pick its role.</p>
+            </div>
+            <button type="button" @click="close()" class="text-white/30 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+
+        <form method="POST" action="{{ route('admin.staff.store') }}" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block text-xs font-medium text-white/40 uppercase mb-1">Name</label>
+                <input type="text" name="name" value="{{ old('name') }}" required x-ref="nameInput"
+                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/40 uppercase mb-1">Email</label>
+                <input type="email" name="email" value="{{ old('email') }}" required
+                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Password</label>
+                    <input type="password" name="password" required
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    @error('password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Confirm Password</label>
+                    <input type="password" name="password_confirmation" required
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Role</label>
+                    <select name="role_id" required class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <option value="">Select a role…</option>
+                        @foreach($adminRoles as $role)
+                        <option value="{{ $role->id }}" {{ old('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('role_id')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Status</label>
+                    <select name="status" required class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <option value="active" {{ old('status') === 'inactive' ? '' : 'selected' }}>Active</option>
+                        <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-1">
+                <button type="button" @click="close()" class="px-4 py-2 bg-white/5 text-white/70 rounded-xl text-sm hover:bg-white/10">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
+                    <i class="fas fa-user-plus mr-2"></i>Create staff member
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @push('scripts')
 <script>
+function addStaff() {
+    return {
+        open: false,
+        show() {
+            this.open = true;
+            this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus());
+        },
+        close() {
+            this.open = false;
+        },
+    };
+}
 function promoteUser() {
     return {
         open: false,
