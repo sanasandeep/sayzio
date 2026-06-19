@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Sign-in revoked - 1INME</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen flex items-center justify-center p-4" style="background: var(--bg-glass, #f8fafc);">
     <div class="max-w-md w-full rounded-xl shadow p-8" style="background: var(--bg-card, #fff);">

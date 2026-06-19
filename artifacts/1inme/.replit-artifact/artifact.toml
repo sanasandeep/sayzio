@@ -14,8 +14,11 @@ run = "cd /home/runner/workspace/artifacts/1inme && PHP_CLI_SERVER_WORKERS=10 ph
 [services.development.env]
 PORT = "5000"
 
+# Production build compiles the Vite/Tailwind v4 assets (resources/css/app.css +
+# resources/js/app.js) so the @vite() manifest at public/build/manifest.json
+# resolves at runtime — the Blade views no longer load the Tailwind CDN.
 [services.production.build]
-args = ["sh", "-c", "cd artifacts/1inme && composer install --no-dev --optimize-autoloader --no-interaction && php artisan config:clear && php artisan route:clear && php artisan view:clear"]
+args = ["sh", "-c", "pnpm install --frozen-lockfile && pnpm --dir artifacts/1inme run build && cd artifacts/1inme && composer install --no-dev --optimize-autoloader --no-interaction && php artisan config:clear && php artisan route:clear && php artisan view:clear"]
 
 # Deploy migration policy (Task #1679): KEEP SERVING on migrate failure.
 # `php artisan migrate --force` runs first; if it fails we fall back to

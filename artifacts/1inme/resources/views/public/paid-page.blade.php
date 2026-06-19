@@ -14,7 +14,7 @@
 @elseif($creator->avatar)
     <meta property="og:image" content="{{ $creator->avatar }}">
 @endif
-<script src="https://cdn.tailwindcss.com"></script>
+@vite(['resources/css/app.css', 'resources/js/app.js'])
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

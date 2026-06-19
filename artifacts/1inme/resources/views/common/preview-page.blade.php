@@ -85,7 +85,7 @@
     @if($link->favicon)
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
     @endif
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0a0612; }

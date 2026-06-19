@@ -91,7 +91,7 @@
             <meta name="apple-mobile-web-app-title" content="{{ $manifestSettings['short_name'] }}">
         @endif
     @endif
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     @php
         $bs = $link->settings['biolink'] ?? [];

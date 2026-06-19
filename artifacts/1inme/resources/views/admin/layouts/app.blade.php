@@ -6,21 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin') - {{ config('app.name') }}</title>
     @include('common.partials.default-icons')
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Space Grotesk', 'system-ui', 'sans-serif'] },
-                    colors: {
-                        primary: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#ddd6fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' },
-                    }
-                }
-            }
-        }
-    </script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     @include('common.partials.theme-styles')
     <style>

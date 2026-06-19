@@ -21,7 +21,7 @@
 @endphp
 <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @include('public.partials.marketing-share-meta')
-<script src="https://cdn.tailwindcss.com"></script>
+@vite(['resources/css/app.css', 'resources/js/app.js'])
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 <style>[x-cloak]{display:none!important}</style>

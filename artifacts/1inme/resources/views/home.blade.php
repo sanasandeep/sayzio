@@ -22,7 +22,7 @@
     <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
@@ -33,13 +33,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=4">
     <script src="{{ asset('js/marketing-anim.js') }}?v=1" defer></script>
-    <script>
-        try {
-            tailwind.config = {
-                theme: { extend: { fontFamily: { sans: ['Space Grotesk', 'sans-serif'] } } }
-            }
-        } catch(e) {}
-    </script>
     <script>
         // Fire-and-forget marketing-CTA tracking shared by every home-page
         // "Sign up free" button so we can see which placement converts.
