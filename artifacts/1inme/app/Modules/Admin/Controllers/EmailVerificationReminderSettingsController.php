@@ -7,8 +7,13 @@ use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\Common\Support\EmailVerificationReminderSettings;
 use App\Modules\User\Models\User;
+use App\Services\Integrations\MailSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Admin control over the cadence of the periodic email-verification
@@ -125,5 +130,80 @@ class EmailVerificationReminderSettingsController extends Controller
         AppSetting::put(EmailVerificationReminderSettings::SETTING_MAX_REMINDERS, (int) $data['max_reminders']);
 
         return back()->with('success', 'Verification reminder settings saved.');
+    }
+
+    /**
+     * Send the rendered verification-reminder email to the logged-in admin's
+     * own address so they can preview exactly what users receive and confirm
+     * SMTP delivery before going live — without hunting for a real unverified
+     * user or waiting for the schedule. Mirrors the mail-settings "send test
+     * email" pattern. Rate-limited so it can't be spammed.
+     */
+    public function sendSample(Request $request)
+    {
+        $admin = Auth::guard('admin')->user() ?: $request->user();
+        if (! $admin || empty($admin->email)) {
+            return back()->with('error', 'We could not find an email address on your admin account to send the sample to.');
+        }
+
+        $rateKey = 'verify-reminder-sample:' . $admin->id;
+        if (RateLimiter::tooManyAttempts($rateKey, 5)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+            return back()->with('error', "You've sent a few sample reminders recently — please try again in about {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.');
+        }
+        RateLimiter::hit($rateKey, 600);
+
+        // Apply the saved SMTP settings to the current process before sending,
+        // so the sample reflects exactly what's configured.
+        MailSettings::applyRuntimeConfig();
+
+        // Use the admin's matching User account when one exists, so the
+        // verification + unsubscribe links are real "self" links; otherwise
+        // fall back to a display-only placeholder recipient.
+        $previewUser = User::where('email', $admin->email)->first();
+
+        if ($previewUser) {
+            $verificationUrl = URL::temporarySignedRoute(
+                'user.verification.verify',
+                now()->addDays(7),
+                ['id' => $previewUser->id, 'hash' => sha1($previewUser->email)]
+            );
+            $unsubscribeUrl = URL::signedRoute(
+                'user.notifications.email-verification-reminder.unsubscribe',
+                ['user' => $previewUser->id]
+            );
+            $recipient = $previewUser;
+        } else {
+            $previewUser = new User();
+            $previewUser->name  = $admin->name ?: 'there';
+            $previewUser->email = $admin->email;
+            // Placeholder links so the template renders fully; they point at
+            // a non-existent account and simply won't resolve if clicked.
+            $verificationUrl = url('/verify-email/0/' . sha1($admin->email) . '?sample=1');
+            $unsubscribeUrl  = url('/notifications/email-verification-reminder/unsubscribe/0?sample=1');
+            $recipient = $previewUser;
+        }
+
+        try {
+            Mail::send(
+                'emails.verify-email-reminder',
+                ['user' => $recipient, 'verificationUrl' => $verificationUrl, 'unsubscribeUrl' => $unsubscribeUrl],
+                function ($message) use ($admin, $unsubscribeUrl) {
+                    $message->to($admin->email);
+                    $message->subject('[Sample] Reminder: verify your 1INME email');
+                    $message->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
+                    $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
+                }
+            );
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Sample reminder failed: ' . $e->getMessage());
+        }
+
+        if (MailSettings::mailer() === 'log') {
+            return back()->with('info', 'The mailer is set to "log" — the sample was written to the log, not delivered. Choose the SMTP mailer to send live.');
+        }
+
+        return back()->with('success', 'Sample verification reminder dispatched to ' . $admin->email . '.');
     }
 }

@@ -9,6 +9,18 @@
         </div>
     @endif
 
+    @if(session('info'))
+        <div class="px-3 py-2 bg-sky-500/10 border border-sky-400/30 text-sky-200 rounded-lg text-sm">
+            {{ session('info') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <div class="glass rounded-2xl p-6">
         <h1 class="text-xl font-semibold text-white">Email verification reminders</h1>
         <p class="text-sm text-white/60 mt-1">
@@ -153,5 +165,21 @@
             </button>
         </div>
     </form>
+
+    <div class="glass rounded-2xl p-6 space-y-4">
+        <div>
+            <h2 class="text-base font-semibold text-white">Preview before going live</h2>
+            <p class="text-xs text-white/50 mt-0.5">
+                Send the exact reminder email — with sample verification and unsubscribe links — to your own address ({{ optional(auth('admin')->user())->email ?? auth()->user()?->email }}) to confirm it looks right and that your SMTP is delivering. It goes through the same mailer the real reminders use.
+            </p>
+        </div>
+        <form method="POST" action="{{ route('admin.email-verification-reminders.sample') }}">
+            @csrf
+            <button type="submit"
+                    class="px-5 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-white text-sm font-semibold transition">
+                <i class="fas fa-paper-plane mr-1.5"></i> Send sample to my email
+            </button>
+        </form>
+    </div>
 </div>
 @endsection
