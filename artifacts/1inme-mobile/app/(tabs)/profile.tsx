@@ -959,6 +959,23 @@ export default function Profile() {
                 <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
               </Pressable>
               <Pressable
+                onPress={() => router.push("/schema-health" as never)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Feather name="database" size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  Schema health
+                </Text>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </Pressable>
+              <Pressable
                 onPress={() => router.push("/admin/repair-audits" as never)}
                 style={({ pressed }) => [
                   styles.listItem,
