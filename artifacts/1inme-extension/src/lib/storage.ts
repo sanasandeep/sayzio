@@ -159,8 +159,8 @@ export interface TabMatchState {
   author?: AuthorContacts;
 }
 
-const DEFAULT_API = "https://1inme.com/api/v1";
-const DEFAULT_WEB = "https://1inme.com";
+const DEFAULT_API = "https://1in.me/api/v1";
+const DEFAULT_WEB = "https://1in.me";
 
 export const defaultSettings: ExtSettings = {
   apiBaseUrl: DEFAULT_API,

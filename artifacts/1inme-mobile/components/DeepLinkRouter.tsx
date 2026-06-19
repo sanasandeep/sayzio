@@ -8,7 +8,7 @@ import { getBiolink } from "@/lib/api/biolinks";
 // Hostnames whose `/{single-segment}` URLs we even consider routing as
 // biolinks. Anything else is left to the OS/browser. Keeps the app from
 // hijacking arbitrary https URLs that happen to reach it.
-const APP_HOSTS = new Set<string>(["1inme.com", "www.1inme.com"]);
+const APP_HOSTS = new Set<string>(["1in.me", "www.1in.me"]);
 
 // First-segment paths the website owns that are NOT biolink aliases. The
 // list mirrors the regex on the web's catch-all routes plus a few defensive

@@ -2410,7 +2410,7 @@ function SettingsView({
     onSaved();
   };
   const reset = async () => {
-    await setSettings({ apiBaseUrl: "https://1inme.com/api/v1", webBaseUrl: "https://1inme.com" });
+    await setSettings({ apiBaseUrl: "https://1in.me/api/v1", webBaseUrl: "https://1in.me" });
     onSaved();
   };
 
@@ -2564,7 +2564,7 @@ function SettingsView({
       <div className="settings-row">
         <label>API base URL</label>
         <input value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
-        <span className="muted">Default: https://1inme.com/api/v1</span>
+        <span className="muted">Default: https://1in.me/api/v1</span>
       </div>
       <div className="settings-row">
         <label>Web base URL</label>

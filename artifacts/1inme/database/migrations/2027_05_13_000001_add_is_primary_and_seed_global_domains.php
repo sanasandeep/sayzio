@@ -26,9 +26,12 @@ return new class extends Migration
         // so the admin uses the existing Verify / force-verify flow, exactly
         // like any admin-added global domain. Idempotent: skip rows that
         // already exist by domain name.
-        $cnameTarget = parse_url((string) config('app.url'), PHP_URL_HOST) ?: '1inme.com';
+        $cnameTarget = parse_url((string) config('app.url'), PHP_URL_HOST) ?: '1in.me';
 
-        foreach (['1in.me', 'sayzio.app'] as $domain) {
+        // 1in.me is the platform's primary global domain — pre-selected by
+        // default when users create new short links and biolinks. sayzio.app
+        // ships alongside it as a selectable, non-primary global domain.
+        foreach (['1in.me' => true, 'sayzio.app' => false] as $domain => $isPrimary) {
             $exists = DB::table('domains')->where('domain', $domain)->exists();
             if ($exists) {
                 continue;
@@ -39,7 +42,7 @@ return new class extends Migration
                 'type'               => 'redirect',
                 'is_active'          => true,
                 'is_verified'        => false,
-                'is_primary'         => false,
+                'is_primary'         => $isPrimary,
                 'verified_at'        => null,
                 'verification_token' => Str::random(32),
                 'cname_target'       => $cnameTarget,

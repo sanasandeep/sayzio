@@ -17,8 +17,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.oneinme.app",
       "associatedDomains": [
-        "applinks:1inme.com",
-        "applinks:www.1inme.com"
+        "applinks:1in.me",
+        "applinks:www.1in.me"
       ],
       "infoPlist": {
         "NSContactsUsageDescription": "1INME can read your contacts so you can save someone you just met as a contact card from their 1INME profile.",
@@ -48,11 +48,11 @@
           "data": [
             {
               "scheme": "https",
-              "host": "1inme.com"
+              "host": "1in.me"
             },
             {
               "scheme": "https",
-              "host": "www.1inme.com"
+              "host": "www.1in.me"
             }
           ],
           "category": [
@@ -69,7 +69,7 @@
       [
         "expo-router",
         {
-          "origin": "https://1inme.com/"
+          "origin": "https://1in.me/"
         }
       ],
       "expo-font",

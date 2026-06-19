@@ -129,7 +129,7 @@ class DatabaseSeeder extends Seeder
         // plan (no plan tags); `pro.1inme.io` is gated to Pro+Business;
         // `biz.1inme.io` is Business-only. These show up automatically as
         // selectable hosts in the link create/edit screens.
-        $cnameTarget = parse_url(config('app.url'), PHP_URL_HOST) ?: '1inme.com';
+        $cnameTarget = parse_url(config('app.url'), PHP_URL_HOST) ?: '1in.me';
 
         $shared = Domain::create([
             'user_id' => null, 'domain' => 'short.1inme.io', 'type' => 'redirect',
