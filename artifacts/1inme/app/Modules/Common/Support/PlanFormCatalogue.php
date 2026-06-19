@@ -76,7 +76,6 @@ class PlanFormCatalogue
             ['key' => 'max_task_boards',      'label' => 'Max task boards',         'default' => 1,   'module' => null,                 'hint' => 'Kanban boards a user can create.'],
             ['key' => 'max_leads',            'label' => 'Max leads',               'default' => 0,   'module' => null,                 'hint' => 'Lead-capture entries collected.'],
             ['key' => 'max_events',           'label' => 'Max events',              'default' => 0,   'module' => null,                 'hint' => 'Event listings / calendar entries.'],
-            ['key' => 'ai_credits_monthly',   'label' => 'AI credits / month',      'default' => 0,   'module' => 'module_ai_suite',    'hint' => 'Monthly token / credit budget for AI features.'],
             ['key' => 'api_calls_monthly',    'label' => 'API calls / month',       'default' => 0,   'module' => null,                 'hint' => 'Monthly included API-call allowance for API keys. Calls beyond this are paid with coins (admin-set overage rate). -1 = unlimited.'],
             ['key' => 'api_rate_per_min',     'label' => 'API requests / minute',   'default' => 0,   'module' => null,                 'hint' => 'Per-user rate limit for the public API.'],
         ];
@@ -294,7 +293,7 @@ class PlanFormCatalogue
             'module_contacts'     => ['contacts_max', 'contacts_google_sync'],
             'module_teams'        => ['teams', 'max_workspaces', 'max_seats_per_workspace'],
             'module_ecommerce'    => ['ecommerce'],
-            'module_ai_suite'     => ['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant', 'ai_credits_monthly'],
+            'module_ai_suite'     => ['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant'],
             'module_branding'     => ['custom_branding', 'remove_branding', 'custom_favicon', 'custom_code'],
             'module_domains'      => ['custom_domains'],
             'module_integrations' => ['integration_accounts_max', 'integration_providers_allowed'],

@@ -9,7 +9,7 @@ use App\Services\PricingResolver;
 use Illuminate\Database\Seeder;
 
 /**
- * Idempotent seeder for the 5 default plans and 15 default addons.
+ * Idempotent seeder for the 5 default plans and 14 default addons.
  *
  * - Matches by slug. Never destroys curator edits: existing rows keep
  *   their name/description/prices/features/sort_order/status — we only
@@ -613,13 +613,6 @@ class PlansAndAddonsSeeder extends Seeder
                 'type' => 'recurring', 'monthly_price' => 4.00, 'annual_price' => 40.00,
                 'features' => ['social_proof_popup' => true],
                 'status' => 'active', 'sort_order' => 12, 'applies_to' => $paid,
-            ],
-            [
-                'name' => 'AI Assistant Credits (10k)', 'slug' => 'ai-credits-10k',
-                'description' => 'A monthly bucket of 10,000 AI tokens for copy and image generation.',
-                'type' => 'metered', 'monthly_price' => 8.00, 'annual_price' => 80.00,
-                'features' => ['ai_credits_monthly' => 10000],
-                'status' => 'active', 'sort_order' => 13, 'applies_to' => $paid,
             ],
             [
                 'name' => 'Custom Forms', 'slug' => 'custom-forms-addon',

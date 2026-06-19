@@ -20,7 +20,6 @@
         'contacts_max_extra' => 'Extra contacts',
         'team_seats_extra' => 'Extra team seats',
         'custom_domains_extra' => 'Extra custom domains',
-        'ai_credits_monthly' => 'Monthly AI credits',
         'api_rate_per_min' => 'API rate (req/min)',
     ];
 @endphp
