@@ -85,3 +85,17 @@ a concurrent fresh dropped.
 `storage/logs/laravel.log` during the migration window are expected (a page hit a
 table before its migration ran, or a reconcile pass hit an orphan). Only errors
 *after* the batch reaches 0 pending indicate a real problem.
+
+**Cross-region latency makes `php artisan` calls (migrate / migrate:status / a kernel-booting
+script) frequently SIGKILL at the shell timeout with NO output — the boot + per-query RTT alone
+can blow the budget. For monitoring, hit the DB with `psql` directly (PGPASSWORD=$DB_PASSWORD,
+host/port/user/db from the process env) — `select count(*) from migrations`, column-existence
+checks via information_schema — it is far faster than booting Laravel and never lies about schema
+state. For the WORKSPACE-COLUMN repair specifically: `WorkspaceColumnHealth::repair()` backfills
+via chunked PER-ROW updates, which is unusably slow over the far RDS and gets killed mid-backfill.
+Instead add the columns with one `ALTER TABLE ... ADD COLUMN IF NOT EXISTS workspace_id bigint`
+(+ `created_by_user_id` on non-visitor tables, + `CREATE INDEX IF NOT EXISTS`) per table in a
+single psql transaction, then backfill with ONE set-based UPDATE per table
+(`workspace_id = (select id from workspaces where owner_user_id = t.<owner_col> order by id limit 1)`),
+then record `2027_06_22_000002_fix_missing_workspace_columns` in the ledger by hand. Global/seeded
+`domains` rows have NULL user_id, so their workspace_id legitimately stays NULL.**
