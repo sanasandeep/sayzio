@@ -3,6 +3,16 @@
 @section('page-title', 'User Management')
 
 @section('content')
+@if(request('promote'))
+<div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20">
+    <i class="fas fa-user-shield text-violet-300 mt-0.5"></i>
+    <div class="text-sm text-violet-100">
+        <span class="font-medium">Promote an existing user to admin.</span>
+        Find the person below, then click the
+        <i class="fas fa-user-shield mx-0.5"></i> shield action on their row to grant back-office admin access.
+    </div>
+</div>
+@endif
 <div class="flex items-center justify-between mb-6">
     <form method="GET" class="flex items-center gap-2">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search users..."
@@ -45,6 +55,15 @@
                         <div>
                             <p class="text-sm font-medium text-white">{{ $user->name }}</p>
                             <p class="text-xs text-white/30">{{ $user->email }}</p>
+                            @php($userAdmin = $adminAccounts[strtolower(trim((string) $user->email))] ?? null)
+                            @if($userAdmin)
+                                <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium {{ $userAdmin->status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20' }}">
+                                    <i class="fas fa-user-shield"></i>
+                                    {{ $userAdmin->status === 'active' ? 'Admin · active' : 'Admin · ' . ucfirst($userAdmin->status) }}
+                                </span>
+                            @else
+                                <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] text-white/30 border border-white/10">Not an admin</span>
+                            @endif
                         </div>
                     </div>
                 </td>
@@ -59,6 +78,11 @@
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                         <a href="{{ route('admin.users.show', $user) }}" class="text-white/30 hover:text-violet-400" title="View"><i class="fas fa-eye"></i></a>
+                        @if($canManageAdminAccess)
+                        <a href="{{ route('admin.users.roles.edit', $user) }}#admin-access"
+                           class="{{ $userAdmin ? 'text-violet-300 hover:text-violet-200' : 'text-white/30 hover:text-violet-400' }}"
+                           title="Manage admin access"><i class="fas fa-user-shield"></i></a>
+                        @endif
                         @if(auth('admin')->user()?->hasPermission('users.impersonate'))
                         <form action="{{ route('admin.users.impersonate', $user) }}" method="POST" class="inline">
                             @csrf

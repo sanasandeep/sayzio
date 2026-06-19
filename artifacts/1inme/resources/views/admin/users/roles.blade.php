@@ -70,13 +70,15 @@
     {{-- Admin access panel (Part 1: promote a user to admin / change the
          back-office role / revoke). Creating an admin record by matching
          email is what powers the seamless dashboard switch. --}}
-    <div class="glass rounded-2xl border border-white/10 p-6 mt-6">
+    <div id="admin-access" class="glass rounded-2xl border border-violet-500/30 ring-1 ring-violet-500/20 p-6 mt-6 scroll-mt-24">
         @if(session('error'))
             <div class="mb-4 p-3 rounded-xl bg-rose-500/10 text-rose-300 text-sm">{{ session('error') }}</div>
         @endif
 
         <div class="flex items-start justify-between gap-3 mb-1">
-            <h3 class="text-sm font-semibold text-white">Back-office admin access</h3>
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-user-shield text-violet-300"></i> Back-office admin access
+            </h3>
             @if($adminAccount)
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-medium {{ $adminAccount->status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20' }}">
                     {{ $adminAccount->status === 'active' ? 'Admin · active' : 'Admin · ' . ucfirst($adminAccount->status) }}

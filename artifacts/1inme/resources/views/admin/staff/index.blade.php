@@ -16,9 +16,16 @@
             <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06]">Filter</button>
         </form>
     </div>
-    <a href="{{ route('admin.staff.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
-        <i class="fas fa-plus mr-2"></i>Add Staff
-    </a>
+    <div class="flex items-center gap-2">
+        @if(auth('admin')->user()?->hasPermission('staff.create'))
+        <a href="{{ route('admin.users.index', ['promote' => 1]) }}" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.15] transition" title="Grant back-office admin access to a user who already has an account">
+            <i class="fas fa-user-shield mr-2"></i>Promote existing user
+        </a>
+        @endif
+        <a href="{{ route('admin.staff.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
+            <i class="fas fa-plus mr-2"></i>Add Staff
+        </a>
+    </div>
 </div>
 
 <div class="glass rounded-2xl border border-white/10 overflow-hidden p-3">

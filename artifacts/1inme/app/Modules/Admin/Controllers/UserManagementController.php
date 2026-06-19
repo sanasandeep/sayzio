@@ -37,7 +37,35 @@ class UserManagementController extends Controller
         $users = $query->latest()->paginate(15)->withQueryString();
         $plans = Plan::active()->ordered()->get();
 
-        return view('admin.users.index', compact('users', 'plans'));
+        // Admin status for the current page, in one query. The admin pool
+        // is a separate table linked to a user by email, so we batch-load
+        // matching admin records keyed by lowercased email rather than
+        // firing one lookup per row.
+        $emails = $users->getCollection()
+            ->pluck('email')
+            ->filter()
+            ->map(fn ($e) => strtolower(trim((string) $e)))
+            ->unique()
+            ->values()
+            ->all();
+
+        $adminAccounts = collect();
+        if (! empty($emails)) {
+            $adminAccounts = \App\Modules\Admin\Models\Admin::query()
+                ->with('role')
+                ->where(function ($q) use ($emails) {
+                    foreach ($emails as $email) {
+                        $q->orWhereRaw('lower(email) = ?', [$email]);
+                    }
+                })
+                ->get()
+                ->keyBy(fn ($a) => strtolower(trim((string) $a->email)));
+        }
+
+        $operator = Auth::guard('admin')->user();
+        $canManageAdminAccess = $operator && $operator->hasPermission('staff.create');
+
+        return view('admin.users.index', compact('users', 'plans', 'adminAccounts', 'canManageAdminAccess'));
     }
 
     public function show(Request $request, User $user)
