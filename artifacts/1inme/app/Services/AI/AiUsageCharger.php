@@ -10,20 +10,20 @@ use App\Services\Billing\WalletService;
 /**
  * AI usage charger — bills AI calls straight from the coin wallet.
  *
- * IMPORTANT: despite the historical name, there is no separate "AI
- * credit" balance any more. Every AI call is paid for in COINS from the
+ * IMPORTANT: there is no separate "AI credit" balance any more (the old
+ * credit ledger has been retired). Every AI call is paid for in COINS from the
  * user's single coin wallet at call time. This class is the thin
  * AI-facing adapter over {@see WalletService}: it tags each wallet
  * transaction so AI spend can be reported on (meta.ai = true, plus
  * feature / model / token counts), and translates the wallet's
  * InsufficientCoinsException into the AI-flavoured
- * {@see InsufficientAiCreditsException} that feature UIs already catch.
+ * {@see InsufficientCoinsForAiException} that feature UIs already catch.
  *
  * Amounts are whole coins (the wallet balance is an integer). Callers
  * compute the per-call coin cost from fractional coins-per-1k-token
  * rates and ceil() it before handing it here.
  */
-class AiCreditService
+class AiUsageCharger
 {
     public function __construct(protected WalletService $wallets) {}
 
@@ -34,7 +34,7 @@ class AiCreditService
     }
 
     /**
-     * Spend coins for an AI call. Throws InsufficientAiCreditsException
+     * Spend coins for an AI call. Throws InsufficientCoinsForAiException
      * when the wallet can't cover it (the worst-case pre-gate in
      * OpenAiService normally prevents ever reaching that path).
      */
@@ -46,7 +46,7 @@ class AiCreditService
         try {
             return $this->wallets->debit($user, $coins, $this->walletOpts($opts));
         } catch (InsufficientCoinsException $e) {
-            throw new InsufficientAiCreditsException($e->required, $e->balance);
+            throw new InsufficientCoinsForAiException($e->required, $e->balance);
         }
     }
 

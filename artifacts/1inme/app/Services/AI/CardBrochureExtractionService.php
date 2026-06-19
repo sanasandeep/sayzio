@@ -50,7 +50,7 @@ class CardBrochureExtractionService
 
     public function __construct(
         protected OpenAiService $openai,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     /**
@@ -59,7 +59,7 @@ class CardBrochureExtractionService
      *
      * @throws \RuntimeException for caller-fixable validation problems
      *         (mime, size, page count).
-     * @throws InsufficientAiCreditsException when the user can't afford
+     * @throws InsufficientCoinsForAiException when the user can't afford
      *         the worst-case vision call.
      * @throws \Throwable for unexpected failures (vision API, etc.) —
      *         the scan row is marked failed and any credits refunded
@@ -207,7 +207,7 @@ class CardBrochureExtractionService
             ])->save();
 
             return $scan->fresh();
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             // Out of credits *before* OpenAI was called — nothing to
             // refund. Mark failed and rethrow for the controller to
             // redirect the user to the credits page.

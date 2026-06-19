@@ -3,8 +3,8 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Services\AI\InsufficientAiCreditsException;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\Resume\ResumeTailorService;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +25,7 @@ class ResumeTailorController extends Controller
 {
     public function __construct(
         protected ResumeTailorService $tailor,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     public function estimate(Request $request): JsonResponse
@@ -63,7 +63,7 @@ class ResumeTailorController extends Controller
 
         try {
             $result = $this->tailor->run($request->user(), $resume, $data['job_description']);
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough AI credits to tailor this resume.',
                 'required' => $e->required ?? null,

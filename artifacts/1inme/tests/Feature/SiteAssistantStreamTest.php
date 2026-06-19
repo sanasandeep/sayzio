@@ -6,7 +6,7 @@ use App\Modules\Common\Models\SiteAssistantConversation;
 use App\Modules\Common\Models\SiteAssistantMessage;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiEngineSettings;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use App\Services\AI\SiteAssistantSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -399,7 +399,7 @@ class SiteAssistantStreamTest extends TestCase
 
     public function test_stream_emits_error_when_insufficient_credits(): void
     {
-        $this->mockChatStreamThrows(new InsufficientAiCreditsException(required: 100, balance: 1));
+        $this->mockChatStreamThrows(new InsufficientCoinsForAiException(required: 100, balance: 1));
 
         $user  = $this->makeUser();
         $token = 'sa_' . Str::random(28);

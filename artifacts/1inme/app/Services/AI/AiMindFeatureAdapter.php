@@ -126,7 +126,7 @@ class AiMindFeatureAdapter
             $coins = 0;
         }
         try {
-            $credits = (int) app(AiCreditService::class)->getBalance($user);
+            $credits = (int) app(AiUsageCharger::class)->getBalance($user);
         } catch (\Throwable $e) {
             $credits = 0;
         }

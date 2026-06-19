@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AiMind;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiMindQueryService;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
 
 /**
@@ -49,7 +49,7 @@ class MindChatController extends Controller
 
         try {
             $result = $this->svc->ask($user, $minds, $data['question']);
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return $this->respond($request, [
                 'error'    => "Need {$e->required} coins — only {$e->balance} available.",
                 'top_up'   => route('user.wallet.buy'),

@@ -8,7 +8,7 @@ use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\AiPersonaAgentVersion;
 use App\Modules\User\Models\Link;
 use App\Services\AI\AiChatPageManager;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\CompanionRuntime;
 use App\Services\AI\PersonaSettings;
@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\DB;
 class AiChatController extends Controller
 {
     public function __construct(
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
         protected AiChatPageManager $pages,
     ) {}
 

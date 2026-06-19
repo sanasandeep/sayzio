@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\ElevenLabsService;

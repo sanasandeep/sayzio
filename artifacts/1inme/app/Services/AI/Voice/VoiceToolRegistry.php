@@ -4,7 +4,7 @@ namespace App\Services\AI\Voice;
 
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspacePermissions;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -35,7 +35,7 @@ use Illuminate\Support\Facades\Schema;
 class VoiceToolRegistry
 {
     public function __construct(
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
         protected WalletService $wallets,
     ) {}
 

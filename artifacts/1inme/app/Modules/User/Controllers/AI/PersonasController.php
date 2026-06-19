@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\AiPersonaAgentVersion;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\PersonaRuntime;
 use App\Services\AI\PersonaSettings;
 use App\Services\AI\PersonaTemplates;
@@ -32,7 +32,7 @@ class PersonasController extends Controller
 {
     public function __construct(
         protected PersonaRuntime $runtime,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     public function index(Request $request)
@@ -301,7 +301,7 @@ class PersonasController extends Controller
                 (array) ($data['history'] ?? []),
                 $data['message']
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'error'  => "Need {$e->required} coins — only {$e->balance} available.",
                 'top_up' => route('user.wallet.buy'),

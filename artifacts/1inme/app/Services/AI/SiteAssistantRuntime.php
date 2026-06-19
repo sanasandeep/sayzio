@@ -32,7 +32,7 @@ class SiteAssistantRuntime
     public function __construct(
         protected OpenAiService $openai,
         protected AiMindQueryService $minds,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     /**
@@ -392,7 +392,7 @@ class SiteAssistantRuntime
                 'related_id'  => (int) $conv->id,
                 'reason'      => 'Site assistant turn',
             ]);
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return ['ok' => false, 'error' => 'The assistant is temporarily out of capacity. Please try again later.'];
         } catch (\Throwable $e) {
             report($e);
@@ -669,7 +669,7 @@ class SiteAssistantRuntime
                 $partial .= $delta;
                 $emit('token', ['delta' => $delta]);
             });
-        } catch (StreamCreditExhaustedException $e) {
+        } catch (StreamCoinsExhaustedException $e) {
             // Stream was cut short because the visitor ran out of
             // credits mid-reply. Persist whatever they actually saw
             // (charged inside chatStream, capped to balance) and emit
@@ -693,7 +693,7 @@ class SiteAssistantRuntime
                 'truncated' => 'out_of_credits',
             ]);
             return;
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             $failed = $this->persistFailedStreamMessage($conv, $partial, 'The assistant is temporarily out of capacity.');
             $emit('error', [
                 'error'              => 'The assistant is temporarily out of capacity.',

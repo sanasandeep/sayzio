@@ -3,9 +3,9 @@
 namespace App\Modules\User\Controllers\AI;
 
 use App\Http\Controllers\Controller;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +26,7 @@ class MindController extends Controller
 {
     public function __construct(
         protected OpenAiService $ai,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     public function show(Request $request)
@@ -63,7 +63,7 @@ class MindController extends Controller
                 'reason'      => 'Mind: organize thoughts',
             ]);
         } catch (\RuntimeException $e) {
-            if ($e instanceof InsufficientAiCreditsException) throw $e;
+            if ($e instanceof InsufficientCoinsForAiException) throw $e;
             Log::warning('Mind AI call failed: ' . $e->getMessage());
             return back()->withInput()->with('error',
                 'Mind could not respond right now. Please try again.');

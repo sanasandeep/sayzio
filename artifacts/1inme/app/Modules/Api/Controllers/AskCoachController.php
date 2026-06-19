@@ -5,10 +5,10 @@ namespace App\Modules\Api\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AskCoachMessage;
 use App\Modules\User\Models\AskCoachThread;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AskCoach\AskCoachToolRegistry;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,7 +26,7 @@ class AskCoachController extends Controller
 
     public function __construct(
         protected OpenAiService $ai,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
         protected AskCoachToolRegistry $tools,
     ) {}
 
@@ -126,7 +126,7 @@ class AskCoachController extends Controller
                 'max_tokens'  => 600,
                 'reason'      => 'Ask Coach (mobile)',
             ]);
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json(['error' => 'insufficient_credits', 'message' => $e->getMessage()], 402);
         } catch (\RuntimeException $e) {
             return response()->json(['error' => 'ai_unavailable', 'message' => $e->getMessage()], 503);
@@ -231,7 +231,7 @@ class AskCoachController extends Controller
                         $emit('token', ['delta' => $delta]);
                     },
                 );
-            } catch (InsufficientAiCreditsException $e) {
+            } catch (InsufficientCoinsForAiException $e) {
                 $emit('error', ['code' => 'insufficient_credits', 'message' => $e->getMessage()]);
                 return;
             } catch (\RuntimeException $e) {

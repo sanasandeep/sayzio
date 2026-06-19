@@ -9,7 +9,7 @@
 
     Keep this list in sync with the metered features in
     App\Services\AI\* (each charges the signed-in user's own coin wallet
-    via OpenAiService / AiCreditService).
+    via OpenAiService / AiUsageCharger).
 
     Optional:
       $heading  — override the section heading.

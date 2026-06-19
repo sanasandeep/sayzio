@@ -38,7 +38,7 @@ the handlers in `bootstrap/app.php`:
 - `ValidationException` → `422` `code:"validation_failed"` with field `details`.
 - `AuthenticationException` → `401`, `AuthorizationException` → `403`,
   not-found → `404`, method-not-allowed → `405`, throttle → `429`.
-- `InsufficientAiCreditsException` → `402` with a top-up CTA.
+- `InsufficientCoinsForAiException` → `402` with a top-up CTA.
 
 So in controllers you usually just `$request->validate([...])` and return
 `$this->ok(...)`; the error paths are handled for you.

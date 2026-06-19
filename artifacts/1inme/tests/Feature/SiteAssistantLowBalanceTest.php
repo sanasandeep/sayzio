@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Common\Models\SiteAssistantConversation;
 use App\Modules\User\Models\User;
 use App\Services\Billing\WalletService;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiMindQueryService;
 use App\Services\AI\OpenAiService;
 use App\Services\AI\SiteAssistantRuntime;
@@ -40,13 +40,13 @@ class SiteAssistantLowBalanceTest extends TestCase
         return new class(
             app(OpenAiService::class),
             app(AiMindQueryService::class),
-            app(AiCreditService::class),
+            app(AiUsageCharger::class),
             $forcedBillingUser,
         ) extends SiteAssistantRuntime {
             public function __construct(
                 OpenAiService $o,
                 AiMindQueryService $m,
-                AiCreditService $c,
+                AiUsageCharger $c,
                 public User $forcedBillingUser,
             ) {
                 parent::__construct($o, $m, $c);

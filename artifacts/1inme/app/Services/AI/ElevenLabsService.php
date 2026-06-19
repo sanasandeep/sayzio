@@ -16,7 +16,7 @@ class ElevenLabsService
 {
     public const BASE_URL = 'https://api.elevenlabs.io/v1';
 
-    public function __construct(protected AiCreditService $credits) {}
+    public function __construct(protected AiUsageCharger $credits) {}
 
     /**
      * Synthesize speech for the given text.
@@ -89,7 +89,7 @@ class ElevenLabsService
     {
         $balance = $this->credits->getBalance($user);
         if ($balance < $minCredits) {
-            throw new InsufficientAiCreditsException($minCredits, $balance);
+            throw new InsufficientCoinsForAiException($minCredits, $balance);
         }
     }
 }

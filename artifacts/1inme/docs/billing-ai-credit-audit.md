@@ -48,14 +48,20 @@ Base + bonus coins are credited together, exactly once per paid invoice.
 
 **Verdict:** reliable, once-only crediting. No fix required.
 
-## 2. AI credit metering across AI features
+## 2. AI coin metering across AI features
 
 Every AI feature routes through `OpenAiService` (chat / chatStream /
 embed) or the voice services (`WhisperService`, `ElevenLabsService`,
-`VoiceAssistantService`), which all charge via `AiCreditService`.
-`AiCreditService::charge` locks the balance row, enforces a non-negative
-balance, and records a `spend` ledger row. A pre-call affordability gate
-(`OpenAiService::ensureCanAfford`, or balance checks in the voice
+`VoiceAssistantService`), which all charge via `AiUsageCharger`. AI usage
+is billed straight from the **coin wallet** — there is no separate AI
+credit balance. `AiUsageCharger::charge` is a thin AI-facing adapter over
+`WalletService::debit`: the wallet locks the balance row, enforces a
+non-negative balance, and records a coin `WalletTransaction` tagged
+`meta.ai = true` (plus feature / model / token counts) so AI spend can be
+reported on. When the wallet can't cover the call it raises
+`InsufficientCoinsException`, which the adapter re-throws as the
+AI-flavoured `InsufficientCoinsForAiException`. A pre-call affordability
+gate (`OpenAiService::ensureCanAfford`, or balance checks in the voice
 services) rejects the request before hitting the provider when the billed
 account can't afford the worst-case cost.
 
@@ -90,7 +96,7 @@ gate. No bypasses found. No fix required.
 ## 3. Pricing copy
 
 The `#coins` section of `/pricing` and the in-app `/user/upgrade` page now
-enumerate the AI-credit-consuming features via the shared partial
+enumerate the coin-consuming AI features via the shared partial
 `resources/views/public/pricing/_ai_credit_uses.blade.php`, so buyers can
-see where credits go. USD/INR switching, the marketing-tracking ping, and
+see where coins go. USD/INR switching, the marketing-tracking ping, and
 reduced-motion behavior are unchanged (static content only).

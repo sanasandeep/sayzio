@@ -10,12 +10,12 @@ use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindSource;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiMindIngestor;
 use App\Services\AI\AiMindQueryService;
 use App\Services\AI\CompanionRuntime;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use App\Services\AI\SiteAssistantRuntime;
 use App\Services\Billing\WalletService;
@@ -41,7 +41,7 @@ use Tests\TestCase;
  *
  * Strategy mirrors MindCreditTaggingTest: enable the real engine, fake
  * the OpenAI HTTP layer, and drive the real services so the charge flows
- * through OpenAiService → AiCreditService → ledger exactly as in prod.
+ * through OpenAiService → AiUsageCharger → ledger exactly as in prod.
  */
 class AiCreditMeteringTest extends TestCase
 {
@@ -129,10 +129,10 @@ class AiCreditMeteringTest extends TestCase
 
         $this->assertLessThan(
             10_000,
-            app(AiCreditService::class)->getBalance($caller),
+            app(AiUsageCharger::class)->getBalance($caller),
             'Caller balance must drop by the chat cost.'
         );
-        $this->assertSame(10_000, app(AiCreditService::class)->getBalance($other));
+        $this->assertSame(10_000, app(AiUsageCharger::class)->getBalance($other));
     }
 
     public function test_precall_gate_rejects_when_user_cannot_afford_and_never_calls_openai(): void
@@ -147,8 +147,8 @@ class AiCreditMeteringTest extends TestCase
             app(OpenAiService::class)->chat($broke, 'gpt-4o-mini', [
                 ['role' => 'user', 'content' => str_repeat('expensive prompt ', 50)],
             ], ['feature' => 'persona']);
-            $this->fail('Expected InsufficientAiCreditsException for a zero-balance user.');
-        } catch (InsufficientAiCreditsException $e) {
+            $this->fail('Expected InsufficientCoinsForAiException for a zero-balance user.');
+        } catch (InsufficientCoinsForAiException $e) {
             // expected
         }
 
@@ -172,7 +172,7 @@ class AiCreditMeteringTest extends TestCase
         $runtime = new class(
             app(OpenAiService::class),
             app(AiMindQueryService::class),
-            app(AiCreditService::class),
+            app(AiUsageCharger::class),
         ) extends SiteAssistantRuntime {
             public function exposeBillingUser(?User $user): ?User
             {
@@ -240,13 +240,13 @@ class AiCreditMeteringTest extends TestCase
 
         $ownerSpend = WalletTransaction::where('user_id', $owner->id)->where('type', 'spend')->where('meta->ai', true)->count();
         $this->assertGreaterThan(0, $ownerSpend, 'The companion owner must be charged for the turn.');
-        $this->assertLessThan(10_000, app(AiCreditService::class)->getBalance($owner));
+        $this->assertLessThan(10_000, app(AiUsageCharger::class)->getBalance($owner));
     }
 
     public function test_companion_turn_fails_gracefully_when_owner_is_out_of_credits(): void
     {
         // Owner has zero balance → OpenAiService pre-call gate throws
-        // InsufficientAiCreditsException, which CompanionRuntime catches
+        // InsufficientCoinsForAiException, which CompanionRuntime catches
         // and converts into a friendly ok=false (no OpenAI call, no charge).
         $owner = $this->makeUser('poorowner');
 
@@ -333,7 +333,7 @@ class AiCreditMeteringTest extends TestCase
 
         $adminSpend = WalletTransaction::where('user_id', $admin->id)->where('type', 'spend')->where('meta->ai', true)->count();
         $this->assertGreaterThan(0, $adminSpend, 'Platform-mind ingest must charge the manage-platform admin.');
-        $this->assertLessThan(10_000, app(AiCreditService::class)->getBalance($admin));
+        $this->assertLessThan(10_000, app(AiUsageCharger::class)->getBalance($admin));
     }
 
     // ── API path metering with a real Sanctum Bearer token ──
@@ -373,6 +373,6 @@ class AiCreditMeteringTest extends TestCase
             WalletTransaction::where('user_id', $caller->id)->where('type', 'spend')->where('meta->ai', true)->count(),
             'The authenticated caller must be charged for their Ask Coach turn.'
         );
-        $this->assertLessThan(10_000, app(AiCreditService::class)->getBalance($caller));
+        $this->assertLessThan(10_000, app(AiUsageCharger::class)->getBalance($caller));
     }
 }

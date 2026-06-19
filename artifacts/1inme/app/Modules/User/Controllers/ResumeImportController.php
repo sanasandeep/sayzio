@@ -7,7 +7,7 @@ use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumeTemplateRegistry;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Resume\ResumeImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +37,7 @@ class ResumeImportController extends Controller
                 $request->file('file'),
                 (bool) $request->boolean('linkedin'),
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json(['message' => $e->getMessage()], 402);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -69,7 +69,7 @@ class ResumeImportController extends Controller
             } else {
                 $candidates = $this->importer->importFromLinkedinUrl($request->user(), $data['url']);
             }
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json(['message' => $e->getMessage()], 402);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -107,7 +107,7 @@ class ResumeImportController extends Controller
                 $data['sections'] ?? ['summary', 'experience', 'skills'],
                 $context,
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message' => 'Not enough AI credits to generate a draft.',
                 'required' => $e->required ?? null,

@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindDefault;
 use App\Modules\User\Models\Link;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiMindProvisioner;
 use App\Services\AI\AiMindQueryService;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +34,7 @@ class CoachController extends Controller
 {
     public function __construct(
         protected OpenAiService $ai,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
         protected AiMindQueryService $minds,
     ) {}
 
@@ -187,7 +187,7 @@ class CoachController extends Controller
                 $citations      = $retrieved['citations'];
                 $kbCreditsSpent = (int) $retrieved['credits_spent'];
                 $mindStats      = $retrieved['mind_stats'] ?? [];
-            } catch (InsufficientAiCreditsException $e) {
+            } catch (InsufficientCoinsForAiException $e) {
                 throw $e;
             } catch (\Throwable $e) {
                 Log::warning('Coach Mind retrieval failed: ' . $e->getMessage());
@@ -219,7 +219,7 @@ class CoachController extends Controller
                 'reason'      => "Coach: suggestions for link #{$link->id}",
             ]);
         } catch (\RuntimeException $e) {
-            if ($e instanceof InsufficientAiCreditsException) throw $e;
+            if ($e instanceof InsufficientCoinsForAiException) throw $e;
             Log::warning('Coach AI call failed: ' . $e->getMessage());
             return back()->with('error',
                 'Coach could not respond right now. Please try again.');

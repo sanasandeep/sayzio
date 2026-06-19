@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\OpenAiService;

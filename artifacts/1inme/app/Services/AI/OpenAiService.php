@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
  *   3. Execute the HTTP call.
  *   4. Compute the actual coins spent from returned token usage and
  *      the admin's per-model coins-per-1k-token rate.
- *   5. Charge the coin wallet via {@see AiCreditService}, tagged with
+ *   5. Charge the coin wallet via {@see AiUsageCharger}, tagged with
  *      the feature.
  */
 class OpenAiService
@@ -40,7 +40,7 @@ class OpenAiService
     /** Worst-case completion length when caller didn't set max_tokens. */
     protected const DEFAULT_MAX_OUTPUT_TOKENS = 1024;
 
-    public function __construct(protected AiCreditService $credits) {}
+    public function __construct(protected AiUsageCharger $credits) {}
 
     /**
      * Chat completion. Returns:
@@ -283,7 +283,7 @@ class OpenAiService
             // the partial transcript and emit a clear out-of-credits
             // SSE error frame instead of letting the stream end with
             // an unexplained gap.
-            throw new StreamCreditExhaustedException(
+            throw new StreamCoinsExhaustedException(
                 required: $cost > 0 ? $cost : 1,
                 balance: max(0, $startBalance - $creditsSpent),
                 partialContent: $content,
@@ -372,7 +372,7 @@ class OpenAiService
     {
         $balance = $this->credits->getBalance($user);
         if ($balance < $minCredits) {
-            throw new InsufficientAiCreditsException($minCredits, $balance);
+            throw new InsufficientCoinsForAiException($minCredits, $balance);
         }
     }
 

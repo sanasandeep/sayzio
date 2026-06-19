@@ -3,10 +3,10 @@
 namespace App\Services\AI\Voice;
 
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\ElevenLabsService;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use App\Services\AI\WhisperService;
 use Illuminate\Http\UploadedFile;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
  *             → ElevenLabs TTS (feature: voice_tts)
  *             → audio + transcript + tool results back to the client.
  *
- * Each stage charges credits independently against {@see AiCreditService}
+ * Each stage charges credits independently against {@see AiUsageCharger}
  * with its own `feature` tag and model so the ledger shows three line
  * items per turn, exactly as required.
  *
@@ -38,7 +38,7 @@ class VoiceAssistantService
         protected OpenAiService $openai,
         protected ElevenLabsService $eleven,
         protected VoiceToolRegistry $tools,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     /**
@@ -67,7 +67,7 @@ class VoiceAssistantService
             throw new \RuntimeException('Voice Assistant is not enabled for your plan.');
         }
         if ($this->credits->getBalance($user) <= 0) {
-            throw new InsufficientAiCreditsException(1, 0);
+            throw new InsufficientCoinsForAiException(1, 0);
         }
 
         $confirmedTools = (array) ($context['confirmed_tools'] ?? []);
@@ -110,7 +110,7 @@ class VoiceAssistantService
                         'reason'      => 'Voice Assistant: reasoning turn',
                     ]
                 );
-            } catch (InsufficientAiCreditsException $e) {
+            } catch (InsufficientCoinsForAiException $e) {
                 throw $e;
             } catch (\Throwable $e) {
                 Log::warning('Voice LLM call failed: ' . $e->getMessage());
@@ -171,7 +171,7 @@ class VoiceAssistantService
             $tts = $this->eleven->speak($user, $finalContent);
             $audioB64   = base64_encode($tts['audio']);
             $ttsCredits = (int) $tts['credits_spent'];
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             throw $e;
         } catch (\Throwable $e) {
             Log::info('Voice TTS skipped: ' . $e->getMessage());

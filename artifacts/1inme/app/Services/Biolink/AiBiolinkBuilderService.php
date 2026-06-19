@@ -8,7 +8,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockVariantCatalog;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\OpenAiService;
 use RuntimeException;
@@ -46,7 +46,7 @@ class AiBiolinkBuilderService
 
     public function __construct(
         protected OpenAiService $openai,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     /**

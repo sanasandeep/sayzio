@@ -4,9 +4,9 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Biolink\AiBiolinkBuilderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,7 +25,7 @@ class AiBiolinkBuilderController extends Controller
 {
     public function __construct(
         protected AiBiolinkBuilderService $builder,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     public function intake(Request $request, Link $link)
@@ -90,7 +90,7 @@ class AiBiolinkBuilderController extends Controller
                 $data['images'],
                 $data['files'],
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough AI credits to build this page.',
                 'required' => $e->required ?? null,

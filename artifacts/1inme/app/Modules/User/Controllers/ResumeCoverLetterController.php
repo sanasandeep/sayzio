@@ -5,9 +5,9 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeCoverLetter;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Resume\ResumeCoverLetterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +33,7 @@ class ResumeCoverLetterController extends Controller
 {
     public function __construct(
         protected ResumeCoverLetterService $letters,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     public function estimate(Request $request): JsonResponse
@@ -91,7 +91,7 @@ class ResumeCoverLetterController extends Controller
                 $data['tone'] ?? 'professional',
                 isset($data['persona_id']) ? (int) $data['persona_id'] : null,
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough AI credits to generate this cover letter.',
                 'required' => $e->required ?? null,
@@ -171,7 +171,7 @@ class ResumeCoverLetterController extends Controller
                 $data['section'],
                 $data['instruction'] ?? null,
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough AI credits to regenerate this section.',
                 'required' => $e->required ?? null,

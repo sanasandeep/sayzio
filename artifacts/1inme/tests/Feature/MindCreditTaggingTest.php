@@ -6,7 +6,7 @@ use App\Modules\User\Models\WalletTransaction;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindSource;
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\Billing\WalletService;
 use App\Services\AI\AiMindIngestor;
@@ -29,7 +29,7 @@ use Tests\TestCase;
  *
  * Strategy: enable the real AI engine, fake the OpenAI HTTP layer,
  * and exercise the real AiMindIngestor / AiMindQueryService so the
- * tags flow through OpenAiService → AiCreditService → ledger row
+ * tags flow through OpenAiService → AiUsageCharger → ledger row
  * exactly the way they would in production.
  */
 class MindCreditTaggingTest extends TestCase
@@ -284,7 +284,7 @@ class MindCreditTaggingTest extends TestCase
         $user = $this->makeUser();
         $mind = $this->makeMind($user);
 
-        $credits = app(AiCreditService::class);
+        $credits = app(AiUsageCharger::class);
         app(WalletService::class)->credit($user, 100, ['reason' => 'test seed']);
         $charge = $credits->charge($user, 25, [
             'feature'    => 'mind',

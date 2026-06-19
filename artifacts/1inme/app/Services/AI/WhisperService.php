@@ -21,7 +21,7 @@ class WhisperService
 {
     public const BASE_URL = 'https://api.openai.com/v1';
 
-    public function __construct(protected AiCreditService $credits) {}
+    public function __construct(protected AiUsageCharger $credits) {}
 
     /**
      * Transcribe an audio file/string and charge credits.
@@ -100,7 +100,7 @@ class WhisperService
     {
         $balance = $this->credits->getBalance($user);
         if ($balance < $minCredits) {
-            throw new InsufficientAiCreditsException($minCredits, $balance);
+            throw new InsufficientCoinsForAiException($minCredits, $balance);
         }
     }
 

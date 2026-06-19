@@ -10,7 +10,7 @@ use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactPhone;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\CardBrochureExtractionService;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -72,7 +72,7 @@ class CardScanController extends Controller
 
         try {
             $scan = $this->extractor->extract($owner, $actor, $uploads);
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return redirect()->route('user.wallet.buy')
                 ->with('error', "You need {$e->required} coins to scan a card (you have {$e->balance}).");
         } catch (\RuntimeException $e) {

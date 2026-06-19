@@ -68,12 +68,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // AI features throw InsufficientAiCreditsException when the user
+        // AI features throw InsufficientCoinsForAiException when the user
         // tries to spend more coins than they have in their wallet. AI
         // usage is now charged straight from the coin wallet, so surface
         // it as a friendly redirect to the wallet top-up page (or JSON
         // for API/AJAX) rather than a 500 — the message includes a CTA.
-        $exceptions->render(function (\App\Services\AI\InsufficientAiCreditsException $e, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (\App\Services\AI\InsufficientCoinsForAiException $e, \Illuminate\Http\Request $request) {
             $msg = "You need {$e->required} coins to do that — you have {$e->balance}. Top up your wallet to continue.";
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([

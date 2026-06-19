@@ -8,7 +8,7 @@ use App\Modules\Common\Models\AiCompanionMessage;
 use App\Modules\User\Models\AiCompanion;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\Link;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\CompanionRuntime;
 use App\Services\AI\CompanionSettings;
@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\DB;
 class CompanionsController extends Controller
 {
     public function __construct(
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     public function index(Request $request)

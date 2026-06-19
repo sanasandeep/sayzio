@@ -3,9 +3,9 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\Voice\VoiceAssistantService;
 use App\Services\AI\Voice\VoiceToolRegistry;
 use App\Services\AI\WhisperService;
@@ -26,7 +26,7 @@ class VoiceAssistantController extends Controller
     public function __construct(
         protected VoiceAssistantService $voice,
         protected VoiceToolRegistry $tools,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
         protected WhisperService $whisper,
     ) {}
 
@@ -85,7 +85,7 @@ class VoiceAssistantController extends Controller
                 $request->file('audio'),
                 $context,
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'error'    => 'Out of AI credits — top up to keep using voice.',
                 'balance'  => $this->credits->getBalance($user),

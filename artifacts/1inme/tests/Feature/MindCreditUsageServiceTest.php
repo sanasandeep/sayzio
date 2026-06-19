@@ -52,7 +52,7 @@ class MindCreditUsageServiceTest extends TestCase
     /**
      * Direct ledger writer so each row's kind / mind_id / related_id /
      * created_at is exactly what the test wants. We deliberately
-     * bypass AiCreditService::charge here so we can backdate rows and
+     * bypass AiUsageCharger::charge here so we can backdate rows and
      * assert the 30-day window is respected.
      */
     protected function writeSpend(

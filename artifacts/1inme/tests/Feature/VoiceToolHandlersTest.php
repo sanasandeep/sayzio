@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\Voice\VoiceToolRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -224,7 +224,7 @@ class VoiceToolHandlersTest extends TestCase
         $admin  = $this->makeUser('adm-ok');
         $target = $this->makeUser('tgt-ok');
 
-        $balanceBefore = app(AiCreditService::class)->getBalance($target);
+        $balanceBefore = app(AiUsageCharger::class)->getBalance($target);
 
         $result = $this->runHandler('admin_grant_credits', $admin, [
             'user_id' => $target->id,
@@ -236,7 +236,7 @@ class VoiceToolHandlersTest extends TestCase
 
         $this->assertSame(
             $balanceBefore + 250,
-            app(AiCreditService::class)->getBalance($target),
+            app(AiUsageCharger::class)->getBalance($target),
             'admin_grant_credits must actually credit the target user when run (after registry confirmation).'
         );
     }
@@ -259,7 +259,7 @@ class VoiceToolHandlersTest extends TestCase
         $admin  = $this->makeUser('adm-zero');
         $target = $this->makeUser('tgt-zero');
 
-        $balanceBefore = app(AiCreditService::class)->getBalance($target);
+        $balanceBefore = app(AiUsageCharger::class)->getBalance($target);
 
         $result = $this->runHandler('admin_grant_credits', $admin, [
             'user_id' => $target->id,
@@ -269,7 +269,7 @@ class VoiceToolHandlersTest extends TestCase
         $this->assertArrayHasKey('error', $result);
         $this->assertSame(
             $balanceBefore,
-            app(AiCreditService::class)->getBalance($target),
+            app(AiUsageCharger::class)->getBalance($target),
             'A rejected grant must NOT mutate the target balance.'
         );
     }

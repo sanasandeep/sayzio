@@ -29,7 +29,7 @@ class CompanionRuntime
 
     public function __construct(
         protected PersonaRuntime $persona,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
     ) {}
 
     /**
@@ -132,7 +132,7 @@ class CompanionRuntime
                 $history,
                 $message,
             );
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             return ['ok' => false, 'error' => 'This chatbot is out of AI credits. The owner has been notified.'];
         } catch (\Throwable $e) {
             report($e);

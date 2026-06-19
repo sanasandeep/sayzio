@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\Voice\VoiceToolRegistry;
 use App\Services\Billing\WalletService;
 use Mockery;
@@ -27,11 +27,11 @@ class VoiceToolRegistryUserMayTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Pure unit tests: registry only touches AiCreditService /
+        // Pure unit tests: registry only touches AiUsageCharger /
         // WalletService inside the *handlers* (not in userMay), so
         // mocks with no expectations are safe here.
         $this->registry = new VoiceToolRegistry(
-            Mockery::mock(AiCreditService::class),
+            Mockery::mock(AiUsageCharger::class),
             Mockery::mock(WalletService::class),
         );
     }

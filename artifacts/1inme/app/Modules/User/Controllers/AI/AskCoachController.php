@@ -5,10 +5,10 @@ namespace App\Modules\User\Controllers\AI;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AskCoachMessage;
 use App\Modules\User\Models\AskCoachThread;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AskCoach\AskCoachToolRegistry;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -48,7 +48,7 @@ class AskCoachController extends Controller
 
     public function __construct(
         protected OpenAiService $ai,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
         protected AskCoachToolRegistry $tools,
     ) {}
 
@@ -259,7 +259,7 @@ class AskCoachController extends Controller
                     ];
                 }
             }
-        } catch (InsufficientAiCreditsException $e) {
+        } catch (InsufficientCoinsForAiException $e) {
             throw $e;
         } catch (\Throwable $e) {
             Log::warning('Ask Coach tool-calling failed, retrying with keyword fallback: ' . $e->getMessage());
@@ -311,7 +311,7 @@ class AskCoachController extends Controller
                 ]);
                 $totalCredits += (int) ($out['credits_spent'] ?? 0);
             } catch (\RuntimeException $e) {
-                if ($e instanceof InsufficientAiCreditsException) throw $e;
+                if ($e instanceof InsufficientCoinsForAiException) throw $e;
                 Log::warning('Ask Coach AI call failed: ' . $e->getMessage());
                 $threadModel->forceFill(['last_message_at' => $now])->save();
                 return back()->with('error', 'Coach could not reply right now. Please try again.');
@@ -422,7 +422,7 @@ class AskCoachController extends Controller
                         $emit('token', ['delta' => $delta]);
                     },
                 );
-            } catch (InsufficientAiCreditsException $e) {
+            } catch (InsufficientCoinsForAiException $e) {
                 $emit('error', ['code' => 'insufficient_credits', 'message' => $e->getMessage()]);
                 return;
             } catch (\RuntimeException $e) {

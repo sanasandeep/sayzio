@@ -7,11 +7,11 @@ use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindDefault;
 use App\Modules\User\Models\CompanionMessage;
 use App\Modules\User\Models\CompanionThread;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiMindProvisioner;
 use App\Services\AI\AiMindQueryService;
-use App\Services\AI\InsufficientAiCreditsException;
+use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -43,7 +43,7 @@ class CompanionController extends Controller
 
     public function __construct(
         protected OpenAiService $ai,
-        protected AiCreditService $credits,
+        protected AiUsageCharger $credits,
         protected AiMindQueryService $minds,
     ) {}
 
@@ -400,7 +400,7 @@ class CompanionController extends Controller
                 $kbContext      = $retrieved['context'];
                 $kbCreditsSpent = (int) $retrieved['credits_spent'];
                 $kbCitations    = $retrieved['citations'] ?? [];
-            } catch (InsufficientAiCreditsException $e) {
+            } catch (InsufficientCoinsForAiException $e) {
                 throw $e;
             } catch (\Throwable $e) {
                 Log::warning('Companion Mind retrieval failed: ' . $e->getMessage());
@@ -431,7 +431,7 @@ class CompanionController extends Controller
                 'reason'      => 'Companion: chat reply',
             ]);
         } catch (\RuntimeException $e) {
-            if ($e instanceof InsufficientAiCreditsException) throw $e;
+            if ($e instanceof InsufficientCoinsForAiException) throw $e;
             Log::warning('Companion AI call failed: ' . $e->getMessage());
             // Touch the thread so the user can see their saved turn.
             $threadModel->forceFill(['last_message_at' => $now])->save();

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\User\Models\User;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\ElevenLabsService;
@@ -186,7 +186,7 @@ class VoiceAssistantTest extends TestCase
         $this->assertSame(0, $this->llmCalls, 'LLM must not run for a plan-blocked user.');
         $this->assertSame(0, $this->ttsCalls, 'TTS must not run for a plan-blocked user.');
         // Balance must be untouched — refusal happens before any meter charge.
-        $this->assertSame(500, app(AiCreditService::class)->getBalance($user));
+        $this->assertSame(500, app(AiUsageCharger::class)->getBalance($user));
     }
 
     // ── 2) credit gate ────────────────────────────────────────────────────────
@@ -210,7 +210,7 @@ class VoiceAssistantTest extends TestCase
         $this->assertSame(0, $this->ttsCalls, 'TTS must not run for a broke user.');
         // Balance stays at zero — the pre-flight balance check refuses
         // the turn before any service is invoked, so the ledger is untouched.
-        $this->assertSame(0, app(AiCreditService::class)->getBalance($user));
+        $this->assertSame(0, app(AiUsageCharger::class)->getBalance($user));
     }
 
     // ── 3) happy path ─────────────────────────────────────────────────────────

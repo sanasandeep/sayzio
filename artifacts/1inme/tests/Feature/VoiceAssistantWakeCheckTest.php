@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Api\Controllers\VoiceAssistantController;
-use App\Services\AI\AiCreditService;
+use App\Services\AI\AiUsageCharger;
 use App\Services\AI\Voice\VoiceAssistantService;
 use App\Services\AI\Voice\VoiceToolRegistry;
 use App\Services\AI\WhisperService;
@@ -30,7 +30,7 @@ class VoiceAssistantWakeCheckTest extends TestCase
         return new VoiceAssistantController(
             $this->createMock(VoiceAssistantService::class),
             $this->createMock(VoiceToolRegistry::class),
-            $this->createMock(AiCreditService::class),
+            $this->createMock(AiUsageCharger::class),
             $this->createMock(WhisperService::class),
         );
     }
