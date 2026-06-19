@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Common\Services\NotificationService;
 use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
@@ -194,6 +195,21 @@ class CheckExpectedColumns extends Command
         ]);
         $emails = $this->fanOutEmail($admins, $subject, $body, $url);
 
+        // Push the same alert to on-call admins' phones so they don't have to
+        // be looking at the admin screen to learn the schema has drifted. The
+        // push deliberately carries NO web `url` so the mobile app deep-links to
+        // its native /admin dashboard (where the warning + Repair action live)
+        // rather than opening the web dashboard in a browser. Cooldown / set-
+        // change dedup is already enforced by the caller (handle()), so this
+        // only fires once per drift episode like the in-app + email fan-out.
+        $pushTitle = 'Database schema drift detected';
+        $pushBody  = $count === 1
+            ? '1 table is missing an expected column — open the admin dashboard to repair before users hit errors.'
+            : "{$count} tables are missing expected columns — open the admin dashboard to repair before users hit errors.";
+        $pushes = $this->fanOutPush($admins, 'expected_columns_missing', $pushTitle, $pushBody, [
+            'missing_count' => $count,
+        ]);
+
         $this->putState([
             'alerting'     => true,
             'last_sent_at' => now()->toIso8601String(),
@@ -201,7 +217,7 @@ class CheckExpectedColumns extends Command
             'last_refs'    => $refs,
         ]);
 
-        $this->info("Alert dispatched — in-app: {$inApp}, email: {$emails}.");
+        $this->info("Alert dispatched — in-app: {$inApp}, email: {$emails}, push: {$pushes}.");
     }
 
     private function dispatchRecovery(int $previousCount): void
@@ -395,6 +411,31 @@ class CheckExpectedColumns extends Command
                 $sent++;
             } catch (\Throwable $e) {
                 Log::warning("expected-schema-health alert email to {$email} failed: " . $e->getMessage());
+            }
+        }
+        return $sent;
+    }
+
+    /**
+     * Fan a push notification out to on-call admins' phones via the shared
+     * Expo transport. Delivery honors each admin's per-type push preference
+     * and is wholly best-effort (NotificationService::pushToUser never throws),
+     * so a dead token or network hiccup can't stop the command. Passing no
+     * `url` in $data lets the mobile app deep-link to its native /admin screen
+     * by type instead of opening the web dashboard in a browser.
+     *
+     * @param  iterable  $admins
+     * @param  array<string,mixed>  $data
+     */
+    private function fanOutPush($admins, string $type, string $title, string $body, array $data): int
+    {
+        $service = app(NotificationService::class);
+        $sent    = 0;
+        foreach ($admins as $u) {
+            try {
+                $sent += $service->pushToUser($u, $type, $title, $body, $data);
+            } catch (\Throwable $e) {
+                Log::warning("expected-schema-health push alert failed for user {$u->id}: " . $e->getMessage());
             }
         }
         return $sent;

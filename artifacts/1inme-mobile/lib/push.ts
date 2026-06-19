@@ -159,7 +159,12 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
   }
 
   const type = typeof data?.type === "string" ? data.type : null;
-  const path = type === "api.usage_warning" ? "/api-usage" : "/notifications";
+  const path =
+    type === "api.usage_warning"
+      ? "/api-usage"
+      : type === "expected_columns_missing"
+        ? "/admin"
+        : "/notifications";
   return { markReadId, navigation: { kind: "route", path } };
 }
 
@@ -189,6 +194,6 @@ export function addPushResponseListener(): Notifications.EventSubscription {
       openPushTarget(navigation.target);
       return;
     }
-    router.push(navigation.path as "/api-usage" | "/notifications");
+    router.push(navigation.path as "/api-usage" | "/notifications" | "/admin");
   });
 }

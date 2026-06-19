@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\Common\Support\SchemaManifest;
+use App\Modules\User\Models\DevicePushToken;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Database\Migrations\Migrator;
@@ -12,6 +13,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -284,6 +286,53 @@ class SchemaManifestDriftTest extends TestCase
         $this->assertIsArray($state);
         $this->assertTrue($state['blind_alerting'] ?? false, 'blind episode should be marked open');
         $this->assertStringContainsString('migration files unreadable', $state['blind_error'] ?? '');
+    }
+
+    public function test_drift_pushes_to_on_call_admins_phones(): void
+    {
+        Mail::fake();
+        Http::fake([
+            'exp.host/*' => Http::response(['data' => [['status' => 'ok', 'id' => 'x']]], 200),
+        ]);
+
+        $admin = $this->makeOpsAdmin();
+        DevicePushToken::create([
+            'user_id'  => $admin->id,
+            'token'    => 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]',
+            'platform' => 'ios',
+        ]);
+
+        // Simulate real edited-after-applied drift: drop a column the manifest
+        // expects (rolled back with the test transaction).
+        $table  = 'links';
+        $column = 'seo_title';
+        Schema::table($table, function (Blueprint $t) use ($column) {
+            $t->dropColumn($column);
+        });
+        SchemaManifest::flush();
+        ExpectedSchemaHealth::flush();
+
+        $this->artisan('db:check-expected-columns')->assertSuccessful();
+
+        // The ops admin got the in-app missing-columns alert AND a push went out
+        // to their registered phone, deep-linkable to the mobile /admin screen.
+        $this->assertSame(
+            1,
+            UserNotification::where('user_id', $admin->id)->where('type', 'expected_columns_missing')->count(),
+            'ops admin should get an in-app missing-columns alert'
+        );
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), 'exp.host')) {
+                return false;
+            }
+            $body = $request->data();
+            $msg  = $body[0] ?? [];
+            // No web `url` in the payload so the mobile app deep-links to its
+            // native /admin screen by type rather than opening the web dashboard.
+            return ($msg['data']['type'] ?? null) === 'expected_columns_missing'
+                && empty($msg['data']['url'] ?? null);
+        });
     }
 
     /**
