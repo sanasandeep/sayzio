@@ -821,3 +821,15 @@ id = "Se2DfC-oIfcA0fDdeNdDr"
 uri = "file://attached_assets/banners/1inme_banner_2_features.png"
 type = "image"
 title = "Banner 2 — Features: \"Everything you can create\" (6ft x 3ft, 1:2)"
+
+[[outputs]]
+id = "L574WVCcT24IquFoMkSlf"
+uri = "file://exports/1inme-link-types-poster-landscape.png"
+type = "image"
+title = "1INME — 12 Link Types Poster (Landscape, 3840×2160)"
+
+[[outputs]]
+id = "8ogHG0-rt4zRMkrok1NPe"
+uri = "file://exports/1inme-link-types-poster-portrait.png"
+type = "image"
+title = "1INME — 12 Link Types Poster (Portrait, 2160×3840)"
