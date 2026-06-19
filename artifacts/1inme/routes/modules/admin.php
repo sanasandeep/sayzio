@@ -274,6 +274,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/', [\App\Modules\Admin\Controllers\AuthSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
+        Route::prefix('email-verification-reminders')->name('email-verification-reminders.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\EmailVerificationReminderSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('/', [\App\Modules\Admin\Controllers\EmailVerificationReminderSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         Route::prefix('mail-settings')->name('mail-settings.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

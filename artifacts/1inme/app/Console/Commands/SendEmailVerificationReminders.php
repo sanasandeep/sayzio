@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Modules\Common\Services\NotificationService;
 use App\Modules\Common\Support\AuthMethods;
+use App\Modules\Common\Support\EmailVerificationReminderSettings;
 use App\Modules\User\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
@@ -21,10 +22,11 @@ use Illuminate\Support\Facades\URL;
  *   - Skips entirely when email verification can't meaningfully apply
  *     under the current login policy (AuthMethods::emailVerificationMeaningful()
  *     — e.g. a mobile-only configuration), matching the banner's rule.
- *   - A short grace period after sign-up (FIRST_REMINDER_AFTER_DAYS) so the
+ *   - A short grace period after sign-up (admin-tunable grace days) so the
  *     original sign-up email + in-app banner get a chance first.
- *   - At most one reminder every REMINDER_INTERVAL_DAYS, capped at
- *     MAX_REMINDERS total per user.
+ *   - At most one reminder every interval (admin-tunable), capped at a
+ *     total per user (admin-tunable).
+ *   - The whole feature can be switched off platform-wide by an admin.
  *   - Honours the per-user `email_verification_reminder` email preference
  *     (default on) and a one-click signed unsubscribe link.
  */
@@ -36,17 +38,17 @@ class SendEmailVerificationReminders extends Command
 
     protected $description = 'Email users who still have an unverified email a gentle, rate-limited reminder to verify it.';
 
-    /** Wait this many days after sign-up before the first reminder. */
-    private const FIRST_REMINDER_AFTER_DAYS = 3;
-
-    /** Minimum gap between two reminders to the same user. */
-    private const REMINDER_INTERVAL_DAYS = 7;
-
-    /** Hard cap on the total number of reminders a user ever receives. */
-    private const MAX_REMINDERS = 3;
-
     public function handle(NotificationService $prefs): int
     {
+        $force  = (bool) $this->option('force');
+
+        // Admins can switch the whole feature off platform-wide. --force
+        // still respects this kill switch (it only bypasses the cadence).
+        if (! EmailVerificationReminderSettings::enabled()) {
+            $this->info('Email verification reminders are disabled in admin settings; nothing to do.');
+            return self::SUCCESS;
+        }
+
         // Verification only matters when email actually authenticates an
         // account. In a mobile-only login policy the email never verifies,
         // so a reminder would be pointless — bail out wholesale.
@@ -55,7 +57,10 @@ class SendEmailVerificationReminders extends Command
             return self::SUCCESS;
         }
 
-        $force  = (bool) $this->option('force');
+        $graceDays    = EmailVerificationReminderSettings::graceDays();
+        $intervalDays = EmailVerificationReminderSettings::intervalDays();
+        $maxReminders = EmailVerificationReminderSettings::maxReminders();
+
         $userId = $this->option('user');
         $now    = now();
 
@@ -70,19 +75,19 @@ class SendEmailVerificationReminders extends Command
         }
 
         if (! $force) {
-            // Cap: never exceed MAX_REMINDERS total.
-            $query->where('email_verification_reminders_sent', '<', self::MAX_REMINDERS);
+            // Cap: never exceed the configured total.
+            $query->where('email_verification_reminders_sent', '<', $maxReminders);
         }
 
         $sent = 0;
         $skipped = 0;
 
-        $query->chunkById(200, function ($users) use (&$sent, &$skipped, $prefs, $now, $force) {
+        $query->chunkById(200, function ($users) use (&$sent, &$skipped, $prefs, $now, $force, $graceDays, $intervalDays) {
             foreach ($users as $user) {
                 if (! $force) {
                     // Grace period for users who just signed up.
                     if ($user->created_at
-                        && $user->created_at->greaterThan($now->copy()->subDays(self::FIRST_REMINDER_AFTER_DAYS))) {
+                        && $user->created_at->greaterThan($now->copy()->subDays($graceDays))) {
                         $skipped++;
                         continue;
                     }
@@ -90,7 +95,7 @@ class SendEmailVerificationReminders extends Command
                     // Interval since the last reminder.
                     if ($user->email_verification_reminder_sent_at
                         && $user->email_verification_reminder_sent_at
-                            ->greaterThan($now->copy()->subDays(self::REMINDER_INTERVAL_DAYS))) {
+                            ->greaterThan($now->copy()->subDays($intervalDays))) {
                         $skipped++;
                         continue;
                     }

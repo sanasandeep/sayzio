@@ -244,6 +244,14 @@
             <span class="sidebar-tooltip">Login &amp; OTP</span>
         </a>
 
+        <a href="{{ route('admin.email-verification-reminders.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.email-verification-reminders.*') ? 'active' : '' }}"
+           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-envelope-circle-check"></i></div>
+            <span class="nav-label">Verify Reminders</span>
+            <span class="sidebar-tooltip">Verification Reminders</span>
+        </a>
+
         <a href="{{ route('admin.integrations.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.integrations.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
