@@ -181,6 +181,16 @@ class UserRoleController extends Controller
 
         $user->flushAdminAccountCache();
 
+        // When the grant was launched from the inline "Promote existing
+        // user" control on the Staff page, keep the operator there rather
+        // than bouncing them to this user's role page. Only a known-safe
+        // internal target is honoured.
+        if ($request->input('redirect_to') === 'staff') {
+            return redirect()
+                ->route('admin.staff.index')
+                ->with('success', $message);
+        }
+
         return redirect()
             ->route('admin.users.roles.edit', $user)
             ->with('success', $message);

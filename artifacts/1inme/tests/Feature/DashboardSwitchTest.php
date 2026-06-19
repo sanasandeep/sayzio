@@ -191,6 +191,53 @@ class DashboardSwitchTest extends TestCase
         ]);
     }
 
+    public function test_grant_admin_access_from_staff_page_stays_on_staff(): void
+    {
+        $operator = $this->makeAdmin(['staff.create']);
+        $target   = $this->makeUser();
+        $role     = $this->makeAdminGuardRole();
+
+        // The inline "Promote existing user" control on the Staff page
+        // submits redirect_to=staff so the operator is kept on Staff
+        // instead of being bounced to the user's role page.
+        $this->actingAs($operator, 'admin')
+            ->post('/admin/users/' . $target->id . '/admin-access', [
+                'role_id'     => $role->id,
+                'redirect_to' => 'staff',
+            ])
+            ->assertRedirect(route('admin.staff.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('admins', [
+            'email'   => $target->email,
+            'role_id' => $role->id,
+            'status'  => 'active',
+        ]);
+    }
+
+    public function test_staff_user_search_requires_staff_create_permission(): void
+    {
+        $operator = $this->makeAdmin(); // no permissions
+
+        $this->actingAs($operator, 'admin')
+            ->getJson('/admin/staff/search-users?q=test')
+            ->assertForbidden();
+    }
+
+    public function test_staff_user_search_matches_name_and_email(): void
+    {
+        $operator = $this->makeAdmin(['staff.create']);
+        $target   = $this->makeUser(['name' => 'Searchable Person', 'email' => 'searchable@example.test']);
+
+        $this->actingAs($operator, 'admin')
+            ->getJson('/admin/staff/search-users?q=searchable')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id'    => $target->id,
+                'email' => $target->email,
+            ]);
+    }
+
     public function test_grant_admin_access_repoints_an_existing_admin_record(): void
     {
         $target   = $this->makeUser();

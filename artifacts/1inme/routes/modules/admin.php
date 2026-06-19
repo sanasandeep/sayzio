@@ -71,6 +71,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('staff')->name('staff.')->group(function () {
             Route::get('/', [StaffController::class, 'index'])->middleware(CheckPermission::class . ':staff.view')->name('index');
+            Route::get('search-users', [StaffController::class, 'searchUsers'])->middleware(CheckPermission::class . ':staff.create')->name('search-users');
             Route::get('create', [StaffController::class, 'create'])->middleware(CheckPermission::class . ':staff.create')->name('create');
             Route::post('/', [StaffController::class, 'store'])->middleware(CheckPermission::class . ':staff.create')->name('store');
             Route::get('{staff}', [StaffController::class, 'show'])->middleware(CheckPermission::class . ':staff.view')->name('show');

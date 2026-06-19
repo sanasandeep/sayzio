@@ -5,6 +5,8 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Role;
+use App\Modules\User\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -35,7 +37,49 @@ class StaffController extends Controller
         $staff = $query->latest()->paginate(15)->withQueryString();
         $roles = Role::all();
 
-        return view('admin.staff.index', compact('staff', 'roles'));
+        // Admin-guard roles power the inline "Promote existing user" control
+        // so an operator can pick a back-office role without leaving this page.
+        $adminRoles = Role::query()
+            ->where('guard', 'admin')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.staff.index', compact('staff', 'roles', 'adminRoles'));
+    }
+
+    /**
+     * Typeahead search for existing user accounts, used by the inline
+     * "Promote existing user" control on the Staff page. Returns a small
+     * JSON list of matching users (mirrors the name/email ilike pattern
+     * in UserManagementController::index) flagged with whether they
+     * already have back-office admin access. Gated by `staff.create` at
+     * the route layer, the same permission as the grant endpoint.
+     */
+    public function searchUsers(Request $request): JsonResponse
+    {
+        $term = trim((string) $request->get('q', ''));
+
+        if (mb_strlen($term) < 2) {
+            return response()->json(['data' => []]);
+        }
+
+        $users = User::query()
+            ->where(function ($q) use ($term) {
+                $q->where('name', 'ilike', "%{$term}%")
+                  ->orWhere('email', 'ilike', "%{$term}%");
+            })
+            ->orderBy('name')
+            ->limit(10)
+            ->get(['id', 'name', 'email']);
+
+        $data = $users->map(fn (User $user) => [
+            'id'       => $user->id,
+            'name'     => $user->name,
+            'email'    => $user->email,
+            'is_admin' => $user->adminAccount() !== null,
+        ])->all();
+
+        return response()->json(['data' => $data]);
     }
 
     public function create()
