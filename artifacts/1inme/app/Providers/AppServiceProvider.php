@@ -128,6 +128,71 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAuthRateLimiters();
         $this->bustPlanRecommenderCacheOnUsageChange();
         $this->alertOnFailedBackgroundJobs();
+        $this->guardDestructiveSchemaCommands();
+    }
+
+    /**
+     * Block table-dropping / schema-wiping artisan commands from running against
+     * the shared, live AWS RDS database.
+     *
+     * Every isolated dev/test environment and the deployed app all point their
+     * `DB_*` credentials at the same distant RDS `postgres` database. A stray
+     * `migrate:fresh` / `migrate:reset` / `db:wipe` from any of them would drop
+     * every table and wipe production data for everyone. Schema-resetting work
+     * belongs on the local Replit Postgres instead.
+     *
+     * The guard fires only in the console, only for the destructive commands,
+     * and only when the active connection targets the shared RDS host. A
+     * deliberate operator escape hatch (`ALLOW_DESTRUCTIVE_DB_COMMANDS=1`) keeps
+     * the rare legitimate case possible. Plain `migrate` (additive) is never
+     * affected.
+     */
+    protected function guardDestructiveSchemaCommands(): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Console\Events\CommandStarting::class,
+            function (\Illuminate\Console\Events\CommandStarting $event): void {
+                $destructive = [
+                    'migrate:fresh',
+                    'migrate:refresh',
+                    'migrate:reset',
+                    'migrate:rollback',
+                    'db:wipe',
+                    'schema:dump', // --prune drops tables; block the whole command to be safe
+                ];
+
+                if (! in_array($event->command, $destructive, true)) {
+                    return;
+                }
+
+                if (filter_var(env('ALLOW_DESTRUCTIVE_DB_COMMANDS', false), FILTER_VALIDATE_BOOLEAN)) {
+                    return;
+                }
+
+                $connection = config('database.default');
+                $host       = (string) config("database.connections.{$connection}.host");
+                $database   = (string) config("database.connections.{$connection}.database");
+
+                // The shared/live database is the AWS RDS instance. Local dev/test
+                // schema resets against the Replit Postgres are unaffected.
+                if (! str_contains($host, 'rds.amazonaws.com')) {
+                    return;
+                }
+
+                $message = "Refusing to run `{$event->command}` against the shared live database "
+                    . "({$database}@{$host}). This command DROPS tables/data and would wipe the "
+                    . "production database that every environment shares. Point DB_* at the local "
+                    . "Postgres for schema resets, or set ALLOW_DESTRUCTIVE_DB_COMMANDS=1 to override.";
+
+                \Illuminate\Support\Facades\Log::error("::1inme:: BLOCKED destructive DB command — {$message}");
+
+                throw new \RuntimeException($message);
+            }
+        );
     }
 
     /**

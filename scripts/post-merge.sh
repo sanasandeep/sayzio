@@ -2,16 +2,27 @@
 set -e
 
 pnpm install --frozen-lockfile
-pnpm --filter db run push-force
 
-# The api-server's drizzle push above shares the same Postgres database as the
-# Laravel `1inme` artifact and wipes any tables it doesn't know about. Restore
-# Laravel's schema + seed data so the app keeps working after every merge.
+# Apply the api-server's drizzle schema. We use the NON-force `push` on purpose:
+# drizzle.config.ts restricts drizzle-kit to the dedicated `drizzle` Postgres
+# schema (schemaFilter: ["drizzle"], declared via pgSchema("drizzle")), so a push
+# can only ever create/alter objects drizzle owns and NEVER emits DROP statements
+# for Laravel's `public` tables. Without --force, if a diff ever did contain a
+# data-loss statement, push aborts (non-interactive) instead of forcing it
+# through — fail safe rather than wipe. It is made non-fatal so a drizzle change
+# needing review never blocks the Laravel schema sync below.
+pnpm --filter db run push || echo "post-merge: drizzle push reported changes needing review — skipped (non-fatal)"
+
+# Keep the Laravel `1inme` schema in sync ADDITIVELY after every merge.
 #
-# When a rebuild is needed it can take ~15s — beyond the 20s post-merge budget,
-# so the heavy recovery is detached to the background. The dev server will
-# briefly 500 while it runs, then auto-recover. The fast path (tables intact)
-# completes synchronously.
+# This shares the same (live/production) Postgres database, so it must NEVER drop
+# or recreate tables. `php artisan migrate --force` only CREATEs/ALTERs and is
+# safe. If it trips over an orphaned migration (an interrupted run over the
+# distant RDS that COMMITed `up()` but was killed before recording it), we fall
+# back to `db:reconcile-migrations --force`, which applies the rest and records
+# the orphan rather than dying on it. There is deliberately NO `migrate:fresh`
+# here — wiping the shared database is exactly the data-loss this script must
+# prevent.
 if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
   cd artifacts/1inme
 
@@ -22,51 +33,42 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
     echo Illuminate\Support\Facades\Schema::hasTable('plans') ? '1' : '0';
   " 2>/dev/null || echo "0")
 
-  if [ "$has_plans" = "1" ]; then
-    # Fast path: just apply any new migrations + reseed the curated card
-    # template library so blueprints added between merges land in prod.
-    # CardTemplateSeeder is idempotent and preserves admin-edited rows
-    # (see CardTemplateSeeder::SEED_VERSION + CardTemplate::wasCustomized).
-    php artisan migrate --force || true
-    php artisan db:seed --class=Database\\Seeders\\CardTemplateSeeder --force 2>/dev/null || true
-
-    # Onboarding page templates. The "Who are you?" persona picker reads
-    # from page_templates, which starts empty in a freshly provisioned
-    # environment. The three seeders below (StarterPageTemplatesSeeder,
-    # PageTemplatePersonaSeeder, ExpandedPageTemplateLibrarySeeder) ensure
-    # every PersonaCatalog persona ends up with >= 10 recommended
-    # templates so the picker is never empty. They are all idempotent —
-    # re-running on a populated DB is a safe no-op — but they are NOT a
-    # full `db:seed` (DatabaseSeeder also creates non-idempotent
-    # roles/permissions/admin that would duplicate/error).
-    #
-    # The expanded library inserts ~400 rows one-by-one and is slow over
-    # the distant RDS (and even the idempotent no-op pass costs ~50s of
-    # framework boots + round-trips), so we always detach it to the
-    # background to stay within the post-merge budget. On a fresh env the
-    # picker back-fills shortly after the merge; on a populated env this is
-    # a quick no-op that also picks up starter templates / new personas
-    # added between merges. Logs -> storage/logs/post-merge-recover.log.
-    echo "seeding onboarding page templates in background..."
-    mkdir -p storage/logs
-    nohup bash -c "
-      php artisan db:seed --class=Database\\\\Seeders\\\\StarterPageTemplatesSeeder --force
-      php artisan db:seed --class=Database\\\\Seeders\\\\PageTemplatePersonaSeeder --force
-      php artisan db:seed --class=Database\\\\Seeders\\\\ExpandedPageTemplateLibrarySeeder --force
-      echo \"[\$(date)] onboarding page-template seed finished\"
-    " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
-    disown $! 2>/dev/null || true
-  else
-    # Slow path: schema was wiped. Detach the rebuild so we don't blow the
-    # post-merge timeout. Logs go to storage/logs/post-merge-recover.log.
-    echo "Laravel tables missing after schema push — rebuilding in background..."
-    mkdir -p storage/logs
-    nohup bash -c "
-      php artisan migrate:fresh --force --seed
-      echo \"[\$(date)] post-merge recovery finished\"
-    " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
-    disown $! 2>/dev/null || true
+  if [ "$has_plans" != "1" ]; then
+    # Core tables missing is abnormal on the shared database. Do NOT rebuild by
+    # wiping — alert loudly. The additive `migrate --force` below will (re)create
+    # whatever is genuinely missing without dropping anything that survives.
+    echo "::1inme:: POST-MERGE WARNING: core Laravel table 'plans' is missing. NOT running migrate:fresh (it would wipe the shared/live database). Applying additive migrations only — investigate the database immediately." >&2
   fi
+
+  # Additive schema sync with self-healing for orphaned migrations.
+  php artisan migrate --force \
+    || php artisan db:reconcile-migrations --force \
+    || echo "::1inme:: POST-MERGE: migrations did not fully apply — schema may be incomplete. The hourly db:check-pending-migrations check will alert admins. Non-fatal; continuing." >&2
+
+  # Reseed the curated card template library so blueprints added between merges
+  # land in prod. CardTemplateSeeder is idempotent and preserves admin-edited
+  # rows (see CardTemplateSeeder::SEED_VERSION + CardTemplate::wasCustomized).
+  php artisan db:seed --class=Database\\Seeders\\CardTemplateSeeder --force 2>/dev/null || true
+
+  # Onboarding page templates. The "Who are you?" persona picker reads from
+  # page_templates, which starts empty in a freshly provisioned environment. The
+  # three seeders below ensure every PersonaCatalog persona ends up with >= 10
+  # recommended templates so the picker is never empty. They are all idempotent
+  # (a re-run on a populated DB is a safe no-op) but are NOT a full `db:seed`
+  # (DatabaseSeeder also creates non-idempotent roles/permissions/admin).
+  #
+  # The expanded library inserts ~400 rows one-by-one and is slow over the
+  # distant RDS, so it is detached to the background to stay within the
+  # post-merge budget. Logs -> storage/logs/post-merge-recover.log.
+  echo "seeding onboarding page templates in background..."
+  mkdir -p storage/logs
+  nohup bash -c "
+    php artisan db:seed --class=Database\\\\Seeders\\\\StarterPageTemplatesSeeder --force
+    php artisan db:seed --class=Database\\\\Seeders\\\\PageTemplatePersonaSeeder --force
+    php artisan db:seed --class=Database\\\\Seeders\\\\ExpandedPageTemplateLibrarySeeder --force
+    echo \"[\$(date)] onboarding page-template seed finished\"
+  " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
+  disown $! 2>/dev/null || true
 
   cd - >/dev/null
 fi
