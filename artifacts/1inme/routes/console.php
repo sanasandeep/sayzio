@@ -84,6 +84,19 @@ Schedule::command('backlinks:send-weekly-digest')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily: gently nudge users who still haven't verified their email. The
+// in-app banner only reaches users while signed in, so this catches the
+// ones who skipped verification and rarely log back in. The command is
+// self-rate-limited (grace period after sign-up, at most one reminder per
+// week, capped at a few total), stops once verified, honours the per-user
+// `email_verification_reminder` email preference, and is a no-op under a
+// login policy where email verification isn't meaningful. 10:00 UTC keeps
+// it clear of the midnight digest fan-out.
+Schedule::command('users:send-email-verification-reminders')
+    ->dailyAt('10:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: probe verified user-owned custom domains for DNS drift and run
 // the takeover-protection state machine. Healthy → drifting transitions
 // alert the creator (in-app + email) with the exact CNAME records to fix;

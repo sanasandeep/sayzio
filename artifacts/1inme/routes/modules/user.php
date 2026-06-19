@@ -140,6 +140,15 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('throttle:600,1')
         ->name('notifications.backlink-digest.unsubscribe');
 
+    // Public, signed one-click unsubscribe target linked from the periodic
+    // "verify your email" reminder email. Same rationale as the backlink
+    // digest one above (inbox-provider POSTs cannot present a CSRF token;
+    // the signed URL is the authenticator). CSRF exempted in bootstrap/app.php.
+    Route::match(['get', 'post'], 'notifications/email-verification-reminder/unsubscribe/{user}',
+        [\App\Modules\User\Controllers\NotificationController::class, 'unsubscribeEmailVerificationReminder'])
+        ->middleware('throttle:600,1')
+        ->name('notifications.email-verification-reminder.unsubscribe');
+
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');

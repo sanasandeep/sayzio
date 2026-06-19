@@ -168,6 +168,16 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => false,
             ],
+            // Periodic "verify your email" reminders for users who skipped
+            // verification at sign-up and rarely log in (so the in-app
+            // banner never reaches them).
+            'email_verification_reminder' => [
+                'label'          => 'Email verification reminders',
+                'description'    => 'Gentle reminders to verify your email address while it remains unverified.',
+                'default_in_app' => false,
+                'default_email'  => true,
+                'default_push'   => false,
+            ],
             // Developer API usage warnings (Task #1396, push added #1403).
             'api.usage_warning' => [
                 'label'          => 'API usage warnings',

@@ -294,4 +294,46 @@ class NotificationController extends Controller
             ['Content-Type' => 'text/html; charset=utf-8']
         );
     }
+
+    /**
+     * Public, signed one-click unsubscribe target linked from the periodic
+     * "verify your email" reminder email. Mirrors the backlink-digest
+     * unsubscribe above: no session required (the signed URL is the
+     * authenticator), works for both a browser footer click (GET) and an
+     * RFC 8058 one-click POST, and flips only the
+     * `email_verification_reminder` email channel off.
+     */
+    public function unsubscribeEmailVerificationReminder(Request $request, User $user)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'This unsubscribe link is invalid or has been tampered with.');
+        }
+
+        NotificationPreference::updateOrCreate(
+            ['user_id' => $user->id, 'type' => 'email_verification_reminder'],
+            [
+                'in_app' => false,
+                'email'  => false,
+                'push'   => false,
+            ],
+        );
+
+        if ($request->isMethod('post')) {
+            return response('', 200, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
+        return response(
+            '<!doctype html><html><head><meta charset="utf-8"><title>Unsubscribed</title>'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '</head><body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;margin:0;padding:40px 16px;">'
+            . '<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;">'
+            . '<h1 style="font-size:20px;color:#1e293b;margin:0 0 12px 0;">You\'ve been unsubscribed</h1>'
+            . '<p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px 0;">'
+            . e($user->email) . ' will no longer receive email verification reminders. '
+            . 'You can still verify your email any time from your account settings.'
+            . '</p></div></body></html>',
+            200,
+            ['Content-Type' => 'text/html; charset=utf-8']
+        );
+    }
 }
