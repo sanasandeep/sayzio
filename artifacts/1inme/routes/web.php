@@ -16,28 +16,45 @@ Route::get('/extension/handshake', [ExtensionHandshakeController::class, 'show']
 
 // ---- Schema readiness probe (Task #1679) ----
 // Lightweight, unauthenticated readiness signal for deployment monitoring.
-// Reports whether the DB schema is in sync (no pending migrations) and returns
-// HTTP 503 when it is out of date, so external uptime/monitoring can catch an
-// incomplete deploy without a human reading the deploy log. Only exposes a
-// count (never table/column internals); the admin dashboard banner carries the
-// detailed pending-migration list. Note: this is a *separate* signal from the
-// deploy's own startup health check (which stays on `/` so the app keeps
-// serving on a partial schema — see artifact.toml).
+// Reports whether the DB schema is in sync and returns HTTP 503 when it is out
+// of date, so external uptime/monitoring can catch an incomplete deploy without
+// a human reading the deploy log. Two independent signals are folded in:
+//   - pending_migrations: migration files not yet applied (SchemaHealth)
+//   - schema_drift:       critical tables/columns the code depends on that are
+//                         MISSING despite their migration being recorded as ran
+//                         — the edited-after-applied drift class SchemaHealth is
+//                         blind to (ExpectedSchemaHealth). This took the public
+//                         /creators page down via the 18+ columns on `users`.
+// Either signal being non-zero flips the status to out_of_date / 503. Only
+// exposes counts (never table/column internals); the admin dashboard banners
+// carry the detailed lists. Note: this is a *separate* signal from the deploy's
+// own startup health check (which stays on `/` so the app keeps serving on a
+// partial schema — see artifact.toml).
 Route::get('/up/schema', function () {
-    $report = \App\Modules\Common\Support\SchemaHealth::cached();
+    $migrations = \App\Modules\Common\Support\SchemaHealth::cached();
+    $drift      = \App\Modules\Common\Support\ExpectedSchemaHealth::cached();
 
-    if (! ($report['available'] ?? false)) {
+    $migrationsAvailable = (bool) ($migrations['available'] ?? false);
+    $driftAvailable      = (bool) ($drift['available'] ?? false);
+
+    // Neither probe could read the DB — report "unknown" rather than failing.
+    if (! $migrationsAvailable && ! $driftAvailable) {
         return response()->json([
             'status'             => 'unknown',
             'pending_migrations' => null,
+            'schema_drift'       => null,
         ], 200);
     }
 
-    $count = count($report['pending'] ?? []);
+    $pendingCount = $migrationsAvailable ? count($migrations['pending'] ?? []) : 0;
+    $driftCount   = $driftAvailable ? count($drift['missing'] ?? []) : 0;
+    $outOfDate    = ($pendingCount + $driftCount) > 0;
+
     return response()->json([
-        'status'             => $count === 0 ? 'ok' : 'out_of_date',
-        'pending_migrations' => $count,
-    ], $count === 0 ? 200 : 503);
+        'status'             => $outOfDate ? 'out_of_date' : 'ok',
+        'pending_migrations' => $migrationsAvailable ? $pendingCount : null,
+        'schema_drift'       => $driftAvailable ? $driftCount : null,
+    ], $outOfDate ? 503 : 200);
 })->name('health.schema');
 
 Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve'])

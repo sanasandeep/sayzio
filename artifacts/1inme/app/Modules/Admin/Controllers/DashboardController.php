@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\Common\Support\SchemaHealth;
 use App\Modules\Common\Support\WorkspaceColumnHealth;
 use App\Modules\User\Models\User;
@@ -33,6 +34,12 @@ class DashboardController extends Controller
         // as ran (the failure class SchemaHealth is blind to). Cached.
         $workspaceColumnHealth = WorkspaceColumnHealth::cached();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth'));
+        // Proactive edited-after-applied drift warning: critical tables/columns
+        // the code depends on that are missing despite their migration being
+        // logged as ran (a recorded migration later edited to add columns is
+        // never re-run). Cached.
+        $expectedSchemaHealth = ExpectedSchemaHealth::cached();
+
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth'));
     }
 }

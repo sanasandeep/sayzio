@@ -70,6 +70,41 @@
 </div>
 @endif
 
+@if(!empty($expectedSchemaHealth['available']) && !empty($expectedSchemaHealth['missing']))
+@php($missingExpected = $expectedSchemaHealth['missing'])
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-red-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-table-columns text-red-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-semibold text-red-300">Expected database columns are missing</h2>
+            <p class="text-sm text-white/70 mt-1">
+                {{ count($missingExpected) }} {{ \Illuminate\Support\Str::plural('table', count($missingExpected)) }}
+                {{ count($missingExpected) === 1 ? 'is' : 'are' }} missing a column the app depends on even though
+                their migration is recorded as applied — an <span class="text-red-200">edited-after-applied</span>
+                migration (a recorded migration was later changed to add columns, so Laravel never re-ran it and
+                <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">migrate:status</code> still shows 0 pending).
+                Pages that read these columns will return errors until it's fixed. Run
+                <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
+                against production.
+            </p>
+            <details class="mt-3">
+                <summary class="text-xs text-red-300/80 cursor-pointer select-none">Show affected tables</summary>
+                <ul class="mt-2 space-y-1 text-xs text-white/50 font-mono">
+                    @foreach(array_slice($missingExpected, 0, 25) as $m)
+                        <li>{{ $m['table'] }} &mdash; {{ !empty($m['table_missing']) ? 'entire table missing' : implode(', ', $m['columns']) }}</li>
+                    @endforeach
+                    @if(count($missingExpected) > 25)
+                        <li class="text-white/40">…and {{ count($missingExpected) - 25 }} more</li>
+                    @endif
+                </ul>
+            </details>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="glass rounded-2xl p-6 border border-white/10 ">
         <div class="flex items-center justify-between">

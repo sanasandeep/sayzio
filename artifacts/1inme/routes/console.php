@@ -307,6 +307,21 @@ Schedule::command('db:check-workspace-columns')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: probe the live DB for the curated manifest of critical tables/columns
+// that the code depends on (ExpectedSchemaHealth::EXPECTED) and that are MISSING
+// despite their migration being recorded as ran — the edited-after-applied
+// drift class that db:check-pending-migrations is blind to (a recorded migration
+// later changed to add columns is never re-run, yet `migrate:status` shows 0
+// pending). This took the public /creators page down via the 18+ columns on
+// `users`. When any column is missing, alerts ops admins (in-app + email) before
+// users hit SQLSTATE[42703] 500s. Detect-only; the fix is `migrate --force`
+// (guarded additive migrations). No-op when every column is present;
+// cooldown-guarded (with a newly-missing-set bypass) so it won't spam admins.
+Schedule::command('db:check-expected-columns')
+    ->hourlyAt(40)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Daily (off-peak): re-validate every active page & card template snapshot
 // with TemplateSnapshotValidator and alert ops admins (in-app + email) when a
 // saved template develops design issues — e.g. a later code change removes a

@@ -22,5 +22,17 @@ versions of the same file.
 Add a NEW additive migration guarded with `Schema::hasColumn` / `Schema::hasTable`
 so it fills gaps on drifted DBs and is a no-op on fresh DBs (where the original
 migration already created everything). This stays within the additive-only
-shared-DB policy and the destructive-command guard. To detect drift, smoke-test
-real pages — `migrate:status` will not reveal it.
+shared-DB policy and the destructive-command guard.
+
+**Detection (no longer just smoke-testing):** `ExpectedSchemaHealth` (mirrors
+`SchemaHealth`/`WorkspaceColumnHealth`/`TemplateDesignHealth`) probes a curated
+manifest `EXPECTED = [table => [columns]]` of critical hot-path columns directly
+against the live schema, independent of the `migrations` ledger. When you add a
+column to an EXISTING table that public/controller code reads, add it to that
+manifest. Surfaced the same three ways as the migration check: admin dashboard
+banner, `/up/schema` probe (now returns `schema_drift` alongside
+`pending_migrations`; either non-zero ⇒ 503), and the hourly
+`db:check-expected-columns` ops alert (in-app + email, cooldown + newly-missing
+bypass). Fix is still `migrate --force` (the guarded additive migrations), not a
+repair in the command. There are now FOUR parallel health systems following this
+exact pattern — keep them in lockstep when touching one.
