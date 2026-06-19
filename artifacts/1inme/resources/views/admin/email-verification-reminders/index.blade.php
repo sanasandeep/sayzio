@@ -25,6 +25,53 @@
         </div>
     @endunless
 
+    <div class="glass rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between gap-2">
+            <div>
+                <h2 class="text-base font-semibold text-white">Impact</h2>
+                <p class="text-xs text-white/50">How the reminders are landing, so you can judge whether the cadence is too aggressive or too quiet.</p>
+            </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div class="text-2xl font-bold text-white">{{ number_format($stats['unverifiedActive']) }}</div>
+                <div class="text-xs text-white/60 mt-1">Active users still unverified</div>
+                <div class="text-[11px] text-white/40 mt-0.5">The pool reminders can target.</div>
+            </div>
+
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div class="text-2xl font-bold text-white">{{ number_format($stats['lastRunCount']) }}</div>
+                <div class="text-xs text-white/60 mt-1">Reminded on the last run</div>
+                <div class="text-[11px] text-white/40 mt-0.5">
+                    @if($stats['lastRunAt'])
+                        {{ $stats['lastRunAt']->diffForHumans() }}
+                    @else
+                        No reminders sent yet.
+                    @endif
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div class="text-2xl font-bold text-white">{{ number_format($stats['remindedLast30Days']) }}</div>
+                <div class="text-xs text-white/60 mt-1">Users reminded in last 30 days</div>
+                <div class="text-[11px] text-white/40 mt-0.5">Distinct users, by their most recent reminder.</div>
+            </div>
+
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div class="text-2xl font-bold text-white">{{ number_format($stats['cappedUnverified']) }}</div>
+                <div class="text-xs text-white/60 mt-1">Hit the reminder cap (still unverified)</div>
+                <div class="text-[11px] text-white/40 mt-0.5">Won't be reminded again unless the cap is raised.</div>
+            </div>
+
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div class="text-2xl font-bold text-emerald-300">{{ number_format($stats['converted']) }}</div>
+                <div class="text-xs text-white/60 mt-1">Verified after a reminder</div>
+                <div class="text-[11px] text-white/40 mt-0.5">Received at least one reminder, then verified.</div>
+            </div>
+        </div>
+    </div>
+
     @if($errors->any())
         <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">
             {{ $errors->first() }}
