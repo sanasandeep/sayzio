@@ -304,7 +304,7 @@
                 Buy coins
             </a>
         </div>
-        @include('public.pricing._ai_credit_uses')
+        @include('public.pricing._ai_coin_uses')
     </div>
     @endif
 </div>

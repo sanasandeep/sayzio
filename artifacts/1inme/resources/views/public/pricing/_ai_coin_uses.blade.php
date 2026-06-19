@@ -15,7 +15,7 @@
       $heading  — override the section heading.
 --}}
 @php
-    $aiCreditFeatures = [
+    $aiCoinFeatures = [
         ['icon' => 'fa-brain',            'name' => 'AI Minds',          'desc' => 'Train knowledge bases — ingestion & embeddings'],
         ['icon' => 'fa-user-astronaut',   'name' => 'AI Personas',       'desc' => 'Public chat agents & persona generation'],
         ['icon' => 'fa-robot',            'name' => 'AI Companions',     'desc' => 'Always-on chatbots on your biolink'],
@@ -50,7 +50,7 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        @foreach($aiCreditFeatures as $f)
+        @foreach($aiCoinFeatures as $f)
             <div class="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
                 <div class="w-8 h-8 shrink-0 rounded-lg bg-violet-500/15 ring-1 ring-violet-400/30 flex items-center justify-center">
                     <i class="fas {{ $f['icon'] }} text-violet-300 text-sm"></i>
