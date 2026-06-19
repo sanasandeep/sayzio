@@ -23,8 +23,10 @@ use Illuminate\Support\Facades\Mail;
  * Laravel never re-runs a recorded migration, so those columns silently never
  * land while `migrate:status` still reports 0 pending. That exact failure took
  * the public /creators page down (the 18+ columns on `users`). This command is
- * the automated safety net for that drift class across the curated manifest in
- * {@see ExpectedSchemaHealth::EXPECTED}.
+ * the automated safety net for that drift class across the full expected schema,
+ * which {@see ExpectedSchemaHealth} now derives automatically by replaying the
+ * migration files (see {@see \App\Modules\Common\Support\SchemaManifest}) rather
+ * than from a hand-maintained list — so drift on ANY column is caught.
  *
  * Mirrors {@see CheckWorkspaceColumns}. Dedup / cooldown state lives in
  * `app_settings` under the `expected_schema_health.*` keys:

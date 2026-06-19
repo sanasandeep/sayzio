@@ -4,6 +4,7 @@ namespace App\Modules\Common\Support;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -40,25 +41,53 @@ class ExpectedSchemaHealth
     private const CACHE_TTL = 120; // seconds
 
     /**
-     * The single source of truth for the critical tables/columns that public,
-     * hot-path code references and that have a history of (or a high risk of)
-     * being added by an edited-after-applied migration.
+     * Tables that exist in the migration replay but are intentionally NOT diffed
+     * against the live DB, to control false positives. These are framework /
+     * infrastructure tables whose presence depends on runtime configuration
+     * (queue/cache/session driver) rather than on the application schema, so a
+     * legitimately-absent one must not raise a drift alert.
      *
-     * Keep entries here when a migration adds a column to an EXISTING table that
-     * page/controller code then reads — those are the ones that silently drift.
-     * A whole-table entry (empty column list) flags a table that must exist at
-     * all; missing-table detection for un-applied *files* is still SchemaHealth's
-     * job, this only catches a table the code hard-depends on.
+     * @var array<int,string>
+     */
+    public const IGNORED_TABLES = [
+        'cache',
+        'cache_locks',
+        'jobs',
+        'job_batches',
+        'failed_jobs',
+        'sessions',
+        'password_reset_tokens',
+        'password_resets',
+        'migrations',
+    ];
+
+    /**
+     * Specific columns that the migration replay records but that may legitimately
+     * be absent from the live DB (e.g. columns created/altered only through raw
+     * `DB::statement` SQL that the Blueprint recorder cannot see). Keyed by table.
      *
-     * Each column carries the metadata needed to re-create it in place during a
-     * one-click {@see self::repair()} (so ops can resolve drift without shell
-     * access), mirroring the column definition from the migration that owns it:
+     * @var array<string,array<int,string>>
+     */
+    public const IGNORED_COLUMNS = [];
+
+    /**
+     * Repair metadata for high-value columns that {@see self::repair()} can
+     * re-create in place, so ops can resolve drift without shell access.
+     *
+     * NOTE: this is NO LONGER the detection source — {@see self::compute()} now
+     * derives the full expected schema automatically by replaying the migration
+     * files (see {@see SchemaManifest}), so drift on ANY column is caught, not
+     * just a curated few. This map only supplies the column definition that
+     * repair() needs to ALTER a missing column back into place, mirroring the
+     * column definition from the migration that owns it:
      *   - type     : Blueprint method (boolean|timestamp|string|text|unsignedBigInteger)
      *   - nullable : whether the column is nullable (default true)
      *   - default  : default value applied to existing + new rows (omit for none)
      *   - length   : optional length for string columns
-     * Keep these in lockstep with the owning migration so a repaired column is
-     * byte-for-byte what a fresh migrate would have produced.
+     * Columns surfaced by the manifest that are absent here are still detected
+     * and reported; repair() falls back to a nullable string when re-creating one
+     * it has no spec for. Keep these in lockstep with the owning migration so a
+     * repaired column is byte-for-byte what a fresh migrate would have produced.
      *
      * @var array<string,array<string,array{type:string,nullable?:bool,default?:mixed,length?:int}>>
      */
@@ -90,8 +119,8 @@ class ExpectedSchemaHealth
     ];
 
     /**
-     * Column names expected on a table (the keys of its {@see self::EXPECTED}
-     * spec map). Drives the detection probe in {@see self::compute()}.
+     * Column names that have repair metadata for the given table (the keys of its
+     * {@see self::EXPECTED} spec map). Used by {@see self::repair()}.
      *
      * @return array<int,string>
      */
@@ -103,30 +132,58 @@ class ExpectedSchemaHealth
     /**
      * Freshly probe the live DB for missing expected tables/columns.
      *
+     * The expected set is no longer hand-maintained: it is derived from the net
+     * effect of every migration file via {@see SchemaManifest}, so drift on ANY
+     * column added by an edited-after-applied migration is caught — not just a
+     * curated few. Intentionally-dropped columns are already absent from the
+     * manifest (the replay folds in `dropColumn`/`dropMorphs`/etc.), and the
+     * ignore lists above suppress the residual false-positive risk.
+     *
      * @return array{available:bool, scanned:int, missing:array<int,array{table:string,table_missing:bool,columns:array<int,string>}>, error?:string}
      */
     public static function compute(): array
     {
         try {
+            $manifest = SchemaManifest::cached();
+
+            // If the manifest could not be derived (e.g. migration files
+            // unreadable), report unknown so callers degrade gracefully rather
+            // than treating an empty expected set as "all healthy".
+            if (! ($manifest['available'] ?? false)) {
+                return [
+                    'available' => false,
+                    'scanned'   => 0,
+                    'missing'   => [],
+                    'error'     => $manifest['error'] ?? 'schema manifest unavailable',
+                ];
+            }
+
+            $expected = self::filterIgnored($manifest['tables'] ?? []);
+
+            // Snapshot the live schema in as few round-trips as possible — the
+            // shared DB is cross-region, so one bulk query beats ~250 per-table
+            // probes by two orders of magnitude.
+            $live = self::liveSchema();
+
             $scanned = 0;
             $missing = [];
 
-            foreach (self::EXPECTED as $table => $columns) {
+            foreach ($expected as $table => $columns) {
                 $scanned++;
-                $columnNames = self::columnsFor($table);
 
-                if (! Schema::hasTable($table)) {
+                if (! isset($live[$table])) {
                     $missing[] = [
                         'table'         => $table,
                         'table_missing' => true,
-                        'columns'       => $columnNames,
+                        'columns'       => array_values($columns),
                     ];
                     continue;
                 }
 
+                $liveCols    = $live[$table];
                 $missingCols = [];
-                foreach ($columnNames as $column) {
-                    if (! Schema::hasColumn($table, $column)) {
+                foreach ($columns as $column) {
+                    if (! isset($liveCols[$column])) {
                         $missingCols[] = $column;
                     }
                 }
@@ -153,6 +210,80 @@ class ExpectedSchemaHealth
                 'error'     => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Snapshot the live database schema as table => set<column> in as few
+     * round-trips as possible. On Postgres this is a single information_schema
+     * query (the shared DB is cross-region, so a per-table fallback of ~250
+     * queries would be unacceptably slow). Other drivers fall back to the
+     * portable per-table builder API.
+     *
+     * @return array<string,array<string,true>>
+     */
+    private static function liveSchema(): array
+    {
+        $connection = DB::connection();
+
+        if ($connection->getDriverName() === 'pgsql') {
+            $rows = $connection->select(
+                'select table_name, column_name from information_schema.columns '
+                . 'where table_schema = any (current_schemas(false))'
+            );
+
+            $map = [];
+            foreach ($rows as $row) {
+                $map[$row->table_name][$row->column_name] = true;
+            }
+
+            return $map;
+        }
+
+        // Portable fallback (e.g. sqlite test DBs): one listing query + one per
+        // existing table. Acceptable because those databases are local/fast.
+        $map = [];
+        foreach (Schema::getTableListing() as $table) {
+            $table = self::unqualify($table);
+            $map[$table] = array_fill_keys(Schema::getColumnListing($table), true);
+        }
+
+        return $map;
+    }
+
+    /** Strip a leading "schema." qualifier some drivers prepend to table names. */
+    private static function unqualify(string $table): string
+    {
+        $pos = strrpos($table, '.');
+
+        return $pos === false ? $table : substr($table, $pos + 1);
+    }
+
+    /**
+     * Apply the ignore lists to the derived manifest: drop whole ignored tables
+     * and strip ignored columns. Tables with no columns left to check are dropped.
+     *
+     * @param array<string,array<int,string>> $tables
+     * @return array<string,array<int,string>>
+     */
+    private static function filterIgnored(array $tables): array
+    {
+        $ignoredTables  = array_flip(self::IGNORED_TABLES);
+        $ignoredColumns = self::IGNORED_COLUMNS;
+
+        $out = [];
+        foreach ($tables as $table => $columns) {
+            if (isset($ignoredTables[$table])) {
+                continue;
+            }
+
+            if (! empty($ignoredColumns[$table])) {
+                $columns = array_values(array_diff($columns, $ignoredColumns[$table]));
+            }
+
+            $out[$table] = $columns;
+        }
+
+        return $out;
     }
 
     /**

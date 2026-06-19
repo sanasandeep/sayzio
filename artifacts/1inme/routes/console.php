@@ -307,9 +307,10 @@ Schedule::command('db:check-workspace-columns')
     ->withoutOverlapping()
     ->onOneServer();
 
-// Hourly: probe the live DB for the curated manifest of critical tables/columns
-// that the code depends on (ExpectedSchemaHealth::EXPECTED) and that are MISSING
-// despite their migration being recorded as ran — the edited-after-applied
+// Hourly: probe the live DB for tables/columns the code depends on that are
+// MISSING despite their migration being recorded as ran — the expected schema is
+// now derived automatically by replaying the migration files (SchemaManifest),
+// so any drifted column is caught, not just a hand-curated few — the edited-after-applied
 // drift class that db:check-pending-migrations is blind to (a recorded migration
 // later changed to add columns is never re-run, yet `migrate:status` shows 0
 // pending). This took the public /creators page down via the 18+ columns on

@@ -52,3 +52,4 @@
 - [Mobile admin dashboard switch](mobile-admin-switch.md) — mobile admin↔user "switch" is just navigation, no re-login; Sanctum token's web User is bridged to a back-office Admin by email (User::adminAccount), which is the operator's authority for all /api/v1/admin/* gating.
 - [Edited-after-applied migration drift](migration-edit-after-applied-drift.md) — shared RDS can be MISSING columns despite migrate:status=0 pending; never edit an applied migration, add a hasColumn-guarded additive one.
 - [Catch-all alias route over-match](alias-route-reserved-prefix-overmatch.md) — bare single-letter reserved tokens (u/p/c/m/f) in the /{alias} negative-lookahead 405'd ~1/12 short links; anchor tokens with (?:/|$). 405≠404 means wrong-method match.
+- [Schema manifest by migration replay](schema-manifest-replay.md) — expected DB schema auto-derived by replaying migration up() under pretend()+Schema-swap; diff via one bulk information_schema query, never per-table.
