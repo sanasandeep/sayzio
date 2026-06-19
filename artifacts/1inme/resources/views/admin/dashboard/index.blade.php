@@ -85,10 +85,29 @@
                 their migration is recorded as applied — an <span class="text-red-200">edited-after-applied</span>
                 migration (a recorded migration was later changed to add columns, so Laravel never re-ran it and
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">migrate:status</code> still shows 0 pending).
-                Pages that read these columns will return errors until it's fixed. Run
-                <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
-                against production.
+                Pages that read these columns will return errors until it's fixed.
+                @php($columnDriftOnly = collect($missingExpected)->every(fn ($m) => empty($m['table_missing'])))
+                @if($columnDriftOnly)
+                    Click <span class="text-red-200 font-semibold">Fix now</span> to add and backfill the missing
+                    columns in place, or run
+                    <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
+                    against production.
+                @else
+                    Some entries are whole missing tables that need a full migration — run
+                    <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
+                    against production. Fix now will repair any missing columns it can.
+                @endif
             </p>
+            <div class="mt-3 flex items-center gap-3">
+                <form method="POST" action="{{ route('admin.schema.repair-expected-columns') }}">
+                    @csrf
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/40 transition"
+                        onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Repairing…'; this.form.submit();">
+                        <i class="fas fa-wrench"></i> Fix now
+                    </button>
+                </form>
+            </div>
             <details class="mt-3">
                 <summary class="text-xs text-red-300/80 cursor-pointer select-none">Show affected tables</summary>
                 <ul class="mt-2 space-y-1 text-xs text-white/50 font-mono">

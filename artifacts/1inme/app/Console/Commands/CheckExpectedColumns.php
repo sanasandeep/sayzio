@@ -37,22 +37,41 @@ use Illuminate\Support\Facades\Mail;
  * the set of missing tables/columns bypasses the cooldown so a newly-discovered
  * gap is surfaced promptly. --force bypasses the cooldown entirely.
  *
- * Detect-only: the fix is to run the guarded, idempotent additive migrations via
- * `php artisan migrate --force` (the same backfill pattern used to repair the
- * adult-flag drift), so this command does not mutate the schema itself.
+ * --repair adds and backfills any missing columns in place (guarded, idempotent
+ * — see {@see ExpectedSchemaHealth::repair()}) so ops can close the drift without
+ * shell access to `php artisan migrate --force`. Whole-missing tables still need a
+ * full migrate; --repair reports those rather than guessing a schema.
  */
 class CheckExpectedColumns extends Command
 {
     protected $signature = 'db:check-expected-columns
+                            {--repair : Add and backfill any missing columns in place before re-checking}
                             {--force : Bypass the cooldown window and re-send even if recently alerted}';
 
-    protected $description = 'Detect missing expected tables/columns (edited-after-applied migration drift) and alert admins.';
+    protected $description = 'Detect (and optionally repair) missing expected tables/columns (edited-after-applied migration drift) and alert admins.';
 
     /** Don't re-alert for the same unchanged missing set more often than this. */
     private const COOLDOWN_HOURS = 6;
 
     public function handle(): int
     {
+        if ($this->option('repair')) {
+            $result      = ExpectedSchemaHealth::repair();
+            $addedTables = array_keys($result['added']);
+            if (! empty($addedTables)) {
+                $this->info('Repaired columns on: ' . implode(', ', array_map(
+                    fn ($t) => $t . ' (' . implode(', ', $result['added'][$t]) . ')',
+                    $addedTables
+                )));
+            } else {
+                $this->info('Nothing to repair — all expected columns already present (or only whole tables are missing).');
+            }
+            if (! empty($result['unrepairable'])) {
+                $this->warn('Could not auto-repair (whole table missing — run `php artisan migrate --force`): '
+                    . implode(', ', $result['unrepairable']));
+            }
+        }
+
         $report = ExpectedSchemaHealth::compute();
 
         // Refresh the cached report so the dashboard banner / readiness endpoint

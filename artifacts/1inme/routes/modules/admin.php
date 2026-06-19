@@ -48,6 +48,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+        // One-click auto-repair for edited-after-applied column drift surfaced by
+        // the dashboard banner (adds + backfills the missing columns in place).
+        Route::post('schema/repair-expected-columns', [DashboardController::class, 'repairExpectedColumns'])
+            ->middleware(CheckPermission::class . ':settings.manage')
+            ->name('schema.repair-expected-columns');
+
         // Seamless switch from the back-office to the matching user dashboard.
         Route::post('switch-to-user', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toUser'])->name('switch-to-user');
 

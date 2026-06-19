@@ -42,4 +42,45 @@ class DashboardController extends Controller
 
         return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth'));
     }
+
+    /**
+     * One-click auto-repair for edited-after-applied column drift surfaced by the
+     * dashboard banner. Adds + backfills the missing expected columns in place
+     * (guarded/idempotent — {@see ExpectedSchemaHealth::repair()}) so ops can
+     * resolve drift without shell access, then re-checks and reports the outcome.
+     */
+    public function repairExpectedColumns()
+    {
+        $result = ExpectedSchemaHealth::repair();
+
+        // Re-check against the live schema so the banner reflects reality on the
+        // redirect rather than a stale cached report.
+        ExpectedSchemaHealth::flush();
+        $stillMissing = ExpectedSchemaHealth::missingCount(true);
+
+        $addedTables = array_keys($result['added']);
+        $addedCount  = array_sum(array_map('count', $result['added']));
+
+        if ($addedCount > 0) {
+            $detail = implode('; ', array_map(
+                fn ($t) => $t . ' (' . implode(', ', $result['added'][$t]) . ')',
+                $addedTables
+            ));
+            $message = "Repaired {$addedCount} column(s): {$detail}.";
+            if ($stillMissing > 0) {
+                $message .= " {$stillMissing} table(s) still need attention"
+                    . (! empty($result['unrepairable'])
+                        ? ' (whole table missing — run `php artisan migrate --force`): ' . implode(', ', $result['unrepairable'])
+                        : '.');
+            }
+            $flash = ['success' => $message];
+        } elseif (! empty($result['unrepairable'])) {
+            $flash = ['error' => 'Could not auto-repair (whole table missing — run `php artisan migrate --force`): '
+                . implode(', ', $result['unrepairable']) . '.'];
+        } else {
+            $flash = ['success' => 'Nothing to repair — all expected columns are already present.'];
+        }
+
+        return redirect()->route('admin.dashboard')->with($flash);
+    }
 }
