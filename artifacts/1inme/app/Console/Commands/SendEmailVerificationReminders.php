@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Modules\Common\Services\NotificationService;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\Common\Support\EmailVerificationReminderSettings;
+use App\Modules\User\Models\EmailVerificationReminderSend;
 use App\Modules\User\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
@@ -108,10 +109,24 @@ class SendEmailVerificationReminders extends Command
                 }
 
                 if ($this->sendReminder($user)) {
+                    $sentAt = now();
                     $user->forceFill([
                         'email_verification_reminders_sent' => (int) ($user->email_verification_reminders_sent ?? 0) + 1,
-                        'email_verification_reminder_sent_at' => now(),
+                        'email_verification_reminder_sent_at' => $sentAt,
                     ])->save();
+
+                    // Log this individual send so the admin trend can report
+                    // exact per-week counts instead of the most-recent-timestamp
+                    // proxy. Best-effort: never let a logging hiccup undo a send.
+                    try {
+                        EmailVerificationReminderSend::create([
+                            'user_id' => $user->id,
+                            'sent_at' => $sentAt,
+                        ]);
+                    } catch (\Throwable $e) {
+                        \Log::warning('Failed to log email verification reminder send for user ' . $user->id . ': ' . $e->getMessage());
+                    }
+
                     $sent++;
                 } else {
                     $skipped++;

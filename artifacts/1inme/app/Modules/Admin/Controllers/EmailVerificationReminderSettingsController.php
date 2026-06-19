@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\Common\Support\EmailVerificationReminderSettings;
+use App\Modules\User\Models\EmailVerificationReminderSend;
 use App\Modules\User\Models\User;
 use App\Services\Integrations\MailSettings;
 use Illuminate\Http\Request;
@@ -44,23 +45,38 @@ class EmailVerificationReminderSettingsController extends Controller
 
     /**
      * Build a compact weekly trend of reminders and conversions over the last
-     * several weeks, derived from existing timestamps (no per-send log exists).
+     * several weeks.
      *
-     * Because only each user's *most recent* reminder timestamp is stored,
-     * "reminded" is the count of users whose latest reminder fell in that week
-     * (a close proxy for reminders sent), and "converted" is users who had at
-     * least one reminder and verified during that week.
+     * "reminded" comes from the per-send log (`email_verification_reminder_sends`)
+     * — one row per reminder actually sent — so it's an exact count of reminders
+     * dispatched that week, even for users reminded across multiple weeks. When
+     * the log is empty (e.g. before the first run after this feature shipped), it
+     * gracefully falls back to the legacy proxy derived from each user's *most
+     * recent* reminder timestamp.
+     *
+     * "converted" is users who had at least one reminder and verified during
+     * that week.
      */
     private function trend(int $weeks = 8): array
     {
         $start = Carbon::now()->startOfWeek()->subWeeks($weeks - 1);
 
         $reminded = $this->weeklyCounts(
-            User::query()
-                ->whereNotNull('email_verification_reminder_sent_at')
-                ->where('email_verification_reminder_sent_at', '>=', $start),
-            'email_verification_reminder_sent_at'
+            EmailVerificationReminderSend::query()
+                ->where('sent_at', '>=', $start),
+            'sent_at'
         );
+
+        // Graceful fallback for installs with no per-send log yet: approximate
+        // from each user's most-recent reminder timestamp (the old proxy).
+        if (empty($reminded)) {
+            $reminded = $this->weeklyCounts(
+                User::query()
+                    ->whereNotNull('email_verification_reminder_sent_at')
+                    ->where('email_verification_reminder_sent_at', '>=', $start),
+                'email_verification_reminder_sent_at'
+            );
+        }
 
         $converted = $this->weeklyCounts(
             User::query()
