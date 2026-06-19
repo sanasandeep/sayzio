@@ -19,7 +19,7 @@ export default function Slide008Salesroi() {
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Aggregate self-reported numbers from early-access customers, 2025 cohort.</p>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>8 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>8 / 189</span></div>
     </div>
   );
 }

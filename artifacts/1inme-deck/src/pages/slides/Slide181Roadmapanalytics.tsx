@@ -29,7 +29,7 @@ export default function Slide181Roadmapanalytics() {
           </div>
         </div>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>181 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>182 / 189</span></div>
     </div>
   );
 }

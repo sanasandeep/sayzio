@@ -19,7 +19,7 @@ export default function Slide162Investorask() {
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Update with the live round structure.</p>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>162 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>163 / 189</span></div>
     </div>
   );
 }

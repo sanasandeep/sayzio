@@ -30,7 +30,7 @@ export default function Slide079Analyticsinsightsmockup() {
           </div>
         </div>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>79 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>80 / 189</span></div>
     </div>
   );
 }

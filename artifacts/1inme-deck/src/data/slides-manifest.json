@@ -225,8 +225,17 @@
     "section": "product"
   },
   {
-    "id": "77c1e3f6-3ed1-4a6d-8dad-efc482225429",
+    "id": "953a0166-84d6-41dd-8ed4-567da80d8a87",
     "position": 26,
+    "filepath": "src/pages/slides/SlideWhatYouCanCreate.tsx",
+    "title": "What you can create.",
+    "description": "All 12 link types grouped into 4 categories — Everyday, Pages & mini-sites, Business & monetization, and AI-powered.",
+    "speakerNotes": "Show the full menu of what a 1INME link can be. Twelve types in four groups — everyday share links, full mini-site pages, monetization surfaces, and AI-driven pages. Point the buyer to the group that matches their goal, then jump into that module.",
+    "section": "product"
+  },
+  {
+    "id": "77c1e3f6-3ed1-4a6d-8dad-efc482225429",
+    "position": 27,
     "filepath": "src/pages/slides/Slide026Productwebtour.tsx",
     "title": "The web app.",
     "description": "The full-power workspace in your browser.",
@@ -235,7 +244,7 @@
   },
   {
     "id": "1b8de40d-a34b-4f79-9a2b-1c09af675ee7",
-    "position": 27,
+    "position": 28,
     "filepath": "src/pages/slides/Slide027Productmobiletour.tsx",
     "title": "The mobile app.",
     "description": "A native companion for iOS and Android.",
@@ -244,7 +253,7 @@
   },
   {
     "id": "21071fc0-5583-4d0d-b69d-61ce95d5d1b9",
-    "position": 28,
+    "position": 29,
     "filepath": "src/pages/slides/Slide028Productapisdk.tsx",
     "title": "API & SDK.",
     "description": "Every capability is programmable.",
@@ -253,7 +262,7 @@
   },
   {
     "id": "fee485b4-5fd9-40be-943a-5394641025d5",
-    "position": 29,
+    "position": 30,
     "filepath": "src/pages/slides/Slide029Productuserjourney.tsx",
     "title": "End-to-end user journey.",
     "description": "From first signup to first revenue, in one place.",
@@ -262,7 +271,7 @@
   },
   {
     "id": "4795474a-5aad-4ff9-a5c6-76967e682e60",
-    "position": 30,
+    "position": 31,
     "filepath": "src/pages/slides/Slide030Productcrossmodule.tsx",
     "title": "Cross-module workflows.",
     "description": "What happens when modules know about each other.",
@@ -271,7 +280,7 @@
   },
   {
     "id": "4bb2469c-7e8b-4653-9b33-1396a346f3ea",
-    "position": 31,
+    "position": 32,
     "filepath": "src/pages/slides/Slide031Productidentityspine.tsx",
     "title": "Identity is the spine.",
     "description": "Your handle is the entry point. Everything else inherits brand and permissions.",
@@ -280,7 +289,7 @@
   },
   {
     "id": "5023ef7c-6771-4800-90b7-29243b732a4b",
-    "position": 32,
+    "position": 33,
     "filepath": "src/pages/slides/Slide032Productsecuritytrust.tsx",
     "title": "Security & trust at the platform layer.",
     "description": "Security & trust at the platform layer.",
@@ -289,7 +298,7 @@
   },
   {
     "id": "52935e42-f9c6-4c0e-8570-0a67d1aade29",
-    "position": 33,
+    "position": 34,
     "filepath": "src/pages/slides/Slide033Productadminworkspace.tsx",
     "title": "Admin & workspace overview.",
     "description": "Built for teams of every size.",
@@ -298,7 +307,7 @@
   },
   {
     "id": "8dc3f6f2-3101-42ea-8c50-57997c5cde3f",
-    "position": 34,
+    "position": 35,
     "filepath": "src/pages/slides/Slide034Productintegrationsmap.tsx",
     "title": "Integrations map.",
     "description": "1INME plugs into the tools you already use.",
@@ -307,7 +316,7 @@
   },
   {
     "id": "87ef29a5-844c-4478-ac5f-07ca6d9c646e",
-    "position": 35,
+    "position": 36,
     "filepath": "src/pages/slides/Slide035Productonboardingflow.tsx",
     "title": "The onboarding flow.",
     "description": "Time-to-value measured in hours, not weeks.",
@@ -316,7 +325,7 @@
   },
   {
     "id": "826bfe92-acfa-4218-b49f-69f82cda67a2",
-    "position": 36,
+    "position": 37,
     "filepath": "src/pages/slides/Slide036Productbiomodule.tsx",
     "title": "Bio link pages.",
     "description": "The doorway to everything else.",
@@ -325,7 +334,7 @@
   },
   {
     "id": "c942102c-1325-4886-b7df-e2deac5f3076",
-    "position": 37,
+    "position": 38,
     "filepath": "src/pages/slides/Slide037Productlinksmodule.tsx",
     "title": "Smart short links.",
     "description": "Branded URLs with rules, pixels, and analytics.",
@@ -334,7 +343,7 @@
   },
   {
     "id": "ec381b19-39be-490f-a78e-23291e066c95",
-    "position": 38,
+    "position": 39,
     "filepath": "src/pages/slides/Slide038Productaimodule.tsx",
     "title": "AI suite.",
     "description": "Companions, AskCoach, Voice, and Card Scanner.",
@@ -343,7 +352,7 @@
   },
   {
     "id": "f44a460c-69e1-4fea-aa1d-37d85b1a2916",
-    "position": 39,
+    "position": 40,
     "filepath": "src/pages/slides/Slide039Productproductivitymodule.tsx",
     "title": "Productivity & CRM.",
     "description": "Vault, Tasks, Forms, Calendar, CRM, Resume.",
@@ -352,7 +361,7 @@
   },
   {
     "id": "ff421f1f-99c3-4e9d-8853-adf0677e4eb3",
-    "position": 40,
+    "position": 41,
     "filepath": "src/pages/slides/Slide040Productsocialmodule.tsx",
     "title": "Social & community.",
     "description": "Native creator feed plus cross-posting.",
@@ -361,7 +370,7 @@
   },
   {
     "id": "14672d00-6fc9-40e5-8661-4d7a3de4ba8d",
-    "position": 41,
+    "position": 42,
     "filepath": "src/pages/slides/Slide041Productmobilemodule.tsx",
     "title": "Mobile-first tools.",
     "description": "NFC cards, smart dialer, on-the-go capture.",
@@ -370,7 +379,7 @@
   },
   {
     "id": "a2ff1867-331f-4962-aa02-a1fe94429b70",
-    "position": 42,
+    "position": 43,
     "filepath": "src/pages/slides/Slide042Productanalyticsmodule.tsx",
     "title": "Analytics & insights.",
     "description": "From impression to outcome, across every module.",
@@ -379,7 +388,7 @@
   },
   {
     "id": "78d29186-988e-433b-b44d-0bff96b2189b",
-    "position": 43,
+    "position": 44,
     "filepath": "src/pages/slides/Slide043Productplatformpromise.tsx",
     "title": "The platform promise.",
     "description": "The platform promise.",
@@ -388,7 +397,7 @@
   },
   {
     "id": "c1fef841-15c0-41d8-b63f-66a063428a4d",
-    "position": 44,
+    "position": 45,
     "filepath": "src/pages/slides/Slide044Productcta.tsx",
     "title": "Product CTA",
     "description": "Product section call to action.",
@@ -397,7 +406,7 @@
   },
   {
     "id": "f6433e99-d18e-4ae8-8f21-428a169a5abe",
-    "position": 45,
+    "position": 46,
     "filepath": "src/pages/slides/Slide045Featuresdivider.tsx",
     "title": "Appendix · Feature deep-dives.",
     "description": "Nine module mini-decks, each opened by its own appendix divider.",
@@ -406,7 +415,7 @@
   },
   {
     "id": "1a477fc9-23af-4687-af80-114a63f6b083",
-    "position": 46,
+    "position": 47,
     "filepath": "src/pages/slides/Slide046Biolinkssmartlinksdivider.tsx",
     "title": "Feature deep-dive · Bio Links & Smart Links.",
     "description": "Bio Pages, Short Links, QR Studio, Splash Screens.",
@@ -415,7 +424,7 @@
   },
   {
     "id": "f688c18d-3d0b-4f50-be3b-91a9f2552050",
-    "position": 47,
+    "position": 48,
     "filepath": "src/pages/slides/Slide047Biolinkssmartlinksoverview.tsx",
     "title": "Bio Links & Smart Links — overview.",
     "description": "Bio Pages, Short Links, QR Studio, Splash Screens.",
@@ -424,7 +433,7 @@
   },
   {
     "id": "2a31329b-dc9c-4b96-a09f-5fe9b8009def",
-    "position": 48,
+    "position": 49,
     "filepath": "src/pages/slides/Slide048Biolinkssmartlinkscapabiliti.tsx",
     "title": "Bio Links & Smart Links — key capabilities.",
     "description": "Bio Links & Smart Links — key capabilities.",
@@ -433,7 +442,7 @@
   },
   {
     "id": "b927edcd-5a73-498d-af15-3f3f3b4d434d",
-    "position": 49,
+    "position": 50,
     "filepath": "src/pages/slides/Slide049Biolinkssmartlinksmockup.tsx",
     "title": "Bio Links & Smart Links — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -442,7 +451,7 @@
   },
   {
     "id": "6339ce95-d58b-4553-b7ab-c2e0ac3ceaf0",
-    "position": 50,
+    "position": 51,
     "filepath": "src/pages/slides/Slide050Biolinkssmartlinksusecase.tsx",
     "title": "Use case · Album launch",
     "description": "A concrete walk-through using only this category's modules.",
@@ -451,7 +460,7 @@
   },
   {
     "id": "d94d1ea5-dfc2-4073-a239-08a93e4af828",
-    "position": 51,
+    "position": 52,
     "filepath": "src/pages/slides/Slide051Aisuitedivider.tsx",
     "title": "Feature deep-dive · AI Suite.",
     "description": "Companions, AskCoach, Voice, Card Scanner.",
@@ -460,7 +469,7 @@
   },
   {
     "id": "f08652f9-12d2-47aa-bb2e-da1fa814e09c",
-    "position": 52,
+    "position": 53,
     "filepath": "src/pages/slides/Slide052Aisuiteoverview.tsx",
     "title": "AI Suite — overview.",
     "description": "Companions, AskCoach, Voice, Card Scanner.",
@@ -469,7 +478,7 @@
   },
   {
     "id": "f9eaa6c1-739f-45d1-96e5-42b98f4070ec",
-    "position": 53,
+    "position": 54,
     "filepath": "src/pages/slides/Slide053Aisuitecapabilities.tsx",
     "title": "AI Suite — key capabilities.",
     "description": "AI Suite — key capabilities.",
@@ -478,7 +487,7 @@
   },
   {
     "id": "1e2748fa-365a-4e9a-bfeb-dc6ee16fe046",
-    "position": 54,
+    "position": 55,
     "filepath": "src/pages/slides/Slide054Aisuitemockup.tsx",
     "title": "AI Suite — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -487,7 +496,7 @@
   },
   {
     "id": "acd8d9d6-15ef-4173-97dd-5c70879e7084",
-    "position": 55,
+    "position": 56,
     "filepath": "src/pages/slides/Slide055Aisuiteusecase.tsx",
     "title": "Use case · Solo consultant",
     "description": "A concrete walk-through using only this category's modules.",
@@ -496,7 +505,7 @@
   },
   {
     "id": "c14e4152-317a-46ea-8550-afa1d9a09108",
-    "position": 56,
+    "position": 57,
     "filepath": "src/pages/slides/Slide056Productivitycrmdivider.tsx",
     "title": "Feature deep-dive · Productivity & CRM.",
     "description": "Vault, Tasks, Forms, Resume, Calendar, CRM.",
@@ -505,7 +514,7 @@
   },
   {
     "id": "2925f88e-8334-4501-9b16-e7b7ffd33695",
-    "position": 57,
+    "position": 58,
     "filepath": "src/pages/slides/Slide057Productivitycrmoverview.tsx",
     "title": "Productivity & CRM — overview.",
     "description": "Vault, Tasks, Forms, Resume, Calendar, CRM.",
@@ -514,7 +523,7 @@
   },
   {
     "id": "3f99b312-b1da-47a4-b8ff-0f53613edb32",
-    "position": 58,
+    "position": 59,
     "filepath": "src/pages/slides/Slide058Productivitycrmcapabilities.tsx",
     "title": "Productivity & CRM — key capabilities.",
     "description": "Productivity & CRM — key capabilities.",
@@ -523,7 +532,7 @@
   },
   {
     "id": "b04c9f60-e48d-4449-a9d6-606fe38ba54a",
-    "position": 59,
+    "position": 60,
     "filepath": "src/pages/slides/Slide059Productivitycrmmockup.tsx",
     "title": "Productivity & CRM — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -532,7 +541,7 @@
   },
   {
     "id": "f405db7f-d746-4bba-819d-d5489c7057e8",
-    "position": 60,
+    "position": 61,
     "filepath": "src/pages/slides/Slide060Productivitycrmusecase.tsx",
     "title": "Use case · Boutique agency",
     "description": "A concrete walk-through using only this category's modules.",
@@ -541,7 +550,7 @@
   },
   {
     "id": "19f2aa8d-9945-4fe5-8a19-65dbeb28e7c5",
-    "position": 61,
+    "position": 62,
     "filepath": "src/pages/slides/Slide061Socialcommunitydivider.tsx",
     "title": "Feature deep-dive · Social & Community.",
     "description": "Creator Feed, Cross-Posting, Analytics.",
@@ -550,7 +559,7 @@
   },
   {
     "id": "45aa91a1-7023-4249-9766-af0de6009f0c",
-    "position": 62,
+    "position": 63,
     "filepath": "src/pages/slides/Slide062Socialcommunityoverview.tsx",
     "title": "Social & Community — overview.",
     "description": "Creator Feed, Cross-Posting, Analytics.",
@@ -559,7 +568,7 @@
   },
   {
     "id": "8cfaad11-bec8-4058-8822-4240c98fd0ab",
-    "position": 63,
+    "position": 64,
     "filepath": "src/pages/slides/Slide063Socialcommunitycapabilities.tsx",
     "title": "Social & Community — key capabilities.",
     "description": "Social & Community — key capabilities.",
@@ -568,7 +577,7 @@
   },
   {
     "id": "fc0de2e5-4037-43ca-9fc3-88235978f6ce",
-    "position": 64,
+    "position": 65,
     "filepath": "src/pages/slides/Slide064Socialcommunitymockup.tsx",
     "title": "Social & Community — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -577,7 +586,7 @@
   },
   {
     "id": "2c2d21a5-7f50-4696-bb5a-2b012110e492",
-    "position": 65,
+    "position": 66,
     "filepath": "src/pages/slides/Slide065Socialcommunityusecase.tsx",
     "title": "Use case · Podcaster",
     "description": "A concrete walk-through using only this category's modules.",
@@ -586,7 +595,7 @@
   },
   {
     "id": "e8679d36-ab2a-4e8f-b0ab-7966dcf0f759",
-    "position": 66,
+    "position": 67,
     "filepath": "src/pages/slides/Slide066Mobilefirsttoolsdivider.tsx",
     "title": "Feature deep-dive · Mobile-First Tools.",
     "description": "NFC Cards, Smart Dialer.",
@@ -595,7 +604,7 @@
   },
   {
     "id": "35e50a0b-9f48-449e-80ff-71e97d003cbb",
-    "position": 67,
+    "position": 68,
     "filepath": "src/pages/slides/Slide067Mobilefirsttoolsoverview.tsx",
     "title": "Mobile-First Tools — overview.",
     "description": "NFC Cards, Smart Dialer.",
@@ -604,7 +613,7 @@
   },
   {
     "id": "033a0f5a-a2ba-4cd6-8fb0-7b29d1aacbec",
-    "position": 68,
+    "position": 69,
     "filepath": "src/pages/slides/Slide068Mobilefirsttoolscapabilities.tsx",
     "title": "Mobile-First Tools — key capabilities.",
     "description": "Mobile-First Tools — key capabilities.",
@@ -613,7 +622,7 @@
   },
   {
     "id": "90bb7409-5856-45ea-b611-e917fd46bae8",
-    "position": 69,
+    "position": 70,
     "filepath": "src/pages/slides/Slide069Mobilefirsttoolsmockup.tsx",
     "title": "Mobile-First Tools — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -622,7 +631,7 @@
   },
   {
     "id": "6b05a5ce-34d2-408d-ade4-38284cbb8944",
-    "position": 70,
+    "position": 71,
     "filepath": "src/pages/slides/Slide070Mobilefirsttoolsusecase.tsx",
     "title": "Use case · Field sales",
     "description": "A concrete walk-through using only this category's modules.",
@@ -631,7 +640,7 @@
   },
   {
     "id": "5960ff6c-8f9a-4bf0-8793-387249941a3a",
-    "position": 71,
+    "position": 72,
     "filepath": "src/pages/slides/Slide071Adminworkspacesbillingdivide.tsx",
     "title": "Feature deep-dive · Admin, Workspaces & Billing.",
     "description": "Workspaces, white label, audit logs, plans.",
@@ -640,7 +649,7 @@
   },
   {
     "id": "67723daa-edd0-47b6-9ee5-e7f63ce954bf",
-    "position": 72,
+    "position": 73,
     "filepath": "src/pages/slides/Slide072Adminworkspacesbillingovervi.tsx",
     "title": "Admin, Workspaces & Billing — overview.",
     "description": "Workspaces, white label, audit logs, plans.",
@@ -649,7 +658,7 @@
   },
   {
     "id": "1e0eac0b-98e0-41f2-b0a7-62005a9a520e",
-    "position": 73,
+    "position": 74,
     "filepath": "src/pages/slides/Slide073Adminworkspacesbillingcapabi.tsx",
     "title": "Admin, Workspaces & Billing — key capabilities.",
     "description": "Admin, Workspaces & Billing — key capabilities.",
@@ -658,7 +667,7 @@
   },
   {
     "id": "46fc2c0a-ca80-44d1-8ddd-06aff4a5e1cf",
-    "position": 74,
+    "position": 75,
     "filepath": "src/pages/slides/Slide074Adminworkspacesbillingmockup.tsx",
     "title": "Admin, Workspaces & Billing — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -667,7 +676,7 @@
   },
   {
     "id": "93bad28e-5046-45b1-9952-89816b48a428",
-    "position": 75,
+    "position": 76,
     "filepath": "src/pages/slides/Slide075Adminworkspacesbillingusecas.tsx",
     "title": "Use case · Multi-brand agency",
     "description": "A concrete walk-through using only this category's modules.",
@@ -676,7 +685,7 @@
   },
   {
     "id": "c577ea63-46c3-4502-83c1-cb231a551ffd",
-    "position": 76,
+    "position": 77,
     "filepath": "src/pages/slides/Slide076Analyticsinsightsdivider.tsx",
     "title": "Feature deep-dive · Analytics & Insights.",
     "description": "Engagement, audience, funnels.",
@@ -685,7 +694,7 @@
   },
   {
     "id": "4c3abf8b-a4f3-4c8c-8bb0-d0693b3e5642",
-    "position": 77,
+    "position": 78,
     "filepath": "src/pages/slides/Slide077Analyticsinsightsoverview.tsx",
     "title": "Analytics & Insights — overview.",
     "description": "Engagement, audience, funnels.",
@@ -694,7 +703,7 @@
   },
   {
     "id": "33086b13-fec8-45b0-bc0a-b88475bd5ea7",
-    "position": 78,
+    "position": 79,
     "filepath": "src/pages/slides/Slide078Analyticsinsightscapabilitie.tsx",
     "title": "Analytics & Insights — key capabilities.",
     "description": "Analytics & Insights — key capabilities.",
@@ -703,7 +712,7 @@
   },
   {
     "id": "65d919d8-01d3-4430-b47e-bb98f2a7bdde",
-    "position": 79,
+    "position": 80,
     "filepath": "src/pages/slides/Slide079Analyticsinsightsmockup.tsx",
     "title": "Analytics & Insights — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -712,7 +721,7 @@
   },
   {
     "id": "328d193e-0b78-4de5-8c24-523b567fbf62",
-    "position": 80,
+    "position": 81,
     "filepath": "src/pages/slides/Slide080Analyticsinsightsusecase.tsx",
     "title": "Use case · Course creator",
     "description": "A concrete walk-through using only this category's modules.",
@@ -721,7 +730,7 @@
   },
   {
     "id": "cddf2414-60a0-48ba-9253-4d7d3f30c1e6",
-    "position": 81,
+    "position": 82,
     "filepath": "src/pages/slides/Slide081Integrationsdivider.tsx",
     "title": "Feature deep-dive · Integrations.",
     "description": "Apps, webhooks, marketing pixels.",
@@ -730,7 +739,7 @@
   },
   {
     "id": "66614b8a-98b0-4fb3-bb68-c96f37cd5e77",
-    "position": 82,
+    "position": 83,
     "filepath": "src/pages/slides/Slide082Integrationsoverview.tsx",
     "title": "Integrations — overview.",
     "description": "Apps, webhooks, marketing pixels.",
@@ -739,7 +748,7 @@
   },
   {
     "id": "9c754791-b2c1-4302-9eac-af1410e5027d",
-    "position": 83,
+    "position": 84,
     "filepath": "src/pages/slides/Slide083Integrationscapabilities.tsx",
     "title": "Integrations — key capabilities.",
     "description": "Integrations — key capabilities.",
@@ -748,7 +757,7 @@
   },
   {
     "id": "21c2ae87-3015-4e51-9618-86582e9cd931",
-    "position": 84,
+    "position": 85,
     "filepath": "src/pages/slides/Slide084Integrationsmockup.tsx",
     "title": "Integrations — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -757,7 +766,7 @@
   },
   {
     "id": "46812c3a-1343-42dc-8021-f80d72e266b6",
-    "position": 85,
+    "position": 86,
     "filepath": "src/pages/slides/Slide085Integrationsusecase.tsx",
     "title": "Use case · Operations team",
     "description": "A concrete walk-through using only this category's modules.",
@@ -766,7 +775,7 @@
   },
   {
     "id": "27d29497-6678-41fd-b1f8-1f4b76aabf05",
-    "position": 86,
+    "position": 87,
     "filepath": "src/pages/slides/Slide086Securitycompliancedivider.tsx",
     "title": "Feature deep-dive · Security & Compliance.",
     "description": "Privacy by design, account security, standards.",
@@ -775,7 +784,7 @@
   },
   {
     "id": "81240486-a0a9-4728-bd2d-e93e2b148acd",
-    "position": 87,
+    "position": 88,
     "filepath": "src/pages/slides/Slide087Securitycomplianceoverview.tsx",
     "title": "Security & Compliance — overview.",
     "description": "Privacy by design, account security, standards.",
@@ -784,7 +793,7 @@
   },
   {
     "id": "aeef6c10-e1bb-4737-b8f2-9e57baa5a25e",
-    "position": 88,
+    "position": 89,
     "filepath": "src/pages/slides/Slide088Securitycompliancecapabiliti.tsx",
     "title": "Security & Compliance — key capabilities.",
     "description": "Security & Compliance — key capabilities.",
@@ -793,7 +802,7 @@
   },
   {
     "id": "2c48d656-66ed-49b2-9dfa-c5f04d758c0d",
-    "position": 89,
+    "position": 90,
     "filepath": "src/pages/slides/Slide089Securitycompliancemockup.tsx",
     "title": "Security & Compliance — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
@@ -802,7 +811,7 @@
   },
   {
     "id": "9795fa30-3fe9-4c41-8533-33b609cbe72b",
-    "position": 90,
+    "position": 91,
     "filepath": "src/pages/slides/Slide090Securitycomplianceusecase.tsx",
     "title": "Use case · Regulated team",
     "description": "A concrete walk-through using only this category's modules.",
@@ -811,7 +820,7 @@
   },
   {
     "id": "13a76528-2dad-43c1-9f33-6b348ac032fd",
-    "position": 91,
+    "position": 92,
     "filepath": "src/pages/slides/Slide091Personasdivider.tsx",
     "title": "Appendix · Persona decks.",
     "description": "How 1INME shows up for each role we sell into.",
@@ -820,7 +829,7 @@
   },
   {
     "id": "4b394b87-035a-4b99-90fd-1726030a4dc3",
-    "position": 92,
+    "position": 93,
     "filepath": "src/pages/slides/Slide092Creatorsartistsdivider.tsx",
     "title": "How 1INME helps a artists.",
     "description": "Creators · 4 slides + this divider.",
@@ -829,7 +838,7 @@
   },
   {
     "id": "68556284-e472-4fd5-9d8b-c928084be5fc",
-    "position": 93,
+    "position": 94,
     "filepath": "src/pages/slides/Slide093Creatorsartistsintropains.tsx",
     "title": "Meet the artists.",
     "description": "Creators. Here are the top pains we hear over and over.",
@@ -838,7 +847,7 @@
   },
   {
     "id": "59f602d5-853b-4dd5-85b8-fa12bea92608",
-    "position": 94,
+    "position": 95,
     "filepath": "src/pages/slides/Slide094Creatorsartistsstack.tsx",
     "title": "The 1INME stack for a artists.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -847,7 +856,7 @@
   },
   {
     "id": "26ef54bc-25b2-4f5b-b191-fc94db82459b",
-    "position": 95,
+    "position": 96,
     "filepath": "src/pages/slides/Slide095Creatorsartistsday.tsx",
     "title": "A day in the life — artists.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -856,7 +865,7 @@
   },
   {
     "id": "a7498d21-ffe1-4547-935a-17ae6fe81f25",
-    "position": 96,
+    "position": 97,
     "filepath": "src/pages/slides/Slide096Creatorsartistsoutcomes.tsx",
     "title": "Outcomes a artists can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -865,7 +874,7 @@
   },
   {
     "id": "9a059013-7096-477f-bd3b-7e2a40e45030",
-    "position": 97,
+    "position": 98,
     "filepath": "src/pages/slides/Slide097Creatorsmusiciansdivider.tsx",
     "title": "How 1INME helps a musicians.",
     "description": "Creators · 4 slides + this divider.",
@@ -874,7 +883,7 @@
   },
   {
     "id": "b8f98239-6322-4801-b9ac-e319bd1d840a",
-    "position": 98,
+    "position": 99,
     "filepath": "src/pages/slides/Slide098Creatorsmusiciansintropains.tsx",
     "title": "Meet the musicians.",
     "description": "Creators. Here are the top pains we hear over and over.",
@@ -883,7 +892,7 @@
   },
   {
     "id": "c36c4177-903a-448c-a863-cf83cb2376ed",
-    "position": 99,
+    "position": 100,
     "filepath": "src/pages/slides/Slide099Creatorsmusiciansstack.tsx",
     "title": "The 1INME stack for a musicians.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -892,7 +901,7 @@
   },
   {
     "id": "47e1ca72-f788-423e-a1fc-58d5faf94ed0",
-    "position": 100,
+    "position": 101,
     "filepath": "src/pages/slides/Slide100Creatorsmusiciansday.tsx",
     "title": "A day in the life — musicians.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -901,7 +910,7 @@
   },
   {
     "id": "892dfd50-d71f-40c6-be6d-a76d34f3b480",
-    "position": 101,
+    "position": 102,
     "filepath": "src/pages/slides/Slide101Creatorsmusiciansoutcomes.tsx",
     "title": "Outcomes a musicians can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -910,7 +919,7 @@
   },
   {
     "id": "e4bf051d-fb82-4714-854b-372d58f09a23",
-    "position": 102,
+    "position": 103,
     "filepath": "src/pages/slides/Slide102Creatorspodcastersdivider.tsx",
     "title": "How 1INME helps a podcasters.",
     "description": "Creators · 4 slides + this divider.",
@@ -919,7 +928,7 @@
   },
   {
     "id": "bfa51b99-ca6e-4540-a02f-7f098a105121",
-    "position": 103,
+    "position": 104,
     "filepath": "src/pages/slides/Slide103Creatorspodcastersintropains.tsx",
     "title": "Meet the podcasters.",
     "description": "Creators. Here are the top pains we hear over and over.",
@@ -928,7 +937,7 @@
   },
   {
     "id": "b8a8834b-8469-49c1-b60b-f0a77b9958ce",
-    "position": 104,
+    "position": 105,
     "filepath": "src/pages/slides/Slide104Creatorspodcastersstack.tsx",
     "title": "The 1INME stack for a podcasters.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -937,7 +946,7 @@
   },
   {
     "id": "6bb9a759-7a9d-4e83-8bc4-801e71083d21",
-    "position": 105,
+    "position": 106,
     "filepath": "src/pages/slides/Slide105Creatorspodcastersday.tsx",
     "title": "A day in the life — podcasters.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -946,7 +955,7 @@
   },
   {
     "id": "e3c9bfe2-19ab-491a-84e9-afc1c4841432",
-    "position": 106,
+    "position": 107,
     "filepath": "src/pages/slides/Slide106Creatorspodcastersoutcomes.tsx",
     "title": "Outcomes a podcasters can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -955,7 +964,7 @@
   },
   {
     "id": "a2f8a5db-e218-47ee-a9b9-9d5bda455a8f",
-    "position": 107,
+    "position": 108,
     "filepath": "src/pages/slides/Slide107Creatorsstreamersdivider.tsx",
     "title": "How 1INME helps a streamers.",
     "description": "Creators · 4 slides + this divider.",
@@ -964,7 +973,7 @@
   },
   {
     "id": "ecd5f3fa-9c69-45aa-a93e-e97dad5007f4",
-    "position": 108,
+    "position": 109,
     "filepath": "src/pages/slides/Slide108Creatorsstreamersintropains.tsx",
     "title": "Meet the streamers.",
     "description": "Creators. Here are the top pains we hear over and over.",
@@ -973,7 +982,7 @@
   },
   {
     "id": "bbd88daa-55a6-4618-9ec5-cfc471f36d6d",
-    "position": 109,
+    "position": 110,
     "filepath": "src/pages/slides/Slide109Creatorsstreamersstack.tsx",
     "title": "The 1INME stack for a streamers.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -982,7 +991,7 @@
   },
   {
     "id": "20970abe-c1e6-44e6-8a24-f44fb682814d",
-    "position": 110,
+    "position": 111,
     "filepath": "src/pages/slides/Slide110Creatorsstreamersday.tsx",
     "title": "A day in the life — streamers.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -991,7 +1000,7 @@
   },
   {
     "id": "92b75f4b-c89a-447a-91bc-e054dc3f9213",
-    "position": 111,
+    "position": 112,
     "filepath": "src/pages/slides/Slide111Creatorsstreamersoutcomes.tsx",
     "title": "Outcomes a streamers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1000,7 +1009,7 @@
   },
   {
     "id": "8eadfa3b-e976-4df7-ae16-f17c41d94daf",
-    "position": 112,
+    "position": 113,
     "filepath": "src/pages/slides/Slide112Creatorsinfluencersdivider.tsx",
     "title": "How 1INME helps a influencers.",
     "description": "Creators · 4 slides + this divider.",
@@ -1009,7 +1018,7 @@
   },
   {
     "id": "aee4b75d-a004-4e7a-99da-5392f5dc0059",
-    "position": 113,
+    "position": 114,
     "filepath": "src/pages/slides/Slide113Creatorsinfluencersintropain.tsx",
     "title": "Meet the influencers.",
     "description": "Creators. Here are the top pains we hear over and over.",
@@ -1018,7 +1027,7 @@
   },
   {
     "id": "1a085375-1a5b-44af-b5c8-a0f08f187c11",
-    "position": 114,
+    "position": 115,
     "filepath": "src/pages/slides/Slide114Creatorsinfluencersstack.tsx",
     "title": "The 1INME stack for a influencers.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -1027,7 +1036,7 @@
   },
   {
     "id": "77864eb8-e6d3-4f68-824f-b23ebdfa420f",
-    "position": 115,
+    "position": 116,
     "filepath": "src/pages/slides/Slide115Creatorsinfluencersday.tsx",
     "title": "A day in the life — influencers.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -1036,7 +1045,7 @@
   },
   {
     "id": "190890a0-5a69-476d-85da-3ba41365037c",
-    "position": 116,
+    "position": 117,
     "filepath": "src/pages/slides/Slide116Creatorsinfluencersoutcomes.tsx",
     "title": "Outcomes a influencers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1045,7 +1054,7 @@
   },
   {
     "id": "a3c74f41-f90f-4f43-a68a-5a46c805ee9a",
-    "position": 117,
+    "position": 118,
     "filepath": "src/pages/slides/Slide117Coachesexpertscoachesdivider.tsx",
     "title": "How 1INME helps a coaches.",
     "description": "Coaches & Experts · 4 slides + this divider.",
@@ -1054,7 +1063,7 @@
   },
   {
     "id": "29b7d120-623f-4998-9de7-1b3e762e1965",
-    "position": 118,
+    "position": 119,
     "filepath": "src/pages/slides/Slide118Coachesexpertscoachesintropa.tsx",
     "title": "Meet the coaches.",
     "description": "Coaches & Experts. Here are the top pains we hear over and over.",
@@ -1063,7 +1072,7 @@
   },
   {
     "id": "d099cc61-2a80-4257-897f-64c792b2c941",
-    "position": 119,
+    "position": 120,
     "filepath": "src/pages/slides/Slide119Coachesexpertscoachesstack.tsx",
     "title": "The 1INME stack for a coaches.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -1072,7 +1081,7 @@
   },
   {
     "id": "811e0eb9-6f5e-48a6-a7bc-cb2a1698a795",
-    "position": 120,
+    "position": 121,
     "filepath": "src/pages/slides/Slide120Coachesexpertscoachesday.tsx",
     "title": "A day in the life — coaches.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -1081,7 +1090,7 @@
   },
   {
     "id": "fdcd632c-e41d-42a8-ae95-868913167c4b",
-    "position": 121,
+    "position": 122,
     "filepath": "src/pages/slides/Slide121Coachesexpertscoachesoutcome.tsx",
     "title": "Outcomes a coaches can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1090,7 +1099,7 @@
   },
   {
     "id": "07119bd3-0aab-415b-a8f4-84c3261246af",
-    "position": 122,
+    "position": 123,
     "filepath": "src/pages/slides/Slide122Coachesexpertseducatorsdivid.tsx",
     "title": "How 1INME helps a educators.",
     "description": "Coaches & Experts · 4 slides + this divider.",
@@ -1099,7 +1108,7 @@
   },
   {
     "id": "ea5be99f-1e65-462e-8184-9d4641a2308b",
-    "position": 123,
+    "position": 124,
     "filepath": "src/pages/slides/Slide123Coachesexpertseducatorsintro.tsx",
     "title": "Meet the educators.",
     "description": "Coaches & Experts. Here are the top pains we hear over and over.",
@@ -1108,7 +1117,7 @@
   },
   {
     "id": "b3d5dfc9-c20e-4232-b322-75d9e1bf8026",
-    "position": 124,
+    "position": 125,
     "filepath": "src/pages/slides/Slide124Coachesexpertseducatorsstack.tsx",
     "title": "The 1INME stack for a educators.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -1117,7 +1126,7 @@
   },
   {
     "id": "2e23eb5e-05c0-4bb3-b9d9-ebe00ff7c75e",
-    "position": 125,
+    "position": 126,
     "filepath": "src/pages/slides/Slide125Coachesexpertseducatorsday.tsx",
     "title": "A day in the life — educators.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -1126,7 +1135,7 @@
   },
   {
     "id": "2c8381b8-a6ed-445b-8b78-5a51f9fa82d4",
-    "position": 126,
+    "position": 127,
     "filepath": "src/pages/slides/Slide126Coachesexpertseducatorsoutco.tsx",
     "title": "Outcomes a educators can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1135,7 +1144,7 @@
   },
   {
     "id": "fd9e3b32-e5e2-4741-aa45-66095ec4a327",
-    "position": 127,
+    "position": 128,
     "filepath": "src/pages/slides/Slide127Coachesexpertsfitnesstrainer.tsx",
     "title": "How 1INME helps a fitness trainers.",
     "description": "Coaches & Experts · 4 slides + this divider.",
@@ -1144,7 +1153,7 @@
   },
   {
     "id": "f6c8f338-e28d-40b9-a137-33b054d701d0",
-    "position": 128,
+    "position": 129,
     "filepath": "src/pages/slides/Slide128Coachesexpertsfitnesstrainer.tsx",
     "title": "Meet the fitness trainers.",
     "description": "Coaches & Experts. Here are the top pains we hear over and over.",
@@ -1153,7 +1162,7 @@
   },
   {
     "id": "6a1c1247-66ad-4433-affa-760f6cd3f085",
-    "position": 129,
+    "position": 130,
     "filepath": "src/pages/slides/Slide129Coachesexpertsfitnesstrainer.tsx",
     "title": "The 1INME stack for a fitness trainers.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -1162,7 +1171,7 @@
   },
   {
     "id": "a0974222-35d5-4aa2-a3af-d3ce4bca3be8",
-    "position": 130,
+    "position": 131,
     "filepath": "src/pages/slides/Slide130Coachesexpertsfitnesstrainer.tsx",
     "title": "A day in the life — fitness trainers.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -1171,7 +1180,7 @@
   },
   {
     "id": "a9036f52-7f8f-4447-aa83-a0f0ed394ff1",
-    "position": 131,
+    "position": 132,
     "filepath": "src/pages/slides/Slide131Coachesexpertsfitnesstrainer.tsx",
     "title": "Outcomes a fitness trainers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1180,7 +1189,7 @@
   },
   {
     "id": "4bcde17a-b562-42c8-9220-624cd5456012",
-    "position": 132,
+    "position": 133,
     "filepath": "src/pages/slides/Slide132Salesfieldprosrealtorsdivide.tsx",
     "title": "How 1INME helps a realtors.",
     "description": "Sales & Field Pros · 4 slides + this divider.",
@@ -1189,7 +1198,7 @@
   },
   {
     "id": "7b052dec-1f99-4bb8-9ae2-ae26e1bc913a",
-    "position": 133,
+    "position": 134,
     "filepath": "src/pages/slides/Slide133Salesfieldprosrealtorsintrop.tsx",
     "title": "Meet the realtors.",
     "description": "Sales & Field Pros. Here are the top pains we hear over and over.",
@@ -1198,7 +1207,7 @@
   },
   {
     "id": "a50ac8b5-935b-4b36-a578-c6022d069b89",
-    "position": 134,
+    "position": 135,
     "filepath": "src/pages/slides/Slide134Salesfieldprosrealtorsstack.tsx",
     "title": "The 1INME stack for a realtors.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -1207,7 +1216,7 @@
   },
   {
     "id": "cfecf1e5-e9a3-4cd1-9cc5-4c4496fc5b65",
-    "position": 135,
+    "position": 136,
     "filepath": "src/pages/slides/Slide135Salesfieldprosrealtorsday.tsx",
     "title": "A day in the life — realtors.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -1216,7 +1225,7 @@
   },
   {
     "id": "f5709f6b-9c2a-444f-a032-ca06a55dfce1",
-    "position": 136,
+    "position": 137,
     "filepath": "src/pages/slides/Slide136Salesfieldprosrealtorsoutcom.tsx",
     "title": "Outcomes a realtors can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1225,7 +1234,7 @@
   },
   {
     "id": "f83353ca-6cd4-48cc-949e-ed8f005bc94a",
-    "position": 137,
+    "position": 138,
     "filepath": "src/pages/slides/Slide137Salesfieldprosbusinessdevelo.tsx",
     "title": "How 1INME helps a business developers.",
     "description": "Sales & Field Pros · 4 slides + this divider.",
@@ -1234,7 +1243,7 @@
   },
   {
     "id": "cb742ed2-0d05-4d66-91c3-caff10f1dffb",
-    "position": 138,
+    "position": 139,
     "filepath": "src/pages/slides/Slide138Salesfieldprosbusinessdevelo.tsx",
     "title": "Meet the business developers.",
     "description": "Sales & Field Pros. Here are the top pains we hear over and over.",
@@ -1243,7 +1252,7 @@
   },
   {
     "id": "4e79e406-a513-4f32-a754-1ce795624b95",
-    "position": 139,
+    "position": 140,
     "filepath": "src/pages/slides/Slide139Salesfieldprosbusinessdevelo.tsx",
     "title": "The 1INME stack for a business developers.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -1252,7 +1261,7 @@
   },
   {
     "id": "d5519fa2-9ec8-4bf2-aa46-b105f2174460",
-    "position": 140,
+    "position": 141,
     "filepath": "src/pages/slides/Slide140Salesfieldprosbusinessdevelo.tsx",
     "title": "A day in the life — business developers.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -1261,7 +1270,7 @@
   },
   {
     "id": "487dd76f-e89b-441a-a2b0-60bb87161494",
-    "position": 141,
+    "position": 142,
     "filepath": "src/pages/slides/Slide141Salesfieldprosbusinessdevelo.tsx",
     "title": "Outcomes a business developers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1270,7 +1279,7 @@
   },
   {
     "id": "fae416e1-77e2-4f52-9f5e-4e9fbf366fa6",
-    "position": 142,
+    "position": 143,
     "filepath": "src/pages/slides/Slide142Teamsagenciesteamsagenciesdi.tsx",
     "title": "How 1INME helps a teams & agencies.",
     "description": "Teams & Agencies · 4 slides + this divider.",
@@ -1279,7 +1288,7 @@
   },
   {
     "id": "fc683b2e-86e5-4f8c-9ea2-d1688f3a5a65",
-    "position": 143,
+    "position": 144,
     "filepath": "src/pages/slides/Slide143Teamsagenciesteamsagenciesin.tsx",
     "title": "Meet the teams & agencies.",
     "description": "Teams & Agencies. Here are the top pains we hear over and over.",
@@ -1288,7 +1297,7 @@
   },
   {
     "id": "0fd63f47-81f8-4807-8dfb-5be418e7d3ad",
-    "position": 144,
+    "position": 145,
     "filepath": "src/pages/slides/Slide144Teamsagenciesteamsagenciesst.tsx",
     "title": "The 1INME stack for a teams & agencies.",
     "description": "The 4–5 modules that matter most for this persona.",
@@ -1297,7 +1306,7 @@
   },
   {
     "id": "7732fff1-945a-44be-82a9-f3c38355144a",
-    "position": 145,
+    "position": 146,
     "filepath": "src/pages/slides/Slide145Teamsagenciesteamsagenciesda.tsx",
     "title": "A day in the life — teams & agencies.",
     "description": "Time, module, action — all happening inside 1INME.",
@@ -1306,7 +1315,7 @@
   },
   {
     "id": "5fd2d09e-6d2c-47b7-a9c7-c3e2f781cf60",
-    "position": 146,
+    "position": 147,
     "filepath": "src/pages/slides/Slide146Teamsagenciesteamsagenciesou.tsx",
     "title": "Outcomes a teams & agencies can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
@@ -1315,7 +1324,7 @@
   },
   {
     "id": "ffa621aa-9709-4daf-b5f5-22e0bec95383",
-    "position": 147,
+    "position": 148,
     "filepath": "src/pages/slides/Slide147Investordivider.tsx",
     "title": "Appendix · Investor pitch.",
     "description": "Twenty slides for investor conversations. Numbers are placeholders unless tagged otherwise.",
@@ -1324,7 +1333,7 @@
   },
   {
     "id": "2f7ef63a-94f3-49d2-9347-12ed86b78b98",
-    "position": 148,
+    "position": 149,
     "filepath": "src/pages/slides/Slide148Investorcover.tsx",
     "title": "Investor cover",
     "description": "Investor deck cover slide.",
@@ -1333,7 +1342,7 @@
   },
   {
     "id": "1f8b2567-d20a-4b02-9f11-8e2203e404ad",
-    "position": 149,
+    "position": 150,
     "filepath": "src/pages/slides/Slide149Investorvision.tsx",
     "title": "Vision.",
     "description": "Replace fragmented tooling with a single identity-first platform for every creator and team.",
@@ -1342,7 +1351,7 @@
   },
   {
     "id": "9b245d65-9b23-41c2-ae1f-a9a83a558833",
-    "position": 150,
+    "position": 151,
     "filepath": "src/pages/slides/Slide150Investorproblem.tsx",
     "title": "Problem.",
     "description": "Problem.",
@@ -1351,7 +1360,7 @@
   },
   {
     "id": "c362ef3b-8e51-4979-ada4-c089b89f5bfc",
-    "position": 151,
+    "position": 152,
     "filepath": "src/pages/slides/Slide151Investormarket.tsx",
     "title": "Market.",
     "description": "TAM / SAM / SOM placeholders.",
@@ -1360,7 +1369,7 @@
   },
   {
     "id": "4201a27d-ba07-4f72-b8c1-72e09f1fc323",
-    "position": 152,
+    "position": 153,
     "filepath": "src/pages/slides/Slide152Investorsolution.tsx",
     "title": "Solution.",
     "description": "Identity, links, AI, productivity, and analytics — one platform.",
@@ -1369,7 +1378,7 @@
   },
   {
     "id": "3a45ea9f-f66e-4c91-b92c-73dc92e8e8c2",
-    "position": 153,
+    "position": 154,
     "filepath": "src/pages/slides/Slide153Investordemohighlights.tsx",
     "title": "Product highlights.",
     "description": "Three demos investors remember.",
@@ -1378,7 +1387,7 @@
   },
   {
     "id": "f40c60dd-2b76-443f-a323-73987c3e2499",
-    "position": 154,
+    "position": 155,
     "filepath": "src/pages/slides/Slide154Investorbusinessmodel.tsx",
     "title": "Business model.",
     "description": "Business model.",
@@ -1387,7 +1396,7 @@
   },
   {
     "id": "a57df52b-3b39-46a9-9859-fa4f14798939",
-    "position": 155,
+    "position": 156,
     "filepath": "src/pages/slides/Slide155Investorpricing.tsx",
     "title": "Pricing tiers.",
     "description": "Pricing tiers.",
@@ -1396,7 +1405,7 @@
   },
   {
     "id": "48b08c4f-bb56-4b4a-bb00-11069c7adb2e",
-    "position": 156,
+    "position": 157,
     "filepath": "src/pages/slides/Slide156Investorgtm.tsx",
     "title": "Go-to-market.",
     "description": "Go-to-market.",
@@ -1405,7 +1414,7 @@
   },
   {
     "id": "42891c36-a605-4184-beed-ef0064df2477",
-    "position": 157,
+    "position": 158,
     "filepath": "src/pages/slides/Slide157Investortraction.tsx",
     "title": "Traction (placeholders).",
     "description": "Traction (placeholders).",
@@ -1414,7 +1423,7 @@
   },
   {
     "id": "a93dd141-9c19-4a9e-b4a7-28e01453fe57",
-    "position": 158,
+    "position": 159,
     "filepath": "src/pages/slides/Slide158Investorcompetitive.tsx",
     "title": "Competitive landscape.",
     "description": "Competitive landscape.",
@@ -1423,7 +1432,7 @@
   },
   {
     "id": "089798d5-d88b-4f81-8e31-6970b0d7bf8d",
-    "position": 159,
+    "position": 160,
     "filepath": "src/pages/slides/Slide159Investormoat.tsx",
     "title": "Moat.",
     "description": "Moat.",
@@ -1432,7 +1441,7 @@
   },
   {
     "id": "5f1239f1-f7c6-41ae-947d-208b9f3f4556",
-    "position": 160,
+    "position": 161,
     "filepath": "src/pages/slides/Slide160Investorteam.tsx",
     "title": "Team.",
     "description": "Replace placeholders with founder bios and pictures.",
@@ -1441,7 +1450,7 @@
   },
   {
     "id": "4db0f6e3-9e8e-4ebf-9455-42d4282a005f",
-    "position": 161,
+    "position": 162,
     "filepath": "src/pages/slides/Slide161Investorfinancials.tsx",
     "title": "Financials & projections (placeholders).",
     "description": "Replace with the live model before sending.",
@@ -1450,7 +1459,7 @@
   },
   {
     "id": "52cabacb-7f02-4abb-a3dd-8e424b0d5e1d",
-    "position": 162,
+    "position": 163,
     "filepath": "src/pages/slides/Slide162Investorask.tsx",
     "title": "Funding ask.",
     "description": "Funding ask.",
@@ -1459,7 +1468,7 @@
   },
   {
     "id": "741a76f8-6790-4ef4-8428-b083ca20f1d9",
-    "position": 163,
+    "position": 164,
     "filepath": "src/pages/slides/Slide163Investoruseoffunds.tsx",
     "title": "Use of funds.",
     "description": "Use of funds.",
@@ -1468,7 +1477,7 @@
   },
   {
     "id": "21bc4169-8206-4bee-ad3c-480c145c5859",
-    "position": 164,
+    "position": 165,
     "filepath": "src/pages/slides/Slide164Investormilestones.tsx",
     "title": "Milestones.",
     "description": "What we'll prove with this round.",
@@ -1477,7 +1486,7 @@
   },
   {
     "id": "88723a76-5a9b-41b2-b030-522a9606b609",
-    "position": 165,
+    "position": 166,
     "filepath": "src/pages/slides/Slide165Investorexitvision.tsx",
     "title": "Exit & long-term vision.",
     "description": "Exit & long-term vision.",
@@ -1486,7 +1495,7 @@
   },
   {
     "id": "9c0add56-85e3-4856-bbbf-52e64d5a2830",
-    "position": 166,
+    "position": 167,
     "filepath": "src/pages/slides/Slide166Investorwhynow.tsx",
     "title": "Why now.",
     "description": "Why now.",
@@ -1495,7 +1504,7 @@
   },
   {
     "id": "25d087b0-8483-4778-bd79-eed7fbeabb57",
-    "position": 167,
+    "position": 168,
     "filepath": "src/pages/slides/Slide167Investorclose.tsx",
     "title": "Investor close",
     "description": "Investor pitch closing slide.",
@@ -1504,7 +1513,7 @@
   },
   {
     "id": "b96507d8-1cc5-4bde-a75e-de5403a15f28",
-    "position": 168,
+    "position": 169,
     "filepath": "src/pages/slides/Slide168Roadmapdivider.tsx",
     "title": "Appendix · Future roadmap.",
     "description": "Twenty slides on what's coming, by horizon and by area.",
@@ -1513,7 +1522,7 @@
   },
   {
     "id": "b6c2c463-03fd-4cf0-8211-330d037ee576",
-    "position": 169,
+    "position": 170,
     "filepath": "src/pages/slides/Slide169Roadmapintro.tsx",
     "title": "How we plan the roadmap.",
     "description": "How we plan the roadmap.",
@@ -1522,7 +1531,7 @@
   },
   {
     "id": "c6866f26-1eb9-4024-8fbc-550f1c3de7a3",
-    "position": 170,
+    "position": 171,
     "filepath": "src/pages/slides/Slide170Roadmaphorizons.tsx",
     "title": "Now / Next / Later — at a glance.",
     "description": "Now / Next / Later — at a glance.",
@@ -1531,7 +1540,7 @@
   },
   {
     "id": "397f1d67-01dd-421b-b97b-a22cc945856a",
-    "position": 171,
+    "position": 172,
     "filepath": "src/pages/slides/Slide171Roadmapai.tsx",
     "title": "Roadmap · AI.",
     "description": "Roadmap · AI.",
@@ -1540,7 +1549,7 @@
   },
   {
     "id": "a19e7e6c-a083-4c4c-ab40-4810570b1dd8",
-    "position": 172,
+    "position": 173,
     "filepath": "src/pages/slides/Slide172Roadmapbio.tsx",
     "title": "Roadmap · Bio Links & Smart Links.",
     "description": "Roadmap · Bio Links & Smart Links.",
@@ -1549,7 +1558,7 @@
   },
   {
     "id": "7946e106-e5ad-45b0-b1d0-eda246a7aa3b",
-    "position": 173,
+    "position": 174,
     "filepath": "src/pages/slides/Slide173Roadmapproductivity.tsx",
     "title": "Roadmap · Productivity & CRM.",
     "description": "Roadmap · Productivity & CRM.",
@@ -1558,7 +1567,7 @@
   },
   {
     "id": "d9b37027-14dc-4563-82e1-6cfc4852f2fa",
-    "position": 174,
+    "position": 175,
     "filepath": "src/pages/slides/Slide174Roadmapsocial.tsx",
     "title": "Roadmap · Social & community.",
     "description": "Roadmap · Social & community.",
@@ -1567,7 +1576,7 @@
   },
   {
     "id": "cd3356ca-5594-4ea0-aa06-303fe63f806d",
-    "position": 175,
+    "position": 176,
     "filepath": "src/pages/slides/Slide175Roadmapmobile.tsx",
     "title": "Roadmap · Mobile.",
     "description": "Roadmap · Mobile.",
@@ -1576,7 +1585,7 @@
   },
   {
     "id": "9f3039b1-9181-4023-b62f-35e6e59bf8e6",
-    "position": 176,
+    "position": 177,
     "filepath": "src/pages/slides/Slide176Roadmapplatformapi.tsx",
     "title": "Roadmap · Platform & API.",
     "description": "Roadmap · Platform & API.",
@@ -1585,7 +1594,7 @@
   },
   {
     "id": "344eab15-9296-4ea9-abf7-2053be36bf54",
-    "position": 177,
+    "position": 178,
     "filepath": "src/pages/slides/Slide177Roadmapenterprise.tsx",
     "title": "Roadmap · Enterprise.",
     "description": "Roadmap · Enterprise.",
@@ -1594,7 +1603,7 @@
   },
   {
     "id": "39e1a13e-63a2-4d7e-9333-0fc7d714c2ce",
-    "position": 178,
+    "position": 179,
     "filepath": "src/pages/slides/Slide178Roadmapcompliance.tsx",
     "title": "Roadmap · Security & compliance.",
     "description": "Roadmap · Security & compliance.",
@@ -1603,7 +1612,7 @@
   },
   {
     "id": "52e17c86-01ae-4f70-9c0b-06e800a3a90e",
-    "position": 179,
+    "position": 180,
     "filepath": "src/pages/slides/Slide179Roadmapinternationalization.tsx",
     "title": "Roadmap · Internationalization.",
     "description": "Roadmap · Internationalization.",
@@ -1612,7 +1621,7 @@
   },
   {
     "id": "7845d7fe-703d-4891-8f7f-fee0c07ba82a",
-    "position": 180,
+    "position": 181,
     "filepath": "src/pages/slides/Slide180Roadmapmarketplace.tsx",
     "title": "Roadmap · Marketplace.",
     "description": "Roadmap · Marketplace.",
@@ -1621,7 +1630,7 @@
   },
   {
     "id": "ad292e75-74cc-4cd8-80bf-3976b8f65152",
-    "position": 181,
+    "position": 182,
     "filepath": "src/pages/slides/Slide181Roadmapanalytics.tsx",
     "title": "Roadmap · Analytics.",
     "description": "Roadmap · Analytics.",
@@ -1630,7 +1639,7 @@
   },
   {
     "id": "aead05ea-6983-40bf-bf90-78879f1f42e7",
-    "position": 182,
+    "position": 183,
     "filepath": "src/pages/slides/Slide182Roadmapbrand.tsx",
     "title": "Roadmap · Brand & design system.",
     "description": "Roadmap · Brand & design system.",
@@ -1639,7 +1648,7 @@
   },
   {
     "id": "3a95fc52-ce96-4197-b4ef-7c0b32adebc9",
-    "position": 183,
+    "position": 184,
     "filepath": "src/pages/slides/Slide183Roadmapintegrations.tsx",
     "title": "Roadmap · Integrations.",
     "description": "Roadmap · Integrations.",
@@ -1648,7 +1657,7 @@
   },
   {
     "id": "24b96c7f-2f6b-47e1-9aee-33455ebbbd0c",
-    "position": 184,
+    "position": 185,
     "filepath": "src/pages/slides/Slide184Roadmapquarterlytimeline.tsx",
     "title": "Quarterly timeline.",
     "description": "What ships when, across the platform.",
@@ -1657,7 +1666,7 @@
   },
   {
     "id": "d67abbab-f947-46b9-8d96-2571f3f941ba",
-    "position": 185,
+    "position": 186,
     "filepath": "src/pages/slides/Slide185Roadmapprinciples.tsx",
     "title": "How we choose what to ship.",
     "description": "How we choose what to ship.",
@@ -1666,7 +1675,7 @@
   },
   {
     "id": "57774fb6-a57b-4032-b93a-5445005ce131",
-    "position": 186,
+    "position": 187,
     "filepath": "src/pages/slides/Slide186Roadmapinvestmentsplit.tsx",
     "title": "Where the engineering hours go.",
     "description": "Where the engineering hours go.",
@@ -1675,7 +1684,7 @@
   },
   {
     "id": "3e2f915b-d38f-4467-a273-752ddef84b03",
-    "position": 187,
+    "position": 188,
     "filepath": "src/pages/slides/Slide187Roadmapcustomerinfluence.tsx",
     "title": "How customers shape the roadmap.",
     "description": "How customers shape the roadmap.",
@@ -1684,7 +1693,7 @@
   },
   {
     "id": "f24de670-0824-40a7-9570-04bf0f5b3b48",
-    "position": 188,
+    "position": 189,
     "filepath": "src/pages/slides/Slide188Roadmapshape.tsx",
     "title": "Roadmap close",
     "description": "Roadmap closing slide.",

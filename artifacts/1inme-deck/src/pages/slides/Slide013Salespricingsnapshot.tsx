@@ -39,7 +39,7 @@ export default function Slide013Salespricingsnapshot() {
         </div>
         <p className="mt-[3vh] text-[1vw] text-slate-500">Annual billing saves 20%. Education and non-profit pricing on request.</p>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>13 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>13 / 189</span></div>
     </div>
   );
 }

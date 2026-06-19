@@ -18,7 +18,7 @@ export default function Slide136Salesfieldprosrealtorsoutcom() {
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">CTA · 1inme.com/realtors</p>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>136 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>137 / 189</span></div>
     </div>
   );
 }

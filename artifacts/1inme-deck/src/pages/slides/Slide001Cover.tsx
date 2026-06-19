@@ -17,7 +17,7 @@ export default function Slide001Cover() {
           <p className="mt-[3vh] text-[1.6vw] text-slate-300 max-w-[60vw] leading-snug">A single deck for sales, product, features, personas, investors, and roadmap. Jump to the section you need.</p>
         </div>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>1 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>1 / 189</span></div>
     </div>
   );
 }

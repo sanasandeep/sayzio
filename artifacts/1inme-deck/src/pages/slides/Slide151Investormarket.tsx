@@ -19,7 +19,7 @@ export default function Slide151Investormarket() {
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Replace with sourced figures (Statista / Gartner / internal) before sharing.</p>
       </div>
-      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>151 / 188</span></div>
+      <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>152 / 189</span></div>
     </div>
   );
 }
