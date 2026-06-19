@@ -260,6 +260,14 @@
             <span class="sidebar-tooltip">Integrations</span>
         </a>
 
+        <a href="{{ route('admin.schema.repair-audits') }}"
+           class="sidebar-link {{ request()->routeIs('admin.schema.repair-audits') ? 'active' : '' }}"
+           style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-wrench"></i></div>
+            <span class="nav-label">Schema Repairs</span>
+            <span class="sidebar-tooltip">Schema Repairs</span>
+        </a>
+
         <a href="{{ route('admin.marketing-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">

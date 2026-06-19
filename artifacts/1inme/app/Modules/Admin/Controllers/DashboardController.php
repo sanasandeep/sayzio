@@ -9,6 +9,10 @@ use App\Modules\Common\Support\WorkspaceColumnHealth;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Models\SchemaRepairAudit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -49,9 +53,17 @@ class DashboardController extends Controller
      * (guarded/idempotent — {@see ExpectedSchemaHealth::repair()}) so ops can
      * resolve drift without shell access, then re-checks and reports the outcome.
      */
-    public function repairExpectedColumns()
+    public function repairExpectedColumns(Request $request)
     {
         $result = ExpectedSchemaHealth::repair();
+
+        // Record WHO ran the repair, WHEN, and the schema-level outcome before
+        // anything else — this destructive-adjacent ops action must leave an
+        // audit trail even if a later step throws. Only schema metadata is
+        // logged (added columns per table + unrepairable table names), never
+        // row data, and it lives in its own table so it survives the cache
+        // flush below. Best-effort: a logging miss must not break the repair.
+        $this->recordRepairAudit($result, $request);
 
         // Re-check against the live schema so the banner reflects reality on the
         // redirect rather than a stale cached report.
@@ -82,5 +94,91 @@ class DashboardController extends Controller
         }
 
         return redirect()->route('admin.dashboard')->with($flash);
+    }
+
+    /**
+     * Append one audit row for a repair run so ops can see who altered the
+     * live schema and when. Schema-level metadata only — added columns per
+     * table and the names of whole-missing tables that could not be repaired.
+     * Best-effort: a logging failure is swallowed (and logged) so it can
+     * never break the user-facing repair.
+     *
+     * @param array{added:array<string,array<int,string>>, unrepairable:array<int,string>} $result
+     */
+    protected function recordRepairAudit(array $result, Request $request): void
+    {
+        try {
+            $added        = $result['added'] ?? [];
+            $unrepairable = array_values(array_unique($result['unrepairable'] ?? []));
+
+            SchemaRepairAudit::create(array_merge($this->resolveActor(), [
+                'added'               => $added,
+                'unrepairable'        => $unrepairable,
+                'added_columns_count' => array_sum(array_map('count', $added)),
+                'added_tables_count'  => count($added),
+                'unrepairable_count'  => count($unrepairable),
+                'ip'                  => $request->ip(),
+                'created_at'          => now(),
+            ]));
+        } catch (\Throwable $e) {
+            Log::error('DashboardController: failed to record schema repair audit', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Read-only timeline of past one-click schema repair runs — who ran each
+     * repair, when, and which columns/tables it touched.
+     */
+    public function repairAudits()
+    {
+        $audits = SchemaRepairAudit::query()
+            ->with(['actorAdmin:id,name,email', 'actorUser:id,name,email'])
+            ->orderByDesc('created_at')
+            ->paginate(30);
+
+        return view('admin.dashboard.repair-audits', compact('audits'));
+    }
+
+    /**
+     * Inspect the authenticated principal across both guards and return a
+     * small actor descriptor. The repair action runs behind the admin guard,
+     * so this is normally an Admin; null fields are fine — the audit row
+     * records "System" in that case.
+     *
+     * @return array{actor_admin_id:?int, actor_user_id:?int, actor_guard:?string, actor_name:?string, actor_email:?string}
+     */
+    protected function resolveActor(): array
+    {
+        $admin = Auth::guard('admin')->user();
+        if ($admin instanceof Admin) {
+            return [
+                'actor_admin_id' => (int) $admin->id,
+                'actor_user_id'  => null,
+                'actor_guard'    => 'admin',
+                'actor_name'     => $admin->name,
+                'actor_email'    => $admin->email,
+            ];
+        }
+
+        $user = Auth::guard('web')->user();
+        if ($user instanceof User) {
+            return [
+                'actor_admin_id' => null,
+                'actor_user_id'  => (int) $user->id,
+                'actor_guard'    => 'web',
+                'actor_name'     => $user->name,
+                'actor_email'    => $user->email,
+            ];
+        }
+
+        return [
+            'actor_admin_id' => null,
+            'actor_user_id'  => null,
+            'actor_guard'    => null,
+            'actor_name'     => null,
+            'actor_email'    => null,
+        ];
     }
 }

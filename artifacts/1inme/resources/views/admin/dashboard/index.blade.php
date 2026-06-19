@@ -107,6 +107,10 @@
                         <i class="fas fa-wrench"></i> Fix now
                     </button>
                 </form>
+                <a href="{{ route('admin.schema.repair-audits') }}"
+                   class="inline-flex items-center gap-2 text-xs text-red-300/80 hover:text-red-200 underline">
+                    <i class="fas fa-clock-rotate-left"></i> View repair history
+                </a>
             </div>
             <details class="mt-3">
                 <summary class="text-xs text-red-300/80 cursor-pointer select-none">Show affected tables</summary>

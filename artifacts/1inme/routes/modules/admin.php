@@ -54,6 +54,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware(CheckPermission::class . ':settings.manage')
             ->name('schema.repair-expected-columns');
 
+        // Read-only audit trail of past one-click schema repair runs (who
+        // altered the live schema, when, and which columns/tables it touched).
+        Route::get('schema/repair-audits', [DashboardController::class, 'repairAudits'])
+            ->middleware(CheckPermission::class . ':settings.manage')
+            ->name('schema.repair-audits');
+
         // Seamless switch from the back-office to the matching user dashboard.
         Route::post('switch-to-user', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toUser'])->name('switch-to-user');
 
