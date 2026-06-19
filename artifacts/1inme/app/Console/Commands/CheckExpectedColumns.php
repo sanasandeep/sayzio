@@ -39,6 +39,21 @@ use Illuminate\Support\Facades\Mail;
  * the set of missing tables/columns bypasses the cooldown so a newly-discovered
  * gap is surfaced promptly. --force bypasses the cooldown entirely.
  *
+ * Detector-blind alerting: the expected schema is derived by replaying the
+ * migration files ({@see SchemaManifest}). When that replay can't run (e.g.
+ * unreadable migration files, a migration that throws fatally under pretend, or
+ * the DB is unreachable), {@see ExpectedSchemaHealth::compute()} reports
+ * `available => false` rather than a false "all healthy". In that state the
+ * safety net is BLIND — drift would go undetected — so this command raises a
+ * SEPARATE alert (distinct subject + notification type) so ops know the detector
+ * itself is down, not that the schema is out of date. That episode is tracked
+ * independently under the `expected_schema_health.blind_*` keys:
+ *   - blind_alerting     — true while a detector-blind episode is open
+ *   - blind_last_sent_at — ISO-8601 of the last blind alert (cooldown)
+ *   - blind_error        — the detector error at the last blind alert (a changed
+ *                          error bypasses the cooldown)
+ * It sends an all-clear when the detector can run again.
+ *
  * --repair adds and backfills any missing columns in place (guarded, idempotent
  * — see {@see ExpectedSchemaHealth::repair()}) so ops can close the drift without
  * shell access to `php artisan migrate --force`. Whole-missing tables still need a
@@ -81,9 +96,18 @@ class CheckExpectedColumns extends Command
         ExpectedSchemaHealth::flush();
 
         if (! ($report['available'] ?? false)) {
-            // DB unreachable or probe failed — don't alert on a transient error.
-            $this->warn('Could not probe expected schema: ' . ($report['error'] ?? 'unknown'));
+            // The detector itself can't run (migration replay failed / DB
+            // unreachable). This is the safety net going BLIND — drift would go
+            // undetected — so surface it to ops as a distinct alert rather than
+            // silently swallowing it as a "transient" warning.
+            $this->handleDetectorBlind((string) ($report['error'] ?? 'unknown'));
             return self::SUCCESS;
+        }
+
+        // The detector ran. If a blind episode was open, the safety net is back
+        // online — send an all-clear and close it.
+        if ($this->state('blind_alerting', false)) {
+            $this->dispatchBlindRecovery();
         }
 
         $missing = $report['missing'];
@@ -200,6 +224,93 @@ class CheckExpectedColumns extends Command
         ]);
 
         $this->info("Recovery dispatched — in-app: {$inApp}, email: {$emails}.");
+    }
+
+    /**
+     * The drift detector itself could not run (migration replay failed / DB
+     * unreachable), so it cannot tell whether the schema has drifted. Log a loud
+     * marker and — cooldown-guarded, with a changed-error bypass — alert ops that
+     * the safety net is blind, kept distinct from the "schema out of date" alert.
+     */
+    private function handleDetectorBlind(string $error): void
+    {
+        // Loud marker so log-based alerting catches it the same way as the
+        // missing-columns and deploy markers.
+        Log::error(
+            '::1inme:: SCHEMA DRIFT DETECTOR BLIND — the expected-schema drift detector could not run '
+            . '(migration replay failed), so edited-after-applied column drift is going UNDETECTED until '
+            . 'this is fixed. Investigate the migration set / DB connectivity. Detector error: ' . $error
+        );
+
+        $this->error('Schema drift detector is blind — could not derive the expected schema: ' . $error);
+
+        // Cooldown — skip the fan-out if we alerted recently for the SAME error
+        // (a changed error message bypasses the cooldown), unless --force.
+        $lastError  = (string) $this->state('blind_error', '');
+        $errChanged = $error !== $lastError;
+        $lastSent   = $this->state('blind_last_sent_at');
+
+        if (! $this->option('force') && ! $errChanged && $lastSent) {
+            try {
+                $lastSentAt = Carbon::parse($lastSent);
+                if ($lastSentAt->greaterThan(now()->subHours(self::COOLDOWN_HOURS))) {
+                    $this->info("Within cooldown window (last detector-blind alert {$lastSentAt->diffForHumans()}), error unchanged — not re-sending.");
+                    return;
+                }
+            } catch (\Throwable $e) {
+                // Malformed timestamp — fall through and re-alert; the write
+                // below heals the value.
+            }
+        }
+
+        $this->dispatchBlindAlert($error);
+    }
+
+    private function dispatchBlindAlert(string $error): void
+    {
+        $admins  = $this->admins();
+        $url     = $this->dashboardUrl();
+        $subject = 'Database schema drift detector cannot run';
+        $body    = "The 1INME schema drift detector could not run. It derives the expected database schema by "
+                 . "replaying the migration files, but that replay failed — so it cannot tell whether the live "
+                 . "database has drifted. Edited-after-applied migration drift (a recorded migration later changed "
+                 . "to add columns, which Laravel never re-applies) will go UNDETECTED until this is fixed. This is "
+                 . "the safety net going blind, NOT a confirmed schema problem. Investigate the migration set and "
+                 . "database connectivity on the host running the scheduler.\n\n"
+                 . "Detector error: {$error}";
+
+        $inApp = $this->fanOutInApp($admins, 'expected_columns_detector_blind', $subject, $body, $url, [
+            'detector_error' => $error,
+        ]);
+        $emails = $this->fanOutEmail($admins, $subject, $body, $url);
+
+        $this->putState([
+            'blind_alerting'     => true,
+            'blind_last_sent_at' => now()->toIso8601String(),
+            'blind_error'        => $error,
+        ]);
+
+        $this->info("Detector-blind alert dispatched — in-app: {$inApp}, email: {$emails}.");
+    }
+
+    private function dispatchBlindRecovery(): void
+    {
+        $admins  = $this->admins();
+        $url     = $this->dashboardUrl();
+        $subject = 'Database schema drift detector is back online';
+        $body    = "Good news — the 1INME schema drift detector can run again and is back to actively checking the "
+                 . "live database for edited-after-applied migration drift. No further action needed.";
+
+        $inApp  = $this->fanOutInApp($admins, 'expected_columns_detector_ok', $subject, $body, $url, []);
+        $emails = $this->fanOutEmail($admins, $subject, $body, $url);
+
+        $this->putState([
+            'blind_alerting'     => false,
+            'blind_recovered_at' => now()->toIso8601String(),
+            'blind_error'        => '',
+        ]);
+
+        $this->info("Detector-online recovery dispatched — in-app: {$inApp}, email: {$emails}.");
     }
 
     /**

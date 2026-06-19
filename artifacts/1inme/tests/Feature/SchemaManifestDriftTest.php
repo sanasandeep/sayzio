@@ -2,11 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\Common\Support\SchemaManifest;
+use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserNotification;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -212,6 +220,107 @@ class SchemaManifestDriftTest extends TestCase
 
         $this->assertSame([], $result['added']);
         $this->assertContains('a_table_that_does_not_exist', $result['unrepairable']);
+    }
+
+    public function test_build_reports_unavailable_when_migrations_cannot_be_replayed(): void
+    {
+        // Break the migration set so the replay can't even enumerate the files.
+        // build() must degrade to available=false (carrying the error) rather
+        // than throwing or returning an empty-but-"successful" manifest.
+        $this->breakMigrator('migration files unreadable');
+
+        $manifest = SchemaManifest::build();
+
+        $this->assertFalse($manifest['available'], 'manifest must report unavailable when replay fails');
+        $this->assertArrayHasKey('error', $manifest);
+        $this->assertStringContainsString('migration files unreadable', $manifest['error']);
+        $this->assertSame([], $manifest['tables'], 'no tables should be derived from a failed replay');
+    }
+
+    public function test_compute_propagates_unavailable_when_manifest_is_unavailable(): void
+    {
+        // When the manifest is blind, compute() must NOT treat the empty expected
+        // set as "all healthy" — it has to propagate available=false so callers
+        // (dashboard, readiness probe, hourly alert) degrade to "unknown".
+        $this->breakMigrator('migration files unreadable');
+        SchemaManifest::flush();
+        ExpectedSchemaHealth::flush();
+
+        $report = ExpectedSchemaHealth::compute();
+
+        $this->assertFalse($report['available'], 'compute must not report healthy when the manifest is blind');
+        $this->assertSame(0, $report['scanned']);
+        $this->assertSame([], $report['missing']);
+        $this->assertArrayHasKey('error', $report);
+        $this->assertStringContainsString('migration files unreadable', $report['error']);
+    }
+
+    public function test_hourly_command_alerts_ops_admins_when_detector_is_blind(): void
+    {
+        Mail::fake();
+        $admin = $this->makeOpsAdmin();
+
+        $this->breakMigrator('migration files unreadable');
+        SchemaManifest::flush();
+        ExpectedSchemaHealth::flush();
+
+        $this->artisan('db:check-expected-columns')->assertSuccessful();
+
+        // Ops admin received a DISTINCT detector-blind alert — not a
+        // "schema out of date" / missing-columns alert.
+        $blind = UserNotification::where('user_id', $admin->id)
+            ->where('type', 'expected_columns_detector_blind')
+            ->first();
+        $this->assertNotNull($blind, 'ops admin should get a detector-blind alert');
+        $this->assertSame(
+            0,
+            UserNotification::where('user_id', $admin->id)->where('type', 'expected_columns_missing')->count(),
+            'a blind detector must not masquerade as a missing-columns alert'
+        );
+
+        // The blind episode is tracked under its own state keys, separate from
+        // the missing-columns episode.
+        $state = AppSetting::get('expected_schema_health', []);
+        $this->assertIsArray($state);
+        $this->assertTrue($state['blind_alerting'] ?? false, 'blind episode should be marked open');
+        $this->assertStringContainsString('migration files unreadable', $state['blind_error'] ?? '');
+    }
+
+    /**
+     * Replace the bound migrator with one that throws while enumerating the
+     * migration files, forcing the manifest replay (and thus the detector) to
+     * report itself unavailable.
+     */
+    private function breakMigrator(string $message): void
+    {
+        $this->app->instance('migrator', \Mockery::mock(Migrator::class, function ($mock) use ($message) {
+            $mock->shouldReceive('paths')->andThrow(new \RuntimeException($message));
+            $mock->shouldReceive('getMigrationFiles')->andThrow(new \RuntimeException($message));
+        }));
+    }
+
+    /**
+     * Create a verified user holding `user.ops_alerts.receive` (via the seeded
+     * user-admin role) so the ops-alert fan-out targets them.
+     */
+    private function makeOpsAdmin(): User
+    {
+        $roleId = DB::table('roles')->where('slug', 'user-admin')->where('guard', 'web')->value('id');
+        $this->assertNotNull($roleId, 'user-admin role must be seeded');
+
+        $user = User::create([
+            'name'              => 'Ops ' . Str::random(4),
+            'email'             => 'ops' . Str::random(8) . '@ex.com',
+            'password'          => Hash::make('x'),
+            'status'            => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $user->roles()->syncWithoutDetaching([(int) $roleId]);
+        if (method_exists($user, 'flushPermissionCache')) {
+            $user->flushPermissionCache();
+        }
+
+        return $user->fresh();
     }
 
     /**
