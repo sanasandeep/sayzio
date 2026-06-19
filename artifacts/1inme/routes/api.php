@@ -208,6 +208,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
         Route::post('/auth/logout',[AuthController::class, 'logout']);
 
+        // Post-sign-up email verification reminder (mobile parity with the
+        // web banner). Send a 6-digit code, then confirm it to stamp
+        // email_verified_at. Throttled like the login OTP buckets.
+        Route::post('/auth/email-verify/send',    [AuthController::class, 'sendEmailVerifyCode'])->middleware('throttle:otp-send');
+        Route::post('/auth/email-verify/confirm', [AuthController::class, 'confirmEmailVerifyCode'])->middleware('throttle:otp-verify');
+
         // ── Paid DMs (Task #1210) ───────────────────────────────
         // Mobile-facing wrappers around the same controller methods
         // the web modal uses. Mounted under /api/v1 (Sanctum Bearer,

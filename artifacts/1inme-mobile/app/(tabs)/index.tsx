@@ -18,6 +18,7 @@ import { BrandWordmark } from "@/components/Brand";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkRow } from "@/components/LinkRow";
 import { StatTile } from "@/components/StatTile";
+import { VerifyEmailReminder } from "@/components/VerifyEmailReminder";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getDashboard } from "@/lib/api/dashboard";
@@ -73,6 +74,8 @@ export default function Home() {
             {user?.display_name || user?.email || user?.mobile || "Member"}
           </Text>
         </View>
+
+        <VerifyEmailReminder />
 
         {q.isLoading ? (
           <View style={{ paddingVertical: 32 }}>

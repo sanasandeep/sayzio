@@ -6,8 +6,11 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
 use App\Modules\Api\Support\SessionTokenIssuer;
 use App\Modules\Common\Services\LoginAlertService;
+use App\Modules\Common\Services\OtpService;
+use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -105,5 +108,68 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return $this->ok(['user' => UserResource::toArray($request->user(), self: true)]);
+    }
+
+    /**
+     * Send a 6-digit verification code to the signed-in user's email so a
+     * mobile-first user who skipped verification at sign-up can verify it
+     * now. Mirrors the web AuthController::sendEmailVerifyCode() — reuses the
+     * shared OtpService under the dedicated "verify_email" purpose (guard
+     * "web", so a code is interchangeable between web and mobile). Powers the
+     * in-app reminder banner on mobile.
+     */
+    public function sendEmailVerifyCode(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->email_verified_at) {
+            return $this->ok(['already_verified' => true]);
+        }
+
+        // Mirror the banner's visibility rule: never issue a code when email
+        // verification can't meaningfully apply (mobile-only login policy, or
+        // an account with no email on file).
+        if (!AuthMethods::emailVerificationMeaningful() || !filled($user->email)) {
+            return $this->fail('Email verification is not available for this account.', 422, 'email_verification_unavailable');
+        }
+
+        $otpService = new OtpService();
+        $code = $otpService->generate($user->email, 'email', 'verify_email', 'web', $request->ip());
+        try {
+            $otpService->sendEmail($user->email, $code);
+        } catch (\Exception $e) {
+            Log::warning('Email verification code send failed (api): ' . $e->getMessage());
+        }
+
+        return $this->ok([
+            'sent'  => true,
+            'email' => $user->email,
+        ]);
+    }
+
+    /**
+     * Verify the signed-in user's email using the 6-digit code emailed by
+     * sendEmailVerifyCode(). On success stamps email_verified_at, which makes
+     * the mobile reminder banner disappear. Mirrors the web
+     * AuthController::confirmEmailVerifyCode().
+     */
+    public function confirmEmailVerifyCode(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->email_verified_at) {
+            return $this->ok(['user' => UserResource::toArray($user, self: true)]);
+        }
+
+        $request->validate(['code' => 'required|string|size:6']);
+
+        $otpService = new OtpService();
+        if (!$otpService->verify($user->email, $request->code, 'email', 'verify_email', 'web')) {
+            return $this->fail('Invalid or expired code. Please request a new one.', 422, 'invalid_code');
+        }
+
+        $user->update(['email_verified_at' => now()]);
+
+        return $this->ok(['user' => UserResource::toArray($user->fresh(), self: true)]);
     }
 }

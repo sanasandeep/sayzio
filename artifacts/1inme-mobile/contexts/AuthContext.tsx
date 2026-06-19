@@ -42,6 +42,13 @@ export type AuthUser = {
   mobile?: string | null;
   role?: string | null;
   avatar_url?: string | null;
+  // ISO-8601 timestamp when the email was verified, or null/absent if not.
+  // Drives the in-app "verify your email" reminder (mobile parity with web).
+  email_verified_at?: string | null;
+  // True only when email is a usable sign-in method under the current login
+  // policy — mirrors the web banner's visibility rule so the nudge never
+  // shows for accounts that can never meaningfully verify.
+  email_verification_meaningful?: boolean;
 };
 
 type AuthState = {

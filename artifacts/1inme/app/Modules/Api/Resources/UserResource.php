@@ -31,6 +31,11 @@ class UserResource
                 'role'              => $u->role,
                 'status'            => $u->status,
                 'email_verified_at' => optional($u->email_verified_at)->toIso8601String(),
+                // Mirrors the web reminder-banner visibility rule: only true
+                // when email is a usable sign-in method (not a mobile-only
+                // login policy), so the mobile nudge never shows for accounts
+                // that can never meaningfully verify their email.
+                'email_verification_meaningful' => \App\Modules\Common\Support\AuthMethods::emailVerificationMeaningful(),
                 'onboarded_at'      => optional($u->onboarded_at)->toIso8601String(),
                 'created_at'        => optional($u->created_at)->toIso8601String(),
                 // Plan capabilities relevant to the browser extension's
