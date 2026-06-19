@@ -36,7 +36,68 @@ class EmailVerificationReminderSettingsController extends Controller
             'verificationMeaningful' => AuthMethods::emailVerificationMeaningful(),
             // Impact stats so the cadence isn't a blind toggle.
             'stats' => $this->stats(),
+            // Short weekly trend so admins can see the cadence over time, not
+            // just today's snapshot.
+            'trend' => $this->trend(),
         ]);
+    }
+
+    /**
+     * Build a compact weekly trend of reminders and conversions over the last
+     * several weeks, derived from existing timestamps (no per-send log exists).
+     *
+     * Because only each user's *most recent* reminder timestamp is stored,
+     * "reminded" is the count of users whose latest reminder fell in that week
+     * (a close proxy for reminders sent), and "converted" is users who had at
+     * least one reminder and verified during that week.
+     */
+    private function trend(int $weeks = 8): array
+    {
+        $start = Carbon::now()->startOfWeek()->subWeeks($weeks - 1);
+
+        $reminded = $this->weeklyCounts(
+            User::query()
+                ->whereNotNull('email_verification_reminder_sent_at')
+                ->where('email_verification_reminder_sent_at', '>=', $start),
+            'email_verification_reminder_sent_at'
+        );
+
+        $converted = $this->weeklyCounts(
+            User::query()
+                ->whereNotNull('email_verified_at')
+                ->where('email_verified_at', '>=', $start)
+                ->where('email_verification_reminders_sent', '>', 0),
+            'email_verified_at'
+        );
+
+        $series = [];
+        for ($i = 0; $i < $weeks; $i++) {
+            $weekStart = $start->copy()->addWeeks($i);
+            $key       = $weekStart->format('Y-m-d');
+            $series[]  = [
+                'weekStart' => $weekStart,
+                'label'     => $weekStart->format('M j'),
+                'reminded'  => (int) ($reminded[$key] ?? 0),
+                'converted' => (int) ($converted[$key] ?? 0),
+            ];
+        }
+
+        return $series;
+    }
+
+    /**
+     * Group a query into per-week counts keyed by the ISO week-start date
+     * (Y-m-d, Monday) so it lines up with Carbon's startOfWeek().
+     * The column is internal/whitelisted, never user input.
+     */
+    private function weeklyCounts($query, string $column): array
+    {
+        return $query
+            ->selectRaw("date_trunc('week', {$column}) as wk, count(*) as c")
+            ->groupBy('wk')
+            ->get()
+            ->mapWithKeys(fn ($row) => [Carbon::parse($row->wk)->format('Y-m-d') => (int) $row->c])
+            ->all();
     }
 
     /**

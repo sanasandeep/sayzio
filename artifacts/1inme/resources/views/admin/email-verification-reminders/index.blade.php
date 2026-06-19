@@ -82,6 +82,53 @@
                 <div class="text-[11px] text-white/40 mt-0.5">Received at least one reminder, then verified.</div>
             </div>
         </div>
+
+        @php
+            $trendMax = collect($trend)->flatMap(fn ($w) => [$w['reminded'], $w['converted']])->max() ?: 0;
+            $trendTotalReminded = collect($trend)->sum('reminded');
+            $trendTotalConverted = collect($trend)->sum('converted');
+        @endphp
+
+        <div class="pt-5 mt-5 border-t border-white/10">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-white">Weekly trend</h3>
+                    <p class="text-[11px] text-white/40">
+                        Last {{ count($trend) }} weeks — users reminded (by their most recent reminder) and verifications after a reminder.
+                    </p>
+                </div>
+                <div class="flex items-center gap-4 text-[11px] text-white/60">
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-violet-500"></span> Reminded</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400"></span> Converted</span>
+                </div>
+            </div>
+
+            @if($trendMax === 0)
+                <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs text-white/40 text-center">
+                    No reminders or conversions recorded in this window yet.
+                </div>
+            @else
+                <div class="mt-4 flex items-end justify-between gap-1.5 sm:gap-3 h-32">
+                    @foreach($trend as $w)
+                        <div class="flex-1 flex flex-col items-center justify-end h-full min-w-0">
+                            <div class="flex-1 flex items-end justify-center gap-1 w-full" role="img"
+                                 aria-label="{{ $w['label'] }}: {{ $w['reminded'] }} reminded, {{ $w['converted'] }} converted">
+                                <div class="w-1/2 max-w-[14px] rounded-t bg-violet-500/80 hover:bg-violet-400 transition-colors"
+                                     style="height: {{ $w['reminded'] > 0 ? max(4, round(($w['reminded'] / $trendMax) * 100)) : 0 }}%"
+                                     title="{{ $w['reminded'] }} reminded"></div>
+                                <div class="w-1/2 max-w-[14px] rounded-t bg-emerald-400/80 hover:bg-emerald-300 transition-colors"
+                                     style="height: {{ $w['converted'] > 0 ? max(4, round(($w['converted'] / $trendMax) * 100)) : 0 }}%"
+                                     title="{{ $w['converted'] }} converted"></div>
+                            </div>
+                            <div class="mt-1.5 text-[10px] text-white/40 truncate w-full text-center">{{ $w['label'] }}</div>
+                        </div>
+                    @endforeach
+                </div>
+                <p class="mt-3 text-[11px] text-white/40">
+                    {{ number_format($trendTotalReminded) }} reminded and {{ number_format($trendTotalConverted) }} verified over this window.
+                </p>
+            @endif
+        </div>
     </div>
 
     @if($errors->any())
