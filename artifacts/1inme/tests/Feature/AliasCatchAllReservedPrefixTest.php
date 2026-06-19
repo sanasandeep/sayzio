@@ -114,6 +114,30 @@ class AliasCatchAllReservedPrefixTest extends TestCase
         }
     }
 
+    public function test_both_catch_all_routes_share_the_same_reserved_lookahead(): void
+    {
+        // The page route and its web-app manifest route must always agree on
+        // which aliases are reserved. They differ only in the trailing match
+        // (`[^/]+$` vs `.*$`); the negative-lookahead reserved-word portion
+        // must be byte-for-byte identical, or the two lists have drifted.
+        $routes = Route::getRoutes();
+
+        $handle   = $routes->getByName('redirect.handle')?->wheres['alias'] ?? null;
+        $manifest = $routes->getByName('redirect.manifest')?->wheres['alias'] ?? null;
+
+        $this->assertNotNull($handle, 'redirect.handle route is missing.');
+        $this->assertNotNull($manifest, 'redirect.manifest route is missing.');
+
+        $lookahead = fn (string $pattern): string => preg_replace('/(\[\^\/\]\+|\.\*)\$$/', '', $pattern);
+
+        $this->assertSame(
+            $lookahead($handle),
+            $lookahead($manifest),
+            'The two short-link catch-all routes have drifted apart — derive both '
+            . 'from App\\Modules\\Common\\Support\\ReservedAlias::pattern().'
+        );
+    }
+
     public function test_short_link_with_reserved_letter_prefix_actually_redirects(): void
     {
         $user = User::create([

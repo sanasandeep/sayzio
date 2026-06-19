@@ -507,8 +507,12 @@ Route::prefix('store')->name('store.')->group(function () {
         ->whereNumber('order')->whereNumber('item')->name('download');
 });
 
-Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!(?:user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations|compare|for)(?:/|$)).*$');
-Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!(?:user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|legal|watermark|signed-media|stats|moderation|u|p|c|m|sustainability|checkout|analytics|audience|integrations|compare|for)(?:/|$))[^/]+$');
+// Both catch-all routes derive their reserved-word negative-lookahead from a
+// single shared source (ReservedAlias) so the page route and its web-app
+// manifest route can never drift apart — the drift that caused the original
+// 405 over-match bug (see AliasCatchAllReservedPrefixTest).
+Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', \App\Modules\Common\Support\ReservedAlias::pattern('.*$'));
+Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', \App\Modules\Common\Support\ReservedAlias::pattern('[^/]+$'));
 // ── Conversational Biolink visitor endpoints ─────────────────────
 // Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.
 Route::post('/sl/{alias}/view',            [\App\Modules\Common\Controllers\SlideEventController::class, 'view'])
