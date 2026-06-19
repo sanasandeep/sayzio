@@ -93,10 +93,17 @@ class AuthController extends Controller
         // (if their plan allows) can be created later from the switcher.
         $user->ensureDefaultWorkspace();
 
-        // When email OTP login is switched off (password-only mode), there's
-        // no code to verify — the user already chose a password — so sign
-        // them straight in rather than routing through an OTP they can't use.
-        if ($passwordEnabled && !AuthMethods::emailOtpEnabled()) {
+        // Decide whether the new user can skip email verification and go
+        // straight to their dashboard. This is only possible when a usable
+        // password exists (so they have another way to sign in later) AND
+        // either email OTP login is off (no code to verify — password-only
+        // mode) OR an admin has made verification optional at sign-up. In
+        // OTP-only mode the emailed code is the sole way in, so verification
+        // can never be skipped regardless of the admin toggle.
+        $skipVerification = $passwordEnabled
+            && (!AuthMethods::emailOtpEnabled() || !AuthMethods::emailVerificationRequired());
+
+        if ($skipVerification) {
             Auth::login($user, true);
             $user->update(['last_login_at' => now()]);
             $request->session()->regenerate();

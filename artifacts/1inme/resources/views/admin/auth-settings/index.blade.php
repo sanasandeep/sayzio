@@ -71,6 +71,29 @@
                     </p>
                 </div>
             </label>
+
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
+                <input type="hidden" name="email_verification_required" value="0">
+                <input type="checkbox"
+                       name="email_verification_required"
+                       value="1"
+                       @checked(old('email_verification_required', $emailVerificationRequired))
+                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-white">Require email verification at sign-up</span>
+                        @if($emailVerificationRequired)
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-white/50 mt-0.5">
+                        When on, new users must enter the 6-digit code emailed to them before reaching their dashboard. Turn it off to sign new users in immediately after they register — they can verify later.
+                    </p>
+                    <p class="text-xs text-amber-300/80 mt-1">
+                        Only applies when <strong>email + password login</strong> is enabled. With one-time-code login only, the emailed code is the sole way to sign in, so verification can't be skipped.
+                    </p>
+                </div>
+            </label>
         </div>
 
         <div class="glass rounded-2xl p-6 space-y-4">

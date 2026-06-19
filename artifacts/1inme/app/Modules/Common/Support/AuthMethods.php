@@ -24,6 +24,8 @@ class AuthMethods
     public const SETTING_EMAIL_PASSWORD_ENABLED = 'auth_email_password_enabled';
     public const SETTING_EMAIL_OTP_ENABLED      = 'auth_email_otp_enabled';
 
+    public const SETTING_EMAIL_VERIFICATION_REQUIRED = 'auth_email_verification_required';
+
     /** Seeded defaults when an admin has never saved the settings. */
     public const DEFAULT_ALLOWED_CODES = ['+91', '+1'];
 
@@ -34,6 +36,16 @@ class AuthMethods
      */
     public const DEFAULT_EMAIL_OTP_ENABLED      = true;
     public const DEFAULT_EMAIL_PASSWORD_ENABLED = false;
+
+    /**
+     * Whether a newly-registered user must verify their email (via the
+     * emailed 6-digit code) before reaching their account. Defaults to ON so
+     * existing installations keep forcing verification with no behaviour
+     * change. Only meaningful when password login is available — in OTP-only
+     * mode the emailed code is the sole way in, so verification can never be
+     * skipped regardless of this setting.
+     */
+    public const DEFAULT_EMAIL_VERIFICATION_REQUIRED = true;
 
     /** Is WhatsApp (mobile) login switched on by an admin? */
     public static function mobileLoginEnabled(): bool
@@ -56,6 +68,20 @@ class AuthMethods
         return (bool) AppSetting::get(
             self::SETTING_EMAIL_OTP_ENABLED,
             self::DEFAULT_EMAIL_OTP_ENABLED
+        );
+    }
+
+    /**
+     * Must a new registrant verify their email (via the emailed code) before
+     * reaching their account? Defaults to ON. This only takes effect when a
+     * usable password exists for the account — in OTP-only mode the emailed
+     * code is the only way to authenticate, so it can never be skipped.
+     */
+    public static function emailVerificationRequired(): bool
+    {
+        return (bool) AppSetting::get(
+            self::SETTING_EMAIL_VERIFICATION_REQUIRED,
+            self::DEFAULT_EMAIL_VERIFICATION_REQUIRED
         );
     }
 

@@ -22,9 +22,10 @@ class AuthSettingsController extends Controller
         $credsConfigured = config('whatsapp.phone_number_id') && config('whatsapp.access_token');
 
         return view('admin.auth-settings.index', [
-            'mobileLoginEnabled'   => AuthMethods::mobileLoginEnabled(),
-            'emailPasswordEnabled' => AuthMethods::emailPasswordEnabled(),
-            'emailOtpEnabled'      => AuthMethods::emailOtpEnabled(),
+            'mobileLoginEnabled'         => AuthMethods::mobileLoginEnabled(),
+            'emailPasswordEnabled'       => AuthMethods::emailPasswordEnabled(),
+            'emailOtpEnabled'            => AuthMethods::emailOtpEnabled(),
+            'emailVerificationRequired'  => AuthMethods::emailVerificationRequired(),
             'allowedCodesText'     => implode("\n", AuthMethods::allowedCountryCodes()),
             'credsConfigured'      => (bool) $credsConfigured,
         ]);
@@ -33,10 +34,11 @@ class AuthSettingsController extends Controller
     public function update(Request $request)
     {
         $data = $request->validate([
-            'email_password_enabled' => ['nullable', 'boolean'],
-            'email_otp_enabled'      => ['nullable', 'boolean'],
-            'mobile_login_enabled'   => ['nullable', 'boolean'],
-            'allowed_country_codes'  => ['nullable', 'string', 'max:2000'],
+            'email_password_enabled'       => ['nullable', 'boolean'],
+            'email_otp_enabled'            => ['nullable', 'boolean'],
+            'email_verification_required'  => ['nullable', 'boolean'],
+            'mobile_login_enabled'         => ['nullable', 'boolean'],
+            'allowed_country_codes'        => ['nullable', 'string', 'max:2000'],
         ]);
 
         $emailPasswordEnabled = (bool) ($data['email_password_enabled'] ?? false);
@@ -63,6 +65,10 @@ class AuthSettingsController extends Controller
 
         AppSetting::put(AuthMethods::SETTING_EMAIL_PASSWORD_ENABLED, $emailPasswordEnabled);
         AppSetting::put(AuthMethods::SETTING_EMAIL_OTP_ENABLED, $emailOtpEnabled);
+        AppSetting::put(
+            AuthMethods::SETTING_EMAIL_VERIFICATION_REQUIRED,
+            (bool) ($data['email_verification_required'] ?? false)
+        );
         AppSetting::put(AuthMethods::SETTING_MOBILE_ENABLED, (bool) ($data['mobile_login_enabled'] ?? false));
         AppSetting::put(AuthMethods::SETTING_ALLOWED_CODES, $codes);
 
