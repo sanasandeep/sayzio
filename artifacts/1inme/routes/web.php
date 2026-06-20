@@ -260,6 +260,8 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
         return redirect()->route('site.pricing', ['view' => 'coins'], 301);
     })->name('site.coins');
     Route::get('/premium-features', [\App\Modules\Common\Controllers\PricingPagesController::class, 'features'])->name('site.premium-features');
+    // Public gallery linking every live "explainer" biolink demo page.
+    Route::get('/demos', [\App\Modules\Common\Controllers\SitePageController::class, 'demos'])->name('site.demos');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
         ->where('slug', 'terms|privacy|refunds|cookies|gdpr')
         ->name('site.policy.history');

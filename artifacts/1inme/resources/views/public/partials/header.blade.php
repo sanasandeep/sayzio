@@ -115,6 +115,10 @@
                             <i class="fas fa-scale-balanced text-pink-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Compare 1INME</span><span class="block text-xs text-gray-500">vs Linktree, Beacons, Bitly &amp; more</span></span>
                         </a>
+                        <a href="{{ route('site.demos') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-wand-magic-sparkles text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">See what you can build</span><span class="block text-xs text-gray-500">Live demo of every link type</span></span>
+                        </a>
                         <a href="{{ route('site.discovery') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-compass text-pink-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">Discover creators</span><span class="block text-xs text-gray-500">Browse the public directory</span></span>
@@ -216,6 +220,7 @@
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Solutions</div>
             <a href="{{ route('site.services') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Use cases</a>
             <a href="{{ route('site.compare.index') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Compare 1INME</a>
+            <a href="{{ route('site.demos') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">See what you can build</a>
             <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Discover creators</a>
             <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Creators feed</a>
             <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Buzz</a>

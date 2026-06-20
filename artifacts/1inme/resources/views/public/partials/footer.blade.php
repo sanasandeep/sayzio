@@ -15,6 +15,7 @@
             <div class="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-4">Product</div>
             <ul class="space-y-2.5 text-gray-400">
                 <li><a href="{{ route('site.features') }}" class="hover:text-white transition-colors">Features</a></li>
+                <li><a href="{{ route('site.demos') }}" class="hover:text-white transition-colors">See what you can build</a></li>
                 <li><a href="{{ route('site.how-it-works') }}" class="hover:text-white transition-colors">How it works</a></li>
                 <li><a href="{{ route('site.analytics') }}" class="hover:text-white transition-colors">Analytics</a></li>
                 <li><a href="{{ route('site.audience') }}" class="hover:text-white transition-colors">Audience</a></li>

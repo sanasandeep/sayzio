@@ -178,6 +178,75 @@ class SitePageController extends Controller
     }
 
     /**
+     * /demos — public gallery linking every live "explainer" biolink page,
+     * one per marketing headline link type (slugs `demo-type-*`, seeded by
+     * LinkTypeExplainerSeeder). Copy stays in step with the home "What you
+     * can create" showcase: the card name/icon/description come from the
+     * same Features-page `link-types` category that powers the showcase, and
+     * we only surface a card when its demo page actually exists.
+     */
+    public function demos()
+    {
+        // Showcase copy source (admin-editable). Passing the saved features
+        // sections — or an empty array — lets the helper fall back to the
+        // built-in 10 link types when nothing has been customised.
+        $featuresPage = SitePage::where('slug', 'features')->first();
+        $sections = is_array($featuresPage?->sections) ? $featuresPage->sections : [];
+        $linkTypes = SitePagesContent::featuresLinkTypesFromSections($sections);
+
+        // Live explainer pages, keyed by alias so we only link real pages.
+        $demoLinks = Link::query()
+            ->where('type', 'biolink')
+            ->where('is_active', true)
+            ->where('alias', 'like', 'demo-type-%')
+            ->get(['id', 'alias', 'title'])
+            ->keyBy('alias');
+
+        $cards = [];
+        $seen = [];
+        // Preserve the showcase order, dropping any link type whose demo
+        // page has not been seeded.
+        foreach ($linkTypes as $lt) {
+            $name = trim((string) ($lt['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $alias = 'demo-type-' . \Illuminate\Support\Str::slug($name);
+            if (! $demoLinks->has($alias)) {
+                continue;
+            }
+            $seen[$alias] = true;
+            $cards[] = [
+                'name'        => $name,
+                'icon'        => trim((string) ($lt['icon'] ?? '')) ?: 'fa-link',
+                'description' => trim((string) ($lt['description'] ?? '')),
+                'url'         => url('/' . $alias),
+            ];
+        }
+        // Surface any seeded demo whose name no longer matches a showcase row
+        // (e.g. an admin renamed the showcase entry) so no page is hidden.
+        foreach ($demoLinks as $alias => $link) {
+            if (isset($seen[$alias])) {
+                continue;
+            }
+            $slug = \Illuminate\Support\Str::after($alias, 'demo-type-');
+            $cards[] = [
+                'name'        => $link->title ?: \Illuminate\Support\Str::headline(str_replace('-', ' ', $slug)),
+                'icon'        => 'fa-link',
+                'description' => '',
+                'url'         => url('/' . $alias),
+            ];
+        }
+
+        return view('public.demos', [
+            'seoKey'           => 'demos',
+            'cards'            => $cards,
+            'shareTitle'       => 'See what you can build with 1INME',
+            'shareDescription' => 'A live gallery of every kind of link 1INME can create — short links, biolinks, conversational pages, slides, AI chatbots, restaurant menus, file shares, events, contact cards and reviews pages.',
+        ]);
+    }
+
+    /**
      * /compare — index of every available competitor comparison.
      */
     public function compareIndex()
