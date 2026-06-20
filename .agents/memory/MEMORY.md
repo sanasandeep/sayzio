@@ -54,3 +54,4 @@
 - [Catch-all alias route over-match](alias-route-reserved-prefix-overmatch.md) — bare single-letter reserved tokens (u/p/c/m/f) in the /{alias} negative-lookahead 405'd ~1/12 short links; anchor tokens with (?:/|$). 405≠404 means wrong-method match.
 - [Schema manifest by migration replay](schema-manifest-replay.md) — expected DB schema auto-derived by replaying migration up() under pretend()+Schema-swap; diff via one bulk information_schema query, never per-table.
 - [1inme Laravel Vite/Tailwind](1inme-laravel-vite-tailwind.md) — Blade uses @vite compiled Tailwind v4 (no CDN); public/build is gitignored + no vite dev server, so build assets or pages 500 on missing manifest.
+- [Biolink public list renderer string-only](biolink-public-list-renderer.md) — common/biolink.blade.php has its OWN inline `list`/`list_numbered` renderer that echoes each item as a string; seed/write list items as flat string[], not {text,icon} (only the editor partial normalizes arrays).

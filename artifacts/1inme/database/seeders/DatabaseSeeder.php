@@ -156,6 +156,13 @@ class DatabaseSeeder extends Seeder
         // Safe to call again from `db:seed --class=MarketingBlogPostsSeeder`.
         $this->call(MarketingBlogPostsSeeder::class);
 
+        // 10 hand-written explainer biolink pages (one per marketing
+        // headline link type) seeded into the super-admin account as a live
+        // demo gallery. Idempotent (keyed on alias) and never clobbers a
+        // page an admin has edited. Safe to call again standalone via
+        // `db:seed --class=LinkTypeExplainerSeeder`.
+        $this->call(LinkTypeExplainerSeeder::class);
+
         // 100+ card-container templates surfaced in the biolink editor.
         // Idempotent (matches by slug) so re-running just refreshes copy.
         $this->call(CardTemplateSeeder::class);
