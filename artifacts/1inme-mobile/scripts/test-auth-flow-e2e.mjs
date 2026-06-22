@@ -145,6 +145,125 @@ async function assertSocialButtonsTappable(page) {
   log(`all ${verified} visible social-provider buttons are tappable`);
 }
 
+// Wipe the persisted Sanctum session AND mark onboarding complete, so a
+// direct load of /oauth-callback starts from a clean signed-out slate and
+// the screen's own params decide the outcome (rather than a leftover token).
+// Must run while we're already on the app origin (localStorage is per-origin).
+async function clearSessionKeepOnboarding(page) {
+  await page.evaluate(() => {
+    try {
+      window.localStorage.removeItem("1inme.auth.token");
+      window.localStorage.removeItem("1inme.auth.user");
+      window.localStorage.setItem("1inme.onboarding.complete", "1");
+    } catch {}
+  });
+}
+
+// Load the deep-link return screen directly with a given query string,
+// exactly as the OS would when the provider redirects to
+// 1inme://oauth-callback?… . On web that maps to /oauth-callback?… .
+async function gotoOAuthCallback(page, query) {
+  const url = `${APP_URL.replace(/\/$/, "")}/oauth-callback${query}`;
+  await page.goto(url, {
+    waitUntil: "domcontentloaded",
+    timeout: NAV_TIMEOUT_MS,
+  });
+  // Wait for ANY in-app text so we know the screen actually mounted.
+  await page.waitForFunction(
+    () => document.body && document.body.innerText.trim().length > 0,
+    null,
+    { timeout: NAV_TIMEOUT_MS },
+  );
+}
+
+// The success leg: a redirect carrying ?token=…&user=… must sign the user
+// in (applySession) and land them in the signed-in tabs. This is the exact
+// hand-off the social-button assertion deliberately stops short of, so it
+// would otherwise never be exercised end to end.
+async function runOAuthCallbackSuccess(page) {
+  await clearSessionKeepOnboarding(page);
+  const user = {
+    id: 99,
+    display_name: "OAuth User",
+    email: "oauth@example.com",
+  };
+  const query =
+    `?token=${encodeURIComponent(MOCK_TOKEN)}` +
+    `&user=${encodeURIComponent(JSON.stringify(user))}` +
+    `&provider=google`;
+  await gotoOAuthCallback(page, query);
+  await waitForSignedInTabs(page);
+
+  // The persisted token proves applySession actually ran (not just that a
+  // stale session was lying around — we cleared it first).
+  const storedToken = await page.evaluate(() => {
+    try {
+      return window.localStorage.getItem("1inme.auth.token");
+    } catch {
+      return null;
+    }
+  });
+  if (storedToken !== MOCK_TOKEN) {
+    fail(
+      `oauth-callback success did not persist the session token ` +
+        `(expected ${MOCK_TOKEN}, got ${storedToken})`,
+    );
+  }
+  log("oauth-callback success: token+user redirect landed in the signed-in tabs");
+}
+
+// The failure legs: a cancelled return (?error=access_denied) and a
+// malformed return (no token / no provider creds) must each surface a
+// visible "Sign-in failed" error instead of silently hanging on the
+// spinner. We assert both the heading and that we did NOT slip into the
+// tabs.
+async function runOAuthCallbackErrors(page) {
+  // --- Cancelled / provider-error return.
+  await clearSessionKeepOnboarding(page);
+  await gotoOAuthCallback(page, "?error=access_denied");
+  await page
+    .getByText("Sign-in failed", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  // The screen maps known codes to friendly copy rather than echoing the
+  // raw "access_denied".
+  await page
+    .getByText("You cancelled the sign-in.", { exact: false })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  const inTabsAfterCancel = await page
+    .getByText("Profile", { exact: true })
+    .first()
+    .isVisible()
+    .catch(() => false);
+  if (inTabsAfterCancel) {
+    fail("a cancelled oauth return wrongly signed the user in");
+  }
+  // And there must be a way back rather than a dead end.
+  await page
+    .getByText("Back to sign in", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  log("oauth-callback cancelled return surfaced a friendly error, not a hang");
+
+  // --- Malformed return: no token, no provider/id_token. The screen must
+  // explain the session was missing instead of spinning forever.
+  await clearSessionKeepOnboarding(page);
+  await gotoOAuthCallback(page, "");
+  await page
+    .getByText("Sign-in failed", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  await page
+    .getByText("Sign-in did not return a session", { exact: false })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  const inTabsAfterMalformed = await page
+    .getByText("Profile", { exact: true })
+    .first()
+    .isVisible()
+    .catch(() => false);
+  if (inTabsAfterMalformed) {
+    fail("a malformed oauth return wrongly signed the user in");
+  }
+  log("oauth-callback malformed return surfaced a missing-session error, not a hang");
+}
+
 async function main() {
   log("launching chromium against", APP_URL);
   const browser = await chromium.launch({ headless: true });
@@ -414,7 +533,19 @@ async function main() {
     }
     log("otp/verify request URL, method and body are correct");
 
-    log("PASS: social buttons, demo logins and OTP sign-in all click through.");
+    // -----------------------------------------------------------------
+    // Step 6: the OAuth deep-link return leg. The social buttons above
+    // are only asserted tappable (clicking opens a real external round
+    // trip), so the return screen that actually reads the redirect and
+    // signs the user in is exercised here directly.
+    // -----------------------------------------------------------------
+    await runOAuthCallbackSuccess(page);
+    await runOAuthCallbackErrors(page);
+
+    log(
+      "PASS: social buttons, demo logins, OTP sign-in and the OAuth " +
+        "deep-link return all behave correctly.",
+    );
   } finally {
     await browser.close();
   }
