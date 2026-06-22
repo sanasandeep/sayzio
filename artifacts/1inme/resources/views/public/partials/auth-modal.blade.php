@@ -19,7 +19,7 @@
             </div>
 
             {{-- Right form panel --}}
-            <div class="p-6 sm:p-8">
+            <div class="px-6 pb-6 pt-16 sm:px-8 sm:pb-8 md:pt-8">
                 <div class="flex bg-white/5 rounded-xl p-1 mb-6 text-sm">
                     <button type="button" @click="authTab='login'"
                             :class="authTab==='login' ? 'bg-violet-600 text-white' : 'text-gray-400'"
