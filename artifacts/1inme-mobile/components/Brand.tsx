@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
 import { useColorScheme } from "react-native";
+
+import { fetchBrandLogos } from "@/lib/api/branding";
 
 const wordmarkLight = require("../assets/images/wordmark-dark-text.png");
 const wordmarkDark = require("../assets/images/wordmark-white-text.png");
@@ -14,7 +17,29 @@ export function BrandWordmark({
   align?: "left" | "center" | "right";
 }) {
   const scheme = useColorScheme();
-  const source = scheme === "dark" ? wordmarkDark : wordmarkLight;
+  const [remote, setRemote] = useState<{
+    light: string | null;
+    dark: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchBrandLogos().then((logos) => {
+      if (alive && logos) {
+        setRemote({ light: logos.logoLight, dark: logos.logoDark });
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const isDark = scheme === "dark";
+  // Admin logo wins when available; bundled PNG is the offline/unset fallback.
+  const remoteUri = isDark ? remote?.dark : remote?.light;
+  const fallback = isDark ? wordmarkDark : wordmarkLight;
+  const source = remoteUri ? { uri: remoteUri } : fallback;
+
   const height = size;
   const width = size * 3.4;
   const aligned = align !== "left";

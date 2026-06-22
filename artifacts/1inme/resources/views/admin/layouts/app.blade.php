@@ -121,10 +121,9 @@
             <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile);">
                 <div class="h-[60px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                     <div class="flex items-center gap-2">
-                        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center">
-                            <span class="text-white text-[10px] font-bold">1</span>
-                        </div>
-                        <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span></span>
+                        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center" aria-label="{{ config('app.name', '1INME') }} admin">
+                            @include('common.partials.brand-logo', ['height' => 'h-7'])
+                        </a>
                         <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(124,58,237,0.1); color: var(--accent-light);">Admin</span>
                     </div>
                     <button @click="mobileMenu = false" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>

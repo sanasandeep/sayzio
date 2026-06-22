@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { LOGIN_URL, SIGNUP_URL } from "@/config";
 import { useTheme } from "@/components/theme-provider";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Moon, Sun, Menu, X, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -74,8 +75,8 @@ export function Header() {
     >
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold tracking-tight text-primary">
-            1INME
+          <Link href="/" className="flex items-center" aria-label="1INME home">
+            <BrandLogo imgHeight={28} textClassName="text-xl font-bold tracking-tight text-primary" />
           </Link>
           <nav className="hidden lg:flex items-center gap-1">
             {dropdowns.map((group) => (

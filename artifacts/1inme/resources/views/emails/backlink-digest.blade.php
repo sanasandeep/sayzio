@@ -8,7 +8,7 @@
     <div style="max-width:640px; margin:0 auto; padding:32px 16px;">
         <div style="background:#ffffff; border-radius:12px; padding:32px; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
             <div style="text-align:left; margin-bottom:24px;">
-                <span style="display:inline-block; font-size:22px; font-weight:700; color:#2563eb; letter-spacing:0.5px;">1INME</span>
+                @include('common.partials.brand-logo-email')
             </div>
 
             <h1 style="font-size:20px; color:#1e293b; margin:0 0 8px 0;">

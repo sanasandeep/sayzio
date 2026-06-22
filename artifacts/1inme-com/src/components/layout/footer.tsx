@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Instagram, Facebook, Youtube, Linkedin, Twitter } from "lucide-react";
 import { LOGIN_URL, SIGNUP_URL, SOCIAL_LINKS, type SocialLink } from "@/config";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/layout/brand-logo";
 
 function ThreadsIcon({ className }: { className?: string }) {
   return (
@@ -118,8 +119,8 @@ export function Footer() {
       <div className="container mx-auto px-6 py-16">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-10 mb-16">
           <div className="col-span-2 lg:col-span-2">
-            <Link href="/" className="text-2xl font-bold text-primary mb-4 block">
-              1INME
+            <Link href="/" className="inline-flex items-center mb-4" aria-label="1INME home">
+              <BrandLogo imgHeight={32} textClassName="text-2xl font-bold text-primary" />
             </Link>
             <p className="text-muted-foreground mb-6 max-w-sm">
               One link to everything. The all-in-one link, monetization &amp; growth stack —

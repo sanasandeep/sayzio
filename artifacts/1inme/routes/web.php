@@ -307,6 +307,11 @@ Route::post('/subscriptions/manage/send-link',
     ->name('site.subscriptions.manage.send')
     ->middleware('throttle:10,10');
 
+// ---- Public branding feed (admin logos, CORS-open; consumed by the
+//      marketing site + mobile app). Must precede the catch-all /{alias}. ----
+Route::get('/branding.json', [\App\Modules\Common\Controllers\BrandingFeedController::class, 'feed'])->name('site.branding.feed');
+Route::options('/branding.json', [\App\Modules\Common\Controllers\BrandingFeedController::class, 'feedPreflight']);
+
 // ---- Public Blogs (must precede the catch-all /{alias} routes) ----
 Route::prefix('blogs')->name('site.blogs.')->controller(\App\Modules\Common\Controllers\BlogController::class)->group(function () {
     Route::get('/',                'index')->name('index');
