@@ -5,7 +5,15 @@ description: Why the registered `e2e` validation step gates only the auth-popup 
 
 The `e2e` validation step (created via `setValidationCommand`) runs
 `artifacts/1inme/tests/Browser/run-validation.sh` scoped to
-`home-auth-modal-mobile.spec.ts` only.
+`home-auth-modal-mobile.spec.ts`, then chains the mobile sign-in click-through
+(`pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e`). The two are
+joined with `&&`, so the web spec must pass first; the mobile test relies on
+chromium that run-validation.sh installs (it has no installer of its own).
+
+The mobile test skips gracefully (exit 0) when the Expo dev server is down, but
+that skip costs ~90s (NAV_TIMEOUT_MS): when the Expo workflow is off the proxy
+still answers, so it's `page.waitForFunction` that times out, not connection-
+refused. Budget for that when timing the gate.
 
 **Why:** the full Browser suite cannot run as an unattended gate in this
 environment. Two hard blockers, both unrelated to the code under test:

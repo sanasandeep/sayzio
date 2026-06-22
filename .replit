@@ -44,7 +44,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts && pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e"
 
 [agent]
 stack = "PNPM_WORKSPACE"
