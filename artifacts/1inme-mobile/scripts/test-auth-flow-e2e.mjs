@@ -57,6 +57,14 @@
  *      id_token } to POST /auth/social. Each one asserts it opened the
  *      provider-specific login URL, POSTed the correct provider, and landed in
  *      the signed-in tabs — catching a wrong/missing provider key or handler.
+ *   9. Click EVERY web-browser OAuth provider button through a FAILING
+ *      round-trip too, alternating two mechanisms across the providers: a
+ *      cancelled popup (the backend redirect carries ?error=access_denied) and
+ *      a rejected token (the backend redirect carries provider+id_token but
+ *      POST /auth/social returns 422). Each asserts the friendly "Sign-in
+ *      failed" screen appears, a way back is offered, and the app does NOT sign
+ *      in (no signed-in tabs, no persisted token) — so a provider that hangs or
+ *      wrongly signs the user in on failure is caught.
  *
  * The test no-ops gracefully (skips, exit 0) when a throwaway Expo server
  * can't be booted (expo missing, port contention, bundling too slow) — so it
@@ -913,6 +921,7 @@ async function runWebProviderSuccessPath(page, social, webOauth, providerId, lab
   social.req = null;
   social.mode = "success";
   webOauth.req = null;
+  webOauth.mode = "success";
   // We may be arriving from an /oauth-callback URL (the previous step) or the
   // signed-in tabs (the previous provider). On the CURRENT page (already on the
   // app origin), mark onboarding complete AND clear the persisted session
@@ -1030,6 +1039,169 @@ async function runWebProviderSuccessPath(page, social, webOauth, providerId, lab
   log(
     `${label}: opened /user/social-oauth/${providerId}/login, forwarded ` +
       `{ provider:"${providerId}", id_token } to /auth/social, and signed in`,
+  );
+}
+
+// Drive one web-browser OAuth provider button through a FAILING round-trip. The
+// success loop above only proves the happy path; a provider that hangs,
+// dead-ends, or wrongly signs the user in when the popup is closed or the
+// backend rejects the token would slip past it. Two failure mechanisms are
+// covered (selected by `failureMode`), mirroring how a real failure arrives:
+//
+//   - "cancel": the user closes/denies the provider popup. The mocked backend
+//     redirect carries ?error=access_denied (webOauth.mode="cancel"), so
+//     oauth-callback.tsx maps it to "You cancelled the sign-in." WITHOUT ever
+//     forwarding to /auth/social.
+//   - "backend422": the popup returns a valid provider+id_token, but the
+//     backend rejects it — /auth/social 422s (social.mode="fail"), so
+//     oauth-callback.tsx surfaces the backend's error-envelope message.
+//
+// In BOTH cases we assert the friendly "Sign-in failed" screen appears, there's
+// a way back, and crucially the app does NOT sign the user in — no signed-in
+// tabs and no persisted session token. This is the per-web-provider analogue of
+// runOAuthCallbackNativeError (which only covers the native-SDK leg).
+async function runWebProviderErrorPath(
+  page,
+  social,
+  webOauth,
+  providerId,
+  label,
+  failureMode,
+) {
+  social.req = null;
+  webOauth.req = null;
+  if (failureMode === "cancel") {
+    // The redirect carries ?error=access_denied; /auth/social is never reached.
+    webOauth.mode = "cancel";
+    social.mode = "success";
+  } else {
+    // The redirect carries a valid provider+id_token that /auth/social rejects.
+    webOauth.mode = "success";
+    social.mode = "fail";
+  }
+
+  // Same reset-then-land-on-login dance as the success path: clear the session
+  // BEFORE navigating (a leftover token would boot us signed-in and fire
+  // authenticated calls at the un-mocked backend), then a single goto lands on
+  // the login screen — also escaping any leftover /oauth-callback URL.
+  await page.evaluate(() => {
+    try {
+      window.localStorage.setItem("1inme.onboarding.complete", "1");
+      window.localStorage.removeItem("1inme.auth.token");
+      window.localStorage.removeItem("1inme.auth.user");
+    } catch {}
+  });
+  await page.goto(APP_URL, {
+    waitUntil: "domcontentloaded",
+    timeout: NAV_TIMEOUT_MS,
+  });
+  try {
+    await page
+      .getByText("Welcome back", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+  } catch {
+    await reachLoginScreen(page);
+  }
+
+  const btn = page.locator(`[aria-label="${label}"]`).first();
+  await btn.waitFor({ timeout: STEP_TIMEOUT_MS });
+  if (!(await btn.isVisible())) {
+    fail(`web provider "${label}" button is not visible on the login screen`);
+  }
+
+  // The button must still open the popup even on the failure path — that's the
+  // backend login URL; a missing/broken handler would never open one.
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup", { timeout: STEP_TIMEOUT_MS }),
+    btn.click(),
+  ]);
+  void popup;
+  log(`${label} (${failureMode}): tapped; OAuth popup opened to the backend login URL`);
+
+  // The return screen must surface a friendly failure instead of hanging on the
+  // spinner.
+  await page
+    .getByText("Sign-in failed", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+
+  if (failureMode === "cancel") {
+    // The cancel code maps to friendly copy, and the screen must NOT have
+    // forwarded anything to the backend (it short-circuits on ?error=…).
+    await page
+      .getByText("You cancelled the sign-in.", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+    if (social.req) {
+      fail(
+        `${label} (cancel): a cancelled return must NOT POST to /auth/social, ` +
+          `but it did (${social.req.url})`,
+      );
+    }
+  } else {
+    // The backend's 422 error-envelope message must surface…
+    await page
+      .getByText("We couldn't verify that sign-in", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+    // …and it must actually have attempted the forward with the right provider,
+    // proving the failure came from the rejected request, not a short-circuit.
+    if (!social.req) {
+      fail(`${label} (backend422): never POSTed to /api/v1/auth/social`);
+    }
+    if (social.req.method !== "POST") {
+      fail(
+        `${label} (backend422): auth/social must be a POST, got ${social.req.method}`,
+      );
+    }
+    let body;
+    try {
+      body = JSON.parse(social.req.body ?? "null");
+    } catch {
+      fail(
+        `${label} (backend422): auth/social body was not valid JSON: ${social.req.body}`,
+      );
+    }
+    if (body?.provider !== providerId) {
+      fail(
+        `${label} (backend422): auth/social must forward provider ` +
+          `"${providerId}", got ${JSON.stringify(body)}`,
+      );
+    }
+  }
+
+  // Whichever way it failed, the app must NOT have signed the user in.
+  const inTabs = await page
+    .getByText("Profile", { exact: true })
+    .first()
+    .isVisible()
+    .catch(() => false);
+  if (inTabs) {
+    fail(`${label} (${failureMode}): a failed web sign-in wrongly signed the user in`);
+  }
+  // And no session may have been persisted.
+  const storedToken = await page.evaluate(() => {
+    try {
+      return window.localStorage.getItem("1inme.auth.token");
+    } catch {
+      return null;
+    }
+  });
+  if (storedToken) {
+    fail(
+      `${label} (${failureMode}): a failed web sign-in wrongly persisted a ` +
+        `session token (${storedToken})`,
+    );
+  }
+  // There must be a way back rather than a dead end.
+  await page
+    .getByText("Back to sign in", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+
+  // Restore the shared mocks to their default so later steps aren't affected.
+  webOauth.mode = "success";
+  social.mode = "success";
+
+  log(
+    `${label} (${failureMode}): surfaced a friendly error, stayed on the sign-in ` +
+      `screen, and persisted no session token`,
   );
 }
 
@@ -1194,7 +1366,11 @@ async function main() {
   // provider — and stands in for the backend + OS deep-link by navigating the
   // opener to /oauth-callback with the OAuth result, exactly as the native
   // round-trip would. oauth-callback.tsx then forwards it to /auth/social.
-  const webOauth = { req: null };
+  // `mode` flips the simulated backend redirect: "success" returns a valid
+  // provider+id_token (the happy round-trip), while "cancel" returns
+  // ?error=access_denied — the user closing/denying the provider popup — so the
+  // failure loop can exercise oauth-callback's cancel path per web provider.
+  const webOauth = { req: null, mode: "success" };
   await context.route("**/user/social-oauth/**", async (route) => {
     const req = route.request();
     webOauth.req = { url: req.url(), method: req.method() };
@@ -1205,9 +1381,11 @@ async function main() {
     // EXPO_PUBLIC_DOMAIN), but the app itself is only served from APP_URL, so a
     // relative redirect would strand the opener on a domain without the app.
     const dest =
-      `${new URL(APP_URL).origin}/oauth-callback` +
-      `?provider=${encodeURIComponent(provider)}` +
-      `&id_token=${encodeURIComponent(MOCK_WEB_ID_TOKEN)}`;
+      webOauth.mode === "cancel"
+        ? `${new URL(APP_URL).origin}/oauth-callback?error=access_denied`
+        : `${new URL(APP_URL).origin}/oauth-callback` +
+          `?provider=${encodeURIComponent(provider)}` +
+          `&id_token=${encodeURIComponent(MOCK_WEB_ID_TOKEN)}`;
     await route.fulfill({
       status: 200,
       contentType: "text/html",
@@ -1433,10 +1611,25 @@ async function main() {
       await runWebProviderSuccessPath(page, social, webOauth, id, label);
     }
 
+    // -----------------------------------------------------------------
+    // Step 8: drive EVERY web-browser OAuth provider button through a
+    // FAILING round-trip. The success loop only proves the happy path; a
+    // provider that hangs, dead-ends, or wrongly signs the user in when
+    // the popup is cancelled or the backend 422s would slip past it.
+    // Alternate the two failure mechanisms across providers so both the
+    // cancelled-popup and rejected-token paths are covered.
+    // -----------------------------------------------------------------
+    for (let i = 0; i < WEB_OAUTH_PROVIDERS.length; i++) {
+      const { id, label } = WEB_OAUTH_PROVIDERS[i];
+      const failureMode = i % 2 === 0 ? "cancel" : "backend422";
+      await runWebProviderErrorPath(page, social, webOauth, id, label, failureMode);
+    }
+
     log(
       "PASS: social buttons, demo logins, OTP sign-in, the OAuth deep-link " +
-        "return (browser + native-SDK legs), and every web-browser provider's " +
-        "full sign-in all behave correctly.",
+        "return (browser + native-SDK legs), every web-browser provider's " +
+        "full sign-in, and every web-browser provider's failure path all " +
+        "behave correctly.",
     );
   } finally {
     await browser.close();
