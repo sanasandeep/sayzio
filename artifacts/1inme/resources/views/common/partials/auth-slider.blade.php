@@ -157,7 +157,7 @@
 
                 {{-- Top brand row (modal only) --}}
                 @if($isModal)
-                <div class="absolute top-0 inset-x-0 {{ $padX }} {{ $padTop }} z-10">
+                <div class="absolute top-0 inset-x-0 {{ $padX }} {{ $padTop }} z-10 force-dark-logo">
                     @include('common.partials.brand-logo', ['height' => 'h-9'])
                 </div>
                 @endif
