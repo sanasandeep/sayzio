@@ -23,6 +23,13 @@
  * enough to use as a local check. (Set APP_URL to point the main flow at an
  * already-running server instead — useful for local debugging.)
  *
+ * Speed/CI: Expo boot (well over a minute per server) is the dominant cost, and
+ * the two flows need DIFFERENT bundles (the Google variant must be built with
+ * EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID). To stay inside a constrained CI window the
+ * orchestrator boots BOTH servers in PARALLEL, either server can be REUSED via
+ * APP_URL / GOOGLE_APP_URL (so CI can pre-start them once), and AUTH_FLOW_ONLY
+ * can run just one flow so the suite can be split into two independent jobs.
+ *
  * Strategy (reuses the reachLoginScreen harness from check-icon-fonts.mjs):
  *   1. Boot a throwaway Expo web server (or use APP_URL) and launch headless
  *      Chromium against it, with all /api/** calls intercepted.
@@ -135,15 +142,38 @@ const REQUIRED_SOCIAL_LABELS = [
 ];
 const OPTIONAL_SOCIAL_LABELS = ["Continue with Google"];
 
-// The base URL the main flow drives. Defaults to APP_URL, but main() boots
-// its own throwaway Expo server and points this at it unless an explicit
-// APP_URL was supplied. The /oauth-callback helpers read it.
+// The base URL the main flow drives. Defaults to APP_URL, but the orchestrator
+// boots a throwaway Expo web server and points this at it unless an explicit
+// APP_URL was supplied. Every main-flow helper (oauth-callback, web-provider
+// loops, the popup redirect shim) reads THIS, never the imported APP_URL, so
+// the flow is self-consistent whether its server was booted or reused.
 let appBaseUrl = APP_URL;
 
 // An explicit APP_URL override means "don't boot a throwaway server, use this
-// already-running one" (handy for local debugging). When unset, main() boots
-// its own self-contained server.
+// already-running one" (handy for local debugging and for letting CI pre-start
+// the server once and reuse it). When unset, a throwaway server is booted.
 const EXPLICIT_APP_URL = process.env.APP_URL || null;
+
+// The Google variant needs a server whose bundle was built WITH
+// EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID baked in (Expo inlines EXPO_PUBLIC_* at
+// build time), so it can't share the main flow's plain server. GOOGLE_APP_URL
+// lets CI/local point the variant at an already-running Google-enabled server
+// instead of booting its own — the variant's analogue of APP_URL.
+const EXPLICIT_GOOGLE_APP_URL = process.env.GOOGLE_APP_URL || null;
+
+// Which flow(s) to run. "both" (default) runs the main flow then the Google
+// variant in one process; "main" or "google" runs just that one. Splitting
+// into "main" and "google" lets CI run the two flows as INDEPENDENT, parallel
+// jobs (each booting/reusing only its own server) so neither has to wait on
+// the other's Expo boot — the key to staying inside a constrained time window.
+const FLOW = (process.env.AUTH_FLOW_ONLY || "both").toLowerCase();
+if (!["both", "main", "google"].includes(FLOW)) {
+  console.error(
+    `[test-auth-flow-e2e] FAIL: AUTH_FLOW_ONLY must be "both", "main", or ` +
+      `"google", got "${FLOW}"`,
+  );
+  process.exit(1);
+}
 
 // The web-browser OAuth providers driven end to end in step 7: their provider
 // id (used in the backend /user/social-oauth/{id}/login URL and forwarded to
@@ -467,6 +497,35 @@ async function bootThrowawayExpo(label, extraEnv = {}) {
   return { child, port };
 }
 
+// Every throwaway Expo child we boot is tracked here so it's torn down even on
+// the skip()/fail() paths (which process.exit() directly from deep inside a
+// flow). The "exit" handler must be synchronous — process.kill is — so a
+// group-kill there reliably reaps Metro instead of orphaning it.
+const bootedChildren = new Set();
+function stopAllChildren() {
+  for (const c of bootedChildren) stopExpo(c);
+  bootedChildren.clear();
+}
+process.on("exit", stopAllChildren);
+
+// Acquire a ready-to-drive server for a flow: reuse an already-running one when
+// its *_APP_URL override is set (no boot), otherwise boot a throwaway and track
+// it for teardown. Returns { appUrl, child, explicit } or null when a throwaway
+// couldn't come up (callers SKIP, never fail, on null — the boot contract).
+async function acquireServer(label, explicitUrl, extraEnv = {}) {
+  if (explicitUrl) {
+    return { appUrl: explicitUrl, child: null, explicit: true };
+  }
+  const booted = await bootThrowawayExpo(label, extraEnv);
+  if (!booted) return null;
+  bootedChildren.add(booted.child);
+  return {
+    appUrl: `http://localhost:${booted.port}/`,
+    child: booted.child,
+    explicit: false,
+  };
+}
+
 async function assertGoogleButtonTappable(page) {
   const label = "Continue with Google";
   const btn = page.locator(`[aria-label="${label}"]`).first();
@@ -567,15 +626,13 @@ async function runGoogleSuccessPath(page, social, googleAuth) {
   );
 }
 
-async function runGoogleVariant() {
-  const booted = await bootThrowawayExpo("Google variant", {
-    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: GOOGLE_VARIANT_WEB_CLIENT_ID,
-  });
-  if (!booted) {
-    log("Google variant SKIP: the throwaway Expo server could not start");
-    return;
-  }
-  const { child, port } = booted;
+// Drive the Google-enabled variant against an already-acquired server (booted
+// in parallel by the orchestrator, or reused via GOOGLE_APP_URL). The server's
+// bundle must have EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID baked in for the Google
+// button to render. Teardown of any throwaway child is the orchestrator's job.
+async function runGoogleVariant(server) {
+  const { child } = server;
+  const googleBaseUrl = server.appUrl;
 
   try {
     log("Google variant: loading the login screen");
@@ -699,7 +756,7 @@ async function runGoogleVariant() {
           );
       });
 
-      await page.goto(`http://localhost:${port}/`, {
+      await page.goto(googleBaseUrl, {
         waitUntil: "domcontentloaded",
         timeout: NAV_TIMEOUT_MS,
       });
@@ -938,7 +995,7 @@ async function runWebProviderSuccessPath(page, social, webOauth, providerId, lab
       window.localStorage.removeItem("1inme.auth.user");
     } catch {}
   });
-  await page.goto(APP_URL, {
+  await page.goto(appBaseUrl, {
     waitUntil: "domcontentloaded",
     timeout: NAV_TIMEOUT_MS,
   });
@@ -1091,7 +1148,7 @@ async function runWebProviderErrorPath(
       window.localStorage.removeItem("1inme.auth.user");
     } catch {}
   });
-  await page.goto(APP_URL, {
+  await page.goto(appBaseUrl, {
     waitUntil: "domcontentloaded",
     timeout: NAV_TIMEOUT_MS,
   });
@@ -1205,24 +1262,16 @@ async function runWebProviderErrorPath(
   );
 }
 
-async function main() {
-  // The main flow is self-contained: boot our OWN throwaway Expo web server
-  // (with no API base configured and every backend call mocked below) so we
-  // never depend on the live proxied dev domain or an RDS-backed render.
-  // An explicit APP_URL skips the boot and points at an already-running
-  // server instead.
-  let child = null;
-  if (EXPLICIT_APP_URL) {
-    appBaseUrl = EXPLICIT_APP_URL;
-    log("APP_URL set; using the already-running server at", appBaseUrl);
-  } else {
-    const booted = await bootThrowawayExpo("main flow");
-    if (!booted) {
-      skip("the throwaway Expo server could not start; skipping the main flow");
-      return;
-    }
-    child = booted.child;
-    appBaseUrl = `http://localhost:${booted.port}/`;
+// Drive the main flow against an already-acquired server (booted in parallel by
+// the orchestrator, or reused via APP_URL). The build has no API base
+// configured, so every backend call is mocked below and nothing depends on the
+// live proxied dev domain or an RDS-backed render. Teardown of any throwaway
+// child is the orchestrator's job.
+async function main(server) {
+  const child = server.child; // null when an already-running server is reused
+  appBaseUrl = server.appUrl;
+  if (server.explicit) {
+    log("using the already-running main-flow server at", appBaseUrl);
   }
 
   log("launching chromium against", appBaseUrl);
@@ -1376,14 +1425,15 @@ async function main() {
     webOauth.req = { url: req.url(), method: req.method() };
     const m = new URL(req.url()).pathname.match(/social-oauth\/([^/]+)\/login/);
     const provider = m ? m[1] : "";
-    // The opener must land on the EXPO app's origin (APP_URL), not this popup's
-    // backend origin: getBaseUrl() points OAuth at the proxy domain (via
-    // EXPO_PUBLIC_DOMAIN), but the app itself is only served from APP_URL, so a
-    // relative redirect would strand the opener on a domain without the app.
+    // The opener must land on the EXPO app's origin (appBaseUrl), not this
+    // popup's backend origin: getBaseUrl() points OAuth at the proxy domain
+    // (via EXPO_PUBLIC_DOMAIN), but the app itself is only served from
+    // appBaseUrl, so a relative redirect would strand the opener on a domain
+    // without the app.
     const dest =
       webOauth.mode === "cancel"
-        ? `${new URL(APP_URL).origin}/oauth-callback?error=access_denied`
-        : `${new URL(APP_URL).origin}/oauth-callback` +
+        ? `${new URL(appBaseUrl).origin}/oauth-callback?error=access_denied`
+        : `${new URL(appBaseUrl).origin}/oauth-callback` +
           `?provider=${encodeURIComponent(provider)}` +
           `&id_token=${encodeURIComponent(MOCK_WEB_ID_TOKEN)}`;
     await route.fulfill({
@@ -1449,11 +1499,11 @@ async function main() {
         { timeout: NAV_TIMEOUT_MS },
       );
     } catch (e) {
-      // With an explicit APP_URL the server is someone else's responsibility,
-      // so a connection refused = it's down → skip gracefully. With our own
-      // throwaway server (already confirmed ready) a failure here is a real
-      // problem, so let it propagate.
-      if (EXPLICIT_APP_URL) {
+      // With a reused (explicit) server the server is someone else's
+      // responsibility, so a connection refused = it's down → skip gracefully.
+      // With our own throwaway server (already confirmed ready) a failure here
+      // is a real problem, so let it propagate.
+      if (server.explicit) {
         await browser.close();
         skip(
           `could not reach the server at ${appBaseUrl} ` +
@@ -1633,20 +1683,60 @@ async function main() {
     );
   } finally {
     await browser.close();
-    // Tear down the throwaway server we booted (no-op when an explicit
-    // APP_URL was used, since child stays null).
+    // Free this flow's throwaway server as soon as we're done with it (no-op
+    // when a reused server was used, since child stays null). A backstop in the
+    // process "exit" handler reaps anything left if we exit early.
     stopExpo(child);
   }
 }
 
-// Run the main flow (each booting its own throwaway Expo web server, unless
-// APP_URL points it at an existing one), then the Google-enabled variant
-// (which always boots its own throwaway server with the Google client id).
-// main() exits the process directly on skip/fail; on success it returns and we
-// fall through to the variant.
-main()
-  .then(() => runGoogleVariant())
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
+// Orchestrate the run. The expensive part of this suite is Expo's boot (well
+// over a minute per server), and the two flows need DIFFERENT bundles — the
+// Google variant must be built with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Booting
+// them back-to-back pushed the whole run past a 2-minute CI window. So:
+//   - Acquire both servers in PARALLEL (Promise.all), overlapping the two
+//     boots into roughly one boot's wall-clock instead of two.
+//   - Either flow's server can be REUSED instead of booted (APP_URL /
+//     GOOGLE_APP_URL), so CI can pre-start servers once and skip the boot.
+//   - AUTH_FLOW_ONLY can run just one flow, so CI can split the suite into two
+//     independent, parallel jobs that each boot only their own server.
+// A throwaway that can't come up makes its flow SKIP (exit 0), never fail —
+// preserving the "skip when the env can't bring Metro up" contract.
+async function run() {
+  const runMain = FLOW === "both" || FLOW === "main";
+  const runGoogle = FLOW === "both" || FLOW === "google";
+
+  const [mainServer, googleServer] = await Promise.all([
+    runMain
+      ? acquireServer("main flow", EXPLICIT_APP_URL)
+      : Promise.resolve(null),
+    runGoogle
+      ? acquireServer("Google variant", EXPLICIT_GOOGLE_APP_URL, {
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: GOOGLE_VARIANT_WEB_CLIENT_ID,
+        })
+      : Promise.resolve(null),
+  ]);
+
+  if (runMain) {
+    if (!mainServer) {
+      // No main server → skip the main flow. The "exit" handler reaps any
+      // Google child that did boot in parallel.
+      skip("the throwaway Expo server could not start; skipping the main flow");
+      return;
+    }
+    await main(mainServer);
+  }
+
+  if (runGoogle) {
+    if (!googleServer) {
+      log("Google variant SKIP: the throwaway Expo server could not start");
+      return;
+    }
+    await runGoogleVariant(googleServer);
+  }
+}
+
+run().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
