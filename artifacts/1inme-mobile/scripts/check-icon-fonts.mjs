@@ -23,15 +23,16 @@
  */
 
 import { chromium } from "playwright";
+import { pathToFileURL } from "node:url";
 
-const APP_URL =
+export const APP_URL =
   process.env.APP_URL ||
   (process.env.REPLIT_EXPO_DEV_DOMAIN
     ? `https://${process.env.REPLIT_EXPO_DEV_DOMAIN}/`
     : "http://localhost:8081/");
 
-const NAV_TIMEOUT_MS = 90_000;
-const STEP_TIMEOUT_MS = 30_000;
+export const NAV_TIMEOUT_MS = 90_000;
+export const STEP_TIMEOUT_MS = 30_000;
 
 // The Google button only renders when a Google client id is configured
 // (HAS_GOOGLE_NATIVE in app/(auth)/index.tsx) — on web without
@@ -57,7 +58,7 @@ function fail(msg) {
   process.exit(1);
 }
 
-async function reachLoginScreen(page) {
+export async function reachLoginScreen(page) {
   // Try to skip onboarding via the localStorage flag the app reads on web.
   await page.evaluate(() => {
     try {
@@ -229,7 +230,13 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+const invokedDirectly =
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (invokedDirectly) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
