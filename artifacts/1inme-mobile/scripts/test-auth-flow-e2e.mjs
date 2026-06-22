@@ -10,14 +10,28 @@
  * focus, or the verify screen failing to mount. This test renders the actual
  * screen and clicks through it, so those breaks surface.
  *
+ * The login screen has three sign-in paths, and a visual break in any of
+ * them slips past the source-replay test. This harness exercises all three:
+ *   - Email OTP: type an email, "Send code", type a code, "Verify and sign in".
+ *   - Demo logins: "Demo as user" / "Demo as admin" (POST /api/v1/auth/demo).
+ *   - Social providers: six web-browser OAuth buttons (+ Google when built).
+ *
  * Strategy (reuses the reachLoginScreen harness from check-icon-fonts.mjs):
  *   1. Launch headless Chromium against the running Expo web build.
  *   2. Walk onboarding to the "Welcome back" login screen.
- *   3. Type an email, intercept POST **\/api/v1/auth/otp/send and fulfill it
+ *   3. Assert every visible social-provider button is tappable (rendered,
+ *      visible, not disabled) — a hidden/untappable button would otherwise
+ *      ship unnoticed. We don't click them: that opens a real OAuth
+ *      round-trip in an external browser.
+ *   4. Click each demo button with POST **\/api/v1/auth/demo intercepted and
+ *      fulfilled with a mock {data:{token,user}}; assert the request role and
+ *      that the app lands in the signed-in tabs. Reset to the login screen
+ *      between runs by clearing the stored session.
+ *   5. Type an email, intercept POST **\/api/v1/auth/otp/send and fulfill it
  *      with a mock 200 (so no real OTP is sent and production is never hit),
  *      asserting the request URL / method / body. Then click "Send code" and
  *      assert the verify screen appears ("Check your inbox").
- *   4. Type a code, intercept **\/api/v1/auth/otp/verify returning
+ *   6. Type a code, intercept **\/api/v1/auth/otp/verify returning
  *      {data:{token,user}}, click "Verify and sign in", and assert the app
  *      lands in the signed-in tabs.
  *
@@ -46,6 +60,20 @@ const EMAIL = "creator@example.com";
 const CODE = "123456";
 const MOCK_TOKEN = "sanctum-token-e2e";
 
+// The web-browser OAuth providers always render on the login screen (see
+// WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx); their accessibility labels
+// are the minimum set this test requires to be tappable. Google only renders
+// when a Google client id is configured, so it's verified opportunistically.
+const REQUIRED_SOCIAL_LABELS = [
+  "Continue with Instagram",
+  "Continue with Facebook",
+  "Continue with X",
+  "Continue with LinkedIn",
+  "Continue with Pinterest",
+  "Continue with TikTok",
+];
+const OPTIONAL_SOCIAL_LABELS = ["Continue with Google"];
+
 function log(...args) {
   console.log("[test-auth-flow-e2e]", ...args);
 }
@@ -60,6 +88,63 @@ function skip(msg) {
   process.exit(0);
 }
 
+// Wait for the signed-in tab bar — the "Profile" tab label never appears on
+// the auth screens, so it's our "we're in" signal. Mirrors the OTP step.
+async function waitForSignedInTabs(page) {
+  await page
+    .getByText("Profile", { exact: true })
+    .first()
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+}
+
+// Clear the persisted Sanctum session (token + user) so a reload drops us
+// back at the login screen, then walk onboarding again. Used between the
+// demo-login runs (each one signs in and lands in the tabs). Keeps the
+// onboarding-complete flag so we don't re-walk the carousel from scratch.
+async function resetToLogin(page) {
+  await page.evaluate(() => {
+    try {
+      window.localStorage.removeItem("1inme.auth.token");
+      window.localStorage.removeItem("1inme.auth.user");
+    } catch {}
+  });
+  await reachLoginScreen(page);
+}
+
+// Assert each visible social-provider button is tappable: present, visible,
+// and not disabled. A hidden, removed, or stuck-disabled button is exactly
+// the kind of visual break the source-replay test can't see.
+async function assertSocialButtonsTappable(page) {
+  let verified = 0;
+  for (const label of [...REQUIRED_SOCIAL_LABELS, ...OPTIONAL_SOCIAL_LABELS]) {
+    const optional = OPTIONAL_SOCIAL_LABELS.includes(label);
+    const btn = page.locator(`[aria-label="${label}"]`).first();
+    const present = (await btn.count()) > 0;
+    if (!present) {
+      // Optional providers (Google without a client id) may be absent.
+      if (optional) continue;
+      fail(`social button "${label}" is missing from the login screen`);
+    }
+    if (!(await btn.isVisible())) {
+      fail(`social button "${label}" is present but not visible`);
+    }
+    // React Native Web renders a disabled Pressable with aria-disabled="true".
+    // Read it directly rather than relying on role-specific isEnabled() heuristics.
+    const ariaDisabled = await btn.getAttribute("aria-disabled");
+    if (ariaDisabled === "true") {
+      fail(`social button "${label}" is disabled and can't be tapped`);
+    }
+    verified++;
+  }
+  if (verified < REQUIRED_SOCIAL_LABELS.length) {
+    fail(
+      `expected at least ${REQUIRED_SOCIAL_LABELS.length} tappable social ` +
+        `buttons, only verified ${verified}`,
+    );
+  }
+  log(`all ${verified} visible social-provider buttons are tappable`);
+}
+
 async function main() {
   log("launching chromium against", APP_URL);
   const browser = await chromium.launch({ headless: true });
@@ -71,11 +156,13 @@ async function main() {
   page.setDefaultTimeout(STEP_TIMEOUT_MS);
   page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
 
-  // ---- Intercept the two auth endpoints so we never touch a real backend.
+  // ---- Intercept the auth endpoints so we never touch a real backend.
   // We record the requests so we can assert their URL / method / body, and
   // fulfill them with the exact `{data:{...}}` envelopes the app expects.
   let sendReq = null;
   let verifyReq = null;
+  // Mutable holder for the most recent demo request, reset before each run.
+  const demo = { req: null };
 
   await page.route("**/api/v1/auth/otp/send", async (route) => {
     const req = route.request();
@@ -114,6 +201,73 @@ async function main() {
     });
   });
 
+  await page.route("**/api/v1/auth/demo", async (route) => {
+    const req = route.request();
+    demo.req = {
+      url: req.url(),
+      method: req.method(),
+      body: req.postData(),
+    };
+    let role = "user";
+    try {
+      role = JSON.parse(req.postData() ?? "{}")?.role ?? "user";
+    } catch {}
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: {
+          token: MOCK_TOKEN,
+          user: {
+            id: role === "user" ? 11 : 12,
+            display_name: role === "user" ? "Demo User" : "Demo Admin",
+            email: role === "user" ? "demo-user@example.com" : "demo-admin@example.com",
+          },
+        },
+      }),
+    });
+  });
+
+  // Drives one demo button end to end: assert it's tappable, click it, mock
+  // /auth/demo, and assert the app lands in the signed-in tabs with the
+  // right role on the wire.
+  async function runDemoFlow(buttonLabel, expectedRole) {
+    demo.req = null;
+    const btn = page.getByText(buttonLabel, { exact: true });
+    await btn.waitFor({ timeout: STEP_TIMEOUT_MS });
+    if (!(await btn.isVisible())) {
+      fail(`the "${buttonLabel}" button is not visible on the login screen`);
+    }
+    await btn.click();
+    log(`clicked "${buttonLabel}"`);
+
+    await waitForSignedInTabs(page);
+    log(`"${buttonLabel}" landed in the signed-in tabs`);
+
+    if (!demo.req) {
+      fail(`"${buttonLabel}" never POSTed to /api/v1/auth/demo`);
+    }
+    if (demo.req.method !== "POST") {
+      fail(`auth/demo must be a POST, got ${demo.req.method}`);
+    }
+    if (!/\/api\/v1\/auth\/demo$/.test(new URL(demo.req.url).pathname)) {
+      fail(`auth/demo hit the wrong URL: ${demo.req.url}`);
+    }
+    let body;
+    try {
+      body = JSON.parse(demo.req.body ?? "null");
+    } catch {
+      fail(`auth/demo body was not valid JSON: ${demo.req.body}`);
+    }
+    if (body?.role !== expectedRole) {
+      fail(
+        `"${buttonLabel}" must POST { role: "${expectedRole}" }, ` +
+          `got ${JSON.stringify(body)}`,
+      );
+    }
+    log(`auth/demo request method, URL and role ("${expectedRole}") are correct`);
+  }
+
   try {
     try {
       await page.goto(APP_URL, {
@@ -141,7 +295,23 @@ async function main() {
     await reachLoginScreen(page);
 
     // -----------------------------------------------------------------
-    // Step 1: the login screen renders an email field + a tappable
+    // Step 1: every visible social-provider button is tappable.
+    // -----------------------------------------------------------------
+    await assertSocialButtonsTappable(page);
+
+    // -----------------------------------------------------------------
+    // Step 2: both demo buttons click through to the signed-in tabs.
+    // Each one signs in, so reset back to the login screen between runs
+    // (and again before the OTP flow).
+    // -----------------------------------------------------------------
+    await runDemoFlow("Demo as user", "user");
+    await resetToLogin(page);
+
+    await runDemoFlow("Demo as admin", "super_admin");
+    await resetToLogin(page);
+
+    // -----------------------------------------------------------------
+    // Step 3: the login screen renders an email field + a tappable
     // "Send code" button.
     // -----------------------------------------------------------------
     const emailField = page.getByPlaceholder("you@example.com");
@@ -159,7 +329,7 @@ async function main() {
     log('clicked "Send code"');
 
     // -----------------------------------------------------------------
-    // Step 2: the OTP-send request fired with the right URL/method/body,
+    // Step 4: the OTP-send request fired with the right URL/method/body,
     // and the screen advanced to the verify step.
     // -----------------------------------------------------------------
     await page
@@ -191,7 +361,7 @@ async function main() {
     log("otp/send request URL, method and body are correct");
 
     // -----------------------------------------------------------------
-    // Step 3: typing the code and verifying signs the user in (lands in
+    // Step 5: typing the code and verifying signs the user in (lands in
     // the signed-in tabs).
     // -----------------------------------------------------------------
     const codeField = page.getByPlaceholder("123456");
@@ -206,10 +376,7 @@ async function main() {
 
     // The signed-in tab bar shows the "Profile" tab label, which never
     // appears on the auth screens. Wait for it as the "we're in" signal.
-    await page
-      .getByText("Profile", { exact: true })
-      .first()
-      .waitFor({ timeout: STEP_TIMEOUT_MS });
+    await waitForSignedInTabs(page);
     // And the verify header should be gone.
     const stillOnVerify = await page
       .getByText("Check your inbox", { exact: false })
@@ -247,7 +414,7 @@ async function main() {
     }
     log("otp/verify request URL, method and body are correct");
 
-    log("PASS: sign-in flow renders and clicks through end to end.");
+    log("PASS: social buttons, demo logins and OTP sign-in all click through.");
   } finally {
     await browser.close();
   }
