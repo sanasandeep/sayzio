@@ -9,6 +9,7 @@
     $pricingHref = request()->routeIs('home') ? '#pricing' : route('site.pricing');
 @endphp
 <div x-data="{ mobileOpen:false, openMenu:null {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }"
+     x-effect="document.body.style.overflow = mobileOpen ? 'hidden' : ''"
      @keydown.escape.window="openMenu=null; mobileOpen=false"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authOpen = true; mobileOpen = false"' : '' !!}>
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5" style="top: var(--inme-anno-h, 0px);">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
