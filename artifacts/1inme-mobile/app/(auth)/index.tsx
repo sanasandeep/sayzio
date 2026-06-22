@@ -1,7 +1,7 @@
 import { Ionicons, Feather } from "@expo/vector-icons";
 import * as Google from "expo-auth-session/providers/google";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import {
@@ -108,6 +108,13 @@ export default function AuthLanding() {
   const router = useRouter();
   const auth = useAuth();
   const { sendOtp, demoLogin, socialLogin } = auth;
+
+  // When the OAuth return screen sends users here to fall back to email
+  // (?method=email), default to the email tab and focus the field so the
+  // recovery path is one tap, not a hunt for the right input.
+  const { method } = useLocalSearchParams<{ method?: string | string[] }>();
+  const methodParam = Array.isArray(method) ? method[0] : method;
+  const [autoFocusEmail] = useState(methodParam === "email");
 
   // Native Google sign-in via expo-auth-session. Returns an id_token
   // that we POST to /auth/social (per OpenAPI). The hook is no-op
@@ -377,6 +384,7 @@ export default function AuthLanding() {
           placeholder={channel === "email" ? "you@example.com" : "+1 555 123 4567"}
           autoCapitalize="none"
           autoCorrect={false}
+          autoFocus={autoFocusEmail && channel === "email"}
           keyboardType={channel === "email" ? "email-address" : "phone-pad"}
           value={identifier}
           onChangeText={setIdentifier}

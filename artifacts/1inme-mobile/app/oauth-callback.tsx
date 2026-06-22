@@ -7,6 +7,19 @@ import { useAuth, type AuthUser } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
+// Friendly display names for the providers we name in failure copy. Mirrors
+// the SOCIALS labels in app/(auth)/index.tsx — note "twitter" shows as "X".
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  apple: "Apple",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  twitter: "X",
+  linkedin: "LinkedIn",
+  pinterest: "Pinterest",
+  tiktok: "TikTok",
+};
+
 export default function OAuthCallback() {
   const colors = useColors();
   const router = useRouter();
@@ -24,6 +37,9 @@ export default function OAuthCallback() {
   }>();
 
   const [error, setError] = useState<string | null>(null);
+  // The provider that failed, when the redirect tells us which one it was.
+  // Drives the provider-specific guidance line on the failure screen.
+  const [providerLabel, setProviderLabel] = useState<string | null>(null);
   const ran = useRef(false);
 
   useEffect(() => {
@@ -32,6 +48,10 @@ export default function OAuthCallback() {
 
     const first = (v: string | string[] | undefined) =>
       Array.isArray(v) ? v[0] : v;
+
+    // Resolve the provider up front so every failure branch can name it.
+    const provider = first(params.provider);
+    const label = provider ? (PROVIDER_LABELS[provider] ?? null) : null;
 
     const errParam = first(params.error);
     if (errParam) {
@@ -46,6 +66,8 @@ export default function OAuthCallback() {
         redirect_uri_mismatch:
           "The mobile redirect URL isn't allowed by the backend. Tell support the redirect URI 1inme://oauth-callback isn't whitelisted.",
       };
+      // Don't blame the provider when the user simply cancelled.
+      if (label && errParam !== "access_denied") setProviderLabel(label);
       setError(map[errParam] ?? errParam);
       return;
     }
@@ -64,7 +86,10 @@ export default function OAuthCallback() {
           router.replace("/(tabs)");
           maybeOfferBiometricEnrollment(auth);
         })
-        .catch((e) => setError(e?.message ?? "Could not complete sign-in"));
+        .catch((e) => {
+          if (label) setProviderLabel(label);
+          setError(e?.message ?? "Could not complete sign-in");
+        });
       return;
     }
 
@@ -72,7 +97,6 @@ export default function OAuthCallback() {
     // forward to POST /auth/social per OpenAPI. (No client-side OAuth
     // code-exchange path: the backend doesn't expose one, and the
     // browser-based flow returns a ready-to-use token directly.)
-    const provider = first(params.provider);
     const idToken = first(params.id_token);
     const accessToken = first(params.access_token);
 
@@ -86,7 +110,10 @@ export default function OAuthCallback() {
           router.replace("/(tabs)");
           maybeOfferBiometricEnrollment(auth);
         })
-        .catch((e) => setError(e?.message ?? "Sign-in failed"));
+        .catch((e) => {
+          if (label) setProviderLabel(label);
+          setError(e?.message ?? "Sign-in failed");
+        });
       return;
     }
 
@@ -107,14 +134,31 @@ export default function OAuthCallback() {
           <Text style={[styles.title, { color: colors.foreground }]}>
             Sign-in failed
           </Text>
+          {providerLabel ? (
+            <Text style={[styles.body, { color: colors.foreground }]}>
+              {providerLabel} sign-in is having issues right now — you can use
+              email instead.
+            </Text>
+          ) : null}
           <Text style={[styles.body, { color: colors.mutedForeground }]}>
             {error}
           </Text>
-          <Button
-            label="Back to sign in"
-            variant="outline"
-            onPress={() => router.replace("/(auth)")}
-          />
+          <View style={styles.actions}>
+            <Button
+              label="Use email instead"
+              onPress={() =>
+                router.replace({
+                  pathname: "/(auth)",
+                  params: { method: "email" },
+                })
+              }
+            />
+            <Button
+              label="Back to sign in"
+              variant="outline"
+              onPress={() => router.replace("/(auth)")}
+            />
+          </View>
         </>
       ) : (
         <>
@@ -142,4 +186,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
   },
+  actions: { alignSelf: "stretch", gap: 12 },
 });

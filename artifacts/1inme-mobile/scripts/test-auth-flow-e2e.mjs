@@ -71,7 +71,11 @@
  *      POST /auth/social returns 422). Each asserts the friendly "Sign-in
  *      failed" screen appears, a way back is offered, and the app does NOT sign
  *      in (no signed-in tabs, no persisted token) — so a provider that hangs or
- *      wrongly signs the user in on failure is caught.
+ *      wrongly signs the user in on failure is caught. When the failing return
+ *      names the provider (the rejected-token leg), the screen must NAME it
+ *      ("Instagram sign-in is having issues") and offer a one-tap "Use email
+ *      instead" fallback that lands on the email sign-in field; a plain cancel
+ *      offers the same fallback but blames no provider.
  *
  * The test no-ops gracefully (skips, exit 0) when a throwaway Expo server
  * can't be booted (expo missing, port contention, bundling too slow) — so it
@@ -352,10 +356,23 @@ async function runOAuthCallbackErrors(page) {
   if (inTabsAfterCancel) {
     fail("a cancelled oauth return wrongly signed the user in");
   }
-  // And there must be a way back rather than a dead end.
+  // And there must be a way back rather than a dead end, plus a clear email
+  // fallback. A plain cancel doesn't blame any provider, so no provider-down
+  // guidance line should appear here.
   await page
     .getByText("Back to sign in", { exact: true })
     .waitFor({ timeout: STEP_TIMEOUT_MS });
+  await page
+    .getByText("Use email instead", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  const namedProviderOnCancel = await page
+    .getByText("sign-in is having issues", { exact: false })
+    .first()
+    .isVisible()
+    .catch(() => false);
+  if (namedProviderOnCancel) {
+    fail("a plain cancelled return wrongly blamed a specific provider");
+  }
   log("oauth-callback cancelled return surfaced a friendly error, not a hang");
 
   // --- Malformed return: no token, no provider/id_token. The screen must
@@ -376,6 +393,10 @@ async function runOAuthCallbackErrors(page) {
   if (inTabsAfterMalformed) {
     fail("a malformed oauth return wrongly signed the user in");
   }
+  // The email fallback is offered on every failure screen.
+  await page
+    .getByText("Use email instead", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
   log("oauth-callback malformed return surfaced a missing-session error, not a hang");
 }
 
@@ -937,6 +958,11 @@ async function runOAuthCallbackNativeError(page, social) {
   await page
     .getByText("We couldn't verify that sign-in", { exact: false })
     .waitFor({ timeout: STEP_TIMEOUT_MS });
+  // The redirect named the provider (apple), so the screen must name it and
+  // point the user at email rather than echoing only the raw backend message.
+  await page
+    .getByText("Apple sign-in is having issues", { exact: false })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
   // It must actually have attempted the forward — proving the failure came
   // from the rejected request, not a missing-creds short-circuit.
   if (!social.req) {
@@ -1198,6 +1224,14 @@ async function runWebProviderErrorPath(
     await page
       .getByText("We couldn't verify that sign-in", { exact: false })
       .waitFor({ timeout: STEP_TIMEOUT_MS });
+    // …and because the redirect carried the provider, the screen must NAME it
+    // and steer the user to email — provider-specific guidance, not a generic
+    // echo of the backend message. The display name is the button label minus
+    // the "Continue with " prefix (so "twitter" reads as "X").
+    const displayName = label.replace(/^Continue with /, "");
+    await page
+      .getByText(`${displayName} sign-in is having issues`, { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
     // …and it must actually have attempted the forward with the right provider,
     // proving the failure came from the rejected request, not a short-circuit.
     if (!social.req) {
@@ -1251,6 +1285,21 @@ async function runWebProviderErrorPath(
   await page
     .getByText("Back to sign in", { exact: true })
     .waitFor({ timeout: STEP_TIMEOUT_MS });
+  // …plus a clear fallback to email OTP, the actionable next step when a single
+  // provider misbehaves.
+  await page
+    .getByText("Use email instead", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+
+  // Tapping the fallback must land back on the email sign-in screen with the
+  // email field ready (provider-down recovery is one tap, not a dead end).
+  if (failureMode === "backend422") {
+    await page.getByText("Use email instead", { exact: true }).click();
+    await page
+      .getByPlaceholder("you@example.com")
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+    log(`${label} (backend422): "Use email instead" landed on the email sign-in field`);
+  }
 
   // Restore the shared mocks to their default so later steps aren't affected.
   webOauth.mode = "success";
