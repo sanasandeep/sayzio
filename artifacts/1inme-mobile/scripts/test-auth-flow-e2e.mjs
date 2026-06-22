@@ -47,6 +47,11 @@
  *             on Replit, or http://localhost:8081 locally).
  */
 
+import { spawn } from "node:child_process";
+import net from "node:net";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { chromium } from "playwright";
 
 import {
@@ -55,6 +60,20 @@ import {
   STEP_TIMEOUT_MS,
   reachLoginScreen,
 } from "./check-icon-fonts.mjs";
+
+// Root of the mobile artifact (one level up from scripts/). Used to spawn the
+// throwaway Google-enabled Expo server for the variant below.
+const MOBILE_ROOT = path.resolve(fileURLToPath(import.meta.url), "..", "..");
+
+// A dummy Google web client id. Its value never matters — it only needs to be
+// truthy so HAS_GOOGLE_NATIVE / GOOGLE_AUTH_SAFE_TO_INIT flip on and the
+// Google button renders (and the real useIdTokenAuthRequest hook runs).
+const GOOGLE_VARIANT_WEB_CLIENT_ID =
+  "1inme-e2e-test.apps.googleusercontent.com";
+
+// How long to wait for the throwaway Expo server to report ready before
+// giving up and skipping the variant.
+const EXPO_BOOT_DEADLINE_MS = 180_000;
 
 const EMAIL = "creator@example.com";
 const CODE = "123456";
@@ -262,6 +281,192 @@ async function runOAuthCallbackErrors(page) {
     fail("a malformed oauth return wrongly signed the user in");
   }
   log("oauth-callback malformed return surfaced a missing-session error, not a hang");
+}
+
+// ---------------------------------------------------------------------------
+// Google-enabled variant.
+//
+// On the default web build the Google button is intentionally absent — no
+// EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is set, so HAS_GOOGLE_NATIVE is false. The
+// main flow above can therefore only verify it opportunistically and never
+// exercises it. A break in the Google path — the guarded
+// useIdTokenAuthRequest hook throwing at render (which crashes the whole
+// login screen into the error boundary) or the button rendering disabled —
+// would slip past unnoticed.
+//
+// We can't flip the button on against the already-running server because Expo
+// inlines EXPO_PUBLIC_* into the web bundle at build time, so the value has to
+// be present when Metro builds. This variant boots a SECOND, throwaway Expo
+// web dev server with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID set, then asserts the
+// login screen still mounts and the Google button is tappable.
+//
+// Booting that server is best-effort: if it can't start (expo missing, port
+// contention, bundling too slow) we skip the variant rather than fail CI —
+// mirroring the "skip when the dev server is down" contract of the main flow.
+
+function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+// Poll the Expo dev server's /status endpoint (it returns the literal
+// "packager-status:running" once Metro is up) until ready or the deadline.
+async function waitForExpoStatus(port, deadlineMs) {
+  const url = `http://localhost:${port}/status`;
+  const start = Date.now();
+  while (Date.now() - start < deadlineMs) {
+    try {
+      const res = await fetch(url);
+      const text = await res.text().catch(() => "");
+      if (res.ok && /packager-status:running/.test(text)) return true;
+    } catch {
+      // not up yet
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return false;
+}
+
+// Kill the spawned Expo server and the whole process group it leads (expo
+// spawns Metro children; killing only the parent would orphan them).
+function stopExpo(child) {
+  if (!child || child.killed) return;
+  try {
+    process.kill(-child.pid, "SIGTERM");
+  } catch {
+    try {
+      child.kill("SIGTERM");
+    } catch {
+      // already gone
+    }
+  }
+}
+
+async function assertGoogleButtonTappable(page) {
+  const label = "Continue with Google";
+  const btn = page.locator(`[aria-label="${label}"]`).first();
+  if ((await btn.count()) === 0) {
+    fail(
+      `Google variant: "${label}" did not render even with a web client id ` +
+        `configured — the Google sign-in button is broken or gated off`,
+    );
+  }
+  if (!(await btn.isVisible())) {
+    fail(`Google variant: "${label}" is present but not visible`);
+  }
+  // React Native Web renders a disabled Pressable with aria-disabled="true".
+  const ariaDisabled = await btn.getAttribute("aria-disabled");
+  if (ariaDisabled === "true") {
+    fail(`Google variant: "${label}" is disabled and can't be tapped`);
+  }
+  log(`Google variant: "${label}" rendered, visible and tappable`);
+}
+
+async function runGoogleVariant() {
+  let port;
+  try {
+    port = await getFreePort();
+  } catch (e) {
+    log(`Google variant SKIP: could not allocate a port (${e?.message ?? e})`);
+    return;
+  }
+
+  log(
+    `Google variant: booting a throwaway Expo web server on :${port} ` +
+      `with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID set`,
+  );
+  const child = spawn(
+    "pnpm",
+    ["exec", "expo", "start", "--localhost", "--port", String(port)],
+    {
+      cwd: MOBILE_ROOT,
+      detached: true,
+      stdio: ["ignore", "ignore", "ignore"],
+      env: {
+        ...process.env,
+        EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: GOOGLE_VARIANT_WEB_CLIENT_ID,
+        CI: "1",
+        BROWSER: "none",
+        EXPO_NO_TELEMETRY: "1",
+      },
+    },
+  );
+
+  let spawnFailed = false;
+  child.on("error", (e) => {
+    spawnFailed = true;
+    log(`Google variant: expo failed to spawn (${e?.message ?? e})`);
+  });
+
+  try {
+    const ready = await waitForExpoStatus(port, EXPO_BOOT_DEADLINE_MS);
+    if (spawnFailed || !ready) {
+      log(
+        `Google variant SKIP: the throwaway Expo server didn't become ready ` +
+          `within ${Math.round(EXPO_BOOT_DEADLINE_MS / 1000)}s`,
+      );
+      return;
+    }
+    log("Google variant: Expo server is ready; loading the login screen");
+
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const context = await browser.newContext({
+        viewport: { width: 400, height: 720 },
+      });
+      const page = await context.newPage();
+      let pageError = null;
+      page.on("pageerror", (e) => {
+        pageError = e.message;
+        log("Google variant pageerror:", e.message);
+      });
+      page.setDefaultTimeout(STEP_TIMEOUT_MS);
+      page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+
+      // This throwaway build has no API base configured; block any backend
+      // call so nothing ever reaches a real server.
+      await page.route("**/api/**", (route) => route.abort());
+
+      await page.goto(`http://localhost:${port}/`, {
+        waitUntil: "domcontentloaded",
+        timeout: NAV_TIMEOUT_MS,
+      });
+      await page.waitForFunction(
+        () => document.body && document.body.innerText.trim().length > 0,
+        null,
+        { timeout: NAV_TIMEOUT_MS },
+      );
+
+      // Reaching "Welcome back" is the proof the screen MOUNTED: if the
+      // guarded Google hook had thrown at render, AuthLanding would be in the
+      // error boundary and this would time out instead.
+      await reachLoginScreen(page);
+      log(
+        "Google variant: login screen mounted with Google enabled " +
+          "(no error boundary)",
+      );
+
+      await assertGoogleButtonTappable(page);
+
+      if (pageError) {
+        fail(`Google variant: the page reported a runtime error: ${pageError}`);
+      }
+      log(
+        "Google variant PASS: with a web client id the Google button renders " +
+          "and is tappable, and the login screen still mounts.",
+      );
+    } finally {
+      await browser.close();
+    }
+  } finally {
+    stopExpo(child);
+  }
 }
 
 async function main() {
@@ -551,7 +756,13 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Run the main flow (against the already-running default web build), then the
+// Google-enabled variant (which boots its own throwaway server). main() exits
+// the process directly on skip/fail; on success it returns and we fall through
+// to the variant.
+main()
+  .then(() => runGoogleVariant())
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
