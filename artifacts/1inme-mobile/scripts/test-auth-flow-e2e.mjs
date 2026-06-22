@@ -16,8 +16,16 @@
  *   - Demo logins: "Demo as user" / "Demo as admin" (POST /api/v1/auth/demo).
  *   - Social providers: six web-browser OAuth buttons (+ Google when built).
  *
+ * This harness does NOT depend on the live proxied Expo dev domain (or any
+ * RDS-backed render). Like the Google variant below, it boots its OWN
+ * throwaway, self-contained Expo web dev server on a free port and intercepts
+ * every backend call, so the whole suite runs deterministically and quickly
+ * enough to use as a local check. (Set APP_URL to point the main flow at an
+ * already-running server instead — useful for local debugging.)
+ *
  * Strategy (reuses the reachLoginScreen harness from check-icon-fonts.mjs):
- *   1. Launch headless Chromium against the running Expo web build.
+ *   1. Boot a throwaway Expo web server (or use APP_URL) and launch headless
+ *      Chromium against it, with all /api/** calls intercepted.
  *   2. Walk onboarding to the "Welcome back" login screen.
  *   3. Assert every visible social-provider button is tappable (rendered,
  *      visible, not disabled) — a hidden/untappable button would otherwise
@@ -42,16 +50,17 @@
  *          via AuthContext.socialLogin), asserting the forwarded request
  *          URL/method/body and that a 422 surfaces "Sign-in failed".
  *
- * The test no-ops gracefully (skips, exit 0) when the Expo dev server isn't
- * running, matching the check-icon-fonts pattern — so it never fails CI just
- * because the preview happens to be down.
+ * The test no-ops gracefully (skips, exit 0) when a throwaway Expo server
+ * can't be booted (expo missing, port contention, bundling too slow) — so it
+ * never fails CI just because the environment can't bring Metro up.
  *
  * Usage:
  *   pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e
  *
  * Environment:
- *   APP_URL   override the URL under test (defaults to the Expo dev domain
- *             on Replit, or http://localhost:8081 locally).
+ *   APP_URL   point the main flow at an already-running server instead of
+ *             booting a throwaway one (handy for local debugging). When unset,
+ *             the main flow boots its own self-contained Expo web server.
  */
 
 import { spawn } from "node:child_process";
@@ -105,6 +114,16 @@ const REQUIRED_SOCIAL_LABELS = [
   "Continue with TikTok",
 ];
 const OPTIONAL_SOCIAL_LABELS = ["Continue with Google"];
+
+// The base URL the main flow drives. Defaults to APP_URL, but main() boots
+// its own throwaway Expo server and points this at it unless an explicit
+// APP_URL was supplied. The /oauth-callback helpers read it.
+let appBaseUrl = APP_URL;
+
+// An explicit APP_URL override means "don't boot a throwaway server, use this
+// already-running one" (handy for local debugging). When unset, main() boots
+// its own self-contained server.
+const EXPLICIT_APP_URL = process.env.APP_URL || null;
 
 function log(...args) {
   console.log("[test-auth-flow-e2e]", ...args);
@@ -195,7 +214,7 @@ async function clearSessionKeepOnboarding(page) {
 // exactly as the OS would when the provider redirects to
 // 1inme://oauth-callback?… . On web that maps to /oauth-callback?… .
 async function gotoOAuthCallback(page, query) {
-  const url = `${APP_URL.replace(/\/$/, "")}/oauth-callback${query}`;
+  const url = `${appBaseUrl.replace(/\/$/, "")}/oauth-callback${query}`;
   await page.goto(url, {
     waitUntil: "domcontentloaded",
     timeout: NAV_TIMEOUT_MS,
@@ -361,6 +380,59 @@ function stopExpo(child) {
   }
 }
 
+// Boot a throwaway, self-contained Expo web dev server on a free port with the
+// given extra env baked into the bundle, and wait for Metro to report ready.
+// Returns { child, port } on success, or null if it couldn't start. Best
+// effort: callers SKIP (exit 0) rather than fail CI when this returns null,
+// mirroring the "skip when the dev server is down" contract — the env simply
+// couldn't bring Metro up. Used for BOTH the main flow (no extra env) and the
+// Google variant (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID set).
+async function bootThrowawayExpo(label, extraEnv = {}) {
+  let port;
+  try {
+    port = await getFreePort();
+  } catch (e) {
+    log(`${label}: could not allocate a port (${e?.message ?? e})`);
+    return null;
+  }
+
+  log(`${label}: booting a throwaway Expo web server on :${port}`);
+  const child = spawn(
+    "pnpm",
+    ["exec", "expo", "start", "--localhost", "--port", String(port)],
+    {
+      cwd: MOBILE_ROOT,
+      detached: true,
+      stdio: ["ignore", "ignore", "ignore"],
+      env: {
+        ...process.env,
+        CI: "1",
+        BROWSER: "none",
+        EXPO_NO_TELEMETRY: "1",
+        ...extraEnv,
+      },
+    },
+  );
+
+  let spawnFailed = false;
+  child.on("error", (e) => {
+    spawnFailed = true;
+    log(`${label}: expo failed to spawn (${e?.message ?? e})`);
+  });
+
+  const ready = await waitForExpoStatus(port, EXPO_BOOT_DEADLINE_MS);
+  if (spawnFailed || !ready) {
+    log(
+      `${label}: the throwaway Expo server didn't become ready within ` +
+        `${Math.round(EXPO_BOOT_DEADLINE_MS / 1000)}s`,
+    );
+    stopExpo(child);
+    return null;
+  }
+  log(`${label}: Expo server is ready`);
+  return { child, port };
+}
+
 async function assertGoogleButtonTappable(page) {
   const label = "Continue with Google";
   const btn = page.locator(`[aria-label="${label}"]`).first();
@@ -462,51 +534,17 @@ async function runGoogleSuccessPath(page, social, googleAuth) {
 }
 
 async function runGoogleVariant() {
-  let port;
-  try {
-    port = await getFreePort();
-  } catch (e) {
-    log(`Google variant SKIP: could not allocate a port (${e?.message ?? e})`);
+  const booted = await bootThrowawayExpo("Google variant", {
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: GOOGLE_VARIANT_WEB_CLIENT_ID,
+  });
+  if (!booted) {
+    log("Google variant SKIP: the throwaway Expo server could not start");
     return;
   }
-
-  log(
-    `Google variant: booting a throwaway Expo web server on :${port} ` +
-      `with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID set`,
-  );
-  const child = spawn(
-    "pnpm",
-    ["exec", "expo", "start", "--localhost", "--port", String(port)],
-    {
-      cwd: MOBILE_ROOT,
-      detached: true,
-      stdio: ["ignore", "ignore", "ignore"],
-      env: {
-        ...process.env,
-        EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: GOOGLE_VARIANT_WEB_CLIENT_ID,
-        CI: "1",
-        BROWSER: "none",
-        EXPO_NO_TELEMETRY: "1",
-      },
-    },
-  );
-
-  let spawnFailed = false;
-  child.on("error", (e) => {
-    spawnFailed = true;
-    log(`Google variant: expo failed to spawn (${e?.message ?? e})`);
-  });
+  const { child, port } = booted;
 
   try {
-    const ready = await waitForExpoStatus(port, EXPO_BOOT_DEADLINE_MS);
-    if (spawnFailed || !ready) {
-      log(
-        `Google variant SKIP: the throwaway Expo server didn't become ready ` +
-          `within ${Math.round(EXPO_BOOT_DEADLINE_MS / 1000)}s`,
-      );
-      return;
-    }
-    log("Google variant: Expo server is ready; loading the login screen");
+    log("Google variant: loading the login screen");
 
     const browser = await chromium.launch({ headless: true });
     try {
@@ -832,7 +870,26 @@ async function runOAuthCallbackNativeError(page, social) {
 }
 
 async function main() {
-  log("launching chromium against", APP_URL);
+  // The main flow is self-contained: boot our OWN throwaway Expo web server
+  // (with no API base configured and every backend call mocked below) so we
+  // never depend on the live proxied dev domain or an RDS-backed render.
+  // An explicit APP_URL skips the boot and points at an already-running
+  // server instead.
+  let child = null;
+  if (EXPLICIT_APP_URL) {
+    appBaseUrl = EXPLICIT_APP_URL;
+    log("APP_URL set; using the already-running server at", appBaseUrl);
+  } else {
+    const booted = await bootThrowawayExpo("main flow");
+    if (!booted) {
+      skip("the throwaway Expo server could not start; skipping the main flow");
+      return;
+    }
+    child = booted.child;
+    appBaseUrl = `http://localhost:${booted.port}/`;
+  }
+
+  log("launching chromium against", appBaseUrl);
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 400, height: 720 },
@@ -841,6 +898,15 @@ async function main() {
   page.on("pageerror", (e) => log("pageerror:", e.message));
   page.setDefaultTimeout(STEP_TIMEOUT_MS);
   page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+
+  // This throwaway build has no API base configured, so on web every backend
+  // call goes to `${window.location.origin}/api/...` (i.e. our own server).
+  // Block every /api/** call so nothing ever reaches a real backend. The
+  // specific auth mocks below are registered AFTER this catch-all, and
+  // Playwright runs route handlers most-recently-added-first, so the specific
+  // handlers win for the URLs they match and this only catches everything
+  // else.
+  await page.route("**/api/**", (route) => route.abort());
 
   // ---- Intercept the auth endpoints so we never touch a real backend.
   // We record the requests so we can assert their URL / method / body, and
@@ -999,7 +1065,7 @@ async function main() {
 
   try {
     try {
-      await page.goto(APP_URL, {
+      await page.goto(appBaseUrl, {
         waitUntil: "domcontentloaded",
         timeout: NAV_TIMEOUT_MS,
       });
@@ -1010,14 +1076,19 @@ async function main() {
         { timeout: NAV_TIMEOUT_MS },
       );
     } catch (e) {
-      // Connection refused / nothing served = the dev server is down. Skip
-      // gracefully rather than failing CI when the preview isn't running.
-      await browser.close();
-      skip(
-        `could not reach the Expo dev server at ${APP_URL} ` +
-          `(${e?.message ?? "unknown error"}). Is it running?`,
-      );
-      return;
+      // With an explicit APP_URL the server is someone else's responsibility,
+      // so a connection refused = it's down → skip gracefully. With our own
+      // throwaway server (already confirmed ready) a failure here is a real
+      // problem, so let it propagate.
+      if (EXPLICIT_APP_URL) {
+        await browser.close();
+        skip(
+          `could not reach the server at ${appBaseUrl} ` +
+            `(${e?.message ?? "unknown error"}). Is it running?`,
+        );
+        return;
+      }
+      throw e;
     }
 
     log("app mounted; navigating to login screen");
@@ -1161,13 +1232,17 @@ async function main() {
     );
   } finally {
     await browser.close();
+    // Tear down the throwaway server we booted (no-op when an explicit
+    // APP_URL was used, since child stays null).
+    stopExpo(child);
   }
 }
 
-// Run the main flow (against the already-running default web build), then the
-// Google-enabled variant (which boots its own throwaway server). main() exits
-// the process directly on skip/fail; on success it returns and we fall through
-// to the variant.
+// Run the main flow (each booting its own throwaway Expo web server, unless
+// APP_URL points it at an existing one), then the Google-enabled variant
+// (which always boots its own throwaway server with the Google client id).
+// main() exits the process directly on skip/fail; on success it returns and we
+// fall through to the variant.
 main()
   .then(() => runGoogleVariant())
   .catch((e) => {

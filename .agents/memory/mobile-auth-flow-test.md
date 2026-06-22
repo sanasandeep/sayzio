@@ -27,10 +27,17 @@ pattern and register a `pnpm test:*` script.
 
 # Headless e2e (`test:auth-flow-e2e`)
 
-The one Playwright test drives the rendered app against the running Expo dev
-server. It needs the chromium browser installed first (`pnpm exec playwright
-install chromium` from the package dir) or it errors out "Executable doesn't
-exist"; it otherwise skips gracefully (exit 0) when the Expo server is down.
+The one Playwright test is FULLY self-contained: it depends on NO live proxied
+dev domain / RDS render. Both flows boot their own throwaway Expo web server and
+mock every `/api/**` call. Durable gotchas: a catch-all `/api/**` abort must be
+registered BEFORE the specific auth mocks (Playwright matches handlers
+most-recently-added-first, so specific ones win); `APP_URL` is an escape hatch
+to drive an already-running server (and only that path skips on a goto failure).
+Needs chromium installed first (`pnpm exec playwright install
+chromium-headless-shell`) or it errors "Executable doesn't exist"; else it SKIPS
+(exit 0) when a throwaway server can't boot. WHY trust the `e2e` workflow over a
+local run: backgrounding the ~2-Metro-boot suite from a bash tool gets reaped in
+this isolated env; the validation workflow is not reaped and finishes both flows.
 The `/oauth-callback` deep-link return is exercised by loading the URL directly
 with mocked auth routes — it covers BOTH branches of `app/oauth-callback.tsx`:
 the browser leg (`?token=&user=`) and the native-SDK leg
