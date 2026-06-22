@@ -55,3 +55,4 @@
 - [Schema manifest by migration replay](schema-manifest-replay.md) — expected DB schema auto-derived by replaying migration up() under pretend()+Schema-swap; diff via one bulk information_schema query, never per-table.
 - [1inme Laravel Vite/Tailwind](1inme-laravel-vite-tailwind.md) — Blade uses @vite compiled Tailwind v4 (no CDN); public/build is gitignored + no vite dev server, so build assets or pages 500 on missing manifest.
 - [Biolink public list renderer string-only](biolink-public-list-renderer.md) — common/biolink.blade.php has its OWN inline `list`/`list_numbered` renderer that echoes each item as a string; seed/write list items as flat string[], not {text,icon} (only the editor partial normalizes arrays).
+- [1inme Browser e2e validation gate](browser-e2e-validation-gate.md) — `e2e` validation step gates ONLY the auth-popup spec; full suite blocked by broken `php artisan tinker` (psysh/PHP8.4) + 30-45s RDS renders.

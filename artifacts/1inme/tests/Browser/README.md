@@ -22,6 +22,61 @@ Each spec is self-bootstrapping: it shells out to `php artisan tinker`
 to seed the rows it needs (idempotent — re-running is a no-op once the
 fixture exists), then drives a real browser against the public alias.
 
+## Validation step (runs on every change)
+
+So a CSS/Alpine regression in the home-page mobile sign-in popup gets
+caught automatically instead of only when someone remembers to run
+`pnpm test:e2e`, the popup spec is wired into a named validation step
+called `e2e`. It runs the wrapper `tests/Browser/run-validation.sh`
+(also exposed as the `test:e2e:ci` package script) scoped to
+`home-auth-modal-mobile.spec.ts`, so a failing popup / scroll-lock /
+overlap assertion blocks the change instead of passing silently.
+
+The registered validation command is:
+
+```
+bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts
+```
+
+The wrapper handles its own prerequisites:
+
+- Installs the Playwright chromium browser (idempotent — a no-op once
+  cached under `.cache/ms-playwright`).
+- Ensures the app is reachable: if `APP_URL` is already serving (the dev
+  workflow up on `localhost:80`), it tests against that; otherwise it
+  boots an ephemeral `php artisan serve` on port 5000 (probing the
+  lightweight `/up` route, since the home page is slow to render), waits
+  for it, runs the spec(s), and tears the server down on exit.
+
+It does **not** run database migrations — the schema must already exist
+on the (distant) RDS before any per-spec seeds can write fixtures.
+
+### Why only the popup spec is gated (not the whole suite)
+
+The validation step is intentionally scoped to the auth-popup spec
+because it is the only spec that runs reliably as an unattended gate
+here: it just visits `/` with a consent cookie and needs no seeding. The
+other specs are NOT gated because, in this environment, they fail for
+reasons unrelated to the code under test:
+
+- `slides-mode`, `biolink-editor-palette-dnd`, and the consent
+  *layout-style* specs seed fixtures via `php artisan tinker`, which is
+  currently broken here (a psysh/PHP 8.4 parse error), so their seed step
+  fails before the browser even runs.
+- Cold page renders over the distant RDS can take 30-45s, so navigation
+  budgets had to be raised in `playwright.config.ts` to keep the gated
+  spec stable.
+
+Run the full suite manually (when `tinker` works and you can tolerate the
+slow renders) with `pnpm test:e2e`, or any subset by passing args:
+
+```sh
+# from artifacts/1inme/
+pnpm run test:e2e:ci                 # gated popup spec, self-bootstrapping
+pnpm test:e2e                        # the whole Browser suite
+bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
+```
+
 ## Specs
 
 - `slides-mode.spec.ts` — task #1059. Seeds a published 2-slide biolink

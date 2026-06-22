@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "template-designs"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e"
+
 [[workflows.workflow]]
 name = "template-designs"
 author = "agent"
@@ -30,6 +34,17 @@ args = "cd artifacts/1inme && php artisan templates:check-designs"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts"
 
 [agent]
 stack = "PNPM_WORKSPACE"
