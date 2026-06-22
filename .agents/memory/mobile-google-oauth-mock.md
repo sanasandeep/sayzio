@@ -74,7 +74,34 @@ which `oauth-callback.tsx` forwards to `socialLogin({provider, id_token})`.
   page BEFORE `goto APP_URL`: navigating with the previous provider's token
   still stored boots the app signed-in → it fires authenticated calls to the
   real (un-mocked) backend and hangs ~90s.
-- The full 6-provider loop runs ~4 min; later providers intermittently stall at
-  the tail of the long browser session (env/runtime, not code — different
-  provider each run, Metro bundling stays fast). Graceful-skip when Expo is down
-  is preserved.
+
+## 6-provider loop tail-stall — REAL root cause: APP_URL vs appBaseUrl divergence
+
+The web-provider loop (`runWebProviderSuccessPath` + the `**/user/social-oauth/**`
+popup route) navigated to the imported **`APP_URL`** constant, but the main flow
+actually boots and *mocks* a throwaway server tracked in module-level
+**`appBaseUrl`** (reassigned in `main()`). `APP_URL` (from check-icon-fonts.mjs)
+falls back to `https://${REPLIT_EXPO_DEV_DOMAIN}/` when no `APP_URL` env is set —
+exactly the `e2e` validation case. So every provider `page.goto(APP_URL)` hit the
+**un-mocked proxy expo domain** → 90s nav hang. It looked like an intermittent
+"tail" stall historically (and the FIRST provider stalls when the divergence is
+total). **Fix:** use `appBaseUrl` (the server this run actually drives), never the
+imported `APP_URL`, in both the loop `page.goto` and the popup redirect `dest`.
+Native `/oauth-callback` tests never hit this because `gotoOAuthCallback` already
+uses `appBaseUrl`. **Lesson:** in this script `APP_URL` = the *requested* URL
+(env/default); `appBaseUrl` = the *driven* URL. Drive `appBaseUrl` everywhere.
+
+Two secondary hygiene fixes shipped alongside (good practice, not the stall):
+- catch-all `**/api/**` `route.fulfill`s a fast `{data: []}` 200 instead of
+  aborting, so post-login tab GETs don't trigger React Query 3×-retry churn
+  (`[]` is both array-iterable and property-accessible → never crashes a screen).
+- `await popup.close()` after each provider sign-in (web loop + Google variant)
+  so OAuth popups don't pile up as orphan windows.
+Plus `withDeadline(label, ms, fn)` (`PROVIDER_DEADLINE_MS=75s`) around each
+provider so any future stall fails fast with a provider-named message.
+
+**Why local verification is awkward:** a clean throwaway run is the only
+representative config; a *full* run (2 Metro boots + flow ≈ 150s) exceeds the
+120s bash cap, and pointing `APP_URL` at a pre-booted server starves CPU during
+Metro's first web-bundle build and false-fails early. Trust the non-reaped `e2e`
+validation workflow for the full pass.

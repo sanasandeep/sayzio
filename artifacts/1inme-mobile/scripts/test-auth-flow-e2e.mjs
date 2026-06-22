@@ -118,6 +118,12 @@ const GOOGLE_VARIANT_WEB_CLIENT_ID =
 // giving up and skipping the variant.
 const EXPO_BOOT_DEADLINE_MS = 180_000;
 
+// Hard wall-clock budget for a single web-OAuth provider's full mocked sign-in
+// (normally well under ~30s once the post-login calls are mocked). If a provider
+// blows past this we fail fast with a clear, provider-named message rather than
+// letting nested step/nav timeouts stack into a multi-minute hang.
+const PROVIDER_DEADLINE_MS = 75_000;
+
 const EMAIL = "creator@example.com";
 const CODE = "123456";
 const MOCK_TOKEN = "sanctum-token-e2e";
@@ -205,6 +211,32 @@ function fail(msg) {
 function skip(msg) {
   console.log("[test-auth-flow-e2e] SKIP:", msg);
   process.exit(0);
+}
+
+// Race a phase against a hard wall-clock deadline so a stalled run fails fast
+// with a clear message rather than letting nested step/nav timeouts stack into
+// a multi-minute hang. On timeout it rejects (caught at the top level → exit 1,
+// after the finally blocks tear the browser/server down); the loser of the race
+// keeps running harmlessly until the process exits.
+async function withDeadline(label, ms, fn) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `${label} exceeded ${Math.round(ms / 1000)}s — failing fast ` +
+              `instead of hanging`,
+          ),
+        ),
+      ms,
+    );
+  });
+  try {
+    return await Promise.race([fn(), deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // Wait for the signed-in tab bar — the "Profile" tab label never appears on
@@ -589,11 +621,14 @@ async function runGoogleSuccessPath(page, social, googleAuth) {
     btn.click(),
   ]);
   log("Google variant: tapped the Google button; OAuth popup opened");
-  void popup;
 
   // The signed-in tab bar is the proof the success handler completed.
   await waitForSignedInTabs(page);
   log("Google variant: the Google success path landed in the signed-in tabs");
+
+  // Close the popup now that it has handed the result back to the opener, so it
+  // doesn't linger as an orphaned window.
+  await popup.close().catch(() => {});
 
   // The hook must have built a correct implicit id_token request to Google.
   if (!googleAuth.req) {
@@ -702,17 +737,24 @@ async function runGoogleVariant(server) {
         });
       });
 
-      // This throwaway build has no API base configured; block every OTHER
+      // This throwaway build has no API base configured; intercept every OTHER
       // backend call so nothing ever reaches a real server. (Playwright runs
       // route handlers most-recently-added-first, so this catch-all sees the
-      // /auth/social request first and defers it to the handler above.)
+      // /auth/social request first and defers it to the handler above.) Like the
+      // main flow, fulfill unmatched calls with a fast, benign `{data: []}`
+      // rather than aborting, so the post-login tabs settle without React Query
+      // retry churn.
       await context.route("**/api/**", (route) => {
         if (
           /\/api\/v1\/auth\/social$/.test(new URL(route.request().url()).pathname)
         ) {
           return route.fallback();
         }
-        return route.abort();
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ data: [] }),
+        });
       });
 
       // Mock Google's authorization endpoint: record the request (proving the
@@ -1011,9 +1053,13 @@ async function runWebProviderSuccessPath(page, social, webOauth, providerId, lab
   // BEFORE navigating: clearing first matters because if we navigated while the
   // previous provider's token was still stored, the app would boot signed-in
   // and block on authenticated calls to the real (un-mocked) backend. Then a
-  // single goto APP_URL (which also escapes any leftover /oauth-callback URL)
+  // single goto appBaseUrl (which also escapes any leftover /oauth-callback URL)
   // lands directly on the login screen — no extra reload, which keeps this
   // 6-provider loop from piling up page loads and slowing the browser down.
+  // NOTE: navigate to appBaseUrl (the server this run actually booted/drives),
+  // NOT the imported APP_URL default — without an APP_URL env those diverge
+  // (APP_URL falls back to the proxy expo domain) and we'd navigate to an
+  // un-mocked server that hangs the whole provider loop.
   await page.evaluate(() => {
     try {
       window.localStorage.setItem("1inme.onboarding.complete", "1");
@@ -1048,12 +1094,16 @@ async function runWebProviderSuccessPath(page, social, webOauth, providerId, lab
     page.waitForEvent("popup", { timeout: STEP_TIMEOUT_MS }),
     btn.click(),
   ]);
-  void popup;
   log(`${label}: tapped; OAuth popup opened to the backend login URL`);
 
   // The signed-in tab bar is the proof the whole round-trip completed.
   await waitForSignedInTabs(page);
   log(`${label}: the success path landed in the signed-in tabs`);
+
+  // Close the popup now that it has handed control back to the opener. Leaving
+  // each of the 6 providers' popups open piled up orphaned browser windows in
+  // the context, which dragged the long session down and fed the tail stall.
+  await popup.close().catch(() => {});
 
   // (1) The button must have opened the provider-specific backend login URL.
   if (!webOauth.req) {
@@ -1335,12 +1385,27 @@ async function main(server) {
 
   // This throwaway build has no API base configured, so on web every backend
   // call goes to `${window.location.origin}/api/...` (i.e. our own server).
-  // Block every /api/** call so nothing ever reaches a real backend. The
-  // specific auth mocks below are registered AFTER this catch-all, and
+  // Every /api/** call must be intercepted so nothing ever reaches a real
+  // backend. We FULFILL unmatched calls with a fast, benign `{data: []}` 200
+  // rather than aborting them: once signed in, the tabs fire a burst of
+  // authenticated GETs (feed, profile, notifications, …), and aborting made
+  // React Query retry each one (3× with backoff) on every sign-in. Across the
+  // demo / OTP / OAuth / 6-provider runs that retry churn piled up in the
+  // long-lived page and was the source of the intermittent tail stall. An empty
+  // `[]` envelope lets the tabs settle immediately and never retry; `[]` is
+  // deliberately both array-iterable and property-accessible, so it satisfies
+  // list- and object-shaped readers alike without crashing a screen (and the
+  // tab bar — our "signed in" signal — renders regardless of this data anyway).
+  // The specific auth mocks below are registered AFTER this catch-all, and
   // Playwright runs route handlers most-recently-added-first, so the specific
-  // handlers win for the URLs they match and this only catches everything
-  // else.
-  await page.route("**/api/**", (route) => route.abort());
+  // handlers win for the URLs they match and this only catches everything else.
+  await page.route("**/api/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data: [] }),
+    }),
+  );
 
   // ---- Intercept the auth endpoints so we never touch a real backend.
   // We record the requests so we can assert their URL / method / body, and
@@ -1474,11 +1539,12 @@ async function main(server) {
     webOauth.req = { url: req.url(), method: req.method() };
     const m = new URL(req.url()).pathname.match(/social-oauth\/([^/]+)\/login/);
     const provider = m ? m[1] : "";
-    // The opener must land on the EXPO app's origin (appBaseUrl), not this
-    // popup's backend origin: getBaseUrl() points OAuth at the proxy domain
-    // (via EXPO_PUBLIC_DOMAIN), but the app itself is only served from
-    // appBaseUrl, so a relative redirect would strand the opener on a domain
-    // without the app.
+    // The opener must land on the EXPO app's origin (appBaseUrl — the server
+    // this run actually drives), not this popup's backend origin: getBaseUrl()
+    // points OAuth at the proxy domain (via EXPO_PUBLIC_DOMAIN), but the app
+    // itself is only served from appBaseUrl, so a relative redirect (or the
+    // imported APP_URL default, which falls back to the proxy expo domain when
+    // no APP_URL env is set) would strand the opener on a domain without the app.
     const dest =
       webOauth.mode === "cancel"
         ? `${new URL(appBaseUrl).origin}/oauth-callback?error=access_denied`
@@ -1707,7 +1773,11 @@ async function main(server) {
     // to /auth/social, and lands in the signed-in tabs.
     // -----------------------------------------------------------------
     for (const { id, label } of WEB_OAUTH_PROVIDERS) {
-      await runWebProviderSuccessPath(page, social, webOauth, id, label);
+      await withDeadline(
+        `web provider "${label}" sign-in`,
+        PROVIDER_DEADLINE_MS,
+        () => runWebProviderSuccessPath(page, social, webOauth, id, label),
+      );
     }
 
     // -----------------------------------------------------------------
