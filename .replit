@@ -24,6 +24,14 @@ args = "template-designs"
 task = "workflow.run"
 args = "e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-main"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-google"
+
 [[workflows.workflow]]
 name = "template-designs"
 author = "agent"
@@ -44,7 +52,29 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts && pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-mobile-main"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "AUTH_FLOW_ONLY=main pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-google"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "AUTH_FLOW_ONLY=google pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
