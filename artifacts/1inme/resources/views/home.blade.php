@@ -2701,60 +2701,6 @@
     </div>
 </section>
 
-{{-- ============================ PRICING TEASER ============================ --}}
-@if(!empty($plans))
-@php
-    $__teaserFree    = collect($plans)->first(fn($p) => !empty($p['is_free']));
-    $__teaserPaid    = collect($plans)->reject(fn($p) => !empty($p['is_free']))
-        ->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
-@endphp
-<section id="pricing-teaser" class="py-14 lg:py-20 relative overflow-hidden" aria-label="Pricing at a glance">
-    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-10 max-w-2xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Pricing at a glance</div>
-            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3">Free forever. <span class="grad-text">Upgrade when you grow.</span></h2>
-            <p class="reveal rd-2 text-gray-400">Two plans, zero surprises. See the full breakdown below.</p>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
-            @if($__teaserFree)
-                <a href="#pricing" class="reveal rd-1 group glass rounded-2xl p-6 lift block border border-white/10 hover:border-white/20 transition">
-                    <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">{{ $__teaserFree['name'] ?? 'Free' }}</div>
-                    <div class="flex items-baseline gap-2 mb-3">
-                        <span class="text-3xl font-extrabold grad-text">FREE</span>
-                        <span class="text-xs text-gray-500">forever</span>
-                    </div>
-                    <ul class="space-y-1.5 text-sm text-gray-300 mb-4">
-                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c1)"></i>Unlimited links &amp; biolink page</li>
-                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c1)"></i>Built-in DMs &amp; AI Coach</li>
-                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c1)"></i>Native mobile app</li>
-                    </ul>
-                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 group-hover:text-violet-200">See full plan <i class="fas fa-arrow-right text-[10px]"></i></span>
-                </a>
-            @endif
-            @if($__teaserPaid)
-                @php
-                    $__paidAmount = $__teaserPaid['monthly']['amount_display'] ?? null;
-                @endphp
-                <a href="#pricing" class="reveal rd-2 group rounded-2xl p-6 lift block relative overflow-hidden grad-border">
-                    <div class="absolute inset-0 -z-10 opacity-20" style="background:var(--c2);"></div>
-                    <div class="text-[11px] font-bold uppercase tracking-wider mb-2" style="color:var(--c2)">{{ $__teaserPaid['name'] ?? 'Pro' }} · most popular</div>
-                    <div class="flex items-baseline gap-2 mb-3">
-                        <span class="text-3xl font-extrabold text-white">{{ $__paidAmount ?: 'Pro' }}</span>
-                        <span class="text-xs text-gray-400">/ mo</span>
-                    </div>
-                    <ul class="space-y-1.5 text-sm text-gray-300 mb-4">
-                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c2)"></i>Custom domains &amp; A/B tests</li>
-                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c2)"></i>Team seats &amp; roles</li>
-                        <li><i class="fas fa-check text-[10px] mr-2" style="color:var(--c2)"></i>Priority support &amp; advanced AI</li>
-                    </ul>
-                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-white">Compare all plans <i class="fas fa-arrow-right text-[10px]"></i></span>
-                </a>
-            @endif
-        </div>
-    </div>
-</section>
-@endif
-
 {{-- ============================ 1 · BUILD ============================ --}}
 <section id="features" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
