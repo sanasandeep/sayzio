@@ -12,6 +12,7 @@
     "test:citation-href": "node scripts/test-citation-href.mjs",
     "test:block-cache": "node scripts/test-block-cache.mjs",
     "test:login-auth-config": "node scripts/test-login-auth-config.mjs",
+    "test:auth-flow": "node scripts/test-auth-flow.mjs",
     "test:push-action": "node scripts/test-push-action.mjs",
     "test:upgrade-hint": "node scripts/test-upgrade-hint.mjs"
   },
