@@ -29,8 +29,8 @@
  *   2. Walk onboarding to the "Welcome back" login screen.
  *   3. Assert every visible social-provider button is tappable (rendered,
  *      visible, not disabled) — a hidden/untappable button would otherwise
- *      ship unnoticed. We don't click them: that opens a real OAuth
- *      round-trip in an external browser.
+ *      ship unnoticed. (Each web-browser provider is then clicked through its
+ *      full mocked sign-in in step 8.)
  *   4. Click each demo button with POST **\/api/v1/auth/demo intercepted and
  *      fulfilled with a mock {data:{token,user}}; assert the request role and
  *      that the app lands in the signed-in tabs. Reset to the login screen
@@ -49,6 +49,14 @@
  *        - the native-SDK leg (?provider=…&id_token=… → POST /auth/social
  *          via AuthContext.socialLogin), asserting the forwarded request
  *          URL/method/body and that a 422 surfaces "Sign-in failed".
+ *   8. Click EVERY web-browser OAuth provider button (Instagram, Facebook, X,
+ *      LinkedIn, Pinterest, TikTok) through its full mocked round-trip: the
+ *      backend /user/social-oauth/{provider}/login URL is intercepted and
+ *      stands in for the backend + OS deep-link by returning the app to
+ *      /oauth-callback?provider=…&id_token=…, which forwards { provider,
+ *      id_token } to POST /auth/social. Each one asserts it opened the
+ *      provider-specific login URL, POSTed the correct provider, and landed in
+ *      the signed-in tabs — catching a wrong/missing provider key or handler.
  *
  * The test no-ops gracefully (skips, exit 0) when a throwaway Expo server
  * can't be booted (expo missing, port contention, bundling too slow) — so it
@@ -100,6 +108,10 @@ const MOCK_SOCIAL_TOKEN = "sanctum-token-social-e2e";
 // The fake id_token Google "returns" in the mocked round-trip. The success
 // handler must forward this exact value to POST /api/v1/auth/social.
 const MOCK_ID_TOKEN = "mock-google-id-token-e2e";
+// The fake id_token the mocked web-browser-provider backend "returns" on its
+// redirect (?provider=…&id_token=…). oauth-callback.tsx must forward this exact
+// value to POST /api/v1/auth/social for every web provider.
+const MOCK_WEB_ID_TOKEN = "mock-web-oauth-id-token-e2e";
 
 // The web-browser OAuth providers always render on the login screen (see
 // WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx); their accessibility labels
@@ -124,6 +136,20 @@ let appBaseUrl = APP_URL;
 // already-running one" (handy for local debugging). When unset, main() boots
 // its own self-contained server.
 const EXPLICIT_APP_URL = process.env.APP_URL || null;
+
+// The web-browser OAuth providers driven end to end in step 7: their provider
+// id (used in the backend /user/social-oauth/{id}/login URL and forwarded to
+// /auth/social) and the button's accessibility label. Mirrors
+// WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx — note the "twitter" id renders
+// as "Continue with X".
+const WEB_OAUTH_PROVIDERS = [
+  { id: "instagram", label: "Continue with Instagram" },
+  { id: "facebook", label: "Continue with Facebook" },
+  { id: "twitter", label: "Continue with X" },
+  { id: "linkedin", label: "Continue with LinkedIn" },
+  { id: "pinterest", label: "Continue with Pinterest" },
+  { id: "tiktok", label: "Continue with TikTok" },
+];
 
 function log(...args) {
   console.log("[test-auth-flow-e2e]", ...args);
@@ -869,6 +895,144 @@ async function runOAuthCallbackNativeError(page, social) {
   log("oauth-callback native failure (422) surfaced a friendly error, not a hang");
 }
 
+// Drive one web-browser OAuth provider button end to end with the round-trip
+// mocked. Unlike Google (a native-SDK id_token flow), these providers go
+// through WebBrowser.openAuthSessionAsync to the backend
+// /user/social-oauth/{provider}/login URL, which on success redirects back to
+// 1inme://oauth-callback. On native the OS deep-links that return into the app;
+// on web there's no OS, so the mocked backend (context.route in main) stands in
+// for that round-trip by navigating the opener to /oauth-callback?provider=…&
+// id_token=… — exactly the params the deep-link would carry. oauth-callback.tsx
+// then forwards { provider, id_token } to POST /auth/social and signs in.
+//
+// We assert three things the tappable-only check can't: (1) the button opened
+// the provider-SPECIFIC backend login URL (catches a wrong/missing provider
+// key), (2) the callback forwarded the correct { provider, id_token } to
+// /auth/social, and (3) the app landed in the signed-in tabs.
+async function runWebProviderSuccessPath(page, social, webOauth, providerId, label) {
+  social.req = null;
+  social.mode = "success";
+  webOauth.req = null;
+  // We may be arriving from an /oauth-callback URL (the previous step) or the
+  // signed-in tabs (the previous provider). On the CURRENT page (already on the
+  // app origin), mark onboarding complete AND clear the persisted session
+  // BEFORE navigating: clearing first matters because if we navigated while the
+  // previous provider's token was still stored, the app would boot signed-in
+  // and block on authenticated calls to the real (un-mocked) backend. Then a
+  // single goto APP_URL (which also escapes any leftover /oauth-callback URL)
+  // lands directly on the login screen — no extra reload, which keeps this
+  // 6-provider loop from piling up page loads and slowing the browser down.
+  await page.evaluate(() => {
+    try {
+      window.localStorage.setItem("1inme.onboarding.complete", "1");
+      window.localStorage.removeItem("1inme.auth.token");
+      window.localStorage.removeItem("1inme.auth.user");
+    } catch {}
+  });
+  await page.goto(APP_URL, {
+    waitUntil: "domcontentloaded",
+    timeout: NAV_TIMEOUT_MS,
+  });
+  try {
+    await page
+      .getByText("Welcome back", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+  } catch {
+    // Onboarding shortcut didn't take — fall back to the full harness walk.
+    await reachLoginScreen(page);
+  }
+
+  const btn = page.locator(`[aria-label="${label}"]`).first();
+  await btn.waitFor({ timeout: STEP_TIMEOUT_MS });
+  if (!(await btn.isVisible())) {
+    fail(`web provider "${label}" button is not visible on the login screen`);
+  }
+
+  // Pair the click with the popup event: onSocial calls
+  // WebBrowser.openAuthSessionAsync, which window.open()s the backend login
+  // URL. A missing/broken handler would never open a popup and this would
+  // time out — exactly the silent break we're guarding against.
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup", { timeout: STEP_TIMEOUT_MS }),
+    btn.click(),
+  ]);
+  void popup;
+  log(`${label}: tapped; OAuth popup opened to the backend login URL`);
+
+  // The signed-in tab bar is the proof the whole round-trip completed.
+  await waitForSignedInTabs(page);
+  log(`${label}: the success path landed in the signed-in tabs`);
+
+  // (1) The button must have opened the provider-specific backend login URL.
+  if (!webOauth.req) {
+    fail(`${label}: the backend social-oauth login URL was never opened`);
+  }
+  const oauthUrl = new URL(webOauth.req.url);
+  if (
+    !new RegExp(`/user/social-oauth/${providerId}/login$`).test(oauthUrl.pathname)
+  ) {
+    fail(
+      `${label}: opened the wrong backend URL — expected ` +
+        `/user/social-oauth/${providerId}/login, got ${oauthUrl.pathname}`,
+    );
+  }
+  if (oauthUrl.searchParams.get("source") !== "mobile") {
+    fail(
+      `${label}: backend login URL missing source=mobile (${webOauth.req.url})`,
+    );
+  }
+  if (oauthUrl.searchParams.get("return") !== "1inme://oauth-callback") {
+    fail(
+      `${label}: backend login URL must return to 1inme://oauth-callback, got ` +
+        `${oauthUrl.searchParams.get("return")}`,
+    );
+  }
+
+  // (2) The callback must have forwarded { provider, id_token } to /auth/social.
+  if (!social.req) {
+    fail(`${label}: the success path never POSTed to /api/v1/auth/social`);
+  }
+  if (social.req.method !== "POST") {
+    fail(`${label}: auth/social must be a POST, got ${social.req.method}`);
+  }
+  if (!/\/api\/v1\/auth\/social$/.test(new URL(social.req.url).pathname)) {
+    fail(`${label}: auth/social hit the wrong URL: ${social.req.url}`);
+  }
+  let body;
+  try {
+    body = JSON.parse(social.req.body ?? "null");
+  } catch {
+    fail(`${label}: auth/social body was not valid JSON: ${social.req.body}`);
+  }
+  if (body?.provider !== providerId || body?.id_token !== MOCK_WEB_ID_TOKEN) {
+    fail(
+      `${label}: auth/social body must be { provider:"${providerId}", ` +
+        `id_token:"${MOCK_WEB_ID_TOKEN}" }, got ${JSON.stringify(body)}`,
+    );
+  }
+
+  // (3) The persisted token proves socialLogin → applySession actually ran with
+  // the /auth/social response (resetToLogin cleared the session first, and this
+  // token is distinct from the OTP / demo / token+user legs).
+  const storedToken = await page.evaluate(() => {
+    try {
+      return window.localStorage.getItem("1inme.auth.token");
+    } catch {
+      return null;
+    }
+  });
+  if (storedToken !== MOCK_SOCIAL_TOKEN) {
+    fail(
+      `${label}: did not persist the /auth/social session token ` +
+        `(expected ${MOCK_SOCIAL_TOKEN}, got ${storedToken})`,
+    );
+  }
+  log(
+    `${label}: opened /user/social-oauth/${providerId}/login, forwarded ` +
+      `{ provider:"${providerId}", id_token } to /auth/social, and signed in`,
+  );
+}
+
 async function main() {
   // The main flow is self-contained: boot our OWN throwaway Expo web server
   // (with no API base configured and every backend call mocked below) so we
@@ -1020,6 +1184,37 @@ async function main() {
           },
         },
       }),
+    });
+  });
+
+  // The web-browser OAuth providers open WebBrowser.openAuthSessionAsync to the
+  // backend /user/social-oauth/{provider}/login URL (in a popup on web). This
+  // context-level route (popups are separate pages, so page.route wouldn't see
+  // them) records the opened URL — proving the button targeted the right
+  // provider — and stands in for the backend + OS deep-link by navigating the
+  // opener to /oauth-callback with the OAuth result, exactly as the native
+  // round-trip would. oauth-callback.tsx then forwards it to /auth/social.
+  const webOauth = { req: null };
+  await context.route("**/user/social-oauth/**", async (route) => {
+    const req = route.request();
+    webOauth.req = { url: req.url(), method: req.method() };
+    const m = new URL(req.url()).pathname.match(/social-oauth\/([^/]+)\/login/);
+    const provider = m ? m[1] : "";
+    // The opener must land on the EXPO app's origin (APP_URL), not this popup's
+    // backend origin: getBaseUrl() points OAuth at the proxy domain (via
+    // EXPO_PUBLIC_DOMAIN), but the app itself is only served from APP_URL, so a
+    // relative redirect would strand the opener on a domain without the app.
+    const dest =
+      `${new URL(APP_URL).origin}/oauth-callback` +
+      `?provider=${encodeURIComponent(provider)}` +
+      `&id_token=${encodeURIComponent(MOCK_WEB_ID_TOKEN)}`;
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body:
+        `<!doctype html><meta charset="utf-8"><script>` +
+        `try{if(window.opener){window.opener.location.href=${JSON.stringify(dest)};}}catch(e){}` +
+        `</script>`,
     });
   });
 
@@ -1226,9 +1421,22 @@ async function main() {
     await runOAuthCallbackNativeAccessTokenSuccess(page, social);
     await runOAuthCallbackNativeError(page, social);
 
+    // -----------------------------------------------------------------
+    // Step 7: drive EVERY web-browser OAuth provider button end to end.
+    // The tappable-only check above can't catch a wrong/missing provider
+    // key or a broken handler in a specific button; here each one is
+    // clicked through the full mocked round-trip, asserting it opens the
+    // provider-specific backend login URL, forwards { provider, id_token }
+    // to /auth/social, and lands in the signed-in tabs.
+    // -----------------------------------------------------------------
+    for (const { id, label } of WEB_OAUTH_PROVIDERS) {
+      await runWebProviderSuccessPath(page, social, webOauth, id, label);
+    }
+
     log(
-      "PASS: social buttons, demo logins, OTP sign-in and the OAuth " +
-        "deep-link return (browser + native-SDK legs) all behave correctly.",
+      "PASS: social buttons, demo logins, OTP sign-in, the OAuth deep-link " +
+        "return (browser + native-SDK legs), and every web-browser provider's " +
+        "full sign-in all behave correctly.",
     );
   } finally {
     await browser.close();

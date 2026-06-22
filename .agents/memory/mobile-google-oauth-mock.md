@@ -52,3 +52,29 @@ the shim is deterministic.
 
 **How to apply:** when extending `scripts/test-auth-flow-e2e.mjs`
 `runGoogleVariant` or any web OAuth-provider success test.
+
+## Variant: the 6 WEB_BROWSER web OAuth providers (instagram/facebook/twitter/linkedin/pinterest/tiktok)
+
+These do NOT use `expo-auth-session`; they open the backend
+`/user/social-oauth/{provider}/login` via `WebBrowser.openAuthSessionAsync`
+(a popup on web), and the OS deep-link returns to `1inme://oauth-callback`,
+which `oauth-callback.tsx` forwards to `socialLogin({provider, id_token})`.
+
+- Mock with a CONTEXT-level `context.route("**/user/social-oauth/**")` (popups
+  are separate pages, so `page.route` wouldn't see them). The handler records
+  the opened URL (proves the right provider/`source=mobile`/`return=` query) and
+  stands in for the backend + deep-link by navigating the OPENER to
+  `/oauth-callback?provider=...&id_token=...`.
+- **Critical:** redirect the opener to the ABSOLUTE `${new URL(APP_URL).origin}/oauth-callback`,
+  NOT a relative URL. `getBaseUrl()` points OAuth at the proxy domain (via
+  `EXPO_PUBLIC_DOMAIN`), but the app is only served from `APP_URL`/expo domain;
+  a relative redirect strands the opener on a domain without the app → hang.
+- Twitter's button label is "Continue with X" (provider id stays `twitter`).
+- Between providers in the loop, clear `1inme.auth.token`/`user` on the CURRENT
+  page BEFORE `goto APP_URL`: navigating with the previous provider's token
+  still stored boots the app signed-in → it fires authenticated calls to the
+  real (un-mocked) backend and hangs ~90s.
+- The full 6-provider loop runs ~4 min; later providers intermittently stall at
+  the tail of the long browser session (env/runtime, not code — different
+  provider each run, Metro bundling stays fast). Graceful-skip when Expo is down
+  is preserved.
