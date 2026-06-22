@@ -34,6 +34,13 @@
  *   6. Type a code, intercept **\/api/v1/auth/otp/verify returning
  *      {data:{token,user}}, click "Verify and sign in", and assert the app
  *      lands in the signed-in tabs.
+ *   7. Load /oauth-callback directly to exercise the deep-link return screen
+ *      both legs read by app/oauth-callback.tsx:
+ *        - the browser leg (?token=…&user=… → applySession), plus its
+ *          cancelled/malformed error paths; and
+ *        - the native-SDK leg (?provider=…&id_token=… → POST /auth/social
+ *          via AuthContext.socialLogin), asserting the forwarded request
+ *          URL/method/body and that a 422 surfaces "Sign-in failed".
  *
  * The test no-ops gracefully (skips, exit 0) when the Expo dev server isn't
  * running, matching the check-icon-fonts pattern — so it never fails CI just
@@ -78,6 +85,9 @@ const EXPO_BOOT_DEADLINE_MS = 180_000;
 const EMAIL = "creator@example.com";
 const CODE = "123456";
 const MOCK_TOKEN = "sanctum-token-e2e";
+// A distinct token for the native-SDK /auth/social leg so we can prove the
+// session that landed came from that forward and not the token+user leg.
+const MOCK_SOCIAL_TOKEN = "sanctum-token-social-e2e";
 
 // The web-browser OAuth providers always render on the login screen (see
 // WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx); their accessibility labels
@@ -469,6 +479,102 @@ async function runGoogleVariant() {
   }
 }
 
+// The native-SDK return leg: a deep link carrying ?provider=…&id_token=…
+// (no ready-made token) must be forwarded to POST /auth/social, and the
+// returned {data:{token,user}} envelope must sign the user in. This is the
+// branch in oauth-callback.tsx that the token+user success test never hits —
+// a regression in the payload, endpoint, or envelope handling would slip
+// through otherwise.
+async function runOAuthCallbackNativeSuccess(page, social) {
+  social.req = null;
+  social.mode = "success";
+  await clearSessionKeepOnboarding(page);
+  const idToken = "google-id-token-e2e";
+  const query = `?provider=google&id_token=${encodeURIComponent(idToken)}`;
+  await gotoOAuthCallback(page, query);
+  await waitForSignedInTabs(page);
+
+  if (!social.req) {
+    fail("the native oauth return never POSTed to /api/v1/auth/social");
+  }
+  if (social.req.method !== "POST") {
+    fail(`auth/social must be a POST, got ${social.req.method}`);
+  }
+  if (!/\/api\/v1\/auth\/social$/.test(new URL(social.req.url).pathname)) {
+    fail(`auth/social hit the wrong URL: ${social.req.url}`);
+  }
+  let body;
+  try {
+    body = JSON.parse(social.req.body ?? "null");
+  } catch {
+    fail(`auth/social body was not valid JSON: ${social.req.body}`);
+  }
+  if (body?.provider !== "google" || body?.id_token !== idToken) {
+    fail(
+      `auth/social body must forward { provider: "google", id_token }, ` +
+        `got ${JSON.stringify(body)}`,
+    );
+  }
+  log("auth/social request method, URL and body (provider + id_token) are correct");
+
+  // The persisted token proves socialLogin → applySession actually ran with
+  // the /auth/social response (we cleared the session first, and this token
+  // is distinct from the token+user leg's).
+  const storedToken = await page.evaluate(() => {
+    try {
+      return window.localStorage.getItem("1inme.auth.token");
+    } catch {
+      return null;
+    }
+  });
+  if (storedToken !== MOCK_SOCIAL_TOKEN) {
+    fail(
+      `native oauth return did not persist the /auth/social session token ` +
+        `(expected ${MOCK_SOCIAL_TOKEN}, got ${storedToken})`,
+    );
+  }
+  log("oauth-callback native return: provider+id_token forwarded to /auth/social and landed in the signed-in tabs");
+}
+
+// The native-SDK failure leg: a rejected /auth/social (422) must surface the
+// screen's "Sign-in failed" error instead of hanging on the spinner, and
+// must NOT sign the user in.
+async function runOAuthCallbackNativeError(page, social) {
+  social.req = null;
+  social.mode = "fail";
+  await clearSessionKeepOnboarding(page);
+  await gotoOAuthCallback(page, "?provider=apple&id_token=bad-token");
+  await page
+    .getByText("Sign-in failed", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  // The screen surfaces the backend's error-envelope message rather than a
+  // silent hang on the spinner.
+  await page
+    .getByText("We couldn't verify that sign-in", { exact: false })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  // It must actually have attempted the forward — proving the failure came
+  // from the rejected request, not a missing-creds short-circuit.
+  if (!social.req) {
+    fail("the failing native oauth return never POSTed to /api/v1/auth/social");
+  }
+  if (social.req.method !== "POST") {
+    fail(`failing auth/social must be a POST, got ${social.req.method}`);
+  }
+  const inTabs = await page
+    .getByText("Profile", { exact: true })
+    .first()
+    .isVisible()
+    .catch(() => false);
+  if (inTabs) {
+    fail("a failed /auth/social return wrongly signed the user in");
+  }
+  // And there must be a way back rather than a dead end.
+  await page
+    .getByText("Back to sign in", { exact: true })
+    .waitFor({ timeout: STEP_TIMEOUT_MS });
+  log("oauth-callback native failure (422) surfaced a friendly error, not a hang");
+}
+
 async function main() {
   log("launching chromium against", APP_URL);
   const browser = await chromium.launch({ headless: true });
@@ -487,6 +593,9 @@ async function main() {
   let verifyReq = null;
   // Mutable holder for the most recent demo request, reset before each run.
   const demo = { req: null };
+  // Mutable holder for the most recent /auth/social request. `mode` flips
+  // between "success" and "fail" so one run signs in and the next 422s.
+  const social = { req: null, mode: "success" };
 
   await page.route("**/api/v1/auth/otp/send", async (route) => {
     const req = route.request();
@@ -546,6 +655,46 @@ async function main() {
             id: role === "user" ? 11 : 12,
             display_name: role === "user" ? "Demo User" : "Demo Admin",
             email: role === "user" ? "demo-user@example.com" : "demo-admin@example.com",
+          },
+        },
+      }),
+    });
+  });
+
+  // The native-SDK OAuth return forwards the provider's id_token/access_token
+  // to POST /auth/social. In "success" mode we return the standard
+  // {data:{token,user}} envelope; in "fail" mode we return the 422 error
+  // envelope so the screen's error path is exercised.
+  await page.route("**/api/v1/auth/social", async (route) => {
+    const req = route.request();
+    social.req = {
+      url: req.url(),
+      method: req.method(),
+      body: req.postData(),
+    };
+    if (social.mode === "fail") {
+      await route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            message: "We couldn't verify that sign-in. Please try again.",
+            code: "invalid_token",
+          },
+        }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: {
+          token: MOCK_SOCIAL_TOKEN,
+          user: {
+            id: 42,
+            display_name: "Native OAuth User",
+            email: "native-oauth@example.com",
           },
         },
       }),
@@ -746,10 +895,12 @@ async function main() {
     // -----------------------------------------------------------------
     await runOAuthCallbackSuccess(page);
     await runOAuthCallbackErrors(page);
+    await runOAuthCallbackNativeSuccess(page, social);
+    await runOAuthCallbackNativeError(page, social);
 
     log(
       "PASS: social buttons, demo logins, OTP sign-in and the OAuth " +
-        "deep-link return all behave correctly.",
+        "deep-link return (browser + native-SDK legs) all behave correctly.",
     );
   } finally {
     await browser.close();

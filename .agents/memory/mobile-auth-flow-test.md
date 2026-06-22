@@ -25,6 +25,17 @@ from the package. Add screen-wiring string guards so the screen can't silently
 drift from the logic under test. Follow the existing `scripts/test-*.mjs`
 pattern and register a `pnpm test:*` script.
 
+# Headless e2e (`test:auth-flow-e2e`)
+
+The one Playwright test drives the rendered app against the running Expo dev
+server. It needs the chromium browser installed first (`pnpm exec playwright
+install chromium` from the package dir) or it errors out "Executable doesn't
+exist"; it otherwise skips gracefully (exit 0) when the Expo server is down.
+The `/oauth-callback` deep-link return is exercised by loading the URL directly
+with mocked auth routes — it covers BOTH branches of `app/oauth-callback.tsx`:
+the browser leg (`?token=&user=`) and the native-SDK leg
+(`?provider=&id_token=` → POST `/auth/social`), each with its failure path.
+
 # Testing EXPO_PUBLIC_*-gated UI on web (e.g. the Google button)
 
 **Why:** Expo inlines `EXPO_PUBLIC_*` into the web bundle at Metro build time,
