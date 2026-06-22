@@ -727,6 +727,71 @@ async function runOAuthCallbackNativeSuccess(page, social) {
   log("oauth-callback native return: provider+id_token forwarded to /auth/social and landed in the signed-in tabs");
 }
 
+// The native-SDK access_token leg: some providers/flows hand back an
+// access_token instead of an id_token. The deep link then carries
+// ?provider=…&access_token=… and the screen must forward exactly that to
+// POST /auth/social — { provider, access_token } and crucially NO id_token,
+// so a regression that drops or mislabels the access_token is caught. Mirrors
+// runOAuthCallbackNativeSuccess but for the access_token branch.
+async function runOAuthCallbackNativeAccessTokenSuccess(page, social) {
+  social.req = null;
+  social.mode = "success";
+  await clearSessionKeepOnboarding(page);
+  const accessToken = "google-access-token-e2e";
+  const query = `?provider=google&access_token=${encodeURIComponent(accessToken)}`;
+  await gotoOAuthCallback(page, query);
+  await waitForSignedInTabs(page);
+
+  if (!social.req) {
+    fail("the native oauth (access_token) return never POSTed to /api/v1/auth/social");
+  }
+  if (social.req.method !== "POST") {
+    fail(`auth/social must be a POST, got ${social.req.method}`);
+  }
+  if (!/\/api\/v1\/auth\/social$/.test(new URL(social.req.url).pathname)) {
+    fail(`auth/social hit the wrong URL: ${social.req.url}`);
+  }
+  let body;
+  try {
+    body = JSON.parse(social.req.body ?? "null");
+  } catch {
+    fail(`auth/social body was not valid JSON: ${social.req.body}`);
+  }
+  if (body?.provider !== "google" || body?.access_token !== accessToken) {
+    fail(
+      `auth/social body must forward { provider: "google", access_token }, ` +
+        `got ${JSON.stringify(body)}`,
+    );
+  }
+  // The access_token leg must NOT mislabel the credential as an id_token —
+  // forwarding both (or the wrong key) would let a regression slip through.
+  if (body?.id_token != null) {
+    fail(
+      `auth/social must not forward an id_token on the access_token leg, ` +
+        `got ${JSON.stringify(body)}`,
+    );
+  }
+  log("auth/social request method, URL and body (provider + access_token, no id_token) are correct");
+
+  // The persisted token proves socialLogin → applySession actually ran with
+  // the /auth/social response (we cleared the session first, and this token
+  // is distinct from the token+user leg's).
+  const storedToken = await page.evaluate(() => {
+    try {
+      return window.localStorage.getItem("1inme.auth.token");
+    } catch {
+      return null;
+    }
+  });
+  if (storedToken !== MOCK_SOCIAL_TOKEN) {
+    fail(
+      `native oauth (access_token) return did not persist the /auth/social ` +
+        `session token (expected ${MOCK_SOCIAL_TOKEN}, got ${storedToken})`,
+    );
+  }
+  log("oauth-callback native return: provider+access_token forwarded to /auth/social and landed in the signed-in tabs");
+}
+
 // The native-SDK failure leg: a rejected /auth/social (422) must surface the
 // screen's "Sign-in failed" error instead of hanging on the spinner, and
 // must NOT sign the user in.
@@ -1087,6 +1152,7 @@ async function main() {
     await runOAuthCallbackSuccess(page);
     await runOAuthCallbackErrors(page);
     await runOAuthCallbackNativeSuccess(page, social);
+    await runOAuthCallbackNativeAccessTokenSuccess(page, social);
     await runOAuthCallbackNativeError(page, social);
 
     log(
