@@ -1190,7 +1190,7 @@
                         </div>
                         <button @click="mobileMenu = false" class="p-1.5 rounded-lg" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
-                    <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+                    <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto overscroll-contain" style="-webkit-overflow-scrolling: touch;">
                         {{-- ========== TOP LEVEL — mirrors desktop most-used destinations ========== --}}
                         <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-house"></i></div> <span>Dashboard</span></a>
                         @if($__can['links_view'])
