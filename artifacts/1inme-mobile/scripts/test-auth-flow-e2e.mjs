@@ -88,6 +88,9 @@ const MOCK_TOKEN = "sanctum-token-e2e";
 // A distinct token for the native-SDK /auth/social leg so we can prove the
 // session that landed came from that forward and not the token+user leg.
 const MOCK_SOCIAL_TOKEN = "sanctum-token-social-e2e";
+// The fake id_token Google "returns" in the mocked round-trip. The success
+// handler must forward this exact value to POST /api/v1/auth/social.
+const MOCK_ID_TOKEN = "mock-google-id-token-e2e";
 
 // The web-browser OAuth providers always render on the login screen (see
 // WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx); their accessibility labels
@@ -378,6 +381,86 @@ async function assertGoogleButtonTappable(page) {
   log(`Google variant: "${label}" rendered, visible and tappable`);
 }
 
+// Drive the "Continue with Google" button end to end with the OAuth
+// round-trip mocked (see the route handlers wired in runGoogleVariant).
+// Clicking the button runs the REAL useIdTokenAuthRequest hook: it opens a
+// popup to Google's authorization endpoint (intercepted), which bounces back
+// to the app's redirect_uri carrying a mock id_token + the original state. A
+// same-origin shim on the popup posts the result to the opener exactly like
+// expo-web-browser's maybeCompleteAuthSession, so promptAsync resolves with a
+// success result and the googleResponse effect fires. We then assert it POSTed
+// { provider:"google", id_token } to /api/v1/auth/social and landed in the
+// signed-in tabs — the leg the tappable-only check stops short of.
+async function runGoogleSuccessPath(page, social, googleAuth) {
+  social.req = null;
+  googleAuth.req = null;
+
+  const btn = page.locator('[aria-label="Continue with Google"]').first();
+  await btn.waitFor({ timeout: STEP_TIMEOUT_MS });
+
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup", { timeout: STEP_TIMEOUT_MS }),
+    btn.click(),
+  ]);
+  log("Google variant: tapped the Google button; OAuth popup opened");
+  void popup;
+
+  // The signed-in tab bar is the proof the success handler completed.
+  await waitForSignedInTabs(page);
+  log("Google variant: the Google success path landed in the signed-in tabs");
+
+  // The hook must have built a correct implicit id_token request to Google.
+  if (!googleAuth.req) {
+    fail("Google variant: the Google authorization endpoint was never hit");
+  }
+  if (googleAuth.req.responseType !== "id_token") {
+    fail(
+      "Google variant: expected response_type=id_token, got " +
+        `${googleAuth.req.responseType}`,
+    );
+  }
+  if (googleAuth.req.clientId !== GOOGLE_VARIANT_WEB_CLIENT_ID) {
+    fail(
+      "Google variant: the auth request used the wrong client_id " +
+        `(${googleAuth.req.clientId})`,
+    );
+  }
+
+  // The response handler must POST the returned id_token to /auth/social.
+  if (!social.req) {
+    fail(
+      "Google variant: the success handler never POSTed to /api/v1/auth/social",
+    );
+  }
+  if (social.req.method !== "POST") {
+    fail(
+      `Google variant: auth/social must be a POST, got ${social.req.method}`,
+    );
+  }
+  if (!/\/api\/v1\/auth\/social$/.test(new URL(social.req.url).pathname)) {
+    fail(`Google variant: auth/social hit the wrong URL: ${social.req.url}`);
+  }
+  let body;
+  try {
+    body = JSON.parse(social.req.body ?? "null");
+  } catch {
+    fail(
+      `Google variant: auth/social body was not valid JSON: ${social.req.body}`,
+    );
+  }
+  if (body?.provider !== "google" || body?.id_token !== MOCK_ID_TOKEN) {
+    fail(
+      "Google variant: auth/social body must be " +
+        `{ provider:"google", id_token:"${MOCK_ID_TOKEN}" }, ` +
+        `got ${JSON.stringify(body)}`,
+    );
+  }
+  log(
+    'Google variant: success handler POSTed { provider:"google", id_token } ' +
+      "to /api/v1/auth/social",
+  );
+}
+
 async function runGoogleVariant() {
   let port;
   try {
@@ -439,9 +522,110 @@ async function runGoogleVariant() {
       page.setDefaultTimeout(STEP_TIMEOUT_MS);
       page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
 
-      // This throwaway build has no API base configured; block any backend
-      // call so nothing ever reaches a real server.
-      await page.route("**/api/**", (route) => route.abort());
+      // Holders for the intercepted requests so the success path below can
+      // assert their shape after the fact.
+      const social = { req: null };
+      const googleAuth = { req: null };
+
+      // Capture & fulfill the social-login POST so the Google success handler
+      // can complete without a real backend.
+      await context.route("**/api/v1/auth/social", async (route) => {
+        const req = route.request();
+        social.req = {
+          url: req.url(),
+          method: req.method(),
+          body: req.postData(),
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            data: {
+              token: MOCK_TOKEN,
+              user: {
+                id: 77,
+                display_name: "Google User",
+                email: "google@example.com",
+              },
+            },
+          }),
+        });
+      });
+
+      // This throwaway build has no API base configured; block every OTHER
+      // backend call so nothing ever reaches a real server. (Playwright runs
+      // route handlers most-recently-added-first, so this catch-all sees the
+      // /auth/social request first and defers it to the handler above.)
+      await context.route("**/api/**", (route) => {
+        if (
+          /\/api\/v1\/auth\/social$/.test(new URL(route.request().url()).pathname)
+        ) {
+          return route.fallback();
+        }
+        return route.abort();
+      });
+
+      // Mock Google's authorization endpoint: record the request (proving the
+      // real useIdTokenAuthRequest hook built the implicit id_token URL) and
+      // bounce the popup back to the app's redirect_uri carrying a mock
+      // id_token + the original state, exactly as Google would. No external
+      // browser or network is ever hit.
+      await context.route(
+        /accounts\.google\.com\/o\/oauth2\/v2\/auth/,
+        async (route) => {
+          const u = new URL(route.request().url());
+          googleAuth.req = {
+            clientId: u.searchParams.get("client_id"),
+            responseType: u.searchParams.get("response_type"),
+            redirectUri: u.searchParams.get("redirect_uri"),
+            state: u.searchParams.get("state"),
+          };
+          const dest =
+            `${googleAuth.req.redirectUri}` +
+            `#id_token=${encodeURIComponent(MOCK_ID_TOKEN)}` +
+            `&state=${encodeURIComponent(googleAuth.req.state ?? "")}`;
+          await route.fulfill({
+            status: 200,
+            contentType: "text/html",
+            body:
+              `<!doctype html><meta charset="utf-8">` +
+              `<script>location.replace(${JSON.stringify(dest)})</script>`,
+          });
+        },
+      );
+
+      // When the OAuth popup opens, serve a minimal same-origin completion
+      // shim on its redirect_uri load instead of booting the whole app there.
+      // It posts the result back to the opener exactly like expo-web-browser's
+      // maybeCompleteAuthSession, so the opener's promptAsync resolves with a
+      // success result and the real googleResponse effect fires.
+      page.on("popup", (popup) => {
+        popup
+          .route("**/*", async (route) => {
+            const req = route.request();
+            const u = req.url();
+            // The Google auth endpoint is handled at the context level above.
+            if (/accounts\.google\.com/.test(u)) return route.fallback();
+            // Only the top-level redirect_uri document matters; the shim has
+            // no sub-resources.
+            if (req.resourceType() !== "document") return route.abort();
+            await route.fulfill({
+              status: 200,
+              contentType: "text/html",
+              body:
+                `<!doctype html><meta charset="utf-8"><script>` +
+                `try{` +
+                `var h=window.localStorage.getItem('ExpoWebBrowserRedirectHandle');` +
+                `if(window.opener)window.opener.postMessage(` +
+                `{url:window.location.href,expoSender:h},window.location.origin);` +
+                `}catch(e){}` +
+                `</script>`,
+            });
+          })
+          .catch((e) =>
+            log("Google variant: popup route wiring failed:", e?.message ?? e),
+          );
+      });
 
       await page.goto(`http://localhost:${port}/`, {
         waitUntil: "domcontentloaded",
@@ -467,9 +651,16 @@ async function runGoogleVariant() {
       if (pageError) {
         fail(`Google variant: the page reported a runtime error: ${pageError}`);
       }
+
+      // Now drive the Google button for real (round-trip mocked) and assert
+      // the response handler completes the sign-in, not just that the button
+      // renders.
+      await runGoogleSuccessPath(page, social, googleAuth);
+
       log(
-        "Google variant PASS: with a web client id the Google button renders " +
-          "and is tappable, and the login screen still mounts.",
+        "Google variant PASS: the Google button renders and is tappable, the " +
+          "login screen mounts, and the full Google sign-in completes through " +
+          "POST /api/v1/auth/social into the signed-in tabs.",
       );
     } finally {
       await browser.close();

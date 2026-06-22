@@ -23,6 +23,7 @@
 - [Expo Router typed-route regen](expo-router-typed-routes.md) — adding a screen breaks router.push typecheck until the expo dev server rewrites .expo/types/router.d.ts; restart the expo workflow, don't cast.
 - [Site layout meta description](site-layout-meta-description.md) — plain <meta description> falls back to $shareDescription; model-less marketing pages just pass $shareTitle/$shareDescription.
 - [Mobile auth flow & its test](mobile-auth-flow-test.md) — no separate register screen (OTP path = login+signup); screens tested via source-driven .mjs (`pnpm test:auth-flow`), not Playwright.
+- [Mocking Google web OAuth e2e](mobile-google-oauth-mock.md) — drive the expo-auth-session Google success path with the round-trip mocked via context routes + a same-origin popup postMessage shim (bypasses maybeCompleteAuthSession).
 - [Biolink family & ai_chat type](biolink-family-and-ai-chat.md) — conversational/slides/ai_chat are distinct links.type (use isBiolinkFamily); ai_chat reuses AiCompanion(placement=page), no new AI runtime; embed-only origin gate means same-origin full-page chat just works.
 - [Link settings single source](link-settings-unification.md) — SEO trio/favicon/og.image_url canonical on Link columns (JSON stripped); visibility column shared w/ API but enforced biolink-family-only; file deep-link is opt-in best-effort.
 - [Cookie consent data-anim collision](cookie-consent-data-anim-collision.md) — marketing `[data-anim]{opacity:0}` reveal hides the consent host (namespaced `data-cc-anim`); invisible banner + footer reserve = phantom band.
