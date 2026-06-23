@@ -831,15 +831,31 @@ async function runGoogleVariant(server) {
           );
       });
 
-      await page.goto(googleBaseUrl, {
-        waitUntil: "domcontentloaded",
-        timeout: NAV_TIMEOUT_MS,
-      });
-      await page.waitForFunction(
-        () => document.body && document.body.innerText.trim().length > 0,
-        null,
-        { timeout: NAV_TIMEOUT_MS },
-      );
+      try {
+        await page.goto(googleBaseUrl, {
+          waitUntil: "domcontentloaded",
+          timeout: NAV_TIMEOUT_MS,
+        });
+        await page.waitForFunction(
+          () => document.body && document.body.innerText.trim().length > 0,
+          null,
+          { timeout: NAV_TIMEOUT_MS },
+        );
+      } catch (e) {
+        // With a reused (explicit) server the server is someone else's
+        // responsibility, so a connection refused = it's down → skip gracefully,
+        // mirroring the main flow. With our own throwaway server (already
+        // confirmed ready) a failure here is a real problem, so let it propagate.
+        if (server.explicit) {
+          await browser.close();
+          skip(
+            `Google variant: could not reach the server at ${googleBaseUrl} ` +
+              `(${e?.message ?? "unknown error"}). Is it running?`,
+          );
+          return;
+        }
+        throw e;
+      }
 
       // Reaching "Welcome back" is the proof the screen MOUNTED: if the
       // guarded Google hook had thrown at render, AuthLanding would be in the
