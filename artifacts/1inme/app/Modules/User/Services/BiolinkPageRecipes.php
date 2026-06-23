@@ -537,6 +537,225 @@ class BiolinkPageRecipes
                 if (!empty($a['rsvp_url']))     $extras[] = self::ctaBlock('RSVP', $a['rsvp_url'], $brand);
                 if (!empty($a['house_rules']))  $extras[] = self::richText('Good to know', self::bulletify($a['house_rules']));
                 break;
+
+            // ── Health & Wellness ───────────────────────────────────
+            case 'health_wellness.fitness_trainer':
+            case 'health_wellness.nutritionist':
+                if (!empty($a['specialty'])) $extras[] = self::badgeBlock($a['specialty']);
+                $programs = [];
+                for ($i = 1; $i <= 3; $i++) {
+                    if (!empty($a["program_{$i}"])) {
+                        $programs[] = ['name' => $a["program_{$i}"], 'price' => $a["program_{$i}_price"] ?? '', 'description' => ''];
+                    }
+                }
+                if (!empty($programs)) {
+                    $extras[] = ['type' => 'list_pricing', 'settings' => ['title' => 'Work with me', 'items' => $programs], 'is_active' => true];
+                }
+                if (!empty($a['free_intro_url'])) $extras[] = self::ctaBlock('🎁 Free intro session', $a['free_intro_url'], $brand);
+                if (!empty($a['consult_url']))    $extras[] = self::ctaBlock('☕ Free consultation', $a['consult_url'], $brand);
+                if (!empty($a['booking_url']))    $extras[] = self::ctaBlock('📅 Book now', $a['booking_url'], $brand);
+                if (!empty($a['plan_url']))       $extras[] = self::linkButton('🥗 Meal plans', $a['plan_url']);
+                if (!empty($a['testimonial'])) {
+                    $extras[] = ['type' => 'testimonials', 'settings' => ['items' => [['quote' => $a['testimonial'], 'name' => $a['testimonial_name'] ?? 'Client']]], 'is_active' => true];
+                }
+                break;
+
+            case 'health_wellness.yoga':
+                if (!empty($a['style']))          $extras[] = self::badgeBlock('🧘 ' . $a['style']);
+                if (!empty($a['booking_url']))    $extras[] = self::ctaBlock('📅 Book a class', $a['booking_url'], $brand);
+                if (!empty($a['class_pass_url'])) $extras[] = self::linkButton('▶ Online classes', $a['class_pass_url']);
+                if (!empty($a['schedule']))       $extras[] = self::richText('Class schedule', $a['schedule']);
+                break;
+
+            case 'health_wellness.therapist':
+                if (!empty($a['credentials'])) $extras[] = self::badgeBlock($a['credentials']);
+                if (!empty($a['specialties'])) $extras[] = self::badgeBlock('Focus: ' . $a['specialties']);
+                if (!empty($a['mode']))        $extras[] = self::badgeBlock(self::modeLabel($a['mode']));
+                if (!empty($a['rates']))       $extras[] = self::badgeBlock('💷 ' . $a['rates']);
+                if (!empty($a['booking_url'])) $extras[] = self::ctaBlock('📅 Book a session', $a['booking_url'], $brand);
+                if (!empty($a['phone']))       $extras[] = self::linkButton('📞 Call ' . self::shortPhone($a['phone']), 'tel:' . self::digits($a['phone']));
+                break;
+
+            // ── Nonprofit / Charity ─────────────────────────────────
+            case 'nonprofit.charity':
+            case 'nonprofit.community_org':
+            case 'nonprofit.social_enterprise':
+            case 'nonprofit.activist':
+                if (!empty($a['cause']))         $extras[] = self::badgeBlock('✊ ' . $a['cause']);
+                if (!empty($a['donate_url']))    $extras[] = self::ctaBlock('💜 Donate', $a['donate_url'], $brand);
+                if (!empty($a['petition_url']))  $extras[] = self::ctaBlock('✍ Sign the petition', $a['petition_url'], $brand);
+                if (!empty($a['join_url']))      $extras[] = self::ctaBlock('🤝 Join us', $a['join_url'], $brand);
+                if (!empty($a['volunteer_form']))$extras[] = self::linkButton('🙋 Get involved', $a['volunteer_form']);
+                if (!empty($a['event_url']))     $extras[] = self::linkButton('📅 Upcoming event', $a['event_url']);
+                if (!empty($a['partner_url']))   $extras[] = self::linkButton('🤝 Partner with us', $a['partner_url']);
+                if (!empty($a['impact_blurb']))  $extras[] = self::badgeBlock($a['impact_blurb']);
+                break;
+
+            // ── Fashion & Beauty ────────────────────────────────────
+            case 'fashion_beauty.fashion_brand':
+                if (!empty($a['lookbook_url'])) $extras[] = self::ctaBlock('👗 Lookbook', $a['lookbook_url'], $brand);
+                if (!empty($a['discount_code'])) {
+                    $extras[] = self::alertBlock(($a['discount_blurb'] ?? 'Use code') . ' — ' . $a['discount_code']);
+                }
+                break;
+
+            case 'fashion_beauty.beauty_artist':
+                if (!empty($a['specialty']))     $extras[] = self::badgeBlock($a['specialty']);
+                if (!empty($a['booking_url']))   $extras[] = self::ctaBlock('💄 Book me', $a['booking_url'], $brand);
+                if (!empty($a['portfolio_url'])) $extras[] = self::linkButton('📸 Portfolio', $a['portfolio_url']);
+                if (!empty($a['price_blurb']))   $extras[] = self::badgeBlock('💷 ' . $a['price_blurb']);
+                break;
+
+            case 'fashion_beauty.model':
+                if (!empty($a['portfolio_url'])) $extras[] = self::ctaBlock('📸 Portfolio', $a['portfolio_url'], $brand);
+                if (!empty($a['agency']))        $extras[] = self::badgeBlock('Repped by ' . $a['agency']);
+                break;
+
+            case 'fashion_beauty.stylist':
+                if (!empty($a['specialty']))     $extras[] = self::badgeBlock($a['specialty']);
+                if (!empty($a['booking_url']))   $extras[] = self::ctaBlock('📅 Book a session', $a['booking_url'], $brand);
+                if (!empty($a['lookbook_url']))  $extras[] = self::linkButton('🖼  Portfolio', $a['lookbook_url']);
+                if (!empty($a['shop_url']))      $extras[] = self::linkButton('🛍  Shop my picks', $a['shop_url']);
+                break;
+
+            case 'fashion_beauty.salon':
+                if (!empty($a['booking_url'])) $extras[] = self::ctaBlock('📅 Book online', $a['booking_url'], $brand);
+                $services = [];
+                for ($i = 1; $i <= 3; $i++) {
+                    if (!empty($a["service_{$i}"])) {
+                        $services[] = ['name' => $a["service_{$i}"], 'price' => $a["service_{$i}_desc"] ?? '', 'description' => ''];
+                    }
+                }
+                if (!empty($services)) {
+                    $extras[] = ['type' => 'list_pricing', 'settings' => ['title' => 'Services', 'items' => $services], 'is_active' => true];
+                }
+                if (!empty($a['hours']))     $extras[] = self::richText('🕒 Opening hours', $a['hours']);
+                if (!empty($a['address']))   $extras[] = ['type' => 'map', 'settings' => ['address' => $a['address'], 'zoom' => 15], 'is_active' => true];
+                if (!empty($a['phone']))     $extras[] = self::linkButton('📞 Call ' . self::shortPhone($a['phone']), 'tel:' . self::digits($a['phone']));
+                if (!empty($a['review_url']))$extras[] = self::linkButton('⭐ Read reviews', $a['review_url']);
+                break;
+
+            // ── Photo / Video ───────────────────────────────────────
+            case 'photographer.photographer':
+            case 'photographer.videographer':
+            case 'photographer.wedding_photographer':
+            case 'photographer.studio':
+                if (!empty($a['specialty']))     $extras[] = self::badgeBlock($a['specialty']);
+                if (!empty($a['showreel_url']))  $extras[] = self::ctaBlock('🎬 Watch the showreel', $a['showreel_url'], $brand);
+                if (!empty($a['portfolio_url'])) $extras[] = self::ctaBlock('📸 Portfolio', $a['portfolio_url'], $brand);
+                if (!empty($a['gallery_url']))   $extras[] = self::linkButton('🖼  Client galleries', $a['gallery_url']);
+                $packages = [];
+                for ($i = 1; $i <= 3; $i++) {
+                    if (!empty($a["package_{$i}"])) {
+                        $packages[] = ['name' => $a["package_{$i}"], 'price' => $a["package_{$i}_price"] ?? '', 'description' => ''];
+                    }
+                }
+                $svcs = [];
+                for ($i = 1; $i <= 3; $i++) {
+                    if (!empty($a["service_{$i}"])) {
+                        $svcs[] = ['name' => $a["service_{$i}"], 'price' => $a["service_{$i}_desc"] ?? '', 'description' => ''];
+                    }
+                }
+                $pricingItems = array_merge($packages, $svcs);
+                if (!empty($pricingItems)) {
+                    $extras[] = ['type' => 'list_pricing', 'settings' => ['title' => 'Packages', 'items' => $pricingItems], 'is_active' => true];
+                }
+                if (!empty($a['booking_url']))   $extras[] = self::ctaBlock('📅 Book a shoot', $a['booking_url'], $brand);
+                if (!empty($a['price_blurb']))   $extras[] = self::badgeBlock('💷 ' . $a['price_blurb']);
+                if (!empty($a['address']))       $extras[] = ['type' => 'map', 'settings' => ['address' => $a['address'], 'zoom' => 15], 'is_active' => true];
+                if (!empty($a['phone']))         $extras[] = self::linkButton('📞 Call ' . self::shortPhone($a['phone']), 'tel:' . self::digits($a['phone']));
+                break;
+
+            // ── Travel Creator ──────────────────────────────────────
+            case 'travel_creator.travel_blogger':
+            case 'travel_creator.digital_nomad':
+                if (!empty($a['current_location'])) $extras[] = self::badgeBlock('📍 Currently in ' . $a['current_location']);
+                if (!empty($a['blog_url']))         $extras[] = self::linkButton('✍ Blog', $a['blog_url']);
+                if (!empty($a['gear_url']))         $extras[] = self::linkButton('🎒 Travel gear & resources', $a['gear_url']);
+                break;
+
+            case 'travel_creator.travel_agent':
+                if (!empty($a['specialty']))   $extras[] = self::badgeBlock($a['specialty']);
+                if (!empty($a['booking_url'])) $extras[] = self::ctaBlock('✈ Plan your trip', $a['booking_url'], $brand);
+                $trips = [];
+                for ($i = 1; $i <= 3; $i++) {
+                    if (!empty($a["trip_{$i}"])) {
+                        $trips[] = ['name' => $a["trip_{$i}"], 'price' => $a["trip_{$i}_price"] ?? '', 'description' => ''];
+                    }
+                }
+                if (!empty($trips)) {
+                    $extras[] = ['type' => 'list_pricing', 'settings' => ['title' => 'Featured trips', 'items' => $trips], 'is_active' => true];
+                }
+                if (!empty($a['phone'])) $extras[] = self::linkButton('📞 Call ' . self::shortPhone($a['phone']), 'tel:' . self::digits($a['phone']));
+                break;
+
+            case 'travel_creator.tour_guide':
+                if (!empty($a['location']))    $extras[] = self::badgeBlock('📍 ' . $a['location']);
+                if (!empty($a['tours_url']))   $extras[] = self::ctaBlock('🗺  Book a tour', $a['tours_url'], $brand);
+                if (!empty($a['price_blurb'])) $extras[] = self::badgeBlock('💷 ' . $a['price_blurb']);
+                if (!empty($a['whatsapp']))    $extras[] = self::linkButton('💬 WhatsApp', 'https://wa.me/' . self::digits($a['whatsapp']));
+                break;
+
+            // ── Community / Faith ───────────────────────────────────
+            case 'faith.church':
+            case 'faith.mosque_temple':
+                if (!empty($a['denomination']))  $extras[] = self::badgeBlock($a['denomination']);
+                if (!empty($a['tradition']))     $extras[] = self::badgeBlock($a['tradition']);
+                if (!empty($a['service_times'])) $extras[] = self::richText('Service times', $a['service_times']);
+                if (!empty($a['give_url']))      $extras[] = self::ctaBlock('💜 Give', $a['give_url'], $brand);
+                if (!empty($a['livestream_url']))$extras[] = self::linkButton('▶ Watch live', $a['livestream_url']);
+                if (!empty($a['events_url']))    $extras[] = self::linkButton('📅 Events', $a['events_url']);
+                if (!empty($a['address']))       $extras[] = ['type' => 'map', 'settings' => ['address' => $a['address'], 'zoom' => 15], 'is_active' => true];
+                if (!empty($a['phone']))         $extras[] = self::linkButton('📞 Call ' . self::shortPhone($a['phone']), 'tel:' . self::digits($a['phone']));
+                break;
+
+            case 'faith.faith_leader':
+                if (!empty($a['role']))        $extras[] = self::badgeBlock($a['role']);
+                if (!empty($a['sermons_url'])) $extras[] = self::ctaBlock('🎧 Sermons & talks', $a['sermons_url'], $brand);
+                if (!empty($a['book_url']))    $extras[] = self::linkButton('📕 Book & writings', $a['book_url']);
+                if (!empty($a['give_url']))    $extras[] = self::linkButton('💜 Give', $a['give_url']);
+                break;
+
+            case 'faith.community_group':
+                if (!empty($a['focus']))        $extras[] = self::badgeBlock($a['focus']);
+                if (!empty($a['join_url']))     $extras[] = self::ctaBlock('🤝 Join us', $a['join_url'], $brand);
+                if (!empty($a['meeting_info'])) $extras[] = self::richText('When & where we meet', $a['meeting_info']);
+                if (!empty($a['events_url']))   $extras[] = self::linkButton('📅 Events', $a['events_url']);
+                if (!empty($a['whatsapp']))     $extras[] = self::linkButton('💬 WhatsApp', 'https://wa.me/' . self::digits($a['whatsapp']));
+                break;
+
+            // ── Education / School ──────────────────────────────────
+            case 'education.tutor':
+                if (!empty($a['subjects']))    $extras[] = self::badgeBlock('📚 ' . $a['subjects']);
+                if (!empty($a['levels']))      $extras[] = self::richText('Levels', $a['levels']);
+                if (!empty($a['mode']))        $extras[] = self::badgeBlock(self::modeLabel($a['mode']));
+                if (!empty($a['price']))       $extras[] = self::badgeBlock('💷 ' . $a['price']);
+                if (!empty($a['booking_url'])) $extras[] = self::ctaBlock('📅 Book a session', $a['booking_url'], $brand);
+                if (!empty($a['phone']))       $extras[] = self::linkButton('📞 Call ' . self::shortPhone($a['phone']), 'tel:' . self::digits($a['phone']));
+                break;
+
+            case 'education.school':
+                if (!empty($a['admissions_url'])) $extras[] = self::ctaBlock('🎓 Admissions / Apply', $a['admissions_url'], $brand);
+                if (!empty($a['programs_url']))   $extras[] = self::linkButton('📚 Programs & courses', $a['programs_url']);
+                if (!empty($a['events_url']))     $extras[] = self::linkButton('📅 Events / Open day', $a['events_url']);
+                if (!empty($a['address']))        $extras[] = ['type' => 'map', 'settings' => ['address' => $a['address'], 'zoom' => 15], 'is_active' => true];
+                if (!empty($a['phone']))          $extras[] = self::linkButton('📞 Call ' . self::shortPhone($a['phone']), 'tel:' . self::digits($a['phone']));
+                break;
+
+            case 'education.online_course':
+                if (!empty($a['enroll_url']))  $extras[] = self::ctaBlock('🎓 Enrol now', $a['enroll_url'], $brand);
+                if (!empty($a['price']))       $extras[] = self::badgeBlock('💷 ' . $a['price']);
+                if (!empty($a['curriculum']))  $extras[] = self::richText('What you\'ll learn', self::bulletify($a['curriculum']));
+                if (!empty($a['preview_url'])) $extras[] = self::linkButton('▶ Free preview', $a['preview_url']);
+                break;
+
+            case 'education.teacher':
+                if (!empty($a['subject']))       $extras[] = self::badgeBlock($a['subject']);
+                if (!empty($a['school']))        $extras[] = self::badgeBlock('🏫 ' . $a['school']);
+                if (!empty($a['resources_url'])) $extras[] = self::ctaBlock('📚 Class resources', $a['resources_url'], $brand);
+                if (!empty($a['syllabus_url']))  $extras[] = self::linkButton('📄 Syllabus', $a['syllabus_url']);
+                if (!empty($a['office_hours']))  $extras[] = self::badgeBlock('🕒 Office hours: ' . $a['office_hours']);
+                break;
         }
 
         // Top-level website button (most categories ask for it).
@@ -652,6 +871,16 @@ class BiolinkPageRecipes
     {
         $d = self::digits($s);
         return $d !== '' ? $d : $s;
+    }
+
+    protected static function modeLabel(string $mode): string
+    {
+        return match ($mode) {
+            'online'    => '💻 Online',
+            'in_person' => '📍 In-person',
+            'both'      => '💻 Online & in-person',
+            default     => $mode,
+        };
     }
 
     protected static function bulletify(string $text): string
