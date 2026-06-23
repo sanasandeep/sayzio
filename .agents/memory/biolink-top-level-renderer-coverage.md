@@ -5,18 +5,27 @@ description: How public biolink top-level blocks render, why types went blank, a
 
 # Top-level public biolink renderer reachability
 
-Public biolink pages render TOP-LEVEL blocks via a long inline `@if/@elseif`
-chain in `common/biolink.blade.php` (inside the `@forelse($blocks ...)`). A type
-with no branch there used to fall through to a BLANK wrapper with no error — the
-exact bug class that shipped `buy_me_coffee` blank.
+After the rendering-unification commit, `common/biolink.blade.php` no longer holds
+a per-type inline `@if/@elseif` chain: inside `@forelse($blocks ...)` it delegates
+EVERY top-level block to the single dispatch partial via
+`@include('common.partials.biolink-block-render', ['block' => $block, ...])`. The
+per-type `@if/@elseif` chain (48+ branches, `in_array` groups,
+`str_starts_with($block->type,'profile_card')`, `isContainerType` container branch)
+plus the `$__blockPartials` map now ALL live in the partial — it is the single
+source of truth, reached identically by top-level blocks and by card/grid children
+(recursive `@include`). A type with no partial branch renders a BLANK wrapper with
+no error — the bug class that shipped `buy_me_coffee` blank.
 
-The partial dispatch table in `common/partials/biolink-block-render.blade.php`
-(`$__blockPartials`) is the canonical per-block renderer, BUT it is only reachable
-at top level if the inline chain delegates to it. The card/grid CHILD loop always
-delegated (`['block' => $childBlock, ...]`); the top-level chain did NOT until a
-catch-all `@else` was added that delegates the top-level `$block`
-(`['block' => $block, ...]`). So a partial-table entry alone does NOT mean a type
-renders at top level — it needs either an inline branch or that fallthrough.
+**Coverage checkers must read the partial, not the (now-empty) inline chain.** Two
+places parse coverage and both had to learn this when the chain moved:
+`CheckTemplateDesigns::checkTopLevelRenderers` and
+`BlockRenderCoverage` (`topLevelCoverage`/`childCoverage`/`partialCoverage`). They
+detect the top-level fallthrough (`'block' => $block`, `\b` excludes `$childBlock`)
+and, when present, credit the partial's full coverage = `$__blockPartials` keys
+PLUS the partial's own inline `@if/@elseif` branches. Forgetting to parse the
+partial's inline branches (crediting only `$__blockPartials`) makes
+`templates:check-designs` falsely fail for inline-only types (soundcloud, vcard,
+resume, etc.).
 
 **Why:** A type can be a known `BiolinkBlock::TYPES` entry, pass the variant-key
 and known-type checks, AND have a partial — yet still render blank because the

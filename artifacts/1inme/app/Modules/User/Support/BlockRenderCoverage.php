@@ -35,8 +35,11 @@ class BlockRenderCoverage
     /** @var array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}|null */
     private static ?array $topLevel = null;
 
-    /** @var array<string,bool>|null */
+    /** @var array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}|null */
     private static ?array $child = null;
+
+    /** @var array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}|null */
+    private static ?array $partial = null;
 
     /**
      * True if a block of this type has a dedicated branch in the top-level
@@ -65,7 +68,19 @@ class BlockRenderCoverage
      */
     public static function rendersAsChild(string $type): bool
     {
-        return isset(self::childCoverage()[$type]);
+        $cov = self::childCoverage();
+
+        if (isset($cov['literals'][$type])) {
+            return true;
+        }
+
+        foreach ($cov['prefixes'] as $prefix) {
+            if ($prefix !== '' && str_starts_with($type, $prefix)) {
+                return true;
+            }
+        }
+
+        return $cov['containers'] && BiolinkBlock::isContainerType($type);
     }
 
     /**
@@ -190,9 +205,16 @@ class BlockRenderCoverage
     }
 
     /**
-     * Parse the top-level inline renderer for every type literal compared
-     * against $block->type, every str_starts_with() prefix rule, and whether an
-     * isContainerType() branch exists.
+     * Coverage for a TOP-LEVEL block (page-root placement).
+     *
+     * Since Task #2042 unified rendering, common/biolink.blade.php no longer
+     * carries a per-type inline @if/@elseif chain — it delegates every block to
+     * the single dispatch partial (common/partials/biolink-block-render). So
+     * top-level coverage is: whatever inline branches still live in the public
+     * view PLUS the full partial coverage whenever the view delegates the
+     * top-level `$block` to it (which is the unified path). We still parse the
+     * public view too so a legacy/partial reintroduction of inline branches
+     * keeps being credited.
      *
      * @return array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}
      */
@@ -202,15 +224,80 @@ class BlockRenderCoverage
             return self::$topLevel;
         }
 
+        $publicSrc = self::readView('common/biolink.blade.php');
+        $cov = self::parseBladeTypeBranches($publicSrc);
+
+        // The partial is reachable at TOP LEVEL only when the public view
+        // delegates the top-level $block to it (the card/grid child loop
+        // delegates $childBlock and must NOT count). \b keeps $childBlock from
+        // matching.
+        if (preg_match('/biolink-block-render\'[^)]*\'block\'\s*=>\s*\$block\b/', $publicSrc)) {
+            $cov = self::mergeCoverage($cov, self::partialCoverage());
+        }
+
+        return self::$topLevel = $cov;
+    }
+
+    /**
+     * Coverage for a CONTAINER-CHILD block. Card/grid children are rendered by
+     * the very same dispatch partial (recursive @include), so child coverage is
+     * simply the full partial coverage.
+     *
+     * @return array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}
+     */
+    private static function childCoverage(): array
+    {
+        if (self::$child !== null) {
+            return self::$child;
+        }
+
+        return self::$child = self::partialCoverage();
+    }
+
+    /**
+     * Full coverage of the single dispatch partial: the $__blockPartials map
+     * keys PLUS the partial's own inline @if/@elseif type branches (the ones
+     * that used to live in common/biolink.blade.php before Task #2042).
+     *
+     * @return array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}
+     */
+    private static function partialCoverage(): array
+    {
+        if (self::$partial !== null) {
+            return self::$partial;
+        }
+
+        $source = self::readView('common/partials/biolink-block-render.blade.php');
+        $cov = self::parseBladeTypeBranches($source);
+
+        // $__blockPartials dispatch map keys.
+        if (preg_match('/\$__blockPartials\s*=\s*\[(.*?)\];/s', $source, $m)) {
+            // Keys sit before `=>`; values (partial paths) sit after and are ignored.
+            if (preg_match_all('/[\'"]([^\'"]+)[\'"]\s*=>/', $m[1], $mm)) {
+                foreach ($mm[1] as $t) {
+                    $cov['literals'][$t] = true;
+                }
+            }
+        }
+
+        return self::$partial = $cov;
+    }
+
+    /**
+     * Parse a blade source for every type literal compared against
+     * $block->type, every str_starts_with() prefix rule, and whether an
+     * isContainerType() branch exists. Only @if/@elseif directive lines count
+     * so @php helper arrays (skipWrap / btnLike lists) never read as coverage.
+     *
+     * @return array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}
+     */
+    private static function parseBladeTypeBranches(string $source): array
+    {
         $literals = [];
         $prefixes = [];
         $containers = false;
 
-        $source = self::readView('common/biolink.blade.php');
-
         foreach (preg_split('/\R/', $source) as $line) {
-            // Only branch directives that switch on the block type matter; this
-            // skips styling helpers like `$skipWrap = in_array($block->type, ...)`.
             if (! str_contains($line, '$block->type')) {
                 continue;
             }
@@ -254,7 +341,7 @@ class BlockRenderCoverage
             }
         }
 
-        return self::$topLevel = [
+        return [
             'literals' => $literals,
             'prefixes' => array_values(array_unique($prefixes)),
             'containers' => $containers,
@@ -262,29 +349,19 @@ class BlockRenderCoverage
     }
 
     /**
-     * Parse the card-child dispatch table's $__blockPartials array keys.
+     * Union two coverage descriptors.
      *
-     * @return array<string,bool>
+     * @param  array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}  $a
+     * @param  array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}  $b
+     * @return array{literals:array<string,bool>,prefixes:array<int,string>,containers:bool}
      */
-    private static function childCoverage(): array
+    private static function mergeCoverage(array $a, array $b): array
     {
-        if (self::$child !== null) {
-            return self::$child;
-        }
-
-        $types = [];
-        $source = self::readView('common/partials/biolink-block-render.blade.php');
-
-        if (preg_match('/\$__blockPartials\s*=\s*\[(.*?)\];/s', $source, $m)) {
-            // Keys sit before `=>`; values (partial paths) sit after and are ignored.
-            if (preg_match_all('/[\'"]([^\'"]+)[\'"]\s*=>/', $m[1], $mm)) {
-                foreach ($mm[1] as $t) {
-                    $types[$t] = true;
-                }
-            }
-        }
-
-        return self::$child = $types;
+        return [
+            'literals' => $a['literals'] + $b['literals'],
+            'prefixes' => array_values(array_unique(array_merge($a['prefixes'], $b['prefixes']))),
+            'containers' => $a['containers'] || $b['containers'],
+        ];
     }
 
     /**

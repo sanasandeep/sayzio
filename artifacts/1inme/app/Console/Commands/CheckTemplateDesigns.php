@@ -197,18 +197,35 @@ class CheckTemplateDesigns extends Command
             '/biolink-block-render\'[^)]*\'block\'\s*=>\s*\$block\b/',
             $publicSrc
         );
-        $partialTypes = $fallsThroughToPartial ? $this->parsePartialDispatchKeys($partialSrc) : [];
 
-        $covered = function (string $type) use ($inlineExact, $inlinePrefixes, $partialTypes): bool {
-            if (in_array($type, $inlineExact, true)) {
+        // Since Task #2042 the partial is the single source of truth: it
+        // renders a type via the $__blockPartials dispatch map OR via its own
+        // inline @if/@elseif chain (the branches that used to live here in
+        // common/biolink.blade.php). Credit BOTH so a top-level block that
+        // delegates to the partial is covered by either path.
+        $partialExact    = [];
+        $partialPrefixes = [];
+        if ($fallsThroughToPartial) {
+            [$partialInlineExact, $partialPrefixes] = $this->parseInlineRenderBranches($partialSrc);
+            $partialExact = array_merge(
+                $this->parsePartialDispatchKeys($partialSrc),
+                $partialInlineExact
+            );
+        }
+
+        $exact    = array_merge($inlineExact, $partialExact);
+        $prefixes = array_merge($inlinePrefixes, $partialPrefixes);
+
+        $covered = function (string $type) use ($exact, $prefixes): bool {
+            if (in_array($type, $exact, true)) {
                 return true;
             }
-            foreach ($inlinePrefixes as $prefix) {
+            foreach ($prefixes as $prefix) {
                 if ($prefix !== '' && str_starts_with($type, $prefix)) {
                     return true;
                 }
             }
-            return in_array($type, $partialTypes, true);
+            return false;
         };
 
         $missing = 0;
