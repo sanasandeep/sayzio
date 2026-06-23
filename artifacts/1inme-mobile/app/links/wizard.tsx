@@ -101,6 +101,25 @@ function fieldIcon(q: WizardQuestion): string {
   }
 }
 
+// Pick a crop aspect ratio for an image question so the upload lands at the
+// right shape on the generated page without manual fiddling. Avatar/profile/
+// logo images crop square (they render as circles on the page); cover/banner/
+// header images crop to a wide banner. Anything unrecognised falls back to a
+// free-form crop (undefined → no aspect lock). Matched on the question key and
+// label since the server reuses the `avatar` key for both profile and cover
+// images, distinguishing them only by label.
+//
+// NB: expo-image-picker's `aspect` only constrains the crop on Android; on iOS
+// the edit UI always crops to a square. That still gives avatars the right
+// shape everywhere — only wide covers fall back to square on iOS.
+function imageCropAspect(q: WizardQuestion): [number, number] | undefined {
+  if (q.type !== "image") return undefined;
+  const hay = `${q.key} ${q.label}`.toLowerCase();
+  if (/cover|banner|header|hero/.test(hay)) return [16, 9];
+  if (/avatar|profile|logo|headshot|portrait|photo/.test(hay)) return [1, 1];
+  return undefined;
+}
+
 export default function BiolinkWizardScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -787,6 +806,9 @@ function ImageQuestionField({
   const label = question.required ? `${question.label} *` : question.label;
   const icon = fieldIcon(question);
   const [uploading, setUploading] = useState(false);
+  // Per-field crop shape: square for avatars/logos, wide for covers/banners,
+  // undefined (free-form) for anything else.
+  const aspect = imageCropAspect(question);
 
   async function uploadAsset(asset: ImagePicker.ImagePickerAsset) {
     setUploading(true);
@@ -819,6 +841,7 @@ function ImageQuestionField({
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
+      aspect,
       quality: 0.85,
     });
     if (res.canceled || !res.assets?.[0]) return;
@@ -837,6 +860,7 @@ function ImageQuestionField({
     const res = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
+      aspect,
       quality: 0.85,
     });
     if (res.canceled || !res.assets?.[0]) return;
