@@ -7,6 +7,7 @@ use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\TemplatePreviewLayoutBuilder;
 use Database\Seeders\CardTemplateSeeder;
 use Database\Seeders\ExpandedPageTemplateLibrarySeeder;
 use Database\Seeders\StarterPageTemplatesSeeder;
@@ -420,6 +421,247 @@ class MobileTemplatePreviewRendersTest extends TestCase
             // The root must be the card container; remaining entries are its
             // children, confirming the sub-tree serialized intact.
             $this->assertSame('card', $blocks[0]['type'], "{$label} root block is not a card");
+        }
+    }
+
+    /**
+     * Replicate {@see TemplatePreviewLayoutBuilder::build()}'s 12-col grid
+     * packing so the test can assert the endpoint's `preview_layout` actually
+     * mirrors the snapshot's blocks — instead of re-calling build() (which
+     * would be vacuous). Each emitted cell is reduced to {shape, span}; the
+     * shape oracle is the builder's own cellFor() type→shape contract (the
+     * documented mapping all three renderers read), so adding a new block type
+     * to the palette won't break this test, but build() returning a
+     * blank/empty/mis-packed blueprint will.
+     *
+     * @param  array<int, mixed>  $items
+     * @return array<int, array<int, array{shape: string, span: int}>>
+     */
+    private function expectedPreviewLayout(array $items, int $maxRows = 6): array
+    {
+        $builder = app(TemplatePreviewLayoutBuilder::class);
+        $maxRows = max(1, $maxRows);
+        $rows = [];
+        $current = [];
+        $used = 0;
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $type = (string) ($item['type'] ?? '');
+            if ($type === '') {
+                continue;
+            }
+            $settings = is_array($item['settings'] ?? null) ? $item['settings'] : [];
+            $span = (int) ($settings['_style']['grid_span'] ?? 12);
+            $span = max(1, min(12, $span));
+            $cell = ['shape' => (string) $builder->cellFor($type)['shape'], 'span' => $span];
+            if ($used + $span > 12 && $current) {
+                $rows[] = $current;
+                $current = [];
+                $used = 0;
+                if (count($rows) >= $maxRows) {
+                    break;
+                }
+            }
+            $current[] = $cell;
+            $used += $span;
+            if ($used >= 12) {
+                $rows[] = $current;
+                $current = [];
+                $used = 0;
+                if (count($rows) >= $maxRows) {
+                    break;
+                }
+            }
+        }
+        if ($current && count($rows) < $maxRows) {
+            $rows[] = $current;
+        }
+        return $rows;
+    }
+
+    /**
+     * Assert one endpoint-returned `preview_layout` is non-empty, structurally
+     * valid (rows of cells on a 12-col grid, each cell carrying renderer
+     * hints), and exactly mirrors the snapshot's block shapes/spans.
+     *
+     * @param  mixed  $layout
+     * @param  array<int, mixed>  $rawItems
+     */
+    private function assertPreviewLayoutMirrorsSnapshot($layout, array $rawItems, string $label): void
+    {
+        $this->assertIsArray($layout, "{$label} preview_layout is not an array");
+        $this->assertNotEmpty(
+            $layout,
+            "{$label} produced an EMPTY preview_layout blueprint — the shape-aware "
+            . 'thumbnail mock has no rows, so the mobile gallery would render this '
+            . 'template as a featureless blank box. The build() grid-packing dropped '
+            . 'every block.'
+        );
+
+        $expected = $this->expectedPreviewLayout($rawItems);
+        $this->assertNotEmpty(
+            $expected,
+            "{$label} has a snapshot with no layout-eligible (typed) blocks, so the "
+            . 'non-empty preview guarantee cannot hold — the snapshot itself is blank.'
+        );
+
+        $this->assertSame(
+            count($expected),
+            count($layout),
+            "{$label} preview_layout has " . count($layout) . ' row(s) but its snapshot '
+            . 'packs into ' . count($expected) . ' row(s) — the blueprint grid-packing '
+            . 'drifted from the snapshot.'
+        );
+
+        foreach ($layout as $r => $row) {
+            $this->assertIsArray($row, "{$label} preview_layout row {$r} is not an array");
+            $this->assertNotEmpty($row, "{$label} preview_layout row {$r} is empty");
+
+            $expectedRow = $expected[$r];
+            $this->assertSame(
+                count($expectedRow),
+                count($row),
+                "{$label} preview_layout row {$r} has " . count($row) . ' cell(s) but the '
+                . 'snapshot packs ' . count($expectedRow) . ' cell(s) there.'
+            );
+
+            $spanSum = 0;
+            foreach ($row as $c => $cell) {
+                $this->assertIsArray($cell, "{$label} preview_layout row {$r} cell {$c} is not an array");
+                $this->assertArrayHasKey('shape', $cell, "{$label} row {$r} cell {$c} has no shape hint");
+                $this->assertArrayHasKey('span', $cell, "{$label} row {$r} cell {$c} has no span");
+                $this->assertArrayHasKey('bg', $cell, "{$label} row {$r} cell {$c} has no bg hint");
+                $this->assertArrayHasKey('h', $cell, "{$label} row {$r} cell {$c} has no height hint");
+
+                $this->assertNotEmpty(
+                    (string) $cell['shape'],
+                    "{$label} row {$r} cell {$c} has a blank shape hint — the renderer "
+                    . 'would have nothing to draw.'
+                );
+                $span = (int) $cell['span'];
+                $this->assertGreaterThanOrEqual(1, $span, "{$label} row {$r} cell {$c} span is < 1");
+                $this->assertLessThanOrEqual(12, $span, "{$label} row {$r} cell {$c} span is > 12");
+
+                $this->assertSame(
+                    $expectedRow[$c]['shape'],
+                    (string) $cell['shape'],
+                    "{$label} row {$r} cell {$c} shape '" . (string) $cell['shape'] . "' diverged "
+                    . "from the snapshot block's shape '{$expectedRow[$c]['shape']}' — the "
+                    . 'thumbnail mock no longer matches the template.'
+                );
+                $this->assertSame(
+                    $expectedRow[$c]['span'],
+                    $span,
+                    "{$label} row {$r} cell {$c} span {$span} diverged from the snapshot "
+                    . "block's grid_span {$expectedRow[$c]['span']}."
+                );
+
+                $spanSum += $span;
+            }
+
+            $this->assertLessThanOrEqual(
+                12,
+                $spanSum,
+                "{$label} preview_layout row {$r} packs spans summing to {$spanSum} (> 12 "
+                . 'columns) — the blueprint overflows the grid.'
+            );
+        }
+    }
+
+    /**
+     * The mobile card *gallery* (GET .../card-templates, index) also builds a
+     * shape-aware `preview_layout` blueprint via TemplatePreviewLayoutBuilder —
+     * the little mock drawn at thumbnail size when a card has no static
+     * thumbnail_url. This is a THIRD serialize path (besides the children
+     * summary and the apply tree) that nothing else covers. A regression that
+     * blanks out or mis-packs this blueprint would make every card render as a
+     * featureless box in the picker. Drive the real endpoint for the full
+     * seeded library and assert every active card's blueprint is non-empty,
+     * structurally valid, and mirrors its snapshot's child shapes.
+     */
+    public function test_every_active_card_template_has_a_valid_preview_layout(): void
+    {
+        $this->seedTemplateLibrary();
+        $user = $this->makeUnlockedUser();
+        $link = $this->makeBiolink($user);
+        $this->withToken($this->token($user));
+
+        $resp = $this->getJson("/api/v1/links/{$link->id}/card-templates");
+        $resp->assertOk();
+
+        $items = $resp->json('data.items');
+        $this->assertIsArray($items, 'card-template gallery returned no items array');
+        $this->assertNotEmpty($items, 'card-template gallery listed no templates');
+
+        $templates = CardTemplate::where('is_active', true)
+            ->get(['id', 'slug', 'snapshot'])
+            ->keyBy('id');
+        $this->assertSame(
+            $templates->count(),
+            count($items),
+            'card-template gallery item count drifted from the active card library: '
+            . "expected {$templates->count()} active template(s), got " . count($items)
+        );
+
+        foreach ($items as $item) {
+            $tpl = $templates[$item['id']] ?? null;
+            $this->assertNotNull($tpl, "gallery returned an unknown card template id {$item['id']}");
+            $label = "card template '{$tpl->slug}'";
+
+            $this->assertArrayHasKey('preview_layout', $item, "{$label} is missing a 'preview_layout' blueprint");
+
+            $snapshot = is_array($tpl->snapshot) ? $tpl->snapshot : [];
+            $rawChildren = is_array($snapshot['children'] ?? null) ? $snapshot['children'] : [];
+
+            $this->assertPreviewLayoutMirrorsSnapshot($item['preview_layout'], $rawChildren, $label);
+        }
+    }
+
+    /**
+     * The mobile page-template *gallery* (GET .../page-templates, index) builds
+     * the same shape-aware `preview_layout` blueprint from the page's top-level
+     * blocks for the thumbnail mock when no static thumbnail_url is set — a
+     * third serialize path alongside the content summary and the show preview.
+     * A regression that blanks or mis-packs it would show a featureless box for
+     * every page in the picker, so cover the full seeded library here too.
+     */
+    public function test_every_active_page_template_has_a_valid_preview_layout(): void
+    {
+        $this->seedTemplateLibrary();
+        $user = $this->makeUnlockedUser();
+        $link = $this->makeBiolink($user);
+        $this->withToken($this->token($user));
+
+        $resp = $this->getJson("/api/v1/links/{$link->id}/page-templates");
+        $resp->assertOk();
+
+        $items = $resp->json('data.items');
+        $this->assertIsArray($items, 'page-template gallery returned no items array');
+        $this->assertNotEmpty($items, 'page-template gallery listed no templates');
+
+        $templates = PageTemplate::where('is_active', true)
+            ->get(['id', 'slug', 'snapshot'])
+            ->keyBy('id');
+        $this->assertSame(
+            $templates->count(),
+            count($items),
+            'page-template gallery item count drifted from the active page library: '
+            . "expected {$templates->count()} active template(s), got " . count($items)
+        );
+
+        foreach ($items as $item) {
+            $tpl = $templates[$item['id']] ?? null;
+            $this->assertNotNull($tpl, "gallery returned an unknown page template id {$item['id']}");
+            $label = "page template '{$tpl->slug}'";
+
+            $this->assertArrayHasKey('preview_layout', $item, "{$label} is missing a 'preview_layout' blueprint");
+
+            $snapshot = is_array($tpl->snapshot) ? $tpl->snapshot : [];
+            $blocks = is_array($snapshot['blocks'] ?? null) ? $snapshot['blocks'] : [];
+
+            $this->assertPreviewLayoutMirrorsSnapshot($item['preview_layout'], $blocks, $label);
         }
     }
 
