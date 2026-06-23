@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Models\Price;
-use App\Services\PricingResolver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -217,9 +216,12 @@ class PlansAndAddonsSeeder extends Seeder
      *
      * Performance: every existing price row for the whole batch is loaded in
      * ONE query and diffed in memory, instead of four `exists()` round-trips
-     * per model. Over the cross-region RDS this is what turns a no-op
-     * convergence run from ~minute-scale into a few seconds. A model that
-     * already has all four rows triggers zero writes.
+     * per model. Any missing rows across the whole batch are then written in a
+     * SINGLE bulk insert instead of one `upsertFromMinor` round-trip each — so
+     * a from-empty seed (where all 84 rows are missing) pays one insert, not
+     * 84. Over the cross-region RDS this is what turns first-time provisioning
+     * from ~minute-scale into a few seconds. A model that already has all four
+     * rows triggers zero writes.
      *
      * @param class-string $class  The priceable class (Plan::class / Addon::class).
      * @param array<int, array{model: \Illuminate\Database\Eloquent\Model, usdMonthly: float, usdAnnual: float}> $items
@@ -244,6 +246,13 @@ class PlansAndAddonsSeeder extends Seeder
             $have[$price->priceable_id . '|' . $price->currency . '|' . $price->billing_cycle] = true;
         }
 
+        // Accumulate every missing (currency, cycle) row across the whole batch
+        // and write them all in ONE bulk insert below. These rows are known to
+        // be absent (we just diffed against $have), so a plain insert is safe
+        // and idempotent — existing rows / curator edits are never touched.
+        $toInsert = [];
+        $now = now();
+
         foreach ($items as $item) {
             $model = $item['model'];
             $usdMonthly = $item['usdMonthly'];
@@ -259,7 +268,16 @@ class PlansAndAddonsSeeder extends Seeder
             foreach ($rows as [$currency, $cycle, $major]) {
                 if (!isset($have[$model->getKey() . '|' . $currency . '|' . $cycle])) {
                     $minor = (int) round(((float) $major) * 100);
-                    PricingResolver::upsertFromMinor($model, $currency, $cycle, $minor);
+                    $toInsert[] = [
+                        'priceable_type'     => $class,
+                        'priceable_id'       => $model->getKey(),
+                        'currency'           => $currency,
+                        'billing_cycle'      => $cycle,
+                        'amount_minor_units' => max(0, $minor),
+                        'is_active'          => true,
+                        'created_at'         => $now,
+                        'updated_at'         => $now,
+                    ];
                 }
             }
 
@@ -277,6 +295,11 @@ class PlansAndAddonsSeeder extends Seeder
             if ($patch) {
                 $model->fill($patch)->save();
             }
+        }
+
+        // Single bulk insert for every missing row across the whole batch.
+        if ($toInsert) {
+            DB::table('prices')->insert($toInsert);
         }
     }
 
