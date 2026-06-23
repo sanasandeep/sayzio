@@ -8,6 +8,7 @@
     $__impersonating = session()->has('impersonate_user_id');
     $__supportEmail = config('billing.support_email') ?: config('mail.from.address');
     $__appName = config('app.name', '1INME');
+
     // Admins who already have an OpenAI key configured can flip the master
     // switch on right here — no detour through the settings screen.
     $__hasOpenAiKey = $__canManageAi && !$__impersonating
@@ -15,6 +16,21 @@
     // The feature the admin was trying to open, so we can land them back on
     // it after enabling the engine.
     $__returnTo = url()->current();
+
+    // The engine master switch decides who can unlock this feature.
+    //  - OFF: only an administrator can turn it on, so the page keeps the
+    //    explainer + "Request access" email (behaviour unchanged).
+    //  - ON: the gate is now the user's plan and/or coin balance, which
+    //    they can self-serve, so we surface upgrade + coin top-up links
+    //    and explain the coin cost model instead of just emailing support.
+    $__aiEnabled = \App\Services\AI\AiEngineSettings::isEnabled();
+    $__featureLabel = $title ?? 'AI features';
+    $__planName = $__user && $__user->plan ? $__user->plan->name : 'your current plan';
+    $__coinBalance = $__user && $__user->wallet ? (int) $__user->wallet->balance : 0;
+    // Optional concrete upgrade target passed by the controller (e.g. the
+    // cheapest plan that unlocks the feature). Falls back to the generic
+    // upgrade page when absent.
+    $__upgradePlan = $upgradePlan ?? null;
 @endphp
 
 @section('content')
@@ -23,12 +39,12 @@
         <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-300">
             <i class="fas fa-robot text-2xl"></i>
         </div>
-        <h1 class="text-lg font-semibold text-white">{{ $heading ?? 'AI features are currently turned off' }}</h1>
-        <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
-            {{ $message ?? 'The AI engine isn’t enabled on this account right now. Once an administrator switches it on, this feature will be ready to use here.' }}
-        </p>
 
         @if($__canManageAi && !$__impersonating)
+            <h1 class="text-lg font-semibold text-white">{{ $heading ?? 'AI features are currently turned off' }}</h1>
+            <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
+                {{ $message ?? 'The AI engine isn’t enabled on this account right now. Once an administrator switches it on, this feature will be ready to use here.' }}
+            </p>
             @if($__hasOpenAiKey)
                 {{-- Admin with a key already configured: one-click enable, then
                      land back on the feature they were trying to open. --}}
@@ -83,8 +99,13 @@
                     </a>
                 </div>
             @endif
-        @else
-            {{-- Regular user: explain the feature and offer a way to ask for it. --}}
+        @elseif(!$__aiEnabled)
+            {{-- Engine OFF globally: only an admin can enable it. Keep the
+                 explainer + request-access email exactly as before. --}}
+            <h1 class="text-lg font-semibold text-white">{{ $heading ?? 'AI features are currently turned off' }}</h1>
+            <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
+                {{ $message ?? 'The AI engine isn’t enabled on this account right now. Once an administrator switches it on, this feature will be ready to use here.' }}
+            </p>
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">What you’re missing</p>
                 <p class="mt-1">
@@ -107,6 +128,53 @@
                     Back to dashboard
                 </a>
             </div>
+        @else
+            {{-- Engine ON but this user is gated by their plan: tell them
+                 which plan/coins unlock it so they can self-serve. --}}
+            <h1 class="text-lg font-semibold text-white">{{ $heading ?? $__featureLabel.' isn’t included on your plan yet' }}</h1>
+            <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
+                {{ $message ?? $__featureLabel.' is available on '.$__appName.', but '.$__planName.' doesn’t unlock it yet. Upgrade to switch it on for your account.' }}
+            </p>
+
+            <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
+                <p class="font-medium text-white/80">How AI is billed</p>
+                <p class="mt-1">
+                    Once your plan includes it, AI runs straight from your coin wallet — you’re only charged
+                    coins for what you actually use, with no separate AI subscription. You currently have
+                    <span class="font-semibold text-white/80">{{ number_format($__coinBalance) }}</span>
+                    {{ \Illuminate\Support\Str::plural('coin', $__coinBalance) }} to spend, and you can top up any time.
+                </p>
+            </div>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <a href="{{ route('user.upgrade') }}"
+                   class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">
+                    <i class="fas fa-arrow-up text-xs"></i>
+                    @if($__upgradePlan)
+                        Upgrade to {{ $__upgradePlan->name }}
+                    @else
+                        See upgrade options
+                    @endif
+                </a>
+                <a href="{{ route('user.wallet.buy') }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/10">
+                    <i class="fas fa-coins text-xs"></i>
+                    Top up coins
+                </a>
+                <a href="{{ route('user.dashboard') }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/10">
+                    <i class="fas fa-arrow-left text-xs"></i>
+                    Back to dashboard
+                </a>
+            </div>
+
+            @if($__supportEmail)
+                <p class="mx-auto mt-4 max-w-md text-xs text-white/40">
+                    Not sure which plan you need?
+                    <a href="mailto:{{ $__supportEmail }}?subject={{ rawurlencode('Question about AI features on my '.$__appName.' account') }}"
+                       class="text-violet-300 hover:text-violet-200 underline underline-offset-2">Ask support</a>.
+                </p>
+            @endif
         @endif
     </div>
 </div>

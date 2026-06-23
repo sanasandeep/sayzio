@@ -118,6 +118,23 @@ PROMPT;
         return in_array($slug, $allow, true);
     }
 
+    /**
+     * Cheapest active plan that would let $user use Ask Coach, so the AI
+     * gate page can point them at a concrete self-serve upgrade instead
+     * of a support email. Returns null when the user is already allowed,
+     * the allow-list is empty (everyone in), or no active plan matches.
+     */
+    public static function askCoachUpgradePlanFor(\App\Modules\User\Models\User $user): ?\App\Modules\Admin\Models\Plan
+    {
+        if (self::askCoachAllowedFor($user)) return null;
+        $allow = self::askCoachEnabledPlans();
+        if (!$allow) return null;
+        return \App\Modules\Admin\Models\Plan::where('status', 'active')
+            ->whereIn('slug', $allow)
+            ->orderBy('monthly_price')
+            ->first();
+    }
+
     /** Fallback chat model used when a feature has no mapping yet. */
     public const DEFAULT_FEATURE_MODEL = 'gpt-4o-mini';
 

@@ -57,6 +57,15 @@ class AskCoachController extends Controller
         if (!AiEngineSettings::isEnabled()) {
             return view('user.ai.disabled', ['title' => 'Ask Coach']);
         }
+        // Engine is on but the user's plan may not unlock Ask Coach. Show
+        // the self-serve gate page (upgrade + coins) instead of a bare 403
+        // so they know exactly how to switch it on.
+        if (!AiEngineSettings::askCoachAllowedFor($request->user())) {
+            return view('user.ai.disabled', [
+                'title'       => 'Ask Coach',
+                'upgradePlan' => AiEngineSettings::askCoachUpgradePlanFor($request->user()),
+            ]);
+        }
         $this->ensureEnabled($request);
         $user = $request->user();
         $wsId = $this->workspaceId();
