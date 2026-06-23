@@ -7,6 +7,7 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Services\AI\AiEngineSettings;
 use App\Services\Billing\WalletService;
@@ -238,5 +239,74 @@ class BiolinkAiPlanBlockTypesTest extends TestCase
         $resp->assertRedirect(route('user.links.blocks.editor', $link));
 
         $this->assertRespectsAllowList($link);
+    }
+
+    // ── Mobile ai-generate handoff (with grounding) ───────────────────
+
+    /**
+     * The mobile app reaches the AI builder through the same Sanctum endpoint
+     * as the generic API surface, but its real-world entry is the stateless
+     * "scan → handoff" flow: a card/brochure scan seeds the wizard via
+     * prefillCategory/prefillAnswers, the client carries those answers in
+     * memory, and the AI-draft button POSTs them to /links/wizard/ai-generate
+     * together with grounding inputs (selected vault files / AI Brains) that
+     * the instant generator never sends.
+     *
+     * This pins that the mobile-originated path — including the extra grounding
+     * channel that funnels through WizardAiDraftService → AiBiolinkBuilderService
+     * — still drops block types the plan forbids. A regression that let the
+     * mobile entry point skip allowedTypesFor() would hand a restricted plan
+     * premium blocks it never paid for.
+     */
+    public function test_mobile_ai_generate_handoff_persists_only_plan_allowed_block_types(): void
+    {
+        $user = $this->makeUser($this->restrictedPlan());
+        $this->seedCoins($user);
+        $this->fakeOpenAi($this->mixedPageJson());
+
+        // Grounding input the mobile draft picker can attach: a vault image.
+        // It flows in as an extra image URL to the builder (no embeddings
+        // call — only AI Brains trigger those), exercising the resource
+        // channel that the plain API ai-generate test doesn't cover.
+        $vaultImage = UserFile::create([
+            'user_id'       => $user->id,
+            'original_name' => 'storefront.jpg',
+            'filename'      => 'storefront-' . Str::random(6) . '.jpg',
+            'type'          => 'image',
+            'mime_type'     => 'image/jpeg',
+            'size_bytes'    => 2048,
+            'disk'          => 'public',
+            'path'          => 'files/storefront.jpg',
+        ]);
+        $vaultImage->workspace_id = $this->activeWorkspaceId($user);
+        $vaultImage->save();
+
+        // Mirror the mobile client: its User-Agent / X-1INME-Client headers and
+        // the scan-handoff answers carried in memory, posted in one shot with
+        // the grounding file id the draft picker selected.
+        $this->withToken($this->token($user));
+        $this->withHeaders([
+            'User-Agent'      => '1INMEMobileApp/1.0.0 (ios; expo)',
+            'X-1INME-Client'  => '1INMEMobileApp/1.0.0 (ios; expo)',
+        ]);
+        $resp = $this->postJson('/api/v1/links/wizard/ai-generate', [
+            'category'  => 'business',
+            'page_type' => 'local_shop',
+            'answers'   => $this->businessAnswers(),
+            'file_ids'  => [$vaultImage->id],
+        ]);
+
+        $resp->assertCreated();
+
+        $link = Link::where('user_id', $user->id)->sole();
+        $this->assertRespectsAllowList($link);
+
+        // The selected vault file should be recorded as a build resource,
+        // confirming the grounding channel actually ran on this path.
+        $this->assertContains(
+            $vaultImage->id,
+            $link->fresh()->settings['wizard_resources']['file_ids'] ?? [],
+            'the mobile draft must record the grounding vault file it built from',
+        );
     }
 }
