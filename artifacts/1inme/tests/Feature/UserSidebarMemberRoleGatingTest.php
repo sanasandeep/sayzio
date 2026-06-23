@@ -7,6 +7,7 @@ use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Models\WorkspaceRolePermission;
 use App\Modules\User\Services\WorkspaceContext;
+use App\Services\AI\AiEngineSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -199,5 +200,47 @@ class UserSidebarMemberRoleGatingTest extends TestCase
         $this->assertNavItem($member, $ws, 'user.links.index', false);
         $this->assertNavItem($member, $ws, 'user.links.create', false);
         $this->assertNavItem($member, $ws, 'user.inbox.unified.index', false);
+    }
+
+    // ===== AI per-item gates still apply when the engine is off =====
+
+    /**
+     * The AI nav group always renders now (Task #1999), but its two per-item
+     * gates must keep working with the engine off: Minds needs settings_view;
+     * Ask Coach needs askCoachAllowedFor(). A member who lacks `view` must see
+     * the ungated AI items (Mind, Coach, …) and Ask Coach (plan-gated, open
+     * allow-list) but NOT Minds.
+     */
+    public function test_ai_per_item_gates_apply_with_engine_off(): void
+    {
+        AiEngineSettings::setEnabled(false);
+        AiEngineSettings::setAskCoachEnabledPlans([]); // every plan allowed
+
+        $owner  = $this->makeUser();
+        $member = $this->makeUser();
+        $ws     = $this->makeWorkspace($owner);
+        $this->addMember($ws, $member, 'viewer');
+
+        // Strip the viewer role's `view` action so settings_view resolves false.
+        WorkspaceRolePermission::create([
+            'workspace_id' => $ws->id,
+            'matrix'       => [
+                'viewer' => [
+                    'view'   => false,
+                    'create' => false,
+                    'edit'   => false,
+                    'delete' => false,
+                    'reply'  => false,
+                ],
+            ],
+        ]);
+
+        // Ungated AI items render even with the engine off and `view` revoked.
+        $this->assertNavItem($member, $ws, 'user.ai.mind.show', true);
+        $this->assertNavItem($member, $ws, 'user.ai.coach.show', true);
+        // Minds is hidden because this member lacks settings_view…
+        $this->assertNavItem($member, $ws, 'user.minds.index', false);
+        // …while Ask Coach (plan-gated, empty allow-list) still shows.
+        $this->assertNavItem($member, $ws, 'user.ai.ask-coach.show', true);
     }
 }

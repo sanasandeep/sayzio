@@ -24,8 +24,11 @@ use Tests\TestCase;
  *
  * Items exercised:
  *   - "API keys"        — plan feature gate (`api_access`).
- *   - AI section        — AI-engine gate (`AiEngineSettings::isEnabled()`).
- *   - "Ask Coach"       — AI-engine + per-plan allow-list gate.
+ *   - AI section        — always rendered now (Task #1999); the engine state
+ *                         no longer hides it. Per-item gates still apply
+ *                         (Minds → settings_view).
+ *   - "Ask Coach"       — per-plan allow-list gate (`askCoachAllowedFor()`),
+ *                         engine-independent.
  *   - Administration    — back-office permission gates
  *                         (`user.plans.manage`, `user.verifications.review`,
  *                          `user.roles.manage`).
@@ -154,50 +157,78 @@ class UserSidebarMenuGatingTest extends TestCase
         $this->assertNavItem($u, 'user.api-keys.index', true);
     }
 
-    // ===== AI section — AI-engine gate =====
+    // ===== AI section — always rendered regardless of engine state =====
+    //
+    // The AI nav group is no longer wrapped in an AiEngineSettings::isEnabled()
+    // gate (Task #1999): when the engine is off the menu must stay visible so
+    // users land on the informative "turned off" page instead of a vanished
+    // group. These tests guard against the @if wrapper being reintroduced in
+    // either the desktop or mobile nav copy.
 
-    public function test_ai_section_hidden_when_engine_disabled(): void
+    /** AI items with no per-item gate — always visible to a workspace owner. */
+    private const ALWAYS_ON_AI_ROUTES = [
+        'user.ai.mind.show',
+        'user.ai.persona.show',
+        'user.ai-personas.index',
+        'user.ai.companion.show',
+        'user.ai-companions.index',
+        'user.ai.coach.show',
+    ];
+
+    public function test_all_ai_items_shown_when_engine_disabled(): void
     {
         AiEngineSettings::setEnabled(false);
-        $u = $this->user($this->plan());
-        $this->assertNavItem($u, 'user.ai.mind.show', false);
-    }
-
-    public function test_ai_section_shown_when_engine_enabled(): void
-    {
-        AiEngineSettings::setEnabled(true);
-        $u = $this->user($this->plan());
-        $this->assertNavItem($u, 'user.ai.mind.show', true);
-    }
-
-    // ===== Ask Coach — AI-engine + per-plan allow-list gate =====
-
-    public function test_ask_coach_shown_when_engine_on_and_plan_allowed(): void
-    {
-        AiEngineSettings::setEnabled(true);
-        // Empty allow-list = every plan is allowed.
+        // Empty allow-list keeps the per-plan Ask Coach gate open.
         AiEngineSettings::setAskCoachEnabledPlans([]);
-        $u = $this->user($this->plan([], 'coachplan'));
+        $u = $this->user($this->plan([], 'aioffplan'));
+
+        foreach (self::ALWAYS_ON_AI_ROUTES as $route) {
+            $this->assertNavItem($u, $route, true);
+        }
+        // Minds is gated on settings_view, which a workspace owner always holds.
+        $this->assertNavItem($u, 'user.minds.index', true);
+        // Ask Coach is gated on askCoachAllowedFor() only — engine state no
+        // longer factors in, so an allowed plan still sees it with AI off.
         $this->assertNavItem($u, 'user.ai.ask-coach.show', true);
     }
 
-    public function test_ask_coach_hidden_when_plan_not_allowed(): void
+    public function test_all_ai_items_shown_when_engine_enabled(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        AiEngineSettings::setAskCoachEnabledPlans([]);
+        $u = $this->user($this->plan([], 'aionplan'));
+
+        foreach (self::ALWAYS_ON_AI_ROUTES as $route) {
+            $this->assertNavItem($u, $route, true);
+        }
+        $this->assertNavItem($u, 'user.minds.index', true);
+        $this->assertNavItem($u, 'user.ai.ask-coach.show', true);
+    }
+
+    // ===== Ask Coach — per-plan allow-list gate (independent of engine) =====
+
+    public function test_ask_coach_hidden_when_plan_not_allowed_engine_on(): void
     {
         AiEngineSettings::setEnabled(true);
         // Restrict to a plan the user is NOT on.
         AiEngineSettings::setAskCoachEnabledPlans(['some-other-plan']);
-        $u = $this->user($this->plan([], 'notcoach'));
+        $u = $this->user($this->plan([], 'notcoachon'));
         // The rest of the AI section still renders…
         $this->assertNavItem($u, 'user.ai.mind.show', true);
-        // …but Ask Coach is gated out.
+        // …but Ask Coach is gated out by the plan allow-list.
         $this->assertNavItem($u, 'user.ai.ask-coach.show', false);
     }
 
-    public function test_ask_coach_hidden_when_engine_disabled(): void
+    public function test_ask_coach_hidden_when_plan_not_allowed_engine_off(): void
     {
+        // The Ask Coach plan gate must keep working with the engine off —
+        // turning AI off neither reveals nor hides it beyond the plan rule.
         AiEngineSettings::setEnabled(false);
-        AiEngineSettings::setAskCoachEnabledPlans([]);
-        $u = $this->user($this->plan());
+        AiEngineSettings::setAskCoachEnabledPlans(['some-other-plan']);
+        $u = $this->user($this->plan([], 'notcoachoff'));
+        // Core AI items still render with the engine off…
+        $this->assertNavItem($u, 'user.ai.mind.show', true);
+        // …while Ask Coach stays gated out by the plan allow-list.
         $this->assertNavItem($u, 'user.ai.ask-coach.show', false);
     }
 
