@@ -58,3 +58,5 @@
 - [1inme Laravel Vite/Tailwind](1inme-laravel-vite-tailwind.md) — Blade uses @vite compiled Tailwind v4 (no CDN); public/build is gitignored + no vite dev server, so build assets or pages 500 on missing manifest.
 - [Biolink public list renderer string-only](biolink-public-list-renderer.md) — common/biolink.blade.php has its OWN inline `list`/`list_numbered` renderer that echoes each item as a string; seed/write list items as flat string[], not {text,icon} (only the editor partial normalizes arrays).
 - [1inme Browser e2e validation gate](browser-e2e-validation-gate.md) — `e2e` validation step gates ONLY the auth-popup spec; full suite blocked by broken `php artisan tinker` (psysh/PHP8.4) + 30-45s RDS renders.
+- [restart_workflow probe vs heavy cold page](restart-workflow-heavy-page-probe.md) — 1inme web probe FAILS even when server serves 1-2s 200s; OPcache/bytecode/warm-cache all tried & failed; comes up via post-merge/deploy, not restart_workflow.
+- [Cache::remember null = MISS](laravel-cache-remember-null-miss.md) — a cached null re-queries every request; over distant RDS this hammered AppSetting (~16s boot); cache a sentinel, never raw null.

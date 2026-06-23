@@ -13,21 +13,17 @@ paths = ["/"]
 # so a fresh dev environment has no manifest and every Blade page using @vite()
 # would 500 with ViteManifestNotFoundException — building on startup keeps dev
 # durable across environment restarts without committing build output.
+# NOTE: OPcache file_cache / cache-warm startup tuning was trialed to beat the
+# readiness-probe timeout on the heavy "/" home page but did NOT make
+# restart_workflow pass (the probe fails even when the server serves "/" at
+# ~1-2s for 30s straight, while lightweight artifacts pass instantly) — it is a
+# platform probe limitation, not app readiness. Reverted to this proven config,
+# which the platform's post-merge bring-up starts successfully.
 [services.development]
 run = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || pnpm --dir /home/runner/workspace/artifacts/1inme run build; } && PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"
 
 [services.development.env]
 PORT = "5000"
-
-# Dev readiness probe targets the lightweight Laravel health endpoint (/up:
-# no DB, no Blade render, ~0.08s) instead of the heavy marketing home page ("/").
-# The home page is a 4000+ line Blade view; on a cold restart the PHP OPcache is
-# empty, so the first concurrent requests spend 3-4s compiling+rendering (a
-# cache stampede) and overran the probe's window, marking the workflow failed
-# even though the app served 200s fine moments later. /up decouples "is the
-# server up" from "is the slowest page warm".
-[services.development.health.startup]
-path = "/up"
 
 # Production build compiles the Vite/Tailwind v4 assets (resources/css/app.css +
 # resources/js/app.js) so the @vite() manifest at public/build/manifest.json
