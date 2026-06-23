@@ -7,6 +7,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Models\Price;
 use App\Services\PricingResolver;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Idempotent seeder for the 7 default plans and the default addon catalog.
@@ -53,19 +54,28 @@ class PlansAndAddonsSeeder extends Seeder
      */
     public function seedPlans(): void
     {
-        foreach ($this->planDefinitions() as $def) {
-            $existing = Plan::where('slug', $def['slug'])->first();
-            if ($existing) {
+        $defs = $this->planDefinitions();
+
+        // Batch-load every existing plan row up front in ONE query, keyed by
+        // slug, then diff in memory. This avoids the per-plan SELECT (and the
+        // redundant re-SELECT after write) that made a no-op convergence run
+        // pay round-trip latency for each plan against the cross-region RDS.
+        $existing = Plan::whereIn('slug', array_column($defs, 'slug'))->get()->keyBy('slug');
+
+        $priceItems = [];
+        foreach ($defs as $def) {
+            $plan = $existing->get($def['slug']);
+            if ($plan) {
                 // Only fill in fields that are clearly unset on the existing row.
                 // We deliberately do NOT overwrite curator edits.
                 $patch = [];
-                if (empty($existing->description)) $patch['description'] = $def['description'];
-                if (empty($existing->features)) {
+                if (empty($plan->description)) $patch['description'] = $def['description'];
+                if (empty($plan->features)) {
                     $patch['features'] = $def['features'];
                 } else {
                     // Overlay-only: add new feature keys that aren't already
                     // set by the curator. Existing keys are never overwritten.
-                    $merged = $existing->features;
+                    $merged = $plan->features;
                     $changed = false;
                     foreach ($def['features'] as $k => $v) {
                         if (!array_key_exists($k, $merged)) {
@@ -75,20 +85,21 @@ class PlansAndAddonsSeeder extends Seeder
                     }
                     if ($changed) $patch['features'] = $merged;
                 }
-                if ($existing->metadata === null)  $patch['metadata']    = $def['metadata'];
+                if ($plan->metadata === null)  $patch['metadata']    = $def['metadata'];
                 if ($patch) {
-                    $existing->fill($patch)->save();
+                    $plan->fill($patch)->save();
                 }
             } else {
-                Plan::create($def);
+                $plan = Plan::create($def);
             }
 
-            // Make sure the polymorphic `prices` table has rows for both
-            // currencies. Seeder only fills missing rows so curator edits
-            // in /admin/plans are never overwritten.
-            $plan = Plan::where('slug', $def['slug'])->first();
-            $this->seedPrices($plan, (float) $def['monthly_price'], (float) $def['annual_price']);
+            // Reuse the model we already have in memory — no re-SELECT.
+            $priceItems[] = ['model' => $plan, 'usdMonthly' => (float) $def['monthly_price'], 'usdAnnual' => (float) $def['annual_price']];
         }
+
+        // Make sure the polymorphic `prices` table has rows for both
+        // currencies. Batched so all plans' existing prices load in ONE query.
+        $this->seedPricesForModels(Plan::class, $priceItems);
     }
 
     /**
@@ -100,93 +111,172 @@ class PlansAndAddonsSeeder extends Seeder
      */
     public function seedAddons(): void
     {
-        foreach ($this->addonDefinitions() as $def) {
+        $defs = $this->addonDefinitions();
+
+        // Batch-load every existing addon row up front in ONE query, keyed by
+        // slug. Diff in memory rather than a SELECT per addon.
+        $existing = Addon::whereIn('slug', array_column($defs, 'slug'))->get()->keyBy('slug');
+
+        // Resolve every distinct applies_to slug to its plan id in ONE query
+        // (shared across all addons) instead of a whereIn per addon.
+        $appliesSlugs = [];
+        foreach ($defs as $def) {
+            foreach (($def['applies_to'] ?? []) as $slug) {
+                $appliesSlugs[$slug] = true;
+            }
+        }
+        $planIdBySlug = $appliesSlugs
+            ? Plan::whereIn('slug', array_keys($appliesSlugs))->pluck('id', 'slug')->all()
+            : [];
+
+        // First pass: converge addon rows (create missing / overlay-fill
+        // existing) so every addon has an id for the pivot diff below.
+        $entries = [];     // slug => ['addon' => Addon, 'applies_to' => string[]]
+        $priceItems = [];
+        foreach ($defs as $def) {
             $appliesTo = $def['applies_to'] ?? [];
             unset($def['applies_to']);
 
-            $existing = Addon::where('slug', $def['slug'])->first();
-            if ($existing) {
+            $addon = $existing->get($def['slug']);
+            if ($addon) {
                 // Overlay-only patch: only fill in fields that are clearly
                 // unset on the existing row. We never overwrite curator edits
                 // (mirrors the plan overlay behavior above).
                 $patch = [];
-                if (empty($existing->description)) $patch['description'] = $def['description'];
-                if (empty($existing->features))    $patch['features']    = $def['features'];
-                if ($existing->metadata === null && array_key_exists('metadata', $def)) {
+                if (empty($addon->description)) $patch['description'] = $def['description'];
+                if (empty($addon->features))    $patch['features']    = $def['features'];
+                if ($addon->metadata === null && array_key_exists('metadata', $def)) {
                     $patch['metadata'] = $def['metadata'];
                 }
                 if ($patch) {
-                    $existing->fill($patch)->save();
+                    $addon->fill($patch)->save();
                 }
-                $addon = $existing;
             } else {
                 $addon = Addon::create($def);
             }
 
-            // Always converge the default plan attachments so a partial or
-            // manually-edited prior seed gets healed on rerun. We only attach
-            // pairs that aren't already linked (after de-duping the resolved
-            // plan IDs), so any extra plans an admin attached by hand are
-            // preserved and a populated pivot table never triggers a
-            // duplicate-key crash on re-run.
-            if ($appliesTo) {
-                $planIds = Plan::whereIn('slug', $appliesTo)->pluck('id')->unique()->all();
-                if ($planIds) {
-                    $alreadyAttached = $addon->plans()->pluck('plans.id')->all();
-                    $toAttach = array_values(array_diff($planIds, $alreadyAttached));
-                    if ($toAttach) {
-                        $addon->plans()->attach($toAttach);
-                    }
+            $entries[$def['slug']] = ['addon' => $addon, 'applies_to' => $appliesTo];
+            $priceItems[] = ['model' => $addon, 'usdMonthly' => (float) $def['monthly_price'], 'usdAnnual' => (float) $def['annual_price']];
+        }
+
+        // Batch-load every existing pivot row for all of these addons in ONE
+        // query, then diff in memory. Always converge the default plan
+        // attachments so a partial or manually-edited prior seed gets healed on
+        // rerun. We only attach pairs that aren't already linked, so any extra
+        // plans an admin attached by hand are preserved and a populated pivot
+        // table never triggers a duplicate-key crash on re-run.
+        $addonIds = [];
+        foreach ($entries as $entry) {
+            $addonIds[] = $entry['addon']->getKey();
+        }
+        $existingPivot = []; // addon_id => [plan_id => true]
+        if ($addonIds) {
+            foreach (DB::table('addon_plan')->whereIn('addon_id', $addonIds)->get(['addon_id', 'plan_id']) as $row) {
+                $existingPivot[$row->addon_id][$row->plan_id] = true;
+            }
+        }
+
+        $toInsert = [];
+        foreach ($entries as $entry) {
+            $addon = $entry['addon'];
+            if (!$entry['applies_to']) {
+                continue;
+            }
+            // Resolve + de-dupe the target plan ids from the shared map.
+            $planIds = [];
+            foreach ($entry['applies_to'] as $slug) {
+                if (isset($planIdBySlug[$slug])) {
+                    $planIds[$planIdBySlug[$slug]] = true;
                 }
             }
-
-            $this->seedPrices($addon, (float) $def['monthly_price'], (float) $def['annual_price']);
+            $have = $existingPivot[$addon->getKey()] ?? [];
+            foreach (array_keys($planIds) as $planId) {
+                if (!isset($have[$planId])) {
+                    $toInsert[] = ['addon_id' => $addon->getKey(), 'plan_id' => $planId];
+                }
+            }
         }
+        if ($toInsert) {
+            // Single bulk insert for all missing attachments (mirrors the
+            // timestamp-less rows the belongsToMany attach() produced before).
+            DB::table('addon_plan')->insert($toInsert);
+        }
+
+        // Make sure the polymorphic `prices` table has rows for both
+        // currencies. Batched so all addons' existing prices load in ONE query.
+        $this->seedPricesForModels(Addon::class, $priceItems);
     }
 
     /**
-     * Idempotently fill USD + INR rows in the polymorphic `prices` table.
-     * INR defaults are derived from USD using a flat multiplier — admins
-     * can override per-row via the dual-currency editor in the admin UI.
-     * Existing rows (curator edits) are never overwritten.
+     * Idempotently fill USD + INR rows in the polymorphic `prices` table for a
+     * batch of models of the SAME class (all Plans or all Addons).
+     *
+     * INR defaults are derived from USD using a flat multiplier — admins can
+     * override per-row via the dual-currency editor in the admin UI. Existing
+     * rows (curator edits) are never overwritten.
+     *
+     * Performance: every existing price row for the whole batch is loaded in
+     * ONE query and diffed in memory, instead of four `exists()` round-trips
+     * per model. Over the cross-region RDS this is what turns a no-op
+     * convergence run from ~minute-scale into a few seconds. A model that
+     * already has all four rows triggers zero writes.
+     *
+     * @param class-string $class  The priceable class (Plan::class / Addon::class).
+     * @param array<int, array{model: \Illuminate\Database\Eloquent\Model, usdMonthly: float, usdAnnual: float}> $items
      */
-    private function seedPrices($model, float $usdMonthly, float $usdAnnual): void
+    private function seedPricesForModels(string $class, array $items): void
     {
-        if (!$model) return;
+        if (!$items) return;
         $inrPerUsd = 83.0;
 
-        $rows = [
-            ['USD', 'monthly', $usdMonthly],
-            ['USD', 'annual',  $usdAnnual],
-            ['INR', 'monthly', $usdMonthly > 0 ? round($usdMonthly * $inrPerUsd) : 0],
-            ['INR', 'annual',  $usdAnnual  > 0 ? round($usdAnnual  * $inrPerUsd) : 0],
-        ];
+        // Batch-load existing price rows for every model in one query, then
+        // index by "id|currency|cycle" for in-memory membership checks.
+        $ids = [];
+        foreach ($items as $item) {
+            $ids[] = $item['model']->getKey();
+        }
+        $have = []; // "id|currency|cycle" => true
+        foreach (
+            Price::where('priceable_type', $class)
+                ->whereIn('priceable_id', $ids)
+                ->get(['priceable_id', 'currency', 'billing_cycle']) as $price
+        ) {
+            $have[$price->priceable_id . '|' . $price->currency . '|' . $price->billing_cycle] = true;
+        }
 
-        foreach ($rows as [$currency, $cycle, $major]) {
-            $exists = Price::where('priceable_type', get_class($model))
-                ->where('priceable_id', $model->getKey())
-                ->where('currency', $currency)
-                ->where('billing_cycle', $cycle)
-                ->exists();
-            if (!$exists) {
-                $minor = (int) round(((float) $major) * 100);
-                PricingResolver::upsertFromMinor($model, $currency, $cycle, $minor);
+        foreach ($items as $item) {
+            $model = $item['model'];
+            $usdMonthly = $item['usdMonthly'];
+            $usdAnnual = $item['usdAnnual'];
+
+            $rows = [
+                ['USD', 'monthly', $usdMonthly],
+                ['USD', 'annual',  $usdAnnual],
+                ['INR', 'monthly', $usdMonthly > 0 ? round($usdMonthly * $inrPerUsd) : 0],
+                ['INR', 'annual',  $usdAnnual  > 0 ? round($usdAnnual  * $inrPerUsd) : 0],
+            ];
+
+            foreach ($rows as [$currency, $cycle, $major]) {
+                if (!isset($have[$model->getKey() . '|' . $currency . '|' . $cycle])) {
+                    $minor = (int) round(((float) $major) * 100);
+                    PricingResolver::upsertFromMinor($model, $currency, $cycle, $minor);
+                }
             }
-        }
 
-        // Mirror INR amounts into the legacy `*_secondary` decimal columns
-        // so the admin edit form's prefill (which still reads those legacy
-        // columns) is correct on first open. Strict null check preserves a
-        // curator-set 0 INR price on reseed.
-        $patch = [];
-        if ($model->monthly_price_secondary === null) {
-            $patch['monthly_price_secondary'] = $rows[2][2]; // INR monthly
-        }
-        if ($model->annual_price_secondary === null) {
-            $patch['annual_price_secondary'] = $rows[3][2]; // INR annual
-        }
-        if ($patch) {
-            $model->fill($patch)->save();
+            // Mirror INR amounts into the legacy `*_secondary` decimal columns
+            // so the admin edit form's prefill (which still reads those legacy
+            // columns) is correct on first open. Strict null check preserves a
+            // curator-set 0 INR price on reseed.
+            $patch = [];
+            if ($model->monthly_price_secondary === null) {
+                $patch['monthly_price_secondary'] = $rows[2][2]; // INR monthly
+            }
+            if ($model->annual_price_secondary === null) {
+                $patch['annual_price_secondary'] = $rows[3][2]; // INR annual
+            }
+            if ($patch) {
+                $model->fill($patch)->save();
+            }
         }
     }
 
