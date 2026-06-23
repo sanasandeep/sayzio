@@ -310,27 +310,6 @@ class BiolinkWizardQuestions
     }
 
     /**
-     * A small, always-valid generic industry set. The web wizard shows this
-     * on its (always-present) industry step for any category/page-type combo
-     * that has no specific industries() list, so the step is never blank.
-     *
-     * The slugs are harmless to the recipe/placeholder pipeline — unknown
-     * industry slugs fall back to the category placeholder — so picking one
-     * never breaks page generation.
-     */
-    public static function genericIndustries(): array
-    {
-        return [
-            ['slug' => 'local',     'label' => 'Local / In-person'],
-            ['slug' => 'online',    'label' => 'Online / Digital'],
-            ['slug' => 'creative',  'label' => 'Creative / Media'],
-            ['slug' => 'services',  'label' => 'Professional Services'],
-            ['slug' => 'community', 'label' => 'Community / Nonprofit'],
-            ['slug' => 'other',     'label' => 'Something else'],
-        ];
-    }
-
-    /**
      * FontAwesome (v6 free, solid) icon name for an industry slug — used by the
      * wizard's industry tiles. Falls back to a neutral tag icon for anything
      * unmapped so new industries still render sensibly.
@@ -1106,12 +1085,6 @@ class BiolinkWizardQuestions
             ['key' => 'avatar',      'label' => 'Cover image',  'type' => 'image', 'help' => 'A placeholder is used if you skip.'],
             ['key' => 'brand_color', 'label' => 'Brand colour', 'type' => 'color', 'help' => 'Used for buttons and accents.'],
         ];
-    }
-
-    /** True if the (category, page_type) needs an industry sub-step. */
-    public static function hasIndustryStep(string $category, string $pageType): bool
-    {
-        return !empty(self::industries($category, $pageType));
     }
 
     /**
