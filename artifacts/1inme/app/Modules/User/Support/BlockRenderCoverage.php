@@ -90,6 +90,74 @@ class BlockRenderCoverage
     }
 
     /**
+     * Placement check for a FLAT list of persisted block rows (the shape the
+     * DB hands back), as opposed to the nested tree {@see renderGaps()} takes.
+     * Each row needs `id`, `type` and `parent_id`; placement is derived from
+     * the parent — a row whose parent is a container block (card/grid/
+     * grid_auto) is a card-child, everything else is top-level. This is what
+     * lets the same blank-render gap be detected in live, user-built pages,
+     * not just templates.
+     *
+     * Returns one descriptor per gap-affected row:
+     * `{id, type, placement: 'child'|'top-level', message}`. Unknown/missing
+     * types are skipped (a different, separately-reported class of bug), so
+     * this only surfaces real types that would silently render blank.
+     *
+     * @param  array<int,array{id?:mixed,type?:mixed,parent_id?:mixed}>  $rows
+     * @return array<int,array{id:mixed,type:string,placement:string,message:string}>
+     */
+    public static function flatRowGaps(array $rows): array
+    {
+        $typeById = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! isset($row['id'])) {
+                continue;
+            }
+            $typeById[$row['id']] = is_string($row['type'] ?? null) ? $row['type'] : null;
+        }
+
+        $known = self::knownTypes();
+        $issues = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $type = $row['type'] ?? null;
+            if (! is_string($type) || $type === '' || ! isset($known[$type])) {
+                continue;
+            }
+
+            $parentId = $row['parent_id'] ?? null;
+            $parentType = ($parentId !== null && array_key_exists($parentId, $typeById))
+                ? $typeById[$parentId]
+                : null;
+            $isChild = $parentId !== null && BiolinkBlock::isContainerType($parentType);
+
+            if ($isChild && ! self::rendersAsChild($type)) {
+                $issues[] = [
+                    'id' => $row['id'] ?? null,
+                    'type' => $type,
+                    'placement' => 'child',
+                    'message' => 'is inside a container but has no card-child renderer, so it renders '
+                        . 'as a generic placeholder instead of its real content.',
+                ];
+            } elseif (! $isChild && ! self::rendersTopLevel($type)) {
+                $issues[] = [
+                    'id' => $row['id'] ?? null,
+                    'type' => $type,
+                    'placement' => 'top-level',
+                    'message' => 'is at the page root but has no top-level renderer branch, '
+                        . 'so it renders blank.',
+                ];
+            }
+        }
+
+        return $issues;
+    }
+
+    /**
      * @param  array<int,mixed>  $blocks
      * @param  array<int,string>  $issues
      */

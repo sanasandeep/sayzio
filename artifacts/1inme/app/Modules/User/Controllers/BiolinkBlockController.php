@@ -8,6 +8,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Support\BlockDefaults;
+use App\Modules\User\Support\BlockRenderCoverage;
 use App\Modules\User\Support\BlockVariantCatalog;
 use App\Modules\User\Support\FontCatalog;
 use Illuminate\Http\Request;
@@ -295,6 +296,18 @@ class BiolinkBlockController extends Controller
             $sortOrder = $maxSort + 1;
         }
 
+        // Placement render-gap guard: refuse a placement that would render
+        // blank — a child-only block at the page root, or a top-level-only
+        // block inside a container. Mirrors BlockRenderCoverage so the editor
+        // can't silently create the same gap the template validators catch.
+        $placementError = $this->placementRenderError($validated['type'], $parentId !== null);
+        if ($placementError !== null) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'error' => $placementError], 422);
+            }
+            return back()->with('error', $placementError);
+        }
+
         // Treat an empty settings array as "not provided" so
         // partial-settings callers (mobile, gallery shortcuts) still
         // receive the seeded defaults.
@@ -420,6 +433,34 @@ class BiolinkBlockController extends Controller
         } catch (\Throwable $e) {
             \Log::warning('block_added feed event failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Return a human-readable error if placing a block of $type in the given
+     * placement (container-child vs page-root) would render blank, or null if
+     * the placement is fine. Coverage is derived from the actual blade
+     * renderers via {@see BlockRenderCoverage}, so this can never drift from
+     * what really renders. Only known types reach the callers (validation
+     * rejects unknown ones first), so a false here always means a real gap.
+     */
+    protected function placementRenderError(string $type, bool $isChild): ?string
+    {
+        $label = BiolinkBlock::TYPES[$type]['label'] ?? $type;
+
+        if ($isChild) {
+            if (! BlockRenderCoverage::rendersAsChild($type)) {
+                return "The \"{$label}\" block can't go inside a container — there it would render "
+                    . 'as a generic placeholder. Place it directly on the page instead.';
+            }
+            return null;
+        }
+
+        if (! BlockRenderCoverage::rendersTopLevel($type)) {
+            return "The \"{$label}\" block can only go inside a container — at the page root it "
+                . 'would render blank. Add it inside a card or grid block.';
+        }
+
+        return null;
     }
 
     protected function recordBlockActivity(string $action, Link $link, BiolinkBlock $block): void
@@ -828,6 +869,14 @@ class BiolinkBlockController extends Controller
 
         if ($block->type === 'card' && $newParentId) {
             return response()->json(['success' => false, 'error' => 'Cannot move a card container inside another card.'], 422);
+        }
+
+        // Placement render-gap guard: a top-level-only block dragged into a
+        // container (or a child-only block dragged back out to the root) would
+        // render blank — refuse it instead of silently degrading the page.
+        $placementError = $this->placementRenderError($block->type, $newParentId !== null);
+        if ($placementError !== null) {
+            return response()->json(['success' => false, 'error' => $placementError], 422);
         }
 
         $oldParentId = $block->parent_id;
