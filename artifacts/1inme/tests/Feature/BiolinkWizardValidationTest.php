@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
@@ -11,9 +12,12 @@ use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\BiolinkWizardQuestions;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\OpenAiService;
+use App\Services\Biolink\AiBiolinkBuilderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Mockery;
 use Tests\TestCase;
 
 /**
@@ -40,6 +44,12 @@ use Tests\TestCase;
 class BiolinkWizardValidationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
 
     private function plan(): Plan
     {
@@ -275,5 +285,244 @@ class BiolinkWizardValidationTest extends TestCase
         // The user's own mind + file should surface.
         $this->assertContains($mind->id, array_column($resp->json('data.my_minds'), 'id'));
         $this->assertContains($file->id, array_column($resp->json('data.vault_files'), 'id'));
+    }
+
+    // ── 6. AI auto-draft happy path (engine ON) ──────────────────────
+
+    /**
+     * Swap the real builder for a Mockery double that simulates a successful
+     * AI build — it paints a single block onto the link it is handed (so the
+     * page is genuinely "built") and never calls OpenAI. Returns the closure's
+     * call-count holder so a test can assert the builder actually ran.
+     *
+     * The mind-grounding path also reaches for OpenAiService::embed when a
+     * Brain is selected, so we stub that too (no network).
+     *
+     * @return object{count:int,link_id:?int,grounding:?string}
+     */
+    private function fakeSuccessfulBuilder(): object
+    {
+        $spy = new class {
+            public int $count = 0;
+            public ?int $link_id = null;
+            public ?string $grounding = null;
+        };
+
+        $builder = Mockery::mock(AiBiolinkBuilderService::class);
+        $builder->shouldReceive('generate')
+            ->andReturnUsing(function ($user, $link, $description, $links, $images, $files, $grounding = '') use ($spy) {
+                $spy->count++;
+                $spy->link_id = (int) $link->id;
+                $spy->grounding = (string) $grounding;
+                // Simulate a real build: paint a block so the link is a page.
+                BiolinkBlock::create([
+                    'link_id'    => $link->id,
+                    'type'       => 'heading',
+                    'settings'   => ['text' => 'Built by AI'],
+                    'sort_order' => 0,
+                    'is_active'  => true,
+                ]);
+                return ['credits_spent' => 0, 'blocks' => 1, 'model' => 'gpt-4o-mini'];
+            });
+        $this->app->instance(AiBiolinkBuilderService::class, $builder);
+
+        // Stub the embedding call used by mind-grounding retrieval.
+        $openai = Mockery::mock(OpenAiService::class);
+        $openai->shouldReceive('embed')->andReturn([
+            'vectors'       => [[0.1]],
+            'credits_spent' => 0,
+        ]);
+        $this->app->instance(OpenAiService::class, $openai);
+
+        return $spy;
+    }
+
+    /** Bind a builder double whose generate() throws, to drive the failure path. */
+    private function fakeFailingBuilder(): void
+    {
+        $builder = Mockery::mock(AiBiolinkBuilderService::class);
+        $builder->shouldReceive('generate')
+            ->andThrow(new \RuntimeException('The assistant returned an unexpected response.'));
+        $this->app->instance(AiBiolinkBuilderService::class, $builder);
+
+        $openai = Mockery::mock(OpenAiService::class);
+        $openai->shouldReceive('embed')->andReturn(['vectors' => [[0.1]], 'credits_spent' => 0]);
+        $this->app->instance(OpenAiService::class, $openai);
+    }
+
+    /**
+     * With the AI engine ON, the API aiGenerate() must build a real biolink
+     * Link from valid answers, ground it in the selected Brain + vault file,
+     * and persist those ids under settings['wizard_resources'].
+     */
+    public function test_api_ai_generate_builds_page_and_records_resources_when_engine_on(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $spy = $this->fakeSuccessfulBuilder();
+
+        $user = $this->makeUser($this->plan());
+
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'My Brain',
+            'is_disabled' => false,
+            'is_default'  => false,
+        ]);
+        $file = UserFile::create([
+            'user_id'       => $user->id,
+            'original_name' => 'resume.pdf',
+            'filename'      => 'resume-' . Str::random(6) . '.pdf',
+            'type'          => 'document',
+            'mime_type'     => 'application/pdf',
+            'size_bytes'    => 1024,
+            'disk'          => 'public',
+            'path'          => 'files/resume.pdf',
+        ]);
+        $file->workspace_id = $this->activeWorkspaceId($user);
+        $file->save();
+
+        $this->withToken($this->token($user));
+        $resp = $this->postJson('/api/v1/links/wizard/ai-generate', [
+            'category'    => 'business',
+            'page_type'   => 'local_shop',
+            'answers'     => ['business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'],
+            'ai_mind_ids' => [$mind->id],
+            'file_ids'    => [$file->id],
+        ]);
+
+        $resp->assertCreated();
+
+        // Exactly one biolink Link was created and the builder painted it.
+        $link = Link::where('user_id', $user->id)->sole();
+        $this->assertSame('biolink', $link->type);
+        $this->assertSame(1, $spy->count, 'The AI builder should have run exactly once.');
+        $this->assertSame((int) $link->id, $spy->link_id);
+        $this->assertSame(1, BiolinkBlock::where('link_id', $link->id)->count());
+
+        // The selected Brain + file are recorded as the page's AI resources.
+        $resources = $link->settings['wizard_resources'] ?? null;
+        $this->assertIsArray($resources);
+        $this->assertSame('wizard_ai_draft', $resources['source']);
+        $this->assertContains($mind->id, $resources['ai_mind_ids']);
+        $this->assertContains($file->id, $resources['file_ids']);
+    }
+
+    /**
+     * Web parity: finishAi() must build a real biolink Link from a completed
+     * draft (engine ON), ground it in the draft's selected Brain + vault file,
+     * record them under settings['wizard_resources'], discard the draft, and
+     * land the user in the block editor.
+     */
+    public function test_web_finish_ai_builds_page_and_records_resources_when_engine_on(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $spy = $this->fakeSuccessfulBuilder();
+
+        $user = $this->makeUser($this->plan());
+
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'My Brain',
+            'is_disabled' => false,
+            'is_default'  => false,
+        ]);
+        $file = UserFile::create([
+            'user_id'       => $user->id,
+            'original_name' => 'resume.pdf',
+            'filename'      => 'resume-' . Str::random(6) . '.pdf',
+            'type'          => 'document',
+            'mime_type'     => 'application/pdf',
+            'size_bytes'    => 1024,
+            'disk'          => 'public',
+            'path'          => 'files/resume.pdf',
+        ]);
+        $file->workspace_id = $this->activeWorkspaceId($user);
+        $file->save();
+
+        $draft = BiolinkWizardDraft::create([
+            'user_id'       => $user->id,
+            'actor_user_id' => $user->id,
+            'workspace_id'  => $this->activeWorkspaceId($user),
+            'category'      => 'business',
+            'page_type'     => 'local_shop',
+            'industry'      => null,
+            'step'          => 4,
+            'answers'       => ['business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'],
+            'ai_mind_ids'   => [$mind->id],
+            'file_ids'      => [$file->id],
+        ]);
+
+        $resp = $this->actingAs($user)->post('/user/links/wizard/ai-draft');
+
+        $resp->assertRedirect();
+
+        $link = Link::where('user_id', $user->id)->sole();
+        $this->assertSame('biolink', $link->type);
+        $this->assertSame(1, $spy->count);
+        $this->assertSame(1, BiolinkBlock::where('link_id', $link->id)->count());
+
+        $resources = $link->settings['wizard_resources'] ?? null;
+        $this->assertIsArray($resources);
+        $this->assertContains($mind->id, $resources['ai_mind_ids']);
+        $this->assertContains($file->id, $resources['file_ids']);
+
+        // The single-shot draft is consumed once the page exists.
+        $this->assertNull(BiolinkWizardDraft::find($draft->id));
+    }
+
+    // ── 7. AI auto-draft build failure → auto-cleanup ────────────────
+
+    /**
+     * When the build throws (e.g. the model returns unparseable JSON), the
+     * half-created Link must be deleted so it never lingers in the dashboard,
+     * and the API must surface a 500 `ai_generation_failed` envelope.
+     */
+    public function test_api_ai_generate_cleans_up_link_and_fails_on_build_error(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $this->fakeFailingBuilder();
+
+        $user = $this->makeUser($this->plan());
+        $this->withToken($this->token($user));
+
+        $resp = $this->postJson('/api/v1/links/wizard/ai-generate', [
+            'category'  => 'business',
+            'page_type' => 'local_shop',
+            'answers'   => ['business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'],
+        ]);
+
+        $resp->assertStatus(500);
+        $resp->assertJsonPath('error.code', 'ai_generation_failed');
+        // The empty link created up-front must have been rolled back.
+        $this->assertSame(0, Link::where('user_id', $user->id)->count());
+    }
+
+    /**
+     * Web parity: a failed build redirects back with a flashed error and
+     * leaves no orphaned Link behind.
+     */
+    public function test_web_finish_ai_cleans_up_link_on_build_error(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $this->fakeFailingBuilder();
+
+        $user = $this->makeUser($this->plan());
+
+        BiolinkWizardDraft::create([
+            'user_id'       => $user->id,
+            'actor_user_id' => $user->id,
+            'workspace_id'  => $this->activeWorkspaceId($user),
+            'category'      => 'business',
+            'page_type'     => 'local_shop',
+            'industry'      => null,
+            'step'          => 4,
+            'answers'       => ['business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'],
+        ]);
+
+        $resp = $this->actingAs($user)->post('/user/links/wizard/ai-draft');
+
+        $resp->assertRedirect();
+        $resp->assertSessionHas('error');
+        $this->assertSame(0, Link::where('user_id', $user->id)->count());
     }
 }
