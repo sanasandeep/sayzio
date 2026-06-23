@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\User\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -28,7 +29,7 @@ class DashboardSwitchController extends Controller
      * From the user dashboard -> back-office admin dashboard.
      * Requires an authenticated web user with a matching active admin record.
      */
-    public function toAdmin()
+    public function toAdmin(Request $request)
     {
         // Never bridge while an admin is impersonating a user — the web
         // session belongs to the impersonated user, not the operator.
@@ -49,8 +50,30 @@ class DashboardSwitchController extends Controller
 
         Auth::guard('admin')->login($admin);
 
-        return redirect()->route('admin.dashboard')
+        return redirect($this->resolveSwitchTarget($request))
             ->with('success', 'Switched to the admin dashboard.');
+    }
+
+    /**
+     * Where to land after switching into the back-office. Defaults to the
+     * admin dashboard, but a small allow-list lets callers (eg. the
+     * "AI is turned off" page) drop an admin straight onto the relevant
+     * settings screen. The allow-list prevents this from becoming an
+     * open-redirect — only known internal admin routes are honoured.
+     */
+    private function resolveSwitchTarget(Request $request): string
+    {
+        $intent = (string) $request->input('intent', '');
+
+        $targets = [
+            'ai-engine' => 'admin.ai-engine.edit',
+        ];
+
+        if ($intent !== '' && isset($targets[$intent])) {
+            return route($targets[$intent]);
+        }
+
+        return route('admin.dashboard');
     }
 
     /**
