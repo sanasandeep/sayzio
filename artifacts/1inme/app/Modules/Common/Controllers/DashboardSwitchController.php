@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\User\Models\User;
+use App\Services\AI\AiEngineSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -74,6 +75,84 @@ class DashboardSwitchController extends Controller
         }
 
         return route('admin.dashboard');
+    }
+
+    /**
+     * One-click "Enable AI now" from the "AI is turned off" page.
+     *
+     * Lets an admin who is browsing their own user dashboard flip the AI
+     * master switch (ai.enabled) on without the round-trip through the
+     * back-office settings screen, then drops them straight back on the
+     * AI feature they originally tried to open.
+     *
+     * Guarding:
+     *   - CSRF is enforced by the web middleware group (POST form token).
+     *   - The acting web user must have an active, matching admin record
+     *     that holds the `settings.manage` permission — mirroring the
+     *     admin.ai-engine.* routes — otherwise we 403.
+     *   - We never act while an admin is impersonating a user.
+     *
+     * If no OpenAI key is configured yet we don't enable the engine (it
+     * would just fail on first call); instead we bridge the admin into
+     * the back-office and land them on the AI engine settings so they can
+     * add a key first.
+     */
+    public function enableAi(Request $request)
+    {
+        if (session()->has('impersonate_user_id')) {
+            return redirect()->route('user.dashboard');
+        }
+
+        $user = Auth::guard('web')->user();
+        if (! $user instanceof User) {
+            return redirect()->route('user.login');
+        }
+
+        $admin = $user->adminAccount();
+        if (! $admin || $admin->status !== 'active' || ! $admin->hasPermission('settings.manage')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // No key yet: enabling now would only produce failing calls, so
+        // route to settings (bridging the admin guard in) to add one first.
+        if (AiEngineSettings::openAiKey() === null) {
+            Auth::guard('admin')->login($admin);
+
+            return redirect()->route('admin.ai-engine.edit')
+                ->with('error', 'Add an OpenAI API key, then switch the AI engine on.');
+        }
+
+        AiEngineSettings::setEnabled(true);
+
+        return redirect($this->resolveAiReturnTarget($request))
+            ->with('success', 'AI is now enabled.');
+    }
+
+    /**
+     * Resolve where to send the admin back to after enabling AI. We honour
+     * a `return_to` field carrying the URL of the feature they were on, but
+     * only when it points back at this app (same host) to avoid turning the
+     * action into an open redirect. Anything else falls back to the user
+     * dashboard.
+     */
+    private function resolveAiReturnTarget(Request $request): string
+    {
+        $candidate = trim((string) $request->input('return_to', ''));
+        if ($candidate !== '') {
+            $parts = parse_url($candidate);
+            if ($parts !== false) {
+                $host = $parts['host'] ?? null;
+                if ($host === null || strcasecmp($host, $request->getHost()) === 0) {
+                    $path  = $parts['path'] ?? '/';
+                    $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+                    if (str_starts_with($path, '/')) {
+                        return $path . $query;
+                    }
+                }
+            }
+        }
+
+        return route('user.dashboard');
     }
 
     /**

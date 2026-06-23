@@ -195,6 +195,11 @@ Route::prefix('user')->name('user.')->group(function () {
         // Seamless switch from the user dashboard to the matching admin dashboard.
         Route::post('switch-to-admin', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toAdmin'])->name('switch-to-admin');
 
+        // One-click "Enable AI now" from the "AI is turned off" page: an
+        // admin with a configured OpenAI key flips ai.enabled on without a
+        // detour through the back-office settings screen.
+        Route::post('ai/enable', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'enableAi'])->name('ai.enable');
+
         // Recent-logins history + the in-app revoke action mirroring
         // the email's "This wasn't me" button.
         Route::get('security/logins', [\App\Modules\User\Controllers\SecurityController::class, 'logins'])
