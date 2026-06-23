@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiDisabledNotice } from "@/components/AiDisabledNotice";
 import { useColors } from "@/hooks/useColors";
 import {
   type AiMindFeature,
@@ -24,6 +25,8 @@ type Props = {
   feature: AiMindFeature;
   title: string;
   subtitle: string;
+  /** Feature label used for the "AI is off" explainer (e.g. "Coach"). */
+  disabledFeature?: string;
 };
 
 /**
@@ -31,7 +34,12 @@ type Props = {
  * (Persona / Coach). On open, pre-checks the saved defaults so the
  * user doesn't have to re-pick. Mirrors the web Persona/Coach forms.
  */
-export function AiMindPickerScreen({ feature, title, subtitle }: Props) {
+export function AiMindPickerScreen({
+  feature,
+  title,
+  subtitle,
+  disabledFeature,
+}: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
@@ -39,6 +47,9 @@ export function AiMindPickerScreen({ feature, title, subtitle }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
+  // Set when the AI engine is off (404) or this feature isn't on the
+  // user's plan (403), so we can show the same explainer as the web app.
+  const [disabled, setDisabled] = useState<"engine" | "plan" | null>(null);
 
   const [minds, setMinds] = useState<AiMindList>({ mine: [], platform: null });
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -72,7 +83,9 @@ export function AiMindPickerScreen({ feature, title, subtitle }: Props) {
     } catch (e: unknown) {
       const err = e as { status?: number; message?: string } | undefined;
       if (err?.status === 404) {
-        Alert.alert("AI engine unavailable", "The AI engine is currently disabled.");
+        setDisabled("engine");
+      } else if (err?.status === 403) {
+        setDisabled("plan");
       } else {
         Alert.alert("Couldn't load Minds", err?.message ?? "Try again in a moment.");
       }
@@ -159,6 +172,18 @@ export function AiMindPickerScreen({ feature, title, subtitle }: Props) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (disabled) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Stack.Screen options={{ title, headerShown: true }} />
+        <AiDisabledNotice
+          feature={disabledFeature ?? title}
+          variant={disabled}
+        />
       </View>
     );
   }

@@ -31,6 +31,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiDisabledNotice } from "@/components/AiDisabledNotice";
 import { Button } from "@/components/Button";
 import { NfcWriteSheet } from "@/components/NfcWriteSheet";
 import { useColors } from "@/hooks/useColors";
@@ -118,6 +119,10 @@ export function VoiceAssistant() {
     null,
   );
   const [capError, setCapError] = useState<string | null>(null);
+  // Engine/plan state for Voice. `null` until the first capabilities
+  // fetch resolves; we fail open (treat as enabled) on error so a
+  // network blip never wrongly hides the assistant.
+  const aiEnabled = capabilities ? capabilities.enabled : null;
   const [audioPath, setAudioPath] = useState<string | null>(null);
 
   // Used to resend the same audio after the user confirms a destructive
@@ -208,6 +213,23 @@ export function VoiceAssistant() {
       cancelled = true;
       off();
       sub.remove();
+    };
+  }, []);
+
+  // Probe Voice availability once on mount so we can show an "AI off"
+  // dot on the launcher and the disabled explainer inside the sheet
+  // before the user records anything. Fails open (no dot) on error.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCapabilities()
+      .then((caps) => {
+        if (!cancelled) setCapabilities(caps);
+      })
+      .catch(() => {
+        /* fail open — keep the assistant usable on a transient error */
+      });
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -568,6 +590,17 @@ export function VoiceAssistant() {
         ]}
       >
         <Feather name="mic" size={22} color={colors.primaryForeground} />
+        {aiEnabled === false ? (
+          <View
+            style={[
+              styles.fabOffBadge,
+              { backgroundColor: colors.mutedForeground, borderColor: colors.card },
+            ]}
+            accessibilityLabel="AI is off"
+          >
+            <Feather name="slash" size={9} color={colors.card} />
+          </View>
+        ) : null}
       </Pressable>
 
       {/* ── Voice sheet ────────────────────────────────────────── */}
@@ -613,24 +646,28 @@ export function VoiceAssistant() {
             </View>
 
             {view === "session" ? (
-              <SessionView
-                colors={colors}
-                phase={phase}
-                phaseLabel={phaseLabel}
-                transcript={transcript}
-                reply={reply}
-                error={error}
-                pending={pending}
-                lastCredits={lastCredits}
-                balance={balance}
-                levels={levels}
-                currentLevel={currentLevel}
-                onMicTap={onMicTap}
-                onMicLongPressIn={startListening}
-                onMicLongPressOut={stopAndSend}
-                onApprove={approveAll}
-                onDecline={declineAll}
-              />
+              aiEnabled === false ? (
+                <AiDisabledNotice feature="Voice" compact />
+              ) : (
+                <SessionView
+                  colors={colors}
+                  phase={phase}
+                  phaseLabel={phaseLabel}
+                  transcript={transcript}
+                  reply={reply}
+                  error={error}
+                  pending={pending}
+                  lastCredits={lastCredits}
+                  balance={balance}
+                  levels={levels}
+                  currentLevel={currentLevel}
+                  onMicTap={onMicTap}
+                  onMicLongPressIn={startListening}
+                  onMicLongPressOut={stopAndSend}
+                  onApprove={approveAll}
+                  onDecline={declineAll}
+                />
+              )
             ) : (
               <HelpView
                 colors={colors}
@@ -996,6 +1033,17 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     zIndex: 999,
+  },
+  fabOffBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   backdrop: {
     flex: 1,

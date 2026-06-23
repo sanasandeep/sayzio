@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiDisabledNotice } from "@/components/AiDisabledNotice";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import {
@@ -43,6 +44,10 @@ export default function AskCoachScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
+  // When the AI engine is off (404) or Ask Coach isn't on the user's
+  // plan (403), we render the same friendly explainer the web shows
+  // instead of bouncing the user back with an alert.
+  const [disabled, setDisabled] = useState<"engine" | "plan" | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const ensureThread = useCallback(async () => {
@@ -58,11 +63,18 @@ export default function AskCoachScreen() {
       const t = await askCoach.messages(id);
       setHistory(t.messages);
     } catch (e: any) {
-      Alert.alert(
-        "Coach unavailable",
-        e?.message || "Could not load Ask Coach.",
-      );
-      router.back();
+      const status = e?.status as number | undefined;
+      if (status === 404) {
+        setDisabled("engine");
+      } else if (status === 403) {
+        setDisabled("plan");
+      } else {
+        Alert.alert(
+          "Coach unavailable",
+          e?.message || "Could not load Ask Coach.",
+        );
+        router.back();
+      }
     } finally {
       setLoading(false);
     }
@@ -141,6 +153,8 @@ export default function AskCoachScreen() {
         <View style={styles.center}>
           <ActivityIndicator color={colors.text} />
         </View>
+      ) : disabled ? (
+        <AiDisabledNotice feature="Ask Coach" variant={disabled} />
       ) : (
         <KeyboardAvoidingView
           style={{ flex: 1 }}

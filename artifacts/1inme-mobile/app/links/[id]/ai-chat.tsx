@@ -139,8 +139,9 @@ export default function AiChatEditorScreen() {
           >
             <Feather name="alert-triangle" size={16} color={colors.primary} />
             <Text style={[styles.bannerText, { color: colors.foreground }]}>
-              AI is currently disabled for this workspace. You can configure the
-              page, but live answers won't run until AI is enabled.
+              AI features are currently turned off by the site administrator. You
+              can still configure this page, but live answers won't run until an
+              admin turns the AI engine back on.
             </Text>
           </View>
         ) : null}

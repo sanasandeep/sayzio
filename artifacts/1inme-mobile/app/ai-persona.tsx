@@ -6,6 +6,7 @@ export default function AiPersonaScreen() {
       feature="persona"
       title="Persona Minds"
       subtitle="Pick which Minds Persona should ground generations in. We'll remember your selection for next time."
+      disabledFeature="Persona"
     />
   );
 }
