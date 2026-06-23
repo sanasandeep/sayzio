@@ -252,6 +252,14 @@
             <span class="sidebar-tooltip">Verification Reminders</span>
         </a>
 
+        <a href="{{ route('admin.starter-renewals.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.starter-renewals.*') ? 'active' : '' }}"
+           style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-gift"></i></div>
+            <span class="nav-label">Renewal Reminders</span>
+            <span class="sidebar-tooltip">Free Renewal Reminders</span>
+        </a>
+
         <a href="{{ route('admin.integrations.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.integrations.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">

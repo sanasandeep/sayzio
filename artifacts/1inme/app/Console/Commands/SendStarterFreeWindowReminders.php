@@ -39,6 +39,21 @@ class SendStarterFreeWindowReminders extends Command
 
     protected $description = 'Remind free Starter-plan users to re-confirm their plan once a year (email + in-app), with a one-click free renewal.';
 
+    /**
+     * Single source of truth for the in-app notification copy, shared by the
+     * live send (remind()) and the admin preview/test-send tool so the two can
+     * never drift apart.
+     *
+     * @return array{title: string, message: string}
+     */
+    public static function inAppCopy(): array
+    {
+        return [
+            'title'   => 'Re-confirm your free Starter plan',
+            'message' => 'Your free year is almost up. Renew free for another year — your account and links stay exactly as they are.',
+        ];
+    }
+
     public function handle(NotificationService $prefs): int
     {
         $force    = (bool) $this->option('force');
@@ -128,12 +143,10 @@ class SendStarterFreeWindowReminders extends Command
         // In-app banner/list entry — points at the dashboard where the renew
         // banner lives. notify() returns null when the user muted the in_app
         // channel for this type, so a non-null result means it was created.
-        if ($prefs->notify($user, 'starter.free_window_renewal', [
-            'title'    => 'Re-confirm your free Starter plan',
-            'message'  => 'Your free year is almost up. Renew free for another year — your account and links stay exactly as they are.',
+        if ($prefs->notify($user, 'starter.free_window_renewal', array_merge(self::inAppCopy(), [
             'url'      => route('user.dashboard'),
             'ends_at'  => $endsAt?->toIso8601String(),
-        ]) !== null) {
+        ])) !== null) {
             $delivered = true;
         }
 

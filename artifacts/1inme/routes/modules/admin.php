@@ -293,6 +293,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('sample', [\App\Modules\Admin\Controllers\EmailVerificationReminderSettingsController::class, 'sendSample'])->middleware(CheckPermission::class . ':settings.manage')->name('sample');
         });
 
+        Route::prefix('starter-renewals')->name('starter-renewals.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\StarterRenewalReminderController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('preview-email', [\App\Modules\Admin\Controllers\StarterRenewalReminderController::class, 'previewEmail'])->middleware(CheckPermission::class . ':settings.manage')->name('preview-email');
+            Route::post('sample', [\App\Modules\Admin\Controllers\StarterRenewalReminderController::class, 'sendSample'])->middleware(CheckPermission::class . ':settings.manage')->name('sample');
+        });
+
         Route::prefix('mail-settings')->name('mail-settings.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
