@@ -64,3 +64,4 @@
 - [1inme Browser e2e validation gate](browser-e2e-validation-gate.md) — `e2e` validation step gates ONLY the auth-popup spec; full suite blocked by broken `php artisan tinker` (psysh/PHP8.4) + 30-45s RDS renders.
 - [restart_workflow probe vs heavy cold page](restart-workflow-heavy-page-probe.md) — dev probe is hard-wired to `/` (ignores health.startup.path) w/ a tight latency bound; fix = dev-only DevStartupProbe middleware serving an instant 200 splash on `/` for 20s after boot.
 - [Cache::remember null = MISS](laravel-cache-remember-null-miss.md) — a cached null re-queries every request; over distant RDS this hammered AppSetting (~16s boot); cache a sentinel, never raw null.
+- [Biolink top-level renderer coverage](biolink-top-level-renderer-coverage.md) — top-level chain needs an inline branch OR a catch-all @else delegating $block to the partial table, else blocks render blank; templates:check-designs enforces it.

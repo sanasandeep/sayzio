@@ -2409,6 +2409,17 @@
             @elseif($block->type === 'roadmap')
                 @include('common.blocks.roadmap', ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor ?? '#ffffff'])
 
+            @else
+                {{-- Catch-all: any first-class block type that doesn't have an
+                     inline branch above is delegated to the partial dispatch
+                     table so it renders its real partial (or a visible
+                     "unknown block" card) instead of silently falling through
+                     to a BLANK wrapper — the bug class that shipped
+                     buy_me_coffee blank. `templates:check-designs` enforces
+                     that every BiolinkBlock::TYPES entry is reachable either by
+                     an inline branch here or through this delegation. --}}
+                @include('common.partials.biolink-block-render', ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor ?? '#ffffff', 'btnInline' => $btnInline])
+
             @endif
 
             @if($hasCustomStyle && !$skipWrap)</div>@endif

@@ -19,18 +19,28 @@ use ReflectionMethod;
  * validate template designs in seconds without booting the heavy PHPUnit suite
  * (each test boots ~16s and cross-region RDS makes migrate:fresh impractical).
  *
- * It catches two classes of silently-degrading bug:
+ * It catches three classes of silently-degrading bug:
  *   1. A baked design-variant key that no longer resolves via
  *      BlockVariantCatalog::find() for the block type it's applied to. When a
  *      key doesn't resolve the seeder falls back to default styling with NO
  *      error, so a stale key silently strips the look.
  *   2. A block type used in a seeded snapshot that isn't a real, known block
  *      type — a typo or a removed type would render as a blank/unknown block.
+ *   3. A first-class block type (BiolinkBlock::TYPES) that has NO top-level
+ *      renderer on the public biolink page. Top-level blocks render through a
+ *      long inline @if/@elseif chain in common/biolink.blade.php that has no
+ *      catch-all @else, so any type missing a branch there falls through and
+ *      renders as a blank wrapper with no error (this is exactly how the
+ *      buy_me_coffee block shipped blank). A type counts as covered when it is
+ *      matched by an inline branch OR — only if the chain actually delegates
+ *      unmatched types to it — by the partial dispatch table in
+ *      common/partials/biolink-block-render.blade.php.
  *
  * Both seeders bake snapshots purely in PHP (no DB rows needed), so this
  * command reflects into their builders and validates the in-memory snapshots
- * directly — keeping it fast and DB-independent. Exits non-zero on any failure
- * so it can be wired into a registered validation step.
+ * directly — keeping it fast and DB-independent. The renderer-coverage check
+ * statically parses the two Blade views. Exits non-zero on any failure so it
+ * can be wired into a registered validation step.
  */
 class CheckTemplateDesigns extends Command
 {
@@ -54,6 +64,7 @@ class CheckTemplateDesigns extends Command
         $this->checkPersonaVariantKits();
         $this->checkStarterSnapshots();
         $this->checkPersonaSnapshots();
+        $this->checkTopLevelRenderers();
 
         if (! empty($this->failures)) {
             $this->newLine();
@@ -142,6 +153,157 @@ class CheckTemplateDesigns extends Command
         }
 
         $this->info('Checked ' . $checked . ' persona snapshot(s).');
+    }
+
+    /**
+     * Assert every first-class block type (BiolinkBlock::TYPES) has a renderer
+     * that actually fires for a TOP-LEVEL block on the public biolink page.
+     *
+     * The public page renders top-level blocks via a long inline @if/@elseif
+     * chain in common/biolink.blade.php. That chain has NO catch-all @else, so
+     * a type without a branch silently falls through and renders as a blank
+     * wrapper. The partial dispatch table in
+     * common/partials/biolink-block-render.blade.php only renders a type at top
+     * level if the chain explicitly delegates unmatched blocks to it (passing
+     * the top-level `$block`, as opposed to the card/grid child loop which
+     * delegates `$childBlock`). We detect that delegation and only credit the
+     * partial table when it exists, so this check models real reachability
+     * instead of assuming a fallthrough that isn't there.
+     */
+    private function checkTopLevelRenderers(): void
+    {
+        $publicView  = resource_path('views/common/biolink.blade.php');
+        $partialView = resource_path('views/common/partials/biolink-block-render.blade.php');
+
+        if (! is_file($publicView)) {
+            $this->failures[] = "public biolink view not found at {$publicView}";
+            return;
+        }
+        if (! is_file($partialView)) {
+            $this->failures[] = "partial block-render view not found at {$partialView}";
+            return;
+        }
+
+        $publicSrc  = (string) file_get_contents($publicView);
+        $partialSrc = (string) file_get_contents($partialView);
+
+        [$inlineExact, $inlinePrefixes] = $this->parseInlineRenderBranches($publicSrc);
+
+        // The partial table is reachable at TOP LEVEL only when the inline
+        // chain delegates the top-level $block to it (the child-container loop
+        // delegates $childBlock and does NOT count). \b after $block keeps
+        // $childBlock from matching.
+        $fallsThroughToPartial = (bool) preg_match(
+            '/biolink-block-render\'[^)]*\'block\'\s*=>\s*\$block\b/',
+            $publicSrc
+        );
+        $partialTypes = $fallsThroughToPartial ? $this->parsePartialDispatchKeys($partialSrc) : [];
+
+        $covered = function (string $type) use ($inlineExact, $inlinePrefixes, $partialTypes): bool {
+            if (in_array($type, $inlineExact, true)) {
+                return true;
+            }
+            foreach ($inlinePrefixes as $prefix) {
+                if ($prefix !== '' && str_starts_with($type, $prefix)) {
+                    return true;
+                }
+            }
+            return in_array($type, $partialTypes, true);
+        };
+
+        $missing = 0;
+        foreach (array_keys(BiolinkBlock::TYPES) as $type) {
+            if ($covered($type)) {
+                continue;
+            }
+            $missing++;
+            $where = $fallsThroughToPartial
+                ? "no @if/@elseif branch in common/biolink.blade.php and no entry in the "
+                    . "common/partials/biolink-block-render.blade.php dispatch table"
+                : "no @if/@elseif branch in common/biolink.blade.php (and the inline chain has no "
+                    . "catch-all @else delegating unmatched top-level blocks to "
+                    . "common/partials/biolink-block-render.blade.php)";
+            $this->failures[] = "block type '{$type}' has no top-level public renderer: {$where} — "
+                . 'it would render as a blank wrapper on public biolink pages.';
+        }
+
+        if ($missing === 0) {
+            $this->info('Checked ' . count(BiolinkBlock::TYPES)
+                . ' block type(s): all have a top-level public renderer '
+                . ($fallsThroughToPartial
+                    ? '(inline chain + partial dispatch fallthrough).'
+                    : '(inline chain — no partial fallthrough present).'));
+        }
+    }
+
+    /**
+     * Statically extract the block types matched by the public page's inline
+     * @if/@elseif render chain. Only @if/@elseif directive lines are scanned so
+     * that @php helper arrays (skipWrap / btnLike lists) — which reference
+     * $block->type but do NOT render anything — never count as coverage.
+     *
+     * Returns [exactTypes, prefixes]; a type is covered if it appears in
+     * exactTypes or starts with one of the prefixes (e.g. str_starts_with
+     * matches profile_card → profile_card_v1..v4).
+     *
+     * @return array{0: array<int,string>, 1: array<int,string>}
+     */
+    private function parseInlineRenderBranches(string $src): array
+    {
+        $exact    = [];
+        $prefixes = [];
+
+        foreach (preg_split('/\R/', $src) ?: [] as $line) {
+            if (! preg_match('/@(?:if|elseif)\s*\(/', $line)) {
+                continue;
+            }
+
+            // isContainerType($block->type) renders the card / grid / grid_auto
+            // container family.
+            if (str_contains($line, 'isContainerType($block->type)')) {
+                $exact = array_merge($exact, BiolinkBlock::CONTAINER_TYPES);
+            }
+
+            // $block->type === 'x'
+            if (preg_match_all('/\$block->type\s*===\s*\'([a-z0-9_]+)\'/', $line, $m)) {
+                $exact = array_merge($exact, $m[1]);
+            }
+
+            // in_array($block->type, ['a', 'b', ...])
+            if (preg_match_all('/in_array\(\s*\$block->type\s*,\s*\[([^\]]*)\]/', $line, $lists)) {
+                foreach ($lists[1] as $listBody) {
+                    if (preg_match_all('/\'([a-z0-9_]+)\'/', $listBody, $mm)) {
+                        $exact = array_merge($exact, $mm[1]);
+                    }
+                }
+            }
+
+            // str_starts_with($block->type, 'prefix')
+            if (preg_match_all('/str_starts_with\(\s*\$block->type\s*,\s*\'([a-z0-9_]+)\'/', $line, $m)) {
+                $prefixes = array_merge($prefixes, $m[1]);
+            }
+        }
+
+        return [
+            array_values(array_unique($exact)),
+            array_values(array_unique($prefixes)),
+        ];
+    }
+
+    /**
+     * Keys of the $__blockPartials dispatch map in
+     * common/partials/biolink-block-render.blade.php (entries shaped
+     * "type" => 'common.blocks.partial-name').
+     *
+     * @return array<int,string>
+     */
+    private function parsePartialDispatchKeys(string $src): array
+    {
+        $keys = [];
+        if (preg_match_all('/"([a-z0-9_]+)"\s*=>\s*\'common\.blocks\./', $src, $m)) {
+            $keys = $m[1];
+        }
+        return array_values(array_unique($keys));
     }
 
     /* ───────────────────────────── helpers ───────────────────────────── */
