@@ -316,10 +316,12 @@ class PlanController extends Controller
      */
     private function syncPriceTable(Plan $plan, array $minor): void
     {
-        PricingResolver::upsertFromMinor($plan, 'USD', 'monthly', $minor['monthly_price']);
-        PricingResolver::upsertFromMinor($plan, 'USD', 'annual',  $minor['annual_price']);
-        PricingResolver::upsertFromMinor($plan, 'INR', 'monthly', $minor['monthly_price_secondary']);
-        PricingResolver::upsertFromMinor($plan, 'INR', 'annual',  $minor['annual_price_secondary']);
+        PricingResolver::upsertManyFromMinor($plan, [
+            ['USD', 'monthly', $minor['monthly_price']],
+            ['USD', 'annual',  $minor['annual_price']],
+            ['INR', 'monthly', $minor['monthly_price_secondary']],
+            ['INR', 'annual',  $minor['annual_price_secondary']],
+        ]);
     }
 
     /**

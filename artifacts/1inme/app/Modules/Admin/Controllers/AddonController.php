@@ -132,10 +132,12 @@ class AddonController extends Controller
      */
     private function syncPriceTable(Addon $addon, array $minor): void
     {
-        PricingResolver::upsertFromMinor($addon, 'USD', 'monthly', $minor['monthly_price']);
-        PricingResolver::upsertFromMinor($addon, 'USD', 'annual',  $minor['annual_price']);
-        PricingResolver::upsertFromMinor($addon, 'INR', 'monthly', $minor['monthly_price_secondary']);
-        PricingResolver::upsertFromMinor($addon, 'INR', 'annual',  $minor['annual_price_secondary']);
+        PricingResolver::upsertManyFromMinor($addon, [
+            ['USD', 'monthly', $minor['monthly_price']],
+            ['USD', 'annual',  $minor['annual_price']],
+            ['INR', 'monthly', $minor['monthly_price_secondary']],
+            ['INR', 'annual',  $minor['annual_price_secondary']],
+        ]);
     }
 
     private function uniqueSlug(string $name): string

@@ -513,4 +513,51 @@ class PricingResolver
             ]
         );
     }
+
+    /**
+     * Batched version of `upsertFromMinor` for the admin dual-currency
+     * editor, which always submits all four (USD/INR × monthly/annual)
+     * rows at once. Writes them in a SINGLE `INSERT ... ON CONFLICT DO
+     * UPDATE` round-trip keyed on the `prices_priceable_currency_cycle_unique`
+     * index instead of four sequential `updateOrCreate` calls — over the
+     * cross-region RDS that turns four round-trips into one.
+     *
+     * Behaviour is identical to calling `upsertFromMinor` per row:
+     * idempotent, each (currency, cycle) amount independent, and only the
+     * submitted rows are touched — unrelated price rows (e.g. coin
+     * packages or other priceables) are never overwritten.
+     *
+     * @param array<int, array{0: string, 1: string, 2: int}> $rows
+     *        List of [currency, cycle, minorAmount] tuples.
+     */
+    public static function upsertManyFromMinor($priceable, array $rows): void
+    {
+        if (!$priceable || !$rows) {
+            return;
+        }
+
+        $now = now();
+        $payload = [];
+        foreach ($rows as [$currency, $cycle, $minor]) {
+            $payload[] = [
+                'priceable_type'     => get_class($priceable),
+                'priceable_id'       => $priceable->getKey(),
+                'currency'           => $currency,
+                'billing_cycle'      => $cycle,
+                'amount_minor_units' => max(0, (int) $minor),
+                'is_active'          => true,
+                'created_at'         => $now,
+                'updated_at'         => $now,
+            ];
+        }
+
+        // `upsert` collides on the unique (type,id,currency,cycle) index and
+        // updates only the listed columns, leaving created_at and every other
+        // row untouched.
+        Price::upsert(
+            $payload,
+            ['priceable_type', 'priceable_id', 'currency', 'billing_cycle'],
+            ['amount_minor_units', 'is_active', 'updated_at']
+        );
+    }
 }
