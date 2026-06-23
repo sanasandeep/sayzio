@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\AskCoachMessage;
 use App\Modules\User\Models\AskCoachThread;
 use App\Modules\User\Models\User;
@@ -29,10 +30,10 @@ use Tests\TestCase;
  *      record what the model spent and which tool snapshots backed
  *      the answer, otherwise the admin spend report and the "Coach
  *      knew this" panel both go blank.
- *   2. per-plan kill switch — a user whose plan is not on the
- *      Ask Coach allow-list must hit a 403 on the page itself, not
- *      just be hidden in the nav. Otherwise downgraded users keep
- *      burning credits.
+ *   2. per-plan gate — a user whose plan is not on the Ask Coach
+ *      allow-list sees a self-serve "upgrade your plan" page (HTTP 200,
+ *      not a dead-end 403) on the page itself, while the write endpoints
+ *      still hard 403 so downgraded users can't keep burning credits.
  *   3. thumbs-down feedback storage — the optional note must land on
  *      the assistant message (not the thread), and `feedback=down`
  *      must persist `feedback_note` (whereas thumbs-up clears it).
@@ -177,23 +178,38 @@ class AskCoachTest extends TestCase
         $this->assertNotNull($thread->last_message_at);
     }
 
-    // ── 2) per-plan toggle blocks the page with 403 ───────────────────────────
+    // ── 2) per-plan toggle: page self-serves, write endpoints 403 ─────────────
 
-    public function test_plan_toggle_blocks_disallowed_user_with_403(): void
+    public function test_plan_toggle_shows_self_serve_upgrade_page_but_blocks_writes(): void
     {
-        // Allow-list has entries but the asker's plan slug ('free' for
-        // a planless account) is not on it → must 403, not just hide.
+        // Engine is ON, but the allow-list excludes the asker's plan slug
+        // ('free' for a planless account). The page must NOT dead-end —
+        // it shows the plan-gated self-serve upgrade page (HTTP 200),
+        // pointing at the cheapest plan that unlocks Ask Coach.
         AiEngineSettings::setAskCoachEnabledPlans(['premium']);
+        Plan::create([
+            'name'          => 'Premium',
+            'slug'          => 'premium',
+            'status'        => 'active',
+            'is_archived'   => false,
+            'monthly_price' => 9.00,
+        ]);
 
         $user = $this->makeUser('p1');
 
-        $this->actingAs($user)
-            ->get(route('user.ai.ask-coach.show'))
-            ->assertStatus(403);
+        $page = $this->actingAs($user)->get(route('user.ai.ask-coach.show'));
+        $page->assertOk();
+        $page->assertViewIs('user.ai.disabled');
+        // Plan-gated copy (engine on), not the admin-controlled "engine off"
+        // copy — and a concrete self-serve upgrade CTA to the cheapest plan.
+        $page->assertSee('How AI is billed');
+        $page->assertSee('Upgrade to Premium');
+        $page->assertDontSee('AI features are currently turned off');
+        $page->assertDontSee('Request access');
 
-        // Send and feedback endpoints share the same gate — if the
-        // page 403s, the write endpoints must too, otherwise a blocked
-        // user could still POST and burn credits / leave feedback.
+        // Read-only page self-serves, but the WRITE endpoints must still hard
+        // 403 — otherwise a blocked user could POST and burn credits / leave
+        // feedback before upgrading.
         $thread = AskCoachThread::create([
             'user_id'      => $user->id,
             'workspace_id' => $this->workspaceIdFor($user),
