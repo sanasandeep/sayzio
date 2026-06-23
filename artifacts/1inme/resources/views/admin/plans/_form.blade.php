@@ -626,6 +626,9 @@
             @endif
         </section>
 
+        {{-- All-zero pricing save guard (USD/INR × monthly/annual). --}}
+        @include('admin.partials.zero-price-guard', ['entityLabel' => 'plan'])
+
         {{-- ============================== STICKY SAVE FOOTER ============================== --}}
         <div class="sticky bottom-4 z-10">
             <div class="glass rounded-2xl border border-white/10 px-6 py-3 flex items-center justify-between">

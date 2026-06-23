@@ -154,6 +154,9 @@
         </div>
     </div>
 
+    {{-- All-zero pricing save guard (USD/INR × monthly/annual). --}}
+    @include('admin.partials.zero-price-guard', ['entityLabel' => 'add-on'])
+
     <div class="flex items-center gap-3 pt-4">
         <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">{{ $submitLabel ?? 'Save Addon' }}</button>
         <a href="{{ route('admin.addons.index') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>
