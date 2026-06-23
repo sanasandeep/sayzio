@@ -3,9 +3,10 @@ import type { Link } from "@/lib/api/links";
 import { getToken } from "@/lib/secure";
 
 // Mirrors the Laravel BiolinkWizardQuestions taxonomy. The mobile wizard
-// fetches this once and drives the category → page-type → industry steps in
-// memory, then POSTs every answer at once to /links/wizard/generate. All of
-// the question/recipe logic lives server-side and is shared with the web flow.
+// fetches this once and drives the industry (category) → profile-type
+// (+ optional niche) steps in memory, then POSTs every answer at once to
+// /links/wizard/generate. All of the question/recipe logic lives server-side
+// and is shared with the web flow.
 
 export type WizardCategory = {
   slug: string;
@@ -57,8 +58,13 @@ export type WizardQuestion = {
 };
 
 export type WizardQuestionSet = {
+  // The full flat list (kept for callers that don't need the split).
   questions: WizardQuestion[];
-  has_industry_step: boolean;
+  // Pre-split into the two content steps by the server (single source of
+  // truth shared with the web wizard): "Basic profile & branding" and
+  // "Additional content".
+  basics: WizardQuestion[];
+  additional: WizardQuestion[];
 };
 
 export async function getWizardTaxonomy(): Promise<WizardTaxonomy> {

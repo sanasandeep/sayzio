@@ -31,7 +31,10 @@ import {
   type WizardQuestion,
 } from "@/lib/api/wizard";
 
-type Step = "category" | "page_type" | "industry" | "questions";
+// The four-step guided flow, mirroring the web wizard:
+//   industry (category) → profile type (+ optional inline niche) → basic
+//   profile & branding → additional content.
+type Step = "category" | "page_type" | "basics" | "additional";
 
 // Mirrors Link::BIOLINK_FAMILY on the server — the wizard always produces a
 // link of one of these types, so they all count toward the `max_biolinks` cap.
@@ -41,29 +44,6 @@ const BIOLINK_FAMILY = new Set<string>([
   "slides",
   "ai_chat",
   "restaurant_menu",
-]);
-
-// Defensive fallback that mirrors BiolinkWizardQuestions::genericIndustries().
-// The taxonomy endpoint now always returns an industry list per combo (specific
-// or generic), so this only kicks in if that data is unexpectedly missing — the
-// industry step must never be blank.
-const GENERIC_INDUSTRIES: WizardIndustry[] = [
-  { slug: "local", label: "Local / In-person", icon: "fa-store" },
-  { slug: "online", label: "Online / Digital", icon: "fa-globe" },
-  { slug: "creative", label: "Creative / Media", icon: "fa-palette" },
-  { slug: "services", label: "Professional Services", icon: "fa-briefcase" },
-  { slug: "community", label: "Community / Nonprofit", icon: "fa-people-group" },
-  { slug: "other", label: "Something else", icon: "fa-ellipsis" },
-];
-
-// Identity fields surfaced first as "The basics"; everything else is grouped
-// into "Links & details". Mirrors the web wizard's question sectioning.
-const IDENTITY_KEYS = new Set([
-  "display_name",
-  "headline",
-  "bio",
-  "avatar",
-  "brand_color",
 ]);
 
 // Leading icon (FontAwesome name, resolved to a native glyph by AppIcon) per
@@ -176,16 +156,16 @@ export default function BiolinkWizardScreen() {
     () => (category ? (taxonomyQ.data?.page_types[category] ?? []) : []),
     [taxonomyQ.data, category],
   );
-  // The industry step is always shown — use the combo's list from the taxonomy
-  // (specific or generic) and fall back to the generic set if it's missing.
+  // The optional niche refinement, folded into the profile-type step. The
+  // taxonomy endpoint only returns a list for combos that have a *specific*
+  // industries() set, so an empty list means "no refinement for this combo"
+  // and the inline chips are simply not shown.
   const industries = useMemo<WizardIndustry[]>(() => {
     if (!category || !pageType) return [];
-    const fromTaxonomy =
-      taxonomyQ.data?.industries[`${category}.${pageType}`] ?? [];
-    return fromTaxonomy.length ? fromTaxonomy : GENERIC_INDUSTRIES;
+    return taxonomyQ.data?.industries[`${category}.${pageType}`] ?? [];
   }, [taxonomyQ.data, category, pageType]);
 
-  // Questions load once the combo is locked in (on the Q&A step).
+  // Questions load once the combo is locked in (on the two content steps).
   const questionsQ = useQuery({
     queryKey: ["wizard-questions", category, pageType, industry],
     queryFn: () =>
@@ -194,7 +174,8 @@ export default function BiolinkWizardScreen() {
         page_type: pageType!,
         industry,
       }),
-    enabled: step === "questions" && !!category && !!pageType,
+    enabled:
+      (step === "basics" || step === "additional") && !!category && !!pageType,
   });
 
   // The wizard always produces a biolink-family link, so its real upfront
@@ -250,26 +231,34 @@ export default function BiolinkWizardScreen() {
     reset("page_type");
   }
 
-  function pickPageType(slug: string) {
+  // Select a profile type WITHOUT advancing — the optional niche refinement is
+  // shown inline below the cards, and a Continue button moves on. Changing the
+  // page type resets the niche + answers since the question set changes.
+  function selectPageType(slug: string) {
+    if (slug === pageType) return;
     setPageType(slug);
     setIndustry(null);
     setAnswers({});
-    // The industry step is always a real step now (generic fallback when a
-    // combo has no specific list), matching the web wizard.
-    reset("industry");
+    setError(null);
   }
 
-  function pickIndustry(slug: string | null) {
-    setIndustry(slug);
-    setAnswers({});
-    reset("questions");
+  // Toggle the inline niche chip (tap again to clear). Purely drives the
+  // placeholder imagery/accent; the question set is barely affected so answers
+  // are preserved across a toggle.
+  function toggleIndustry(slug: string) {
+    setIndustry((cur) => (cur === slug ? null : slug));
+  }
+
+  function continueFromPageType() {
+    if (!pageType) return;
+    reset("basics");
   }
 
   function goBack() {
     setError(null);
     if (step === "page_type") reset("category");
-    else if (step === "industry") reset("page_type");
-    else if (step === "questions") reset("industry");
+    else if (step === "basics") reset("page_type");
+    else if (step === "additional") reset("basics");
     else router.back();
   }
 
@@ -305,38 +294,15 @@ export default function BiolinkWizardScreen() {
       ? 0
       : step === "page_type"
         ? 1
-        : step === "industry"
+        : step === "basics"
           ? 2
           : 3;
 
-  // Split the flat question set into friendly sections so the form scans as a
-  // couple of short groups instead of one long list — matching the web wizard.
-  const questionGroups = useMemo(() => {
-    const all = questionsQ.data?.questions ?? [];
-    const basics = all.filter((q) => IDENTITY_KEYS.has(q.key));
-    const details = all.filter((q) => !IDENTITY_KEYS.has(q.key));
-    const groups: {
-      title: string;
-      desc: string;
-      icon: string;
-      items: WizardQuestion[];
-    }[] = [];
-    if (basics.length)
-      groups.push({
-        title: "The basics",
-        desc: "Who the page is for.",
-        icon: "fa-user",
-        items: basics,
-      });
-    if (details.length)
-      groups.push({
-        title: "Links & details",
-        desc: "Add what applies — skip the rest.",
-        icon: "fa-sliders",
-        items: details,
-      });
-    return groups;
-  }, [questionsQ.data]);
+  // The server pre-splits the question set into the two content steps (single
+  // source of truth shared with the web wizard): the basic profile & branding
+  // fields and everything else.
+  const basicsQuestions = questionsQ.data?.basics ?? [];
+  const additionalQuestions = questionsQ.data?.additional ?? [];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -352,17 +318,19 @@ export default function BiolinkWizardScreen() {
             {step === "category"
               ? "What are you building?"
               : step === "page_type"
-                ? "Pick a page type"
-                : step === "industry"
-                  ? "What's your niche?"
-                  : "Tell us the details"}
+                ? "Pick a profile type"
+                : step === "basics"
+                  ? "Profile & branding"
+                  : "Add your content"}
           </Text>
           <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-            {step === "questions"
-              ? "We'll auto-build your page from these answers — tweak any block afterwards."
-              : step === "industry"
-                ? "Just for picking the right accent and placeholder — totally optional."
-                : "We'll generate an opinionated page tailored to your choice."}
+            {step === "category"
+              ? "We'll generate an opinionated page tailored to your choice."
+              : step === "page_type"
+                ? "Tailor the layout — then optionally refine your niche."
+                : step === "basics"
+                  ? "The essentials visitors see first — name, bio, photo and accent."
+                  : "Add what applies — skip the rest. Tweak any block afterwards."}
           </Text>
         </View>
 
@@ -426,41 +394,61 @@ export default function BiolinkWizardScreen() {
             ))
           : null}
 
-        {step === "page_type"
-          ? pageTypes.map((p) => (
+        {step === "page_type" ? (
+          <>
+            {pageTypes.map((p) => (
               <ChoiceCard
                 key={p.slug}
                 title={p.label}
                 blurb={p.blurb}
                 icon={p.icon}
                 selected={pageType === p.slug}
-                onPress={() => pickPageType(p.slug)}
+                onPress={() => selectPageType(p.slug)}
               />
-            ))
-          : null}
+            ))}
 
-        {step === "industry" ? (
-          <>
-            <View style={styles.industryGrid}>
-              {industries.map((i) => (
-                <IndustryTile
-                  key={i.slug}
-                  label={i.label}
-                  icon={i.icon}
-                  selected={industry === i.slug}
-                  onPress={() => pickIndustry(i.slug)}
-                />
-              ))}
-            </View>
-            <Pressable onPress={() => pickIndustry(null)}>
-              <Text style={[styles.skip, { color: colors.primary }]}>
-                Skip this step
-              </Text>
-            </Pressable>
+            {/* Optional niche refinement, folded in — only for combos with a
+                specific industries() list (the taxonomy omits the rest). */}
+            {pageType && industries.length ? (
+              <View style={{ gap: 10, marginTop: 6 }}>
+                <View style={{ gap: 2 }}>
+                  <Text
+                    style={[styles.refineTitle, { color: colors.foreground }]}
+                  >
+                    Refine your niche{" "}
+                    <Text style={{ color: colors.mutedForeground }}>
+                      · optional
+                    </Text>
+                  </Text>
+                  <Text
+                    style={[styles.sub, { color: colors.mutedForeground }]}
+                  >
+                    Just for the right accent and placeholder — skip if none fit.
+                  </Text>
+                </View>
+                <View style={styles.industryGrid}>
+                  {industries.map((i) => (
+                    <IndustryTile
+                      key={i.slug}
+                      label={i.label}
+                      icon={i.icon}
+                      selected={industry === i.slug}
+                      onPress={() => toggleIndustry(i.slug)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            <Button
+              label="Continue"
+              onPress={continueFromPageType}
+              disabled={!pageType}
+            />
           </>
         ) : null}
 
-        {step === "questions" ? (
+        {step === "basics" || step === "additional" ? (
           questionsQ.isLoading ? (
             <ActivityIndicator
               color={colors.primary}
@@ -472,85 +460,50 @@ export default function BiolinkWizardScreen() {
             </Text>
           ) : (
             <View style={{ gap: 16, marginTop: 4 }}>
-              {questionGroups.map((group) => (
-                <View
-                  key={group.title}
-                  style={[
-                    styles.section,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      borderRadius: colors.radius,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.sectionHeader,
-                      { borderBottomColor: colors.border },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.sectionIcon,
-                        { backgroundColor: colors.primary + "22" },
-                      ]}
-                    >
-                      <AppIcon
-                        name={group.icon}
-                        size={16}
-                        color={colors.primary}
-                      />
-                    </View>
-                    <View style={{ flex: 1, gap: 1 }}>
-                      <Text
-                        style={[
-                          styles.sectionTitle,
-                          { color: colors.foreground },
-                        ]}
-                      >
-                        {group.title}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.sectionDesc,
-                          { color: colors.mutedForeground },
-                        ]}
-                      >
-                        {group.desc}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.sectionBody}>
-                    {group.items.map((q) => (
-                      <QuestionField
-                        key={q.key}
-                        question={q}
-                        value={answers[q.key] ?? ""}
-                        onChange={(v) =>
-                          setAnswers((prev) => ({ ...prev, [q.key]: v }))
-                        }
-                      />
-                    ))}
-                  </View>
-                </View>
-              ))}
+              <QuestionSection
+                title={
+                  step === "basics"
+                    ? "Basic profile & branding"
+                    : "Additional content"
+                }
+                desc={
+                  step === "basics"
+                    ? "Who the page is for."
+                    : "Add what applies — skip the rest."
+                }
+                icon={step === "basics" ? "fa-id-card" : "fa-sliders"}
+                items={
+                  step === "basics" ? basicsQuestions : additionalQuestions
+                }
+                answers={answers}
+                onChange={(key, v) =>
+                  setAnswers((prev) => ({ ...prev, [key]: v }))
+                }
+                emptyText={
+                  step === "basics"
+                    ? "Nothing to set up here — continue to add your content."
+                    : "No extra fields for this page — generate when you're ready."
+                }
+              />
 
               {error ? (
                 <Text style={{ color: colors.destructive }}>{error}</Text>
               ) : null}
 
-              <Button
-                label="Generate my page"
-                onPress={onGenerate}
-                loading={busy}
-              />
+              {step === "basics" ? (
+                <Button label="Continue" onPress={() => reset("additional")} />
+              ) : (
+                <Button
+                  label="Generate my page"
+                  onPress={onGenerate}
+                  loading={busy}
+                />
+              )}
             </View>
           )
         ) : null}
 
-        {error && step !== "questions" ? (
+        {error && step !== "basics" && step !== "additional" ? (
           <Text style={{ color: colors.destructive }}>{error}</Text>
         ) : null}
 
@@ -676,6 +629,76 @@ function IndustryTile({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+// A titled card grouping a set of question fields for one content step. Falls
+// back to a friendly empty note when the step has no fields (so the user can
+// still move on / generate).
+function QuestionSection({
+  title,
+  desc,
+  icon,
+  items,
+  answers,
+  onChange,
+  emptyText,
+}: {
+  title: string;
+  desc: string;
+  icon: string;
+  items: WizardQuestion[];
+  answers: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+  emptyText: string;
+}) {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.section,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+        },
+      ]}
+    >
+      <View
+        style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
+      >
+        <View
+          style={[styles.sectionIcon, { backgroundColor: colors.primary + "22" }]}
+        >
+          <AppIcon name={icon} size={16} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1, gap: 1 }}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            {title}
+          </Text>
+          <Text style={[styles.sectionDesc, { color: colors.mutedForeground }]}>
+            {desc}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.sectionBody}>
+        {items.length ? (
+          items.map((q) => (
+            <QuestionField
+              key={q.key}
+              question={q}
+              value={answers[q.key] ?? ""}
+              onChange={(v) => onChange(q.key, v)}
+            />
+          ))
+        ) : (
+          <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
+            {emptyText}
+          </Text>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -1013,11 +1036,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     flex: 1,
   },
-  skip: {
-    fontFamily: "SpaceGrotesk_500Medium",
-    fontSize: 14,
-    textAlign: "center",
-    paddingVertical: 12,
+  refineTitle: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 15,
   },
   back: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 14 },
   lockBanner: {

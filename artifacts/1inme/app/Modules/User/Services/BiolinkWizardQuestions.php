@@ -1114,6 +1114,47 @@ class BiolinkWizardQuestions
         return !empty(self::industries($category, $pageType));
     }
 
+    /**
+     * The answer keys that make up the "Basic profile & branding" step — name,
+     * the short identity copy, the avatar/cover image and the brand colour.
+     * Everything else in a combo's question set is "Additional content".
+     *
+     * Single source of truth for the wizard's basics/additional split, shared
+     * by the web wizard and the mobile API so both surfaces section the same
+     * questions into the same two steps. Built from nameKeys() (every possible
+     * display-name field) plus the identity copy + branding fields used by
+     * baseIdentity() / baseEvent().
+     */
+    public static function basicProfileKeys(): array
+    {
+        return array_values(array_unique(array_merge(
+            self::nameKeys(),
+            ['headline', 'tagline', 'bio', 'mission', 'avatar', 'brand_color'],
+        )));
+    }
+
+    /**
+     * Split a flat question set into the wizard's two content steps:
+     *   ['basics' => [...], 'additional' => [...]]
+     * "basics" are the identity/branding questions (basicProfileKeys); the
+     * rest fall into "additional". Order within each group is preserved from
+     * the source question list.
+     */
+    public static function splitQuestions(array $questions): array
+    {
+        $basicKeys = array_flip(self::basicProfileKeys());
+        $basics = [];
+        $additional = [];
+        foreach ($questions as $q) {
+            if (isset($basicKeys[$q['key'] ?? null])) {
+                $basics[] = $q;
+            } else {
+                $additional[] = $q;
+            }
+        }
+        return ['basics' => $basics, 'additional' => $additional];
+    }
+
     /** Default brand colour for a category — used when the user skips. */
     public static function defaultBrandColor(string $category): string
     {

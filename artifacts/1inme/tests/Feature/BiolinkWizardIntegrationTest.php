@@ -142,7 +142,9 @@ class BiolinkWizardIntegrationTest extends TestCase
             'category'      => 'business',
             'page_type'     => 'local_shop',
             'industry'      => null,
-            'step'          => 3,
+            // business_name is a basic profile field, so it renders on the
+            // basics step (index 2) in the redesigned 4-step flow.
+            'step'          => 2,
             'answers'       => ['business_name' => 'Resumed Co'],
         ]);
 

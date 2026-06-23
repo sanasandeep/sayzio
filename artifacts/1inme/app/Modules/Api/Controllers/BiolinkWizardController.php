@@ -17,11 +17,12 @@ use Throwable;
  *
  * The web wizard (user.links.wizard.*) keeps per-(user, workspace) draft rows
  * so a browser tab can resume later. Mobile is stateless instead: the client
- * drives all four steps (category → page type → optional industry → Q&A) in
- * memory and POSTs every answer at once to /generate. All three endpoints
- * reuse the exact same services as the web flow — BiolinkWizardQuestions for
- * the taxonomy/questions and BiolinkWizardGenerator (BiolinkPageRecipes +
- * TemplateService) for the page generation — so the two surfaces never drift.
+ * drives all four steps (industry → profile type [+ optional niche] → basic
+ * profile & branding → additional content) in memory and POSTs every answer at
+ * once to /generate. All three endpoints reuse the exact same services as the
+ * web flow — BiolinkWizardQuestions for the taxonomy/questions/split and
+ * BiolinkWizardGenerator (BiolinkPageRecipes + TemplateService) for the page
+ * generation — so the two surfaces never drift.
  */
 class BiolinkWizardController extends Controller
 {
@@ -30,16 +31,16 @@ class BiolinkWizardController extends Controller
     public function __construct(private BiolinkWizardGenerator $generator) {}
 
     /**
-     * Steps 1–3 in one shot: every category, the page types under each, and
-     * the industry options for every combo. The client caches this and drives
-     * the first three steps without round-trips.
+     * Steps 1–2 in one shot: every category (industry step), the page types
+     * (profile type step) under each, and the optional niche-refinement list
+     * for every combo. The client caches this and drives the first two steps
+     * without round-trips.
      *
-     * The industry step is always a real step (matching the web wizard): every
-     * combo gets an industry list — the combo's specific one when it has one,
-     * otherwise a small generic set — so the mobile wizard never silently skips
-     * it. Each page type and industry carries a FontAwesome icon name (resolved
-     * to a native glyph client-side) so the steps render the same icon-led look
-     * as the web flow.
+     * The niche refinement is folded into the profile-type step and is purely
+     * optional: only combos with a *specific* industries() list get one, so the
+     * map only contains those combos (no generic fallback). Each page type and
+     * industry carries a FontAwesome icon name (resolved to a native glyph
+     * client-side) so the steps render the same icon-led look as the web flow.
      */
     public function taxonomy()
     {
@@ -55,10 +56,16 @@ class BiolinkWizardController extends Controller
             }, BiolinkWizardQuestions::pageTypes($slug));
 
             foreach ($pageTypes[$slug] as $pt) {
+                // Specific-only — combos without a niche list are omitted so the
+                // client knows not to show the inline refinement for them.
+                $specific = BiolinkWizardQuestions::industries($slug, $pt['slug']);
+                if (empty($specific)) {
+                    continue;
+                }
                 $industries["{$slug}.{$pt['slug']}"] = array_map(function (array $ind) {
                     $ind['icon'] = BiolinkWizardQuestions::industryIcon($ind['slug']);
                     return $ind;
-                }, $this->effectiveIndustries($slug, $pt['slug']));
+                }, $specific);
             }
         }
 
@@ -69,7 +76,11 @@ class BiolinkWizardController extends Controller
         ]);
     }
 
-    /** Step 4: the detailed question set for a chosen (category, page_type, industry). */
+    /**
+     * Steps 3–4: the detailed question set for a chosen (category, page_type,
+     * industry), pre-split into the basic-profile step and the additional-content
+     * step so the mobile client renders the same two content surfaces as web.
+     */
     public function questions(Request $request)
     {
         $category = (string) $request->query('category', '');
@@ -84,11 +95,13 @@ class BiolinkWizardController extends Controller
             return $this->fail('Invalid page type.', 422, 'invalid_page_type');
         }
 
+        $questions = array_values(BiolinkWizardQuestions::questions($category, $pageType, $industry));
+        $split     = BiolinkWizardQuestions::splitQuestions($questions);
+
         return $this->ok([
-            'questions'         => array_values(BiolinkWizardQuestions::questions($category, $pageType, $industry)),
-            // The industry step is always shown on mobile now (generic fallback
-            // when the combo has no specific list), so this is always true.
-            'has_industry_step' => !empty($this->effectiveIndustries($category, $pageType)),
+            'questions'  => $questions,
+            'basics'     => array_values($split['basics']),
+            'additional' => array_values($split['additional']),
         ]);
     }
 
@@ -112,12 +125,11 @@ class BiolinkWizardController extends Controller
             return $this->fail('Invalid page type.', 422, 'invalid_page_type');
         }
 
-        // The industry step is always shown (specific list when the combo has
-        // one, otherwise a generic set), so validate against the effective list
-        // — matching the web wizard. An empty/absent value is allowed (the user
-        // skipped the step); generic slugs are harmless to the recipe pipeline,
-        // which falls back to the category placeholder for unknown slugs.
-        $industrySlugs = array_column($this->effectiveIndustries($category, $pageType), 'slug');
+        // The niche refinement is optional and folded into the profile-type
+        // step — validate against the combo's *specific* list only (matching the
+        // web wizard). Combos without a specific list force null; an empty/absent
+        // value is always allowed (the user skipped the refinement).
+        $industrySlugs = array_column(BiolinkWizardQuestions::industries($category, $pageType), 'slug');
         $industry = $data['industry'] ?? null;
         if ($industry === '') {
             $industry = null;
@@ -197,17 +209,6 @@ class BiolinkWizardController extends Controller
         }
 
         return $this->ok(['photo_url' => $userFile->url]);
-    }
-
-    /**
-     * The industry options for the (always-present) industry step: the combo's
-     * specific list when it has one, otherwise a generic set so the step is
-     * never blank. Mirrors the web wizard's effectiveIndustries().
-     */
-    private function effectiveIndustries(string $category, string $pageType): array
-    {
-        $specific = BiolinkWizardQuestions::industries($category, $pageType);
-        return !empty($specific) ? $specific : BiolinkWizardQuestions::genericIndustries();
     }
 
     private function isValidCategory(string $category): bool

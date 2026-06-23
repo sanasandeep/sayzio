@@ -19,9 +19,10 @@ use Throwable;
 /**
  * Guided biolink creation wizard.
  *
- * Walks the user through 4 steps (category → page type → optional industry →
- * detailed Q&A) and then generates an opinionated biolink page from their
- * answers using BiolinkPageRecipes + TemplateService::applyPageToLink.
+ * Walks the user through 4 steps (industry → profile type [+ optional niche
+ * refinement folded in] → basic profile & branding → additional content) and
+ * then generates an opinionated biolink page from their answers using
+ * BiolinkPageRecipes + TemplateService::applyPageToLink.
  *
  * State is held in a per-(user, workspace) row in `biolink_wizard_drafts` so
  * the user can close the tab and resume later. The draft is deleted once the
@@ -94,22 +95,46 @@ class BiolinkWizardController extends Controller
         return response()->noContent();
     }
 
-    /** Land on the wizard — show category step or resume an existing draft. */
+    /** Land on the wizard — show industry step or resume an existing draft. */
     public function index(Request $request)
     {
         $draft = $this->loadDraft($request);
+        $category = $draft?->category;
+        $pageType = $draft?->page_type;
+
+        $pageTypes = $category ? BiolinkWizardQuestions::pageTypes($category) : [];
+
+        // Per-page-type niche refinement options for the profile-type step.
+        // Only combos that have a *specific* industries() list contribute one;
+        // these drive placeholder imagery/accent and are entirely optional.
+        // (The old standalone "industry refinement" step is folded in here.)
+        $industriesByType = [];
+        if ($category) {
+            foreach ($pageTypes as $pt) {
+                $specific = BiolinkWizardQuestions::industries($category, $pt['slug']);
+                if (!empty($specific)) {
+                    $industriesByType[$pt['slug']] = array_map(static fn ($i) => $i + [
+                        'icon' => BiolinkWizardQuestions::industryIcon($i['slug']),
+                    ], $specific);
+                }
+            }
+        }
+
+        // The detailed question set, split into the two content steps.
+        $split = ($category && $pageType)
+            ? BiolinkWizardQuestions::splitQuestions(
+                BiolinkWizardQuestions::questions($category, $pageType, $draft->industry),
+            )
+            : ['basics' => [], 'additional' => []];
 
         return view('user.links.wizard', [
-            'draft'      => $draft,
-            'categories' => BiolinkWizardQuestions::categories(),
-            'step'       => $draft?->step ?? 0,
-            'pageTypes'  => $draft && $draft->category ? BiolinkWizardQuestions::pageTypes($draft->category) : [],
-            'industries' => $draft && $draft->category && $draft->page_type
-                                ? $this->effectiveIndustries($draft->category, $draft->page_type)
-                                : [],
-            'questions'  => $draft && $draft->category && $draft->page_type
-                                ? BiolinkWizardQuestions::questions($draft->category, $draft->page_type, $draft->industry)
-                                : [],
+            'draft'            => $draft,
+            'categories'       => BiolinkWizardQuestions::categories(),
+            'step'             => $draft?->step ?? 0,
+            'pageTypes'        => $pageTypes,
+            'industriesByType' => $industriesByType,
+            'basics'           => $split['basics'],
+            'additional'       => $split['additional'],
         ]);
     }
 
@@ -132,35 +157,26 @@ class BiolinkWizardController extends Controller
                     return back()->with('error', 'Please pick a category first.');
                 }
                 $draft->page_type = $this->validatePageType($draft->category, $request->input('page_type'));
-                $draft->industry  = null;
-                // The industry screen is always shown as a real step 3 (web).
-                // For combos with no specific industries() list we present a
-                // small generic set, so the step is never silently skipped.
+                // Optional niche refinement is folded into this step. Only
+                // combos with a specific industries() list accept one; anything
+                // else is forced to null (→ category placeholder imagery).
+                $draft->industry  = $this->validateIndustry($draft->category, $draft->page_type, $request->input('industry'));
                 $draft->step      = 2;
                 break;
 
-            case 'pick_industry':
+            case 'save_basics':
                 if (!$draft->category || !$draft->page_type) {
-                    return back()->with('error', 'Pick a page type first.');
-                }
-                $draft->industry = $this->validateIndustry($draft->category, $draft->page_type, $request->input('industry'));
-                $draft->step = 3;
-                break;
-
-            case 'save_answers':
-                if (!$draft->category || !$draft->page_type) {
-                    return back()->with('error', 'Pick a category & page type first.');
+                    return back()->with('error', 'Pick an industry & profile type first.');
                 }
                 $existing = $draft->answers ?? [];
-                $merged = array_merge($existing, $this->collectAnswers($request, $draft));
-                $draft->answers = $merged;
+                $draft->answers = array_merge($existing, $this->collectAnswers($request, $draft));
                 $draft->step = 3;
                 break;
 
             case 'back':
-                // The industry screen is always a real step 3 (web), so a
-                // plain `step - 1` is correct: questions (3) → industry (2) →
-                // page type (1) → category (0).
+                // Steps are now a clean 0..3 ladder (industry → profile type →
+                // basics → additional), so a plain `step - 1` walks back
+                // correctly without any industry-step special-casing.
                 $cur = (int) ($draft->step ?? 0);
                 $draft->step = max(0, $cur - 1);
                 break;
@@ -391,26 +407,21 @@ SVG;
         return $value;
     }
 
+    /**
+     * Validate the optional niche refinement folded into the profile-type
+     * step. Only combos with a *specific* industries() list accept one — any
+     * combo without a list (or an empty/blank value) resolves to null, which
+     * the recipe treats as "use the category placeholder imagery".
+     */
     protected function validateIndustry(string $category, string $pageType, $value): ?string
     {
-        $slugs = array_column($this->effectiveIndustries($category, $pageType), 'slug');
+        $slugs = array_column(BiolinkWizardQuestions::industries($category, $pageType), 'slug');
         if (empty($slugs)) return null;
         if ($value === null || $value === '') return null;
         if (!in_array($value, $slugs, true)) {
             abort(422, 'Invalid industry.');
         }
         return $value;
-    }
-
-    /**
-     * The industry options shown on the (always-present) web industry step:
-     * the combo's specific list when it has one, otherwise a generic set so
-     * the step is never blank. Mobile keeps the raw industries() semantics.
-     */
-    protected function effectiveIndustries(string $category, string $pageType): array
-    {
-        $specific = BiolinkWizardQuestions::industries($category, $pageType);
-        return !empty($specific) ? $specific : BiolinkWizardQuestions::genericIndustries();
     }
 
     /**

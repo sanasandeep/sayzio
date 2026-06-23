@@ -3,19 +3,24 @@
 
 @php
     /** @var \App\Modules\User\Models\BiolinkWizardDraft|null $draft */
-    $step       = (int) ($step ?? 0);
-    $categories = $categories ?? [];
-    $pageTypes  = $pageTypes  ?? [];
-    $industries = $industries ?? [];
-    $questions  = $questions  ?? [];
-    $answers    = $draft?->answers ?? [];
+    $step             = (int) ($step ?? 0);
+    $categories       = $categories ?? [];
+    $pageTypes        = $pageTypes  ?? [];
+    $industriesByType = $industriesByType ?? [];
+    $basics           = $basics     ?? [];
+    $additional       = $additional ?? [];
+    $answers          = $draft?->answers ?? [];
 
     $totalSteps  = 4;
     $progressPct = (int) round((($step + 1) / $totalSteps) * 100);
 
     $currentCategory = collect($categories)->firstWhere('slug', $draft?->category);
     $currentPageType = collect($pageTypes)->firstWhere('slug', $draft?->page_type);
-    $currentIndustry = collect($industries)->firstWhere('slug', $draft?->industry);
+    // The chosen niche label, if any, looked up in the current page type's
+    // refinement list (the old standalone industry step, folded into step 2).
+    $currentIndustry = $draft?->page_type
+        ? collect($industriesByType[$draft->page_type] ?? [])->firstWhere('slug', $draft?->industry)
+        : null;
 @endphp
 
 @section('content')
@@ -136,10 +141,16 @@
     {{-- ─────────────────────────────────────────────────────────────── --}}
     {{-- Step 1 · Page type                                               --}}
     {{-- ─────────────────────────────────────────────────────────────── --}}
+    {{-- Profile type + optional niche refinement (folded in). The page-type
+         cards now select-then-Continue (Alpine) so we can show an inline,
+         optional niche picker for combos that have a specific industries()
+         list before advancing. --}}
     @if($step === 1)
-        <form method="POST" action="{{ route('user.links.wizard.save') }}">
+        <form method="POST" action="{{ route('user.links.wizard.save') }}"
+              x-data="{ pt: @js($draft?->page_type ?? ''), ind: @js($draft?->industry ?? '') }">
             @csrf
-            <input type="hidden" name="_action" value="pick_page_type">
+            <input type="hidden" name="page_type" :value="pt">
+            <input type="hidden" name="industry" :value="ind">
 
             <h2 class="text-xl font-semibold text-white mb-1">More specifically — what fits best?</h2>
             <p class="text-sm text-white/50 mb-6">We'll tailor the questions and the layout to this choice.</p>
@@ -148,92 +159,141 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @foreach($pageTypes as $pt)
                     @php $ptIcon = \App\Modules\User\Services\BiolinkWizardQuestions::pageTypeIcon($draft->category, $pt['slug']); @endphp
-                    <button type="submit" name="page_type" value="{{ $pt['slug'] }}"
-                        class="lt-card-reveal group relative overflow-hidden rounded-2xl p-5 text-left border transition-all duration-200 motion-safe:hover:-translate-y-1
-                               {{ $draft?->page_type === $pt['slug']
+                    <button type="button" @click="pt = @js($pt['slug']); ind = ''"
+                        class="lt-card-reveal group relative overflow-hidden rounded-2xl p-5 text-left border transition-all duration-200 motion-safe:hover:-translate-y-1"
+                        :class="pt === @js($pt['slug'])
                                     ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
-                                    : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20' }}"
+                                    : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20'"
                         style="animation-delay: {{ min($ptIndex++ * 45, 540) }}ms">
                         {{-- accent glow corner --}}
                         <div class="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div class="relative flex items-start gap-4">
-                            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-lg transition-all duration-200
-                                        {{ $draft?->page_type === $pt['slug']
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-lg transition-all duration-200"
+                                 :class="pt === @js($pt['slug'])
                                             ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
-                                            : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105' }}">
+                                            : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105'">
                                 <i class="fas {{ $ptIcon }}"></i>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="text-white font-semibold">{{ $pt['label'] }}</div>
                                 <div class="text-xs text-white/50 mt-1 leading-relaxed">{{ $pt['blurb'] }}</div>
                             </div>
-                            <i class="fas fa-arrow-right text-white/20 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1"></i>
+                            <i class="fas fa-check text-violet-400 flex-shrink-0 mt-1" x-show="pt === @js($pt['slug'])" x-cloak></i>
                         </div>
                     </button>
                 @endforeach
             </div>
 
-            <div class="mt-6 flex items-center gap-3">
-                @csrf
-                <button type="submit" formmethod="POST" formaction="{{ route('user.links.wizard.save') }}"
-                        name="_action" value="back" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">
-                    <i class="fas fa-arrow-left mr-1.5 text-xs"></i> Back
-                </button>
-            </div>
-        </form>
-    @endif
+            {{-- Optional niche refinement — only rendered for the selected page
+                 type when it has a specific industries() list. Drives placeholder
+                 imagery/accent; entirely skippable (leave none selected). --}}
+            @foreach($industriesByType as $ptSlug => $inds)
+                <div x-show="pt === @js($ptSlug)" x-cloak class="mt-7">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="text-sm font-semibold text-white">Refine your niche</h3>
+                        <span class="text-[10px] uppercase tracking-wider text-white/30">optional</span>
+                    </div>
+                    <p class="text-xs text-white/40 mb-3">Just for picking the right placeholder image and accent — skip if none fit.</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        @foreach($inds as $ind)
+                            <button type="button" @click="ind = (ind === @js($ind['slug']) ? '' : @js($ind['slug']))"
+                                class="group relative overflow-hidden rounded-2xl px-4 py-4 border text-center transition-all duration-200 motion-safe:hover:-translate-y-0.5 flex flex-col items-center gap-2"
+                                :class="ind === @js($ind['slug'])
+                                            ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                            : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06]'">
+                                <span class="w-10 h-10 rounded-xl flex items-center justify-center text-base transition-all duration-200"
+                                      :class="ind === @js($ind['slug'])
+                                                ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
+                                                : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105'">
+                                    <i class="fas {{ $ind['icon'] }}"></i>
+                                </span>
+                                <span class="text-xs font-medium leading-tight"
+                                      :class="ind === @js($ind['slug']) ? 'text-white' : 'text-white/80 group-hover:text-white'">{{ $ind['label'] }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
 
-    {{-- ─────────────────────────────────────────────────────────────── --}}
-    {{-- Step 2 · Industry (optional)                                     --}}
-    {{-- ─────────────────────────────────────────────────────────────── --}}
-    @if($step === 2)
-        <form method="POST" action="{{ route('user.links.wizard.save') }}">
-            @csrf
-            <input type="hidden" name="_action" value="pick_industry">
-
-            <h2 class="text-xl font-semibold text-white mb-1">What's your industry?</h2>
-            <p class="text-sm text-white/50 mb-6">Just for picking the right placeholder image and accent — totally optional.</p>
-
-            @php $indIndex = 0; @endphp
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                @foreach($industries as $ind)
-                    @php $indIcon = \App\Modules\User\Services\BiolinkWizardQuestions::industryIcon($ind['slug']); @endphp
-                    <button type="submit" name="industry" value="{{ $ind['slug'] }}"
-                        class="lt-card-reveal group relative overflow-hidden rounded-2xl px-4 py-4 border text-center transition-all duration-200 motion-safe:hover:-translate-y-0.5 flex flex-col items-center gap-2
-                               {{ $draft?->industry === $ind['slug']
-                                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
-                                    : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20' }}"
-                        style="animation-delay: {{ min($indIndex++ * 40, 480) }}ms">
-                        <span class="w-10 h-10 rounded-xl flex items-center justify-center text-base transition-all duration-200
-                                     {{ $draft?->industry === $ind['slug']
-                                            ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
-                                            : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105' }}">
-                            <i class="fas {{ $indIcon }}"></i>
-                        </span>
-                        <span class="text-xs font-medium leading-tight {{ $draft?->industry === $ind['slug'] ? 'text-white' : 'text-white/80 group-hover:text-white' }}">{{ $ind['label'] }}</span>
-                    </button>
-                @endforeach
-            </div>
-
-            <div class="mt-6 flex items-center justify-between gap-3">
+            <div class="mt-7 flex items-center justify-between gap-3">
                 <button type="submit" name="_action" value="back" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                     <i class="fas fa-arrow-left mr-1.5 text-xs"></i> Back
                 </button>
-                <button type="submit" name="industry" value="" class="text-sm text-violet-300 hover:text-violet-200 underline-offset-2 hover:underline">
-                    Skip this step
+                <button type="submit" name="_action" value="pick_page_type" x-bind:disabled="!pt"
+                        class="bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                    Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
                 </button>
             </div>
         </form>
     @endif
 
     {{-- ─────────────────────────────────────────────────────────────── --}}
-    {{-- Step 3 · Detailed questions                                      --}}
+    {{-- Step 2 · Basic profile & branding                                --}}
+    {{-- ─────────────────────────────────────────────────────────────── --}}
+    @if($step === 2)
+        <form method="POST" action="{{ route('user.links.wizard.save') }}" enctype="multipart/form-data" id="wizardBasicsForm">
+            @csrf
+            <input type="hidden" name="_action" value="save_basics">
+
+            <h2 class="text-xl font-semibold text-white mb-1">Set up your profile &amp; branding</h2>
+            <p class="text-sm text-white/50 mb-6">
+                The essentials visitors see first — your name, a line about you, a photo and your accent colour.
+            </p>
+
+            <div class="space-y-5">
+                <section class="lt-card-reveal glass rounded-2xl overflow-hidden">
+                    <header class="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/15 text-violet-300 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-id-card-clip"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-white">Basic profile &amp; branding</div>
+                            <div class="text-xs text-white/40">Who the page is for.</div>
+                        </div>
+                    </header>
+                    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-5">
+                        @forelse($basics as $q)
+                            @include('user.links.partials.wizard-field', ['q' => $q, 'answers' => $answers, 'draft' => $draft])
+                        @empty
+                            <p class="text-sm text-white/40 sm:col-span-2">Nothing to set up here — continue to add your content.</p>
+                        @endforelse
+                    </div>
+                </section>
+            </div>
+
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <button type="submit" name="_action" value="back"
+                            class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                        <i class="fas fa-arrow-left mr-1.5 text-xs"></i> Back
+                    </button>
+                    <button type="submit" name="_action" value="restart"
+                            class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                        Start over
+                    </button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="submit" name="_action" value="save_and_exit"
+                            class="px-5 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                        Save &amp; exit
+                    </button>
+                    <button type="submit" name="_action" value="save_basics"
+                            class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                        Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    @endif
+
+    {{-- ─────────────────────────────────────────────────────────────── --}}
+    {{-- Step 3 · Additional content                                      --}}
     {{-- ─────────────────────────────────────────────────────────────── --}}
     @if($step >= 3)
         <form method="POST" action="{{ route('user.links.wizard.finish') }}" enctype="multipart/form-data" id="wizardFinishForm">
             @csrf
 
-            <h2 class="text-xl font-semibold text-white mb-1">Tell us about your page</h2>
+            <h2 class="text-xl font-semibold text-white mb-1">Add your content</h2>
             <p class="text-sm text-white/50 mb-6">
                 Skip what doesn't apply — we'll only add the blocks for what you fill in.
                 You can polish anything in the editor afterwards.
@@ -415,28 +475,37 @@
                     target.appendChild(clone);
                 });
             }
+        </script>
+    @endif
 
-            // ─── Autosave (browser + server) ──────────────────────────────────
-            // Persist answers locally on every change so refreshes / accidental
-            // tab closes don't lose work, and push the same payload to the
-            // server every 5 seconds when there are unsaved edits.
+    {{-- ─── Autosave (browser + server) ──────────────────────────────────
+         Shared by both content steps (basics + additional). Persists answers
+         locally on every change so refreshes / accidental tab closes don't
+         lose work, and pushes the same payload to the server every 5s when
+         there are unsaved edits. The local cache is MERGED across steps so
+         step 2 (basics) and step 3 (additional) never clobber each other. --}}
+    @if($step >= 2)
+        <script>
             (function () {
-                const main = document.getElementById('wizardFinishForm');
+                const main = document.getElementById('wizardFinishForm')
+                          || document.getElementById('wizardBasicsForm');
                 if (!main) return;
 
                 const STORAGE_KEY = 'biolink-wizard-draft:v1';
                 const DRAFT_URL   = @json(route('user.links.wizard.draft'));
                 const CSRF        = @json(csrf_token());
 
+                function readCache() {
+                    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+                    catch (e) { return {}; }
+                }
+
+                // Only the scalar (a[key]) fields present in THIS step's form.
                 function readForm() {
                     const out = {};
                     main.querySelectorAll('input, textarea, select').forEach(el => {
                         if (!el.name || !el.name.startsWith('a[')) return;
                         if (el.type === 'file') return;
-                        // a[key] / a[key][i][sub] — flatten to dotted path for
-                        // localStorage; server-side patch uses the top-level
-                        // bracket form already so we just ship label-keyed
-                        // scalar fields (a[key]) for autosave.
                         const m = el.name.match(/^a\[([^\]]+)\](?:\[|$)/);
                         if (!m) return;
                         const k = m[1];
@@ -447,23 +516,26 @@
                     return out;
                 }
 
-                // Restore from localStorage if the server didn't already
-                // persist these fields (the server's saved value wins).
+                // Merge this step's fields onto the existing cross-step cache so
+                // we don't drop answers captured on the other content step.
+                function persistLocal() {
+                    try {
+                        const merged = Object.assign(readCache(), readForm());
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                    } catch (e) { /* quota or private mode */ }
+                }
+
+                // Restore from localStorage if the server didn't already persist
+                // these fields (the server's saved value wins).
                 try {
-                    const cached = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-                    Object.entries(cached).forEach(([k, v]) => {
+                    Object.entries(readCache()).forEach(([k, v]) => {
                         const el = main.querySelector(`[name="a[${k}]"]`);
                         if (el && el.type !== 'file' && !el.value) el.value = v;
                     });
                 } catch (e) { /* ignore corrupt cache */ }
 
                 let dirty = false;
-                main.addEventListener('input', () => {
-                    dirty = true;
-                    try {
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(readForm()));
-                    } catch (e) { /* quota or private mode */ }
-                });
+                main.addEventListener('input', () => { dirty = true; persistLocal(); });
 
                 // Periodic server autosave — only fires when there's something
                 // new since the last successful flush.
@@ -484,9 +556,11 @@
                 }, 5000);
 
                 // Clear cache once we've successfully generated.
-                main.addEventListener('submit', () => {
-                    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-                });
+                if (main.id === 'wizardFinishForm') {
+                    main.addEventListener('submit', () => {
+                        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+                    });
+                }
             })();
         </script>
     @endif
