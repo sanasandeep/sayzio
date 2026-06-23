@@ -105,6 +105,12 @@ export default function ContactsScreen() {
           headerTintColor: colors.primary,
           headerRight: () => (
             <View style={{ flexDirection: "row", gap: 14, paddingRight: 12 }}>
+              <Pressable
+                onPress={() => router.push("/contacts/scan")}
+                hitSlop={8}
+              >
+                <Feather name="camera" size={20} color={colors.primary} />
+              </Pressable>
               <Pressable onPress={() => importMutation.mutate()} hitSlop={8}>
                 {importing ? (
                   <ActivityIndicator color={colors.primary} size="small" />

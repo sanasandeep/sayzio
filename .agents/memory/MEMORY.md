@@ -1,5 +1,6 @@
 - [Sharded PHPUnit runner](sharded-test-runner.md) — `composer test:sharded` bounds test memory by running shards; migrate once on shard 1, skip on the rest via SHARDED_TEST_SKIP_MIGRATION.
 - [Sanctum API feature tests](sanctum-api-tests.md) — `Sanctum::actingAs` breaks the TouchSessionToken middleware; auth API tests must use a real Bearer token.
+- [Card/brochure scan surfaces](card-brochure-scan-surfaces.md) — web + mobile API controllers both delegate to CardBrochureExtractionService (limits/credit gate/auto-refund live there); mobile biolink handoff seeds the stateless wizard via prefillCategory/prefillAnswers route params.
 - [Coin invoice re-delivery](coin-invoice-redelivery.md) — coin invoices have no subscription_id, so ActivateSubscription's "paid but no subscription" guard throws on webhook re-delivery; no-double-credit safety is the WalletService idem key.
 - [Consent backdrop vs launcher stacking](cookie-consent-vs-launcher-stacking.md) — a bottom-corner widget must out-stack the consent host (z ~2.1B), not just dodge its card, or the modal/takeover backdrop eats its clicks.
 - [Consent backdrop blocks nav](consent-backdrop-blocks-nav.md) — "1inme menus don't work" + NO console error = modal/takeover cookie-consent full-page backdrop, not Alpine; check elementFromPoint over the nav.

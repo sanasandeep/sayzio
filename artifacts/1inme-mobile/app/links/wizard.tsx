@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -41,12 +41,45 @@ export default function BiolinkWizardScreen() {
   const colors = useColors();
   const router = useRouter();
   const plan = usePlanFeatures();
+  const params = useLocalSearchParams<{
+    prefillCategory?: string;
+    prefillAnswers?: string;
+  }>();
 
   const [step, setStep] = useState<Step>("category");
   const [category, setCategory] = useState<string | null>(null);
   const [pageType, setPageType] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  // When arriving from a card/brochure scan, the review screen passes the
+  // seeded answers (and a category) so the user lands a step in with their
+  // details pre-filled. Applied once; answers persist as they pick a page type.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current) return;
+    if (!params.prefillCategory && !params.prefillAnswers) return;
+    prefilled.current = true;
+    if (params.prefillAnswers) {
+      try {
+        const parsed = JSON.parse(params.prefillAnswers) as Record<
+          string,
+          unknown
+        >;
+        const seeded: Record<string, string> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === "string" && v.trim() !== "") seeded[k] = v;
+        }
+        if (Object.keys(seeded).length) setAnswers(seeded);
+      } catch {
+        // Ignore malformed prefill — fall back to a blank wizard.
+      }
+    }
+    if (typeof params.prefillCategory === "string" && params.prefillCategory) {
+      setCategory(params.prefillCategory);
+      setStep("page_type");
+    }
+  }, [params.prefillCategory, params.prefillAnswers]);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
