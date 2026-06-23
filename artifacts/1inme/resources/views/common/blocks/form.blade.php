@@ -2,7 +2,7 @@
         $formId = $s['form_id'] ?? null;
         $formModel = $formId ? \App\Modules\User\Models\Form::find($formId) : null;
     @endphp
-    @if($formModel && $formModel->is_active)
+    @if($formModel && $formModel->is_active && (!isset($link) || (int)$formModel->user_id === (int)($link->user_id ?? 0)))
         <div class="mb-4 rounded-xl overflow-hidden glass-block" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
             <iframe src="{{ $formModel->getPublicUrl() }}/iframe"
                     class="w-full block"
