@@ -259,6 +259,8 @@
                         @endforelse
                     </div>
                 </section>
+
+                @include('user.links.partials.wizard-resources')
             </div>
 
             <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
@@ -425,6 +427,8 @@
                         </div>
                     </section>
                 @endforeach
+
+                @include('user.links.partials.wizard-resources')
             </div>
 
             <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
@@ -445,6 +449,13 @@
                             class="px-5 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                         Save & exit
                     </button>
+                    @if(!empty($aiEnabled))
+                        {{-- Auto-draft with AI: same form, different action route. --}}
+                        <button type="submit" formaction="{{ route('user.links.wizard.ai-draft') }}"
+                                class="inline-flex items-center gap-1.5 border border-fuchsia-500/40 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-200 px-5 py-2.5 rounded-xl text-sm font-medium transition-all">
+                            <i class="fas fa-wand-magic-sparkles text-xs"></i> Auto-draft with AI
+                        </button>
+                    @endif
                     <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
                         Generate my page <i class="fas fa-magic ml-1.5 text-xs"></i>
                     </button>
@@ -466,14 +477,44 @@
                 const main = document.getElementById('wizardFinishForm');
                 if (!main) return;
                 main.querySelectorAll('input, textarea, select').forEach(el => {
-                    if (!el.name || !el.name.startsWith('a[')) return;
+                    if (!el.name) return;
                     if (el.type === 'file') return;
-                    const clone = document.createElement('input');
-                    clone.type = 'hidden';
-                    clone.name = el.name;
-                    clone.value = el.value || '';
-                    target.appendChild(clone);
+                    // Typed answer fields.
+                    if (el.name.startsWith('a[')) {
+                        const clone = document.createElement('input');
+                        clone.type = 'hidden';
+                        clone.name = el.name;
+                        clone.value = el.value || '';
+                        target.appendChild(clone);
+                        return;
+                    }
+                    // AI auto-draft resource selections — copy checked brains/files
+                    // and the platform-knowledge flag so Save & exit persists them.
+                    if (el.name === 'ai_mind_ids[]' || el.name === 'file_ids[]') {
+                        if (el.checked) {
+                            const clone = document.createElement('input');
+                            clone.type = 'hidden';
+                            clone.name = el.name;
+                            clone.value = el.value;
+                            target.appendChild(clone);
+                        }
+                        return;
+                    }
+                    if (el.name === 'include_platform_mind') {
+                        const clone = document.createElement('input');
+                        clone.type = 'hidden';
+                        clone.name = el.name;
+                        clone.value = el.checked ? '1' : '0';
+                        target.appendChild(clone);
+                    }
                 });
+                // Sentinel so the controller treats the copied selections as
+                // authoritative (lets a fully-cleared picker actually clear).
+                const sentinel = document.createElement('input');
+                sentinel.type = 'hidden';
+                sentinel.name = '_resources_present';
+                sentinel.value = '1';
+                target.appendChild(sentinel);
             }
         </script>
     @endif
@@ -534,8 +575,31 @@
                     });
                 } catch (e) { /* ignore corrupt cache */ }
 
+                // Read the AI auto-draft resource selections so they autosave
+                // alongside the answers and survive a refresh / resume.
+                function readResources() {
+                    const minds = [];
+                    main.querySelectorAll('input[name="ai_mind_ids[]"]').forEach(el => {
+                        if (el.checked) minds.push(el.value);
+                    });
+                    const files = [];
+                    main.querySelectorAll('input[name="file_ids[]"]').forEach(el => {
+                        if (el.checked) files.push(el.value);
+                    });
+                    const plat = main.querySelector('input[name="include_platform_mind"]');
+                    return {
+                        ai_mind_ids: minds,
+                        file_ids: files,
+                        include_platform_mind: plat && plat.checked ? 1 : 0,
+                        _resources_present: 1,
+                    };
+                }
+
                 let dirty = false;
                 main.addEventListener('input', () => { dirty = true; persistLocal(); });
+                // Checkboxes (resource picker) fire change; flag dirty so the
+                // selection flushes on the next autosave tick.
+                main.addEventListener('change', () => { dirty = true; });
 
                 // Periodic server autosave — only fires when there's something
                 // new since the last successful flush.
@@ -551,7 +615,7 @@
                             'X-CSRF-TOKEN': CSRF,
                             'Accept': 'application/json',
                         },
-                        body: JSON.stringify({ answers }),
+                        body: JSON.stringify(Object.assign({ answers }, readResources())),
                     }).catch(() => { dirty = true; /* retry next tick */ });
                 }, 5000);
 

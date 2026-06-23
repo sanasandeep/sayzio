@@ -337,6 +337,8 @@ Route::prefix('v1')->group(function () {
         Route::get ('/links/wizard/questions', [BiolinkWizardController::class, 'questions']);
         Route::post('/links/wizard/image',     [BiolinkWizardController::class, 'uploadImage']);
         Route::post('/links/wizard/generate',  [BiolinkWizardController::class, 'generate']);
+        Route::post('/links/wizard/ai-generate', [BiolinkWizardController::class, 'aiGenerate']);
+        Route::get ('/links/wizard/resources',   [BiolinkWizardController::class, 'resources']);
         // Scan a business card / brochure (mobile parity for the web-only
         // user.card-scans.* flow). Upload runs the shared AI extraction
         // service; review/save persists a Contact and/or seeds a wizard draft.

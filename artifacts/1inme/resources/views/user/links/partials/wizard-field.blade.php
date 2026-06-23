@@ -85,7 +85,11 @@
             class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
     @endif
 
-    @if(!empty($q['help']))
-        <p class="text-xs text-white/30 mt-1">{{ $q['help'] }}</p>
-    @endif
+    @error($key, 'wizard')
+        <p class="text-xs text-rose-400 mt-1 flex items-center gap-1"><i class="fas fa-circle-exclamation text-[10px]"></i> {{ $message }}</p>
+    @else
+        @if(!empty($q['help']))
+            <p class="text-xs text-white/30 mt-1">{{ $q['help'] }}</p>
+        @endif
+    @enderror
 </div>

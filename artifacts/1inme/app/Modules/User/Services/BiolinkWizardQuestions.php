@@ -1248,4 +1248,137 @@ class BiolinkWizardQuestions
 
         return $out;
     }
+
+    /**
+     * The required answer keys for a combo, in question order. A question
+     * counts as required when it carries `'required' => true`. Used by both
+     * the web wizard and the API to block advancement until they're filled.
+     *
+     * @return list<string>
+     */
+    public static function requiredKeys(string $category, string $pageType, ?string $industry = null): array
+    {
+        $out = [];
+        foreach (self::questions($category, $pageType, $industry) as $q) {
+            if (!empty($q['required'])) {
+                $out[] = $q['key'];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Validate a flat answers map against the question set for a combo and
+     * return a map of `key => human message` for every field that fails.
+     * Shared by the web wizard (inline errors that block "Next"/"Generate")
+     * and the mobile API (422 envelope `details`).
+     *
+     * Two failure modes per question:
+     *   - required + empty   → "… is required."
+     *   - present + bad type → a type-specific message (url/email/color/select).
+     *
+     * Pass `$onlyKeys` to scope validation to one step's fields (e.g. just the
+     * "basics" keys) so a later step's required field doesn't block an earlier
+     * step. Omit it to validate the whole set (used on final generate).
+     *
+     * @param array<string,mixed> $answers
+     * @param list<string>|null   $onlyKeys
+     * @return array<string,string> key => error message (empty when all valid)
+     */
+    public static function validateAnswers(string $category, string $pageType, ?string $industry, array $answers, ?array $onlyKeys = null): array
+    {
+        $scope  = $onlyKeys !== null ? array_flip($onlyKeys) : null;
+        $errors = [];
+
+        foreach (self::questions($category, $pageType, $industry) as $q) {
+            $key = $q['key'];
+            if ($scope !== null && !isset($scope[$key])) continue;
+
+            $type     = $q['type'] ?? 'text';
+            $label    = $q['label'] ?? $key;
+            $raw      = $answers[$key] ?? null;
+            $val      = is_string($raw) ? trim($raw) : '';
+            $required = !empty($q['required']);
+
+            if ($val === '') {
+                if ($required) {
+                    $errors[$key] = "{$label} is required.";
+                }
+                continue; // Optional + empty is fine; nothing more to check.
+            }
+
+            switch ($type) {
+                case 'url':
+                    $candidate = preg_match('#^https?://#i', $val) ? $val : 'https://' . ltrim($val, '/');
+                    if (!filter_var($candidate, FILTER_VALIDATE_URL)) {
+                        $errors[$key] = "{$label} must be a valid URL.";
+                    }
+                    break;
+                case 'email':
+                    if (!filter_var($val, FILTER_VALIDATE_EMAIL)) {
+                        $errors[$key] = "{$label} must be a valid email address.";
+                    }
+                    break;
+                case 'color':
+                    if (!preg_match('/^#[0-9a-f]{3,8}$/i', $val)) {
+                        $errors[$key] = "{$label} must be a hex colour (e.g. #7c3aed).";
+                    }
+                    break;
+                case 'select':
+                    $opts = array_column($q['options'] ?? [], 'v');
+                    if (!in_array($val, $opts, true)) {
+                        $errors[$key] = "Pick a valid option for {$label}.";
+                    }
+                    break;
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Build a natural-language brief for the AI biolink builder out of the
+     * wizard answers, woven together with the human-readable taxonomy labels
+     * (category / profile type / niche). This is what the AI auto-draft feeds
+     * as its `description`, so the generated page reflects everything the user
+     * already typed instead of starting from scratch.
+     */
+    public static function describeForAi(string $category, string $pageType, ?string $industry, array $answers): string
+    {
+        $catLabel = self::labelFor(self::categories(), $category) ?? $category;
+        $typeLabel = self::labelFor(self::pageTypes($category), $pageType) ?? $pageType;
+
+        $lines = [];
+        $intro = "Build a link-in-bio page for a {$catLabel} — specifically a {$typeLabel}.";
+        if ($industry) {
+            $nicheLabel = self::labelFor(self::industries($category, $pageType), $industry) ?? $industry;
+            $intro .= " Niche: {$nicheLabel}.";
+        }
+        $lines[] = $intro;
+
+        // Render each answered field as "Label: value" so the model has the
+        // user's real copy. Image answers are surfaced separately as supplied
+        // URLs by the caller, so skip them here.
+        foreach (self::questions($category, $pageType, $industry) as $q) {
+            if (($q['type'] ?? 'text') === 'image') continue;
+            $key = $q['key'];
+            $val = $answers[$key] ?? null;
+            if (!is_string($val) || trim($val) === '') continue;
+            $label = $q['label'] ?? $key;
+            $lines[] = "{$label}: " . trim($val);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /** Find the `label` for a `slug` in a taxonomy list, or null. */
+    private static function labelFor(array $list, string $slug): ?string
+    {
+        foreach ($list as $row) {
+            if (($row['slug'] ?? null) === $slug) {
+                return $row['label'] ?? null;
+            }
+        }
+        return null;
+    }
 }

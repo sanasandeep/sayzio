@@ -102,6 +102,51 @@ export async function generateWizardPage(payload: {
   return res.data.link;
 }
 
+// ── AI auto-draft ─────────────────────────────────────────────────
+// The optional, user-triggered AI draft. Reuses the same answers the
+// instant generator collects, plus optional grounding inputs: the
+// user's AI Brains (Minds) and vault files. Mirrors the web wizard's
+// "Auto-draft with AI" button. The server respects the credit charge
+// (with auto-refund on failure) and is gated behind the AI engine
+// being enabled — so this is only offered when `resources.ai_enabled`.
+
+export type WizardMind = { id: number; name: string };
+export type WizardVaultFile = {
+  id: number;
+  name: string;
+  type: string;
+  url: string;
+};
+export type WizardResources = {
+  ai_enabled: boolean;
+  my_minds: WizardMind[];
+  platform_minds: WizardMind[];
+  vault_files: WizardVaultFile[];
+};
+
+export async function getWizardResources(): Promise<WizardResources> {
+  const res = await apiFetch<{ data: WizardResources }>(
+    "/links/wizard/resources",
+  );
+  return res.data;
+}
+
+export async function aiGenerateWizardPage(payload: {
+  category: string;
+  page_type: string;
+  industry?: string | null;
+  answers: Record<string, string>;
+  ai_mind_ids?: number[];
+  include_platform_mind?: boolean;
+  file_ids?: number[];
+}): Promise<Link> {
+  const res = await apiFetch<{ data: { link: Link } }>(
+    "/links/wizard/ai-generate",
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+  return res.data.link;
+}
+
 /**
  * Upload an image answer (avatar/cover/etc.) picked from the device during the
  * wizard. Posted as multipart/form-data to mirror the web editor's upload flow;

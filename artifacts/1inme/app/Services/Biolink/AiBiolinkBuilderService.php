@@ -138,9 +138,13 @@ class AiBiolinkBuilderService
      * @param list<string> $links   Raw destination URLs the user pasted.
      * @param list<string> $images  Vault image URLs the user uploaded.
      * @param list<string> $files   Vault document/file URLs the user uploaded.
+     * @param string $grounding     Optional knowledge-base context retrieved
+     *                              from the user's selected AI Brains (Minds).
+     *                              Prepended so the model writes copy grounded
+     *                              in the user's own facts; never invents URLs.
      * @return list<array{role:string,content:string}>
      */
-    public function buildMessages(User $user, string $description, array $links, array $images, array $files = []): array
+    public function buildMessages(User $user, string $description, array $links, array $images, array $files = [], string $grounding = ''): array
     {
         $description = trim($description);
         if ($description === '') {
@@ -207,6 +211,13 @@ class AiBiolinkBuilderService
             . $schemaHint;
 
         $userParts = ["WHAT THE USER WANTS:\n" . $description];
+        $grounding = trim($grounding);
+        if ($grounding !== '') {
+            // Cap so a large knowledge base can't blow the model window.
+            $grounding = mb_substr($grounding, 0, self::MAX_DESCRIPTION_LEN);
+            $userParts[] = "GROUNDING KNOWLEDGE (facts from the user's own AI Brain — prefer these for names, "
+                . "bios, offerings, and copy; never copy verbatim secrets and never invent URLs from this):\n" . $grounding;
+        }
         if ($links) {
             $userParts[] = "SUPPLIED LINKS (use these as destination URLs):\n- " . implode("\n- ", $links);
         }
@@ -230,10 +241,10 @@ class AiBiolinkBuilderService
     /**
      * Worst-case credit cost shown before the user clicks Generate.
      */
-    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = []): int
+    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = ''): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
-        $messages = $this->buildMessages($user, $description, $links, $images, $files);
+        $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS);
     }
 
@@ -245,13 +256,13 @@ class AiBiolinkBuilderService
      *
      * @return array{credits_spent:int,blocks:int,model:string}
      */
-    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = []): array
+    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = ''): array
     {
         $links  = $this->cleanUrls($links);
         $images = $this->cleanImageUrls($images);
         $files  = $this->cleanImageUrls($files);
 
-        $messages = $this->buildMessages($user, $description, $links, $images, $files);
+        $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
         $result = $this->openai->chat($user, $model, $messages, [

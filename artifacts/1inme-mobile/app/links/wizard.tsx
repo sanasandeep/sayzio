@@ -23,12 +23,15 @@ import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 import { listLinks } from "@/lib/api/links";
 import {
+  aiGenerateWizardPage,
   generateWizardPage,
   getWizardQuestions,
+  getWizardResources,
   getWizardTaxonomy,
   uploadWizardImage,
   type WizardIndustry,
   type WizardQuestion,
+  type WizardVaultFile,
 } from "@/lib/api/wizard";
 
 // The four-step guided flow, mirroring the web wizard:
@@ -145,12 +148,34 @@ export default function BiolinkWizardScreen() {
   }, [params.prefillCategory, params.prefillAnswers]);
 
   const [busy, setBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Per-field validation errors (key → message), mirroring the web wizard's
+  // inline error bag. Populated from the server's 422 `details` so a failed
+  // generate highlights exactly which fields to fix instead of a generic toast.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // AI auto-draft grounding selections. Persisted only in memory (the mobile
+  // wizard is stateless) and sent with the ai-generate payload.
+  const [selectedMinds, setSelectedMinds] = useState<Set<number>>(new Set());
+  const [includePlatformMind, setIncludePlatformMind] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
 
   const taxonomyQ = useQuery({
     queryKey: ["wizard-taxonomy"],
     queryFn: getWizardTaxonomy,
   });
+
+  // AI-draft resources (Minds + vault files + engine flag). Loaded lazily once
+  // the user reaches a content step; the auto-draft UI only appears when the
+  // server reports the AI engine is enabled (OFF by default in dev).
+  const resourcesQ = useQuery({
+    queryKey: ["wizard-resources"],
+    queryFn: getWizardResources,
+    enabled: step === "basics" || step === "additional",
+    staleTime: 60 * 1000,
+  });
+  const aiEnabled = resourcesQ.data?.ai_enabled ?? false;
 
   const pageTypes = useMemo(
     () => (category ? (taxonomyQ.data?.page_types[category] ?? []) : []),
@@ -220,6 +245,7 @@ export default function BiolinkWizardScreen() {
 
   function reset(to: Step) {
     setError(null);
+    setFieldErrors({});
     setStep(to);
   }
 
@@ -228,6 +254,9 @@ export default function BiolinkWizardScreen() {
     setPageType(null);
     setIndustry(null);
     setAnswers({});
+    setSelectedMinds(new Set());
+    setIncludePlatformMind(false);
+    setSelectedFiles(new Set());
     reset("page_type");
   }
 
@@ -240,6 +269,10 @@ export default function BiolinkWizardScreen() {
     setIndustry(null);
     setAnswers({});
     setError(null);
+    setFieldErrors({});
+    setSelectedMinds(new Set());
+    setIncludePlatformMind(false);
+    setSelectedFiles(new Set());
   }
 
   // Toggle the inline niche chip (tap again to clear). Purely drives the
@@ -262,13 +295,59 @@ export default function BiolinkWizardScreen() {
     else router.back();
   }
 
+  // Map a server 422 `details` bag (key → string[] | string) into the flat
+  // key → message shape the inline field errors use. Returns true when at
+  // least one field error was extracted so callers can short-circuit.
+  function applyFieldErrors(e: any): boolean {
+    const details = (e?.details ?? e?.errors) as
+      | Record<string, unknown>
+      | undefined;
+    if (!details || typeof details !== "object") return false;
+    const next: Record<string, string> = {};
+    for (const [k, v] of Object.entries(details)) {
+      const msg = Array.isArray(v) ? v[0] : v;
+      if (typeof msg === "string" && msg) next[k] = msg;
+    }
+    if (Object.keys(next).length === 0) return false;
+    setFieldErrors(next);
+    return true;
+  }
+
+  // Local per-step required-field gate mirroring the server's validateAnswers.
+  // Blocks advancing past a content step with empty required fields so mobile
+  // matches the web wizard's step gating (instead of silently letting the user
+  // through to a final-generate 422). Sets inline fieldErrors and returns true
+  // only when every required field for the step has a value.
+  function validateLocalStep(items: WizardQuestion[]): boolean {
+    const next: Record<string, string> = {};
+    for (const q of items) {
+      if (!q.required) continue;
+      const v = (answers[q.key] ?? "").trim();
+      if (!v) next[q.key] = `${q.label} is required.`;
+    }
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  function continueFromBasics() {
+    if (!validateLocalStep(basicsQuestions)) return;
+    reset("additional");
+  }
+
   async function onGenerate() {
     if (!category || !pageType) return;
+    // Gate this step's required fields locally before hitting the server so the
+    // user gets the same inline blocking the basics step has.
+    if (!validateLocalStep(additionalQuestions)) {
+      setError("Please fix the highlighted fields before generating.");
+      return;
+    }
     if (quotaLocked) {
       promptQuotaUpgrade();
       return;
     }
     setError(null);
+    setFieldErrors({});
     setBusy(true);
     try {
       const link = await generateWizardPage({
@@ -281,11 +360,46 @@ export default function BiolinkWizardScreen() {
     } catch (e: any) {
       if (handlePlanLockedError(e)) {
         setError(null);
+      } else if (applyFieldErrors(e)) {
+        setError("Please fix the highlighted fields before generating.");
       } else {
         setError(e?.message || "Failed to generate your page");
       }
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onAiGenerate() {
+    if (!category || !pageType) return;
+    if (quotaLocked) {
+      promptQuotaUpgrade();
+      return;
+    }
+    setError(null);
+    setFieldErrors({});
+    setAiBusy(true);
+    try {
+      const link = await aiGenerateWizardPage({
+        category,
+        page_type: pageType,
+        industry,
+        answers,
+        ai_mind_ids: [...selectedMinds],
+        include_platform_mind: includePlatformMind,
+        file_ids: [...selectedFiles],
+      });
+      router.replace(`/links/${link.id}/blocks` as any);
+    } catch (e: any) {
+      if (handlePlanLockedError(e)) {
+        setError(null);
+      } else if (applyFieldErrors(e)) {
+        setError("Please fix the highlighted fields before drafting.");
+      } else {
+        setError(e?.message || "The AI couldn't draft your page this time.");
+      }
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -476,6 +590,7 @@ export default function BiolinkWizardScreen() {
                   step === "basics" ? basicsQuestions : additionalQuestions
                 }
                 answers={answers}
+                errors={fieldErrors}
                 onChange={(key, v) =>
                   setAnswers((prev) => ({ ...prev, [key]: v }))
                 }
@@ -486,18 +601,58 @@ export default function BiolinkWizardScreen() {
                 }
               />
 
+              {aiEnabled ? (
+                <AiDraftResources
+                  myMinds={resourcesQ.data?.my_minds ?? []}
+                  platformMinds={resourcesQ.data?.platform_minds ?? []}
+                  vaultFiles={resourcesQ.data?.vault_files ?? []}
+                  selectedMinds={selectedMinds}
+                  includePlatformMind={includePlatformMind}
+                  selectedFiles={selectedFiles}
+                  onToggleMind={(id) =>
+                    setSelectedMinds((prev) => {
+                      const next = new Set(prev);
+                      next.has(id) ? next.delete(id) : next.add(id);
+                      return next;
+                    })
+                  }
+                  onTogglePlatform={() =>
+                    setIncludePlatformMind((v) => !v)
+                  }
+                  onToggleFile={(id) =>
+                    setSelectedFiles((prev) => {
+                      const next = new Set(prev);
+                      next.has(id) ? next.delete(id) : next.add(id);
+                      return next;
+                    })
+                  }
+                />
+              ) : null}
+
               {error ? (
                 <Text style={{ color: colors.destructive }}>{error}</Text>
               ) : null}
 
               {step === "basics" ? (
-                <Button label="Continue" onPress={() => reset("additional")} />
+                <Button label="Continue" onPress={continueFromBasics} />
               ) : (
-                <Button
-                  label="Generate my page"
-                  onPress={onGenerate}
-                  loading={busy}
-                />
+                <View style={{ gap: 10 }}>
+                  {aiEnabled ? (
+                    <Button
+                      label="Auto-draft with AI"
+                      variant="secondary"
+                      onPress={onAiGenerate}
+                      loading={aiBusy}
+                      disabled={busy}
+                    />
+                  ) : null}
+                  <Button
+                    label="Generate my page"
+                    onPress={onGenerate}
+                    loading={busy}
+                    disabled={aiBusy}
+                  />
+                </View>
               )}
             </View>
           )
@@ -641,6 +796,7 @@ function QuestionSection({
   icon,
   items,
   answers,
+  errors,
   onChange,
   emptyText,
 }: {
@@ -649,6 +805,7 @@ function QuestionSection({
   icon: string;
   items: WizardQuestion[];
   answers: Record<string, string>;
+  errors: Record<string, string>;
   onChange: (key: string, value: string) => void;
   emptyText: string;
 }) {
@@ -689,6 +846,7 @@ function QuestionSection({
               key={q.key}
               question={q}
               value={answers[q.key] ?? ""}
+              error={errors[q.key]}
               onChange={(v) => onChange(q.key, v)}
             />
           ))
@@ -705,10 +863,12 @@ function QuestionSection({
 function QuestionField({
   question,
   value,
+  error,
   onChange,
 }: {
   question: WizardQuestion;
   value: string;
+  error?: string;
   onChange: (v: string) => void;
 }) {
   const colors = useColors();
@@ -755,7 +915,11 @@ function QuestionField({
             );
           })}
         </View>
-        {question.help ? (
+        {error ? (
+          <Text style={[styles.fieldError, { color: colors.destructive }]}>
+            {error}
+          </Text>
+        ) : question.help ? (
           <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
             {question.help}
           </Text>
@@ -767,10 +931,15 @@ function QuestionField({
   const isImage = question.type === "image";
 
   if (isImage) {
-    return <ImageQuestionField question={question} value={value} onChange={onChange} />;
+    return (
+      <ImageQuestionField
+        question={question}
+        value={value}
+        error={error}
+        onChange={onChange}
+      />
+    );
   }
-
-  const hint = question.help;
 
   return (
     <View style={{ gap: 6 }}>
@@ -781,7 +950,8 @@ function QuestionField({
         </Text>
       </View>
       <TextField
-        hint={hint}
+        hint={question.help}
+        error={error}
         value={value}
         onChangeText={onChange}
         placeholder={question.placeholder ?? undefined}
@@ -819,10 +989,12 @@ function QuestionField({
 function ImageQuestionField({
   question,
   value,
+  error,
   onChange,
 }: {
   question: WizardQuestion;
   value: string;
+  error?: string;
   onChange: (v: string) => void;
 }) {
   const colors = useColors();
@@ -962,6 +1134,7 @@ function ImageQuestionField({
 
       <TextField
         hint="…or paste an image URL. Leave blank for a themed placeholder."
+        error={error}
         value={value}
         onChangeText={onChange}
         placeholder={question.placeholder ?? "https://…/photo.jpg"}
@@ -970,6 +1143,188 @@ function ImageQuestionField({
         autoCorrect={false}
         editable={!uploading}
       />
+    </View>
+  );
+}
+
+// The optional AI auto-draft grounding picker — the user's AI Brains (Minds),
+// the default platform Mind, and their vault files. Mirrors the web wizard's
+// wizard-resources partial. Only rendered when the AI engine is enabled.
+function AiDraftResources({
+  myMinds,
+  platformMinds,
+  vaultFiles,
+  selectedMinds,
+  includePlatformMind,
+  selectedFiles,
+  onToggleMind,
+  onTogglePlatform,
+  onToggleFile,
+}: {
+  myMinds: { id: number; name: string }[];
+  platformMinds: { id: number; name: string }[];
+  vaultFiles: WizardVaultFile[];
+  selectedMinds: Set<number>;
+  includePlatformMind: boolean;
+  selectedFiles: Set<number>;
+  onToggleMind: (id: number) => void;
+  onTogglePlatform: () => void;
+  onToggleFile: (id: number) => void;
+}) {
+  const colors = useColors();
+  const hasMinds = myMinds.length > 0 || platformMinds.length > 0;
+
+  return (
+    <View
+      style={[
+        styles.section,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.primary + "44",
+          borderRadius: colors.radius,
+        },
+      ]}
+    >
+      <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
+        <View
+          style={[styles.sectionIcon, { backgroundColor: colors.primary + "22" }]}
+        >
+          <AppIcon name="fa-wand-magic-sparkles" size={16} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1, gap: 1 }}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Ground your AI draft
+          </Text>
+          <Text style={[styles.sectionDesc, { color: colors.mutedForeground }]}>
+            Optional — pick AI Brains &amp; files to inform the auto-draft.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.sectionBody}>
+        <View style={{ gap: 8 }}>
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+            AI Brains
+          </Text>
+          {hasMinds ? (
+            <View style={styles.chips}>
+              {platformMinds.map((m) => (
+                <Pressable
+                  key={`platform-${m.id}`}
+                  onPress={onTogglePlatform}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: includePlatformMind
+                        ? colors.primary
+                        : colors.card,
+                      borderColor: includePlatformMind
+                        ? colors.primary
+                        : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color: includePlatformMind
+                          ? colors.primaryForeground
+                          : colors.foreground,
+                      },
+                    ]}
+                  >
+                    {m.name}
+                  </Text>
+                </Pressable>
+              ))}
+              {myMinds.map((m) => {
+                const active = selectedMinds.has(m.id);
+                return (
+                  <Pressable
+                    key={`mine-${m.id}`}
+                    onPress={() => onToggleMind(m.id)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active
+                            ? colors.primaryForeground
+                            : colors.foreground,
+                        },
+                      ]}
+                    >
+                      {m.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
+              No AI Brains yet — create one to teach the AI about you.
+            </Text>
+          )}
+        </View>
+
+        <View style={{ gap: 8 }}>
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+            Vault files
+          </Text>
+          {vaultFiles.length ? (
+            <View style={styles.chips}>
+              {vaultFiles.map((f) => {
+                const active = selectedFiles.has(f.id);
+                return (
+                  <Pressable
+                    key={f.id}
+                    onPress={() => onToggleFile(f.id)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <AppIcon
+                      name={f.type === "image" ? "fa-image" : "fa-file"}
+                      size={12}
+                      color={active ? colors.primaryForeground : colors.primary}
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active
+                            ? colors.primaryForeground
+                            : colors.foreground,
+                          maxWidth: 140,
+                        },
+                      ]}
+                    >
+                      {f.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
+              No files in your vault yet — upload some to use them here.
+            </Text>
+          )}
+        </View>
+      </View>
     </View>
   );
 }
@@ -1084,6 +1439,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   fieldHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  fieldError: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
   imageRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   imagePreview: {
     width: 64,

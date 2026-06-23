@@ -628,6 +628,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/wizard',         [BiolinkWizardController::class, 'save'])->middleware('workspace.can:links.create')->name('links.wizard.save');
         Route::patch('links/wizard/draft',  [BiolinkWizardController::class, 'draft'])->middleware('workspace.can:links.create')->name('links.wizard.draft');
         Route::post('links/wizard/finish',  [BiolinkWizardController::class, 'finish'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.wizard.finish');
+        Route::post('links/wizard/ai-draft', [BiolinkWizardController::class, 'finishAi'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.wizard.ai-draft');
 
         Route::resource('links', LinkController::class)->except(['store', 'update', 'destroy'])->middleware('workspace.can:links.view');
         Route::put('links/{link}',  [LinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.update');
