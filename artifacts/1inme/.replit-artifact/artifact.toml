@@ -9,18 +9,23 @@ name = "web"
 paths = ["/"]
 
 # Dev startup builds the Vite/Tailwind v4 assets if the @vite() manifest at
-# public/build/manifest.json is missing, then serves. public/build is gitignored,
-# so a fresh dev environment has no manifest and every Blade page using @vite()
-# would 500 with ViteManifestNotFoundException — building on startup keeps dev
-# durable across environment restarts without committing build output.
-# NOTE: OPcache file_cache / cache-warm startup tuning was trialed to beat the
-# readiness-probe timeout on the heavy "/" home page but did NOT make
-# restart_workflow pass (the probe fails even when the server serves "/" at
-# ~1-2s for 30s straight, while lightweight artifacts pass instantly) — it is a
-# platform probe limitation, not app readiness. Reverted to this proven config,
-# which the platform's post-merge bring-up starts successfully.
+# public/build/manifest.json is missing, then writes a boot timestamp and serves.
+# public/build is gitignored, so a fresh dev environment has no manifest and every
+# Blade page using @vite() would 500 with ViteManifestNotFoundException — building
+# on startup keeps dev durable across environment restarts without committing build
+# output.
+#
+# READINESS PROBE NOTE: the Replit dev readiness probe is hard-wired to poll the
+# preview path "/" — it ignores [services.development.health.startup].path (verified:
+# zero "/up" hits in the dev log when that was set) — and enforces a tight per-response
+# latency bound, so it rejects the home page's ~1s warm / ~3-5s cold Blade render and
+# tears down the otherwise-healthy server. The fix is the dev-only DevStartupProbe
+# middleware (app/Modules/Common/Middleware), which answers "/" with an instant 200
+# splash for WINDOW_MS after boot. It keys off the boot timestamp written below into
+# storage/framework/cache/dev_boot_ms; the real home page serves normally once the
+# window elapses, and the middleware is a no-op in production.
 [services.development]
-run = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || pnpm --dir /home/runner/workspace/artifacts/1inme run build; } && PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"
+run = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || pnpm --dir /home/runner/workspace/artifacts/1inme run build; } && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"
 
 [services.development.env]
 PORT = "5000"

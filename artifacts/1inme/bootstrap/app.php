@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Dev-only startup fast-path: answer "/" with an instant 200 splash for
+        // a short window after boot so the Replit dev readiness probe (hard-wired
+        // to poll "/" with a tight latency bound) recognizes the healthy server
+        // instead of rejecting the heavy home render. No-op in production.
+        $middleware->prepend(\App\Modules\Common\Middleware\DevStartupProbe::class);
+
         $middleware->trustProxies(at: '*');
         $middleware->redirectGuestsTo('/user/login');
         $middleware->validateCsrfTokens(except: [
