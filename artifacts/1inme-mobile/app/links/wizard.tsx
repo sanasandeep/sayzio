@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +26,7 @@ import {
   generateWizardPage,
   getWizardQuestions,
   getWizardTaxonomy,
+  uploadWizardImage,
   type WizardIndustry,
   type WizardQuestion,
 } from "@/lib/api/wizard";
@@ -719,9 +723,12 @@ function QuestionField({
   }
 
   const isImage = question.type === "image";
-  const hint = isImage
-    ? "Paste an image URL, or leave blank for a themed placeholder."
-    : question.help;
+
+  if (isImage) {
+    return <ImageQuestionField question={question} value={value} onChange={onChange} />;
+  }
+
+  const hint = question.help;
 
   return (
     <View style={{ gap: 6 }}>
@@ -735,25 +742,21 @@ function QuestionField({
         hint={hint}
         value={value}
         onChangeText={onChange}
-        placeholder={
-          question.placeholder ??
-          (isImage ? "https://…/photo.jpg" : undefined)
-        }
+        placeholder={question.placeholder ?? undefined}
         multiline={question.type === "textarea"}
         keyboardType={
           question.type === "email"
             ? "email-address"
             : question.type === "phone"
               ? "phone-pad"
-              : question.type === "url" || isImage
+              : question.type === "url"
                 ? "url"
                 : "default"
         }
         autoCapitalize={
           question.type === "email" ||
           question.type === "url" ||
-          question.type === "color" ||
-          isImage
+          question.type === "color"
             ? "none"
             : "sentences"
         }
@@ -763,6 +766,162 @@ function QuestionField({
             ? { minHeight: 96, paddingTop: 14, textAlignVertical: "top" }
             : undefined
         }
+      />
+    </View>
+  );
+}
+
+// Image questions (avatar/cover/etc.) get a device picker that uploads to the
+// user's file storage and fills the answer with the resulting URL — closing the
+// parity gap with the web editor. Pasting a URL by hand stays a valid fallback.
+function ImageQuestionField({
+  question,
+  value,
+  onChange,
+}: {
+  question: WizardQuestion;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const colors = useColors();
+  const label = question.required ? `${question.label} *` : question.label;
+  const icon = fieldIcon(question);
+  const [uploading, setUploading] = useState(false);
+
+  async function uploadAsset(asset: ImagePicker.ImagePickerAsset) {
+    setUploading(true);
+    try {
+      const url = await uploadWizardImage({
+        uri: asset.uri,
+        mime: asset.mimeType ?? undefined,
+        name: asset.fileName ?? undefined,
+      });
+      onChange(url);
+    } catch (e: any) {
+      Alert.alert(
+        "Couldn't upload image",
+        e?.message ?? "Please try again, or paste an image URL instead.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function pickFromLibrary() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Photos access needed",
+        "Allow access to your photo library in Settings to pick an image.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.85,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    await uploadAsset(res.assets[0]);
+  }
+
+  async function takePhoto() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Camera access needed",
+        "Allow camera access in Settings to take a photo.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.85,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    await uploadAsset(res.assets[0]);
+  }
+
+  function openSourceMenu() {
+    Alert.alert(label, undefined, [
+      { text: "Choose from library", onPress: pickFromLibrary },
+      { text: "Take photo", onPress: takePhoto },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }
+
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={styles.fieldLabelRow}>
+        <AppIcon name={icon} size={13} color={colors.primary} />
+        <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+          {label}
+        </Text>
+      </View>
+
+      <View style={styles.imageRow}>
+        <Pressable
+          onPress={openSourceMenu}
+          disabled={uploading}
+          style={[
+            styles.imagePreview,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          {value ? (
+            <Image source={{ uri: value }} style={styles.imagePreviewImg} />
+          ) : (
+            <AppIcon name={icon} size={22} color={colors.mutedForeground} />
+          )}
+          {uploading ? (
+            <View style={styles.imagePreviewOverlay}>
+              <ActivityIndicator color={colors.primaryForeground} />
+            </View>
+          ) : null}
+        </Pressable>
+
+        <View style={{ flex: 1, gap: 8 }}>
+          <Pressable
+            onPress={openSourceMenu}
+            disabled={uploading}
+            style={[
+              styles.uploadBtn,
+              {
+                backgroundColor: colors.primary + "14",
+                borderColor: colors.primary + "44",
+                opacity: uploading ? 0.6 : 1,
+              },
+            ]}
+          >
+            <AppIcon name="fa-upload" size={14} color={colors.primary} />
+            <Text style={[styles.uploadBtnText, { color: colors.primary }]}>
+              {uploading
+                ? "Uploading…"
+                : value
+                  ? "Replace image"
+                  : "Upload from device"}
+            </Text>
+          </Pressable>
+          {value ? (
+            <Pressable onPress={() => onChange("")} disabled={uploading}>
+              <Text style={[styles.imageClear, { color: colors.mutedForeground }]}>
+                Remove
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      <TextField
+        hint="…or paste an image URL. Leave blank for a themed placeholder."
+        value={value}
+        onChangeText={onChange}
+        placeholder={question.placeholder ?? "https://…/photo.jpg"}
+        keyboardType="url"
+        autoCapitalize="none"
+        autoCorrect={false}
+        editable={!uploading}
       />
     </View>
   );
@@ -880,6 +1039,39 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   fieldHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  imageRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  imagePreview: {
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  imagePreviewImg: { width: "100%", height: "100%" },
+  imagePreviewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  uploadBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  imageClear: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    textAlign: "center",
+  },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     paddingHorizontal: 14,

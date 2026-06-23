@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\LinkResource;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\BiolinkWizardGenerator;
 use App\Modules\User\Services\BiolinkWizardQuestions;
 use Illuminate\Http\Request;
@@ -158,6 +159,44 @@ class BiolinkWizardController extends Controller
         }
 
         return $this->created(['link' => LinkResource::toArray($link->fresh())]);
+    }
+
+    /**
+     * Upload an image answer (e.g. avatar/cover) from the device during the
+     * wizard; returns the public URL to stamp into the answer. Mirrors the
+     * restaurant/resume photo-upload flow: the file lands in the user's vault
+     * as a UserFile and the resulting URL matches what the web editor sees, so
+     * pasting a URL stays a valid fallback on the client.
+     */
+    public function uploadImage(Request $request)
+    {
+        $request->validate([
+            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+        ]);
+
+        $user = $request->user();
+
+        try {
+            $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
+                'max_size_mb'    => 5,
+                'compress_image' => true,
+                'max_width'      => 1600,
+                'max_height'     => 1600,
+                'quality'        => 85,
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'upload_failed');
+        }
+
+        // The sanctum API path doesn't bind the active workspace, so the shared
+        // createFromUpload() lands the vault file with workspace_id = null.
+        // workspace_id isn't mass-assignable, so set it directly.
+        if ($userFile->workspace_id === null) {
+            $userFile->workspace_id = $this->activeWorkspaceId($user);
+            $userFile->save();
+        }
+
+        return $this->ok(['photo_url' => $userFile->url]);
     }
 
     /**

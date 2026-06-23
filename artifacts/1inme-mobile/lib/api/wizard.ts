@@ -1,5 +1,6 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
 import type { Link } from "@/lib/api/links";
+import { getToken } from "@/lib/secure";
 
 // Mirrors the Laravel BiolinkWizardQuestions taxonomy. The mobile wizard
 // fetches this once and drives the category → page-type → industry steps in
@@ -93,4 +94,99 @@ export async function generateWizardPage(payload: {
     { method: "POST", body: JSON.stringify(payload) },
   );
   return res.data.link;
+}
+
+/**
+ * Upload an image answer (avatar/cover/etc.) picked from the device during the
+ * wizard. Posted as multipart/form-data to mirror the web editor's upload flow;
+ * the server stores it in the user's vault as a UserFile and returns the public
+ * URL, which the caller stamps into the question's answer. Pasting a URL by
+ * hand stays a valid fallback — this just removes that friction.
+ */
+export async function uploadWizardImage(args: {
+  uri: string;
+  name?: string;
+  mime?: string;
+}): Promise<string> {
+  const token = await getToken();
+  const fd = new FormData();
+  const mime = args.mime || guessImageMime(args.uri) || "image/jpeg";
+  const ext = extFromMime(mime);
+  fd.append("photo", {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore – RN-specific FormData entry shape.
+    uri: args.uri,
+    name: args.name || `wizard-image.${ext}`,
+    type: mime,
+  } as unknown as Blob);
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+    // NB: do NOT set Content-Type — RN fills the multipart boundary in.
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${getBaseUrl()}/api/v1/links/wizard/image`, {
+    method: "POST",
+    body: fd as unknown as BodyInit,
+    headers,
+  });
+  const text = await res.text();
+  const body = text ? safeJson(text) : null;
+  if (!res.ok) {
+    const nested =
+      body && typeof body.error === "object" && body.error !== null
+        ? (body.error as Record<string, unknown>)
+        : null;
+    const message =
+      (nested && typeof nested.message === "string"
+        ? (nested.message as string)
+        : null) ||
+      (body && typeof body.message === "string"
+        ? (body.message as string)
+        : null) ||
+      `Upload failed (${res.status})`;
+    throw { status: res.status, message };
+  }
+  return (body as { data: { photo_url: string } }).data.photo_url;
+}
+
+function guessImageMime(uri: string): string | null {
+  const ext = uri.split("?")[0].split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "webp":
+      return "image/webp";
+    case "gif":
+      return "image/gif";
+    default:
+      return null;
+  }
+}
+
+function extFromMime(mime: string): string {
+  switch (mime) {
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    default:
+      return "jpg";
+  }
+}
+
+function safeJson(text: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
 }
