@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Exceptions\UnknownBlockTypeException;
 use App\Modules\Admin\Models\CardTemplate;
 use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\Admin\Models\Plan;
@@ -583,11 +584,23 @@ class TemplateController extends Controller
         try {
             $link = $this->templates->buildPreviewLink($pageSnapshot, $request->user(), (string) $tpl->name);
             $html = view('common.biolink', compact('link'))->render();
+        } catch (UnknownBlockTypeException $e) {
+            $html = view('admin.templates.preview_error', [
+                'tpl'       => $tpl,
+                'kind'      => $kind,
+                'reason'    => 'unknown_block',
+                'blockType' => $e->blockType,
+                'position'  => $e->position,
+                'message'   => $e->getMessage(),
+            ])->render();
         } catch (\Throwable $e) {
             $html = view('admin.templates.preview_error', [
-                'tpl'  => $tpl,
-                'kind' => $kind,
-                'message' => $e->getMessage(),
+                'tpl'       => $tpl,
+                'kind'      => $kind,
+                'reason'    => 'render_error',
+                'blockType' => null,
+                'position'  => null,
+                'message'   => $e->getMessage(),
             ])->render();
         }
 

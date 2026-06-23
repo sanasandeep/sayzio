@@ -181,4 +181,74 @@ class TemplatePreviewRendersTest extends TestCase
         $resp->assertOk();
         $resp->assertSee(self::ERROR_MARKER, false);
     }
+
+    /**
+     * An unknown block type must surface its exact type and position so
+     * staff know which block to repair — not just the generic fallback.
+     * The offending block here is the second top-level block.
+     */
+    public function test_unknown_block_preview_names_the_offending_block(): void
+    {
+        $this->authenticatePreviewer();
+
+        $broken = PageTemplate::create([
+            'slug'                 => 'unknown-block-' . Str::random(8),
+            'name'                 => 'Unknown Block Template',
+            'category'             => 'general',
+            'description'          => 'Second block has an unknown type.',
+            'is_active'            => true,
+            'sort_order'           => 0,
+            'recommended_personas' => [],
+            'snapshot'             => [
+                'blocks' => [
+                    ['type' => 'heading', 'settings' => []],
+                    ['type' => 'totally_made_up_block', 'settings' => []],
+                ],
+            ],
+        ]);
+
+        $resp = $this->get(route('admin.templates.preview', ['kind' => 'page', 'id' => $broken->id]));
+
+        $resp->assertOk();
+        $resp->assertSee(self::ERROR_MARKER, false);
+        // Names the unknown type and its 1-based position in the snapshot.
+        $resp->assertSee('totally_made_up_block', false);
+        $resp->assertSee('block #2', false);
+        // Distinguishes "unknown block type" from a generic render error.
+        $resp->assertSee('Offending block:', false);
+        $resp->assertSee('unknown type', false);
+    }
+
+    /**
+     * A nested (card child) unknown block type must report its full path
+     * (e.g. "block #1 → child #2"), not just the top-level index.
+     */
+    public function test_unknown_card_child_preview_names_nested_position(): void
+    {
+        $this->authenticatePreviewer();
+
+        $broken = CardTemplate::create([
+            'slug'        => 'unknown-card-child-' . Str::random(8),
+            'name'        => 'Unknown Card Child Template',
+            'category'    => 'general',
+            'description' => 'Second card child has an unknown type.',
+            'is_active'   => true,
+            'sort_order'  => 0,
+            'snapshot'    => [
+                'type'     => 'card',
+                'settings' => [],
+                'children' => [
+                    ['type' => 'heading', 'settings' => []],
+                    ['type' => 'not_a_real_child_block', 'settings' => []],
+                ],
+            ],
+        ]);
+
+        $resp = $this->get(route('admin.templates.preview', ['kind' => 'card', 'id' => $broken->id]));
+
+        $resp->assertOk();
+        $resp->assertSee(self::ERROR_MARKER, false);
+        $resp->assertSee('not_a_real_child_block', false);
+        $resp->assertSee('block #1 → child #2', false);
+    }
 }

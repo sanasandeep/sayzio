@@ -2,6 +2,7 @@
 
 namespace App\Modules\Admin\Services;
 
+use App\Modules\Admin\Exceptions\UnknownBlockTypeException;
 use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
@@ -192,7 +193,7 @@ class TemplateService
         $nextId = 1;
 
         foreach (($snapshot['blocks'] ?? []) as $i => $b) {
-            $block = $this->buildPreviewBlock($link, $b, null, $i, $nextId, $all);
+            $block = $this->buildPreviewBlock($link, $b, null, $i, $nextId, $all, 'block #' . ($i + 1));
             if ($block->is_active) {
                 $topActive->push($block);
             }
@@ -203,11 +204,11 @@ class TemplateService
         return $link;
     }
 
-    private function buildPreviewBlock(PreviewLink $link, array $b, ?int $parentId, int $sortOrder, int &$nextId, $allSink): PreviewBiolinkBlock
+    private function buildPreviewBlock(PreviewLink $link, array $b, ?int $parentId, int $sortOrder, int &$nextId, $allSink, string $position): PreviewBiolinkBlock
     {
         $type = (string) ($b['type'] ?? '');
         if (!array_key_exists($type, BiolinkBlock::TYPES)) {
-            throw new \InvalidArgumentException("Unknown block type in snapshot: {$type}");
+            throw new UnknownBlockTypeException($type, $position);
         }
         $settings = is_array($b['settings'] ?? null) ? $b['settings'] : [];
         $settings = $this->sanitize($type, $settings);
@@ -229,7 +230,7 @@ class TemplateService
         $activeChildren = collect();
         if ($type === 'card' && !empty($b['children']) && is_array($b['children'])) {
             foreach (array_values($b['children']) as $i => $child) {
-                $childBlock = $this->buildPreviewBlock($link, $child, $block->id, $i, $nextId, $allSink);
+                $childBlock = $this->buildPreviewBlock($link, $child, $block->id, $i, $nextId, $allSink, $position . ' → child #' . ($i + 1));
                 $children->push($childBlock);
                 if ($childBlock->is_active) {
                     $activeChildren->push($childBlock);
