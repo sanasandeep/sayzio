@@ -7,6 +7,11 @@
     $confPct = (int) round($confidence * 100);
     $confColor = $confPct >= 75 ? '#10b981' : ($confPct >= 50 ? '#f59e0b' : '#ef4444');
     $socials = $extracted['socials'] ?? [];
+    $branding = $extracted['branding'] ?? [];
+    $primaryHex = $branding['primary_color_hex'] ?? null;
+    $secondaryHex = $branding['secondary_color_hex'] ?? null;
+    $hasColors = (bool) ($primaryHex || $secondaryHex);
+    $products = array_values(array_filter((array) ($extracted['products'] ?? []), 'is_array'));
 @endphp
 
 @section('content')
@@ -188,6 +193,69 @@
                     </label>
                     @endforeach
                 </div>
+            </div>
+
+            <div class="card-premium p-5">
+                <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">
+                        <i class="fas fa-palette text-fuchsia-400 mr-1"></i> Brand colors
+                    </h3>
+                    <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-muted);">
+                        <input type="checkbox" name="use_brand_colors" value="1" {{ $hasColors ? 'checked' : '' }}>
+                        Theme the biolink with these
+                    </label>
+                </div>
+                @if(!$hasColors)
+                    <p class="text-xs mb-3" style="color: var(--text-faint);">
+                        We didn't detect any brand colors — pick your own below to theme the page.
+                    </p>
+                @endif
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    @php
+                        $colorField = function($name, $label, $value) {
+                            $val = e($value ?: '#7C3AED');
+                            return <<<HTML
+                                <label class="block">
+                                    <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">{$label}</span>
+                                    <div class="flex items-center gap-2">
+                                        <input type="color" value="{$val}"
+                                            oninput="this.nextElementSibling.value = this.value.toUpperCase()"
+                                            class="h-9 w-12 rounded-lg cursor-pointer" style="background:transparent;border:1px solid rgba(255,255,255,.10);">
+                                        <input type="text" name="{$name}" value="{$val}" maxlength="7" placeholder="#RRGGBB"
+                                            oninput="const v=this.value; if(/^#[0-9A-Fa-f]{6}$/.test(v)) this.previousElementSibling.value=v;"
+                                            class="w-full text-sm rounded-lg px-3 py-2 font-mono uppercase"
+                                            style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                                    </div>
+                                </label>
+                            HTML;
+                        };
+                    @endphp
+                    {!! $colorField('brand_color_primary', 'Primary', $primaryHex) !!}
+                    {!! $colorField('brand_color_secondary', 'Secondary', $secondaryHex) !!}
+                </div>
+                <p class="mt-3 text-[11px]" style="color: var(--text-faint);">The primary color becomes the biolink theme color when you seed a page draft.</p>
+            </div>
+
+            <div class="card-premium p-5">
+                <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">
+                    <i class="fas fa-box-open text-fuchsia-400 mr-1"></i> Products
+                </h3>
+                @if(count($products))
+                    <p class="text-xs mb-3" style="color: var(--text-muted);">Kept products seed a Product block each in the biolink draft. Clear a name to drop one.</p>
+                    <div class="space-y-3">
+                        @foreach($products as $i => $p)
+                        <div class="rounded-lg p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input type="text" name="products[{{ $i }}][name]" value="{{ $p['name'] ?? '' }}" placeholder="Product name" class="sm:col-span-2 text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                                <input type="text" name="products[{{ $i }}][price]" value="{{ $p['price'] ?? '' }}" placeholder="Price (e.g. $29)" class="text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                            </div>
+                            <input type="text" name="products[{{ $i }}][description]" value="{{ $p['description'] ?? '' }}" placeholder="Short description (optional)" class="mt-2 w-full text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                        </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-xs" style="color: var(--text-faint);">No products were detected on this scan. Brochures with a product list will surface them here.</p>
+                @endif
             </div>
 
             <div class="card-premium p-5">

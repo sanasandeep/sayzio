@@ -150,6 +150,18 @@ class CardScanController extends Controller
             'socials.twitter'      => 'nullable|string|max:100',
             'socials.linkedin'     => 'nullable|string|max:100',
             'socials.facebook'     => 'nullable|string|max:100',
+
+            // Brand colours extracted from the card/brochure. Applied to
+            // the seeded biolink theme only when the user keeps them.
+            'use_brand_colors'      => 'nullable|boolean',
+            'brand_color_primary'   => 'nullable|string|max:7',
+            'brand_color_secondary' => 'nullable|string|max:7',
+
+            // Products lifted from a brochure → seed native Product blocks.
+            'products'               => 'nullable|array|max:6',
+            'products.*.name'        => 'nullable|string|max:191',
+            'products.*.description' => 'nullable|string|max:500',
+            'products.*.price'       => 'nullable|string|max:50',
         ]);
 
         $wantContact = (bool) ($data['create_contact'] ?? false);
@@ -284,6 +296,14 @@ class CardScanController extends Controller
         return $contact->load(['phones', 'emails']);
     }
 
+    /** Validate a #RRGGBB hex string (case-insensitive). Returns uppercase or null. */
+    protected function normaliseHex($v): ?string
+    {
+        if (!is_string($v)) return null;
+        $v = strtoupper(trim($v));
+        return preg_match('/^#[0-9A-F]{6}$/', $v) ? $v : null;
+    }
+
     /** Optional notes column — pack tagline / address / website if present. */
     protected function composeNotes(array $data): ?string
     {
@@ -340,6 +360,39 @@ class CardScanController extends Controller
             ->pluck('value')->filter(fn ($v) => is_string($v) && trim($v) !== '')->first();
         if ($firstEmail) $answers['email'] = $firstEmail;
         if ($firstPhone) $answers['phone'] = $firstPhone;
+
+        // Brand colours → theme the seeded page. `brand_color` is the key
+        // BiolinkPageRecipes maps onto biolink.theme_color; the secondary
+        // is preserved alongside it for future accent use. Only applied
+        // when the user opted to keep them on the review screen.
+        if (!empty($data['use_brand_colors'])) {
+            if ($primary = $this->normaliseHex($data['brand_color_primary'] ?? null)) {
+                $answers['brand_color'] = $primary;
+            }
+            if ($secondary = $this->normaliseHex($data['brand_color_secondary'] ?? null)) {
+                $answers['brand_color_secondary'] = $secondary;
+            }
+        }
+
+        // Products lifted from a brochure → seed native Product blocks.
+        // Stored as a flat list under `scanned_products`, which
+        // BiolinkPageRecipes emits as `product` blocks regardless of the
+        // chosen page type. Rows without a name are dropped.
+        $products = [];
+        foreach ((array) ($data['products'] ?? []) as $p) {
+            if (!is_array($p)) continue;
+            $name = trim((string) ($p['name'] ?? ''));
+            if ($name === '') continue;
+            $products[] = [
+                'name'        => $name,
+                'description' => trim((string) ($p['description'] ?? '')),
+                'price'       => trim((string) ($p['price'] ?? '')),
+            ];
+            if (count($products) >= 6) break;
+        }
+        if ($products) {
+            $answers['scanned_products'] = $products;
+        }
 
         return BiolinkWizardDraft::create([
             'user_id'       => $owner->id,

@@ -47,6 +47,12 @@ class BiolinkPageRecipes
             if ($b !== null) $blocks[] = $b;
         }
 
+        // Products lifted from a scanned brochure → native Product blocks.
+        // Category-agnostic so a scan seeds a storefront on any page type.
+        foreach (self::scannedProductBlocks($a) as $b) {
+            $blocks[] = $b;
+        }
+
         // Generic, end-of-page helpers (socials, contact form fallback).
         if ($social = self::socialsBlock($a)) $blocks[] = $social;
         if ($contact = self::contactBlock($category, $pageType, $a, $brand)) $blocks[] = $contact;
@@ -812,6 +818,38 @@ class BiolinkPageRecipes
             ],
             'is_active' => true,
         ];
+    }
+
+    /**
+     * Build native `product` blocks from a card/brochure scan. The
+     * scanner stores a flat list under `scanned_products`; each row
+     * needs at least a name. Checkout stays off (display-only) — the
+     * user can wire pricing in the editor afterwards.
+     *
+     * @return list<array<string,mixed>>
+     */
+    protected static function scannedProductBlocks(array $a): array
+    {
+        $products = $a['scanned_products'] ?? null;
+        if (!is_array($products) || !$products) return [];
+
+        $out = [];
+        foreach (array_slice($products, 0, 6) as $p) {
+            if (!is_array($p)) continue;
+            $name = is_string($p['name'] ?? null) ? trim($p['name']) : '';
+            if ($name === '') continue;
+            $out[] = [
+                'type' => 'product',
+                'settings' => [
+                    'name'            => $name,
+                    'description'     => is_string($p['description'] ?? null) ? trim($p['description']) : '',
+                    'price'           => is_string($p['price'] ?? null) ? trim($p['price']) : '',
+                    'native_checkout' => false,
+                ],
+                'is_active' => true,
+            ];
+        }
+        return $out;
     }
 
     protected static function richText(string $title, string $body): array
