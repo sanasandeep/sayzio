@@ -56,7 +56,9 @@ export type CoachMessage = {
 
 export const askCoach = {
   threads: () =>
-    apiFetch<{ threads: CoachThread[] }>("/ai/ask-coach/threads"),
+    apiFetch<{ threads: CoachThread[]; ai_enabled?: boolean }>(
+      "/ai/ask-coach/threads",
+    ),
   create: () =>
     apiFetch<{ thread: CoachThread }>("/ai/ask-coach/threads", {
       method: "POST",

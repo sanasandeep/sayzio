@@ -32,6 +32,15 @@ class AskCoachController extends Controller
 
     public function threads(Request $request): JsonResponse
     {
+        // Entry-point loader: degrade gracefully like the web "AI is off"
+        // view (Task #1999). The mobile Ask Coach screen keeps its nav
+        // entry visible even when the engine is off, so its loader must get
+        // an informative 200 (`ai_enabled:false`) — mirroring AiChatController
+        // — instead of the hard 404 the mutating actions throw. Without this
+        // the screen would alert and bounce the user straight back out.
+        if (!AiEngineSettings::isEnabled()) {
+            return response()->json(['threads' => [], 'ai_enabled' => false]);
+        }
         $this->ensureEnabled($request);
         $items = AskCoachThread::query()
             ->where('user_id', $request->user()->id)
@@ -39,7 +48,7 @@ class AskCoachController extends Controller
             ->orderByDesc('id')
             ->limit(50)
             ->get(['id', 'title', 'last_message_at']);
-        return response()->json(['threads' => $items]);
+        return response()->json(['threads' => $items, 'ai_enabled' => true]);
     }
 
     public function createThread(Request $request): JsonResponse

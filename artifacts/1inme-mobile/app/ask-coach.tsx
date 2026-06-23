@@ -54,6 +54,15 @@ export default function AskCoachScreen() {
     setLoading(true);
     try {
       const list = await askCoach.threads();
+      // Graceful "AI is off" state, matching the web app (Task #1999).
+      // The loader answers 200 with ai_enabled:false when the engine is
+      // disabled, so render an informative panel instead of bouncing the
+      // user back out with an error alert.
+      if (list.ai_enabled === false) {
+        setDisabled("engine");
+        return;
+      }
+      setDisabled(null);
       let id = list.threads[0]?.id ?? null;
       if (!id) {
         const created = await askCoach.create();
