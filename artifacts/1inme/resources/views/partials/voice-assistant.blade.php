@@ -22,10 +22,33 @@
 @php
     $voiceUser = auth()->user();
     $voiceAvailable = false;
+    // Engine is on (master switch + voice feature toggle) but the user's
+    // plan blocks voice. We can't run a turn, but instead of hiding the
+    // widget silently we show a mic that opens the self-serve gate page.
+    $voicePlanGated = false;
     try {
         $voiceAvailable = \App\Services\AI\AiEngineSettings::voiceAllowedFor($voiceUser);
+        $voicePlanGated = !$voiceAvailable
+            && \App\Services\AI\AiEngineSettings::isEnabled()
+            && \App\Services\AI\AiEngineSettings::voiceEnabled();
     } catch (\Throwable $e) {}
 @endphp
+@if($voicePlanGated)
+{{-- Plan-gated: a floating mic that routes to the upgrade gate page
+     instead of recording, so the feature isn't a silent dead end. --}}
+<div class="fixed bottom-5 right-5 z-[1000]" style="font-family: inherit">
+    <a href="{{ route('user.ai.voice.show') }}"
+       title="Voice Assistant — upgrade to unlock"
+       class="relative w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-xl flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-violet-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/>
+        </svg>
+        <span class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-slate-900 shadow">
+            <i class="fas fa-lock text-[9px]"></i>
+        </span>
+    </a>
+</div>
+@endif
 @if($voiceAvailable)
 <div
     x-data="voiceAssistant({

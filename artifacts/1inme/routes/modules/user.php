@@ -897,6 +897,11 @@ Route::prefix('user')->name('user.')->group(function () {
 
             // Voice Assistant — floating mic on every page. STT/LLM/TTS
             // are billed separately (`voice_stt`, `voice_llm`, `voice_tts`).
+            // `voice` is the gate surface: engine-off / plan-gated users
+            // land on the shared self-serve upgrade page instead of a
+            // silent widget or a bare 403; allowed users bounce to the
+            // dashboard where the mic is already live.
+            Route::get ('voice',              [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'show'])->name('voice.show');
             Route::get ('voice/capabilities', [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'capabilities'])->name('voice.capabilities');
             Route::post('voice/turn',         [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'turn'])->middleware('throttle:30,1')->name('voice.turn');
         });

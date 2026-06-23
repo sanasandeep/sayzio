@@ -36,6 +36,41 @@ class VoiceAssistantController extends Controller
         protected AiUsageCharger $credits,
     ) {}
 
+    /**
+     * The Voice Assistant itself runs as a floating mic widget on every
+     * page, so this surface only exists to gate it gracefully: when the
+     * engine is off (admin job) or the user's plan blocks voice, show the
+     * shared self-serve gate page (upgrade + coin top-up) instead of a
+     * silent widget or a bare 403. Allowed users are bounced to the
+     * dashboard where the floating mic is already live.
+     */
+    public function show(Request $request)
+    {
+        $user = $request->user();
+
+        // Engine off — master AI switch or the voice feature toggle. Only
+        // an administrator can turn it on, so render the engine-off branch
+        // (explainer + request access / admin enable) of the gate page.
+        if (!AiEngineSettings::isEnabled() || !AiEngineSettings::voiceEnabled()) {
+            return view('user.ai.disabled', [
+                'title'     => 'Voice Assistant',
+                'aiEnabled' => false,
+            ]);
+        }
+
+        // Engine on but the user's plan doesn't unlock voice. Point them
+        // at the cheapest plan that does so they can self-serve.
+        if (!AiEngineSettings::voiceAllowedFor($user)) {
+            return view('user.ai.disabled', [
+                'title'       => 'Voice Assistant',
+                'upgradePlan' => AiEngineSettings::voiceUpgradePlanFor($user),
+            ]);
+        }
+
+        // Allowed: the mic widget is available everywhere already.
+        return redirect()->route('user.dashboard');
+    }
+
     public function turn(Request $request): JsonResponse
     {
         $user = $request->user();

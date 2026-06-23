@@ -412,6 +412,24 @@ PROMPT;
         return in_array($slug, $allow, true);
     }
 
+    /**
+     * Cheapest active plan that would let $user use the Voice Assistant,
+     * so the AI gate page can point them at a concrete self-serve upgrade
+     * instead of a silent 403. Mirrors {@see askCoachUpgradePlanFor}.
+     * Returns null when the user is already allowed, the allow-list is
+     * empty (everyone in), or no active plan matches.
+     */
+    public static function voiceUpgradePlanFor(\App\Modules\User\Models\User $user): ?\App\Modules\Admin\Models\Plan
+    {
+        if (self::voiceAllowedFor($user)) return null;
+        $allow = self::voiceEnabledPlans();
+        if (!$allow) return null;
+        return \App\Modules\Admin\Models\Plan::where('status', 'active')
+            ->whereIn('slug', $allow)
+            ->orderBy('monthly_price')
+            ->first();
+    }
+
     public static function whisperKey(): ?string
     {
         return self::decryptKey(self::KEY_VOICE_WHISPER_KEY_ENC) ?? self::openAiKey();

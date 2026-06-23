@@ -23,7 +23,10 @@
     //  - ON: the gate is now the user's plan and/or coin balance, which
     //    they can self-serve, so we surface upgrade + coin top-up links
     //    and explain the coin cost model instead of just emailing support.
-    $__aiEnabled = \App\Services\AI\AiEngineSettings::isEnabled();
+    // Controllers may force the engine-off branch even when the master AI
+    // switch is on — e.g. the Voice Assistant feature toggle is off, where
+    // no plan upgrade would help and only an admin can turn it on.
+    $__aiEnabled = $aiEnabled ?? \App\Services\AI\AiEngineSettings::isEnabled();
     $__featureLabel = $title ?? 'AI features';
     $__planName = $__user && $__user->plan ? $__user->plan->name : 'your current plan';
     $__coinBalance = $__user && $__user->wallet ? (int) $__user->wallet->balance : 0;
