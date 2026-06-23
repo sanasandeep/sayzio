@@ -1,0 +1,271 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Modules\Admin\Models\Plan;
+use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Models\BiolinkWizardDraft;
+use App\Modules\User\Models\Link;
+use App\Modules\User\Models\User;
+use App\Modules\User\Services\WorkspaceContext;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+/**
+ * Happy-path coverage for the wizard's *instant* (non-AI) generate.
+ *
+ * The validation suite (BiolinkWizardValidationTest) pins that bad input is
+ * blocked; the recipe/template suites pin that BiolinkPageRecipes →
+ * TemplateService paints populated blocks. What had no direct coverage is the
+ * full request → Link round-trip on the happy path: that the API generate() and
+ * web finish() endpoints, given a *complete, valid* answer set, actually create
+ * a biolink Link with populated blocks reflecting the user's real answers — and
+ * that the plan link/biolink caps return the correct plan-gate.
+ *
+ * The API surface is authenticated with a REAL Sanctum bearer token (NOT
+ * Sanctum::actingAs, which mocks the access token and 500s under the
+ * TouchSessionToken middleware).
+ */
+class BiolinkWizardGenerateTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function plan(array $features = ['max_links' => 100, 'max_biolinks' => 100]): Plan
+    {
+        return Plan::create([
+            'name'          => 'Test Plan',
+            'slug'          => 'test-' . Str::random(6),
+            'monthly_price' => 0,
+            'annual_price'  => 0,
+            'trial_days'    => 0,
+            'status'        => 'active',
+            'sort_order'    => 0,
+            'features'      => $features,
+        ]);
+    }
+
+    private function makeUser(?Plan $plan = null): User
+    {
+        $user = User::create([
+            'name'     => 'Wiz ' . Str::random(4),
+            'email'    => 'wiz-' . Str::random(8) . '@example.com',
+            'password' => Hash::make('x'),
+            'status'   => 'active',
+            'plan_id'  => $plan?->id,
+        ]);
+        $user->ensureDefaultWorkspace();
+        return $user->fresh();
+    }
+
+    private function token(User $user): string
+    {
+        return $user->createToken('test')->plainTextToken;
+    }
+
+    private function activeWorkspaceId(User $user): ?int
+    {
+        return app(WorkspaceContext::class)->resolve($user)?->id;
+    }
+
+    /** A complete, valid creator/influencer answer set. */
+    private function creatorAnswers(): array
+    {
+        return [
+            'display_name' => 'Demo Creator',
+            'headline'     => 'Stories, art, and good vibes',
+            'bio'          => 'Sharing my creative journey.',
+            'instagram'    => 'demo',
+            'featured_url'   => 'https://example.com/sub',
+            'featured_label' => 'Subscribe',
+        ];
+    }
+
+    // ── API generate(): happy path ────────────────────────────────────
+
+    /**
+     * POST /api/v1/links/wizard/generate with a complete valid answer set
+     * returns 201 with a biolink link payload AND persists a populated biolink
+     * Link whose blocks reflect the user's actual answers (not placeholders).
+     */
+    public function test_api_generate_creates_populated_biolink_link(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $this->withToken($this->token($user));
+
+        $resp = $this->postJson('/api/v1/links/wizard/generate', [
+            'category'  => 'creator',
+            'page_type' => 'influencer',
+            'answers'   => $this->creatorAnswers(),
+        ]);
+
+        $resp->assertStatus(201);
+        $resp->assertJsonPath('data.link.type', 'biolink');
+        $linkId = $resp->json('data.link.id');
+        $this->assertNotNull($linkId);
+        // Title is derived from the answers (display_name), not a placeholder.
+        $resp->assertJsonPath('data.link.title', 'Demo Creator');
+
+        // The Link really exists for this user and is a biolink.
+        $link = Link::find($linkId);
+        $this->assertNotNull($link);
+        $this->assertSame($user->id, $link->user_id);
+        $this->assertSame('biolink', $link->type);
+        $this->assertTrue((bool) $link->is_active);
+
+        // Blocks were painted from the recipe with the user's real answers.
+        $blocks = BiolinkBlock::where('link_id', $link->id)->get();
+        $this->assertNotEmpty($blocks, 'generate() should paint blocks onto the link');
+
+        $byType = $blocks->keyBy('type');
+        $this->assertTrue($byType->has('profile_card_v1'), 'expected a profile card block');
+
+        $profile = $byType['profile_card_v1']->settings ?? [];
+        $this->assertSame('Demo Creator', $profile['name'] ?? null);
+        $this->assertNotSame('Your Name', $profile['name'] ?? null,
+            'profile name must be the answer, not the placeholder default');
+    }
+
+    // ── Web finish(): happy path ──────────────────────────────────────
+
+    /**
+     * POST /user/links/wizard/finish with a complete draft redirects to the
+     * block editor, creates a populated biolink Link, and discards the draft.
+     */
+    public function test_web_finish_redirects_to_editor_and_discards_draft(): void
+    {
+        $user = $this->makeUser($this->plan());
+
+        $draft = BiolinkWizardDraft::create([
+            'user_id'       => $user->id,
+            'actor_user_id' => $user->id,
+            'workspace_id'  => $this->activeWorkspaceId($user),
+            'category'      => 'creator',
+            'page_type'     => 'influencer',
+            'industry'      => null,
+            'step'          => 4,
+            'answers'       => $this->creatorAnswers(),
+        ]);
+
+        $resp = $this->actingAs($user)->post('/user/links/wizard/finish');
+
+        $resp->assertRedirect();
+        // Redirect lands on the block editor for the freshly created link.
+        $link = Link::where('user_id', $user->id)->where('type', 'biolink')->first();
+        $this->assertNotNull($link, 'finish() must create a biolink link');
+        $resp->assertRedirect(route('user.links.blocks.editor', $link));
+
+        // The single-shot draft is discarded once the page exists.
+        $this->assertNull(BiolinkWizardDraft::find($draft->id),
+            'finish() must delete the draft after generating the page');
+
+        // The generated page is populated, not empty.
+        $blocks = BiolinkBlock::where('link_id', $link->id)->get();
+        $this->assertNotEmpty($blocks, 'finish() should paint blocks onto the link');
+        $profile = $blocks->keyBy('type')['profile_card_v1']->settings ?? [];
+        $this->assertSame('Demo Creator', $profile['name'] ?? null);
+    }
+
+    // ── Plan caps: API ────────────────────────────────────────────────
+
+    /**
+     * Hitting the plan's max_links cap returns 403 with code `link_limit`
+     * (the plan-gate) and creates nothing.
+     */
+    public function test_api_generate_hits_link_limit(): void
+    {
+        $user = $this->makeUser($this->plan(['max_links' => 1, 'max_biolinks' => 100]));
+
+        // Consume the single allowed link slot with a plain short link.
+        Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'short',
+            'alias'     => Link::generateAlias(),
+            'long_url'  => 'https://example.com',
+            'is_active' => true,
+        ]);
+
+        $this->withToken($this->token($user));
+        $resp = $this->postJson('/api/v1/links/wizard/generate', [
+            'category'  => 'creator',
+            'page_type' => 'influencer',
+            'answers'   => $this->creatorAnswers(),
+        ]);
+
+        $resp->assertStatus(403);
+        $resp->assertJsonPath('error.code', 'link_limit');
+        // Only the pre-existing short link survives — nothing new was made.
+        $this->assertSame(0, Link::where('user_id', $user->id)->where('type', 'biolink')->count());
+    }
+
+    /**
+     * Hitting the plan's max_biolinks cap (while still under max_links)
+     * returns 403 with code `biolink_limit`.
+     */
+    public function test_api_generate_hits_biolink_limit(): void
+    {
+        $user = $this->makeUser($this->plan(['max_links' => 100, 'max_biolinks' => 1]));
+
+        // Consume the single allowed biolink slot.
+        Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'biolink',
+            'alias'     => Link::generateAlias(),
+            'title'     => 'Existing Bio',
+            'is_active' => true,
+        ]);
+
+        $this->withToken($this->token($user));
+        $resp = $this->postJson('/api/v1/links/wizard/generate', [
+            'category'  => 'creator',
+            'page_type' => 'influencer',
+            'answers'   => $this->creatorAnswers(),
+        ]);
+
+        $resp->assertStatus(403);
+        $resp->assertJsonPath('error.code', 'biolink_limit');
+        // No second biolink was created.
+        $this->assertSame(1, Link::where('user_id', $user->id)->where('type', 'biolink')->count());
+    }
+
+    // ── Plan caps: web ────────────────────────────────────────────────
+
+    /**
+     * The web finish() redirects to the upgrade page (with a flashed error)
+     * when the biolink cap is hit, and generates nothing.
+     */
+    public function test_web_finish_redirects_to_upgrade_on_biolink_cap(): void
+    {
+        $user = $this->makeUser($this->plan(['max_links' => 100, 'max_biolinks' => 1]));
+
+        // Consume the single allowed biolink slot.
+        Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'biolink',
+            'alias'     => Link::generateAlias(),
+            'title'     => 'Existing Bio',
+            'is_active' => true,
+        ]);
+
+        $draft = BiolinkWizardDraft::create([
+            'user_id'       => $user->id,
+            'actor_user_id' => $user->id,
+            'workspace_id'  => $this->activeWorkspaceId($user),
+            'category'      => 'creator',
+            'page_type'     => 'influencer',
+            'industry'      => null,
+            'step'          => 4,
+            'answers'       => $this->creatorAnswers(),
+        ]);
+
+        $resp = $this->actingAs($user)->post('/user/links/wizard/finish');
+
+        $resp->assertRedirect(route('user.upgrade'));
+        $resp->assertSessionHas('error');
+        // Cap hit before generation — still only the one pre-existing biolink,
+        // and the draft survives so the user can retry after upgrading.
+        $this->assertSame(1, Link::where('user_id', $user->id)->where('type', 'biolink')->count());
+        $this->assertNotNull(BiolinkWizardDraft::find($draft->id));
+    }
+}
