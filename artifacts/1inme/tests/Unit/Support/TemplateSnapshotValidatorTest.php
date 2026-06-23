@@ -2,6 +2,9 @@
 
 namespace Tests\Unit\Support;
 
+use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Support\BlockRenderCoverage;
+use App\Modules\User\Support\BlockTypeRegistry;
 use App\Modules\User\Support\TemplateSnapshotValidator;
 use PHPUnit\Framework\TestCase;
 
@@ -75,6 +78,92 @@ class TemplateSnapshotValidatorTest extends TestCase
 
         $this->assertNotEmpty($issues);
         $this->assertStringContainsString('still_bogus', $issues[0]);
+    }
+
+    public function test_top_level_render_gap_is_flagged(): void
+    {
+        // A child-only type placed at the page root would render blank. The
+        // exclusive type is discovered from the live renderers so the test does
+        // not assume a specific type's placement (which can drift).
+        [$childOnly] = $this->exclusiveTypes();
+        $this->assertNotNull($childOnly, 'expected at least one child-only block type');
+
+        $snapshot = ['blocks' => [['type' => $childOnly, 'settings' => []]]];
+
+        $issues = TemplateSnapshotValidator::issues($snapshot, 'page');
+
+        $this->assertNotEmpty($issues);
+        $this->assertStringContainsString($childOnly, implode(' ', $issues));
+    }
+
+    public function test_child_render_gap_is_flagged(): void
+    {
+        // A top-level-only type placed inside a container would fall through to a
+        // generic placeholder instead of its real content.
+        [, $topOnly] = $this->exclusiveTypes();
+        $this->assertNotNull($topOnly, 'expected at least one top-level-only block type');
+
+        $snapshot = [
+            'blocks' => [
+                ['type' => 'card', 'settings' => [], 'children' => [
+                    ['type' => $topOnly, 'settings' => []],
+                ]],
+            ],
+        ];
+
+        $issues = TemplateSnapshotValidator::issues($snapshot, 'page');
+
+        $this->assertNotEmpty($issues);
+        $this->assertStringContainsString($topOnly, implode(' ', $issues));
+    }
+
+    public function test_correctly_placed_blocks_have_no_render_gap(): void
+    {
+        [$childOnly, $topOnly] = $this->exclusiveTypes();
+        $this->assertNotNull($childOnly);
+        $this->assertNotNull($topOnly);
+
+        $snapshot = [
+            'blocks' => [
+                ['type' => $topOnly, 'settings' => []],
+                ['type' => 'card', 'settings' => [], 'children' => [
+                    ['type' => $childOnly, 'settings' => []],
+                ]],
+            ],
+        ];
+
+        $this->assertSame([], TemplateSnapshotValidator::issues($snapshot, 'page'));
+    }
+
+    /**
+     * Discover one child-only and one top-level-only known type from the live
+     * renderers (see BlockRenderCoverageTest for the rationale).
+     *
+     * @return array{0:?string,1:?string} [childOnly, topOnly]
+     */
+    private function exclusiveTypes(): array
+    {
+        $known = array_merge(
+            array_keys(BiolinkBlock::TYPES),
+            array_keys(BlockTypeRegistry::newTypes())
+        );
+
+        $childOnly = null;
+        $topOnly = null;
+
+        foreach ($known as $type) {
+            $top = BlockRenderCoverage::rendersTopLevel($type);
+            $child = BlockRenderCoverage::rendersAsChild($type);
+
+            if ($child && ! $top && $childOnly === null) {
+                $childOnly = $type;
+            }
+            if ($top && ! $child && $topOnly === null) {
+                $topOnly = $type;
+            }
+        }
+
+        return [$childOnly, $topOnly];
     }
 
     public function test_card_snapshot_treats_root_as_a_block(): void

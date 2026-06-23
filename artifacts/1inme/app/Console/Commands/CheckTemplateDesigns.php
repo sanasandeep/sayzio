@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Services\PersonaCatalog;
+use App\Modules\User\Support\BlockRenderCoverage;
 use App\Modules\User\Support\BlockTypeRegistry;
 use App\Modules\User\Support\BlockVariantCatalog;
 use Database\Seeders\ExpandedPageTemplateLibrarySeeder;
@@ -175,6 +176,14 @@ class CheckTemplateDesigns extends Command
             if ($variant !== null && $variant !== '') {
                 $this->variantResolves($type, $variant, "snapshot '{$slug}' baked variant on '{$type}'");
             }
+        }
+
+        // Placement-aware render-gap check: a known type still renders blank if
+        // it lacks a branch in the placement (page-root vs container-child) it
+        // actually occupies in this snapshot. Type-membership above does NOT
+        // catch this — the two renderers cover different type sets.
+        foreach (BlockRenderCoverage::renderGaps($blocks) as $gap) {
+            $this->failures[] = "snapshot '{$slug}': {$gap}";
         }
     }
 

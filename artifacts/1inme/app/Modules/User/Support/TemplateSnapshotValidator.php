@@ -68,6 +68,14 @@ class TemplateSnapshotValidator
             }
         }
 
+        // Placement-aware render-gap check: a known type still renders blank if
+        // it lacks a renderer branch in the placement (page-root vs container-
+        // child) it occupies. The two renderers cover different type sets, so a
+        // valid type alone does NOT guarantee it renders where it is used.
+        foreach (BlockRenderCoverage::renderGaps($blocks) as $gap) {
+            $issues[] = $gap;
+        }
+
         return array_values(array_unique($issues));
     }
 
