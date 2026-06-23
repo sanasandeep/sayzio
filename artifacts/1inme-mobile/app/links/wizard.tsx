@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 
+import { AppIcon } from "@/components/AppIcon";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
@@ -22,6 +23,7 @@ import {
   generateWizardPage,
   getWizardQuestions,
   getWizardTaxonomy,
+  type WizardIndustry,
   type WizardQuestion,
 } from "@/lib/api/wizard";
 
@@ -36,6 +38,64 @@ const BIOLINK_FAMILY = new Set<string>([
   "ai_chat",
   "restaurant_menu",
 ]);
+
+// Defensive fallback that mirrors BiolinkWizardQuestions::genericIndustries().
+// The taxonomy endpoint now always returns an industry list per combo (specific
+// or generic), so this only kicks in if that data is unexpectedly missing — the
+// industry step must never be blank.
+const GENERIC_INDUSTRIES: WizardIndustry[] = [
+  { slug: "local", label: "Local / In-person", icon: "fa-store" },
+  { slug: "online", label: "Online / Digital", icon: "fa-globe" },
+  { slug: "creative", label: "Creative / Media", icon: "fa-palette" },
+  { slug: "services", label: "Professional Services", icon: "fa-briefcase" },
+  { slug: "community", label: "Community / Nonprofit", icon: "fa-people-group" },
+  { slug: "other", label: "Something else", icon: "fa-ellipsis" },
+];
+
+// Identity fields surfaced first as "The basics"; everything else is grouped
+// into "Links & details". Mirrors the web wizard's question sectioning.
+const IDENTITY_KEYS = new Set([
+  "display_name",
+  "headline",
+  "bio",
+  "avatar",
+  "brand_color",
+]);
+
+// Leading icon (FontAwesome name, resolved to a native glyph by AppIcon) per
+// question — keyed first, then by input type. Mirrors the web wizard's
+// fieldIcon() so the two surfaces feel the same.
+function fieldIcon(q: WizardQuestion): string {
+  const byKey: Record<string, string> = {
+    instagram: "fa-hashtag",
+    tiktok: "fa-hashtag",
+    twitter: "fa-at",
+    whatsapp: "fa-comment-dots",
+    phone: "fa-phone",
+    address: "fa-location-dot",
+    hours: "fa-clock",
+    discount_code: "fa-ticket",
+  };
+  if (byKey[q.key]) return byKey[q.key];
+  switch (q.type) {
+    case "textarea":
+      return "fa-align-left";
+    case "select":
+      return "fa-list";
+    case "color":
+      return "fa-palette";
+    case "image":
+      return "fa-image";
+    case "url":
+      return "fa-link";
+    case "email":
+      return "fa-envelope";
+    case "phone":
+      return "fa-phone";
+    default:
+      return "fa-pen";
+  }
+}
 
 export default function BiolinkWizardScreen() {
   const colors = useColors();
@@ -93,13 +153,14 @@ export default function BiolinkWizardScreen() {
     () => (category ? (taxonomyQ.data?.page_types[category] ?? []) : []),
     [taxonomyQ.data, category],
   );
-  const industries = useMemo(
-    () =>
-      category && pageType
-        ? (taxonomyQ.data?.industries[`${category}.${pageType}`] ?? [])
-        : [],
-    [taxonomyQ.data, category, pageType],
-  );
+  // The industry step is always shown — use the combo's list from the taxonomy
+  // (specific or generic) and fall back to the generic set if it's missing.
+  const industries = useMemo<WizardIndustry[]>(() => {
+    if (!category || !pageType) return [];
+    const fromTaxonomy =
+      taxonomyQ.data?.industries[`${category}.${pageType}`] ?? [];
+    return fromTaxonomy.length ? fromTaxonomy : GENERIC_INDUSTRIES;
+  }, [taxonomyQ.data, category, pageType]);
 
   // Questions load once the combo is locked in (on the Q&A step).
   const questionsQ = useQuery({
@@ -170,9 +231,9 @@ export default function BiolinkWizardScreen() {
     setPageType(slug);
     setIndustry(null);
     setAnswers({});
-    const hasIndustry =
-      (taxonomyQ.data?.industries[`${category}.${slug}`] ?? []).length > 0;
-    reset(hasIndustry ? "industry" : "questions");
+    // The industry step is always a real step now (generic fallback when a
+    // combo has no specific list), matching the web wizard.
+    reset("industry");
   }
 
   function pickIndustry(slug: string | null) {
@@ -185,7 +246,7 @@ export default function BiolinkWizardScreen() {
     setError(null);
     if (step === "page_type") reset("category");
     else if (step === "industry") reset("page_type");
-    else if (step === "questions") reset(industries.length ? "industry" : "page_type");
+    else if (step === "questions") reset("industry");
     else router.back();
   }
 
@@ -225,6 +286,35 @@ export default function BiolinkWizardScreen() {
           ? 2
           : 3;
 
+  // Split the flat question set into friendly sections so the form scans as a
+  // couple of short groups instead of one long list — matching the web wizard.
+  const questionGroups = useMemo(() => {
+    const all = questionsQ.data?.questions ?? [];
+    const basics = all.filter((q) => IDENTITY_KEYS.has(q.key));
+    const details = all.filter((q) => !IDENTITY_KEYS.has(q.key));
+    const groups: {
+      title: string;
+      desc: string;
+      icon: string;
+      items: WizardQuestion[];
+    }[] = [];
+    if (basics.length)
+      groups.push({
+        title: "The basics",
+        desc: "Who the page is for.",
+        icon: "fa-user",
+        items: basics,
+      });
+    if (details.length)
+      groups.push({
+        title: "Links & details",
+        desc: "Add what applies — skip the rest.",
+        icon: "fa-sliders",
+        items: details,
+      });
+    return groups;
+  }, [questionsQ.data]);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen
@@ -247,8 +337,25 @@ export default function BiolinkWizardScreen() {
           <Text style={[styles.sub, { color: colors.mutedForeground }]}>
             {step === "questions"
               ? "We'll auto-build your page from these answers — tweak any block afterwards."
-              : "We'll generate an opinionated page tailored to your choice."}
+              : step === "industry"
+                ? "Just for picking the right accent and placeholder — totally optional."
+                : "We'll generate an opinionated page tailored to your choice."}
           </Text>
+        </View>
+
+        {/* Progress bar — mirrors the web wizard's gradient step indicator. */}
+        <View
+          style={[styles.progressTrack, { backgroundColor: colors.border }]}
+        >
+          <View
+            style={[
+              styles.progressFill,
+              {
+                backgroundColor: colors.primary,
+                width: `${((stepIndex + 1) / 4) * 100}%`,
+              },
+            ]}
+          />
         </View>
 
         {quotaLocked ? (
@@ -289,6 +396,8 @@ export default function BiolinkWizardScreen() {
                 key={c.slug}
                 title={c.label}
                 blurb={c.blurb}
+                icon={c.icon}
+                selected={category === c.slug}
                 onPress={() => pickCategory(c.slug)}
               />
             ))
@@ -300,6 +409,8 @@ export default function BiolinkWizardScreen() {
                 key={p.slug}
                 title={p.label}
                 blurb={p.blurb}
+                icon={p.icon}
+                selected={pageType === p.slug}
                 onPress={() => pickPageType(p.slug)}
               />
             ))
@@ -307,16 +418,20 @@ export default function BiolinkWizardScreen() {
 
         {step === "industry" ? (
           <>
-            {industries.map((i) => (
-              <ChoiceCard
-                key={i.slug}
-                title={i.label}
-                onPress={() => pickIndustry(i.slug)}
-              />
-            ))}
+            <View style={styles.industryGrid}>
+              {industries.map((i) => (
+                <IndustryTile
+                  key={i.slug}
+                  label={i.label}
+                  icon={i.icon}
+                  selected={industry === i.slug}
+                  onPress={() => pickIndustry(i.slug)}
+                />
+              ))}
+            </View>
             <Pressable onPress={() => pickIndustry(null)}>
-              <Text style={[styles.skip, { color: colors.mutedForeground }]}>
-                Skip — none of these
+              <Text style={[styles.skip, { color: colors.primary }]}>
+                Skip this step
               </Text>
             </Pressable>
           </>
@@ -333,16 +448,70 @@ export default function BiolinkWizardScreen() {
               Couldn&apos;t load the questions. Go back and retry.
             </Text>
           ) : (
-            <View style={{ gap: 14, marginTop: 4 }}>
-              {(questionsQ.data?.questions ?? []).map((q) => (
-                <QuestionField
-                  key={q.key}
-                  question={q}
-                  value={answers[q.key] ?? ""}
-                  onChange={(v) =>
-                    setAnswers((prev) => ({ ...prev, [q.key]: v }))
-                  }
-                />
+            <View style={{ gap: 16, marginTop: 4 }}>
+              {questionGroups.map((group) => (
+                <View
+                  key={group.title}
+                  style={[
+                    styles.section,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.sectionHeader,
+                      { borderBottomColor: colors.border },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.sectionIcon,
+                        { backgroundColor: colors.primary + "22" },
+                      ]}
+                    >
+                      <AppIcon
+                        name={group.icon}
+                        size={16}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <Text
+                        style={[
+                          styles.sectionTitle,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        {group.title}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.sectionDesc,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        {group.desc}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.sectionBody}>
+                    {group.items.map((q) => (
+                      <QuestionField
+                        key={q.key}
+                        question={q}
+                        value={answers[q.key] ?? ""}
+                        onChange={(v) =>
+                          setAnswers((prev) => ({ ...prev, [q.key]: v }))
+                        }
+                      />
+                    ))}
+                  </View>
+                </View>
               ))}
 
               {error ? (
@@ -377,10 +546,14 @@ export default function BiolinkWizardScreen() {
 function ChoiceCard({
   title,
   blurb,
+  icon,
+  selected,
   onPress,
 }: {
   title: string;
   blurb?: string;
+  icon?: string;
+  selected?: boolean;
   onPress: () => void;
 }) {
   const colors = useColors();
@@ -390,13 +563,29 @@ function ChoiceCard({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
+          backgroundColor: selected ? colors.primary + "14" : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
           borderRadius: colors.radius,
           opacity: pressed ? 0.85 : 1,
         },
       ]}
     >
+      {icon ? (
+        <View
+          style={[
+            styles.iconBox,
+            {
+              backgroundColor: selected ? colors.primary : colors.primary + "22",
+            },
+          ]}
+        >
+          <AppIcon
+            name={icon}
+            size={20}
+            color={selected ? colors.primaryForeground : colors.primary}
+          />
+        </View>
+      ) : null}
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.cardTitle, { color: colors.foreground }]}>
           {title}
@@ -407,7 +596,62 @@ function ChoiceCard({
           </Text>
         ) : null}
       </View>
-      <Feather name="chevron-right" size={20} color={colors.mutedForeground} />
+      <Feather
+        name="chevron-right"
+        size={20}
+        color={selected ? colors.primary : colors.mutedForeground}
+      />
+    </Pressable>
+  );
+}
+
+function IndustryTile({
+  label,
+  icon,
+  selected,
+  onPress,
+}: {
+  label: string;
+  icon?: string;
+  selected?: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.industryTile,
+        {
+          backgroundColor: selected ? colors.primary + "14" : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+          borderRadius: colors.radius,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.iconBox,
+          {
+            backgroundColor: selected ? colors.primary : colors.primary + "22",
+          },
+        ]}
+      >
+        <AppIcon
+          name={icon ?? "fa-tag"}
+          size={18}
+          color={selected ? colors.primaryForeground : colors.primary}
+        />
+      </View>
+      <Text
+        style={[
+          styles.industryLabel,
+          { color: selected ? colors.foreground : colors.mutedForeground },
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -423,13 +667,17 @@ function QuestionField({
 }) {
   const colors = useColors();
   const label = question.required ? `${question.label} *` : question.label;
+  const icon = fieldIcon(question);
 
   if (question.type === "select" && question.options?.length) {
     return (
       <View style={{ gap: 8 }}>
-        <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
-          {label}
-        </Text>
+        <View style={styles.fieldLabelRow}>
+          <AppIcon name={icon} size={13} color={colors.primary} />
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+            {label}
+          </Text>
+        </View>
         <View style={styles.chips}>
           {question.options.map((opt) => {
             const active = value === opt.v;
@@ -476,40 +724,47 @@ function QuestionField({
     : question.help;
 
   return (
-    <TextField
-      label={label}
-      hint={hint}
-      value={value}
-      onChangeText={onChange}
-      placeholder={
-        question.placeholder ??
-        (isImage ? "https://…/photo.jpg" : undefined)
-      }
-      multiline={question.type === "textarea"}
-      keyboardType={
-        question.type === "email"
-          ? "email-address"
-          : question.type === "phone"
-            ? "phone-pad"
-            : question.type === "url" || isImage
-              ? "url"
-              : "default"
-      }
-      autoCapitalize={
-        question.type === "email" ||
-        question.type === "url" ||
-        question.type === "color" ||
-        isImage
-          ? "none"
-          : "sentences"
-      }
-      autoCorrect={question.type !== "email" && question.type !== "url"}
-      style={
-        question.type === "textarea"
-          ? { minHeight: 96, paddingTop: 14, textAlignVertical: "top" }
-          : undefined
-      }
-    />
+    <View style={{ gap: 6 }}>
+      <View style={styles.fieldLabelRow}>
+        <AppIcon name={icon} size={13} color={colors.primary} />
+        <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+          {label}
+        </Text>
+      </View>
+      <TextField
+        hint={hint}
+        value={value}
+        onChangeText={onChange}
+        placeholder={
+          question.placeholder ??
+          (isImage ? "https://…/photo.jpg" : undefined)
+        }
+        multiline={question.type === "textarea"}
+        keyboardType={
+          question.type === "email"
+            ? "email-address"
+            : question.type === "phone"
+              ? "phone-pad"
+              : question.type === "url" || isImage
+                ? "url"
+                : "default"
+        }
+        autoCapitalize={
+          question.type === "email" ||
+          question.type === "url" ||
+          question.type === "color" ||
+          isImage
+            ? "none"
+            : "sentences"
+        }
+        autoCorrect={question.type !== "email" && question.type !== "url"}
+        style={
+          question.type === "textarea"
+            ? { minHeight: 96, paddingTop: 14, textAlignVertical: "top" }
+            : undefined
+        }
+      />
+    </View>
   );
 }
 
@@ -527,6 +782,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  progressTrack: {
+    height: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+    marginBottom: 2,
+  },
+  progressFill: { height: "100%", borderRadius: 999 },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -534,11 +796,39 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
   },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
   cardTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16 },
   cardBlurb: {
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     lineHeight: 18,
+  },
+  industryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  industryTile: {
+    width: "47%",
+    flexGrow: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+  },
+  industryLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
+    flex: 1,
   },
   skip: {
     fontFamily: "SpaceGrotesk_500Medium",
@@ -560,6 +850,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
   },
+  section: {
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  sectionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  sectionDesc: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  sectionBody: { padding: 16, gap: 14 },
+  fieldLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   fieldLabel: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,

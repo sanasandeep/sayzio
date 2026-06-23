@@ -30,8 +30,15 @@ class BiolinkWizardController extends Controller
 
     /**
      * Steps 1–3 in one shot: every category, the page types under each, and
-     * the industry options for the combos that have an industry sub-step. The
-     * client caches this and drives the first three steps without round-trips.
+     * the industry options for every combo. The client caches this and drives
+     * the first three steps without round-trips.
+     *
+     * The industry step is always a real step (matching the web wizard): every
+     * combo gets an industry list — the combo's specific one when it has one,
+     * otherwise a small generic set — so the mobile wizard never silently skips
+     * it. Each page type and industry carries a FontAwesome icon name (resolved
+     * to a native glyph client-side) so the steps render the same icon-led look
+     * as the web flow.
      */
     public function taxonomy()
     {
@@ -40,13 +47,17 @@ class BiolinkWizardController extends Controller
 
         foreach (BiolinkWizardQuestions::categories() as $cat) {
             $slug = $cat['slug'];
-            $pageTypes[$slug] = BiolinkWizardQuestions::pageTypes($slug);
+
+            $pageTypes[$slug] = array_map(function (array $pt) use ($slug) {
+                $pt['icon'] = BiolinkWizardQuestions::pageTypeIcon($slug, $pt['slug']);
+                return $pt;
+            }, BiolinkWizardQuestions::pageTypes($slug));
 
             foreach ($pageTypes[$slug] as $pt) {
-                $ind = BiolinkWizardQuestions::industries($slug, $pt['slug']);
-                if (!empty($ind)) {
-                    $industries["{$slug}.{$pt['slug']}"] = $ind;
-                }
+                $industries["{$slug}.{$pt['slug']}"] = array_map(function (array $ind) {
+                    $ind['icon'] = BiolinkWizardQuestions::industryIcon($ind['slug']);
+                    return $ind;
+                }, $this->effectiveIndustries($slug, $pt['slug']));
             }
         }
 
@@ -74,7 +85,9 @@ class BiolinkWizardController extends Controller
 
         return $this->ok([
             'questions'         => array_values(BiolinkWizardQuestions::questions($category, $pageType, $industry)),
-            'has_industry_step' => BiolinkWizardQuestions::hasIndustryStep($category, $pageType),
+            // The industry step is always shown on mobile now (generic fallback
+            // when the combo has no specific list), so this is always true.
+            'has_industry_step' => !empty($this->effectiveIndustries($category, $pageType)),
         ]);
     }
 
@@ -98,16 +111,20 @@ class BiolinkWizardController extends Controller
             return $this->fail('Invalid page type.', 422, 'invalid_page_type');
         }
 
-        // Industry is only meaningful when the combo has an industry sub-step;
-        // otherwise it's coerced to null so the recipe ignores it.
-        $industrySlugs = array_column(BiolinkWizardQuestions::industries($category, $pageType), 'slug');
+        // The industry step is always shown (specific list when the combo has
+        // one, otherwise a generic set), so validate against the effective list
+        // — matching the web wizard. An empty/absent value is allowed (the user
+        // skipped the step); generic slugs are harmless to the recipe pipeline,
+        // which falls back to the category placeholder for unknown slugs.
+        $industrySlugs = array_column($this->effectiveIndustries($category, $pageType), 'slug');
         $industry = $data['industry'] ?? null;
-        if (!empty($industrySlugs)) {
-            if ($industry !== null && !in_array($industry, $industrySlugs, true)) {
-                return $this->fail('Invalid industry.', 422, 'invalid_industry');
-            }
-        } else {
+        if ($industry === '') {
             $industry = null;
+        }
+        if (empty($industrySlugs)) {
+            $industry = null;
+        } elseif ($industry !== null && !in_array($industry, $industrySlugs, true)) {
+            return $this->fail('Invalid industry.', 422, 'invalid_industry');
         }
 
         $answers = BiolinkWizardQuestions::sanitizeAnswers($category, $pageType, $industry, $data['answers']);
@@ -141,6 +158,17 @@ class BiolinkWizardController extends Controller
         }
 
         return $this->created(['link' => LinkResource::toArray($link->fresh())]);
+    }
+
+    /**
+     * The industry options for the (always-present) industry step: the combo's
+     * specific list when it has one, otherwise a generic set so the step is
+     * never blank. Mirrors the web wizard's effectiveIndustries().
+     */
+    private function effectiveIndustries(string $category, string $pageType): array
+    {
+        $specific = BiolinkWizardQuestions::industries($category, $pageType);
+        return !empty($specific) ? $specific : BiolinkWizardQuestions::genericIndustries();
     }
 
     private function isValidCategory(string $category): bool

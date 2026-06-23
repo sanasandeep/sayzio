@@ -17,11 +17,16 @@ export type WizardPageType = {
   slug: string;
   label: string;
   blurb?: string;
+  // FontAwesome icon name (e.g. "fa-store") resolved to a native glyph via
+  // resolveIconName(). Always present from the taxonomy endpoint.
+  icon?: string;
 };
 
 export type WizardIndustry = {
   slug: string;
   label: string;
+  // FontAwesome icon name resolved client-side; always present from taxonomy.
+  icon?: string;
 };
 
 export type WizardTaxonomy = {
