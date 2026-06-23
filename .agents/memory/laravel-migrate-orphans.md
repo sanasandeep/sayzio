@@ -81,6 +81,22 @@ The 2026_05_02 workspaces migration adds `workspace_id` (+ `created_by_user_id` 
 non-visitor tables) to ~21 user-scoped tables; replaying just that loop re-adds whatever
 a concurrent fresh dropped.
 
+**Within-migration idempotency guards are sufficient — don't over-engineer per-object
+repair.** Postgres DDL is transactional and Laravel wraps each migration's `up()` in one
+transaction, so a single migration's effects commit all-or-nothing; a *within-migration*
+partial table-create cannot persist. Therefore `if(!Schema::hasTable)`/`hasColumn` +
+`DROP/CREATE [UNIQUE] INDEX IF EXISTS`/`ALTER COLUMN ... DROP NOT NULL` guards make a
+create/alter migration safely re-runnable. Apparent "table X missing but its create
+migration is marked applied" drift is ALWAYS a concurrent `migrate:fresh` dropping X
+afterward (or a transient race against another env's in-flight migrate) — NOT a partial
+apply — so the coarse `hasTable` recreate is correct and you do NOT need to verify every
+FK/index/constraint individually. A code-reviewer may flag the `hasTable` short-circuit as
+non-convergent; that critique assumes non-atomic DDL and doesn't hold here. Pattern to fix
+a non-idempotent create migration: replace bare `dropUnique`/`dropForeign` with
+`DROP INDEX/CONSTRAINT IF EXISTS`, wrap each `Schema::create` in `!hasTable`, each added
+column in `!hasColumn`, each `$table->index()` with `CREATE INDEX IF NOT EXISTS`, and make
+backfills target only NULL rows (`whereNull(...)`) so re-runs don't clobber values.
+
 **Note:** transient `42P01 does not exist` / `42P07 already exists` lines in
 `storage/logs/laravel.log` during the migration window are expected (a page hit a
 table before its migration ran, or a reconcile pass hit an orphan). Only errors
