@@ -145,18 +145,29 @@
             <p class="text-sm text-white/50 mb-6">We'll tailor the questions and the layout to this choice.</p>
 
             @php $ptIndex = 0; @endphp
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @foreach($pageTypes as $pt)
+                    @php $ptIcon = \App\Modules\User\Services\BiolinkWizardQuestions::pageTypeIcon($draft->category, $pt['slug']); @endphp
                     <button type="submit" name="page_type" value="{{ $pt['slug'] }}"
-                        class="lt-card-reveal group glass rounded-2xl p-5 text-left transition-all hover:bg-white/[0.06] hover:border-violet-500/40 border border-white/5
-                               {{ $draft?->page_type === $pt['slug'] ? 'ring-2 ring-violet-500/50' : '' }}"
+                        class="lt-card-reveal group relative overflow-hidden rounded-2xl p-5 text-left border transition-all duration-200 motion-safe:hover:-translate-y-1
+                               {{ $draft?->page_type === $pt['slug']
+                                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                    : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20' }}"
                         style="animation-delay: {{ min($ptIndex++ * 45, 540) }}ms">
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-white font-medium">{{ $pt['label'] }}</div>
-                                <div class="text-xs text-white/40 mt-1">{{ $pt['blurb'] }}</div>
+                        {{-- accent glow corner --}}
+                        <div class="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-lg transition-all duration-200
+                                        {{ $draft?->page_type === $pt['slug']
+                                            ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
+                                            : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105' }}">
+                                <i class="fas {{ $ptIcon }}"></i>
                             </div>
-                            <i class="fas fa-arrow-right text-white/20 group-hover:text-violet-400 transition-colors"></i>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-white font-semibold">{{ $pt['label'] }}</div>
+                                <div class="text-xs text-white/50 mt-1 leading-relaxed">{{ $pt['blurb'] }}</div>
+                            </div>
+                            <i class="fas fa-arrow-right text-white/20 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1"></i>
                         </div>
                     </button>
                 @endforeach
@@ -183,12 +194,23 @@
             <h2 class="text-xl font-semibold text-white mb-1">What's your industry?</h2>
             <p class="text-sm text-white/50 mb-6">Just for picking the right placeholder image and accent — totally optional.</p>
 
+            @php $indIndex = 0; @endphp
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 @foreach($industries as $ind)
+                    @php $indIcon = \App\Modules\User\Services\BiolinkWizardQuestions::industryIcon($ind['slug']); @endphp
                     <button type="submit" name="industry" value="{{ $ind['slug'] }}"
-                        class="glass rounded-xl px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/[0.06] hover:border-violet-500/40 border border-white/5 text-center transition-all
-                               {{ $draft?->industry === $ind['slug'] ? 'ring-2 ring-violet-500/50' : '' }}">
-                        {{ $ind['label'] }}
+                        class="lt-card-reveal group relative overflow-hidden rounded-2xl px-4 py-4 border text-center transition-all duration-200 motion-safe:hover:-translate-y-0.5 flex flex-col items-center gap-2
+                               {{ $draft?->industry === $ind['slug']
+                                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                    : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20' }}"
+                        style="animation-delay: {{ min($indIndex++ * 40, 480) }}ms">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center text-base transition-all duration-200
+                                     {{ $draft?->industry === $ind['slug']
+                                            ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
+                                            : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105' }}">
+                            <i class="fas {{ $indIcon }}"></i>
+                        </span>
+                        <span class="text-xs font-medium leading-tight {{ $draft?->industry === $ind['slug'] ? 'text-white' : 'text-white/80 group-hover:text-white' }}">{{ $ind['label'] }}</span>
                     </button>
                 @endforeach
             </div>
@@ -217,70 +239,131 @@
                 You can polish anything in the editor afterwards.
             </p>
 
-            <div class="glass rounded-2xl p-6 space-y-5">
-                @foreach($questions as $q)
-                    @php
-                        $key   = $q['key'];
-                        $type  = $q['type'] ?? 'text';
-                        $label = $q['label'];
-                        $val   = $answers[$key] ?? '';
-                        $req   = !empty($q['required']);
-                        $name  = "a[{$key}]";
-                        $id    = 'fld_' . $key;
-                    @endphp
+            @php
+                // Split the flat question set into friendly sections so the form
+                // scans as a few short groups instead of one long list. The
+                // identity fields (always merged in first by baseIdentity) form
+                // "The basics"; everything else is "Links & details".
+                $identityKeys = ['display_name', 'headline', 'bio', 'avatar', 'brand_color'];
+                $basics = $details = [];
+                foreach ($questions as $q) {
+                    if (in_array($q['key'], $identityKeys, true)) { $basics[] = $q; } else { $details[] = $q; }
+                }
+                $groups = [];
+                if (!empty($basics))  { $groups[] = ['title' => 'The basics',      'icon' => 'fa-id-card-clip', 'desc' => 'Who the page is for.',          'items' => $basics]; }
+                if (!empty($details)) { $groups[] = ['title' => 'Links & details',  'icon' => 'fa-sliders',      'desc' => 'Add what applies — skip the rest.', 'items' => $details]; }
 
-                    <div>
-                        <label for="{{ $id }}" class="block text-sm font-medium text-white/80 mb-1.5">
-                            {{ $label }}
-                            @if($req) <span class="text-violet-400">*</span> @endif
-                        </label>
+                // Leading icon per field — by input type, with a couple of
+                // key-aware overrides for nicer affordances.
+                $fieldIcon = function (array $q): string {
+                    $byKey = [
+                        'instagram' => 'fa-hashtag', 'tiktok' => 'fa-hashtag', 'twitter' => 'fa-at',
+                        'whatsapp' => 'fa-comment-dots', 'phone' => 'fa-phone', 'address' => 'fa-location-dot',
+                        'hours' => 'fa-clock', 'discount_code' => 'fa-ticket',
+                    ];
+                    if (isset($byKey[$q['key']])) { return $byKey[$q['key']]; }
+                    return match ($q['type'] ?? 'text') {
+                        'textarea' => 'fa-align-left',
+                        'select'   => 'fa-list-ul',
+                        'color'    => 'fa-palette',
+                        'image'    => 'fa-image',
+                        'url'      => 'fa-link',
+                        'email'    => 'fa-envelope',
+                        'phone'    => 'fa-phone',
+                        default    => 'fa-pen',
+                    };
+                };
+            @endphp
 
-                        @if($type === 'textarea')
-                            <textarea id="{{ $id }}" name="{{ $name }}" rows="3"
-                                placeholder="{{ $q['placeholder'] ?? '' }}"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">{{ $val }}</textarea>
-
-                        @elseif($type === 'select')
-                            <select id="{{ $id }}" name="{{ $name }}"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-                                <option value="" class="bg-[#0d0818]">— pick one —</option>
-                                @foreach(($q['options'] ?? []) as $opt)
-                                    <option value="{{ $opt['v'] }}" class="bg-[#0d0818]" @selected($val === $opt['v'])>{{ $opt['l'] }}</option>
-                                @endforeach
-                            </select>
-
-                        @elseif($type === 'color')
-                            <div class="flex items-center gap-3">
-                                <input id="{{ $id }}" name="{{ $name }}" type="color"
-                                    value="{{ $val ?: \App\Modules\User\Services\BiolinkWizardQuestions::defaultBrandColor($draft->category) }}"
-                                    class="w-12 h-10 rounded-lg bg-white/5 border border-white/10 cursor-pointer">
-                                <span class="text-xs text-white/40">Used for buttons & accents</span>
+            <div class="space-y-5">
+                @foreach($groups as $gi => $group)
+                    <section class="lt-card-reveal glass rounded-2xl overflow-hidden" style="animation-delay: {{ min($gi * 80, 240) }}ms">
+                        <header class="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/15 text-violet-300 flex items-center justify-center flex-shrink-0">
+                                <i class="fas {{ $group['icon'] }}"></i>
                             </div>
-
-                        @elseif($type === 'image')
-                            <div class="flex items-center gap-3">
-                                <input id="{{ $id }}" name="a_files[{{ $key }}]" type="file" accept="image/*"
-                                    class="block text-xs text-white/60 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-violet-600 file:text-white file:cursor-pointer hover:file:bg-violet-700">
-                                @if(!empty($val) && is_string($val))
-                                    <img src="{{ $val }}" class="w-10 h-10 rounded-lg object-cover border border-white/10" alt="">
-                                @endif
+                            <div class="min-w-0">
+                                <div class="text-sm font-semibold text-white">{{ $group['title'] }}</div>
+                                <div class="text-xs text-white/40">{{ $group['desc'] }}</div>
                             </div>
+                        </header>
 
-                        @elseif(in_array($type, ['url','email','phone'], true))
-                            <input id="{{ $id }}" name="{{ $name }}" type="{{ $type === 'phone' ? 'tel' : $type }}"
-                                value="{{ $val }}" placeholder="{{ $q['placeholder'] ?? '' }}"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
+                        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-5">
+                            @foreach($group['items'] as $q)
+                                @php
+                                    $key   = $q['key'];
+                                    $type  = $q['type'] ?? 'text';
+                                    $label = $q['label'];
+                                    $val   = $answers[$key] ?? '';
+                                    $req   = !empty($q['required']);
+                                    $name  = "a[{$key}]";
+                                    $id    = 'fld_' . $key;
+                                    $icon  = $fieldIcon($q);
+                                    // Long fields span the full row for breathing room.
+                                    $wide  = in_array($type, ['textarea'], true);
+                                @endphp
 
-                        @else
-                            <input id="{{ $id }}" name="{{ $name }}" type="text" value="{{ $val }}"
-                                placeholder="{{ $q['placeholder'] ?? '' }}"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-                        @endif
+                                <div class="{{ $wide ? 'sm:col-span-2' : '' }}">
+                                    <label for="{{ $id }}" class="flex items-center gap-2 text-sm font-medium text-white/80 mb-1.5">
+                                        <i class="fas {{ $icon }} text-violet-300/70 text-xs w-4 text-center"></i>
+                                        <span>{{ $label }}</span>
+                                        @if($req) <span class="text-violet-400">*</span> @endif
+                                    </label>
 
-                        @if(!empty($q['help']))
-                            <p class="text-xs text-white/30 mt-1">{{ $q['help'] }}</p>
-                        @endif
-                    </div>
+                                    @if($type === 'textarea')
+                                        <textarea id="{{ $id }}" name="{{ $name }}" rows="3"
+                                            placeholder="{{ $q['placeholder'] ?? '' }}"
+                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">{{ $val }}</textarea>
+
+                                    @elseif($type === 'select')
+                                        <select id="{{ $id }}" name="{{ $name }}"
+                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                                            <option value="" class="bg-[#0d0818]">— pick one —</option>
+                                            @foreach(($q['options'] ?? []) as $opt)
+                                                <option value="{{ $opt['v'] }}" class="bg-[#0d0818]" @selected($val === $opt['v'])>{{ $opt['l'] }}</option>
+                                            @endforeach
+                                        </select>
+
+                                    @elseif($type === 'color')
+                                        <div class="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                                            <input id="{{ $id }}" name="{{ $name }}" type="color"
+                                                value="{{ $val ?: \App\Modules\User\Services\BiolinkWizardQuestions::defaultBrandColor($draft->category) }}"
+                                                class="w-10 h-9 rounded-lg bg-transparent border-0 cursor-pointer">
+                                            <span class="text-xs text-white/40">Used for buttons &amp; accents</span>
+                                        </div>
+
+                                    @elseif($type === 'image')
+                                        <div class="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                                            @if(!empty($val) && is_string($val))
+                                                <img src="{{ $val }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 flex-shrink-0" alt="">
+                                            @else
+                                                <span class="w-10 h-10 rounded-lg bg-violet-500/15 text-violet-300 flex items-center justify-center flex-shrink-0"><i class="fas fa-image"></i></span>
+                                            @endif
+                                            <input id="{{ $id }}" name="a_files[{{ $key }}]" type="file" accept="image/*"
+                                                class="block text-xs text-white/60 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-violet-600 file:text-white file:cursor-pointer hover:file:bg-violet-700">
+                                        </div>
+
+                                    @elseif(in_array($type, ['url','email','phone'], true))
+                                        <div class="relative">
+                                            <i class="fas {{ $icon }} absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-xs pointer-events-none"></i>
+                                            <input id="{{ $id }}" name="{{ $name }}" type="{{ $type === 'phone' ? 'tel' : $type }}"
+                                                value="{{ $val }}" placeholder="{{ $q['placeholder'] ?? '' }}"
+                                                class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                                        </div>
+
+                                    @else
+                                        <input id="{{ $id }}" name="{{ $name }}" type="text" value="{{ $val }}"
+                                            placeholder="{{ $q['placeholder'] ?? '' }}"
+                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                                    @endif
+
+                                    @if(!empty($q['help']))
+                                        <p class="text-xs text-white/30 mt-1">{{ $q['help'] }}</p>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
                 @endforeach
             </div>
 

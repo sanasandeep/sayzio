@@ -105,7 +105,7 @@ class BiolinkWizardController extends Controller
             'step'       => $draft?->step ?? 0,
             'pageTypes'  => $draft && $draft->category ? BiolinkWizardQuestions::pageTypes($draft->category) : [],
             'industries' => $draft && $draft->category && $draft->page_type
-                                ? BiolinkWizardQuestions::industries($draft->category, $draft->page_type)
+                                ? $this->effectiveIndustries($draft->category, $draft->page_type)
                                 : [],
             'questions'  => $draft && $draft->category && $draft->page_type
                                 ? BiolinkWizardQuestions::questions($draft->category, $draft->page_type, $draft->industry)
@@ -133,7 +133,10 @@ class BiolinkWizardController extends Controller
                 }
                 $draft->page_type = $this->validatePageType($draft->category, $request->input('page_type'));
                 $draft->industry  = null;
-                $draft->step      = BiolinkWizardQuestions::hasIndustryStep($draft->category, $draft->page_type) ? 2 : 3;
+                // The industry screen is always shown as a real step 3 (web).
+                // For combos with no specific industries() list we present a
+                // small generic set, so the step is never silently skipped.
+                $draft->step      = 2;
                 break;
 
             case 'pick_industry':
@@ -155,19 +158,11 @@ class BiolinkWizardController extends Controller
                 break;
 
             case 'back':
-                // Walk one logical step back. The industry step (2) is
-                // optional — many category/page-type combos skip it — so
-                // a blind `step - 1` would land the user on an empty step
-                // 2 with no industries to pick. Compute the previous step
-                // from the actual taxonomy instead.
+                // The industry screen is always a real step 3 (web), so a
+                // plain `step - 1` is correct: questions (3) → industry (2) →
+                // page type (1) → category (0).
                 $cur = (int) ($draft->step ?? 0);
-                if ($cur >= 3) {
-                    $hasIndustry = $draft->category && $draft->page_type
-                        && BiolinkWizardQuestions::hasIndustryStep($draft->category, $draft->page_type);
-                    $draft->step = $hasIndustry ? 2 : 1;
-                } else {
-                    $draft->step = max(0, $cur - 1);
-                }
+                $draft->step = max(0, $cur - 1);
                 break;
 
             case 'restart':
@@ -398,13 +393,24 @@ SVG;
 
     protected function validateIndustry(string $category, string $pageType, $value): ?string
     {
-        $slugs = array_column(BiolinkWizardQuestions::industries($category, $pageType), 'slug');
+        $slugs = array_column($this->effectiveIndustries($category, $pageType), 'slug');
         if (empty($slugs)) return null;
         if ($value === null || $value === '') return null;
         if (!in_array($value, $slugs, true)) {
             abort(422, 'Invalid industry.');
         }
         return $value;
+    }
+
+    /**
+     * The industry options shown on the (always-present) web industry step:
+     * the combo's specific list when it has one, otherwise a generic set so
+     * the step is never blank. Mobile keeps the raw industries() semantics.
+     */
+    protected function effectiveIndustries(string $category, string $pageType): array
+    {
+        $specific = BiolinkWizardQuestions::industries($category, $pageType);
+        return !empty($specific) ? $specific : BiolinkWizardQuestions::genericIndustries();
     }
 
     /**

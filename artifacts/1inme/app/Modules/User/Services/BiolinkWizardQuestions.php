@@ -143,6 +143,101 @@ class BiolinkWizardQuestions
     }
 
     /**
+     * FontAwesome (v6 free, solid) icon for a page-type tile. Keyed by
+     * "category.pageType"; anything unmapped falls back to the category's
+     * own icon so a new page type still renders a sensible glyph.
+     */
+    public static function pageTypeIcon(string $category, string $pageType): string
+    {
+        $map = [
+            // creator
+            'creator.influencer' => 'fa-bolt',
+            'creator.youtuber'   => 'fa-video',
+            'creator.podcaster'  => 'fa-microphone',
+            'creator.writer'     => 'fa-pen-nib',
+            'creator.artist'     => 'fa-palette',
+            // business
+            'business.local_shop'   => 'fa-store',
+            'business.online_store' => 'fa-cart-shopping',
+            'business.agency'       => 'fa-people-group',
+            'business.saas'         => 'fa-cloud',
+            'business.nonprofit'    => 'fa-hand-holding-heart',
+            // restaurant
+            'restaurant.restaurant' => 'fa-utensils',
+            'restaurant.cafe'       => 'fa-mug-saucer',
+            'restaurant.food_truck' => 'fa-truck',
+            'restaurant.bar'        => 'fa-martini-glass',
+            // musician
+            'musician.solo_artist' => 'fa-microphone-lines',
+            'musician.band'        => 'fa-guitar',
+            'musician.dj'          => 'fa-headphones',
+            'musician.classical'   => 'fa-music',
+            // real estate
+            'real_estate.residential' => 'fa-house',
+            'real_estate.commercial'  => 'fa-building',
+            'real_estate.broker'      => 'fa-people-group',
+            // coach
+            'coach.fitness'  => 'fa-dumbbell',
+            'coach.life'     => 'fa-seedling',
+            'coach.business' => 'fa-chart-line',
+            'coach.tutor'    => 'fa-chalkboard-user',
+            // personal
+            'personal.developer'    => 'fa-code',
+            'personal.designer'     => 'fa-pen-ruler',
+            'personal.student'      => 'fa-user-graduate',
+            'personal.professional' => 'fa-id-card',
+            // event
+            'event.wedding'    => 'fa-ring',
+            'event.conference' => 'fa-people-roof',
+            'event.workshop'   => 'fa-chalkboard',
+            'event.party'      => 'fa-champagne-glasses',
+            // health & wellness
+            'health_wellness.fitness_trainer' => 'fa-dumbbell',
+            'health_wellness.yoga'            => 'fa-spa',
+            'health_wellness.therapist'       => 'fa-brain',
+            'health_wellness.nutritionist'    => 'fa-apple-whole',
+            // nonprofit
+            'nonprofit.charity'           => 'fa-hand-holding-heart',
+            'nonprofit.community_org'     => 'fa-people-group',
+            'nonprofit.social_enterprise' => 'fa-store',
+            'nonprofit.activist'          => 'fa-bullhorn',
+            // fashion & beauty
+            'fashion_beauty.fashion_brand' => 'fa-shirt',
+            'fashion_beauty.beauty_artist' => 'fa-wand-magic-sparkles',
+            'fashion_beauty.model'         => 'fa-camera',
+            'fashion_beauty.stylist'       => 'fa-scissors',
+            'fashion_beauty.salon'         => 'fa-spa',
+            // photographer
+            'photographer.photographer'         => 'fa-camera',
+            'photographer.videographer'         => 'fa-video',
+            'photographer.wedding_photographer' => 'fa-camera-retro',
+            'photographer.studio'               => 'fa-photo-film',
+            // travel creator
+            'travel_creator.travel_blogger' => 'fa-plane',
+            'travel_creator.travel_agent'   => 'fa-suitcase-rolling',
+            'travel_creator.tour_guide'     => 'fa-map-location-dot',
+            'travel_creator.digital_nomad'  => 'fa-laptop',
+            // faith
+            'faith.church'          => 'fa-church',
+            'faith.faith_leader'    => 'fa-book-bible',
+            'faith.community_group' => 'fa-people-group',
+            'faith.mosque_temple'   => 'fa-place-of-worship',
+            // education
+            'education.tutor'         => 'fa-chalkboard-user',
+            'education.school'        => 'fa-school',
+            'education.online_course' => 'fa-laptop-code',
+            'education.teacher'       => 'fa-graduation-cap',
+        ];
+
+        if (isset($map["{$category}.{$pageType}"])) {
+            return $map["{$category}.{$pageType}"];
+        }
+
+        $cat = collect(self::categories())->firstWhere('slug', $category);
+        return $cat['icon'] ?? 'fa-link';
+    }
+
+    /**
      * Optional industry refinement. Returns [] when this combination has no
      * industry sub-step (the wizard simply skips step 3).
      */
@@ -212,6 +307,90 @@ class BiolinkWizardQuestions
             ],
         ];
         return $map["{$category}.{$pageType}"] ?? [];
+    }
+
+    /**
+     * A small, always-valid generic industry set. The web wizard shows this
+     * on its (always-present) industry step for any category/page-type combo
+     * that has no specific industries() list, so the step is never blank.
+     *
+     * The slugs are harmless to the recipe/placeholder pipeline — unknown
+     * industry slugs fall back to the category placeholder — so picking one
+     * never breaks page generation.
+     */
+    public static function genericIndustries(): array
+    {
+        return [
+            ['slug' => 'local',     'label' => 'Local / In-person'],
+            ['slug' => 'online',    'label' => 'Online / Digital'],
+            ['slug' => 'creative',  'label' => 'Creative / Media'],
+            ['slug' => 'services',  'label' => 'Professional Services'],
+            ['slug' => 'community', 'label' => 'Community / Nonprofit'],
+            ['slug' => 'other',     'label' => 'Something else'],
+        ];
+    }
+
+    /**
+     * FontAwesome (v6 free, solid) icon name for an industry slug — used by the
+     * wizard's industry tiles. Falls back to a neutral tag icon for anything
+     * unmapped so new industries still render sensibly.
+     */
+    public static function industryIcon(string $slug): string
+    {
+        return [
+            // business.local_shop
+            'bakery'        => 'fa-bread-slice',
+            'salon'         => 'fa-scissors',
+            'gym'           => 'fa-dumbbell',
+            'pet_store'     => 'fa-paw',
+            'auto'          => 'fa-car',
+            'florist'       => 'fa-seedling',
+            'cleaning'      => 'fa-spray-can-sparkles',
+            // business.online_store
+            'fashion'       => 'fa-shirt',
+            'beauty'        => 'fa-wand-magic-sparkles',
+            'food'          => 'fa-utensils',
+            'home'          => 'fa-couch',
+            'digital'       => 'fa-cloud-arrow-down',
+            // business.agency
+            'marketing'     => 'fa-bullhorn',
+            'design'        => 'fa-pen-nib',
+            'dev'           => 'fa-code',
+            'consulting'    => 'fa-briefcase',
+            // restaurant.restaurant
+            'italian'       => 'fa-pizza-slice',
+            'asian'         => 'fa-bowl-rice',
+            'mexican'       => 'fa-pepper-hot',
+            'american'      => 'fa-burger',
+            'mediterranean' => 'fa-fish',
+            'vegan'         => 'fa-leaf',
+            'fine_dining'   => 'fa-wine-glass',
+            // creator.influencer
+            'lifestyle'     => 'fa-mug-saucer',
+            'fitness'       => 'fa-dumbbell',
+            'travel'        => 'fa-plane',
+            'gaming'        => 'fa-gamepad',
+            'parenting'     => 'fa-children',
+            // coach.fitness
+            'pt'            => 'fa-dumbbell',
+            'yoga'          => 'fa-spa',
+            'nutrition'     => 'fa-apple-whole',
+            'crossfit'      => 'fa-weight-hanging',
+            'pilates'       => 'fa-person-walking',
+            // fashion_beauty.fashion_brand
+            'streetwear'    => 'fa-shirt',
+            'luxury'        => 'fa-gem',
+            'sustainable'   => 'fa-recycle',
+            'jewelry'       => 'fa-ring',
+            // generic fallback set
+            'local'         => 'fa-store',
+            'online'        => 'fa-globe',
+            'creative'      => 'fa-palette',
+            'services'      => 'fa-briefcase',
+            'community'     => 'fa-people-group',
+            // shared
+            'other'         => 'fa-ellipsis',
+        ][$slug] ?? 'fa-tag';
     }
 
     /**
