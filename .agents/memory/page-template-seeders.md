@@ -36,6 +36,23 @@ and `StarterPageTemplatesSeeder` (starter-* slugs).
   each key resolves; keep `variantStyle()` null-safe so a bad key degrades instead of
   crashing.
 
+## Block type must have a TOP-LEVEL renderer branch (validator won't catch gaps)
+- Top-level biolink blocks render through `common/biolink.blade.php`'s inline
+  `@if/@elseif ($block->type === ...)` chain (loop starts ~line 1012). Card CHILD
+  blocks render through a DIFFERENT renderer — the `common/partials/biolink-block-render.blade.php`
+  dispatch table. Coverage differs between the two: e.g. `buy_me_coffee` is in the
+  child dispatch table but has NO top-level inline branch, so a top-level
+  `buy_me_coffee` renders as a blank wrapper. `image_slider`/`one_time_offer` are the
+  reverse (top-level only).
+- **`templates:check-designs` / `TemplateSnapshotValidator` does NOT catch this.** It
+  only checks the type is in `BiolinkBlock::TYPES` and the variant key resolves.
+  Membership in TYPES + BlockDefaults + the child dispatch is NOT proof a top-level
+  branch exists.
+- **How to apply:** before using a block as a TOP-LEVEL snapshot block, grep
+  `biolink.blade.php` for an inline `$block->type === '<type>'` (or `in_array`) branch.
+  No branch => pick an equivalent that has one (e.g. `donation` (branch ~1909) instead
+  of `buy_me_coffee`; both 'tip' category, shape `{title,description,amounts[],url}`).
+
 ## Convergence in the cross-region dev env
 - Full refresh of all ~400 persona rows exceeds the 120s tool timeout (per-row
   delete+insert over distant RDS). The refresh is idempotent: re-run

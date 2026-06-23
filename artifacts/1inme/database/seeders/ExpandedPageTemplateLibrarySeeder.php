@@ -47,7 +47,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      * alone. Redesign block contents/copy/themes freely; rename the
      * `key` only when you also intend to retire the old slug.
      */
-    public const SEED_VERSION = 2;
+    public const SEED_VERSION = 3;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -109,8 +109,22 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         $blurb = $persona['blurb'] ?? 'Welcome to my page.';
         $slug = $persona['slug'];
 
-        $thumb = fn(string $variant) => "https://picsum.photos/seed/tpl-{$slug}-{$variant}/600/400";
-        $img = fn(string $key, int $n = 1, int $w = 600, int $h = 400) => "https://picsum.photos/seed/{$slug}-{$key}-{$n}/{$w}/{$h}";
+        $thumb = fn(string $variant) => $this->photo($this->personaKeyword($slug), 600, 400, "tpl-{$slug}-{$variant}");
+        $img = function (string $key, int $n = 1, int $w = 600, int $h = 400) use ($slug) {
+            $seed = "{$slug}-{$key}-{$n}";
+            // People shots (profile avatar, review/testimonial faces) use a
+            // dedicated realistic-face placeholder so they always read as a
+            // real person rather than a random landscape.
+            if (in_array($key, ['avatar', 'rev', 't'], true)) {
+                return $this->face($seed, $w);
+            }
+            $keyword = match ($key) {
+                'prod'  => 'product,minimal',
+                'grid'  => $this->personaKeyword($slug) . ',portfolio',
+                default => $this->personaKeyword($slug),
+            };
+            return $this->photo($keyword, $w, $h, $seed);
+        };
 
         $presets = $this->themePresets();
         $pick = fn(int $i) => $presets[$i % count($presets)];
@@ -126,13 +140,14 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                 'thumb' => $thumb('starter'),
                 'snapshot' => $this->snapshot([
                     $this->profile($label, $blurb, $img('avatar', 1, 200, 200), $kit(0), $img('cover', 1, 1200, 480)),
+                    $this->badge('✦ Currently taking on new work', '#8b5cf6', '#ffffff'),
                     $this->heading('Start here', 'h3'),
                     $this->paragraph("Hi, I'm a {$label} and this is my corner of the internet. Everything I'm working on, sharing, and recommending lives right here."),
                     $this->paragraph("New here? Skim the quick FAQ below, then pick a link to dive in. Questions are always welcome."),
-                    $this->faq([
-                        ['question' => 'Who are you?', 'answer' => "I'm a {$label}. {$blurb}"],
-                        ['question' => 'What will I find here?', 'answer' => 'My latest work, the easiest ways to reach me, and the things I genuinely recommend.'],
-                        ['question' => 'How do we work together?', 'answer' => 'Tap a link below or send a note — I read and reply to everyone who reaches out.'],
+                    $this->faqV2([
+                        ['question' => 'Who are you?', 'answer' => "I'm a {$label}. {$blurb}", 'icon' => 'fa-user'],
+                        ['question' => 'What will I find here?', 'answer' => 'My latest work, the easiest ways to reach me, and the things I genuinely recommend.', 'icon' => 'fa-compass'],
+                        ['question' => 'How do we work together?', 'answer' => 'Tap a link below or send a note — I read and reply to everyone who reaches out.', 'icon' => 'fa-handshake'],
                     ]),
                     $this->heading('My links', 'h3'),
                     $this->link('Visit my website', 'https://example.com', 'fa-globe', $kit(0)),
@@ -151,6 +166,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                 'snapshot' => $this->snapshot([
                     $this->profile($label, $blurb, $img('avatar', 2, 200, 200), $kit(1), $img('cover', 2, 1200, 480)),
                     $this->countdown('Next drop in', '+21 days'),
+                    $this->oneTimeOffer('Early-bird access', 'Lock in the launch price before the countdown hits zero — limited spots at this rate.', '$29', '$49', 'https://example.com'),
                     $this->heading('Latest from me', 'h3'),
                     $this->linkBig("What I'm working on now", 'https://example.com', 'fa-rocket', $kit(1)),
                     $this->linkBig('Read the latest update', 'https://example.com', 'fa-newspaper', $kit(1)),
@@ -175,6 +191,11 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                     $this->heading('About me', 'h3'),
                     $this->paragraph("I'm a {$label}. {$blurb}"),
                     $this->paragraph("I care about doing thoughtful work, communicating clearly, and leaving every project better than I found it. If that sounds like a fit, I'd love to hear from you."),
+                    $this->progress([
+                        ['label' => 'Replies within 24 hours', 'value' => 98, 'color' => '#0ea5e9'],
+                        ['label' => 'Projects delivered on time', 'value' => 95, 'color' => '#22c55e'],
+                        ['label' => '2026 calendar booked', 'value' => 70, 'color' => '#f59e0b'],
+                    ]),
                     $this->divider(),
                     $this->review('Sam P.', 5, "Working with them was the highlight of our quarter — clear, calm, and genuinely great at what they do. Couldn't recommend more.", $img('rev', 1, 80, 80)),
                     $this->ctaButton('Work with me', 'https://example.com', '#0ea5e9', '#ffffff'),
@@ -191,6 +212,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                     $this->profile($label, $blurb, $img('avatar', 4, 200, 200), $kit(3), $img('cover', 4, 1200, 480)),
                     $this->heading('Get updates from me', 'h3'),
                     $this->paragraph('One short note when there is something genuinely new. No spam, no noise — and you can leave any time.'),
+                    $this->alert('Subscribers get every new piece a full day before it goes public.', 'success', 'fa-circle-check'),
                     $this->emailCollector(),
                     $this->poll('What should I cover next?', ['Behind the scenes', 'Tutorials', 'Q&A sessions', 'Case studies']),
                     $this->quiz('How well do you know my work?', [
@@ -217,6 +239,11 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                         $img('grid', 5, 400, 400),
                         $img('grid', 6, 400, 400),
                     ], 3),
+                    $this->imageSlider([
+                        $img('grid', 7, 1000, 640),
+                        $img('grid', 8, 1000, 640),
+                        $img('grid', 9, 1000, 640),
+                    ]),
                     $this->testimonials([
                         ['name' => 'Dana M.', 'avatar' => $img('t', 4, 80, 80), 'rating' => 5, 'text' => "Every shot in the deck was exactly what we needed. A real eye."],
                         ['name' => 'Leo T.',  'avatar' => $img('t', 5, 80, 80), 'rating' => 5, 'text' => "Turned a vague brief into something we were proud to ship."],
@@ -243,6 +270,12 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                         'Two weeks of async support',
                         'Wrap-up review call',
                     ], 'https://example.com'),
+                    $this->listPricing([
+                        ['name' => 'Discovery call', 'price' => 'Free', 'included' => true],
+                        ['name' => 'Project roadmap', 'price' => 'Included', 'included' => true],
+                        ['name' => 'Async support', 'price' => 'Included', 'included' => true],
+                        ['name' => 'Rush turnaround', 'price' => '+$300', 'included' => false],
+                    ]),
                     $this->product('Template Pack', 'Everything I use to deliver client work, packaged so you can run it yourself.', '$79', $img('prod', 2, 600, 600), 'https://example.com', 'Popular'),
                     $this->ctaButton('Book a call', 'https://example.com', '#a855f7', '#ffffff'),
                     $this->socials(),
@@ -256,6 +289,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                 'thumb' => $thumb('proof'),
                 'snapshot' => $this->snapshot([
                     $this->profile($label, $blurb, $img('avatar', 7, 200, 200), $kit(6), $img('cover', 7, 1200, 480)),
+                    $this->badge('★ 5.0 average from 120+ clients', '#06b6d4', '#001018'),
                     $this->heading('What people say', 'h3'),
                     $this->testimonials([
                         ['name' => 'Alex R.',    'avatar' => $img('t', 1, 80, 80), 'rating' => 5, 'text' => "Genuinely a delight to work with. Recommend without hesitation."],
@@ -263,9 +297,9 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                         ['name' => 'Marcus L.',  'avatar' => $img('t', 3, 80, 80), 'rating' => 4, 'text' => "Sharp eye, clear communication, on time. What more do you want?"],
                     ]),
                     $this->review('Nadia F.', 5, "Six months on, the work is still paying off. That's the real test, and it passed.", $img('rev', 2, 80, 80)),
-                    $this->faq([
-                        ['question' => 'Are these reviews real?', 'answer' => 'Every one. Replace them with your own once you make this page yours.'],
-                        ['question' => 'Can I talk to a past client?', 'answer' => 'Ask and I\'ll happily connect you with someone relevant.'],
+                    $this->faqV2([
+                        ['question' => 'How do you collect reviews?', 'answer' => 'Every review here comes straight from a real client after we wrap up a project together.', 'icon' => 'fa-star'],
+                        ['question' => 'Can I talk to a past client?', 'answer' => 'Absolutely — ask and I\'ll happily connect you with someone whose project is close to yours.', 'icon' => 'fa-comments'],
                     ]),
                     $this->ctaButton('See more reviews', 'https://example.com', '#06b6d4', '#001018'),
                     $this->socials(),
@@ -282,6 +316,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                     $this->heading('Get in touch', 'h3'),
                     $this->paragraph('The fastest way to reach me is the form below. Prefer to save my details? Grab the vCard or scan the code.'),
                     $this->contactForm('Send a message', 'Send'),
+                    $this->whatsapp('+10000000000', 'Message me on WhatsApp', "Hi! I found you through your page and wanted to get in touch."),
                     $this->vcard('Your Name', $label, 'Your Company', '+10000000000', 'hi@example.com', 'https://example.com'),
                     $this->qrCode('https://example.com', 220),
                     $this->faq([
@@ -308,6 +343,9 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                         ['title' => 'Going all in', 'description' => 'Made it my full-time focus.', 'date' => '2024'],
                         ['title' => 'Today', 'description' => 'Building in the open and grateful for the support.', 'date' => '2025'],
                     ]),
+                    $this->progress([
+                        ['label' => 'Monthly support goal', 'value' => 64, 'color' => '#10b981'],
+                    ]),
                     $this->donation('Support my work', 'Every tip helps me keep going — thank you for being here.', [5, 10, 25, 50], 'https://example.com'),
                     $this->ctaButton('Learn more', 'https://example.com', '#10b981', '#ffffff'),
                     $this->socials(),
@@ -322,11 +360,12 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                 'snapshot' => $this->snapshot([
                     $this->profile($label, $blurb, $img('avatar', 9, 200, 200), $kit(9), $img('cover', 9, 1200, 480)),
                     $this->heading('Frequently asked', 'h3'),
-                    $this->faq([
-                        ['question' => 'How do we start?', 'answer' => "Drop me a message and we'll set up a quick intro call to see if it's a fit."],
-                        ['question' => 'How much does it cost?', 'answer' => 'It depends on scope, so I always share a clear range upfront — no surprises.'],
-                        ['question' => 'How fast can we start?', 'answer' => 'Usually within a week or two, depending on the current schedule.'],
+                    $this->faqV2([
+                        ['question' => 'How do we start?', 'answer' => "Drop me a message and we'll set up a quick intro call to see if it's a fit.", 'icon' => 'fa-flag'],
+                        ['question' => 'How much does it cost?', 'answer' => 'It depends on scope, so I always share a clear range upfront — no surprises.', 'icon' => 'fa-tag'],
+                        ['question' => 'How fast can we start?', 'answer' => 'Usually within a week or two, depending on the current schedule.', 'icon' => 'fa-bolt'],
                     ]),
+                    $this->alert('Only two new project slots left this month — book early to claim one.', 'warning', 'fa-triangle-exclamation'),
                     $this->coupon('WELCOME15', 'Save 15% on your first booking.', 'Dec 31, 2026'),
                     $this->product('Quick-Start Session', 'A single focused session to unblock you — perfect if you just need a push in the right direction.', '$99', $img('prod', 3, 600, 600), 'https://example.com', 'Limited'),
                     $this->cardGrid('Quick links', 2, [
@@ -460,7 +499,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         // 4 — Editorial photo
         $presets[] = [
             'background_type'   => 'image',
-            'background_image'  => 'https://picsum.photos/seed/tpl-bg-editorial/1200/2000',
+            'background_image'  => $this->photo('minimal,texture', 1200, 2000, 'tpl-bg-editorial'),
             'theme_color'       => '#f59e0b',
             'font_color'        => '#ffffff',
             'button_color'      => '#ffffff',
@@ -998,5 +1037,122 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         ]);
         $card['children'] = array_values($children);
         return $card;
+    }
+
+    /* ──────────────────── realistic demo imagery ──────────────────── */
+
+    /**
+     * Persona slug => a LoremFlickr-friendly photo keyword so each
+     * persona's templates pull on-topic imagery instead of random
+     * placeholders. Visually-concrete slugs (chef, yoga, restaurant…)
+     * fall through to the slug itself; only abstract/ambiguous ones are
+     * remapped here.
+     *
+     * @var array<string,string>
+     */
+    private const PERSONA_IMAGE_KEYWORDS = [
+        'creator'    => 'creative,workspace',
+        'influencer' => 'lifestyle,social',
+        'coach'      => 'coaching,office',
+        'business'   => 'business,office',
+        'developer'  => 'developer,code',
+        'consultant' => 'business,meeting',
+        'freelancer' => 'laptop,workspace',
+        'agency'     => 'office,team',
+        'realestate' => 'realestate,house',
+        'nonprofit'  => 'volunteer,community',
+        'community'  => 'community,people',
+        'student'    => 'study,campus',
+        'author'     => 'books,writing',
+        'journalist' => 'newsroom,writing',
+        'trainer'    => 'gym,training',
+        'model'      => 'fashion,model',
+        'beauty'     => 'beauty,makeup',
+        'event'      => 'event,celebration',
+        'other'      => 'minimal,abstract',
+    ];
+
+    /** Map a persona slug to a photo keyword (fallback = the slug itself). */
+    private function personaKeyword(string $slug): string
+    {
+        return self::PERSONA_IMAGE_KEYWORDS[$slug] ?? $slug;
+    }
+
+    /**
+     * Deterministic, keyword-matched real photo from LoremFlickr (a
+     * placeholder CDN like the old picsum, but topical). The `$seed`
+     * locks a stable image per slot so re-seeding is idempotent.
+     */
+    private function photo(string $keywords, int $w, int $h, string $seed): string
+    {
+        $lock = (crc32($seed) % 100000) + 1;
+        return "https://loremflickr.com/{$w}/{$h}/" . rawurlencode($keywords) . "?lock={$lock}";
+    }
+
+    /** Deterministic realistic-face photo (pravatar) keyed by `$seed`. */
+    private function face(string $seed, int $size = 200): string
+    {
+        $n = (crc32($seed) % 70) + 1; // pravatar serves img=1..70
+        return "https://i.pravatar.cc/{$size}?img={$n}";
+    }
+
+    /* ──────────────────── newer block helpers ──────────────────── */
+
+    /** @param  array<int, array{question:string,answer:string,icon?:string}>  $items */
+    private function faqV2(array $items): array
+    {
+        return $this->block('faq_v2', ['items' => array_values($items)]);
+    }
+
+    private function badge(string $text, string $color = '#7c3aed', string $textColor = '#ffffff'): array
+    {
+        return $this->block('badge', ['text' => $text, 'color' => $color, 'text_color' => $textColor]);
+    }
+
+    private function alert(string $text, string $type = 'info', string $icon = 'fa-info-circle'): array
+    {
+        return $this->block('alert', ['text' => $text, 'type' => $type, 'icon' => $icon]);
+    }
+
+    /** @param  array<int, array{label:string,value:int,color?:string}>  $items */
+    private function progress(array $items): array
+    {
+        return $this->block('progress', ['items' => array_values($items)]);
+    }
+
+    /** @param  array<int, array{name:string,price:string,included?:bool}>  $items */
+    private function listPricing(array $items): array
+    {
+        return $this->block('list_pricing', ['items' => array_values($items)]);
+    }
+
+    private function oneTimeOffer(string $title, string $description, string $price, string $originalPrice, string $url): array
+    {
+        return $this->block('one_time_offer', [
+            'title'          => $title,
+            'description'    => $description,
+            'price'          => $price,
+            'original_price' => $originalPrice,
+            'url'            => $url,
+        ]);
+    }
+
+    /** @param  array<int,string>  $images */
+    private function imageSlider(array $images, int $interval = 3500): array
+    {
+        return $this->block('image_slider', [
+            'images'   => array_map(fn($u) => ['url' => $u], array_values($images)),
+            'interval' => $interval,
+            'effect'   => 'fade',
+        ]);
+    }
+
+    private function whatsapp(string $phone, string $buttonText = 'Chat on WhatsApp', string $message = ''): array
+    {
+        return $this->block('whatsapp_widget', [
+            'phone'       => $phone,
+            'button_text' => $buttonText,
+            'message'     => $message,
+        ]);
     }
 }

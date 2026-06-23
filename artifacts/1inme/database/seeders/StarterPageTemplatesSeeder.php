@@ -36,7 +36,7 @@ use Illuminate\Database\Seeder;
 class StarterPageTemplatesSeeder extends Seeder
 {
     /** Bump when the starter blueprints below are redesigned. */
-    public const SEED_VERSION = 2;
+    public const SEED_VERSION = 3;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -101,7 +101,17 @@ class StarterPageTemplatesSeeder extends Seeder
      */
     private function templates(): array
     {
-        $img = fn(string $key, int $w = 600, int $h = 400) => "https://picsum.photos/seed/starter-{$key}/{$w}/{$h}";
+        $img = function (string $key, int $w = 600, int $h = 400) {
+            // People shots (profile avatars, reviewer/testimonial faces) use a
+            // realistic-face placeholder; brand + scene shots pull on-topic
+            // photos. Restaurant "avatar" is a venue badge, not a person.
+            $isFace = preg_match('/(rev|-t\d)/', $key)
+                || (str_contains($key, 'avatar') && !str_starts_with($key, 'restaurant'));
+            if ($isFace) {
+                return $this->face($key, $w);
+            }
+            return $this->photo($this->starterKeyword($key), $w, $h, $key);
+        };
         $kits = $this->variantKits();
 
         return [
@@ -115,13 +125,14 @@ class StarterPageTemplatesSeeder extends Seeder
                 'recommended_personas' => ['creator', 'business', 'other'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Your Name', 'Welcome — here\'s where to find me online.', $img('personal-avatar', 200, 200), $kits['personal'], $img('personal-cover', 1200, 480)),
+                    $this->badge('👋 Thanks for stopping by', '#0ea5e9', '#ffffff'),
                     $this->heading('About me', 'h3'),
-                    $this->paragraph("A short note about who you are and what you do. Replace this with your own intro."),
+                    $this->paragraph("I'm a maker and lifelong learner who loves turning ideas into things people can actually use. This page is the easiest way to follow along and get in touch."),
                     $this->paragraph("Working on something together? The links below are the fastest way in — or skim the FAQ first."),
-                    $this->faq([
-                        ['question' => 'What do you do?', 'answer' => 'Replace this with a one-line summary of what you help people with.'],
-                        ['question' => 'How can I reach you?', 'answer' => 'Use any of the links below — I read every message that comes in.'],
-                        ['question' => 'Where are you based?', 'answer' => 'Add your city and time zone here so people know when to expect a reply.'],
+                    $this->faqV2([
+                        ['question' => 'What do you do?', 'answer' => 'I help people bring their projects to life — from the first rough idea all the way to something polished and shipped.', 'icon' => 'fa-briefcase'],
+                        ['question' => 'How can I reach you?', 'answer' => 'Use any of the links below — I read every message that comes in and reply as quickly as I can.', 'icon' => 'fa-envelope'],
+                        ['question' => 'Where are you based?', 'answer' => 'I work remotely across time zones and answer messages within a business day, wherever you are.', 'icon' => 'fa-location-dot'],
                     ]),
                     $this->link('My website', 'https://example.com', 'fa-globe', $kits['personal']),
                     $this->link('Latest project', 'https://example.com', 'fa-bookmark', $kits['personal']),
@@ -149,6 +160,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'recommended_personas' => ['creator', 'influencer', 'artist'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Your Name', 'All my links in one place.', $img('linkbio-avatar', 200, 200), $kits['linkbio'], $img('linkbio-cover', 1200, 480)),
+                    $this->badge('🔥 New video out now', '#ec4899', '#ffffff'),
                     $this->linkBig('Latest video', 'https://example.com', 'fa-play', $kits['linkbio']),
                     $this->linkBig("What I'm working on", 'https://example.com', 'fa-rocket', $kits['linkbio']),
                     $this->linkBig('Newsletter', 'https://example.com', 'fa-envelope-open', $kits['linkbio']),
@@ -157,6 +169,7 @@ class StarterPageTemplatesSeeder extends Seeder
                         ['name' => 'Riya A.', 'avatar' => $img('linkbio-t1', 80, 80), 'rating' => 5, 'text' => "Followed for the videos, stayed for everything else. So good."],
                         ['name' => 'Kofi B.', 'avatar' => $img('linkbio-t2', 80, 80), 'rating' => 5, 'text' => "The newsletter alone is worth the follow. Highly recommend."],
                     ]),
+                    $this->donation('Enjoying the content?', 'A small tip keeps the new videos coming — thank you for the support!', [3, 5, 10], 'https://example.com'),
                     $this->socials(),
                 ], [
                     'background_type'    => 'gradient',
@@ -182,16 +195,18 @@ class StarterPageTemplatesSeeder extends Seeder
                         'badges' => [['label' => 'Open now'], ['label' => 'Reservations'], ['label' => 'Vegan options']],
                     ]),
                     $this->image($img('restaurant-hero', 1200, 600)),
+                    $this->alert("Tonight's special: wood-fired sea bass while it lasts.", 'info', 'fa-utensils'),
                     $this->heading("Today's menu", 'h3'),
-                    $this->list([
-                        'Burrata, heirloom tomato, basil — $14',
-                        'Wood-fired margherita — $16',
-                        'Slow-braised short rib, polenta — $28',
-                        'Tiramisu (made in-house) — $9',
+                    $this->listPricing([
+                        ['name' => 'Burrata, heirloom tomato, basil', 'price' => '$14', 'included' => true],
+                        ['name' => 'Wood-fired margherita', 'price' => '$16', 'included' => true],
+                        ['name' => 'Slow-braised short rib, polenta', 'price' => '$28', 'included' => true],
+                        ['name' => 'Tiramisu (made in-house)', 'price' => '$9', 'included' => true],
                     ]),
                     $this->coupon('FIRSTBITE', 'Show this code for a free dessert with any main.', 'Dec 31, 2026'),
                     $this->review('Elena R.', 5, "The short rib is unreal and the room is gorgeous. Already booked our next visit.", $img('restaurant-rev', 80, 80)),
                     $this->ctaButton('Book a table', 'https://example.com', '#dc2626', '#ffffff'),
+                    $this->whatsapp('+10000000000', 'Order on WhatsApp', "Hi Casa Verde! I'd like to place an order for pickup."),
                     $this->link('Call us', 'tel:+10000000000', 'fa-phone', $kits['restaurant']),
                     $this->link('Find us', 'https://maps.google.com', 'fa-map-marker-alt', $kits['restaurant']),
                     $this->socials(),
@@ -219,6 +234,10 @@ class StarterPageTemplatesSeeder extends Seeder
                     $this->paragraph('Saturday, August 22 · Doors at 7pm'),
                     $this->countdown('Starts in', '+30 days'),
                     $this->image($img('event-hero', 1200, 600)),
+                    $this->oneTimeOffer('Early-bird ticket', 'Grab your spot before prices go up — early-bird pricing ends as soon as the first 100 tickets sell.', '$25', '$40', 'https://example.com'),
+                    $this->progress([
+                        ['label' => 'Tickets claimed', 'value' => 78, 'color' => '#a855f7'],
+                    ]),
                     $this->heading('Run of show', 'h3'),
                     $this->timeline([
                         ['title' => 'Doors open', 'description' => 'Grab a drink and find your people.', 'date' => '7:00 PM'],
@@ -251,6 +270,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'recommended_personas' => ['artist', 'photographer', 'developer', 'writer'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Your Name', 'Selected work, 2024 — present.', $img('portfolio-avatar', 200, 200), $kits['portfolio'], $img('portfolio-cover', 1200, 480)),
+                    $this->badge('🏆 Available for commissions', '#f5f5f5', '#0a0a0a'),
                     $this->heading('Selected work', 'h3'),
                     $this->imageGrid([
                         $img('portfolio-1', 400, 400),
@@ -260,6 +280,11 @@ class StarterPageTemplatesSeeder extends Seeder
                         $img('portfolio-5', 400, 400),
                         $img('portfolio-6', 400, 400),
                     ], 3),
+                    $this->imageSlider([
+                        $img('portfolio-feature-1', 1000, 640),
+                        $img('portfolio-feature-2', 1000, 640),
+                        $img('portfolio-feature-3', 1000, 640),
+                    ]),
                     $this->testimonials([
                         ['name' => 'Mara V.', 'avatar' => $img('portfolio-t1', 80, 80), 'rating' => 5, 'text' => "Captured exactly the mood we were after. A pleasure start to finish."],
                         ['name' => 'Owen D.', 'avatar' => $img('portfolio-t2', 80, 80), 'rating' => 5, 'text' => "Professional, creative, and fast. The work speaks for itself."],
@@ -530,6 +555,110 @@ class StarterPageTemplatesSeeder extends Seeder
             ]],
             'size'  => 'md',
             'style' => 'rounded',
+        ]);
+    }
+
+    /* ──────────────────── realistic demo imagery ──────────────────── */
+
+    /** Map a starter image key to an on-topic photo keyword. */
+    private function starterKeyword(string $key): string
+    {
+        return match (true) {
+            str_starts_with($key, 'restaurant') => str_contains($key, 'hero') ? 'gourmet,food' : 'restaurant,interior',
+            str_starts_with($key, 'event')      => 'concert,event',
+            str_starts_with($key, 'portfolio')  => str_contains($key, 'print') ? 'art,print' : 'photography,art',
+            str_starts_with($key, 'linkbio')    => 'creative,lifestyle',
+            str_starts_with($key, 'personal')   => 'lifestyle,portrait',
+            default                              => 'minimal,abstract',
+        };
+    }
+
+    /**
+     * Deterministic, keyword-matched real photo from LoremFlickr (a
+     * placeholder CDN like the old picsum, but topical). The `$seed`
+     * locks a stable image per slot so re-seeding is idempotent.
+     */
+    private function photo(string $keywords, int $w, int $h, string $seed): string
+    {
+        $lock = (crc32($seed) % 100000) + 1;
+        return "https://loremflickr.com/{$w}/{$h}/" . rawurlencode($keywords) . "?lock={$lock}";
+    }
+
+    /** Deterministic realistic-face photo (pravatar) keyed by `$seed`. */
+    private function face(string $seed, int $size = 200): string
+    {
+        $n = (crc32($seed) % 70) + 1; // pravatar serves img=1..70
+        return "https://i.pravatar.cc/{$size}?img={$n}";
+    }
+
+    /* ──────────────────── newer block helpers ──────────────────── */
+
+    /** @param  array<int, array{question:string,answer:string,icon?:string}>  $items */
+    private function faqV2(array $items): array
+    {
+        return $this->block('faq_v2', ['items' => array_values($items)]);
+    }
+
+    private function badge(string $text, string $color = '#7c3aed', string $textColor = '#ffffff'): array
+    {
+        return $this->block('badge', ['text' => $text, 'color' => $color, 'text_color' => $textColor]);
+    }
+
+    private function alert(string $text, string $type = 'info', string $icon = 'fa-info-circle'): array
+    {
+        return $this->block('alert', ['text' => $text, 'type' => $type, 'icon' => $icon]);
+    }
+
+    /** @param  array<int, array{label:string,value:int,color?:string}>  $items */
+    private function progress(array $items): array
+    {
+        return $this->block('progress', ['items' => array_values($items)]);
+    }
+
+    /** @param  array<int, array{name:string,price:string,included?:bool}>  $items */
+    private function listPricing(array $items): array
+    {
+        return $this->block('list_pricing', ['items' => array_values($items)]);
+    }
+
+    private function oneTimeOffer(string $title, string $description, string $price, string $originalPrice, string $url): array
+    {
+        return $this->block('one_time_offer', [
+            'title'          => $title,
+            'description'    => $description,
+            'price'          => $price,
+            'original_price' => $originalPrice,
+            'url'            => $url,
+        ]);
+    }
+
+    /** @param  array<int,string>  $images */
+    private function imageSlider(array $images, int $interval = 3500): array
+    {
+        return $this->block('image_slider', [
+            'images'   => array_map(fn($u) => ['url' => $u], array_values($images)),
+            'interval' => $interval,
+            'effect'   => 'fade',
+        ]);
+    }
+
+    private function whatsapp(string $phone, string $buttonText = 'Chat on WhatsApp', string $message = ''): array
+    {
+        return $this->block('whatsapp_widget', [
+            'phone'       => $phone,
+            'button_text' => $buttonText,
+            'message'     => $message,
+        ]);
+    }
+
+    /** @param  array<int,int>  $amounts */
+    private function donation(string $title, string $description, array $amounts, string $url): array
+    {
+        return $this->block('donation', [
+            'title'       => $title,
+            'description' => $description,
+            'amounts'     => array_values($amounts),
+            'url'         => $url,
         ]);
     }
 }
