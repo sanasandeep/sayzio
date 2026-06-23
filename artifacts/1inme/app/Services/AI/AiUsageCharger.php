@@ -25,12 +25,39 @@ use App\Services\Billing\WalletService;
  */
 class AiUsageCharger
 {
+    /**
+     * Default "low balance" warning threshold in whole coins. A single
+     * chat call costs roughly 2 coins on the cheap model and ~12 on the
+     * premium one, so this is a few calls' worth of runway — enough to
+     * nudge a top-up before the wallet hits the hard
+     * InsufficientCoinsForAiException gate, without nagging users who
+     * still have comfortable headroom. Override via
+     * `config('billing.ai_low_balance_coins')`.
+     */
+    public const LOW_BALANCE_COINS = 25;
+
     public function __construct(protected WalletService $wallets) {}
 
     /** Current spendable coin balance. */
     public function getBalance(User $user): int
     {
         return $this->wallets->getBalance($user);
+    }
+
+    /** Coin balance at/below which feature screens show a top-up nudge. */
+    public static function lowBalanceThreshold(): int
+    {
+        return max(0, (int) config('billing.ai_low_balance_coins', self::LOW_BALANCE_COINS));
+    }
+
+    /**
+     * Whether the user's wallet is low enough that an AI action could
+     * fail (or soon will) — drives the pre-spend top-up hint shown on
+     * the AI feature pages before the user submits.
+     */
+    public function isLowBalance(User $user): bool
+    {
+        return $this->getBalance($user) <= static::lowBalanceThreshold();
     }
 
     /**
