@@ -54,7 +54,9 @@
         category: 'all',
         search: '',
         preview: { open: false, url: '', name: '' },
-        openPreview(url, name) { this.preview = { open: true, url: url, name: name }; },
+        previewDevice: 'phone',
+        previewWidths: { phone: 420, tablet: 768, desktop: 1100 },
+        openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; },
         closePreview() { this.preview = { open: false, url: '', name: '' }; },
         templates: {{ \Illuminate\Support\Js::from($filterIndex) }},
         // Single source of truth for whether a template passes the active
@@ -517,14 +519,32 @@
          @keydown.escape.window="closePreview()"
          @click.self="closePreview()">
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closePreview()"></div>
-        <div class="relative w-full max-w-md flex flex-col" style="max-height: calc(100vh - 2rem);">
-            <div class="flex items-center justify-between mb-3">
+        <div class="relative w-full flex flex-col transition-[max-width] duration-300 ease-out"
+             :style="{ maxWidth: previewWidths[previewDevice] + 'px', maxHeight: 'calc(100vh - 2rem)' }">
+            <div class="flex items-center justify-between mb-3 gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                     <i class="fas fa-mobile-screen-button text-violet-400"></i>
                     <h3 class="text-sm font-semibold text-white truncate" x-text="preview.name"></h3>
                     <span class="text-[10px] uppercase tracking-wide text-white/40 shrink-0">Preview</span>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
+                    <div class="flex items-center gap-0.5 rounded-lg bg-white/5 p-0.5">
+                        <button type="button" @click="previewDevice = 'phone'"
+                                :class="previewDevice === 'phone' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                                class="px-2 py-1 rounded-md transition" title="Phone width">
+                            <i class="fas fa-mobile-screen-button text-xs"></i>
+                        </button>
+                        <button type="button" @click="previewDevice = 'tablet'"
+                                :class="previewDevice === 'tablet' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                                class="px-2 py-1 rounded-md transition" title="Tablet width">
+                            <i class="fas fa-tablet-screen-button text-xs"></i>
+                        </button>
+                        <button type="button" @click="previewDevice = 'desktop'"
+                                :class="previewDevice === 'desktop' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                                class="px-2 py-1 rounded-md transition" title="Desktop width">
+                            <i class="fas fa-desktop text-xs"></i>
+                        </button>
+                    </div>
                     <a :href="preview.url" target="_blank" rel="noopener"
                        class="text-white/50 hover:text-white p-1.5" title="Open in a new tab">
                         <i class="fas fa-up-right-from-square text-xs"></i>
