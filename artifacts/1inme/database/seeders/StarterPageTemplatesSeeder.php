@@ -35,8 +35,16 @@ use Illuminate\Database\Seeder;
  */
 class StarterPageTemplatesSeeder extends Seeder
 {
-    /** Bump when the starter blueprints below are redesigned. */
-    public const SEED_VERSION = 4;
+    /**
+     * Bump when the starter blueprints below are redesigned.
+     *
+     * v5 (2026-06): Added 5 media-forward showcase pages (photo
+     * portfolio, music artist, content-creator embeds, knowledge hub,
+     * press/media kit) exercising image grids/sliders, social embeds,
+     * audio/music, documents and advanced UI (tabs/accordion/ticker/
+     * stats/reviews wall/testimonial carousel).
+     */
+    public const SEED_VERSION = 5;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -301,6 +309,211 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_color'      => '#f5f5f5',
                     'button_text_color' => '#0a0a0a',
                     'button_style'      => 'square',
+                ]),
+            ],
+
+            // 6 — Photo portfolio: a gallery-forward page leaning on real
+            // image grids and an auto-playing slider, plus a reviews wall.
+            [
+                'slug' => 'starter-photo-portfolio',
+                'name' => 'Photo Portfolio',
+                'category' => 'gallery',
+                'description' => 'A gallery-forward page — a stats profile, a six-shot grid, a full-width slider, a live reviews wall, and a booking CTA.',
+                'recommended_personas' => ['photographer', 'artist', 'creator'],
+                'snapshot' => $this->snapshot([
+                    $this->profile('Your Studio', 'Photography & visual storytelling.', $img('portfolio-avatar', 200, 200), $kits['portfolio'], $img('portfolio-cover', 1200, 480)),
+                    $this->badge('📷 Booking 2026 sessions', '#f5f5f5', '#0a0a0a'),
+                    $this->heading('Recent shoots', 'h3'),
+                    $this->imageGrid([
+                        $img('portfolio-1', 400, 400),
+                        $img('portfolio-2', 400, 400),
+                        $img('portfolio-3', 400, 400),
+                        $img('portfolio-4', 400, 400),
+                        $img('portfolio-5', 400, 400),
+                        $img('portfolio-6', 400, 400),
+                    ], 3),
+                    $this->heading('Featured series', 'h3'),
+                    $this->imageSlider([
+                        $img('portfolio-feature-1', 1000, 640),
+                        $img('portfolio-feature-2', 1000, 640),
+                        $img('portfolio-feature-3', 1000, 640),
+                    ]),
+                    $this->stats('By the numbers', [
+                        ['value' => '8yrs', 'label' => 'Shooting', 'caption' => 'professionally'],
+                        ['value' => '240+', 'label' => 'Sessions', 'caption' => 'delivered'],
+                        ['value' => '4.9', 'label' => 'Rating', 'caption' => 'from clients'],
+                    ]),
+                    $this->reviewsWall('What clients say'),
+                    $this->ctaButton('Book a session', 'https://example.com', '#f59e0b', '#0f172a'),
+                    $this->socials(),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#0a0a0a',
+                    'theme_color'       => '#f5f5f5',
+                    'font_color'        => '#f5f5f5',
+                    'button_color'      => '#f5f5f5',
+                    'button_text_color' => '#0a0a0a',
+                    'button_style'      => 'square',
+                ]),
+            ],
+
+            // 7 — Music artist: streaming embeds (Spotify/Apple/SoundCloud),
+            // an audio playlist, tour ticker, and tip jar.
+            [
+                'slug' => 'starter-music-artist',
+                'name' => 'Music Artist',
+                'category' => 'general',
+                'description' => 'A release-ready page — streaming embeds, an audio playlist, a tour-date ticker, fan reviews, and a tip jar.',
+                'recommended_personas' => ['musician', 'artist', 'creator'],
+                'snapshot' => $this->snapshot([
+                    $this->profile('The Artist', 'New single out now — stream it everywhere.', $img('personal-avatar', 200, 200), $kits['linkbio'], $img('linkbio-cover', 1200, 480)),
+                    $this->ticker([
+                        '🎫 Aug 22 — Brooklyn, NY',
+                        '🎫 Sep 04 — Chicago, IL',
+                        '🎫 Sep 19 — Austin, TX',
+                    ]),
+                    $this->heading('Latest single', 'h3'),
+                    $this->spotify(),
+                    $this->heading('Listen everywhere', 'h3'),
+                    $this->appleMusic(),
+                    $this->soundcloud(),
+                    $this->heading('Top tracks', 'h3'),
+                    $this->audioList('Fan favourites', [
+                        ['title' => 'Sunrise', 'artist' => 'The Artist', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'cover' => $img('linkbio-t1', 300, 300), 'duration' => '3:42'],
+                        ['title' => 'Midnight Drive', 'artist' => 'The Artist', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'cover' => $img('linkbio-t2', 300, 300), 'duration' => '4:05'],
+                    ]),
+                    $this->testimonialCarousel([
+                        ['quote' => 'On repeat all summer. Can\'t wait for the album.', 'name' => 'Riya A.', 'title' => 'Fan'],
+                        ['quote' => 'Saw them live — unreal energy.', 'name' => 'Kofi B.', 'title' => 'Fan'],
+                    ]),
+                    $this->buyMeCoffee('theartist', 'Support the music', 'Tips help fund the next record — thank you!', [5, 10, 25]),
+                    $this->socials(),
+                ], [
+                    'background_type'    => 'gradient',
+                    'background_gradient' => 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%)',
+                    'theme_color'        => '#22d3ee',
+                    'font_color'         => '#ffffff',
+                    'button_color'       => '#22d3ee',
+                    'button_text_color'  => '#0f172a',
+                    'button_style'       => 'pill',
+                ]),
+            ],
+
+            // 8 — Content creator: social-media embeds across platforms,
+            // testimonials, and a newsletter CTA.
+            [
+                'slug' => 'starter-creator-embeds',
+                'name' => 'Content Creator',
+                'category' => 'general',
+                'description' => 'Showcase your best posts — Instagram, TikTok and X embeds in one place, plus testimonials and a newsletter sign-up.',
+                'recommended_personas' => ['creator', 'influencer', 'artist'],
+                'snapshot' => $this->snapshot([
+                    $this->profile('Your Name', 'Creator · daily posts on the things I love.', $img('linkbio-avatar', 200, 200), $kits['linkbio'], $img('linkbio-cover', 1200, 480)),
+                    $this->badge('🔥 New post every day', '#ec4899', '#ffffff'),
+                    $this->heading('Latest on Instagram', 'h3'),
+                    $this->instagramMedia(),
+                    $this->heading('Trending on TikTok', 'h3'),
+                    $this->tiktokVideo(),
+                    $this->heading('From my feed', 'h3'),
+                    $this->twitterTweet(),
+                    $this->testimonialCarousel([
+                        ['quote' => 'My favourite account to follow, hands down.', 'name' => 'Mara V.', 'title' => 'Follower'],
+                        ['quote' => 'Always the first to find the good stuff.', 'name' => 'Owen D.', 'title' => 'Follower'],
+                    ]),
+                    $this->block('email_subscribe', ['heading' => 'Join the newsletter', 'title' => 'Join the newsletter', 'button_text' => 'Subscribe']),
+                    $this->socials(),
+                ], [
+                    'background_type'    => 'gradient',
+                    'background_gradient' => 'linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%)',
+                    'theme_color'        => '#ec4899',
+                    'font_color'         => '#ffffff',
+                    'button_color'       => '#ffffff',
+                    'button_text_color'  => '#1f2937',
+                    'button_style'       => 'pill',
+                ]),
+            ],
+
+            // 9 — Knowledge hub: tabs, accordion FAQ, a resource document,
+            // and a ticker of updates. Great for docs / support pages.
+            [
+                'slug' => 'starter-knowledge-hub',
+                'name' => 'Knowledge Hub',
+                'category' => 'general',
+                'description' => 'An information-dense page — tabbed sections, an accordion FAQ, a downloadable guide, and a ticker of the latest updates.',
+                'recommended_personas' => ['business', 'coach', 'other'],
+                'snapshot' => $this->snapshot([
+                    $this->profile('Help Center', 'Everything you need, in one place.', $img('personal-avatar', 200, 200), $kits['personal'], $img('personal-cover', 1200, 480)),
+                    $this->ticker([
+                        '📰 New: dark mode is here',
+                        '🛠 Scheduled maintenance Sunday 2am UTC',
+                        '🎉 We just shipped v2.0',
+                    ]),
+                    $this->heading('Get oriented', 'h3'),
+                    $this->tabs([
+                        ['label' => 'Overview', 'text' => 'What this is, who it\'s for, and how to get the most out of it in five minutes.'],
+                        ['label' => 'Getting started', 'text' => 'Create your account, pick a template, and publish your first page.'],
+                        ['label' => 'Pro tips', 'text' => 'Keyboard shortcuts, automations, and the features power users love.'],
+                    ]),
+                    $this->heading('Frequently asked', 'h3'),
+                    $this->accordion([
+                        ['title' => 'How do I reset my password?', 'body' => 'Use the "Forgot password" link on the login screen — you\'ll get an email within a minute.'],
+                        ['title' => 'Can I use a custom domain?', 'body' => 'Yes, on any paid plan. Add it from Settings → Domains and follow the DNS steps.'],
+                        ['title' => 'How do I contact support?', 'body' => 'Reply to any email from us, or use the contact link below — we answer within a business day.'],
+                    ]),
+                    $this->pdfDocument('Complete getting-started guide (PDF)'),
+                    $this->ctaButton('Contact support', 'mailto:help@example.com', '#0ea5e9', '#ffffff'),
+                    $this->socials(),
+                ], [
+                    'background_type'    => 'gradient',
+                    'background_gradient' => 'linear-gradient(180deg, #f8fafc 0%, #e0f2fe 100%)',
+                    'theme_color'        => '#0ea5e9',
+                    'font_color'         => '#0f172a',
+                    'button_color'       => '#0ea5e9',
+                    'button_text_color'  => '#ffffff',
+                    'button_style'       => 'rounded',
+                ]),
+            ],
+
+            // 10 — Press / media kit: stats band, brand assets as documents,
+            // an image grid, and a testimonial carousel.
+            [
+                'slug' => 'starter-press-kit',
+                'name' => 'Press & Media Kit',
+                'category' => 'general',
+                'description' => 'A press-ready page — a stats band, brand assets to download, a brand image grid, press quotes, and a contact CTA.',
+                'recommended_personas' => ['business', 'creator', 'other'],
+                'snapshot' => $this->snapshot([
+                    $this->profile('Your Brand', 'Press & media resources.', $img('personal-avatar', 200, 200), $kits['portfolio'], $img('personal-cover', 1200, 480)),
+                    $this->badge('📣 Press kit', '#f5f5f5', '#0a0a0a'),
+                    $this->stats('At a glance', [
+                        ['value' => '2018', 'label' => 'Founded', 'caption' => ''],
+                        ['value' => '50k', 'label' => 'Customers', 'caption' => 'worldwide'],
+                        ['value' => '30', 'label' => 'Team', 'caption' => 'across 8 countries'],
+                    ]),
+                    $this->heading('Brand assets', 'h3'),
+                    $this->pdfDocument('Brand one-pager (PDF)'),
+                    $this->pdfDocument('Logo & guidelines (PDF)'),
+                    $this->heading('In the wild', 'h3'),
+                    $this->imageGrid([
+                        $img('portfolio-1', 400, 400),
+                        $img('portfolio-2', 400, 400),
+                        $img('portfolio-3', 400, 400),
+                    ], 3),
+                    $this->heading('What press say', 'h3'),
+                    $this->testimonialCarousel([
+                        ['quote' => 'One of the most exciting tools in the space.', 'name' => 'The Daily Review', 'title' => 'Feature'],
+                        ['quote' => 'A polished, thoughtful product.', 'name' => 'Tech Weekly', 'title' => 'Review'],
+                    ]),
+                    $this->ctaButton('Press enquiries', 'mailto:press@example.com', '#7c3aed', '#ffffff'),
+                    $this->socials(),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#0f172a',
+                    'theme_color'       => '#a78bfa',
+                    'font_color'        => '#f8fafc',
+                    'button_color'      => '#7c3aed',
+                    'button_text_color' => '#ffffff',
+                    'button_style'      => 'rounded',
                 ]),
             ],
         ];
@@ -671,5 +884,88 @@ class StarterPageTemplatesSeeder extends Seeder
             'description' => $description,
             'amounts'     => array_values($amounts),
         ]);
+    }
+
+    /* ──────────────── rich-media block helpers (v5) ──────────────── */
+
+    private function spotify(string $url = 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT', string $type = 'track'): array
+    {
+        return $this->block('spotify', ['url' => $url, 'type' => $type]);
+    }
+
+    private function appleMusic(string $url = 'https://music.apple.com/us/album/abbey-road-remastered/1441164426'): array
+    {
+        return $this->block('apple_music', ['url' => $url, 'type' => 'album']);
+    }
+
+    private function soundcloud(string $url = 'https://soundcloud.com/forss/flickermood'): array
+    {
+        return $this->block('soundcloud', ['url' => $url]);
+    }
+
+    private function audio(string $title, string $url = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'): array
+    {
+        return $this->block('audio', ['title' => $title, 'url' => $url]);
+    }
+
+    /** @param  array<int, array{title:string,artist?:string,url:string,cover?:string,duration?:string}>  $tracks */
+    private function audioList(string $title, array $tracks): array
+    {
+        return $this->block('audio_list', ['title' => $title, 'layout' => 'compact', 'tracks' => array_values($tracks)]);
+    }
+
+    private function instagramMedia(string $url = 'https://www.instagram.com/p/CkQ7-gDgF8B/'): array
+    {
+        return $this->block('instagram_media', ['url' => $url]);
+    }
+
+    private function tiktokVideo(string $url = 'https://www.tiktok.com/@scout2015/video/6718335390845095173'): array
+    {
+        return $this->block('tiktok_video', ['url' => $url]);
+    }
+
+    private function twitterTweet(string $url = 'https://twitter.com/Twitter/status/1445078208190291973'): array
+    {
+        return $this->block('twitter_tweet', ['url' => $url]);
+    }
+
+    private function pdfDocument(string $title, string $url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'): array
+    {
+        return $this->block('pdf_document', ['title' => $title, 'url' => $url]);
+    }
+
+    /** @param  array<int, array{label:string,text:string}>  $tabs */
+    private function tabs(array $tabs): array
+    {
+        return $this->block('tabs', ['layout' => 'tabs', 'tabs' => array_values($tabs)]);
+    }
+
+    /** @param  array<int, array{title:string,body:string}>  $items */
+    private function accordion(array $items): array
+    {
+        return $this->block('accordion', ['layout' => 'plain', 'items' => array_values($items)]);
+    }
+
+    /** @param  array<int,string>  $items */
+    private function ticker(array $items): array
+    {
+        return $this->block('ticker', ['items' => array_values($items), 'speed' => 'normal']);
+    }
+
+    /** @param  array<int, array{value:string,label:string,caption?:string}>  $items */
+    private function stats(string $title, array $items): array
+    {
+        return $this->block('stats', ['title' => $title, 'layout' => 'row', 'items' => array_values($items)]);
+    }
+
+    /** @param  array<int, array{quote:string,name:string,title?:string,avatar?:string}>  $items */
+    private function testimonialCarousel(array $items): array
+    {
+        return $this->block('testimonial_carousel', ['layout' => 'carousel', 'items' => array_values($items)]);
+    }
+
+    private function reviewsWall(string $heading = 'What people are saying'): array
+    {
+        return $this->block('reviews_wall', ['heading' => $heading, 'source' => 'native', 'layout' => 'grid', 'limit' => 6]);
     }
 }

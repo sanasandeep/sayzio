@@ -39,8 +39,17 @@ class CardTemplateSeeder extends Seeder
      * dedicated premium gradient sub-set inspired by the upsell modal
      * references. Old default templates not in this blueprint are
      * deactivated by run() (admin-customized ones are preserved).
+     *
+     * v3 (2026-06): Library expansion — ~24 new designs covering
+     * previously under-represented block categories: real image
+     * grids/sliders, social-media embeds (Instagram/TikTok/X/Facebook),
+     * audio & music (Spotify/Apple Music/SoundCloud/audio playlist/
+     * podcast), documents (PDF/deck press kit), advanced UI (tabs,
+     * accordion, news ticker, stats band), reviews wall + testimonial
+     * carousel, conversion blocks (flash offer, coupon, tip jar) and a
+     * categorised menu board.
      */
-    public const SEED_VERSION = 2;
+    public const SEED_VERSION = 3;
 
     public function run(): void
     {
@@ -207,6 +216,69 @@ class CardTemplateSeeder extends Seeder
             => $this->child('whatsapp_widget', ['phone' => '+10000000000', 'message' => 'Hi! I have a question.'], $span);
         $countdown = fn(string $title = 'Launching soon', int $span = 12)
             => $this->child('countdown', ['title' => $title, 'date' => now()->addDays(14)->toIso8601String()], $span);
+
+        // ─── Rich-media child builders (image grids/sliders, embeds, audio,
+        //     documents, advanced UI). Content is real and on-topic so the
+        //     children render fully on the public page — never blank. ───
+        $photo = fn(string $keywords, int $w = 600, int $h = 600, string $seed = '')
+            => 'https://loremflickr.com/' . $w . '/' . $h . '/' . rawurlencode($keywords)
+                . '?lock=' . ((crc32($seed !== '' ? $seed : $keywords) % 100000) + 1);
+        $imgGrid = fn(array $urls, int $columns = 3, int $span = 12)
+            => $this->child('image_grid', [
+                'images'  => array_map(static fn($u) => ['url' => $u, 'alt' => ''], $urls),
+                'columns' => $columns,
+                'gap'     => 8,
+            ], $span);
+        $slider = fn(array $urls, int $span = 12)
+            => $this->child('image_slider', [
+                'images'   => array_map(static fn($u) => ['url' => $u, 'alt' => ''], $urls),
+                'interval' => 3500,
+                'effect'   => 'fade',
+            ], $span);
+        $ig = fn(string $url = 'https://www.instagram.com/p/CkQ7-gDgF8B/', int $span = 12)
+            => $this->child('instagram_media', ['url' => $url], $span);
+        $tt = fn(string $url = 'https://www.tiktok.com/@scout2015/video/6718335390845095173', int $span = 12)
+            => $this->child('tiktok_video', ['url' => $url], $span);
+        $tw = fn(string $url = 'https://twitter.com/Twitter/status/1445078208190291973', int $span = 12)
+            => $this->child('twitter_tweet', ['url' => $url], $span);
+        $fb = fn(string $url = 'https://www.facebook.com/20531316728/posts/10154009990506729/', int $span = 12)
+            => $this->child('facebook_post', ['url' => $url], $span);
+        $spotify = fn(string $url = 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT', string $type = 'track', int $span = 12)
+            => $this->child('spotify', ['url' => $url, 'type' => $type], $span);
+        $appleMusic = fn(string $url = 'https://music.apple.com/us/album/abbey-road-remastered/1441164426', int $span = 12)
+            => $this->child('apple_music', ['url' => $url, 'type' => 'album'], $span);
+        $soundcloud = fn(string $url = 'https://soundcloud.com/forss/flickermood', int $span = 12)
+            => $this->child('soundcloud', ['url' => $url], $span);
+        $audio = fn(string $title = 'Latest episode', string $url = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', int $span = 12)
+            => $this->child('audio', ['title' => $title, 'url' => $url], $span);
+        $audioList = fn(array $tracks, string $title = 'Playlist', int $span = 12)
+            => $this->child('audio_list', ['title' => $title, 'layout' => 'compact', 'tracks' => $tracks], $span);
+        $pdf = fn(string $title = 'Download the guide', string $url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', int $span = 12)
+            => $this->child('pdf_document', ['title' => $title, 'url' => $url], $span);
+        $ppt = fn(string $title = 'View the deck', string $url = 'https://example.com/deck.pptx', int $span = 12)
+            => $this->child('powerpoint', ['title' => $title, 'url' => $url], $span);
+        $tabs = fn(array $tabs, int $span = 12)
+            => $this->child('tabs', ['layout' => 'tabs', 'tabs' => $tabs], $span);
+        $accordion = fn(array $items, int $span = 12)
+            => $this->child('accordion', ['layout' => 'plain', 'items' => $items], $span);
+        $ticker = fn(array $items, int $span = 12)
+            => $this->child('ticker', ['items' => $items, 'speed' => 'normal'], $span);
+        $stats = fn(array $items, string $title = 'By the numbers', int $span = 12)
+            => $this->child('stats', ['title' => $title, 'layout' => 'row', 'items' => $items], $span);
+        $testiCarousel = fn(array $items, int $span = 12)
+            => $this->child('testimonial_carousel', ['layout' => 'carousel', 'items' => $items], $span);
+        $reviewsWall = fn(string $heading = 'What people are saying', int $span = 12)
+            => $this->child('reviews_wall', ['heading' => $heading, 'source' => 'native', 'layout' => 'grid', 'limit' => 6], $span);
+        $review = fn(string $name, int $rating, string $text, int $span = 12)
+            => $this->child('review', ['name' => $name, 'rating' => $rating, 'text' => $text], $span);
+        $menu = fn(array $sections, string $title = 'Today\'s Menu', int $span = 12)
+            => $this->child('menu', ['title' => $title, 'layout' => 'classic', 'sections' => $sections], $span);
+        $oneTime = fn(string $title, string $desc, string $price, string $orig, string $url = 'https://example.com', int $span = 12)
+            => $this->child('one_time_offer', ['title' => $title, 'description' => $desc, 'price' => $price, 'original_price' => $orig, 'url' => $url], $span);
+        $coupon = fn(string $code, string $desc, string $expires = '', int $span = 12)
+            => $this->child('coupon', ['code' => $code, 'description' => $desc, 'expires' => $expires], $span);
+        $donation = fn(string $title, string $desc, array $amounts = [5, 10, 25], int $span = 12)
+            => $this->child('donation', ['title' => $title, 'description' => $desc, 'amounts' => $amounts, 'url' => 'https://example.com'], $span);
 
         // ─── Premium gradient palette (used by the ~13-card premium sub-set) ───
         $G_PEACH    = 'linear-gradient(135deg, #fef3c7 0%, #fbcfe8 50%, #f9a8d4 100%)';
@@ -839,6 +911,285 @@ class CardTemplateSeeder extends Seeder
                     $hm('"Best decision I made all year."', 'h2'),
                     $p('— Jordan M., creator of Studio Atlas'),
                     $btn('Read the case study →'),
+                ],
+            ],
+
+            // ============================================================
+            // GALLERY — rich image grids & sliders (true media blocks)
+            // ============================================================
+            [
+                'slug' => 'gallery-photo-grid', 'name' => 'Photo Grid · 3-Up', 'category' => 'gallery',
+                'description' => 'A real three-column image grid with a heading and a view-all CTA.',
+                'children' => [
+                    $h('Latest shots', 'h2'),
+                    $imgGrid([
+                        $photo('photography,portrait', 600, 600, 'pg1'),
+                        $photo('photography,street', 600, 600, 'pg2'),
+                        $photo('photography,landscape', 600, 600, 'pg3'),
+                        $photo('photography,architecture', 600, 600, 'pg4'),
+                        $photo('photography,nature', 600, 600, 'pg5'),
+                        $photo('photography,travel', 600, 600, 'pg6'),
+                    ], 3, 12),
+                    $btn('View the full gallery →'),
+                ],
+            ],
+            [
+                'slug' => 'gallery-slider-showcase', 'name' => 'Slider · Showcase', 'category' => 'gallery',
+                'description' => 'An auto-playing image slider for a hero carousel or lookbook.',
+                'children' => [
+                    $h('Featured work', 'h2'),
+                    $slider([
+                        $photo('design,studio', 1200, 700, 'ss1'),
+                        $photo('interior,minimal', 1200, 700, 'ss2'),
+                        $photo('product,branding', 1200, 700, 'ss3'),
+                    ], 12),
+                    $p('Swipe through a few recent highlights.'),
+                ],
+            ],
+            [
+                'slug' => 'gallery-lookbook-aurora', 'name' => 'Premium · Aurora Lookbook', 'category' => 'gallery',
+                'plan_tier' => 'pro',
+                'description' => 'Aurora gradient lookbook with a two-column image grid and a shop CTA.',
+                'card' => $this->gradientCard($G_AURORA, ['columns' => 12]),
+                'children' => [
+                    $badge('LOOKBOOK', 12),
+                    $hg('Spring collection', 'h1'),
+                    $imgGrid([
+                        $photo('fashion,editorial', 700, 900, 'lb1'),
+                        $photo('fashion,style', 700, 900, 'lb2'),
+                        $photo('fashion,model', 700, 900, 'lb3'),
+                        $photo('fashion,accessory', 700, 900, 'lb4'),
+                    ], 2, 12),
+                    $btn('Shop the collection →'),
+                ],
+            ],
+
+            // ============================================================
+            // SOCIAL — embeds, reviews wall & testimonial carousel
+            // ============================================================
+            [
+                'slug' => 'social-instagram-feature', 'name' => 'Instagram · Featured Post', 'category' => 'social',
+                'description' => 'Embed a real Instagram post with a heading and a follow link.',
+                'children' => [
+                    $h('From the \'gram', 'h3'),
+                    $ig(),
+                    $link('Follow on Instagram', 'https://instagram.com/yourhandle', 12, 'fab fa-instagram'),
+                ],
+            ],
+            [
+                'slug' => 'social-tiktok-feature', 'name' => 'TikTok · Featured Video', 'category' => 'social',
+                'description' => 'Embed a TikTok video with a heading and a follow link.',
+                'children' => [
+                    $h('Latest on TikTok', 'h3'),
+                    $tt(),
+                    $link('Follow on TikTok', 'https://tiktok.com/@yourhandle', 12, 'fab fa-tiktok'),
+                ],
+            ],
+            [
+                'slug' => 'social-x-highlight', 'name' => 'X · Pinned Post', 'category' => 'social',
+                'description' => 'Embed a featured post from X (Twitter) with a heading.',
+                'children' => [
+                    $h('Pinned post', 'h3'),
+                    $tw(),
+                ],
+            ],
+            [
+                'slug' => 'social-facebook-feature', 'name' => 'Facebook · Featured Post', 'category' => 'social',
+                'description' => 'Embed a Facebook post with a heading and a follow link.',
+                'children' => [
+                    $h('From our page', 'h3'),
+                    $fb(),
+                    $link('Follow on Facebook', 'https://facebook.com', 12, 'fab fa-facebook'),
+                ],
+            ],
+            [
+                'slug' => 'social-reviews-wall', 'name' => 'Reviews Wall', 'category' => 'social',
+                'description' => 'A live wall of customer reviews with a heading.',
+                'children' => [
+                    $h('Loved by customers', 'h2'),
+                    $reviewsWall('What people are saying'),
+                ],
+            ],
+            [
+                'slug' => 'social-testimonial-carousel', 'name' => 'Testimonial · Carousel', 'category' => 'social',
+                'description' => 'A swipeable carousel of quoted testimonials with avatars.',
+                'children' => [
+                    $h('Kind words', 'h2'),
+                    $testiCarousel([
+                        ['quote' => 'Genuinely the best service I\'ve used this year.', 'name' => 'Alex Carter', 'title' => 'Founder, Bright Studio'],
+                        ['quote' => 'The whole team was a delight to work with.', 'name' => 'Sam Lopez', 'title' => 'Head of Marketing, Northwind'],
+                        ['quote' => 'Sharp, fast, and on time — every single time.', 'name' => 'Priya Shah', 'title' => 'Product Lead, Lumen'],
+                    ], 12),
+                ],
+            ],
+            [
+                'slug' => 'social-review-spotlight', 'name' => 'Review · Spotlight', 'category' => 'social',
+                'description' => 'A single five-star review with the reviewer\'s name.',
+                'children' => [
+                    $h('Review of the week', 'h3'),
+                    $review('Casey N.', 5, 'Honestly the most useful tool I\'ve added this year. Pays for itself in week one.', 12),
+                ],
+            ],
+
+            // ============================================================
+            // GENERAL — audio/music, documents & advanced UI blocks
+            // ============================================================
+            [
+                'slug' => 'general-spotify-feature', 'name' => 'Spotify · Featured Track', 'category' => 'general',
+                'description' => 'Embed a Spotify track or playlist with a heading and a follow link.',
+                'children' => [
+                    $h('Now playing', 'h3'),
+                    $spotify(),
+                    $link('Follow on Spotify', 'https://open.spotify.com', 12, 'fab fa-spotify'),
+                ],
+            ],
+            [
+                'slug' => 'general-streaming-links', 'name' => 'Listen Everywhere', 'category' => 'general',
+                'description' => 'Apple Music + SoundCloud embeds stacked for a release.',
+                'children' => [
+                    $h('Out now everywhere', 'h2'),
+                    $appleMusic(),
+                    $soundcloud(),
+                ],
+            ],
+            [
+                'slug' => 'general-audio-playlist', 'name' => 'Audio · Playlist', 'category' => 'general',
+                'description' => 'A compact multi-track audio playlist with cover art.',
+                'children' => [
+                    $h('My playlist', 'h3'),
+                    $audioList([
+                        ['title' => 'Sunrise', 'artist' => 'SoundHelix', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'cover' => $photo('music,album', 300, 300, 'al1'), 'duration' => '6:00'],
+                        ['title' => 'Midday', 'artist' => 'SoundHelix', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'cover' => $photo('music,vinyl', 300, 300, 'al2'), 'duration' => '5:12'],
+                        ['title' => 'Nightfall', 'artist' => 'SoundHelix', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', 'cover' => $photo('music,studio', 300, 300, 'al3'), 'duration' => '7:04'],
+                    ], 'Featured playlist', 12),
+                ],
+            ],
+            [
+                'slug' => 'general-podcast-episode', 'name' => 'Podcast · Latest Episode', 'category' => 'general',
+                'description' => 'A single-track audio player with a heading and a subscribe link.',
+                'children' => [
+                    $h('Latest episode', 'h3'),
+                    $p('Episode 42 — building in public, one link at a time.'),
+                    $audio('Episode 42 — Building in public'),
+                    $btn('Subscribe to the show', 'https://example.com', 12, 'fas fa-podcast'),
+                ],
+            ],
+            [
+                'slug' => 'general-document-download', 'name' => 'Document · Download', 'category' => 'general',
+                'description' => 'A PDF document viewer with a heading and a download CTA.',
+                'children' => [
+                    $h('Free guide', 'h3'),
+                    $p('A 12-page PDF with the exact playbook I used.'),
+                    $pdf('Ship your first product (PDF)'),
+                    $btn('Download the guide', 'https://example.com', 12, 'fas fa-download'),
+                ],
+            ],
+            [
+                'slug' => 'general-press-kit', 'name' => 'Press Kit', 'category' => 'general',
+                'description' => 'A document + deck pair for press and partners.',
+                'children' => [
+                    $h('Press kit', 'h2'),
+                    $p('Everything you need to write about us.'),
+                    $pdf('One-pager (PDF)'),
+                    $ppt('Brand deck (slides)'),
+                ],
+            ],
+            [
+                'slug' => 'general-tabs-info', 'name' => 'Tabs · Info', 'category' => 'general',
+                'description' => 'A tabbed block to organise About / Services / Contact.',
+                'children' => [
+                    $h('All the details', 'h3'),
+                    $tabs([
+                        ['label' => 'About', 'text' => 'A short intro about you or your project, what you do and who it\'s for.'],
+                        ['label' => 'Services', 'text' => 'Brand strategy, product design and motion — done end to end.'],
+                        ['label' => 'Contact', 'text' => 'Email hi@example.com or book a call. I reply within a day.'],
+                    ], 12),
+                ],
+            ],
+            [
+                'slug' => 'general-accordion-faq', 'name' => 'Accordion · Q&A', 'category' => 'general',
+                'description' => 'A collapsible accordion for questions and details.',
+                'children' => [
+                    $h('Good to know', 'h3'),
+                    $accordion([
+                        ['title' => 'How does it work?', 'body' => 'Pick a template, swap in your content, and publish — it\'s live instantly.'],
+                        ['title' => 'What\'s included?', 'body' => 'Unlimited blocks, analytics, and every card template in the gallery.'],
+                        ['title' => 'Can I cancel anytime?', 'body' => 'Yes — no contracts, cancel in one click from your dashboard.'],
+                    ], 12),
+                ],
+            ],
+            [
+                'slug' => 'general-news-ticker', 'name' => 'News Ticker', 'category' => 'general',
+                'description' => 'A scrolling ticker of headlines or announcements.',
+                'children' => [
+                    $ticker([
+                        '🚀 New product launching this Friday',
+                        '🎉 We just crossed 10,000 users',
+                        '📰 Featured in the weekly roundup',
+                    ], 12),
+                    $h('Latest updates', 'h3'),
+                    $p('Catch up on everything new this week.'),
+                ],
+            ],
+            [
+                'slug' => 'general-stats-band', 'name' => 'Stats Band', 'category' => 'general',
+                'description' => 'A row of headline metrics with captions.',
+                'children' => [
+                    $stats([
+                        ['value' => '10k', 'label' => 'Followers', 'caption' => 'across socials'],
+                        ['value' => '4.9', 'label' => 'Rating', 'caption' => 'from 230 reviews'],
+                        ['value' => '120', 'label' => 'Projects', 'caption' => 'shipped to date'],
+                    ], 'By the numbers', 12),
+                ],
+            ],
+
+            // ============================================================
+            // CTA — conversion blocks (offers, coupons, tips)
+            // ============================================================
+            [
+                'slug' => 'cta-flash-offer', 'name' => 'Flash Offer', 'category' => 'cta',
+                'description' => 'A limited-time offer block with original vs. sale price.',
+                'children' => [
+                    $h('Today only', 'h3'),
+                    $oneTime('The complete bundle', 'Everything you need to launch — courses, templates and support.', '$49', '$129', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'cta-coupon-drop', 'name' => 'Coupon Drop', 'category' => 'cta',
+                'description' => 'A copyable coupon code with a shop CTA.',
+                'children' => [
+                    $h('Here\'s 20% off', 'h3'),
+                    $coupon('WELCOME20', 'Get 20% off your first order — tap to copy.', '', 12),
+                    $btn('Shop now →'),
+                ],
+            ],
+            [
+                'slug' => 'cta-tip-jar', 'name' => 'Tip Jar', 'category' => 'cta',
+                'description' => 'A donation block with preset amounts to support your work.',
+                'children' => [
+                    $h('Support my work', 'h3'),
+                    $donation('Buy me a coffee', 'Every contribution helps me keep creating, ad-free.', [5, 10, 25, 50], 12),
+                ],
+            ],
+
+            // ============================================================
+            // PRODUCT — menu showcase
+            // ============================================================
+            [
+                'slug' => 'product-menu-board', 'name' => 'Menu Board', 'category' => 'product',
+                'description' => 'A categorised menu with prices and item descriptions.',
+                'children' => [
+                    $h('Today\'s menu', 'h2'),
+                    $menu([
+                        ['name' => 'Starters', 'items' => [
+                            ['name' => 'House focaccia', 'price' => '$6', 'description' => 'With rosemary and flaky salt.', 'thumbnail' => $photo('food,bread', 300, 300, 'm1')],
+                            ['name' => 'Caesar salad', 'price' => '$11', 'description' => 'Romaine, anchovy dressing, parmesan.', 'thumbnail' => $photo('food,salad', 300, 300, 'm2')],
+                        ]],
+                        ['name' => 'Mains', 'items' => [
+                            ['name' => 'Margherita pizza', 'price' => '$14', 'description' => 'San Marzano tomato, fior di latte, basil.', 'thumbnail' => $photo('food,pizza', 300, 300, 'm3')],
+                            ['name' => 'Tagliatelle ragù', 'price' => '$17', 'description' => 'Slow-cooked beef, hand-cut pasta.', 'thumbnail' => $photo('food,pasta', 300, 300, 'm4')],
+                        ]],
+                    ], 'Today\'s menu', 12),
                 ],
             ],
         ];

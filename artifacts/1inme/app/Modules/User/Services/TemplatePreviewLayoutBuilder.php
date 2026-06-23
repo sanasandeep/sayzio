@@ -206,6 +206,41 @@ class TemplatePreviewLayoutBuilder
             'map'             => ['shape' => 'tile',       'bg' => 'linear-gradient(135deg, rgba(34,197,94,0.30), rgba(56,189,248,0.30))', 'h' => 26, 'icon' => 'fa-map-marker-alt'],
             'map_location'    => ['shape' => 'tile',       'bg' => 'linear-gradient(135deg, rgba(34,197,94,0.30), rgba(56,189,248,0.30))', 'h' => 26, 'icon' => 'fa-map-pin'],
 
+            // Social-media embeds — media-style cards with the platform glyph.
+            'instagram_media' => ['shape' => 'media', 'bg' => 'linear-gradient(135deg, rgba(225,48,108,0.40), rgba(245,158,11,0.35))', 'h' => 30, 'icon' => 'fa-instagram', 'img' => $img('image-square.svg')],
+            'tiktok_video'    => ['shape' => 'media', 'bg' => 'linear-gradient(135deg, rgba(37,244,238,0.30), rgba(254,44,85,0.30))', 'h' => 30, 'icon' => 'fa-tiktok', 'img' => $img('cover.svg'), 'play' => true],
+            'twitter_tweet'   => ['shape' => 'tile',  'bg' => 'rgba(29,155,240,0.22)',  'h' => 24, 'icon' => 'fa-twitter', 'text' => 'A featured post'],
+            'twitter_video'   => ['shape' => 'media', 'bg' => 'rgba(29,155,240,0.24)',  'h' => 28, 'icon' => 'fa-twitter', 'img' => $img('cover.svg'), 'play' => true],
+            'facebook_post'   => ['shape' => 'tile',  'bg' => 'rgba(24,119,242,0.22)',  'h' => 24, 'icon' => 'fa-facebook', 'text' => 'A featured post'],
+            'reddit_post'     => ['shape' => 'tile',  'bg' => 'rgba(255,69,0,0.22)',    'h' => 24, 'icon' => 'fa-reddit', 'text' => 'A featured thread'],
+
+            // Music / audio — play-glyph media tiles + playlist rows.
+            'spotify'         => ['shape' => 'media',     'bg' => 'linear-gradient(135deg, rgba(30,215,96,0.35), rgba(16,185,129,0.30))', 'h' => 24, 'icon' => 'fa-spotify', 'img' => $img('cover.svg'), 'play' => true],
+            'apple_music'     => ['shape' => 'media',     'bg' => 'linear-gradient(135deg, rgba(250,45,109,0.35), rgba(139,92,246,0.30))', 'h' => 24, 'icon' => 'fa-music', 'img' => $img('cover.svg'), 'play' => true],
+            'soundcloud'      => ['shape' => 'media',     'bg' => 'linear-gradient(135deg, rgba(255,85,0,0.35), rgba(245,158,11,0.30))', 'h' => 24, 'icon' => 'fa-soundcloud', 'img' => $img('cover.svg'), 'play' => true],
+            'audio_list'      => ['shape' => 'list_rows', 'bg' => 'rgba(244,114,182,0.18)', 'h' => 30, 'icon' => 'fa-music', 'lines' => 3, 'items' => ['Track one', 'Track two', 'Track three']],
+
+            // Documents — file-style tiles.
+            'powerpoint'      => ['shape' => 'media', 'bg' => 'linear-gradient(135deg, rgba(245,158,11,0.30), rgba(244,63,94,0.28))', 'h' => 26, 'icon' => 'fa-file-powerpoint', 'img' => $img('document.svg')],
+            'excel'           => ['shape' => 'media', 'bg' => 'linear-gradient(135deg, rgba(34,197,94,0.30), rgba(16,185,129,0.28))', 'h' => 26, 'icon' => 'fa-file-excel', 'img' => $img('document.svg')],
+            'file'            => ['shape' => 'tile',  'bg' => 'rgba(255,255,255,0.16)', 'h' => 22, 'icon' => 'fa-file-arrow-down', 'text' => 'Download'],
+            'file_list'       => ['shape' => 'list_rows', 'bg' => 'rgba(255,255,255,0.16)', 'h' => 28, 'icon' => 'fa-folder-open', 'lines' => 3, 'items' => ['Guide.pdf', 'Slides.pptx', 'Data.xlsx']],
+
+            // Advanced UI — tabs, accordion, stats band.
+            'tabs'            => ['shape' => 'list_rows', 'bg' => 'rgba(139,92,246,0.18)', 'h' => 28, 'icon' => 'fa-folder', 'lines' => 3, 'items' => ['About', 'Services', 'Contact']],
+            'accordion'       => ['shape' => 'list_rows', 'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => 'fa-chevron-down', 'lines' => 3, 'items' => ['How does it work?', 'What\'s included?', 'Learn more']],
+            'stats'           => ['shape' => 'list_rows', 'bg' => 'rgba(139,92,246,0.22)', 'h' => 24, 'icon' => 'fa-chart-simple', 'lines' => 3, 'items' => ['10k followers', '4.9 rating', '120 projects']],
+            'menu'            => ['shape' => 'list_rows', 'bg' => 'rgba(245,158,11,0.18)', 'h' => 30, 'icon' => 'fa-utensils', 'lines' => 3, 'items' => ['Starters', 'Mains', 'Desserts']],
+            'menu_section'    => ['shape' => 'list_rows', 'bg' => 'rgba(245,158,11,0.18)', 'h' => 28, 'icon' => 'fa-utensils', 'lines' => 3, 'items' => ['House focaccia — $6', 'Caesar salad — $11', 'Margherita — $14']],
+            'event_list'      => ['shape' => 'list_rows', 'bg' => 'rgba(56,189,248,0.18)', 'h' => 28, 'icon' => 'fa-calendar-days', 'lines' => 3, 'items' => ['Live Q&A — online', 'Pop-up workshop', 'Meet & greet']],
+
+            // Social proof — carousel + reviews wall.
+            'testimonial_carousel' => ['shape' => 'list_rows', 'bg' => 'rgba(255,255,255,0.14)', 'h' => 28, 'icon' => 'fa-quote-left', 'lines' => 2, 'items' => ['“The best service this year.”', '“A delight to work with.”']],
+            'reviews_wall'    => ['shape' => 'list_rows', 'bg' => 'rgba(255,255,255,0.14)', 'h' => 30, 'icon' => 'fa-star', 'lines' => 3, 'items' => ['★★★★★ Fantastic', '★★★★★ Highly recommend', '★★★★★ Loved it']],
+
+            // Conversion — limited-time offer.
+            'one_time_offer'  => ['shape' => 'tile', 'bg' => 'linear-gradient(135deg, rgba(244,63,94,0.32), rgba(245,158,11,0.30))', 'h' => 26, 'icon' => 'fa-bolt', 'text' => 'Limited-time offer'],
+
             // Page-template-only: a "card" container at the page level
             // collapses to a single padded cell in the blueprint (we
             // intentionally don't recurse into its children to keep the

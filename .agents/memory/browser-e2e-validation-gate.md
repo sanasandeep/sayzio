@@ -21,6 +21,11 @@ environment. Two hard blockers, both unrelated to the code under test:
    "unexpected T_NS_SEPARATOR in vendor/psy/psysh/.../ParseErrorException.php").
    Every spec that seeds fixtures via tinker (slides-mode, palette-dnd, the
    cookie-consent *layout-style* specs) fails before the browser even runs.
+   NOTE: it's the *interactive REPL* that's broken — non-interactive
+   `php artisan tinker --execute='...'` DOES work and is a reliable way to
+   run one-off Eloquent reads/counts against the Laravel RDS (e.g. verifying
+   seeded rows). Prefer it over `executeSql`, which hits the Node/drizzle DB,
+   not Laravel's RDS, so Laravel tables look empty there.
 2. Cold page renders over the distant RDS take ~30-45s, so the default 30s
    Playwright budgets time out; `playwright.config.ts` was raised to
    timeout 90s / navigationTimeout 60s / actionTimeout 30s to compensate.
