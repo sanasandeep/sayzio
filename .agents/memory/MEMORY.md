@@ -65,3 +65,4 @@
 - [restart_workflow probe vs heavy cold page](restart-workflow-heavy-page-probe.md) — dev probe is hard-wired to `/` (ignores health.startup.path) w/ a tight latency bound; fix = dev-only DevStartupProbe middleware serving an instant 200 splash on `/` for 20s after boot.
 - [Cache::remember null = MISS](laravel-cache-remember-null-miss.md) — a cached null re-queries every request; over distant RDS this hammered AppSetting (~16s boot); cache a sentinel, never raw null.
 - [Biolink top-level renderer coverage](biolink-top-level-renderer-coverage.md) — top-level chain needs an inline branch OR a catch-all @else delegating $block to the partial table, else blocks render blank; templates:check-designs enforces it.
+- [Unified biolink renderer](unified-biolink-renderer.md) — public blocks (top-level + card children) all dispatch through common/partials/biolink-block-render; register a type once in $__blockPartials or add a fallback @elseif.
