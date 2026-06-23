@@ -1952,6 +1952,9 @@
                     </form>
                 </div>
 
+            @elseif(in_array($block->type, ['buy_me_coffee', 'patreon', 'ko_fi'], true))
+                @include('common.blocks.buy-me-coffee', ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor])
+
             {{-- UTILITY --}}
             @elseif($block->type === 'countdown')
                 <div class="mb-4 glass-block rounded-xl p-5 text-center" x-data="countdown('{{ $s['target_date'] ?? '' }}')" x-init="start()">

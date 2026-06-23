@@ -36,7 +36,7 @@ use Illuminate\Database\Seeder;
 class StarterPageTemplatesSeeder extends Seeder
 {
     /** Bump when the starter blueprints below are redesigned. */
-    public const SEED_VERSION = 3;
+    public const SEED_VERSION = 4;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -169,7 +169,7 @@ class StarterPageTemplatesSeeder extends Seeder
                         ['name' => 'Riya A.', 'avatar' => $img('linkbio-t1', 80, 80), 'rating' => 5, 'text' => "Followed for the videos, stayed for everything else. So good."],
                         ['name' => 'Kofi B.', 'avatar' => $img('linkbio-t2', 80, 80), 'rating' => 5, 'text' => "The newsletter alone is worth the follow. Highly recommend."],
                     ]),
-                    $this->donation('Enjoying the content?', 'A small tip keeps the new videos coming — thank you for the support!', [3, 5, 10], 'https://example.com'),
+                    $this->buyMeCoffee('yourname', 'Enjoying the content?', 'A small tip keeps the new videos coming — thank you for the support!', [3, 5, 10]),
                     $this->socials(),
                 ], [
                     'background_type'    => 'gradient',
@@ -659,6 +659,17 @@ class StarterPageTemplatesSeeder extends Seeder
             'description' => $description,
             'amounts'     => array_values($amounts),
             'url'         => $url,
+        ]);
+    }
+
+    /** @param  array<int,int>  $amounts */
+    private function buyMeCoffee(string $username, string $text, string $description, array $amounts): array
+    {
+        return $this->block('buy_me_coffee', [
+            'username'    => $username,
+            'text'        => $text,
+            'description' => $description,
+            'amounts'     => array_values($amounts),
         ]);
     }
 }
