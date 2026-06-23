@@ -31,6 +31,20 @@
     // cheapest plan that unlocks the feature). Falls back to the generic
     // upgrade page when absent.
     $__upgradePlan = $upgradePlan ?? null;
+
+    // Per-feature one-liner so a user who clicks in knows exactly what this
+    // particular surface does — keyed off the `title` each controller passes.
+    $__featureBlurbs = [
+        'Mind'       => 'Mind is your personal AI knowledge base — it learns from your sources so the assistant can answer in your voice.',
+        'Minds'      => 'Minds let you build and manage several AI knowledge bases, each trained on its own set of sources.',
+        'Persona'    => 'Persona shapes the tone and personality your AI uses when it writes or replies on your behalf.',
+        'Personas'   => 'Personas let you create and switch between different AI voices for different audiences.',
+        'Companion'  => 'Companion is a chat assistant that helps you draft content and answer questions about your account.',
+        'Companions' => 'Companions are embeddable AI chatbots you can drop into your pages, widgets and inbox.',
+        'Coach'      => 'Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.',
+        'Ask Coach'  => 'Ask Coach lets you chat with an AI advisor for tips on improving your account.',
+    ];
+    $__featureBlurb = $__featureBlurbs[$title ?? ''] ?? null;
 @endphp
 
 @section('content')
@@ -45,6 +59,12 @@
             <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
                 {{ $message ?? 'The AI engine isn’t enabled on this account right now. Once an administrator switches it on, this feature will be ready to use here.' }}
             </p>
+            @if($__featureBlurb)
+                <p class="mx-auto mt-3 max-w-md text-sm text-violet-200/80">
+                    <i class="fas fa-info-circle mr-1 text-xs text-violet-300/80"></i>
+                    {{ $__featureBlurb }}
+                </p>
+            @endif
             @if($__hasOpenAiKey)
                 {{-- Admin with a key already configured: one-click enable, then
                      land back on the feature they were trying to open. --}}
@@ -104,14 +124,24 @@
                  explainer + request-access email exactly as before. --}}
             <h1 class="text-lg font-semibold text-white">{{ $heading ?? 'AI features are currently turned off' }}</h1>
             <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
-                {{ $message ?? 'The AI engine isn’t enabled on this account right now. Once an administrator switches it on, this feature will be ready to use here.' }}
+                {{ $message ?? 'The AI engine isn’t enabled on this account right now. AI is controlled by a master switch that only an administrator can turn on. Once it’s switched on, this feature will be ready to use here.' }}
             </p>
+            @if($__featureBlurb)
+                <p class="mx-auto mt-3 max-w-md text-sm text-violet-200/80">
+                    <i class="fas fa-info-circle mr-1 text-xs text-violet-300/80"></i>
+                    {{ $__featureBlurb }}
+                </p>
+            @endif
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">What you’re missing</p>
                 <p class="mt-1">
                     AI features on {{ $__appName }} — like Minds, Personas, the Companion and Coach — help you
                     draft content, answer questions about your account and build pages faster. They run on
                     your coin balance once an administrator enables the engine.
+                </p>
+                <p class="mt-2 text-white/50">
+                    You can’t switch this on yourself — it’s controlled by an administrator. Use the button
+                    below to ask them to turn AI on for your account.
                 </p>
             </div>
             <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -135,6 +165,12 @@
             <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
                 {{ $message ?? $__featureLabel.' is available on '.$__appName.', but '.$__planName.' doesn’t unlock it yet. Upgrade to switch it on for your account.' }}
             </p>
+            @if($__featureBlurb)
+                <p class="mx-auto mt-3 max-w-md text-sm text-violet-200/80">
+                    <i class="fas fa-info-circle mr-1 text-xs text-violet-300/80"></i>
+                    {{ $__featureBlurb }}
+                </p>
+            @endif
 
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">How AI is billed</p>

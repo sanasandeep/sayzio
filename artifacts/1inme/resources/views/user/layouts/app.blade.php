@@ -822,11 +822,20 @@
                 @endif
 
                 {{-- ========== AI (collapsible) ========== --}}
-                @php $grpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*'); @endphp
+                @php
+                    $grpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*');
+                    $__aiEngineOff = !\App\Services\AI\AiEngineSettings::isEnabled();
+                @endphp
                 <div x-data="{ open: {{ $grpAiActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>AI</span>
+                        <span class="inline-flex items-center gap-1.5">
+                            AI
+                            @if($__aiEngineOff)
+                                <span class="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-white/50"
+                                      title="An administrator has turned the AI engine off">Off</span>
+                            @endif
+                        </span>
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
@@ -1324,11 +1333,20 @@
                         @endif
 
                         {{-- ========== AI (collapsible) ========== --}}
-                        @php $mGrpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*'); @endphp
+                        @php
+                            $mGrpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*');
+                            $__aiEngineOff = !\App\Services\AI\AiEngineSettings::isEnabled();
+                        @endphp
                         <div x-data="{ open: {{ $mGrpAiActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                                <span>AI</span>
+                                <span class="inline-flex items-center gap-1.5">
+                                    AI
+                                    @if($__aiEngineOff)
+                                        <span class="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-white/50"
+                                              title="An administrator has turned the AI engine off">Off</span>
+                                    @endif
+                                </span>
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
