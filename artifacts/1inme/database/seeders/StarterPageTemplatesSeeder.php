@@ -44,7 +44,7 @@ class StarterPageTemplatesSeeder extends Seeder
      * audio/music, documents and advanced UI (tabs/accordion/ticker/
      * stats/reviews wall/testimonial carousel).
      */
-    public const SEED_VERSION = 5;
+    public const SEED_VERSION = 6;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -379,8 +379,8 @@ class StarterPageTemplatesSeeder extends Seeder
                     $this->soundcloud(),
                     $this->heading('Top tracks', 'h3'),
                     $this->audioList('Fan favourites', [
-                        ['title' => 'Sunrise', 'artist' => 'The Artist', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'cover' => $img('linkbio-t1', 300, 300), 'duration' => '3:42'],
-                        ['title' => 'Midnight Drive', 'artist' => 'The Artist', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'cover' => $img('linkbio-t2', 300, 300), 'duration' => '4:05'],
+                        ['title' => 'Sunrise', 'artist' => 'The Artist', 'url' => $this->audio('Sunrise')['settings']['url'], 'cover' => $img('linkbio-t1', 300, 300), 'duration' => '3:42'],
+                        ['title' => 'Midnight Drive', 'artist' => 'The Artist', 'url' => $this->audio('Midnight Drive')['settings']['url'], 'cover' => $img('linkbio-t2', 300, 300), 'duration' => '4:05'],
                     ]),
                     $this->testimonialCarousel([
                         ['quote' => 'On repeat all summer. Can\'t wait for the album.', 'name' => 'Riya A.', 'title' => 'Fan'],
@@ -787,21 +787,27 @@ class StarterPageTemplatesSeeder extends Seeder
     }
 
     /**
-     * Deterministic, keyword-matched real photo from LoremFlickr (a
-     * placeholder CDN like the old picsum, but topical). The `$seed`
-     * locks a stable image per slot so re-seeding is idempotent.
+     * Self-hosted placeholder image bundled with the app
+     * (public/block-placeholders/*.svg). External photo CDNs (loremflickr)
+     * can rate-limit, change, or disappear — which would make seeded template
+     * previews look broken over time. Picked by aspect ratio so square slots
+     * get the square art and wide banners get the cover art.
      */
     private function photo(string $keywords, int $w, int $h, string $seed): string
     {
-        $lock = (crc32($seed) % 100000) + 1;
-        return "https://loremflickr.com/{$w}/{$h}/" . rawurlencode($keywords) . "?lock={$lock}";
+        if ($w === $h) {
+            return asset('block-placeholders/image-square.svg');
+        }
+        if ($h > 0 && $w / $h >= 2) {
+            return asset('block-placeholders/cover.svg');
+        }
+        return asset('block-placeholders/image.svg');
     }
 
-    /** Deterministic realistic-face photo (pravatar) keyed by `$seed`. */
+    /** Self-hosted avatar placeholder bundled with the app. */
     private function face(string $seed, int $size = 200): string
     {
-        $n = (crc32($seed) % 70) + 1; // pravatar serves img=1..70
-        return "https://i.pravatar.cc/{$size}?img={$n}";
+        return asset('block-placeholders/avatar.svg');
     }
 
     /* ──────────────────── newer block helpers ──────────────────── */
@@ -903,9 +909,9 @@ class StarterPageTemplatesSeeder extends Seeder
         return $this->block('soundcloud', ['url' => $url]);
     }
 
-    private function audio(string $title, string $url = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'): array
+    private function audio(string $title, string $url = ''): array
     {
-        return $this->block('audio', ['title' => $title, 'url' => $url]);
+        return $this->block('audio', ['title' => $title, 'url' => $url !== '' ? $url : asset('block-placeholders/sample.mp3')]);
     }
 
     /** @param  array<int, array{title:string,artist?:string,url:string,cover?:string,duration?:string}>  $tracks */
@@ -929,9 +935,9 @@ class StarterPageTemplatesSeeder extends Seeder
         return $this->block('twitter_tweet', ['url' => $url]);
     }
 
-    private function pdfDocument(string $title, string $url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'): array
+    private function pdfDocument(string $title, string $url = ''): array
     {
-        return $this->block('pdf_document', ['title' => $title, 'url' => $url]);
+        return $this->block('pdf_document', ['title' => $title, 'url' => $url !== '' ? $url : asset('block-placeholders/sample.pdf')]);
     }
 
     /** @param  array<int, array{label:string,text:string}>  $tabs */

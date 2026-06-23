@@ -47,7 +47,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      * alone. Redesign block contents/copy/themes freely; rename the
      * `key` only when you also intend to retire the old slug.
      */
-    public const SEED_VERSION = 3;
+    public const SEED_VERSION = 4;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -1079,21 +1079,27 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
     }
 
     /**
-     * Deterministic, keyword-matched real photo from LoremFlickr (a
-     * placeholder CDN like the old picsum, but topical). The `$seed`
-     * locks a stable image per slot so re-seeding is idempotent.
+     * Self-hosted placeholder image bundled with the app
+     * (public/block-placeholders/*.svg). External photo CDNs (loremflickr)
+     * can rate-limit, change, or disappear — which would make seeded template
+     * previews look broken over time. Picked by aspect ratio so square slots
+     * get the square art and wide banners get the cover art.
      */
     private function photo(string $keywords, int $w, int $h, string $seed): string
     {
-        $lock = (crc32($seed) % 100000) + 1;
-        return "https://loremflickr.com/{$w}/{$h}/" . rawurlencode($keywords) . "?lock={$lock}";
+        if ($w === $h) {
+            return asset('block-placeholders/image-square.svg');
+        }
+        if ($h > 0 && $w / $h >= 2) {
+            return asset('block-placeholders/cover.svg');
+        }
+        return asset('block-placeholders/image.svg');
     }
 
-    /** Deterministic realistic-face photo (pravatar) keyed by `$seed`. */
+    /** Self-hosted avatar placeholder bundled with the app. */
     private function face(string $seed, int $size = 200): string
     {
-        $n = (crc32($seed) % 70) + 1; // pravatar serves img=1..70
-        return "https://i.pravatar.cc/{$size}?img={$n}";
+        return asset('block-placeholders/avatar.svg');
     }
 
     /* ──────────────────── newer block helpers ──────────────────── */

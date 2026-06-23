@@ -49,7 +49,7 @@ class CardTemplateSeeder extends Seeder
      * carousel, conversion blocks (flash offer, coupon, tip jar) and a
      * categorised menu board.
      */
-    public const SEED_VERSION = 3;
+    public const SEED_VERSION = 4;
 
     public function run(): void
     {
@@ -220,9 +220,20 @@ class CardTemplateSeeder extends Seeder
         // ─── Rich-media child builders (image grids/sliders, embeds, audio,
         //     documents, advanced UI). Content is real and on-topic so the
         //     children render fully on the public page — never blank. ───
-        $photo = fn(string $keywords, int $w = 600, int $h = 600, string $seed = '')
-            => 'https://loremflickr.com/' . $w . '/' . $h . '/' . rawurlencode($keywords)
-                . '?lock=' . ((crc32($seed !== '' ? $seed : $keywords) % 100000) + 1);
+        // Self-hosted placeholder images bundled with the app
+        // (public/block-placeholders/*.svg). External photo CDNs (loremflickr)
+        // can rate-limit, change, or disappear — which would make seeded
+        // template previews look broken over time. Pick by aspect ratio so
+        // square slots get the square art and wide banners get the cover art.
+        $photo = function (string $keywords, int $w = 600, int $h = 600, string $seed = ''): string {
+            if ($w === $h) {
+                return asset('block-placeholders/image-square.svg');
+            }
+            if ($h > 0 && $w / $h >= 2) {
+                return asset('block-placeholders/cover.svg');
+            }
+            return asset('block-placeholders/image.svg');
+        };
         $imgGrid = fn(array $urls, int $columns = 3, int $span = 12)
             => $this->child('image_grid', [
                 'images'  => array_map(static fn($u) => ['url' => $u, 'alt' => ''], $urls),
@@ -249,12 +260,12 @@ class CardTemplateSeeder extends Seeder
             => $this->child('apple_music', ['url' => $url, 'type' => 'album'], $span);
         $soundcloud = fn(string $url = 'https://soundcloud.com/forss/flickermood', int $span = 12)
             => $this->child('soundcloud', ['url' => $url], $span);
-        $audio = fn(string $title = 'Latest episode', string $url = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', int $span = 12)
-            => $this->child('audio', ['title' => $title, 'url' => $url], $span);
+        $audio = fn(string $title = 'Latest episode', string $url = '', int $span = 12)
+            => $this->child('audio', ['title' => $title, 'url' => $url !== '' ? $url : asset('block-placeholders/sample.mp3')], $span);
         $audioList = fn(array $tracks, string $title = 'Playlist', int $span = 12)
             => $this->child('audio_list', ['title' => $title, 'layout' => 'compact', 'tracks' => $tracks], $span);
-        $pdf = fn(string $title = 'Download the guide', string $url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', int $span = 12)
-            => $this->child('pdf_document', ['title' => $title, 'url' => $url], $span);
+        $pdf = fn(string $title = 'Download the guide', string $url = '', int $span = 12)
+            => $this->child('pdf_document', ['title' => $title, 'url' => $url !== '' ? $url : asset('block-placeholders/sample.pdf')], $span);
         $ppt = fn(string $title = 'View the deck', string $url = 'https://example.com/deck.pptx', int $span = 12)
             => $this->child('powerpoint', ['title' => $title, 'url' => $url], $span);
         $tabs = fn(array $tabs, int $span = 12)
@@ -1058,9 +1069,9 @@ class CardTemplateSeeder extends Seeder
                 'children' => [
                     $h('My playlist', 'h3'),
                     $audioList([
-                        ['title' => 'Sunrise', 'artist' => 'SoundHelix', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'cover' => $photo('music,album', 300, 300, 'al1'), 'duration' => '6:00'],
-                        ['title' => 'Midday', 'artist' => 'SoundHelix', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'cover' => $photo('music,vinyl', 300, 300, 'al2'), 'duration' => '5:12'],
-                        ['title' => 'Nightfall', 'artist' => 'SoundHelix', 'url' => 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', 'cover' => $photo('music,studio', 300, 300, 'al3'), 'duration' => '7:04'],
+                        ['title' => 'Sunrise', 'artist' => 'SoundHelix', 'url' => asset('block-placeholders/sample.mp3'), 'cover' => $photo('music,album', 300, 300, 'al1'), 'duration' => '6:00'],
+                        ['title' => 'Midday', 'artist' => 'SoundHelix', 'url' => asset('block-placeholders/sample.mp3'), 'cover' => $photo('music,vinyl', 300, 300, 'al2'), 'duration' => '5:12'],
+                        ['title' => 'Nightfall', 'artist' => 'SoundHelix', 'url' => asset('block-placeholders/sample.mp3'), 'cover' => $photo('music,studio', 300, 300, 'al3'), 'duration' => '7:04'],
                     ], 'Featured playlist', 12),
                 ],
             ],
