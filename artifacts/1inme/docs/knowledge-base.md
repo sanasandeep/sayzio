@@ -34,7 +34,7 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
 18. [Creator monetization](#18-creator-monetization)
 19. [18+ adult content](#19-adult-content)
 20. [AI tools: Mind, Personas, Companions, Coach](#20-ai-tools)
-21. [Tools: Forms, Contact cards, Contacts & Dialer, Files, Resume, Calendar](#21-tools)
+21. [Tools: Forms, Contact cards, Contacts & Dialer, Scan a card or brochure, Files, Resume, Calendar](#21-tools)
 22. [Restaurant menu & orders](#22-restaurant-menu--orders)
 23. [Inbox & messages](#23-inbox--messages)
 24. [Notifications & digests](#24-notifications--digests)
@@ -171,8 +171,8 @@ add-ons, or covering developer-API usage beyond your plan's monthly allowance.
 **What it is.** A separate metered balance that powers 1INME's AI features.
 
 **Why use it.** AI features (the AI biolink builder, Ask Coach, AI Personas/Minds,
-resume tailoring and cover letters, the card/brochure scanner, voice assistant,
-etc.) consume **AI credits** as you use them.
+resume tailoring and cover letters, the [card/brochure scanner](#scan-a-card-or-brochure),
+voice assistant, etc.) consume **AI credits** as you use them.
 
 **How to use it.** Just use the AI features — each call is billed to the right
 balance automatically, and there's a credit ledger so you can see where credits
@@ -630,8 +630,9 @@ unless a visitor opts to show adult content.
   "train" your AI so its answers reflect your real information.
 
 Other AI helpers appear inside specific tools — e.g. **resume tailoring** and
-**cover-letter generation** in the Resume builder, and a **card/brochure scanner**
-that extracts contact details from a photo.
+**cover-letter generation** in the Resume builder, and the
+[**Scan a card or brochure**](#scan-a-card-or-brochure) tool, which extracts
+contact details, socials, and a logo from a photo or PDF.
 
 ---
 
@@ -676,6 +677,60 @@ compliant `.vcf`.
    automatically.
 4. Calls and emails open your device's native dialer/mail (`tel:` / `mailto:`) —
    there's no in-app VOIP.
+
+### Scan a card or brochure
+
+**What it is.** An AI tool that reads a photo of a **business card** or a small
+**brochure** (image or PDF) and pulls out the name, contact details, social
+handles, tagline, and brand logo — so you can save a new **contact** and/or
+**seed a biolink page** without typing it all in by hand. Find it under
+**Contacts → Scan a card or brochure** (it's also offered as a shortcut from the
+biolink **wizard**).
+
+**Why use it.** Skip manual data entry. Snap the card you were just handed and
+get a ready-to-save contact in seconds, or turn a company brochure into a
+head-start on a biolink page.
+
+**How to use it.**
+1. **Upload** one or more images or PDFs (e.g. the front and back of a card, or
+   a few brochure pages at once).
+2. **Scan with AI** — the AI reads every visible field and shows a progress step.
+3. **Review & edit** everything on the review screen. Nothing is saved until you
+   confirm, and each field is fully editable. You'll also see **confidence
+   indicators** (overall, plus name/email/phone/company) and a soft **duplicate
+   warning** if an email or phone already matches an existing contact.
+4. **Save** — choose **Save as a contact**, **Seed a biolink page draft**, or
+   both. A biolink draft drops you into the wizard with the details (and the
+   detected logo as the avatar) pre-filled.
+
+**Supported inputs.** JPG, PNG, WebP, or PDF. Up to **6 files** per scan, **10 MB**
+each, and PDFs are processed up to **4 pages**. (A PDF with more than 4 pages is
+rejected up front so you can split it.)
+
+**What gets extracted.** Full name, first/last name, role/title, company, tagline,
+a longer description (useful for brochures), phone numbers, email addresses,
+website, postal address, social handles (Instagram, TikTok, YouTube, X/Twitter,
+LinkedIn, Facebook), and the **brand logo** (auto-cropped and saved to your Vault
+so it can become the biolink avatar). Everything is reviewable and editable
+before you save.
+
+**What it costs.** Scanning is an AI feature, so it uses **AI credits** drawn from
+your **coin wallet**. Before the scan runs, 1INME checks you can afford it — if
+your balance is too low you're sent to top up rather than charged for a scan that
+can't finish. If the extraction itself fails after the charge, the credits are
+**automatically refunded**. (Developer/billing detail lives in
+[`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md).)
+
+**Plan limits.** Saving an extracted **contact** counts against your plan's
+**contact limit** — if you're at the cap, you'll be asked to upgrade, but you can
+still **seed just the biolink draft** without using a contact slot.
+
+**"AI scanning is currently disabled by your administrator."** If you see this
+notice (and the scan button is disabled), AI scanning isn't available on your
+platform right now. There are two underlying causes, both controlled by an
+administrator: the **AI engine is turned off**, or **no AI provider key is
+configured**. Once an admin enables the engine and adds a key, scanning works
+with no change on your side.
 
 ### Files / Vault
 
@@ -1044,6 +1099,32 @@ You do (the owner), from your AI credits — visitors don't pay.
 **What is Ask Coach?**
 An AI assistant that reviews your account and gives plain-language advice on how
 to improve your links and pages.
+
+**Why is "Scan a card or brochure" disabled?**
+You'll see "AI scanning is currently disabled by your administrator" when AI
+scanning isn't available on your platform. It's controlled by an admin and has
+two causes: the AI engine is turned off, or no AI provider key is configured.
+Once an admin fixes either, scanning works automatically — nothing to change on
+your side.
+
+**How much does a card scan cost?**
+A scan uses **AI credits** from your coin wallet. 1INME checks you can afford it
+before running, so you're never charged for a scan that can't finish — and if the
+extraction fails after charging, the credits are refunded automatically.
+
+**What file types can I scan?**
+JPG, PNG, WebP, and PDF. You can send up to 6 files per scan (e.g. both sides of
+a card), 10 MB each, and PDFs are read up to 4 pages.
+
+**What happens if the scan gets a detail wrong?**
+Nothing is saved until you confirm. Every field on the review screen is editable,
+shows confidence indicators, and warns you about possible duplicate contacts — so
+you can fix anything before saving.
+
+**Does scanning save a contact automatically?**
+No. After scanning you choose what to do: **save as a contact**, **seed a biolink
+page draft**, or both. Saving a contact counts against your plan's contact limit;
+if you're at the cap, you can still seed just the biolink draft.
 
 ### Account safety
 
