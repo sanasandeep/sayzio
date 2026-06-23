@@ -53,6 +53,9 @@
 <div class="max-w-6xl mx-auto" x-data="{
         category: 'all',
         search: '',
+        preview: { open: false, url: '', name: '' },
+        openPreview(url, name) { this.preview = { open: true, url: url, name: name }; },
+        closePreview() { this.preview = { open: false, url: '', name: '' }; },
         templates: {{ \Illuminate\Support\Js::from($filterIndex) }},
         // Single source of truth for whether a template passes the active
         // category + search filter. Used by both the per-card x-show and the
@@ -482,20 +485,62 @@
                             </a>
                         @else
                             @php $hasBlocks = $link->biolinkBlocks()->exists(); @endphp
-                            <form method="POST" action="{{ route('user.links.templates.apply-page', $link) }}"
-                                  @if($hasBlocks) onsubmit="return window.themedConfirmSubmit(this, {title: 'Replace existing blocks?', message: 'This will replace your existing blocks on this Link in Bio.', confirmText: 'Replace', confirmIcon: 'fa-arrows-rotate', iconClass: 'fa-triangle-exclamation'})" @endif>
-                                @csrf
-                                <input type="hidden" name="template_id" value="{{ $tpl->id }}">
-                                @if($hasBlocks)<input type="hidden" name="confirm_overwrite" value="1">@endif
-                                <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition">
-                                    {{ $hasBlocks ? 'Replace with this template' : 'Use this template' }}
+                            <div class="flex items-center gap-2">
+                                <button type="button"
+                                        @click="openPreview('{{ route('user.onboarding.template.preview', ['id' => $tpl->id]) }}', @js($tpl->name))"
+                                        class="shrink-0 py-2 px-3 text-xs font-semibold rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition"
+                                        title="Preview as a published page">
+                                    <i class="fas fa-eye mr-1"></i>Preview
                                 </button>
-                            </form>
+                                <form method="POST" action="{{ route('user.links.templates.apply-page', $link) }}" class="flex-1"
+                                      @if($hasBlocks) onsubmit="return window.themedConfirmSubmit(this, {title: 'Replace existing blocks?', message: 'This will replace your existing blocks on this Link in Bio.', confirmText: 'Replace', confirmIcon: 'fa-arrows-rotate', iconClass: 'fa-triangle-exclamation'})" @endif>
+                                    @csrf
+                                    <input type="hidden" name="template_id" value="{{ $tpl->id }}">
+                                    @if($hasBlocks)<input type="hidden" name="confirm_overwrite" value="1">@endif
+                                    <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition">
+                                        {{ $hasBlocks ? 'Replace with this template' : 'Use this template' }}
+                                    </button>
+                                </form>
+                            </div>
                         @endif
                     </div>
                 </div>
             @endforeach
         </div>
     @endif
+
+    {{-- Full public-style preview modal: renders the template's snapshot
+         through the real biolink view inside a phone-style frame so the user
+         can see exactly how it looks before applying (and overwriting). --}}
+    <div x-show="preview.open" x-cloak
+         class="fixed inset-0 z-[120] flex items-center justify-center p-4"
+         @keydown.escape.window="closePreview()"
+         @click.self="closePreview()">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closePreview()"></div>
+        <div class="relative w-full max-w-md flex flex-col" style="max-height: calc(100vh - 2rem);">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <i class="fas fa-mobile-screen-button text-violet-400"></i>
+                    <h3 class="text-sm font-semibold text-white truncate" x-text="preview.name"></h3>
+                    <span class="text-[10px] uppercase tracking-wide text-white/40 shrink-0">Preview</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a :href="preview.url" target="_blank" rel="noopener"
+                       class="text-white/50 hover:text-white p-1.5" title="Open in a new tab">
+                        <i class="fas fa-up-right-from-square text-xs"></i>
+                    </a>
+                    <button type="button" @click="closePreview()" class="text-white/50 hover:text-white p-1.5" title="Close">
+                        <i class="fas fa-xmark text-base"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 min-h-0 rounded-3xl border-4 border-black/60 bg-black overflow-hidden shadow-2xl">
+                <template x-if="preview.open">
+                    <iframe :src="preview.url" :title="preview.name + ' preview'"
+                            class="w-full h-full bg-white" style="min-height: 60vh;"></iframe>
+                </template>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

@@ -126,6 +126,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('search-links', [TemplateController::class, 'searchLinks'])->middleware(CheckPermission::class . ':settings.manage')->name('search-links');
             Route::post('validate-snapshot', [TemplateController::class, 'validateSnapshot'])->middleware(CheckPermission::class . ':settings.manage')->name('validate-snapshot');
             Route::get('{kind}/{id}/edit', [TemplateController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::get('{kind}/{id}/preview', [TemplateController::class, 'preview'])->whereIn('kind', ['page', 'card'])->whereNumber('id')->middleware(CheckPermission::class . ':settings.manage')->name('preview');
             Route::put('{kind}/{id}', [TemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{kind}/{id}/toggle', [TemplateController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
             Route::post('{kind}/bulk-toggle', [TemplateController::class, 'bulkToggle'])->middleware(CheckPermission::class . ':settings.manage')->name('bulk-toggle');

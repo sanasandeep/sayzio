@@ -43,3 +43,19 @@ Two pitfalls:
 Admin template CRUD exists at `/admin/templates` (kind=card|page): create/edit/
 toggle, snapshot capture from a live link, **custom thumbnail upload (overrides
 the auto-blueprint)**, and raw snapshot-JSON editing. Don't rebuild this.
+
+## Full "preview as published page" (modal iframe)
+Distinct from the blueprint thumbnails above: a real rendered preview reuses
+`TemplateService::buildPreviewLink()` (unsaved PreviewLink/PreviewBiolinkBlock
+from a `{biolink, blocks:[...]}` snapshot, settings sanitized, rendered via
+`common.biolink`). It throws `InvalidArgumentException` on unknown block types —
+always wrap in try/catch and fall back to an error view.
+**Surfaces:** admin gallery → `TemplateController::preview(kind, id)` (page OR
+card, any is_active; card wrapped as `['biolink'=>[],'blocks'=>[$snapshot]]`),
+route `admin.templates.preview` gated by `settings.manage`. Page-template picker
+reuses the existing user route `user.onboarding.template.preview` (active page
+templates only). Both render the iframe in an identical Alpine phone-frame modal
+(`preview {open,url,name}` + openPreview/closePreview), served with
+X-Frame-Options SAMEORIGIN so the iframe loads same-origin.
+**Why:** blueprint thumbnails can't show embeds/audio/image-grids/advanced
+blocks; admins/users wanted to see the actual page before publishing/applying.

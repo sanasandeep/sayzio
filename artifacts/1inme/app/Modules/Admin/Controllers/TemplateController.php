@@ -556,6 +556,47 @@ class TemplateController extends Controller
         }
     }
 
+    /**
+     * Render a full public-style biolink page from a template's stored
+     * snapshot so an admin can confirm how it looks *before* activating
+     * (publishing) it. Works for both kinds and regardless of is_active:
+     *   - page: the snapshot is already a {biolink, blocks:[...]} page.
+     *   - card: the card snapshot is wrapped as the single top-level block
+     *     of an otherwise-empty page so its children render in context.
+     *
+     * Built entirely in-memory via TemplateService::buildPreviewLink (the
+     * same sanitizer applyPage/applyCard use) — no DB writes. A snapshot
+     * with an unknown/degraded block type would otherwise 500; we catch it
+     * and surface a readable message pointing the admin at the design-fix
+     * flow instead of a stack trace.
+     */
+    public function preview(Request $request, string $kind, int $id)
+    {
+        $kind = $kind === 'card' ? 'card' : 'page';
+        $tpl = $this->resolve($kind, $id);
+
+        $snapshot = (array) ($tpl->snapshot ?? []);
+        $pageSnapshot = $kind === 'card'
+            ? ['biolink' => [], 'blocks' => [$snapshot]]
+            : $snapshot;
+
+        try {
+            $link = $this->templates->buildPreviewLink($pageSnapshot, $request->user(), (string) $tpl->name);
+            $html = view('common.biolink', compact('link'))->render();
+        } catch (\Throwable $e) {
+            $html = view('admin.templates.preview_error', [
+                'tpl'  => $tpl,
+                'kind' => $kind,
+                'message' => $e->getMessage(),
+            ])->render();
+        }
+
+        return response($html)
+            ->header('X-Frame-Options', 'SAMEORIGIN')
+            ->header('Content-Security-Policy', "frame-ancestors 'self'")
+            ->header('Cache-Control', 'no-store, max-age=0');
+    }
+
     private function resolve(string $kind, int $id)
     {
         if ($kind === 'card') return CardTemplate::findOrFail($id);

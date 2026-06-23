@@ -3,7 +3,8 @@
 @section('page-title', 'Page & Card Templates')
 
 @section('content')
-<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', selected: [], toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }">
+<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', selected: [], preview: { open: false, url: '', name: '' }, openPreview(url, name) { this.preview = { open: true, url: url, name: name }; }, closePreview() { this.preview = { open: false, url: '', name: '' }; }, toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }"
+     @keydown.escape.window="closePreview()">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
     <div class="flex items-center gap-2">
@@ -271,6 +272,12 @@
                     @endif
                 </div>
                 <div class="flex items-center gap-1.5">
+                    <button type="button"
+                            @click="openPreview('{{ route('admin.templates.preview', ['kind' => $tab, 'id' => $tpl->id]) }}', @js($tpl->name))"
+                            class="text-white/30 hover:text-violet-400 p-1.5"
+                            title="Preview as a published page">
+                        <i class="fas fa-eye text-xs"></i>
+                    </button>
                     <form action="{{ route('admin.templates.toggle', ['kind' => $tab, 'id' => $tpl->id]) }}" method="POST" class="inline">
                         @csrf
                         <button type="submit" class="text-white/30 hover:text-amber-400 p-1.5" title="{{ $tpl->is_active ? 'Deactivate' : 'Activate' }}">
@@ -288,5 +295,38 @@
     @endforeach
     </div>
 @endif
+
+{{-- Full public-style preview modal: renders the template's snapshot through
+     the real biolink view inside a phone-style frame so admins can confirm
+     layout/spacing before activating (publishing) it. --}}
+<div x-show="preview.open" x-cloak
+     class="fixed inset-0 z-[120] flex items-center justify-center p-4"
+     @click.self="closePreview()">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closePreview()"></div>
+    <div class="relative w-full max-w-md flex flex-col" style="max-height: calc(100vh - 2rem);">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2 min-w-0">
+                <i class="fas fa-mobile-screen-button text-violet-400"></i>
+                <h3 class="text-sm font-semibold text-white truncate" x-text="preview.name"></h3>
+                <span class="text-[10px] uppercase tracking-wide text-white/40 shrink-0">Preview</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a :href="preview.url" target="_blank" rel="noopener"
+                   class="text-white/50 hover:text-white p-1.5" title="Open in a new tab">
+                    <i class="fas fa-up-right-from-square text-xs"></i>
+                </a>
+                <button type="button" @click="closePreview()" class="text-white/50 hover:text-white p-1.5" title="Close">
+                    <i class="fas fa-xmark text-base"></i>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 min-h-0 rounded-3xl border-4 border-black/60 bg-black overflow-hidden shadow-2xl">
+            <template x-if="preview.open">
+                <iframe :src="preview.url" :title="preview.name + ' preview'"
+                        class="w-full h-full bg-white" style="min-height: 60vh;"></iframe>
+            </template>
+        </div>
+    </div>
+</div>
 </div>
 @endsection
