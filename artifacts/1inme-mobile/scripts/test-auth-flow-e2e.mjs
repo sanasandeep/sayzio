@@ -84,10 +84,22 @@
  * Usage:
  *   pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e
  *
+ *   Or run a single, shorter, parallel-friendly piece (each boots/reuses only
+ *   its own Expo server, so the two can run as independent jobs):
+ *     pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e:core
+ *       (AUTH_FLOW_ONLY=main  — demo, OTP, OAuth deep-link, the 6 web providers)
+ *     pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e:google
+ *       (AUTH_FLOW_ONLY=google — the Google-enabled variant only)
+ *
  * Environment:
- *   APP_URL   point the main flow at an already-running server instead of
- *             booting a throwaway one (handy for local debugging). When unset,
- *             the main flow boots its own self-contained Expo web server.
+ *   APP_URL          point the main flow at an already-running server instead
+ *                    of booting a throwaway one (handy for local debugging, and
+ *                    lets CI pre-boot once so a piece finishes well under the
+ *                    local-run window). When unset, the main flow boots its own
+ *                    self-contained Expo web server.
+ *   GOOGLE_APP_URL   same, for the Google variant's server.
+ *   AUTH_FLOW_ONLY   "both" (default), "main", or "google" — which flow(s) to
+ *                    run. The :core / :google scripts set this for you.
  */
 
 import { spawn } from "node:child_process";

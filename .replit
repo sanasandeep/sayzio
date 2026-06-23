@@ -58,23 +58,23 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mob
 name = "e2e-mobile-main"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "AUTH_FLOW_ONLY=main pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e:core"
 
 [[workflows.workflow]]
 name = "e2e-mobile-google"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "AUTH_FLOW_ONLY=google pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e:google"
 
 [agent]
 stack = "PNPM_WORKSPACE"
