@@ -79,6 +79,78 @@
         </div>
     </div>
 
+    {{-- Due / lapsed users with a per-user manual nudge --}}
+    <div class="glass rounded-2xl p-6 space-y-4">
+        <div>
+            <h2 class="text-base font-semibold text-white">Users due for renewal</h2>
+            <p class="text-xs text-white/50 mt-0.5">
+                Free-Starter users whose yearly window is lapsing within 30 days or has already lapsed — most urgent first.
+                Use <strong>Send reminder</strong> to nudge one now (email + in-app), the same message the daily job sends.
+            </p>
+        </div>
+
+        @if($dueUsers->total() > 0)
+            <div class="overflow-x-auto rounded-xl border border-white/10">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-[11px] uppercase tracking-wide text-white/40 bg-white/[0.03]">
+                        <tr>
+                            <th class="px-4 py-2.5 font-semibold">User</th>
+                            <th class="px-4 py-2.5 font-semibold">Window ends</th>
+                            <th class="px-4 py-2.5 font-semibold">Last reminded</th>
+                            <th class="px-4 py-2.5 font-semibold text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/[0.06]">
+                        @foreach($dueUsers as $due)
+                            @php
+                                $endsAt = $due->starter_free_window_ends_at;
+                                $isLapsed = $endsAt && $endsAt->isPast();
+                            @endphp
+                            <tr class="hover:bg-white/[0.02]">
+                                <td class="px-4 py-3">
+                                    <div class="font-medium text-white truncate max-w-[220px]">{{ $due->name ?: 'Unnamed user' }}</div>
+                                    <div class="text-xs text-white/50 truncate max-w-[220px]">{{ $due->email }}</div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if($endsAt)
+                                        <div class="text-white/80">{{ $endsAt->format('M j, Y') }}</div>
+                                        <div class="text-[11px] {{ $isLapsed ? 'text-red-300' : 'text-amber-300' }}">
+                                            {{ $isLapsed ? 'Lapsed ' : 'Due ' }}{{ $endsAt->diffForHumans() }}
+                                        </div>
+                                    @else
+                                        <span class="text-white/40">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if($due->starter_renewal_reminder_sent_at)
+                                        <div class="text-white/70">{{ $due->starter_renewal_reminder_sent_at->format('M j, Y') }}</div>
+                                        <div class="text-[11px] text-white/40">{{ $due->starter_renewal_reminder_sent_at->diffForHumans() }}</div>
+                                    @else
+                                        <span class="text-white/40">Never</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <form method="POST" action="{{ route('admin.starter-renewals.users.send', $due->id) }}">
+                                        @csrf
+                                        <button type="submit"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 border border-violet-400/30 text-violet-200 text-xs font-semibold transition">
+                                            <i class="fas fa-paper-plane text-[10px]"></i> Send reminder
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div>{{ $dueUsers->links() }}</div>
+        @else
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
+                No free-Starter users are due for renewal right now.
+            </div>
+        @endif
+    </div>
+
     {{-- Preview a specific user --}}
     <div class="glass rounded-2xl p-6 space-y-4">
         <div>

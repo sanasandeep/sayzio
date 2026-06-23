@@ -8,9 +8,12 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\NotificationService;
 use App\Modules\User\Models\User;
 use App\Services\Integrations\MailSettings;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -32,8 +35,18 @@ class StarterRenewalReminderController extends Controller
 {
     public function index(Request $request)
     {
+        $now = Carbon::now();
+
         $search   = trim((string) $request->query('q', ''));
         $selected = $search !== '' ? $this->findUser($search) : null;
+
+        // Who an admin can act on directly: free-Starter users whose window is
+        // due (lapsing within 30 days) or already lapsed — most urgent first.
+        $dueUsers = $this->baseQuery()
+            ->where('starter_free_window_ends_at', '<=', $now->copy()->addDays(30))
+            ->orderBy('starter_free_window_ends_at')
+            ->paginate(20)
+            ->withQueryString();
 
         return view('admin.starter-renewals.index', [
             'stats'   => $this->stats(),
@@ -46,7 +59,76 @@ class StarterRenewalReminderController extends Controller
             'selectedUser'   => $selected,
             'selectedEndsAt' => $selected ? ($selected->starter_free_window_ends_at ?: now()->addDays(7)) : null,
             'searchNotFound' => $search !== '' && ! $selected,
+            'dueUsers' => $dueUsers,
         ]);
+    }
+
+    /**
+     * Send the live reminder (email + in-app) to a single due user now, via the
+     * same command the daily job runs (`--user`, `--force` so the once-per-window
+     * guard is bypassed for a deliberate manual nudge). The target must be in the
+     * eligible base population. Rate-limited per admin and per target, audited.
+     */
+    public function sendReminder(Request $request, User $user)
+    {
+        $admin = Auth::guard('admin')->user() ?: $request->user();
+
+        // Only ever act on a user the live job could legitimately target.
+        $eligible = $this->baseQuery()->whereKey($user->id)->exists();
+        if (! $eligible) {
+            return back()->with('error', 'That user is no longer eligible for a free-Starter renewal reminder.');
+        }
+
+        // Per-target guard: don't let one user be nudged repeatedly in quick
+        // succession, regardless of which admin clicks.
+        $targetKey = 'starter-renewal-send:user:' . $user->id;
+        if (RateLimiter::tooManyAttempts($targetKey, 1)) {
+            $seconds = RateLimiter::availableIn($targetKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+            return back()->with('error', "A reminder was just sent to {$user->email}. Please wait about {$minutes} minute" . ($minutes === 1 ? '' : 's') . ' before sending another.');
+        }
+
+        // Per-admin guard: stop the action being spammed across many users.
+        $adminKey = 'starter-renewal-send:admin:' . ($admin?->id ?? 'unknown');
+        if (RateLimiter::tooManyAttempts($adminKey, 30)) {
+            $seconds = RateLimiter::availableIn($adminKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+            return back()->with('error', "You've sent a lot of reminders recently — please try again in about {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.');
+        }
+
+        // Apply the saved SMTP settings before the command sends so manual
+        // nudges use exactly what's configured (mirrors the test-send path).
+        MailSettings::applyRuntimeConfig();
+
+        try {
+            Artisan::call('starter:send-free-window-reminders', [
+                '--user'  => $user->id,
+                '--force' => true,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Admin manual Starter renewal reminder failed', [
+                'target_user_id' => $user->id,
+                'admin_id'       => $admin?->id,
+                'error'          => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Sending the reminder failed: ' . $e->getMessage());
+        }
+
+        RateLimiter::hit($targetKey, 600);
+        RateLimiter::hit($adminKey, 600);
+
+        Log::info('Admin sent manual Starter renewal reminder', [
+            'target_user_id' => $user->id,
+            'target_email'   => $user->email,
+            'admin_id'       => $admin?->id,
+        ]);
+
+        $note = '';
+        if (MailSettings::mailer() === 'log') {
+            $note = ' (The mailer is set to "log", so the email was written to the log rather than delivered.)';
+        }
+
+        return back()->with('success', 'Renewal reminder sent to ' . $user->email . '.' . $note);
     }
 
     /**
@@ -214,32 +296,36 @@ class StarterRenewalReminderController extends Controller
     }
 
     /**
-     * Counts that give admins a feel for the reminder's reach — mirrors the
-     * command's targeting (active, has email, on the lineup default plan, has a
-     * free window). No new schema; all derived from existing columns.
-     *
-     * @return array<string, mixed>
+     * Base population the command can ever target: active free-Starter users
+     * with an email and a tracked free window. Single source of truth shared by
+     * the stats, the due-users list, and the per-user manual send so they all
+     * stay in lockstep with the command's own targeting.
      */
+    private function baseQuery(): Builder
+    {
+        $default = Plan::defaultPlan();
+
+        $q = User::query()
+            ->where('status', 'active')
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->whereNotNull('starter_free_window_ends_at');
+
+        if ($default) {
+            $q->where(function ($w) use ($default) {
+                $w->where('plan_id', $default->id)->orWhereNull('plan_id');
+            });
+        }
+
+        return $q;
+    }
+
     private function stats(): array
     {
         $now = Carbon::now();
         $default = Plan::defaultPlan();
 
-        // Base population the command can ever target: active free-Starter users
-        // with an email and a tracked free window.
-        $base = function () use ($default) {
-            $q = User::query()
-                ->where('status', 'active')
-                ->whereNotNull('email')
-                ->where('email', '!=', '')
-                ->whereNotNull('starter_free_window_ends_at');
-            if ($default) {
-                $q->where(function ($w) use ($default) {
-                    $w->where('plan_id', $default->id)->orWhereNull('plan_id');
-                });
-            }
-            return $q;
-        };
+        $base = fn () => $this->baseQuery();
 
         $onStarter = $base()->count();
 
