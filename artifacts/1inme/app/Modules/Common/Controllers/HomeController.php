@@ -10,6 +10,7 @@ use App\Modules\User\Models\BillingAddress;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
@@ -22,6 +23,54 @@ class HomeController extends Controller
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
 
+        // The plan teaser + link-types showcase issue a dozen-plus queries, and
+        // over the cross-region RDS that is ~8-9s per render. For anonymous
+        // visitors — every signed-out human plus the platform readiness probe —
+        // that payload only varies by resolved currency, so cache it for 5
+        // minutes (mirrors the AppSetting cache TTL) to keep the home page and
+        // the health check fast. Authenticated users always compute fresh
+        // because pricing/tax is per-user. Only plain-array data is cached here:
+        // featured blog posts are Eloquent models (which don't survive the file
+        // cache — "incomplete object" on unserialize) so they load fresh below.
+        if ($user) {
+            $payload = $this->buildHomePayload($user, $billing, $hasAddress, $currency);
+        } else {
+            // Cache as JSON (not PHP serialize) so the stored value is a plain
+            // nested array — no Eloquent collections or other objects that fail
+            // to rebuild from the file cache. The pricing partial wraps $plans
+            // in collect(...) so a plain array is rendered identically to the
+            // live Collection returned on the cache-miss path.
+            $key = 'home:anon:payload:' . $currency;
+            $json = Cache::get($key);
+            if (is_string($json) && ($decoded = json_decode($json, true)) !== null) {
+                $payload = $decoded;
+            } else {
+                $payload = $this->buildHomePayload(null, null, false, $currency);
+                $encoded = json_encode($payload);
+                if ($encoded !== false) {
+                    Cache::put($key, $encoded, 300);
+                }
+            }
+        }
+
+        $plans = $payload['plans'];
+        $linkTypes = $payload['linkTypes'];
+        $featuredBlogPosts = $this->featuredBlogPosts();
+
+        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes'));
+    }
+
+    /**
+     * Build the cacheable home-page data (plan teaser cards + the "what you can
+     * create" link-types showcase). Returns only plain-array data so the
+     * anonymous-visitor path can safely cache it — see index(). Featured blog
+     * posts are intentionally excluded (Eloquent models don't survive the file
+     * cache); fetch them via featuredBlogPosts() instead.
+     *
+     * @return array{plans:\Illuminate\Support\Collection,linkTypes:array}
+     */
+    private function buildHomePayload($user, $billing, bool $hasAddress, string $currency): array
+    {
         // Landing-page pricing is intentionally just two cards now:
         // the always-free entry plan and the curator-flagged "popular"
         // plan. The full plan grid lives at /pricing — keeping the
@@ -139,24 +188,6 @@ class HomeController extends Controller
         }
         $plans = $plans->values();
 
-        // Featured-post carousel for the landing page. The marketing
-        // seeder flags the top 3 posts with `is_featured_home` (across
-        // both `hero` and `carousel` slots) — we surface all of them in
-        // a single small carousel/grid below the fold so new content
-        // gets immediate visibility from the homepage.
-        $featuredBlogPosts = collect();
-        try {
-            $featuredBlogPosts = \App\Modules\Common\Models\BlogPost::published()
-                ->featured()
-                ->with('category', 'author')
-                ->orderByRaw("CASE WHEN featured_slot = 'hero' THEN 0 WHEN featured_slot = 'carousel' THEN 1 ELSE 2 END")
-                ->orderByDesc('published_at')
-                ->take(3)
-                ->get();
-        } catch (\Throwable $e) {
-            // Blogs migration not run yet — silently skip the carousel.
-        }
-
         // "What you can create" link-types showcase. Admin-editable from the
         // `home` SitePage row under extra.link_types; falls back to the shared
         // SitePagesContent defaults when unset (or the table isn't migrated).
@@ -173,6 +204,32 @@ class HomeController extends Controller
             // SitePages migration not run yet — use defaults.
         }
 
-        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes'));
+        return compact('plans', 'linkTypes');
+    }
+
+    /**
+     * Featured-post carousel for the landing page. The marketing seeder flags
+     * the top 3 posts with `is_featured_home` (across both `hero` and `carousel`
+     * slots) — we surface all of them in a single small carousel/grid below the
+     * fold so new content gets immediate visibility from the homepage.
+     *
+     * Loaded fresh on every request (never cached): these are Eloquent models
+     * and the view relies on their relations/accessors, which do not survive the
+     * file cache (incomplete-object on unserialize).
+     */
+    private function featuredBlogPosts(): \Illuminate\Support\Collection
+    {
+        try {
+            return \App\Modules\Common\Models\BlogPost::published()
+                ->featured()
+                ->with('category', 'author')
+                ->orderByRaw("CASE WHEN featured_slot = 'hero' THEN 0 WHEN featured_slot = 'carousel' THEN 1 ELSE 2 END")
+                ->orderByDesc('published_at')
+                ->take(3)
+                ->get();
+        } catch (\Throwable $e) {
+            // Blogs migration not run yet — silently skip the carousel.
+            return collect();
+        }
     }
 }

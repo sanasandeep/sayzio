@@ -19,6 +19,16 @@ run = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest
 [services.development.env]
 PORT = "5000"
 
+# Dev readiness probe targets the lightweight Laravel health endpoint (/up:
+# no DB, no Blade render, ~0.08s) instead of the heavy marketing home page ("/").
+# The home page is a 4000+ line Blade view; on a cold restart the PHP OPcache is
+# empty, so the first concurrent requests spend 3-4s compiling+rendering (a
+# cache stampede) and overran the probe's window, marking the workflow failed
+# even though the app served 200s fine moments later. /up decouples "is the
+# server up" from "is the slowest page warm".
+[services.development.health.startup]
+path = "/up"
+
 # Production build compiles the Vite/Tailwind v4 assets (resources/css/app.css +
 # resources/js/app.js) so the @vite() manifest at public/build/manifest.json
 # resolves at runtime — the Blade views no longer load the Tailwind CDN.

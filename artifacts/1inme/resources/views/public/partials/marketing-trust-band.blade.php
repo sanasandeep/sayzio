@@ -11,7 +11,7 @@
 --}}
 @php
     try {
-        $__heroStats = \App\Modules\Admin\Models\SiteStat::active()->ordered()->take(4)->get();
+        $__heroStats = \App\Modules\Admin\Models\SiteStat::cachedActive()->take(4)->values();
     } catch (\Throwable $e) {
         $__heroStats = collect();
     }

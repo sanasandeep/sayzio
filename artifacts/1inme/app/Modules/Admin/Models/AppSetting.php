@@ -30,8 +30,26 @@ class AppSetting extends Model
     }
 
     /**
-     * Read a setting by key. Cached for 5 minutes to keep the hot path (the
-     * per-link coach render) from hitting the DB on every request.
+     * Sentinel cached in place of a missing/null setting value.
+     *
+     * `Cache::remember()` treats a cached `null` as a cache MISS (it can't tell
+     * "stored null" from "absent"), so caching the raw default for an unset key
+     * re-runs the DB query on EVERY request. With ~15 mostly-unset integration
+     * settings read at boot (MailSettings/PlatformServiceSettings), that meant
+     * ~15 queries per request — multiplied by cross-region RDS latency this made
+     * even a trivial endpoint take ~16s. Caching a non-null sentinel instead
+     * lets the "absent" result actually stick.
+     */
+    private const MISSING = '__app_setting_missing__';
+
+    /**
+     * Read a setting by key. Cached for 5 minutes to keep the hot path (boot-time
+     * runtime-config overrides + the per-link coach render) from hitting the DB
+     * on every request. Missing/null values are cached via a sentinel (see
+     * self::MISSING) so unset keys don't re-query the DB on every request.
+     *
+     * The caller-supplied $default is applied at read time (not cached), so the
+     * same key can be read with different defaults by different callers.
      *
      * If the underlying `app_settings` table does not exist yet (un-migrated
      * environment), we degrade gracefully to the caller-supplied default
@@ -43,12 +61,14 @@ class AppSetting extends Model
     public static function get(string $key, $default = null)
     {
         try {
-            return Cache::remember(self::cacheKey($key), 300, function () use ($key, $default) {
+            $cached = Cache::remember(self::cacheKey($key), 300, function () use ($key) {
                 $row = self::where('key', $key)->first();
-                if (!$row) return $default;
+                if (!$row) return self::MISSING;
                 $v = $row->value;
-                return $v === null ? $default : $v;
+                return $v === null ? self::MISSING : $v;
             });
+
+            return $cached === self::MISSING ? $default : $cached;
         } catch (QueryException $e) {
             if (DatabaseErrors::isMissingTable($e)) {
                 return $default;

@@ -4,6 +4,7 @@ namespace App\Modules\Common\Support;
 
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\User\Models\Domain;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Host-aware branding resolver.
@@ -46,12 +47,28 @@ class DomainBranding
             return self::$domain = null;
         }
 
+        // This lookup runs on every page (global brand-logo partial) and almost
+        // always misses (the platform host has no non-primary row). Cache the
+        // result per host for 5 minutes to keep the cross-region RDS off the
+        // hot path. We cache the raw attributes (rehydrated below) or the
+        // `false` sentinel for "looked up, no match" — never null, so a miss
+        // isn't mistaken for an empty cache (cf. the AppSetting null-cache bug).
         try {
-            self::$domain = Domain::query()
-                ->whereNull('user_id')
-                ->where('is_primary', false)
-                ->where('domain', $host)
-                ->first();
+            $attrs = Cache::remember(
+                'domain_branding:current:' . $host,
+                300,
+                function () use ($host) {
+                    $m = Domain::query()
+                        ->whereNull('user_id')
+                        ->where('is_primary', false)
+                        ->where('domain', $host)
+                        ->first();
+
+                    return $m ? $m->getAttributes() : false;
+                }
+            );
+
+            self::$domain = $attrs === false ? null : Domain::hydrate([$attrs])->first();
         } catch (\Throwable) {
             // domains table / columns not migrated yet — behave as platform.
             self::$domain = null;

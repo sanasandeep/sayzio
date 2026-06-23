@@ -4082,8 +4082,9 @@
 
     @php
         try {
-            $__topReviews    = \App\Modules\Admin\Models\Testimonial::active()->where('row', 'top')->ordered()->get();
-            $__bottomReviews = \App\Modules\Admin\Models\Testimonial::active()->where('row', 'bottom')->ordered()->get();
+            $__allReviews    = \App\Modules\Admin\Models\Testimonial::cachedActive();
+            $__topReviews    = $__allReviews->where('row', 'top')->values();
+            $__bottomReviews = $__allReviews->where('row', 'bottom')->values();
         } catch (\Throwable $e) {
             $__topReviews = collect();
             $__bottomReviews = collect();

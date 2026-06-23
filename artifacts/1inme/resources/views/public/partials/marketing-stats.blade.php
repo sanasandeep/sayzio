@@ -1,6 +1,6 @@
 @php
     try {
-        $__stats = \App\Modules\Admin\Models\SiteStat::active()->ordered()->get();
+        $__stats = \App\Modules\Admin\Models\SiteStat::cachedActive();
     } catch (\Throwable $e) {
         $__stats = collect();
     }

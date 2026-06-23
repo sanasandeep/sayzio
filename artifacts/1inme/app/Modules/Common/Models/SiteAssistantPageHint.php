@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SiteAssistantPageHint extends Model
 {
@@ -27,10 +28,22 @@ class SiteAssistantPageHint extends Model
      */
     public static function resolve(?string $routeName, ?string $path, string $surface): ?self
     {
-        $hints = static::where('is_active', true)
-            ->whereIn('surface', [$surface, 'any'])
-            ->orderBy('priority')
-            ->get();
+        // Resolved on every page render (global widget partial) — cache the raw
+        // attribute rows per surface for 5 minutes and rehydrate, so the cross-
+        // region RDS isn't hit on each request. getAttributes() keeps the JSON
+        // `suggested_actions` column in its raw form so the `array` cast still
+        // decodes correctly after hydrate().
+        $rows = Cache::remember(
+            'site_assistant:hints:' . $surface,
+            300,
+            fn () => static::where('is_active', true)
+                ->whereIn('surface', [$surface, 'any'])
+                ->orderBy('priority')
+                ->get()
+                ->map(fn ($m) => $m->getAttributes())
+                ->all()
+        );
+        $hints = static::hydrate($rows);
 
         $routeName = (string) $routeName;
         $path      = (string) $path;
