@@ -54,6 +54,9 @@ class AskCoachController extends Controller
 
     public function show(Request $request, ?int $thread = null)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Ask Coach']);
+        }
         $this->ensureEnabled($request);
         $user = $request->user();
         $wsId = $this->workspaceId();

@@ -22,6 +22,9 @@ class MindController extends Controller
 {
     public function index(Request $request)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Minds']);
+        }
         $this->ensureEnabled();
         $user = $request->user();
         // Lazily seed "My Mind" + ensure the platform mind exists so the

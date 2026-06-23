@@ -822,7 +822,6 @@
                 @endif
 
                 {{-- ========== AI (collapsible) ========== --}}
-                @if(\App\Services\AI\AiEngineSettings::isEnabled())
                 @php $grpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*'); @endphp
                 <div x-data="{ open: {{ $grpAiActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
@@ -882,7 +881,7 @@
                             <span class="nav-label">Coach</span>
                             <span class="sidebar-tooltip">Coach</span>
                         </a>
-                        @if(\App\Services\AI\AiEngineSettings::isEnabled() && auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
+                        @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                         <a href="{{ route('user.ai.ask-coach.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"
                            style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
@@ -893,7 +892,6 @@
                         @endif
                     </div>
                 </div>
-                @endif
 
                 {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
                 @if($__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
@@ -1326,7 +1324,6 @@
                         @endif
 
                         {{-- ========== AI (collapsible) ========== --}}
-                        @if(\App\Services\AI\AiEngineSettings::isEnabled())
                         @php $mGrpAiActive = request()->routeIs('user.ai.*') || request()->routeIs('user.minds.*') || request()->routeIs('user.ai-personas.*') || request()->routeIs('user.ai-companions.*'); @endphp
                         <div x-data="{ open: {{ $mGrpAiActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
@@ -1344,12 +1341,11 @@
                                 <a href="{{ route('user.ai.companion.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comments"></i></div> <span>Companion</span></a>
                                 <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Companions</span></a>
                                 <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>Coach</span></a>
-                                @if(\App\Services\AI\AiEngineSettings::isEnabled() && auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
+                                @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                                 <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Ask Coach</span></a>
                                 @endif
                             </div>
                         </div>
-                        @endif
 
                         {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
                         @if($__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])

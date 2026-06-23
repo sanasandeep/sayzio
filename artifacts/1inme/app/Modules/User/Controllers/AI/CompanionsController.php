@@ -32,6 +32,9 @@ class CompanionsController extends Controller
 
     public function index(Request $request)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Companions']);
+        }
         $this->ensureEnabled();
         $user = $request->user();
 

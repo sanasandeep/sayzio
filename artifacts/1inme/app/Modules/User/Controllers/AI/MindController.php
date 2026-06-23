@@ -31,6 +31,9 @@ class MindController extends Controller
 
     public function show(Request $request)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Mind']);
+        }
         $this->ensureEnabled();
         return view('user.ai.mind', [
             'balance' => $this->credits->getBalance($request->user()),

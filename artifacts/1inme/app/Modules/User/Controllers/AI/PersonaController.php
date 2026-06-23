@@ -45,6 +45,9 @@ class PersonaController extends Controller
 
     public function show(Request $request)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Persona']);
+        }
         $this->ensureEnabled();
         $user = $request->user();
         AiMindProvisioner::ensureForUser($user);

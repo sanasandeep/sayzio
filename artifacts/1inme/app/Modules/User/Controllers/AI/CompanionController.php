@@ -52,6 +52,9 @@ class CompanionController extends Controller
 
     public function show(Request $request, ?int $thread = null)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Companion']);
+        }
         $this->ensureEnabled();
         $user = $request->user();
         AiMindProvisioner::ensureForUser($user);

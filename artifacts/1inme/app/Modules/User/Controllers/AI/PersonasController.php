@@ -37,6 +37,9 @@ class PersonasController extends Controller
 
     public function index(Request $request)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Personas']);
+        }
         $this->ensureEnabled();
         $user = $request->user();
 

@@ -40,6 +40,9 @@ class CoachController extends Controller
 
     public function show(Request $request)
     {
+        if (!AiEngineSettings::isEnabled()) {
+            return view('user.ai.disabled', ['title' => 'Coach']);
+        }
         $this->ensureEnabled();
         $user = $request->user();
         AiMindProvisioner::ensureForUser($user);
