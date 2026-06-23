@@ -79,22 +79,71 @@
         </div>
     </div>
 
+    {{-- Preview a specific user --}}
+    <div class="glass rounded-2xl p-6 space-y-4">
+        <div>
+            <h2 class="text-base font-semibold text-white">Preview a specific user</h2>
+            <p class="text-xs text-white/50 mt-0.5">
+                Enter a user ID or email to preview the exact reminder that user is due to receive — their real
+                free-window end date and a working signed renew link. Leave blank to preview the generic sample.
+            </p>
+        </div>
+        <form method="GET" action="{{ route('admin.starter-renewals.index') }}" class="flex flex-wrap items-center gap-2">
+            <input type="text" name="q" value="{{ $search }}"
+                   placeholder="User ID or email"
+                   class="flex-1 min-w-[220px] px-3 py-2 rounded-lg bg-white/[0.04] border border-white/15 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400/60">
+            <button type="submit"
+                    class="px-4 py-2 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/30 text-violet-100 text-sm font-semibold transition">
+                <i class="fas fa-magnifying-glass mr-1.5"></i> Preview this user
+            </button>
+            @if($search !== '')
+                <a href="{{ route('admin.starter-renewals.index') }}"
+                   class="px-4 py-2 rounded-lg bg-white/[0.04] hover:bg-white/10 border border-white/15 text-white/70 text-sm font-semibold transition">
+                    Clear
+                </a>
+            @endif
+        </form>
+
+        @if($selectedUser)
+            <div class="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                <i class="fas fa-circle-check mr-1.5"></i>
+                Previewing the reminder for
+                <strong>{{ $selectedUser->name ?: 'this user' }}</strong>
+                (<span class="text-emerald-200/90">{{ $selectedUser->email }}</span>, ID {{ $selectedUser->id }}).
+                @if($selectedEndsAt)
+                    Free window ends <strong>{{ $selectedEndsAt->format('F j, Y') }}</strong>.
+                @endif
+            </div>
+        @elseif($searchNotFound)
+            <div class="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+                <i class="fas fa-triangle-exclamation mr-1.5"></i>
+                No user found matching <strong>{{ $search }}</strong>. Showing the generic sample below instead.
+            </div>
+        @endif
+    </div>
+
     {{-- Previews --}}
     <div class="grid lg:grid-cols-2 gap-6">
         {{-- Email preview --}}
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
                 <h2 class="text-base font-semibold text-white">Email preview</h2>
-                <p class="text-xs text-white/50 mt-0.5">The exact reminder email, rendered with sample data.</p>
+                <p class="text-xs text-white/50 mt-0.5">
+                    @if($selectedUser)
+                        The exact reminder email {{ $selectedUser->name ?: $selectedUser->email }} will receive.
+                    @else
+                        The exact reminder email, rendered with sample data.
+                    @endif
+                </p>
             </div>
             <div class="rounded-xl overflow-hidden border border-white/10 bg-white">
-                <iframe src="{{ route('admin.starter-renewals.preview-email') }}"
+                <iframe src="{{ route('admin.starter-renewals.preview-email', $selectedUser ? ['q' => $search] : []) }}"
                         title="Reminder email preview"
                         class="w-full"
                         style="height: 520px; border: 0;"></iframe>
             </div>
             <div>
-                <a href="{{ route('admin.starter-renewals.preview-email') }}" target="_blank" rel="noopener"
+                <a href="{{ route('admin.starter-renewals.preview-email', $selectedUser ? ['q' => $search] : []) }}" target="_blank" rel="noopener"
                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
                     <i class="fas fa-up-right-from-square text-[10px]"></i> Open email preview in a new tab
                 </a>

@@ -30,12 +30,22 @@ use Illuminate\Support\Facades\URL;
  */
 class StarterRenewalReminderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $search   = trim((string) $request->query('q', ''));
+        $selected = $search !== '' ? $this->findUser($search) : null;
+
         return view('admin.starter-renewals.index', [
             'stats'   => $this->stats(),
             'inApp'   => SendStarterFreeWindowReminders::inAppCopy(),
             'adminEmail' => optional(Auth::guard('admin')->user())->email ?? Auth::user()?->email,
+            // User-targeted preview: when an admin searches a real user we
+            // preview that user's exact reminder; otherwise we fall back to the
+            // sample built from the admin's own account / a placeholder.
+            'search'         => $search,
+            'selectedUser'   => $selected,
+            'selectedEndsAt' => $selected ? ($selected->starter_free_window_ends_at ?: now()->addDays(7)) : null,
+            'searchNotFound' => $search !== '' && ! $selected,
         ]);
     }
 
@@ -80,7 +90,10 @@ class StarterRenewalReminderController extends Controller
         // so the test reflects exactly what's configured.
         MailSettings::applyRuntimeConfig();
 
-        [$previewUser, $renewUrl, $endsAt, $isRealUser] = $this->sampleContext($request, withFlags: true);
+        // The test send always targets the admin's own account — never a
+        // searched user — so we deliberately ignore any search term here and
+        // never drop a real notification into someone else's feed.
+        [$previewUser, $renewUrl, $endsAt, $isRealUser] = $this->sampleContext($request, withFlags: true, allowSearch: false);
 
         // In-app notification — only drop a real feed row when the admin has a
         // matching User account; otherwise the email alone is the test.
@@ -122,15 +135,56 @@ class StarterRenewalReminderController extends Controller
     }
 
     /**
-     * Build a sample (user, renewUrl, endsAt) tuple for previews/tests. Uses
-     * the admin's matching User account when one exists so the renew link is a
-     * real signed "self" link; otherwise falls back to a display-only
-     * placeholder recipient with a sample (non-resolving) link.
+     * Find a real user to preview by id or email. Tries an exact id match
+     * first (when the term is all digits), then an exact email match.
+     */
+    private function findUser(string $search): ?User
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return null;
+        }
+
+        if (ctype_digit($search)) {
+            $byId = User::find((int) $search);
+            if ($byId) {
+                return $byId;
+            }
+        }
+
+        return User::where('email', $search)->first();
+    }
+
+    /**
+     * Build a (user, renewUrl, endsAt) tuple for previews/tests.
+     *
+     * When $allowSearch is on and the admin supplied a `q` term that resolves
+     * to a real user, that user's exact reminder is built — their real
+     * free-window end date and a real signed renew link. Otherwise it uses the
+     * admin's matching User account when one exists (a real signed "self"
+     * link), and finally falls back to a display-only placeholder recipient
+     * with a sample (non-resolving) link.
      *
      * @return array{0: User, 1: string, 2: ?Carbon, 3?: bool}
      */
-    private function sampleContext(Request $request, bool $withFlags = false): array
+    private function sampleContext(Request $request, bool $withFlags = false, bool $allowSearch = true): array
     {
+        // A specific real user chosen by the admin takes precedence.
+        if ($allowSearch) {
+            $search   = trim((string) $request->input('q', ''));
+            $selected = $search !== '' ? $this->findUser($search) : null;
+            if ($selected) {
+                $endsAt = $selected->starter_free_window_ends_at ?: now()->addDays(7);
+                $renewUrl = URL::temporarySignedRoute(
+                    'user.starter.renew-free-window.link',
+                    now()->addDays(60),
+                    ['user' => $selected->id]
+                );
+
+                return $withFlags ? [$selected, $renewUrl, $endsAt, true] : [$selected, $renewUrl, $endsAt];
+            }
+        }
+
         $admin = Auth::guard('admin')->user() ?: $request->user();
         $realUser = $admin && ! empty($admin->email)
             ? User::where('email', $admin->email)->first()
