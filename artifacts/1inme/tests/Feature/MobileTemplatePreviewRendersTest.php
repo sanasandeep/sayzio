@@ -156,6 +156,181 @@ class MobileTemplatePreviewRendersTest extends TestCase
         return $n;
     }
 
+    /**
+     * Count the nodes a flat snapshot list would summarize into via
+     * TemplateContentSummarizer::summarizeChildren / summarizePageBlocks:
+     * each entry that is an array carrying a non-empty `type` (summarizeOne
+     * drops everything else). This is exactly the set the gallery's
+     * `children` / `content` arrays — and the `children_count` /
+     * `blocks_count` tallies — are built from.
+     *
+     * @param  array<int, mixed>  $nodes
+     */
+    private function countSummarizable(array $nodes): int
+    {
+        $n = 0;
+        foreach ($nodes as $node) {
+            if (!is_array($node)) {
+                continue;
+            }
+            if ((string) ($node['type'] ?? '') === '') {
+                continue;
+            }
+            $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * The mobile card *gallery* (GET .../card-templates, index) serializes each
+     * card's children through TemplateContentSummarizer::summarizeChildren — a
+     * DIFFERENT path than the apply endpoint above. A regression that blanks out
+     * a card's "what's inside" summary in the browse list (e.g. a child type that
+     * summarizeOne silently drops) would leave the user staring at an empty card
+     * preview before they ever tap Apply. Drive the real endpoint for the full
+     * seeded library and assert every active card lists a non-empty summary whose
+     * count matches its snapshot.
+     */
+    public function test_every_active_card_template_lists_a_nonempty_children_summary(): void
+    {
+        $this->seedTemplateLibrary();
+        $user = $this->makeUnlockedUser();
+        $link = $this->makeBiolink($user);
+        $this->withToken($this->token($user));
+
+        $resp = $this->getJson("/api/v1/links/{$link->id}/card-templates");
+        $resp->assertOk();
+
+        $items = $resp->json('data.items');
+        $this->assertIsArray($items, 'card-template gallery returned no items array');
+        $this->assertNotEmpty($items, 'card-template gallery listed no templates');
+
+        $templates = CardTemplate::where('is_active', true)
+            ->get(['id', 'slug', 'snapshot'])
+            ->keyBy('id');
+        $this->assertSame(
+            $templates->count(),
+            count($items),
+            'card-template gallery item count drifted from the active card library: '
+            . "expected {$templates->count()} active template(s), got " . count($items)
+        );
+
+        foreach ($items as $item) {
+            $tpl = $templates[$item['id']] ?? null;
+            $this->assertNotNull($tpl, "gallery returned an unknown card template id {$item['id']}");
+            $label = "card template '{$tpl->slug}'";
+
+            $this->assertArrayHasKey('children', $item, "{$label} is missing a 'children' summary");
+            $this->assertIsArray($item['children'], "{$label} 'children' summary is not an array");
+            $this->assertNotEmpty(
+                $item['children'],
+                "{$label} listed an EMPTY 'what's inside' summary — every child block "
+                . 'was dropped by the gallery summarizer, so the mobile picker shows a '
+                . 'blank card preview. A child block type is no longer summarizable.'
+            );
+
+            $snapshot = is_array($tpl->snapshot) ? $tpl->snapshot : [];
+            $rawChildren = is_array($snapshot['children'] ?? null) ? $snapshot['children'] : [];
+            $expected = $this->countSummarizable($rawChildren);
+
+            $this->assertSame(
+                $expected,
+                $item['children_count'],
+                "{$label} reported children_count {$item['children_count']} but its snapshot "
+                . "holds {$expected} summarizable child block(s) — the gallery is silently "
+                . 'dropping children from the summary.'
+            );
+            $this->assertSame(
+                $expected,
+                count($item['children']),
+                "{$label} serialized " . count($item['children']) . " summary entr(ies) but "
+                . "its snapshot holds {$expected} summarizable child block(s)."
+            );
+
+            foreach ($item['children'] as $child) {
+                $this->assertNotEmpty(
+                    $child['label'] ?? '',
+                    "{$label} produced a child summary with a blank label ("
+                    . ($child['type'] ?? '?') . ') — the friendly-label lookup broke.'
+                );
+            }
+        }
+    }
+
+    /**
+     * The mobile page-template *gallery* (GET .../page-templates, index)
+     * summarizes each template's top-level blocks through
+     * TemplateContentSummarizer::summarizePageBlocks for the `content` /
+     * `blocks_count` browse preview — a DIFFERENT path than the show endpoint
+     * (which builds a real preview link). A regression that blanks the content
+     * summary would show an empty page card in the picker, so cover it too.
+     */
+    public function test_every_active_page_template_lists_a_nonempty_content_summary(): void
+    {
+        $this->seedTemplateLibrary();
+        $user = $this->makeUnlockedUser();
+        $link = $this->makeBiolink($user);
+        $this->withToken($this->token($user));
+
+        $resp = $this->getJson("/api/v1/links/{$link->id}/page-templates");
+        $resp->assertOk();
+
+        $items = $resp->json('data.items');
+        $this->assertIsArray($items, 'page-template gallery returned no items array');
+        $this->assertNotEmpty($items, 'page-template gallery listed no templates');
+
+        $templates = PageTemplate::where('is_active', true)
+            ->get(['id', 'slug', 'snapshot'])
+            ->keyBy('id');
+        $this->assertSame(
+            $templates->count(),
+            count($items),
+            'page-template gallery item count drifted from the active page library: '
+            . "expected {$templates->count()} active template(s), got " . count($items)
+        );
+
+        foreach ($items as $item) {
+            $tpl = $templates[$item['id']] ?? null;
+            $this->assertNotNull($tpl, "gallery returned an unknown page template id {$item['id']}");
+            $label = "page template '{$tpl->slug}'";
+
+            $this->assertArrayHasKey('content', $item, "{$label} is missing a 'content' summary");
+            $this->assertIsArray($item['content'], "{$label} 'content' summary is not an array");
+            $this->assertNotEmpty(
+                $item['content'],
+                "{$label} listed an EMPTY content summary — every top-level block was "
+                . 'dropped by the gallery summarizer, so the mobile picker shows a blank '
+                . 'page preview. A block type is no longer summarizable.'
+            );
+
+            $snapshot = is_array($tpl->snapshot) ? $tpl->snapshot : [];
+            $blocks = is_array($snapshot['blocks'] ?? null) ? $snapshot['blocks'] : [];
+            $expected = $this->countSummarizable($blocks);
+
+            $this->assertSame(
+                $expected,
+                $item['blocks_count'],
+                "{$label} reported blocks_count {$item['blocks_count']} but its snapshot "
+                . "holds {$expected} summarizable top-level block(s) — the gallery is "
+                . 'silently dropping blocks from the summary.'
+            );
+            $this->assertSame(
+                $expected,
+                count($item['content']),
+                "{$label} serialized " . count($item['content']) . " summary entr(ies) but "
+                . "its snapshot holds {$expected} summarizable top-level block(s)."
+            );
+
+            foreach ($item['content'] as $entry) {
+                $this->assertNotEmpty(
+                    $entry['label'] ?? '',
+                    "{$label} produced a content summary with a blank label ("
+                    . ($entry['type'] ?? '?') . ') — the friendly-label lookup broke.'
+                );
+            }
+        }
+    }
+
     public function test_every_active_page_template_serializes_without_blank_blocks(): void
     {
         $this->seedTemplateLibrary();
