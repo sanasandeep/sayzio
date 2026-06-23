@@ -97,6 +97,17 @@ Schedule::command('users:send-email-verification-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily: nudge free Starter-plan users to re-confirm their plan once a year,
+// near the end of their rolling 1-year free window. Reminder only — lapsing
+// never locks the account or downgrades anything; a one-click link renews the
+// free window for another year. Self-rate-limited (once per window, only
+// within the lead time of lapsing), honours the `starter.free_window_renewal`
+// preference. 10:30 UTC keeps it clear of the digest fan-out.
+Schedule::command('starter:send-free-window-reminders')
+    ->dailyAt('10:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: probe verified user-owned custom domains for DNS drift and run
 // the takeover-protection state machine. Healthy → drifting transitions
 // alert the creator (in-app + email) with the exact CNAME records to fix;

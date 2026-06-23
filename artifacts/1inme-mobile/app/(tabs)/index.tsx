@@ -90,26 +90,26 @@ export default function Home() {
             <View style={styles.tileRow}>
               <StatTile
                 label="Total clicks"
-                value={q.data?.totals.total_clicks ?? 0}
+                value={q.data?.totals?.total_clicks ?? 0}
                 icon="bar-chart-2"
-                hint={`${q.data?.totals.unique_clicks ?? 0} unique`}
+                hint={`${q.data?.totals?.unique_clicks ?? 0} unique`}
               />
               <StatTile
                 label="Active links"
-                value={q.data?.totals.active_links ?? 0}
+                value={q.data?.totals?.active_links ?? 0}
                 icon="link"
-                hint={`of ${q.data?.totals.links ?? 0} total`}
+                hint={`of ${q.data?.totals?.links ?? 0} total`}
               />
             </View>
             <View style={styles.tileRow}>
               <StatTile
                 label="NFC writes"
-                value={q.data?.totals.nfc_writes ?? 0}
+                value={q.data?.totals?.nfc_writes ?? 0}
                 icon="wifi"
               />
               <StatTile
                 label="Followers"
-                value={q.data?.totals.followers ?? 0}
+                value={q.data?.totals?.followers ?? 0}
                 icon="users"
               />
             </View>
@@ -136,7 +136,7 @@ export default function Home() {
                   </Text>
                 </Pressable>
               </View>
-              {q.data?.recent_links.length ? (
+              {q.data?.recent_links?.length ? (
                 <View style={{ gap: 10 }}>
                   {q.data.recent_links.map((l) => (
                     <LinkRow key={l.id} link={l} />

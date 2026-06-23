@@ -158,6 +158,19 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::post('verify-email/code/send', [AuthController::class, 'sendEmailVerifyCode'])->middleware(['auth', 'throttle:otp-send'])->name('verification.code.send');
     Route::post('verify-email/code/confirm', [AuthController::class, 'confirmEmailVerifyCode'])->middleware(['auth', 'throttle:otp-verify'])->name('verification.code.confirm');
 
+    // One-click "renew my free Starter plan for another year". Drives the
+    // free-window re-confirmation banner/email — reminders only, never a
+    // lockout, so this just pushes the window out 12 months.
+    Route::post('starter/renew-free-window', [AuthController::class, 'renewStarterFreeWindow'])
+        ->middleware(['auth', 'throttle:6,1'])->name('starter.renew-free-window');
+
+    // Signed GET variant for the reminder EMAIL's one-click CTA. An email link
+    // is a GET with no guaranteed session, so it can't use the POST/auth route
+    // above. The signature authenticates the user instead; the handler renews
+    // the named user and bounces to the dashboard (or login if signed out).
+    Route::get('starter/renew-free-window/{user}', [AuthController::class, 'renewStarterFreeWindowViaLink'])
+        ->middleware(['signed', 'throttle:6,1'])->name('starter.renew-free-window.link');
+
     // ---- Workspace invite landing (public — no workspace context yet) ----
     Route::get('workspaces/invites/{token}', [\App\Modules\User\Controllers\AcceptInviteController::class, 'show'])
         ->name('workspaces.invite.show');

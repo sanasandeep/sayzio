@@ -69,7 +69,7 @@ class AuthController extends Controller
             return back()->withErrors(['referral_code' => 'That referral code is not valid.'])->withInput();
         }
 
-        $freePlan = Plan::where('slug', 'free')->first();
+        $freePlan = Plan::defaultPlan();
 
         $user = User::create([
             'name' => $validated['name'],
@@ -436,7 +436,7 @@ class AuthController extends Controller
         $user = User::where('email', 'demo@1inme.com')->first();
 
         if (!$user) {
-            $freePlan = Plan::where('slug', 'free')->first();
+            $freePlan = Plan::defaultPlan();
             $user = User::create([
                 'name' => 'Demo User',
                 'email' => 'demo@1inme.com',
@@ -584,6 +584,49 @@ class AuthController extends Controller
         $user->update(['email_verified_at' => now()]);
 
         return back()->with('success', 'Your email has been verified. Thanks!');
+    }
+
+    /**
+     * One-click "renew my free Starter plan for another year". The free
+     * Starter plan carries a rolling 1-year free window whose only effect is
+     * a yearly re-confirmation reminder (email + in-app banner) — it never
+     * locks the account or downgrades anything. This pushes the window out 12
+     * months and clears the reminder stamp so next year's nudge can fire.
+     */
+    public function renewStarterFreeWindow(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->onDefaultPlan()) {
+            return back()->with('success', 'You are on a paid plan — no free renewal needed.');
+        }
+
+        $user->renewStarterFreeWindow();
+
+        return back()->with('success', 'Your free Starter plan is renewed for another year. Thanks for staying with 1INME!');
+    }
+
+    /**
+     * Signed GET entry point for the reminder email's one-click renew CTA.
+     * The route is protected by the `signed` middleware, so the signature
+     * authenticates the request even with no active session. Renews the named
+     * user's free Starter window, then sends them to the dashboard (if they're
+     * that signed-in user) or to login with a success flash otherwise.
+     */
+    public function renewStarterFreeWindowViaLink(Request $request, User $user)
+    {
+        if ($user->onDefaultPlan()) {
+            $user->renewStarterFreeWindow();
+            $message = 'Your free Starter plan is renewed for another year. Thanks for staying with 1INME!';
+        } else {
+            $message = 'You are on a paid plan — no free renewal needed.';
+        }
+
+        if (Auth::check() && Auth::id() === $user->id) {
+            return redirect()->route('user.dashboard')->with('success', $message);
+        }
+
+        return redirect()->route('user.login')->with('success', $message);
     }
 
     public function logout(Request $request)

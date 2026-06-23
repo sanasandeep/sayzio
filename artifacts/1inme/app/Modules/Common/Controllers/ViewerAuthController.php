@@ -33,7 +33,7 @@ class ViewerAuthController extends Controller
             : User::where('mobile', $data['identifier'])->first();
 
         if (!$user) {
-            $freePlan = Plan::where('slug', 'free')->first();
+            $freePlan = Plan::defaultPlan();
             $user = User::create([
                 'name'     => $data['type'] === 'email' ? Str::before($data['identifier'], '@') : 'Visitor',
                 'email'    => $data['type'] === 'email'  ? $data['identifier'] : ($data['identifier'] . '@viewer.1inme.local'),

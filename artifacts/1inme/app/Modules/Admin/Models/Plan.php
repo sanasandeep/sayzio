@@ -59,4 +59,24 @@ class Plan extends Model
     {
         return $query->orderBy('sort_order');
     }
+
+    /**
+     * Resolve the canonical "default" plan a brand-new account lands on,
+     * lineup-proof: it follows the `is_default` flag rather than a hardcoded
+     * slug so admins can re-shape the lineup (rename/replace the free tier)
+     * without breaking signup. Resolution order:
+     *   1. An active (non-archived) plan flagged is_default.
+     *   2. Any plan flagged is_default (even if archived) — last resort.
+     *   3. The historical `free` slug, then the cheapest active plan.
+     * Returns null only if the plans table is genuinely empty.
+     */
+    public static function defaultPlan(): ?self
+    {
+        return static::query()->where('is_default', true)->where('is_archived', false)
+                ->orderByDesc('is_default')->orderBy('sort_order')->first()
+            ?? static::query()->where('is_default', true)
+                ->orderByDesc('is_default')->orderBy('sort_order')->first()
+            ?? static::query()->where('slug', 'free')->first()
+            ?? static::query()->active()->ordered()->first();
+    }
 }

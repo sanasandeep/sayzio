@@ -73,7 +73,7 @@ class SocialAuthController extends Controller
 
         $created = false;
         if (!$user) {
-            $freePlan = Plan::where('slug', 'free')->first();
+            $freePlan = Plan::defaultPlan();
             $user = User::create([
                 'name'              => $name ?: ucfirst($data['provider']) . ' user',
                 'email'             => $email ? strtolower($email) : null,

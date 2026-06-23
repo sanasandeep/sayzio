@@ -16,8 +16,13 @@ class PlanController extends Controller
 {
     public function index()
     {
-        $plans = Plan::withCount('users')->ordered()->get();
-        return view('admin.plans.index', compact('plans'));
+        // Active lineup first (the current 7-plan editor surface). Archived
+        // legacy plans are kept for historical subscribers but listed in a
+        // separate, collapsed section so the main editor shows exactly the
+        // active lineup.
+        $plans = Plan::withCount('users')->where('is_archived', false)->ordered()->get();
+        $archivedPlans = Plan::withCount('users')->where('is_archived', true)->ordered()->get();
+        return view('admin.plans.index', compact('plans', 'archivedPlans'));
     }
 
     public function show(Plan $plan)

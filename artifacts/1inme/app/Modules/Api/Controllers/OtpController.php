@@ -127,7 +127,7 @@ class OtpController extends Controller
             return $this->fail('An account already exists for that identifier', 409, 'account_exists');
         }
 
-        $freePlan = Plan::where('slug', 'free')->first();
+        $freePlan = Plan::defaultPlan();
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['type'] === 'email'  ? strtolower($data['identifier']) : null,
@@ -168,7 +168,7 @@ class OtpController extends Controller
             [
                 'name'              => 'Demo User',
                 'password'          => Hash::make('password'),
-                'plan_id'           => Plan::where('slug', 'free')->value('id'),
+                'plan_id'           => Plan::defaultPlan()?->id,
                 'status'            => 'active',
                 'email_verified_at' => now(),
             ]

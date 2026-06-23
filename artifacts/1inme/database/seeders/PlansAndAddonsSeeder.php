@@ -9,17 +9,49 @@ use App\Services\PricingResolver;
 use Illuminate\Database\Seeder;
 
 /**
- * Idempotent seeder for the 5 default plans and 14 default addons.
+ * Idempotent seeder for the 7 default plans and the default addon catalog.
  *
- * - Matches by slug. Never destroys curator edits: existing rows keep
- *   their name/description/prices/features/sort_order/status — we only
- *   fill in NULL/empty fields and we never touch user-edited content.
+ * The lineup (display name / internal slug):
+ *   Starter (free, default) `free` · Creator `creator` · Professional
+ *   `professional` · Business `business` · Agency `agency` · Developer
+ *   `developer` · Enterprise API `enterprise-api`.
+ *
+ * The free default plan keeps the historical `free` slug on purpose so the
+ * many `isOnFreePlan()` / `slug = 'free'` checks stay correct; its display
+ * NAME is "Starter". Default-plan *resolution* must use the `is_default`
+ * flag (Plan::defaultPlan()), never a hardcoded slug, so the lineup can be
+ * re-shaped from the admin UI.
+ *
+ * Behaviour:
+ * - Matches by slug. Never destroys curator edits: existing rows keep their
+ *   name/description/prices/features/sort_order/status — we only fill in
+ *   NULL/empty fields (features are overlaid key-by-key) and never touch
+ *   user-edited content.
  * - Newly inserted rows get the canonical defaults below.
- * - Safe to run on every deploy.
+ * - Safe to run on every deploy / in every fresh environment.
+ *
+ * One-time legacy handling (archiving the old 5-plan lineup, renaming the
+ * colliding `business` slug, and remapping existing subscribers to the
+ * closest new plan) lives in the dedicated data migration, NOT here — this
+ * seeder only ever converges the new lineup.
  */
 class PlansAndAddonsSeeder extends Seeder
 {
     public function run(): void
+    {
+        $this->seedPlans();
+        $this->seedAddons();
+    }
+
+    /**
+     * Idempotently converge the 7 plan rows and their USD/INR prices. Split
+     * out from run() so the one-time lineup data migration can ensure the new
+     * plans exist (it needs their ids to remap subscribers) WITHOUT also
+     * paying for the slower addon catalog convergence inside the migration —
+     * that distinction matters over the distant RDS where the full seeder
+     * runs ~2 min. Safe to call repeatedly.
+     */
+    public function seedPlans(): void
     {
         foreach ($this->planDefinitions() as $def) {
             $existing = Plan::where('slug', $def['slug'])->first();
@@ -57,7 +89,17 @@ class PlansAndAddonsSeeder extends Seeder
             $plan = Plan::where('slug', $def['slug'])->first();
             $this->seedPrices($plan, (float) $def['monthly_price'], (float) $def['annual_price']);
         }
+    }
 
+    /**
+     * Idempotently converge the default addon catalog, their plan
+     * attachments, and their USD/INR prices. Split out from run() so the
+     * one-time lineup data migration can skip this slower pass (it only needs
+     * the plan rows). Safe to call repeatedly; converges attachments to the
+     * current applies_to slug list without ever dropping curator-added links.
+     */
+    public function seedAddons(): void
+    {
         foreach ($this->addonDefinitions() as $def) {
             $appliesTo = $def['applies_to'] ?? [];
             unset($def['applies_to']);
@@ -148,13 +190,22 @@ class PlansAndAddonsSeeder extends Seeder
         }
     }
 
+    /**
+     * The 7-plan lineup. Each definition carries the full feature-key
+     * superset (including workspace, AI-suite, integration and alias keys)
+     * because these slugs are new — the tier-keyed backfill seed-migrations
+     * only recognise the old slugs, so anything omitted here would silently
+     * fall back to whatever default a call site happens to pass.
+     */
     private function planDefinitions(): array
     {
         return [
             [
-                'name' => 'Free',
+                // The free, default plan. Display name is "Starter"; the slug
+                // stays `free` so the historical free-plan checks keep working.
+                'name' => 'Starter',
                 'slug' => 'free',
-                'description' => 'Get started with the basics — perfect for trying 1INME out.',
+                'description' => 'Everything you need to launch — free forever, re-confirmed once a year.',
                 'monthly_price' => 0,
                 'annual_price' => 0,
                 'trial_days' => 0,
@@ -162,9 +213,9 @@ class PlansAndAddonsSeeder extends Seeder
                 'status' => 'active',
                 'is_archived' => false,
                 'sort_order' => 0,
-                'metadata' => ['tier' => 'free'],
+                'metadata' => ['tier' => 'starter', 'free_window_months' => 12],
                 'features' => [
-                    'max_links' => 5,
+                    'max_links' => 10,
                     'max_biolinks' => 1,
                     'max_conversational' => 1,
                     'max_slides' => 1,
@@ -173,9 +224,14 @@ class PlansAndAddonsSeeder extends Seeder
                     'max_reviews' => 1,
                     'max_resume' => 1,
                     'max_file_size_mb' => 5,
-                    'storage_limit_mb' => 100,
+                    'storage_limit_mb' => 200,
                     'max_projects' => 1,
                     'contacts_max' => 100,
+                    'max_aliases_per_link' => 0,
+                    'min_alias_length' => 3,
+                    'max_alias_length' => 50,
+                    'max_workspaces' => 1,
+                    'max_seats_per_workspace' => 1,
                     'contacts_google_sync' => false,
                     'custom_domains' => false,
                     'qr_customization' => false,
@@ -187,7 +243,14 @@ class PlansAndAddonsSeeder extends Seeder
                     'teams' => false,
                     'ecommerce' => false,
                     'custom_forms' => false,
-                    // New feature gates (Free tier)
+                    'custom_branding' => false,
+                    'remove_branding' => false,
+                    'custom_favicon' => false,
+                    'custom_code' => false,
+                    'ai_chatbot' => false,
+                    'ai_agent' => false,
+                    'ai_widget' => false,
+                    'ai_voice_assistant' => false,
                     'block_types_allowed' => ['heading', 'paragraph', 'avatar', 'link_button', 'social_icons', 'spacer', 'divider'],
                     'max_forms' => 1,
                     'buzz_popups' => false,
@@ -216,26 +279,27 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => false,
                     'ab_tests' => false,
                     'ab_max_variants' => 0,
-                    // Developer API (Free: no programmatic access)
                     'api_access' => false,
                     'api_calls_monthly' => 0,
                     'api_rate_per_min' => 0,
+                    'integration_accounts_max' => ['payment' => 1, 'sms' => 1, 'email' => 1],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
                 ],
             ],
             [
-                'name' => 'Starter',
-                'slug' => 'starter',
-                'description' => 'For solo creators who need a little more room to grow.',
-                'monthly_price' => 4.99,
-                'annual_price' => 49.99,
+                'name' => 'Creator',
+                'slug' => 'creator',
+                'description' => 'For solo creators ready to grow their audience and brand.',
+                'monthly_price' => 9.00,
+                'annual_price' => 90.00,
                 'trial_days' => 7,
                 'is_default' => false,
                 'status' => 'active',
                 'is_archived' => false,
                 'sort_order' => 1,
-                'metadata' => ['tier' => 'starter'],
+                'metadata' => ['tier' => 'creator'],
                 'features' => [
-                    'max_links' => 25,
+                    'max_links' => 50,
                     'max_biolinks' => 3,
                     'max_conversational' => 3,
                     'max_slides' => 3,
@@ -243,10 +307,15 @@ class PlansAndAddonsSeeder extends Seeder
                     'max_restaurant_menu' => 3,
                     'max_reviews' => 3,
                     'max_resume' => 3,
-                    'max_file_size_mb' => 15,
-                    'storage_limit_mb' => 500,
+                    'max_file_size_mb' => 25,
+                    'storage_limit_mb' => 2000,
                     'max_projects' => 3,
-                    'contacts_max' => 500,
+                    'contacts_max' => 1000,
+                    'max_aliases_per_link' => 1,
+                    'min_alias_length' => 3,
+                    'max_alias_length' => 50,
+                    'max_workspaces' => 1,
+                    'max_seats_per_workspace' => 2,
                     'contacts_google_sync' => false,
                     'custom_domains' => false,
                     'qr_customization' => true,
@@ -258,7 +327,14 @@ class PlansAndAddonsSeeder extends Seeder
                     'teams' => false,
                     'ecommerce' => false,
                     'custom_forms' => false,
-                    // New feature gates (Starter tier)
+                    'custom_branding' => false,
+                    'remove_branding' => false,
+                    'custom_favicon' => false,
+                    'custom_code' => false,
+                    'ai_chatbot' => true,
+                    'ai_agent' => false,
+                    'ai_widget' => true,
+                    'ai_voice_assistant' => false,
                     'block_types_allowed' => ['heading', 'paragraph', 'avatar', 'link_button', 'social_icons', 'spacer', 'divider', 'image', 'video', 'card', 'grid', 'grid_auto', 'badge', 'youtube', 'tiktok', 'instagram', 'twitter', 'spotify', 'soundcloud'],
                     'max_forms' => 5,
                     'buzz_popups' => false,
@@ -272,10 +348,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'tasks' => true,
                     'max_task_boards' => 3,
                     'leads' => true,
-                    'max_leads' => 500,
+                    'max_leads' => 1000,
                     'creator_profile_public' => true,
                     'events' => true,
-                    'max_events' => 5,
+                    'max_events' => 10,
                     'calendar_sync' => false,
                     'verification_eligible' => false,
                     'link_password' => true,
@@ -287,27 +363,28 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => true,
                     'ab_tests' => true,
                     'ab_max_variants' => 2,
-                    // Developer API
                     'api_access' => true,
-                    'api_calls_monthly' => 1000,
+                    'api_calls_monthly' => 2000,
                     'api_rate_per_min' => 60,
+                    'integration_accounts_max' => ['payment' => 1, 'sms' => 1, 'email' => 1],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
                 ],
             ],
             [
-                'name' => 'Pro',
-                'slug' => 'pro',
-                'description' => 'Everything you need to grow — biolinks, custom domains, advanced analytics.',
-                'monthly_price' => 9.99,
-                'annual_price' => 99.99,
+                'name' => 'Professional',
+                'slug' => 'professional',
+                'description' => 'Everything you need to grow — custom domains, advanced analytics, AI.',
+                'monthly_price' => 19.00,
+                'annual_price' => 190.00,
                 'trial_days' => 14,
                 'is_default' => false,
                 'is_popular' => true,
                 'status' => 'active',
                 'is_archived' => false,
                 'sort_order' => 2,
-                'metadata' => ['tier' => 'pro'],
+                'metadata' => ['tier' => 'professional'],
                 'features' => [
-                    'max_links' => 100,
+                    'max_links' => 250,
                     'max_biolinks' => 10,
                     'max_conversational' => 10,
                     'max_slides' => 10,
@@ -316,9 +393,14 @@ class PlansAndAddonsSeeder extends Seeder
                     'max_reviews' => 10,
                     'max_resume' => 10,
                     'max_file_size_mb' => 50,
-                    'storage_limit_mb' => 5000,
+                    'storage_limit_mb' => 10000,
                     'max_projects' => 10,
-                    'contacts_max' => 5000,
+                    'contacts_max' => 10000,
+                    'max_aliases_per_link' => 3,
+                    'min_alias_length' => 3,
+                    'max_alias_length' => 50,
+                    'max_workspaces' => 2,
+                    'max_seats_per_workspace' => 3,
                     'contacts_google_sync' => true,
                     'custom_domains' => true,
                     'qr_customization' => true,
@@ -328,12 +410,16 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_protection' => true,
                     'seo_settings' => true,
                     'teams' => true,
-                    // Pro's block_types_allowed is '*', which already includes the
-                    // `product` block, so the "Sell from your bio" flag must be on
-                    // to keep the pricing matrix honest with real enforcement.
                     'ecommerce' => true,
                     'custom_forms' => true,
-                    // New feature gates (Pro tier)
+                    'custom_branding' => false,
+                    'remove_branding' => false,
+                    'custom_favicon' => false,
+                    'custom_code' => false,
+                    'ai_chatbot' => true,
+                    'ai_agent' => true,
+                    'ai_widget' => true,
+                    'ai_voice_assistant' => false,
                     'block_types_allowed' => '*',
                     'max_forms' => 25,
                     'buzz_popups' => true,
@@ -347,10 +433,10 @@ class PlansAndAddonsSeeder extends Seeder
                     'tasks' => true,
                     'max_task_boards' => 25,
                     'leads' => true,
-                    'max_leads' => 5000,
+                    'max_leads' => 10000,
                     'creator_profile_public' => true,
                     'events' => true,
-                    'max_events' => 50,
+                    'max_events' => 100,
                     'calendar_sync' => true,
                     'verification_eligible' => true,
                     'link_password' => true,
@@ -362,18 +448,19 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => true,
                     'ab_tests' => true,
                     'ab_max_variants' => 3,
-                    // Developer API
                     'api_access' => true,
                     'api_calls_monthly' => 25000,
                     'api_rate_per_min' => 120,
+                    'integration_accounts_max' => ['payment' => 2, 'sms' => 2, 'email' => 2],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
                 ],
             ],
             [
-                'name' => 'Premium',
+                'name' => 'Business',
                 'slug' => 'business',
-                'description' => 'For teams scaling fast — unlimited everything, custom domains, and deep analytics.',
-                'monthly_price' => 29.99,
-                'annual_price' => 299.99,
+                'description' => 'For teams scaling fast — unlimited links, team seats, and white-label.',
+                'monthly_price' => 49.00,
+                'annual_price' => 490.00,
                 'trial_days' => 14,
                 'is_default' => false,
                 'status' => 'active',
@@ -393,6 +480,11 @@ class PlansAndAddonsSeeder extends Seeder
                     'storage_limit_mb' => 50000,
                     'max_projects' => -1,
                     'contacts_max' => -1,
+                    'max_aliases_per_link' => 5,
+                    'min_alias_length' => 2,
+                    'max_alias_length' => 60,
+                    'max_workspaces' => 5,
+                    'max_seats_per_workspace' => 10,
                     'contacts_google_sync' => true,
                     'custom_domains' => true,
                     'qr_customization' => true,
@@ -404,7 +496,14 @@ class PlansAndAddonsSeeder extends Seeder
                     'teams' => true,
                     'ecommerce' => true,
                     'custom_forms' => true,
-                    // New feature gates (Business tier)
+                    'custom_branding' => true,
+                    'remove_branding' => true,
+                    'custom_favicon' => true,
+                    'custom_code' => false,
+                    'ai_chatbot' => true,
+                    'ai_agent' => true,
+                    'ai_widget' => true,
+                    'ai_voice_assistant' => true,
                     'block_types_allowed' => '*',
                     'max_forms' => -1,
                     'buzz_popups' => true,
@@ -433,24 +532,25 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_active_window' => true,
                     'ab_tests' => true,
                     'ab_max_variants' => 4,
-                    // Developer API
                     'api_access' => true,
-                    'api_calls_monthly' => 250000,
-                    'api_rate_per_min' => 300,
+                    'api_calls_monthly' => 100000,
+                    'api_rate_per_min' => 200,
+                    'integration_accounts_max' => ['payment' => 5, 'sms' => 5, 'email' => 5],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
                 ],
             ],
             [
-                'name' => 'Enterprise',
-                'slug' => 'enterprise',
-                'description' => 'White-glove plan for organizations — SSO, SLAs, dedicated support.',
+                'name' => 'Agency',
+                'slug' => 'agency',
+                'description' => 'White-label everything for agencies — unlimited seats and workspaces.',
                 'monthly_price' => 99.00,
-                'annual_price' => 999.00,
-                'trial_days' => 0,
+                'annual_price' => 990.00,
+                'trial_days' => 14,
                 'is_default' => false,
                 'status' => 'active',
                 'is_archived' => false,
                 'sort_order' => 4,
-                'metadata' => ['tier' => 'enterprise', 'contact_sales' => true],
+                'metadata' => ['tier' => 'agency'],
                 'features' => [
                     'max_links' => -1,
                     'max_biolinks' => -1,
@@ -464,6 +564,11 @@ class PlansAndAddonsSeeder extends Seeder
                     'storage_limit_mb' => -1,
                     'max_projects' => -1,
                     'contacts_max' => -1,
+                    'max_aliases_per_link' => 10,
+                    'min_alias_length' => 2,
+                    'max_alias_length' => 60,
+                    'max_workspaces' => -1,
+                    'max_seats_per_workspace' => -1,
                     'contacts_google_sync' => true,
                     'custom_domains' => true,
                     'qr_customization' => true,
@@ -476,9 +581,13 @@ class PlansAndAddonsSeeder extends Seeder
                     'ecommerce' => true,
                     'custom_forms' => true,
                     'custom_branding' => true,
+                    'remove_branding' => true,
                     'custom_favicon' => true,
                     'custom_code' => true,
-                    // New feature gates (Enterprise tier)
+                    'ai_chatbot' => true,
+                    'ai_agent' => true,
+                    'ai_widget' => true,
+                    'ai_voice_assistant' => true,
                     'block_types_allowed' => '*',
                     'max_forms' => -1,
                     'buzz_popups' => true,
@@ -506,11 +615,180 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_smart_rules' => true,
                     'link_active_window' => true,
                     'ab_tests' => true,
-                    'ab_max_variants' => 4,
-                    // Developer API (Enterprise: unlimited calls)
+                    'ab_max_variants' => -1,
+                    'api_access' => true,
+                    'api_calls_monthly' => 250000,
+                    'api_rate_per_min' => 300,
+                    'integration_accounts_max' => ['payment' => -1, 'sms' => -1, 'email' => -1],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
+                ],
+            ],
+            [
+                'name' => 'Developer',
+                'slug' => 'developer',
+                'description' => 'Built for builders — high API limits, webhooks, and custom code.',
+                'monthly_price' => 29.00,
+                'annual_price' => 290.00,
+                'trial_days' => 14,
+                'is_default' => false,
+                'status' => 'active',
+                'is_archived' => false,
+                'sort_order' => 5,
+                'metadata' => ['tier' => 'developer'],
+                'features' => [
+                    'max_links' => 250,
+                    'max_biolinks' => 10,
+                    'max_conversational' => 10,
+                    'max_slides' => 10,
+                    'max_ai_chat' => 10,
+                    'max_restaurant_menu' => 10,
+                    'max_reviews' => 10,
+                    'max_resume' => 10,
+                    'max_file_size_mb' => 100,
+                    'storage_limit_mb' => 20000,
+                    'max_projects' => 25,
+                    'contacts_max' => 25000,
+                    'max_aliases_per_link' => 5,
+                    'min_alias_length' => 2,
+                    'max_alias_length' => 60,
+                    'max_workspaces' => 2,
+                    'max_seats_per_workspace' => 3,
+                    'contacts_google_sync' => true,
+                    'custom_domains' => true,
+                    'qr_customization' => true,
+                    'analytics' => 'advanced',
+                    'pixels' => true,
+                    'utm_params' => true,
+                    'link_protection' => true,
+                    'seo_settings' => true,
+                    'teams' => true,
+                    'ecommerce' => true,
+                    'custom_forms' => true,
+                    'custom_branding' => false,
+                    'remove_branding' => true,
+                    'custom_favicon' => true,
+                    'custom_code' => true,
+                    'ai_chatbot' => true,
+                    'ai_agent' => true,
+                    'ai_widget' => true,
+                    'ai_voice_assistant' => true,
+                    'block_types_allowed' => '*',
+                    'max_forms' => 50,
+                    'buzz_popups' => true,
+                    'max_buzz_items' => 50,
+                    'splash_pages' => true,
+                    'max_splash_pages' => 50,
+                    'files' => true,
+                    'max_files' => 5000,
+                    'vaults' => true,
+                    'max_vault_items' => 500,
+                    'tasks' => true,
+                    'max_task_boards' => 50,
+                    'leads' => true,
+                    'max_leads' => 50000,
+                    'creator_profile_public' => true,
+                    'events' => true,
+                    'max_events' => 200,
+                    'calendar_sync' => true,
+                    'verification_eligible' => true,
+                    'link_password' => true,
+                    'link_expiry' => true,
+                    'link_geo_targeting' => true,
+                    'link_device_targeting' => true,
+                    'link_deep_link' => true,
+                    'link_smart_rules' => true,
+                    'link_active_window' => true,
+                    'ab_tests' => true,
+                    'ab_max_variants' => 5,
+                    'api_access' => true,
+                    'api_calls_monthly' => 1000000,
+                    'api_rate_per_min' => 600,
+                    'integration_accounts_max' => ['payment' => 5, 'sms' => 5, 'email' => 5],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
+                ],
+            ],
+            [
+                'name' => 'Enterprise API',
+                'slug' => 'enterprise-api',
+                'description' => 'White-glove plan for organizations — unlimited API, SSO, SLAs, dedicated support.',
+                'monthly_price' => 299.00,
+                'annual_price' => 2990.00,
+                'trial_days' => 0,
+                'is_default' => false,
+                'status' => 'active',
+                'is_archived' => false,
+                'sort_order' => 6,
+                'metadata' => ['tier' => 'enterprise', 'contact_sales' => true],
+                'features' => [
+                    'max_links' => -1,
+                    'max_biolinks' => -1,
+                    'max_conversational' => -1,
+                    'max_slides' => -1,
+                    'max_ai_chat' => -1,
+                    'max_restaurant_menu' => -1,
+                    'max_reviews' => -1,
+                    'max_resume' => -1,
+                    'max_file_size_mb' => 500,
+                    'storage_limit_mb' => -1,
+                    'max_projects' => -1,
+                    'contacts_max' => -1,
+                    'max_aliases_per_link' => -1,
+                    'min_alias_length' => 1,
+                    'max_alias_length' => 80,
+                    'max_workspaces' => -1,
+                    'max_seats_per_workspace' => -1,
+                    'contacts_google_sync' => true,
+                    'custom_domains' => true,
+                    'qr_customization' => true,
+                    'analytics' => 'advanced',
+                    'pixels' => true,
+                    'utm_params' => true,
+                    'link_protection' => true,
+                    'seo_settings' => true,
+                    'teams' => true,
+                    'ecommerce' => true,
+                    'custom_forms' => true,
+                    'custom_branding' => true,
+                    'remove_branding' => true,
+                    'custom_favicon' => true,
+                    'custom_code' => true,
+                    'ai_chatbot' => true,
+                    'ai_agent' => true,
+                    'ai_widget' => true,
+                    'ai_voice_assistant' => true,
+                    'block_types_allowed' => '*',
+                    'max_forms' => -1,
+                    'buzz_popups' => true,
+                    'max_buzz_items' => -1,
+                    'splash_pages' => true,
+                    'max_splash_pages' => -1,
+                    'files' => true,
+                    'max_files' => -1,
+                    'vaults' => true,
+                    'max_vault_items' => -1,
+                    'tasks' => true,
+                    'max_task_boards' => -1,
+                    'leads' => true,
+                    'max_leads' => -1,
+                    'creator_profile_public' => true,
+                    'events' => true,
+                    'max_events' => -1,
+                    'calendar_sync' => true,
+                    'verification_eligible' => true,
+                    'link_password' => true,
+                    'link_expiry' => true,
+                    'link_geo_targeting' => true,
+                    'link_device_targeting' => true,
+                    'link_deep_link' => true,
+                    'link_smart_rules' => true,
+                    'link_active_window' => true,
+                    'ab_tests' => true,
+                    'ab_max_variants' => -1,
                     'api_access' => true,
                     'api_calls_monthly' => -1,
-                    'api_rate_per_min' => 300,
+                    'api_rate_per_min' => -1,
+                    'integration_accounts_max' => ['payment' => -1, 'sms' => -1, 'email' => -1],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
                 ],
             ],
         ];
@@ -518,9 +796,10 @@ class PlansAndAddonsSeeder extends Seeder
 
     private function addonDefinitions(): array
     {
-        $paid = ['starter', 'pro', 'business', 'enterprise'];
-        $proPlus = ['pro', 'business', 'enterprise'];
-        $bizPlus = ['business', 'enterprise'];
+        // Addon eligibility groups, keyed to the new lineup slugs.
+        $paid = ['creator', 'professional', 'business', 'agency', 'developer', 'enterprise-api'];
+        $proPlus = ['professional', 'business', 'agency', 'developer', 'enterprise-api'];
+        $bizPlus = ['business', 'agency', 'enterprise-api'];
 
         return [
             [

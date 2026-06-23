@@ -60,13 +60,14 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
   # The expanded library inserts ~400 rows one-by-one and is slow over the
   # distant RDS, so it is detached to the background to stay within the
   # post-merge budget. Logs -> storage/logs/post-merge-recover.log.
-  echo "seeding onboarding page templates in background..."
+  echo "seeding plan/addon catalog + onboarding page templates in background..."
   mkdir -p storage/logs
   nohup bash -c "
+    php artisan db:seed --class=Database\\\\Seeders\\\\PlansAndAddonsSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\StarterPageTemplatesSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\PageTemplatePersonaSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\ExpandedPageTemplateLibrarySeeder --force
-    echo \"[\$(date)] onboarding page-template seed finished\"
+    echo \"[\$(date)] plan/addon + onboarding page-template seed finished\"
   " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
   disown $! 2>/dev/null || true
 

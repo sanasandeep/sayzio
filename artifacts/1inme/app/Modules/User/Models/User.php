@@ -23,6 +23,9 @@ class User extends Authenticatable
         'backlink_digest_preferred_hour',
         'email_verification_reminders_sent',
         'email_verification_reminder_sent_at',
+        // Starter (free) plan 1-year free window + yearly re-confirmation.
+        'starter_free_window_ends_at',
+        'starter_renewal_reminder_sent_at',
         'api_usage_warning_threshold',
         'followers_count', 'allow_followers',
         'referral_code', 'referrer_id', 'referral_code_used',
@@ -59,6 +62,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'plan_expires_at' => 'datetime',
+            'starter_free_window_ends_at' => 'datetime',
+            'starter_renewal_reminder_sent_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'last_login_at' => 'datetime',
             'onboarded_at' => 'datetime',
@@ -218,6 +223,13 @@ class User extends Authenticatable
                         'is_primary'  => !$primaryAssigned,
                     ]
                 );
+            }
+            // Every new account starts on the free Starter plan, which has a
+            // rolling 1-year free window. Stamp the first window on creation
+            // so the yearly re-confirmation reminder has a deadline to track.
+            // Reminder-only: lapsing never locks the account or downgrades it.
+            if (empty($user->starter_free_window_ends_at)) {
+                $user->forceFill(['starter_free_window_ends_at' => now()->addYear()])->saveQuietly();
             }
             \App\Modules\User\Services\PersonalTaskBoardProvisioner::ensureFor($user);
             // Make sure the platform-managed "1INME Default Mind"
@@ -605,6 +617,47 @@ class User extends Authenticatable
     public function isOnFreePlan(): bool
     {
         return !$this->plan_id || ($this->plan && $this->plan->slug === 'free');
+    }
+
+    /**
+     * True when this account currently sits on the lineup's default (free
+     * Starter) plan. Flag-based so it keeps working if the free tier is ever
+     * re-slugged from the admin lineup. Accounts with no plan_id are treated
+     * as default (they fall back to the default plan everywhere).
+     */
+    public function onDefaultPlan(): bool
+    {
+        if (!$this->plan_id) return true;
+        $default = Plan::defaultPlan();
+        return $default && (int) $this->plan_id === (int) $default->id;
+    }
+
+    /**
+     * Whether the Starter free window has lapsed (or is about to within the
+     * given lead time). Drives the re-confirmation reminder + in-app banner.
+     * Reminder-only — a lapsed window never restricts the account.
+     */
+    public function starterFreeWindowDueWithin(int $leadDays = 14): bool
+    {
+        if (!$this->starter_free_window_ends_at) return false;
+        return now()->greaterThanOrEqualTo($this->starter_free_window_ends_at->copy()->subDays($leadDays));
+    }
+
+    /**
+     * One-click "renew free for another year". Pushes the free window out by
+     * 12 months from whichever is later (now, or the existing deadline so a
+     * proactive renewal doesn't lose remaining days) and clears the
+     * per-window reminder stamp so next year's nudge can fire again.
+     */
+    public function renewStarterFreeWindow(): void
+    {
+        $base = $this->starter_free_window_ends_at && $this->starter_free_window_ends_at->isFuture()
+            ? $this->starter_free_window_ends_at->copy()
+            : now();
+        $this->forceFill([
+            'starter_free_window_ends_at'      => $base->addYear(),
+            'starter_renewal_reminder_sent_at' => null,
+        ])->save();
     }
 
     /**

@@ -118,11 +118,12 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // Plans (Free / Starter / Pro / Business / Enterprise) and the
-        // default addon catalog are seeded idempotently by
-        // PlansAndAddonsSeeder above. We just resolve the named plans
-        // here so the domain seeding below can attach them.
-        $proPlan = Plan::where('slug', 'pro')->firstOrFail();
+        // The 7-plan lineup (Starter / Creator / Professional / Business /
+        // Agency / Developer / Enterprise API) and the default addon catalog
+        // are seeded idempotently by PlansAndAddonsSeeder above. We just
+        // resolve a couple of named plans here so the example domain seeding
+        // below can attach them.
+        $proPlan = Plan::where('slug', 'professional')->firstOrFail();
         $businessPlan = Plan::where('slug', 'business')->firstOrFail();
 
         // Example admin-global domains. `short.1inme.io` is open to every

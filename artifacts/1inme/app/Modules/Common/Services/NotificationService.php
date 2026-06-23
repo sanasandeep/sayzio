@@ -178,6 +178,15 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => false,
             ],
+            // Starter free-plan yearly re-confirmation nudge. Reminder only —
+            // the free window never locks the account or downgrades anything.
+            'starter.free_window_renewal' => [
+                'label'          => 'Free plan renewal reminders',
+                'description'    => 'A yearly heads-up to re-confirm your free Starter plan, with a one-click renew for another year.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => false,
+            ],
             // Developer API usage warnings (Task #1396, push added #1403).
             'api.usage_warning' => [
                 'label'          => 'API usage warnings',
