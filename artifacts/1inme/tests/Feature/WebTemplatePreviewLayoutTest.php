@@ -127,6 +127,37 @@ class WebTemplatePreviewLayoutTest extends TestCase
     }
 
     /**
+     * Create an active page template with NO static thumbnail_url whose
+     * snapshot holds the given single full-span block, so the picker is
+     * forced to draw the shape-aware blueprint mock for it. `plan_tier` is
+     * left null so the picker never locks it (locked cards still render the
+     * blueprint, but null keeps the fixture intent obvious).
+     *
+     * @param  array<int, array<string, mixed>>  $blocks
+     */
+    private function makePageTemplate(string $slug, array $blocks): PageTemplate
+    {
+        return PageTemplate::create([
+            'name'                 => 'Shape ' . $slug,
+            'slug'                 => $slug,
+            'category'             => 'general',
+            'description'          => 'Shape coverage fixture',
+            'thumbnail_url'        => null,
+            'plan_tier'            => null,
+            'recommended_personas' => [],
+            'is_active'            => true,
+            'sort_order'           => 1,
+            'snapshot'             => ['blocks' => $blocks],
+        ]);
+    }
+
+    /** A single full-span (grid_span 12) block of the given type. */
+    private function fullSpanBlock(string $type): array
+    {
+        return ['type' => $type, 'settings' => ['_style' => ['grid_span' => 12]]];
+    }
+
+    /**
      * Authenticate the web user and bind their default workspace into the
      * session so SetActiveWorkspace resolves `current_workspace` and the
      * owner-bypass in RequireWorkspacePermission lets the request through.
@@ -402,5 +433,129 @@ class WebTemplatePreviewLayoutTest extends TestCase
             'no active page template lacked a thumbnail_url, so the preview_layout '
             . 'blueprint guard never ran — the test would pass vacuously.'
         );
+    }
+
+    /**
+     * The data-level tests above prove the controller EXPOSES a valid
+     * blueprint, but they stop short of the Blade renderer: a regression in
+     * the @foreach($previewRows) shape loop in templates/picker.blade.php
+     * (a wrong @if, a broken @case branch, a dropped wrapper) would still
+     * draw a featureless box while the exposed data stays perfect. This test
+     * drives the REAL picker route and asserts the rendered HTML actually
+     * contains the blueprint container plus the distinctive per-cell markup
+     * each shape branch emits.
+     *
+     * Coverage: one dedicated no-thumbnail page template per shape family
+     * (heading, text_lines, pill, avatar, media, dot_row, form, list_rows),
+     * each holding a single full-span block, so every @case in the picker's
+     * shape switch is exercised.
+     *
+     * Anchoring note: the shape CSS class names (.tpl-prev-*) ALSO appear in
+     * the picker's <style> block, so asserting a bare class name would pass
+     * even if zero cells were drawn. Every needle below is anchored to
+     * markup the renderer ONLY emits inside a drawn cell — a combined class
+     * string, an inline style fragment, a placeholder <img> URL, or the
+     * builder's hardcoded placeholder copy (which never appears in the
+     * <style> block or the "what's inside" summary chips, since the fixture
+     * blocks carry no text settings).
+     */
+    public function test_web_page_picker_draws_per_shape_cell_markup_in_the_rendered_html(): void
+    {
+        // shape family => a representative block type that maps to it via
+        // TemplatePreviewLayoutBuilder::cellFor().
+        $byShape = [
+            'heading'    => 'heading',
+            'text_lines' => 'paragraph',
+            'pill'       => 'link',
+            'avatar'     => 'profile_card_v1',
+            'media'      => 'image',
+            'dot_row'    => 'socials',
+            'form'       => 'email_subscribe',
+            'list_rows'  => 'list',
+        ];
+        foreach ($byShape as $shape => $type) {
+            $this->makePageTemplate('shape-' . $shape, [$this->fullSpanBlock($type)]);
+        }
+
+        $user = $this->makeUnlockedUser();
+        $link = $this->makeBiolink($user);
+        $this->actAsOwner($user);
+
+        $resp = $this->get(route('user.links.templates.picker', $link));
+        $resp->assertOk();
+        $html = (string) $resp->getContent();
+
+        // The blueprint container wrapper + per-cell flex stub must be present
+        // at all; their absence means the no-thumbnail templates fell through
+        // to a blank/static tile instead of the shape mock.
+        $this->assertStringContainsString(
+            'flex flex-col gap-1 justify-center',
+            $html,
+            'picker rendered no blueprint container wrapper — every no-thumbnail '
+            . 'template fell through to a blank tile instead of the shape mock.'
+        );
+        $this->assertStringContainsString(
+            'flex: 12 0 0;',
+            $html,
+            'picker drew no per-cell flex stub (flex: {span} 0 0) — the '
+            . '@foreach($row) cell loop produced nothing.'
+        );
+
+        // Each shape branch's distinctive, markup-only signal. Where a needle
+        // is the builder placeholder copy, presence proves the text reached
+        // the shape branch (it is emitted nowhere else).
+        $perShape = [
+            // <div class="tpl-prev-heading w-full">Your Headline</div>
+            'heading' => [
+                ['tpl-prev-heading w-full', 'heading @case did not draw its heading line'],
+                ['Your Headline', 'heading placeholder copy missing from the rendered cell'],
+            ],
+            // <div class="tpl-prev-text" style="-webkit-line-clamp: ...">...</div>
+            'text_lines' => [
+                ['class="tpl-prev-text" style="-webkit-line-clamp', 'text_lines @case did not draw its clamped paragraph'],
+                ['A short intro about you and what you share here.', 'paragraph placeholder copy missing from the rendered cell'],
+            ],
+            // pill button: rounded-full row carrying the link label.
+            'pill' => [
+                ['rounded-full flex items-center justify-center gap-1 px-1.5', 'pill @case did not draw its rounded button shell'],
+                ['Visit my website', 'pill (link) placeholder copy missing from the rendered cell'],
+            ],
+            // avatar: circular placeholder <img> + name/handle lines.
+            'avatar' => [
+                ['block-placeholders/avatar.svg', 'avatar @case did not draw its circular placeholder image'],
+                ['@yourhandle', 'avatar handle line missing from the rendered cell'],
+            ],
+            // media: tall image cell with a real placeholder <img>.
+            'media' => [
+                ['block-placeholders/image.svg', 'media @case did not draw its placeholder image'],
+                ['rounded-[3px] relative overflow-hidden', 'media @case did not draw its image frame shell'],
+            ],
+            // dot_row: row of fixed 5px circular dots.
+            'dot_row' => [
+                ['width: 5px; height: 5px;', 'dot_row @case did not draw its circular icon dots'],
+            ],
+            // form: stacked input lines + a centered labelled button (70% wide).
+            'form' => [
+                ['min-height: 7px; width: 70%;', 'form @case did not draw its labelled submit button'],
+                ['Subscribe', 'form button placeholder copy missing from the rendered cell'],
+            ],
+            // list_rows: dot + sample-text rows.
+            'list_rows' => [
+                ['tpl-prev-list flex-1', 'list_rows @case did not draw its sample text rows'],
+                ['First item', 'list_rows placeholder copy missing from the rendered cell'],
+            ],
+        ];
+
+        foreach ($perShape as $shape => $needles) {
+            foreach ($needles as [$needle, $why]) {
+                $this->assertStringContainsString(
+                    $needle,
+                    $html,
+                    "[{$shape} shape] {$why} — the picker would render this "
+                    . 'template as a featureless box even though its preview_layout '
+                    . 'data is valid.'
+                );
+            }
+        }
     }
 }
