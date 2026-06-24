@@ -15,11 +15,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DictationMic } from "@/components/DictationMic";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkRow } from "@/components/LinkRow";
 import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
-import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import type { VoiceClientAction } from "@/lib/api/voice";
 import { listLinks } from "@/lib/api/links";
 import { LINK_KINDS } from "@/lib/linkKinds";
@@ -57,8 +57,6 @@ export default function LinksTab() {
       };
     }, []),
   );
-  const dictation = useVoiceDictation((t) => setQ(t));
-
   const query = useQuery({
     queryKey: ["links", { type, q }],
     queryFn: () => listLinks({ type: type || undefined, q: q || undefined, per_page: 100 }),
@@ -121,25 +119,11 @@ export default function LinksTab() {
               <Feather name="x" size={16} color={colors.mutedForeground} />
             </Pressable>
           ) : null}
-          <Pressable
-            onPress={dictation.toggle}
-            disabled={dictation.busy}
-            hitSlop={8}
-            accessibilityLabel={
-              dictation.recording ? "Stop dictation" : "Search by voice"
-            }
+          <DictationMic
+            size={16}
+            onText={(t) => setQ(t)}
             style={{ marginLeft: 6 }}
-          >
-            {dictation.busy ? (
-              <ActivityIndicator size="small" color={colors.mutedForeground} />
-            ) : (
-              <Feather
-                name="mic"
-                size={16}
-                color={dictation.recording ? "#dc2626" : colors.mutedForeground}
-              />
-            )}
-          </Pressable>
+          />
         </View>
 
         <View style={styles.filterRow}>
