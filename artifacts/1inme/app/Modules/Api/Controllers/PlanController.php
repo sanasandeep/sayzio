@@ -13,7 +13,9 @@ class PlanController extends Controller
 
     public function index(Request $request)
     {
-        $items = Plan::orderBy('sort_order')->orderBy('id')->get()->map(fn ($p) => [
+        // Public self-serve catalog: never expose "internal" (admin-only)
+        // plans here (see Plan::scopePublic()).
+        $items = Plan::public()->orderBy('sort_order')->orderBy('id')->get()->map(fn ($p) => [
             'id'             => $p->id,
             'slug'           => $p->slug,
             'name'           => $p->name,

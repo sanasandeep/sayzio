@@ -290,6 +290,16 @@ Route::prefix('v1')->group(function () {
         Route::delete('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'revokeAdminAccess'])->whereNumber('user');
         Route::post  ('/admin/users/{user}/impersonate',      [AdminAccessController::class, 'impersonate'])->whereNumber('user')->middleware('throttle:20,1');
 
+        // Plan editor (mobile parity for the back-office plan management).
+        // Lists plans WITH the admin-only `is_internal` flag, accepts it on
+        // create/update, and mirrors the web deep-copy Duplicate action.
+        // Gated behind the same admin-guard `plans.view` / `plans.manage`
+        // permissions as the web routes.
+        Route::get ('/admin/plans',                       [\App\Modules\Api\Controllers\AdminPlanController::class, 'index']);
+        Route::post('/admin/plans',                       [\App\Modules\Api\Controllers\AdminPlanController::class, 'store']);
+        Route::put ('/admin/plans/{plan}',                [\App\Modules\Api\Controllers\AdminPlanController::class, 'update'])->whereNumber('plan');
+        Route::post('/admin/plans/{plan}/duplicate',      [\App\Modules\Api\Controllers\AdminPlanController::class, 'duplicate'])->whereNumber('plan');
+
         // Wallet & coins (mobile parity).
         Route::get ('/wallet',              [WalletController::class, 'balance']);
         Route::get ('/wallet/transactions', [WalletController::class, 'transactions']);

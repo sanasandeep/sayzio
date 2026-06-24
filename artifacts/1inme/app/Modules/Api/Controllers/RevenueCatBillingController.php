@@ -70,6 +70,7 @@ class RevenueCatBillingController extends Controller
         };
 
         $plans = Plan::query()
+            ->public()
             ->where('status', 'active')
             ->where('is_archived', false)
             ->orderBy('sort_order')->orderBy('id')
@@ -127,6 +128,7 @@ class RevenueCatBillingController extends Controller
         // exactly the same descriptions the web /premium-features page
         // shows — without the mobile bundle duplicating strings.
         $planModels = Plan::query()
+            ->public()
             ->where('status', 'active')->where('is_archived', false)->get();
         $unlocks = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($planModels);
         $premiumFeatures = collect(\App\Modules\Common\Support\PremiumFeatures::catalogue())

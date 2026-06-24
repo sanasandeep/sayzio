@@ -748,8 +748,8 @@ curl -X POST $BASE/adult-content \
 
 | Method | Path                              | Auth | Description                                              |
 | ------ | --------------------------------- | ---- | ------------------------------------------------------- |
-| GET    | `/plans`                          | —    | Public plan catalog.                                    |
-| GET    | `/billing/plans`                  | yes  | Plan + addon catalog priced for the signed-in user.     |
+| GET    | `/plans`                          | —    | Public plan catalog. Excludes internal (admin-only) plans. |
+| GET    | `/billing/plans`                  | yes  | Plan + addon catalog priced for the signed-in user. Excludes internal plans. |
 | POST   | `/billing/currency`               | yes  | Set preferred currency. Throttle: 60/min.               |
 | POST   | `/billing/revenuecat/activate`    | yes  | RevenueCat receipt-verification hook (post-purchase/restore). Throttle: 30/min. |
 
@@ -907,6 +907,17 @@ Mobile parity for the back-office role / admin-access tooling and impersonation.
 | POST   | `/admin/users/{user}/admin-access`         | yes  | Grant back-office admin access to a user.           |
 | DELETE | `/admin/users/{user}/admin-access`         | yes  | Revoke back-office admin access.                    |
 | POST   | `/admin/users/{user}/impersonate`          | yes  | Impersonate a user. Throttle: 20/min.              |
+
+### Plan editor
+
+Mobile parity for the back-office plan management. Unlike the public `/plans` catalog, the admin listing includes the admin-only `is_internal` flag and is **not** filtered to public plans — internal (admin/staff-only) plans stay visible/manageable here. Create/update accept `is_internal` (set/clear). Duplicate deep-copies the plan (features + polymorphic price rows + addons) and forces the copy internal + inactive with a "(Copy)" name. Gated behind `plans.view` (list) / `plans.manage` (write).
+
+| Method | Path                                       | Auth | Description                                          |
+| ------ | ------------------------------------------ | ---- | --------------------------------------------------- |
+| GET    | `/admin/plans`                             | yes  | List all plans (incl. `is_internal`). `plans.view`. |
+| POST   | `/admin/plans`                             | yes  | Create a plan (accepts `is_internal`). `plans.manage`. |
+| PUT    | `/admin/plans/{plan}`                      | yes  | Update a plan (set/clear `is_internal`). `plans.manage`. |
+| POST   | `/admin/plans/{plan}/duplicate`            | yes  | Deep-copy a plan; copy is internal + inactive. `plans.manage`. |
 
 ## Admin mail / SMTP settings
 
