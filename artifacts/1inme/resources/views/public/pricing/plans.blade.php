@@ -14,7 +14,13 @@
 @endif
 <style>
     .grad-bar { background: linear-gradient(135deg,#7c3aed 0%,#a855f7 100%); }
-    .grad-text { color: #a78bfa; }
+    .grad-text {
+        background: linear-gradient(120deg,#c4b5fd 0%,#a855f7 45%,#7c3aed 100%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .hero-title { text-shadow: 0 0 60px rgba(124,58,237,.25); }
+    html.light-mode .hero-title { text-shadow: 0 0 50px rgba(124,58,237,.18); }
     .grad-glow { position: relative; }
     .grad-glow::before {
         content: ""; position: absolute; inset: -1px; border-radius: 1.1rem; padding: 1px;
@@ -62,7 +68,21 @@
 
     /* "Recommended for you" callout in the upgrade banner */
     .smart-banner {
-        background: rgba(124,58,237,.08);
+        position: relative; overflow: hidden;
+        background:
+            radial-gradient(120% 140% at 0% 0%, rgba(124,58,237,.16), transparent 55%),
+            radial-gradient(120% 140% at 100% 0%, rgba(236,72,153,.10), transparent 55%),
+            rgba(255,255,255,.02);
+        box-shadow: 0 24px 60px -36px rgba(124,58,237,.6);
+    }
+    /* Banner uses light-on-dark text in both modes, so keep a dark surface in light mode for contrast. */
+    html.light-mode .smart-banner {
+        background:
+            radial-gradient(120% 140% at 0% 0%, rgba(124,58,237,.30), transparent 55%),
+            radial-gradient(120% 140% at 100% 0%, rgba(236,72,153,.20), transparent 55%),
+            #1e1b2e;
+        border-color: rgba(255,255,255,.12);
+        box-shadow: 0 24px 60px -36px rgba(124,58,237,.5);
     }
     .smart-pill {
         background: rgba(124,58,237,.22);
@@ -78,31 +98,51 @@
     }
     .smart-meter.warn > span { background: #f59e0b; }
 
-    /* Compare-features matrix — one column per plan */
-    .feat-matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .feat-matrix { min-width: 720px; }
+    /* Compare-features matrix — one fixed-width column per plan.
+       Columns use locked px widths so every plan lines up; the matrix
+       lives in a self-contained scroll box (capped height) so BOTH the
+       feature-name column (sticky left) and the plan header row
+       (sticky top) stay anchored while you scroll horizontally and
+       vertically through the long feature list. */
+    .feat-matrix-scroll {
+        overflow: auto; -webkit-overflow-scrolling: touch;
+        max-height: min(78vh, 760px);
+        scrollbar-width: thin; scrollbar-color: rgba(124,58,237,.55) transparent;
+    }
+    .feat-matrix-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
+    .feat-matrix-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.03); }
+    .feat-matrix-scroll::-webkit-scrollbar-thumb { background: rgba(124,58,237,.5); border-radius: 9999px; }
+    .feat-matrix-scroll::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,.75); }
+    .feat-matrix { min-width: max-content; }
     .feat-cell {
         padding: .85rem 1rem; border-top: 1px solid rgba(255,255,255,.05);
         font-size: .82rem; color: #cbd5e1;
+        display: flex; align-items: center;
     }
+    .feat-cell.text-center { justify-content: center; text-align: center; }
     .feat-cell.feat-head {
-        border-top: 0; background: rgba(255,255,255,.03);
+        border-top: 0; background: #11101c;
         text-transform: uppercase; letter-spacing: .08em;
         font-size: .68rem; font-weight: 700; color: #94a3b8;
+        position: sticky; top: 0; z-index: 3;
     }
     .feat-cell.feat-row-name {
         position: sticky; left: 0; background: #0b0a14;
         z-index: 2; color: #e5e7eb; font-weight: 500;
     }
+    /* The top-left corner cell sits at both sticky axes → highest layer. */
+    .feat-cell.feat-head.feat-row-name { z-index: 4; background: #11101c; }
     .feat-cell.feat-group {
-        background: rgba(124,58,237,.08); color: #c4b5fd;
+        background: rgba(124,58,237,.10); color: #c4b5fd;
         text-transform: uppercase; letter-spacing: .08em;
         font-size: .66rem; font-weight: 700;
         padding: .55rem 1rem;
+        position: sticky; left: 0; z-index: 1;
     }
     .feat-cell.feat-popular-col {
         background: rgba(124,58,237,.07);
     }
+    .feat-cell.feat-head.feat-popular-col { background: rgba(124,58,237,.16); }
     .feat-mark { display: inline-flex; align-items: center; justify-content: center;
                  width: 26px; height: 26px; border-radius: 9999px; }
     .feat-mark-yes { background: rgba(16,185,129,.14); color: #34d399; }
@@ -116,17 +156,19 @@
         border-top-color: rgba(15,23,42,.08); color: #475569;
     }
     html.light-mode .feat-cell.feat-head {
-        background: rgba(15,23,42,.04); color: #64748b;
+        background: #f1f0f7; color: #64748b;
     }
     html.light-mode .feat-cell.feat-row-name {
         background: #ffffff; color: #1e293b;
     }
+    html.light-mode .feat-cell.feat-head.feat-row-name { background: #f1f0f7; }
     html.light-mode .feat-cell.feat-group {
-        background: rgba(124,58,237,.10); color: #6d28d9;
+        background: #ece9fb; color: #6d28d9;
     }
     html.light-mode .feat-cell.feat-popular-col {
         background: rgba(124,58,237,.06);
     }
+    html.light-mode .feat-cell.feat-head.feat-popular-col { background: #e6e0fb; }
     html.light-mode .feat-mark-no { color: #94a3b8; }
 
     /* Linktree-style plan card: a tinted header band sits flush at the
@@ -134,18 +176,79 @@
        card uses overflow-hidden so the band's rounded top is clean, which
        is why badges live inline in the band rather than as floating
        ribbons. */
-    .plan-card { overflow: hidden; }
-    .plan-band { background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(255,255,255,.06); }
-    .plan-band.is-accent  { background: rgba(124,58,237,.16); border-bottom-color: rgba(167,139,250,.30); }
-    .plan-band.is-current { background: rgba(16,185,129,.14); border-bottom-color: rgba(52,211,153,.30); }
-    .plan-card.is-accent  { background: rgba(124,58,237,.07); }
+    .plan-card {
+        overflow: hidden;
+        background: rgba(255,255,255,.02);
+        box-shadow: 0 18px 40px -30px rgba(0,0,0,.8);
+        transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;
+    }
+    .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(124,58,237,.6); }
+    .plan-card.is-accent { box-shadow: 0 30px 70px -34px rgba(124,58,237,.55); }
+    .plan-card.is-current { box-shadow: 0 30px 70px -34px rgba(16,185,129,.45); }
+
+    /* Header band: a subtle tinted strip; accent/current get a richer
+       diagonal wash so the highlighted tiers read as premium. */
+    .plan-band {
+        position: relative;
+        background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+        border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .plan-band.is-accent  { background: linear-gradient(135deg, rgba(124,58,237,.28), rgba(168,85,247,.10)); border-bottom-color: rgba(167,139,250,.34); }
+    .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.22), rgba(52,211,153,.08)); border-bottom-color: rgba(52,211,153,.32); }
+    .plan-card.is-accent  { background: rgba(124,58,237,.06); }
+    .plan-card.is-current { background: rgba(16,185,129,.05); }
+
+    /* Price block — a quiet inset panel so the headline number anchors
+       the card body. */
+    .plan-price {
+        background: rgba(255,255,255,.03);
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: .9rem;
+    }
+    .plan-card.is-accent .plan-price { background: rgba(124,58,237,.10); border-color: rgba(167,139,250,.25); }
+    .plan-card.is-current .plan-price { background: rgba(16,185,129,.08); border-color: rgba(52,211,153,.22); }
 
     /* Light-mode counterparts (dark is the default; the global
        marketing-anim.css doesn't know these custom classes). */
-    html.light-mode .plan-band { background: rgba(15,23,42,.035); border-bottom-color: rgba(15,23,42,.08); }
-    html.light-mode .plan-band.is-accent  { background: rgba(124,58,237,.12); border-bottom-color: rgba(124,58,237,.25); }
-    html.light-mode .plan-band.is-current { background: rgba(16,185,129,.12); border-bottom-color: rgba(16,185,129,.25); }
-    html.light-mode .plan-card.is-accent  { background: rgba(124,58,237,.05); }
+    html.light-mode .plan-card { background: #ffffff; box-shadow: 0 18px 40px -30px rgba(15,23,42,.35); }
+    html.light-mode .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(124,58,237,.4); }
+    html.light-mode .plan-band { background: linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.01)); border-bottom-color: rgba(15,23,42,.08); }
+    html.light-mode .plan-band.is-accent  { background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(168,85,247,.05)); border-bottom-color: rgba(124,58,237,.25); }
+    html.light-mode .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.16), rgba(52,211,153,.05)); border-bottom-color: rgba(16,185,129,.25); }
+    html.light-mode .plan-card.is-accent  { background: #faf8ff; }
+    html.light-mode .plan-card.is-current { background: #f3fcf8; }
+    html.light-mode .plan-price { background: rgba(15,23,42,.03); border-color: rgba(15,23,42,.08); }
+    html.light-mode .plan-card.is-accent .plan-price { background: rgba(124,58,237,.07); border-color: rgba(124,58,237,.2); }
+    html.light-mode .plan-card.is-current .plan-price { background: rgba(16,185,129,.07); border-color: rgba(16,185,129,.2); }
+
+    /* ── Single-row, horizontally-scrollable plan rail ──
+       All plan cards sit on one row. Each keeps a readable min-width and
+       grows to fill spare space; when the combined min-widths exceed the
+       container the rail scrolls horizontally (styled scrollbar + edge
+       fades + a hint act as the scroll affordance). */
+    .plans-rail { position: relative; }
+    .plans-rail::before, .plans-rail::after {
+        content: ""; position: absolute; top: 0; bottom: .75rem; width: 2.5rem;
+        pointer-events: none; z-index: 5; opacity: 0; transition: opacity .3s ease;
+    }
+    .plans-rail::before { left: 0; background: linear-gradient(90deg, var(--page-bg, #0b0a14), transparent); }
+    .plans-rail::after  { right: 0; background: linear-gradient(270deg, var(--page-bg, #0b0a14), transparent); }
+    .plans-rail.can-scroll-left::before  { opacity: 1; }
+    .plans-rail.can-scroll-right::after { opacity: 1; }
+    html.light-mode .plans-rail::before { background: linear-gradient(90deg, #f7f7fb, transparent); }
+    html.light-mode .plans-rail::after  { background: linear-gradient(270deg, #f7f7fb, transparent); }
+    .plans-scroll {
+        overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity; padding: .25rem .25rem 1rem;
+        scrollbar-width: thin; scrollbar-color: rgba(124,58,237,.55) transparent;
+    }
+    .plans-scroll::-webkit-scrollbar { height: 9px; }
+    .plans-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 9999px; }
+    .plans-scroll::-webkit-scrollbar-thumb { background: rgba(124,58,237,.5); border-radius: 9999px; }
+    .plans-scroll::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,.75); }
+    html.light-mode .plans-scroll::-webkit-scrollbar-track { background: rgba(15,23,42,.06); }
+    .plans-row { display: flex; gap: 1.25rem; align-items: stretch; }
+    .plans-row > .plan-card { flex: 1 0 290px; min-width: 290px; max-width: 360px; scroll-snap-align: start; }
 
     /* Keep the violet gradient CTA legible in light mode — the global
        override would otherwise darken `.text-white` sitting on it. */
@@ -158,6 +261,9 @@
         .price-pop { animation: none !important; }
         .seg { transition: none !important; }
         .smart-meter > span { transition: none !important; }
+        .plan-card { transition: none !important; }
+        .plans-rail::before, .plans-rail::after { transition: none !important; }
+        .plans-scroll { scroll-snap-type: none !important; }
     }
 </style>
 @endpush
@@ -281,17 +387,22 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto space-y-3" data-anim="fade-up">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-xs font-bold uppercase tracking-[.18em] text-violet-300">
+        <div class="text-center max-w-3xl mx-auto space-y-4" data-anim="fade-up">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-400/20 backdrop-blur-sm text-xs font-bold uppercase tracking-[.18em] text-violet-200 shadow-lg shadow-violet-900/20">
                 <span class="w-1.5 h-1.5 rounded-full bg-violet-400 pulse-dot"></span>
                 Pricing &amp; coins
             </div>
-            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+            <h1 class="hero-title text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
                 Pick your plan. <span class="grad-text">Make it yours.</span>
             </h1>
-            <p class="text-lg text-gray-400">
+            <p class="text-lg text-gray-400 max-w-xl mx-auto">
                 Simple pricing with powerful features — cancel anytime.
             </p>
+            <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1 text-xs text-gray-400">
+                <span class="inline-flex items-center gap-1.5"><i class="fas fa-circle-check text-emerald-400"></i> No card to start</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fas fa-circle-check text-emerald-400"></i> Cancel anytime</span>
+                <span class="inline-flex items-center gap-1.5"><i class="fas fa-circle-check text-emerald-400"></i> Secure checkout</span>
+            </div>
             {{-- Currency switch — flips USD/INR instantly client-side (prices for
                  both currencies are embedded in each card's Alpine payload), with a
                  background ping to persist the choice in session + cookie + profile. --}}
@@ -425,30 +536,20 @@
             </div>
         </div>
 
-        {{-- ───────────────── PLANS GRID ─────────────────
-             Tailwind safelist note: dynamic interpolation of
-             `lg:grid-cols-{N}` is brittle because the JIT compiler can't
-             see the class string at build time. We use explicit
-             conditional classes here so the cards always sit on a single
-             row at lg+ regardless of how many active plans the seeder
-             surfaces. --}}
+        {{-- ───────────────── PLANS RAIL ─────────────────
+             All plan cards live on one horizontal rail. They grow to
+             fill the width when there's room and scroll horizontally
+             (styled scrollbar + edge fades + hint) once their combined
+             min-widths overflow the container — no responsive
+             column-count logic to keep in sync with the plan count. --}}
         @php
             $planCount = count($plans);
-            // Tailwind safelist note: dynamic interpolation of
-            // `lg:grid-cols-{N}` is brittle because the JIT compiler
-            // can't see the class string at build time. We use explicit
-            // conditional classes so all active plans sit in a single
-            // row at lg+ regardless of how many tiers the seeder
-            // surfaces. We support up to 6 columns (the catalogue
-            // currently ships 5: free / starter / pro / business /
-            // enterprise — clamping at 6 prevents over-cramping).
-            $lgGrid = match (true) {
-                $planCount >= 6 => 'lg:grid-cols-6',
-                $planCount === 5 => 'lg:grid-cols-5',
-                $planCount === 4 => 'lg:grid-cols-4',
-                $planCount === 3 => 'lg:grid-cols-3',
-                default => 'lg:grid-cols-2',
-            };
+            // All plan cards sit on a single horizontal rail (see the
+            // `.plans-rail` / `.plans-scroll` styles). Each card keeps a
+            // readable min-width and grows to fill spare space; when the
+            // combined widths exceed the container the rail scrolls
+            // horizontally, so there's no responsive column-count logic
+            // to maintain regardless of how many tiers the seeder ships.
             $hasRec = isset($recommendation['recommendedPlan']) && $recommendation['recommendedPlan'];
             $recPlanId = $hasRec ? $recommendation['recommendedPlan']->id : null;
             $currentPlanId = $recommendation['currentPlan']->id ?? null;
@@ -579,8 +680,21 @@
                 return $groups;
             };
         @endphp
-        <div data-anim="fade-up"
-             class="grid grid-cols-1 md:grid-cols-2 {{ $lgGrid }} gap-5 mt-8 items-stretch">
+        <div data-anim="fade-up" class="plans-rail mt-8"
+             x-data="{
+                 scrollable: false,
+                 update() {
+                     const s = this.$refs.scroll;
+                     if (!s) return;
+                     const max = s.scrollWidth - s.clientWidth;
+                     this.scrollable = max > 4;
+                     this.$el.classList.toggle('can-scroll-left', s.scrollLeft > 4);
+                     this.$el.classList.toggle('can-scroll-right', s.scrollLeft < max - 4);
+                 }
+             }"
+             x-init="$nextTick(() => update()); window.addEventListener('resize', () => update());">
+            <div class="plans-scroll" x-ref="scroll" @scroll="update()">
+                <div class="plans-row">
             @foreach($plansArr as $i => $row)
                 @php
                     $plan = $row['model'];
@@ -636,45 +750,47 @@
 
                     {{-- ── Body: price → billing note → CTA → feature list ── --}}
                     <div class="px-5 sm:px-6 pt-5 pb-6 flex flex-col flex-grow">
-                        <div class="flex items-baseline gap-1">
-                            <span class="price-num text-4xl font-bold text-white"
-                                  :class="'price-pop'"
-                                  :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
-                                  x-text="money(plan, cycle)">{{ $row['prices'][$currency][$cycle]['formatted'] ?? '—' }}</span>
-                            @unless(!empty($row['is_free']))
-                                <span class="text-sm text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
-                            @endunless
-                        </div>
+                        <div class="plan-price px-4 py-4">
+                            <div class="flex items-baseline gap-1">
+                                <span class="price-num text-5xl font-bold text-white tracking-tight"
+                                      :class="'price-pop'"
+                                      :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
+                                      x-text="money(plan, cycle)">{{ $row['prices'][$currency][$cycle]['formatted'] ?? '—' }}</span>
+                                @unless(!empty($row['is_free']))
+                                    <span class="text-sm text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
+                                @endunless
+                            </div>
 
-                        {{-- Billing note (Linktree fineprint under the price) --}}
-                        @if(!empty($row['is_free']))
-                            <div class="text-xs text-gray-400 mt-1.5">Free forever — no card required</div>
-                        @else
-                            <div class="text-xs text-gray-400 mt-1.5 min-h-[1rem]" x-text="billingNote(plan)"></div>
-                        @endif
+                            {{-- Billing note (Linktree fineprint under the price) --}}
+                            @if(!empty($row['is_free']))
+                                <div class="text-xs text-gray-400 mt-1.5">Free forever — no card required</div>
+                            @else
+                                <div class="text-xs text-gray-400 mt-1.5 min-h-[1rem]" x-text="billingNote(plan)"></div>
+                            @endif
 
-                        {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
-                             Both currencies are pre-rendered so the instant switcher stays
-                             accurate for signed-in buyers with a billing address. --}}
-                        @foreach(['USD','INR'] as $cur)
-                            @foreach(['monthly','annual'] as $c)
-                                @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
-                                @if(($row['prices'][$cur][$c]['amount_minor'] ?? 0) > 0)
-                                    <div x-show="currency==='{{ $cur }}' && cycle==='{{ $c }}'" x-cloak>
-                                        @if(!empty($taxBlock) && !empty($taxBlock['tax_breakdown']))
-                                            <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
-                                                @foreach($taxBlock['tax_breakdown'] as $line)
-                                                    <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
-                                                @endforeach
-                                                <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $taxBlock['grand_total_minor'], $cur) }}</span></div>
-                                            </div>
-                                        @else
-                                            <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
-                                        @endif
-                                    </div>
-                                @endif
+                            {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
+                                 Both currencies are pre-rendered so the instant switcher stays
+                                 accurate for signed-in buyers with a billing address. --}}
+                            @foreach(['USD','INR'] as $cur)
+                                @foreach(['monthly','annual'] as $c)
+                                    @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
+                                    @if(($row['prices'][$cur][$c]['amount_minor'] ?? 0) > 0)
+                                        <div x-show="currency==='{{ $cur }}' && cycle==='{{ $c }}'" x-cloak>
+                                            @if(!empty($taxBlock) && !empty($taxBlock['tax_breakdown']))
+                                                <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
+                                                    @foreach($taxBlock['tax_breakdown'] as $line)
+                                                        <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
+                                                    @endforeach
+                                                    <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $taxBlock['grand_total_minor'], $cur) }}</span></div>
+                                                </div>
+                                            @else
+                                                <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
+                                            @endif
+                                        </div>
+                                    @endif
+                                @endforeach
                             @endforeach
-                        @endforeach
+                        </div>
 
                         {{-- Full-width CTA --}}
                         <div class="mt-5">
@@ -750,6 +866,14 @@
                     </div>
                 </div>
             @endforeach
+                </div>
+            </div>
+            @if($planCount > 1)
+                <div x-show="scrollable" x-cloak class="mt-3 flex items-center justify-center gap-2 text-[11px] text-gray-500" aria-hidden="true">
+                    <i class="fas fa-arrows-left-right text-violet-400/70"></i>
+                    Scroll to compare every plan
+                </div>
+            @endif
         </div>
 
         {{-- ───────────────── COMPARE FEATURES AT A GLANCE ───────────────── --}}
@@ -804,7 +928,10 @@
                     ['api_rate_per_min',         'API rate (calls / min)',  'number'],
                 ],
             ];
-            $colTpl = 'minmax(180px, 1.4fr) repeat(' . count($plans) . ', minmax(120px, 1fr))';
+            // Fixed (locked) column widths so every plan column lines up
+            // uniformly; the matrix scroll box handles overflow when the
+            // combined width exceeds the container.
+            $colTpl = '220px repeat(' . count($plans) . ', 160px)';
             $renderCell = function ($plan, $key, $kind) {
                 $features = $plan->features ?? [];
                 if (!array_key_exists($key, $features) && $kind !== 'analytics') {
