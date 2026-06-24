@@ -587,7 +587,12 @@
                    class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"
                    style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div>
-                    <span class="nav-label">Wallet</span>
+                    <span class="nav-label">Wallet
+                        @if(\App\Services\Billing\WalletService::isEnabled())
+                        @php $__coins = (int) (auth()->user()->wallet?->balance ?? 0); @endphp
+                        <span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__coins) }} coins">{{ $__coins >= 1000 ? round($__coins / 1000, 1) . 'k' : $__coins }}</span>
+                        @endif
+                    </span>
                     <span class="sidebar-tooltip">Wallet — coin balance &amp; transactions</span>
                 </a>
 
@@ -1226,7 +1231,12 @@
                         @if($__can['posts_view'])
                         <a href="{{ route('user.stats.index') }}" class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Stats</span></a>
                         @endif
-                        <a href="{{ route('user.wallet.show') }}" class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div> <span>Wallet</span></a>
+                        <a href="{{ route('user.wallet.show') }}" class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div> <span>Wallet
+                            @if(\App\Services\Billing\WalletService::isEnabled())
+                            @php $__mCoins = (int) (auth()->user()->wallet?->balance ?? 0); @endphp
+                            <span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__mCoins) }} coins">{{ $__mCoins >= 1000 ? round($__mCoins / 1000, 1) . 'k' : $__mCoins }}</span>
+                            @endif
+                        </span></a>
 
                         {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                         @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
