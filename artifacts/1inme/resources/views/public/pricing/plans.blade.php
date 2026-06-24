@@ -13,9 +13,9 @@
 <script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph($__pricingProducts), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
 <style>
-    .grad-bar { background: linear-gradient(135deg,#7c3aed 0%,#a855f7 100%); }
+    .grad-bar { background: linear-gradient(135deg,#7c3aed 0%,#9333ea 50%,#c026d3 100%); }
     .grad-text {
-        background: linear-gradient(120deg,#c4b5fd 0%,#a855f7 45%,#7c3aed 100%);
+        background: linear-gradient(120deg,#c4b5fd 0%,#a855f7 38%,#7c3aed 66%,#c026d3 100%);
         -webkit-background-clip: text; background-clip: text;
         -webkit-text-fill-color: transparent; color: transparent;
     }
@@ -24,7 +24,7 @@
     .grad-glow { position: relative; }
     .grad-glow::before {
         content: ""; position: absolute; inset: -1px; border-radius: 1.1rem; padding: 1px;
-        background: #7c3aed;
+        background: linear-gradient(135deg,#a855f7 0%,#7c3aed 50%,#c026d3 100%);
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
         -webkit-mask-composite: xor; mask-composite: exclude;
         opacity: 0; transition: opacity .35s ease;
@@ -310,6 +310,40 @@
        override would otherwise darken `.text-white` sitting on it. */
     html.light-mode .grad-bar.text-white,
     html.light-mode .grad-bar .text-white { color: #fff !important; }
+
+    /* ── Arbitrary white-opacity utilities the global remap misses ──
+       marketing-anim.css only remaps bg-white/{.03,.05,.07}; this page also
+       leans on /[0.02] and /[0.04] soft fills plus /[0.08] /[0.10] hovers,
+       so give them light-mode counterparts (otherwise the surface stays
+       transparent and visually disappears on the white background). */
+    html.light-mode .bg-white\/\[0\.02\],
+    html.light-mode .bg-white\/\[0\.04\] { background-color: rgba(15,23,42,.035) !important; }
+    html.light-mode .hover\:bg-white\/\[0\.08\]:hover,
+    html.light-mode .hover\:bg-white\/\[0\.10\]:hover { background-color: rgba(15,23,42,.07) !important; }
+
+    /* Coin-package tint reads cleaner over the lighter surface. */
+    html.light-mode .coin-bg { background: rgba(124,58,237,.045); }
+
+    /* ── Smart upgrade banner keeps its dark surface in BOTH modes, so its
+       text and accents must stay light too — the global light-mode rules
+       would otherwise darken every child into dark-on-dark. ── */
+    html.light-mode .smart-banner .text-white { color: #f8fafc !important; }
+    html.light-mode .smart-banner .text-gray-200,
+    html.light-mode .smart-banner .text-gray-300 { color: #e3e1f0 !important; }
+    html.light-mode .smart-banner .text-gray-400 { color: #bdbace !important; }
+    html.light-mode .smart-banner .text-gray-500 { color: #918da8 !important; }
+    html.light-mode .smart-banner [class*="text-white/"] { color: rgba(248,250,252,.7) !important; }
+    html.light-mode .smart-banner .text-violet-200,
+    html.light-mode .smart-banner .text-violet-300 { color: #c4b5fd !important; }
+    html.light-mode .smart-banner .text-pink-300    { color: #f9a8d4 !important; }
+    html.light-mode .smart-banner .text-amber-300   { color: #fcd34d !important; }
+    html.light-mode .smart-banner .text-emerald-300 { color: #6ee7b7 !important; }
+    html.light-mode .smart-banner .bg-white\/10     { background-color: rgba(255,255,255,.12) !important; }
+    html.light-mode .smart-banner .border-white\/10 { border-color: rgba(255,255,255,.14) !important; }
+
+    /* ── Referral teaser icon — gradient chip, white glyph in both modes ── */
+    .ref-icon { background: linear-gradient(135deg,#7c3aed,#c026d3); color: #fff; }
+    html.light-mode .ref-icon { color: #fff !important; }
 
     @media (prefers-reduced-motion: reduce) {
         .pulse-dot, .float-coin, .pop-ribbon, .grad-glow { animation: none !important; }
@@ -1190,8 +1224,7 @@
         {{-- Referral-program teaser --}}
         <div class="mt-10 max-w-3xl mx-auto" data-anim="fade-up">
             <div class="grad-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 bg-white/[0.02]">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0"
-                     style="background: #7c3aed;">
+                <div class="ref-icon w-12 h-12 rounded-xl flex items-center justify-center shrink-0">
                     <i class="fas fa-gift"></i>
                 </div>
                 <div class="flex-1 min-w-0">

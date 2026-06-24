@@ -32,7 +32,7 @@
         <div class="text-[11px] font-bold uppercase tracking-[.2em] text-violet-300 mb-1">
             <i class="fas fa-wand-magic-sparkles"></i> {{ $heading ?? 'Where your coins go on AI' }}
         </div>
-        <p class="text-sm text-white/60 max-w-xl mx-auto">
+        <p class="text-sm text-gray-400 max-w-xl mx-auto">
             Spend coins directly on these OpenAI-powered features. Each call
             draws on your own coin balance — you only pay for what you use,
             with no separate credits to buy or convert.
@@ -57,7 +57,7 @@
                 </div>
                 <div class="min-w-0">
                     <div class="text-sm font-semibold text-white leading-tight">{{ $f['name'] }}</div>
-                    <div class="text-xs text-white/50 leading-snug">{{ $f['desc'] }}</div>
+                    <div class="text-xs text-gray-500 leading-snug">{{ $f['desc'] }}</div>
                 </div>
             </div>
         @endforeach
