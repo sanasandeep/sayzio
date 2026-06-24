@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
@@ -23,14 +23,24 @@ type StatsResponse = {
   earnings: { tips_total: number; subs_total: number; payouts_total: number; currency: string };
 };
 
-async function fetchStats(): Promise<StatsResponse> {
-  const res = await apiFetch<{ data: StatsResponse }>("/stats");
+const RANGES = [
+  { key: "7d", label: "7D" },
+  { key: "30d", label: "30D" },
+  { key: "90d", label: "90D" },
+  { key: "1y", label: "1Y" },
+] as const;
+
+type RangeKey = (typeof RANGES)[number]["key"];
+
+async function fetchStats(range: RangeKey): Promise<StatsResponse> {
+  const res = await apiFetch<{ data: StatsResponse }>(`/stats?range=${range}`);
   return res.data;
 }
 
 export default function StatsScreen() {
   const colors = useColors();
-  const q = useQuery({ queryKey: ["creator-stats"], queryFn: fetchStats });
+  const [range, setRange] = useState<RangeKey>("30d");
+  const q = useQuery({ queryKey: ["creator-stats", range], queryFn: () => fetchStats(range) });
   const profileQ = useQuery({ queryKey: ["profile"], queryFn: getProfile });
   const [refreshing, setRefreshing] = useState(false);
 
@@ -77,6 +87,28 @@ export default function StatsScreen() {
           />
         }
       >
+        <View style={[styles.rangeBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {RANGES.map((r) => {
+            const active = r.key === range;
+            return (
+              <Pressable
+                key={r.key}
+                onPress={() => setRange(r.key)}
+                style={[styles.rangePill, active && { backgroundColor: colors.primary }]}
+              >
+                <Text
+                  style={[
+                    styles.rangePillText,
+                    { color: active ? colors.primaryForeground : colors.mutedForeground },
+                  ]}
+                >
+                  {r.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {q.isLoading ? (
           <View style={{ paddingVertical: 60, alignItems: "center" }}>
             <ActivityIndicator color={colors.primary} />
@@ -120,13 +152,13 @@ export default function StatsScreen() {
 
             <Button
               label="Open full dashboard"
-              onPress={() => Linking.openURL(`${getBaseUrl().replace(/\/api\/?$/, "")}/user/stats`)}
+              onPress={() => Linking.openURL(`${getBaseUrl().replace(/\/api\/?$/, "")}/user/stats?range=${range}`)}
             />
             {canExport ? (
               <Button
                 label="Export CSV"
                 variant="outline"
-                onPress={() => Linking.openURL(`${getBaseUrl().replace(/\/api\/?$/, "")}/user/stats/export`)}
+                onPress={() => Linking.openURL(`${getBaseUrl().replace(/\/api\/?$/, "")}/user/stats/export?range=${range}`)}
               />
             ) : (
               <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -147,6 +179,9 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
+  rangeBar: { flexDirection: "row", padding: 4, borderWidth: 1, borderRadius: 12, gap: 4 },
+  rangePill: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: "center" },
+  rangePillText: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: 0.4 },
   range: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
   section: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 8 },
   row: { flexDirection: "row", gap: 10 },
