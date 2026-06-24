@@ -180,6 +180,21 @@ protected $fillable = [
                 $form->slug = static::uniqueSlug($form->title ?: 'form');
             }
         });
+
+        // Bust the biolink-editor forms dropdown cache so a newly created /
+        // edited / deleted form shows up immediately when the owner opens
+        // the editor. See BiolinkBlockController::editor().
+        static::saved(fn (self $form) => static::forgetEditorFormsCache($form));
+        static::deleted(fn (self $form) => static::forgetEditorFormsCache($form));
+    }
+
+    protected static function forgetEditorFormsCache(self $form): void
+    {
+        $uid = $form->user_id;
+        if (!$uid) return;
+        $ws = $form->workspace_id ?? 'none';
+        \Illuminate\Support\Facades\Cache::forget("editor:forms:{$uid}:{$ws}");
+        \Illuminate\Support\Facades\Cache::forget("editor:forms:{$uid}:none");
     }
 
     public static function uniqueSlug(string $base): string

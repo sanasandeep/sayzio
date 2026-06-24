@@ -113,6 +113,21 @@ protected $fillable = [
         static::creating(function (self $sp) {
             if (empty($sp->uuid)) $sp->uuid = (string) Str::uuid();
         });
+
+        // Bust the biolink-editor "Buzz" dropdown cache on any write so a
+        // newly created / edited / deleted notification shows up immediately
+        // in the editor. See BiolinkBlockController::editor().
+        static::saved(fn (self $sp) => static::forgetEditorBuzzCache($sp));
+        static::deleted(fn (self $sp) => static::forgetEditorBuzzCache($sp));
+    }
+
+    protected static function forgetEditorBuzzCache(self $sp): void
+    {
+        $uid = $sp->user_id;
+        if (!$uid) return;
+        $ws = $sp->workspace_id ?? 'none';
+        \Illuminate\Support\Facades\Cache::forget("editor:buzz:{$uid}:{$ws}");
+        \Illuminate\Support\Facades\Cache::forget("editor:buzz:{$uid}:none");
     }
 
     public function user()  { return $this->belongsTo(User::class); }

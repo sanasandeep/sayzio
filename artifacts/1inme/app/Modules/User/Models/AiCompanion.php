@@ -51,6 +51,22 @@ class AiCompanion extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Bust the biolink-editor AI Companion dropdown cache on any write so a
+        // newly created / edited / deleted companion shows up immediately when
+        // the owner opens the editor. See BiolinkBlockController::editor().
+        static::saved(fn (self $c) => static::forgetEditorCompanionsCache($c));
+        static::deleted(fn (self $c) => static::forgetEditorCompanionsCache($c));
+    }
+
+    protected static function forgetEditorCompanionsCache(self $companion): void
+    {
+        $uid = $companion->user_id;
+        if (!$uid) return;
+        \Illuminate\Support\Facades\Cache::forget("editor:companions:{$uid}");
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

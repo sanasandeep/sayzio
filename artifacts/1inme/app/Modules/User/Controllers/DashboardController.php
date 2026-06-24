@@ -18,9 +18,19 @@ class DashboardController extends Controller
         $user = Auth::user();
         $user->load('plan');
 
-        $totalLinks = $user->links()->count();
+        // One aggregate over the links table for the three headline tiles
+        // (total / active / lifetime clicks) instead of three separate
+        // COUNT/SUM round-trips. Over a distant DB each round-trip costs
+        // hundreds of ms, so folding them into a single query is a direct
+        // first-paint win. total_clicks is the denormalized lifetime counter.
+        $linkAgg = $user->links()
+            ->selectRaw("COUNT(*) as total, COUNT(*) FILTER (WHERE is_active) as active, COALESCE(SUM(total_clicks), 0) as clicks")
+            ->first();
+        $totalLinks = (int) ($linkAgg->total ?? 0);
+        $activeLinks = (int) ($linkAgg->active ?? 0);
+        $lifetimeClicks = (int) ($linkAgg->clicks ?? 0);
+
         $totalProjects = $user->projects()->count();
-        $activeLinks = $user->links()->where('is_active', true)->count();
 
         // Optional workspace-wide channel filter — narrows the click-derived
         // tiles (Total Clicks, Today) to a single user-agent bucket so creators
@@ -33,39 +43,43 @@ class DashboardController extends Controller
             $channelFilter = null;
         }
 
-        $linkIds = $user->links()->pluck('id');
-
-        // When no channel filter is active we keep using the denormalized
-        // total_clicks counter on the links table (cheap, lifetime-accurate).
-        // With a filter active we have to count rows from link_clicks because
-        // that's the only place the channel classification lives.
-        if ($channelFilter === null) {
-            $totalClicks = (int) $user->links()->sum('total_clicks');
-        } else {
-            $totalClicks = LinkClick::whereIn('link_id', $linkIds)
-                ->where('channel', $channelFilter)
-                ->count();
-        }
-
-        $clicksToday = LinkClick::whereIn('link_id', $linkIds)
-            ->where('clicked_at', '>=', now()->startOfDay())
-            ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
-            ->count();
-
-        // Workspace-wide channel breakdown — aggregated across every link the
-        // creator owns. Intentionally NOT filtered by $channelFilter so the
-        // breakdown card always shows the full split (and lets the user
-        // switch buckets by clicking the pills). Older clicks logged before
-        // the column was added surface as 'unknown' so totals reconcile.
-        // Group by the COALESCE expression itself rather than the raw column
-        // so NULL rows (pre-classifier clicks) and any literal 'unknown'
-        // rows merge into a single Unknown bucket instead of rendering as
-        // two adjacent rows that share the same label.
-        $channelStats = LinkClick::whereIn('link_id', $linkIds)
-            ->selectRaw("COALESCE(channel, 'unknown') as channel, COUNT(*) as count")
+        // Single pass over link_clicks for the channel breakdown AND the
+        // "today" tally, scoped via a subquery on the user's link ids so we
+        // neither pluck every id into PHP nor ship a giant IN(...) list.
+        // Older clicks logged before the channel column existed surface as
+        // 'unknown' (grouped on the COALESCE expression so NULLs and any
+        // literal 'unknown' rows merge into one bucket). The per-channel
+        // `today` FILTER count lets us derive clicksToday (and, when a
+        // channel filter is active, that channel's totals) from this one
+        // query instead of two more round-trips.
+        $linkIdSub = $user->links()->select('id')->getQuery();
+        $channelRows = LinkClick::whereIn('link_id', $linkIdSub)
+            ->selectRaw(
+                "COALESCE(channel, 'unknown') as channel, COUNT(*) as count, COUNT(*) FILTER (WHERE clicked_at >= ?) as today",
+                [now()->startOfDay()]
+            )
             ->groupByRaw("COALESCE(channel, 'unknown')")
             ->orderByDesc('count')
             ->get();
+
+        // Channel breakdown card is intentionally NOT filtered by
+        // $channelFilter so it always shows the full split.
+        $channelStats = $channelRows->map(fn ($r) => (object) [
+            'channel' => $r->channel,
+            'count'   => (int) $r->count,
+        ])->values();
+
+        // When no channel filter is active we keep the denormalized lifetime
+        // total_clicks counter (matches historical clicks predating the
+        // link_clicks table); with a filter we use that channel's row.
+        if ($channelFilter === null) {
+            $totalClicks = $lifetimeClicks;
+            $clicksToday = (int) $channelRows->sum('today');
+        } else {
+            $filteredRow = $channelRows->firstWhere('channel', $channelFilter);
+            $totalClicks = $filteredRow ? (int) $filteredRow->count : 0;
+            $clicksToday = $filteredRow ? (int) $filteredRow->today : 0;
+        }
 
         $recentLinks = $user->links()
             ->with('project')

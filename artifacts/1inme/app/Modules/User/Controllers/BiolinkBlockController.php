@@ -53,39 +53,63 @@ class BiolinkBlockController extends Controller
             }
         }
 
-        $userForms = auth()->user()->forms()
-            ->orderByDesc('id')
-            ->get(['id', 'title', 'slug', 'is_active'])
-            ->map(fn ($f) => [
-                'id'        => $f->id,
-                'title'     => $f->title,
-                'slug'      => $f->slug,
-                'is_active' => (bool) $f->is_active,
-            ])->values();
+        // The three palette dropdown lists (Forms / Buzz / AI Companions) are
+        // small, change rarely, and are re-fetched on every editor open. Over a
+        // distant DB each is its own round-trip, so we cache them per owner +
+        // active workspace with a short backstop TTL. The lists are busted
+        // immediately on any create/update/delete of the underlying model
+        // (see each model's booted() editor-cache hook), so the TTL only guards
+        // against rare bulk writes that bypass model events.
+        $wsId = (app()->bound('current_workspace') && app('current_workspace'))
+            ? app('current_workspace')->id
+            : 'none';
+        $ownerId = workspace_owner_id();
 
-        $userBuzz = \App\Modules\User\Models\SocialProof::where('user_id', workspace_owner_id())
-            ->orderByDesc('id')
-            ->get(['id', 'name', 'type', 'is_active'])
-            ->map(fn ($b) => [
-                'id'        => $b->id,
-                'name'      => $b->name,
-                'type'      => $b->type,
-                'is_active' => (bool) $b->is_active,
-            ])->values();
+        $userForms = \Illuminate\Support\Facades\Cache::remember(
+            "editor:forms:" . auth()->id() . ":{$wsId}",
+            120,
+            fn () => auth()->user()->forms()
+                ->orderByDesc('id')
+                ->get(['id', 'title', 'slug', 'is_active'])
+                ->map(fn ($f) => [
+                    'id'        => $f->id,
+                    'title'     => $f->title,
+                    'slug'      => $f->slug,
+                    'is_active' => (bool) $f->is_active,
+                ])->values()
+        );
+
+        $userBuzz = \Illuminate\Support\Facades\Cache::remember(
+            "editor:buzz:{$ownerId}:{$wsId}",
+            120,
+            fn () => \App\Modules\User\Models\SocialProof::where('user_id', $ownerId)
+                ->orderByDesc('id')
+                ->get(['id', 'name', 'type', 'is_active'])
+                ->map(fn ($b) => [
+                    'id'        => $b->id,
+                    'name'      => $b->name,
+                    'type'      => $b->type,
+                    'is_active' => (bool) $b->is_active,
+                ])->values()
+        );
 
         // AI Companions the owner can drop into a biolink block. We
         // restrict to the `biolink` placement so users don't accidentally
         // pick an embed-only or inbox-only companion.
-        $userCompanions = \App\Modules\User\Models\AiCompanion::where('user_id', workspace_owner_id())
-            ->where('placement', 'biolink')
-            ->orderByDesc('id')
-            ->get(['id', 'public_id', 'name', 'is_disabled'])
-            ->map(fn ($c) => [
-                'id'          => $c->id,
-                'public_id'   => $c->public_id,
-                'name'        => $c->name,
-                'is_disabled' => (bool) $c->is_disabled,
-            ])->values();
+        $userCompanions = \Illuminate\Support\Facades\Cache::remember(
+            "editor:companions:{$ownerId}",
+            120,
+            fn () => \App\Modules\User\Models\AiCompanion::where('user_id', $ownerId)
+                ->where('placement', 'biolink')
+                ->orderByDesc('id')
+                ->get(['id', 'public_id', 'name', 'is_disabled'])
+                ->map(fn ($c) => [
+                    'id'          => $c->id,
+                    'public_id'   => $c->public_id,
+                    'name'        => $c->name,
+                    'is_disabled' => (bool) $c->is_disabled,
+                ])->values()
+        );
 
         return view('user.links.biolink-editor', compact(
             'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz', 'userCompanions', 'pollTallies'
