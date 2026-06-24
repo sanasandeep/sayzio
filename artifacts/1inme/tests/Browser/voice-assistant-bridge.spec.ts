@@ -343,4 +343,151 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
     await page.waitForURL("**/user/links?voicenav=instant", { timeout: 60_000 });
     await expect(page.getByText("voicenav-instant")).toBeVisible({ timeout: 30_000 });
   });
+
+  test("a spoken destructive 'delete_biolink' must be confirmed before it fires", async ({
+    page,
+  }) => {
+    await openWithWidget(page, "/user/links");
+
+    // Record every turn POST so we can prove the destructive call does NOT
+    // reach the server until the user explicitly confirms.
+    const turnBodies: string[] = [];
+    await page.route("**/user/ai/voice/turn", async (route: Route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      turnBodies.push(route.request().postData() || "");
+      // First turn: the model wants to delete, but the server gates it behind
+      // a confirmation chip and runs NOTHING (no executed tool_results).
+      if (turnBodies.length === 1) {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            transcript: "delete link 42",
+            reply: "That permanently deletes link 42 — confirm?",
+            pending_confirmations: [
+              {
+                tool: "delete_biolink",
+                arguments: { link_id: 42 },
+                summary: "Confirm before I run 'delete_biolink'.",
+              },
+            ],
+            tool_results: [],
+            credits: { stt: 1, llm: 1, tts: 1, total: 3 },
+            balance: 100,
+          }),
+        });
+      }
+      // Second turn (only after the user taps Yes): now the delete runs and
+      // reports back. We never reach here unless confirmation replayed.
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          transcript: "yes",
+          reply: "Deleted link 42.",
+          pending_confirmations: [],
+          tool_results: [{ result: { summary: "Deleted link #42." } }],
+          credits: { stt: 1, llm: 1, tts: 1, total: 3 },
+          balance: 100,
+        }),
+      });
+    });
+
+    // Drive the first turn through the REAL widget. We set `lastAudio` (the
+    // clip confirmTool replays) and open the panel so the confirm chip is
+    // visible — exactly the state the mic-stop path leaves the widget in.
+    const firstTurn = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/user/ai/voice/turn") &&
+        r.request().method() === "POST",
+      { timeout: 60_000 },
+    );
+    await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="voiceAssistant"]')!;
+      const A = (window as unknown as {
+        Alpine: {
+          $data: (e: Element) => {
+            sendTurn: (b: Blob) => void;
+            lastAudio: Blob | null;
+            panelOpen: boolean;
+          };
+        };
+      }).Alpine;
+      const comp = A.$data(el);
+      comp.panelOpen = true;
+      comp.lastAudio = new Blob(["x"], { type: "audio/webm" });
+      comp.sendTurn(comp.lastAudio);
+    });
+    await firstTurn;
+
+    // The destructive tool is queued behind a confirmation chip — and crucially
+    // the action has NOT run yet (only the first, gating turn has been POSTed,
+    // and it carried no confirmation).
+    await expect(
+      page.locator("code", { hasText: "delete_biolink" }),
+    ).toBeVisible({ timeout: 30_000 });
+    expect(turnBodies).toHaveLength(1);
+    expect(turnBodies[0]).toContain('"confirmed_tools":{}');
+
+    // Tap "Yes" → the widget replays the SAME audio with the tool confirmed.
+    const confirmReq = page.waitForRequest(
+      (r) =>
+        r.url().endsWith("/user/ai/voice/turn") && r.method() === "POST",
+      { timeout: 60_000 },
+    );
+    await page.getByRole("button", { name: "Yes", exact: true }).click();
+    const req = await confirmReq;
+
+    // The confirming turn carries confirmed_tools[delete_biolink]=true (the
+    // exact gate the server re-checks), the chip clears, and the success reply
+    // appears — proving the destructive action only fires post-confirmation.
+    expect(req.postData() || "").toContain('"delete_biolink":true');
+    expect(turnBodies).toHaveLength(2);
+    await expect(page.getByText("Deleted link 42.")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(
+      page.locator("code", { hasText: "delete_biolink" }),
+    ).toHaveCount(0);
+  });
+
+  test("a read-only 'search_app' drives the header search surface", async ({
+    page,
+  }) => {
+    await openWithWidget(page, "/user/links");
+
+    const query = "coffee";
+    // The header search surface navigates to the links index with the spoken
+    // query; stub that destination so the heavy results render never blocks.
+    await page.route("**/user/links*", async (route: Route) => {
+      const u = new URL(route.request().url());
+      if (u.searchParams.get("search") !== query) return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<!doctype html><title>search</title>voice-search-arrived",
+      });
+    });
+
+    // search_app emits a `search` client_action; the header search box reacts
+    // by filling itself and navigating to the results. No audio → the bridge
+    // dispatches the surface event immediately.
+    await mockTurn(page, {
+      reply: `Searching for "${query}".`,
+      tool_results: [
+        { result: { client_action: { type: "search", query }, data: { query } } },
+      ],
+    });
+
+    await speak(page);
+
+    // Reaching the surface = the header box took the spoken query to the
+    // results page (no navigate_to in the result; the surface drove the nav).
+    await page.waitForURL((u) => u.searchParams.get("search") === query, {
+      timeout: 60_000,
+    });
+    await expect(page.getByText("voice-search-arrived")).toBeVisible({
+      timeout: 30_000,
+    });
+  });
 });

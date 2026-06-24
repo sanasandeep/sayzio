@@ -125,7 +125,12 @@ The gate covers the specs that run reliably as an unattended check here:
   `select_link_type` picks the type and submits the Create form,
   `wizard_advance` clicks the wizard's forward submit, and a `navigate_to`
   is deferred until the spoken reply's audio ends (yet fires immediately
-  when there is no audio). All tests share one logged-in context (the
+  when there is no audio). It also locks down the destructive-confirmation
+  path — a spoken `delete_biolink` only POSTs a gating turn (no action) until
+  the user taps **Yes**, which replays the clip with
+  `confirmed_tools[delete_biolink]=true` — and a read-only `search_app` tool
+  reaching its surface (the header search box fills with the spoken query and
+  navigates to the results). All tests share one logged-in context (the
   `demo-login` route is rate-limited).
 
 The remaining specs are still NOT gated because, in this environment, they
@@ -143,7 +148,7 @@ Run the full suite manually (when you can tolerate the slow renders) with
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the five gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the six gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
