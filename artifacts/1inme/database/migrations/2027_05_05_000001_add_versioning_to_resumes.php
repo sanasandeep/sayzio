@@ -44,17 +44,20 @@ return new class extends Migration {
             }
         });
 
-        // Drop the old uniqueness on user_id — multiple rows per user
-        // are now allowed. Replace with a per-user-per-slug unique so
-        // share URLs stay collision-free.
+        // Drop the old uniqueness on user_id — multiple rows per user are
+        // now allowed. A try/catch INSIDE a Schema::table() closure can't
+        // swallow this: Blueprint defers the `ALTER ... DROP CONSTRAINT` until
+        // after the closure returns, so a missing-constraint error (42704 on a
+        // drifted/partially-applied shared schema) escapes the catch. Use a
+        // native IF EXISTS drop so it is a true no-op when already gone.
+        DB::statement('ALTER TABLE resumes DROP CONSTRAINT IF EXISTS resumes_user_id_unique');
+        DB::statement('DROP INDEX IF EXISTS resumes_user_id_unique');
+
+        // Replace with a per-user-per-slug unique so share URLs stay
+        // collision-free, plus a default-lookup index. These are additive; a
+        // re-run over an orphaned schema surfaces an "already exists" error that
+        // db:reconcile-migrations heals.
         Schema::table('resumes', function (Blueprint $table) {
-            try {
-                $table->dropUnique('resumes_user_id_unique');
-            } catch (\Throwable $e) {
-                // Constraint name may differ on older databases. Fall
-                // back to dropping by columns array.
-                try { $table->dropUnique(['user_id']); } catch (\Throwable $ee) { /* already gone */ }
-            }
             $table->index(['user_id', 'is_default'], 'resumes_user_default_idx');
             $table->unique(['user_id', 'slug'], 'resumes_user_slug_unique');
         });

@@ -32,7 +32,14 @@ return new class extends Migration {
         // plain Blueprint drops/adds, which would 42704/42701/42P07 on re-run.
 
         // ── Conversations: allow profile-scoped (no link_id) and add denormalised creator_user_id ──
-        // Drop the legacy unique index first (no-op if a prior run already did).
+        // Drop the legacy uniqueness first (no-op if a prior run already did).
+        // It was created via Blueprint::unique(), which Postgres backs with a
+        // *constraint* (not a plain index), so a bare `DROP INDEX` errors with
+        // "cannot drop index ... because constraint ... requires it". Drop the
+        // constraint when present, then fall back to dropping a plain index, so
+        // this is a no-op whether the legacy object is a constraint, a plain
+        // index, or already gone.
+        DB::statement('ALTER TABLE viewer_dm_conversations DROP CONSTRAINT IF EXISTS viewer_dm_unique_pair');
         DB::statement('DROP INDEX IF EXISTS viewer_dm_unique_pair');
         DB::statement('ALTER TABLE viewer_dm_conversations ALTER COLUMN link_id DROP NOT NULL');
 
