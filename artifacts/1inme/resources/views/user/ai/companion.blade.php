@@ -169,11 +169,21 @@
                 </div>
 
                 <form method="POST" action="{{ route('user.ai.companion.send', $active->id) }}"
+                      x-data="voiceDictation({ onText(t) { const box = this.$refs.msg; box.value = (box.value ? box.value.trim() + ' ' : '') + t; box.focus(); } })"
+                      x-init="window.__voiceSurface = { name: 'companion' }"
                       class="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 flex gap-2">
                     @csrf
-                    <input type="text" name="message" required maxlength="2000" autofocus
+                    <input type="text" name="message" required maxlength="2000" autofocus x-ref="msg"
                            placeholder="Type a message…"
                            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+                    @if(\App\Services\AI\AiEngineSettings::voiceAllowedFor(auth()->user()))
+                        <button type="button" @click="vdToggle()"
+                                :title="vdRecording ? 'Stop' : (vdStatus || 'Dictate your message')"
+                                :class="vdRecording ? 'bg-red-500 animate-pulse text-white' : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'"
+                                class="px-3 py-2 rounded-xl text-sm transition shrink-0">
+                            <i class="fas" :class="vdBusy ? 'fa-spinner fa-spin' : 'fa-microphone'"></i>
+                        </button>
+                    @endif
                     <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
                         Send
                     </button>

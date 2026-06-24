@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,7 +17,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiDisabledNotice } from "@/components/AiDisabledNotice";
+import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { getBaseUrl } from "@/lib/api";
 import {
   type CoachMessage,
@@ -49,6 +51,19 @@ export default function AskCoachScreen() {
   // instead of bouncing the user back with an alert.
   const [disabled, setDisabled] = useState<"engine" | "plan" | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+
+  // Tell the floating Voice Assistant that voice turns started from
+  // here should prefer the companion/coach tools, and append spoken
+  // dictation straight into the draft.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("companion");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+  const dictation = useVoiceDictation((t) =>
+    setDraft((d) => (d ? d.trim() + " " : "") + t),
+  );
 
   const ensureThread = useCallback(async () => {
     setLoading(true);
@@ -210,6 +225,33 @@ export default function AskCoachScreen() {
               editable={!sending}
               multiline
             />
+            <Pressable
+              onPress={dictation.toggle}
+              disabled={sending || dictation.busy}
+              accessibilityLabel={
+                dictation.recording ? "Stop dictation" : "Dictate your message"
+              }
+              style={[
+                styles.sendBtn,
+                {
+                  backgroundColor: dictation.recording
+                    ? "#dc2626"
+                    : colors.card,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              {dictation.busy ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <Feather
+                  name="mic"
+                  size={18}
+                  color={dictation.recording ? "#fff" : colors.text}
+                />
+              )}
+            </Pressable>
             <Pressable
               onPress={send}
               disabled={sending || !draft.trim()}

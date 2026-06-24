@@ -26,8 +26,22 @@ export type VoiceToolResult = {
     tool?: string;
     arguments?: Record<string, unknown>;
     description?: string;
+    client_action?: VoiceClientAction;
   };
 };
+
+/**
+ * Structured intents a voice tool returns for the active surface to act
+ * on (mirrors the web's `voice-action` CustomEvent payloads). The screen
+ * currently registered via setVoiceSurface interprets these.
+ */
+export type VoiceClientAction =
+  | { type: "search"; query: string }
+  | { type: "select_link_type"; link_type: string }
+  | { type: "wizard_set_answer"; field: string; value: unknown }
+  | { type: "wizard_advance"; direction?: "next" | "back" }
+  | { type: "wizard_generate" }
+  | { type: string; [key: string]: unknown };
 
 export type VoicePendingConfirmation = {
   confirm_required: true;
@@ -160,6 +174,12 @@ export async function runTurn(args: {
   filename: string;
   history: VoiceMessage[];
   confirmedTools: Record<string, boolean>;
+  /**
+   * Which app surface the mic is currently driving (e.g. "companion",
+   * "wizard"). The server appends a short surface hint to the system
+   * prompt so the model prefers the matching tools.
+   */
+  surface?: string;
 }): Promise<VoiceTurnResponse> {
   const token = await getToken();
   const form = new FormData();
@@ -176,6 +196,7 @@ export async function runTurn(args: {
       confirmed_tools: args.confirmedTools,
       client_kind: "mobile",
       platform: Platform.OS,
+      ...(args.surface ? { surface: args.surface } : {}),
     }),
   );
 
@@ -203,4 +224,57 @@ export async function runTurn(args: {
     };
   }
   return body as VoiceTurnResponse;
+}
+
+export type VoiceTranscribeResponse = {
+  text: string;
+  credits_spent: number;
+  balance: number;
+};
+
+/**
+ * Dictation-only STT: upload a clip and get the transcribed text back
+ * without running the LLM/TTS tool-loop. Reuses the same plan gate and
+ * `voice_stt` meter as a full turn. Backs the dictation mic that fills
+ * a text field (e.g. the companion composer) from speech.
+ */
+export async function transcribe(args: {
+  uri: string;
+  mime: string;
+  filename: string;
+}): Promise<VoiceTranscribeResponse> {
+  const token = await getToken();
+  const form = new FormData();
+  form.append("audio", {
+    uri: args.uri,
+    name: args.filename,
+    type: args.mime,
+  } as unknown as Blob);
+
+  const res = await fetch(`${getBaseUrl()}/api/v1/ai/voice/transcribe`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "User-Agent": MOBILE_USER_AGENT,
+      "X-1INME-Client": MOBILE_USER_AGENT,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form as unknown as BodyInit,
+  });
+  const text = await res.text();
+  const body = text ? safeJson(text) : null;
+  if (!res.ok) {
+    throw {
+      status: res.status,
+      message:
+        (body && (body.message || body.error)) ||
+        `Transcription failed (${res.status})`,
+      balance: body?.balance,
+    };
+  }
+  return {
+    text: typeof body?.text === "string" ? body.text : "",
+    credits_spent: Number(body?.credits_spent ?? 0),
+    balance: Number(body?.balance ?? 0),
+  };
 }

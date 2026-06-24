@@ -728,5 +728,75 @@
         </script>
     @endif
 
+    {{-- Voice bridge: lets the floating Voice Assistant drive this wizard.
+         It registers the surface (so the model prefers wizard_* tools) and
+         responds to the `voice-action` events the widget dispatches. --}}
+    <script>
+        (function () {
+            window.__voiceSurface = { name: 'wizard', step: {{ (int) ($step ?? 0) }} };
+
+            function primaryForm() {
+                return document.getElementById('wizardFinishForm')
+                    || document.querySelector('form[action*="wizard"]:not(#wizardSideForm)');
+            }
+
+            function setAnswer(field, value) {
+                var el = document.querySelector('[name="a[' + field + ']"]')
+                    || document.getElementById('fld_' + field)
+                    || document.querySelector('[name="' + field + '"]');
+                if (!el) return false;
+                el.value = value;
+                el.dispatchEvent(new Event('input',  { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                if (typeof el.focus === 'function') {
+                    el.focus();
+                    if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
+                }
+                return true;
+            }
+
+            function goBack() {
+                var side = document.getElementById('wizardSideForm');
+                if (side && side.elements['_action']) {
+                    side.elements['_action'].value = 'back';
+                    side.submit();
+                    return;
+                }
+                var backBtn = document.querySelector('button[name="_action"][value="back"]');
+                if (backBtn) { backBtn.click(); return; }
+                window.history.back();
+            }
+
+            function goNext() {
+                var f = primaryForm();
+                if (!f) return;
+                // Click the form's forward submit button so its name/value
+                // (_action=pick_persona, etc.) is sent. Skip back/restart/exit.
+                var fwd = null;
+                f.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (b) {
+                    var act = (b.getAttribute('name') === '_action') ? (b.getAttribute('value') || '') : '';
+                    if (['back', 'restart', 'save_and_exit'].indexOf(act) !== -1) return;
+                    fwd = b;
+                });
+                if (fwd) { fwd.click(); }
+                else if (f.requestSubmit) { f.requestSubmit(); }
+                else { f.submit(); }
+            }
+
+            function generate() {
+                var f = document.getElementById('wizardFinishForm');
+                if (!f) { goNext(); return; }
+                f.requestSubmit ? f.requestSubmit() : f.submit();
+            }
+
+            window.addEventListener('voice-action', function (e) {
+                var d = e.detail || {};
+                if (d.type === 'wizard_set_answer') { setAnswer(d.field, d.value); }
+                else if (d.type === 'wizard_advance') { (d.direction === 'back') ? goBack() : goNext(); }
+                else if (d.type === 'wizard_generate') { generate(); }
+            });
+        })();
+    </script>
+
 </div>
 @endsection

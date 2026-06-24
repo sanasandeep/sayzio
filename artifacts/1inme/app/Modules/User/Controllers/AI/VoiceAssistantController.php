@@ -8,6 +8,7 @@ use App\Services\AI\AiEngineSettings;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\Voice\VoiceAssistantService;
 use App\Services\AI\Voice\VoiceToolRegistry;
+use App\Services\AI\WhisperService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,6 +35,7 @@ class VoiceAssistantController extends Controller
         protected VoiceAssistantService $voice,
         protected VoiceToolRegistry $tools,
         protected AiUsageCharger $credits,
+        protected WhisperService $whisper,
     ) {}
 
     /**
@@ -109,6 +111,46 @@ class VoiceAssistantController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Voice dictation: transcribe a recorded blob to text without the
+     * LLM/TTS stages. Used by the in-field mic buttons (companion
+     * composer, link alias, etc.). Plan-gated the same as a full turn
+     * and metered against the coin wallet via the `voice_stt` feature.
+     */
+    public function transcribe(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!AiEngineSettings::voiceAllowedFor($user)) {
+            return response()->json([
+                'error' => 'Voice Assistant is not available on your plan.',
+            ], 403);
+        }
+
+        $request->validate([
+            'audio' => 'required|file|mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,application/octet-stream|max:20480',
+        ]);
+
+        try {
+            $stt = $this->whisper->transcribe($user, $request->file('audio'), [
+                'meta' => ['kind' => 'dictation'],
+            ]);
+        } catch (InsufficientCoinsForAiException $e) {
+            return response()->json([
+                'error'    => 'Out of AI credits — top up to keep using voice.',
+                'balance'  => $this->credits->getBalance($user),
+                'required' => $e->required,
+            ], 402);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'text'          => (string) ($stt['text'] ?? ''),
+            'credits_spent' => (int) ($stt['credits_spent'] ?? 0),
+            'balance'       => $this->credits->getBalance($user),
+        ]);
     }
 
     public function capabilities(Request $request): JsonResponse

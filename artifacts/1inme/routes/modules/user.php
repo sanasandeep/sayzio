@@ -919,6 +919,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('voice',              [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'show'])->name('voice.show');
             Route::get ('voice/capabilities', [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'capabilities'])->name('voice.capabilities');
             Route::post('voice/turn',         [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'turn'])->middleware('throttle:30,1')->name('voice.turn');
+            Route::post('voice/transcribe',   [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'transcribe'])->middleware('throttle:30,1')->name('voice.transcribe');
         });
 
         // AI Minds — labelled knowledge bases (text/docs/FAQs/links/

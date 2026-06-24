@@ -273,4 +273,134 @@ class VoiceToolHandlersTest extends TestCase
             'A rejected grant must NOT mutate the target balance.'
         );
     }
+
+    // ── surface-driving tools (search / link-type / wizard) ───────
+    //
+    // These non-destructive tools return a `client_action` payload that
+    // the web widget re-emits as a `voice-action` CustomEvent so each
+    // surface (universal search, create-link page, biolink wizard) can
+    // act on it locally. The contract under test is the *shape* of that
+    // payload — a regression that dropped `client_action`, renamed its
+    // `type`, or stopped echoing the spoken value would silently break
+    // every surface bridge while still returning a friendly summary.
+
+    public function test_search_app_returns_a_search_client_action_and_nav_fallback(): void
+    {
+        $user = $this->makeUser('search');
+
+        $result = $this->runHandler('search_app', $user, ['query' => 'my shop']);
+
+        $this->assertArrayNotHasKey('error', $result);
+        $this->assertSame('search', $result['client_action']['type']);
+        $this->assertSame('my shop', $result['client_action']['query']);
+        $this->assertArrayHasKey('navigate_to', $result);
+        $this->assertStringContainsString('search=', $result['navigate_to']);
+    }
+
+    public function test_search_app_refuses_an_empty_query(): void
+    {
+        $user = $this->makeUser('search-empty');
+
+        $result = $this->runHandler('search_app', $user, ['query' => '   ']);
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertArrayNotHasKey('client_action', $result);
+    }
+
+    public function test_explain_link_type_describes_a_known_type(): void
+    {
+        $user = $this->makeUser('explain');
+        $type = array_key_first(\App\Modules\User\Support\LinkTypeCategories::types());
+
+        $result = $this->runHandler('explain_link_type', $user, ['type' => $type]);
+
+        $this->assertArrayNotHasKey('error', $result);
+        $this->assertSame($type, $result['data']['type']);
+        $this->assertNotEmpty($result['summary']);
+        // explain is purely informational — it must NOT navigate or drive a surface.
+        $this->assertArrayNotHasKey('navigate_to', $result);
+        $this->assertArrayNotHasKey('client_action', $result);
+    }
+
+    public function test_explain_link_type_refuses_an_unknown_type(): void
+    {
+        $user = $this->makeUser('explain-bad');
+
+        $result = $this->runHandler('explain_link_type', $user, ['type' => 'not-a-real-type']);
+
+        $this->assertArrayHasKey('error', $result);
+    }
+
+    public function test_choose_link_type_returns_select_action_for_the_create_page(): void
+    {
+        $user = $this->makeUser('choose');
+        $type = array_key_first(\App\Modules\User\Support\LinkTypeCategories::types());
+
+        $result = $this->runHandler('choose_link_type', $user, ['type' => $type]);
+
+        $this->assertArrayNotHasKey('error', $result);
+        $this->assertSame('select_link_type', $result['client_action']['type']);
+        $this->assertSame($type, $result['client_action']['link_type']);
+        $this->assertStringContainsString('type=' . $type, $result['navigate_to']);
+    }
+
+    public function test_choose_link_type_refuses_an_unknown_type(): void
+    {
+        $user = $this->makeUser('choose-bad');
+
+        $result = $this->runHandler('choose_link_type', $user, ['type' => 'nope']);
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertArrayNotHasKey('client_action', $result);
+    }
+
+    public function test_wizard_set_answer_echoes_field_and_value(): void
+    {
+        $user = $this->makeUser('wiz-set');
+
+        $result = $this->runHandler('wizard_set_answer', $user, [
+            'field' => 'display_name',
+            'value' => 'Jane Doe',
+        ]);
+
+        $this->assertArrayNotHasKey('error', $result);
+        $this->assertSame('wizard_set_answer', $result['client_action']['type']);
+        $this->assertSame('display_name', $result['client_action']['field']);
+        $this->assertSame('Jane Doe', $result['client_action']['value']);
+    }
+
+    public function test_wizard_set_answer_refuses_a_missing_field(): void
+    {
+        $user = $this->makeUser('wiz-set-bad');
+
+        $result = $this->runHandler('wizard_set_answer', $user, ['value' => 'orphan']);
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertArrayNotHasKey('client_action', $result);
+    }
+
+    public function test_wizard_advance_normalises_direction(): void
+    {
+        $user = $this->makeUser('wiz-adv');
+
+        $back = $this->runHandler('wizard_advance', $user, ['direction' => 'back']);
+        $this->assertSame('back', $back['client_action']['direction']);
+
+        $next = $this->runHandler('wizard_advance', $user, ['direction' => 'next']);
+        $this->assertSame('next', $next['client_action']['direction']);
+
+        // Anything unrecognised falls forward to "next" rather than erroring.
+        $weird = $this->runHandler('wizard_advance', $user, ['direction' => 'sideways']);
+        $this->assertSame('next', $weird['client_action']['direction']);
+    }
+
+    public function test_wizard_generate_returns_a_generate_action(): void
+    {
+        $user = $this->makeUser('wiz-gen');
+
+        $result = $this->runHandler('wizard_generate', $user);
+
+        $this->assertArrayNotHasKey('error', $result);
+        $this->assertSame('wizard_generate', $result['client_action']['type']);
+    }
 }

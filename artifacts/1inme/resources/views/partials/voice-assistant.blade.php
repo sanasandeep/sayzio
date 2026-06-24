@@ -56,6 +56,7 @@
         capUrl:  @js(route('user.ai.voice.capabilities')),
         csrf:    @js(csrf_token()),
     })"
+    x-init="$nextTick(() => { window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js(csrf_token()) }; })"
     x-cloak
     class="fixed bottom-5 right-5 z-[1000]"
     style="font-family: inherit"
@@ -73,7 +74,18 @@
                 <button @click="tab='chat'" :class="tab==='chat' ? 'text-violet-300' : 'text-white/50 hover:text-white/80'">Voice</button>
                 <button @click="tab='caps'; loadCaps()" :class="tab==='caps' ? 'text-violet-300' : 'text-white/50 hover:text-white/80'">What I can do</button>
             </div>
-            <button @click="panelOpen=false" class="text-white/40 hover:text-white text-sm">&times;</button>
+            <div class="flex items-center gap-2">
+                <button
+                    @click="handsFree = !handsFree"
+                    :title="handsFree ? 'Hands-free on — I keep listening after each reply' : 'Hands-free off'"
+                    :class="handsFree ? 'text-emerald-300' : 'text-white/40 hover:text-white/80'"
+                    class="text-[11px] flex items-center gap-1"
+                >
+                    <i class="fas fa-infinity"></i>
+                    <span>Hands-free</span>
+                </button>
+                <button @click="panelOpen=false" class="text-white/40 hover:text-white text-sm">&times;</button>
+            </div>
         </div>
 
         {{-- Chat / transcript --}}
@@ -194,6 +206,17 @@ window.voiceAssistant = function (cfg) {
         status: '',
         caps: null,
         lastAudio: null,
+        handsFree: false,
+        pendingNav: null,
+
+        init() {
+            // When the spoken reply finishes, either follow a pending
+            // navigation or, in hands-free mode, start listening again.
+            const player = this.$refs.player;
+            if (player) {
+                player.addEventListener('ended', () => this.afterReply());
+            }
+        },
 
         async onMicClick() {
             if (this.recording) { return this.stopRecording(); }
@@ -241,6 +264,7 @@ window.voiceAssistant = function (cfg) {
             fd.append('context', JSON.stringify({
                 messages: this.messages,
                 confirmed_tools: confirmedTools || {},
+                surface: window.__voiceSurface || null,
             }));
             try {
                 const res = await fetch(this.cfg.turnUrl, {
@@ -260,12 +284,48 @@ window.voiceAssistant = function (cfg) {
                 this.lastCredits = json.credits || null;
                 this.balance    = (json.balance ?? this.balance);
                 this.status     = '';
+                this.applyToolResults(json.tool_results || []);
                 if (json.audio_base64) {
                     this.$refs.player.src = 'data:audio/mpeg;base64,' + json.audio_base64;
-                    this.$refs.player.play().catch(() => {});
+                    this.$refs.player.play().catch(() => this.afterReply());
+                } else {
+                    // No spoken reply — run the post-reply step immediately.
+                    this.afterReply();
                 }
             } catch (e) {
                 this.status = 'Network error — please retry.';
+            }
+        },
+
+        // Surface the assistant's structured tool results to whatever page
+        // the user is on: client_action → a `voice-action` window event the
+        // surface listens for; navigate_to → a deferred navigation that
+        // fires once the spoken reply has finished playing.
+        applyToolResults(results) {
+            this.pendingNav = null;
+            (results || []).forEach((tr) => {
+                const r = (tr && tr.result) || {};
+                if (r.client_action) {
+                    window.dispatchEvent(new CustomEvent('voice-action', { detail: r.client_action }));
+                }
+                if (r.navigate_to) {
+                    this.pendingNav = r.navigate_to;
+                }
+            });
+        },
+
+        // Called when the reply audio ends (or when there was none).
+        afterReply() {
+            if (this.pendingNav) {
+                const url = this.pendingNav;
+                this.pendingNav = null;
+                window.location.assign(url);
+                return;
+            }
+            // Hands-free: keep the conversation going unless we're waiting
+            // on a destructive confirmation or already recording.
+            if (this.handsFree && !this.recording && !this.pendingConfirmations.length) {
+                this.startRecording();
             }
         },
 
@@ -298,4 +358,78 @@ window.voiceAssistant = function (cfg) {
 };
 </script>
 @endif
+
+{{-- Reusable voice-dictation control for any input/textarea. Records one
+     clip, posts it to the transcribe-only endpoint (charges voice_stt,
+     plan-gated like a turn), and hands the text back via opts.onText.
+
+     IMPORTANT: this is defined OUTSIDE the @if($voiceAvailable) gate so that
+     surfaces which mount `x-data="voiceDictation(...)"` on an always-rendered
+     container (e.g. the header search box, the companion composer) never
+     reference an undefined function — that would throw an Alpine init error
+     and break the host component's other behaviours for plan-gated users.
+     The control degrades gracefully: when window.__voice (set only by the
+     full widget when voice is available) is absent, vdToggle() reports
+     "Voice not available." instead of recording.
+
+       <span x-data="voiceDictation({ onText(t){ this.$refs.box.value = t } })">
+         <button @click="vdToggle()" :class="vdRecording && 'text-red-400'">mic</button>
+       </span> --}}
+<script>
+window.voiceDictation = window.voiceDictation || function (opts) {
+    opts = opts || {};
+    return {
+        vdRec: null,
+        vdChunks: [],
+        vdRecording: false,
+        vdBusy: false,
+        vdStatus: '',
+
+        async vdToggle() {
+            if (this.vdRecording) { try { this.vdRec.stop(); } catch (e) {} return; }
+            if (!window.__voice || !window.__voice.dictateUrl) { this.vdStatus = 'Voice not available.'; return; }
+            if (!navigator.mediaDevices || typeof MediaRecorder === 'undefined') { this.vdStatus = 'No mic support.'; return; }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+                this.vdRec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+                this.vdChunks = [];
+                this.vdRec.ondataavailable = (e) => { if (e.data.size) this.vdChunks.push(e.data); };
+                this.vdRec.onstop = async () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    this.vdRecording = false;
+                    this.vdBusy = true;
+                    this.vdStatus = 'Transcribing…';
+                    const blob = new Blob(this.vdChunks, { type: this.vdRec.mimeType || 'audio/webm' });
+                    const fd = new FormData();
+                    fd.append('audio', blob, 'dictate.webm');
+                    try {
+                        const res = await fetch(window.__voice.dictateUrl, {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': window.__voice.csrf, 'Accept': 'application/json' },
+                            body: fd,
+                            credentials: 'same-origin',
+                        });
+                        const j = await res.json().catch(() => ({}));
+                        if (res.ok && j.text) {
+                            this.vdStatus = '';
+                            if (opts.onText) opts.onText.call(this, j.text);
+                        } else {
+                            this.vdStatus = j.error || 'Could not transcribe.';
+                        }
+                    } catch (e) {
+                        this.vdStatus = 'Network error.';
+                    }
+                    this.vdBusy = false;
+                };
+                this.vdRec.start();
+                this.vdRecording = true;
+                this.vdStatus = 'Listening…';
+            } catch (e) {
+                this.vdStatus = 'Microphone permission denied.';
+            }
+        },
+    };
+};
+</script>
 @endauth

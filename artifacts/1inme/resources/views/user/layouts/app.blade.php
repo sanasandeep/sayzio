@@ -1157,9 +1157,16 @@
                     </div>
                     @endif
 
-                    <div class="header-search-box hidden md:block">
+                    <div class="header-search-box hidden md:block"
+                         x-data="voiceDictation({ onText(t){ if (this.$refs.searchBox) { this.$refs.searchBox.value = t; this.$refs.searchBox.focus(); } } })"
+                         x-init="$nextTick(() => { window.__voiceSurface = { name: 'app' }; })">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search links, projects..." x-data x-on:keydown.enter="if($el.value.trim()) window.location.href='{{ route('user.links.index') }}?search='+encodeURIComponent($el.value.trim())">
+                        <input type="text" x-ref="searchBox" placeholder="Search links, projects..." x-on:keydown.enter="if($el.value.trim()) window.location.href='{{ route('user.links.index') }}?search='+encodeURIComponent($el.value.trim())"
+                               x-on:voice-action.window="if ($event.detail && $event.detail.type === 'search') { $refs.searchBox.value = $event.detail.query || ''; if ($refs.searchBox.value.trim()) window.location.href='{{ route('user.links.index') }}?search='+encodeURIComponent($refs.searchBox.value.trim()); }">
+                        <button type="button" @click="vdToggle()" :class="vdRecording ? 'text-red-400' : 'text-white/40 hover:text-white/80'"
+                                :title="vdRecording ? 'Stop dictation' : (vdStatus || 'Search by voice')" class="ml-1 text-xs">
+                            <i class="fas" :class="vdBusy ? 'fa-spinner fa-spin' : 'fa-microphone'"></i>
+                        </button>
                     </div>
 
                     <div class="hidden lg:flex items-center">

@@ -160,6 +160,46 @@ class VoiceAssistantController extends Controller
         return false;
     }
 
+    /**
+     * Voice dictation for mobile: transcribe-only (no LLM/TTS). Powers
+     * the in-field mic buttons in the Expo app. Plan-gated and metered
+     * against the coin wallet via the `voice_stt` feature, exactly like
+     * the STT stage of a full turn.
+     */
+    public function transcribe(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!AiEngineSettings::voiceAllowedFor($user)) {
+            return response()->json([
+                'error' => 'Voice Assistant is not available on your plan.',
+            ], 403);
+        }
+
+        $request->validate([
+            'audio' => 'required|file|mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,audio/3gpp,audio/amr,application/octet-stream|max:20480',
+        ]);
+
+        try {
+            $stt = $this->whisper->transcribe($user, $request->file('audio'), [
+                'meta' => ['kind' => 'dictation'],
+            ]);
+        } catch (InsufficientCoinsForAiException $e) {
+            return response()->json([
+                'error'    => 'Out of AI credits — top up to keep using voice.',
+                'balance'  => $this->credits->getBalance($user),
+                'required' => $e->required,
+            ], 402);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'text'          => (string) ($stt['text'] ?? ''),
+            'credits_spent' => (int) ($stt['credits_spent'] ?? 0),
+            'balance'       => $this->credits->getBalance($user),
+        ]);
+    }
+
     public function capabilities(Request $request): JsonResponse
     {
         $user = $request->user();

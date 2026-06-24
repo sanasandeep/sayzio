@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,7 +17,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
 import { LinkRow } from "@/components/LinkRow";
+import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import type { VoiceClientAction } from "@/lib/api/voice";
 import { listLinks } from "@/lib/api/links";
 import { LINK_KINDS } from "@/lib/linkKinds";
 
@@ -33,6 +36,28 @@ export default function LinksTab() {
   const [type, setType] = useState<string>("");
   const [q, setQ] = useState<string>("");
   const webTop = Platform.OS === "web" ? 67 : 0;
+
+  // ── Voice control ──────────────────────────────────────────────
+  // Spoken "find my … link" runs the search_app tool, which returns a
+  // search intent we drop straight into the query box. The mic in the
+  // search bar dictates a query directly (STT-only, metered like a turn).
+  const voiceHandlerRef = useRef<(a: VoiceClientAction) => void>(() => {});
+  voiceHandlerRef.current = (a: VoiceClientAction) => {
+    if (a.type === "search" && "query" in a) {
+      setQ(String((a as { query: unknown }).query ?? ""));
+    }
+  };
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("app");
+      const off = onVoiceAction((a) => voiceHandlerRef.current(a));
+      return () => {
+        off();
+        setVoiceSurface(null);
+      };
+    }, []),
+  );
+  const dictation = useVoiceDictation((t) => setQ(t));
 
   const query = useQuery({
     queryKey: ["links", { type, q }],
@@ -96,6 +121,25 @@ export default function LinksTab() {
               <Feather name="x" size={16} color={colors.mutedForeground} />
             </Pressable>
           ) : null}
+          <Pressable
+            onPress={dictation.toggle}
+            disabled={dictation.busy}
+            hitSlop={8}
+            accessibilityLabel={
+              dictation.recording ? "Stop dictation" : "Search by voice"
+            }
+            style={{ marginLeft: 6 }}
+          >
+            {dictation.busy ? (
+              <ActivityIndicator size="small" color={colors.mutedForeground} />
+            ) : (
+              <Feather
+                name="mic"
+                size={16}
+                color={dictation.recording ? "#dc2626" : colors.mutedForeground}
+              />
+            )}
+          </Pressable>
         </View>
 
         <View style={styles.filterRow}>

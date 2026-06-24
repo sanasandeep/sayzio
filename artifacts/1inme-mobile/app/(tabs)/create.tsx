@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   Animated,
@@ -16,9 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LinkTypeArt } from "@/components/LinkTypeArt";
 import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
+import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
+import type { VoiceClientAction } from "@/lib/api/voice";
 import {
+  KINDS_BY_API,
   LINK_KIND_CATEGORIES,
   metaForKind,
   type LinkKind,
@@ -31,6 +34,42 @@ export default function CreateTab() {
   const router = useRouter();
   const plan = usePlanFeatures();
   const webTop = Platform.OS === "web" ? 67 : 0;
+
+  // Navigate to a kind's creation flow, gating locked types behind the
+  // upgrade prompt. Shared by both tap and voice selection.
+  const openKind = useCallback(
+    (meta: { kind: string; apiType: string; label: string }) => {
+      if (plan.isLinkTypeLocked(meta.apiType)) {
+        showUpgradePrompt({
+          message: `${meta.label} isn't available on your current plan. Upgrade to unlock it.`,
+        });
+        return;
+      }
+      router.push(`/links/create/${meta.kind}` as never);
+    },
+    [plan, router],
+  );
+
+  // ── Voice control ──────────────────────────────────────────────
+  // "create a vCard" → choose_link_type tool → select_link_type intent.
+  const voiceHandlerRef = useRef<(a: VoiceClientAction) => void>(() => {});
+  voiceHandlerRef.current = (a: VoiceClientAction) => {
+    if (a.type === "select_link_type" && "link_type" in a) {
+      const apiType = String((a as { link_type: unknown }).link_type);
+      const meta = KINDS_BY_API[apiType];
+      if (meta) openKind(meta);
+    }
+  };
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("create_link");
+      const off = onVoiceAction((a) => voiceHandlerRef.current(a));
+      return () => {
+        off();
+        setVoiceSurface(null);
+      };
+    }, []),
+  );
 
   // Respect the OS "reduce motion" setting — when on, cards render in their
   // final position with no reveal animation.
@@ -135,13 +174,7 @@ export default function CreateTab() {
                     reduceMotion={reduceMotion}
                   >
                     <Pressable
-                      onPress={() =>
-                        locked
-                          ? showUpgradePrompt({
-                              message: `${meta.label} isn't available on your current plan. Upgrade to unlock it.`,
-                            })
-                          : router.push(`/links/create/${meta.kind}`)
-                      }
+                      onPress={() => openKind(meta)}
                       style={({ pressed }) => [
                         styles.card,
                         {

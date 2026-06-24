@@ -133,4 +133,44 @@ class VoiceToolRegistryUserMayTest extends TestCase
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString("don't have permission", $result['error']);
     }
+
+    // ── surface-driving tools (#2120) ─────────────────────────────
+    //
+    // search_app / explain_link_type are read-only with no permission,
+    // so they must always be advertised. choose_link_type and the
+    // wizard_* tools carry `permission => links.create`, so they must
+    // fail *closed* in a context with no bound workspace — exactly like
+    // any other permission-gated tool — rather than leaking to the LLM.
+
+    public function test_read_only_surface_tools_are_open_to_any_user(): void
+    {
+        $u = new User(['name' => 'u', 'email' => 'u@example.com']);
+        $u->id = 1;
+        $tools = $this->registry->visibleTo($u, false);
+
+        $this->assertArrayHasKey('search_app', $tools);
+        $this->assertArrayHasKey('explain_link_type', $tools);
+    }
+
+    public function test_create_permission_surface_tools_fail_closed_without_workspace(): void
+    {
+        foreach (['choose_link_type', 'wizard_set_answer', 'wizard_advance', 'wizard_generate'] as $name) {
+            $spec = ['role' => 'user', 'destructive' => $name === 'wizard_generate', 'permission' => 'links.create'];
+            $this->assertFalse(
+                $this->may($spec, false),
+                "{$name} must fail closed when no workspace permission is bound.",
+            );
+        }
+    }
+
+    public function test_function_definitions_for_user_include_read_only_surface_tools(): void
+    {
+        $u = new User(['name' => 'u', 'email' => 'u@example.com']);
+        $u->id = 1;
+        $defs  = $this->registry->functionDefinitionsFor($u, false);
+        $names = array_map(fn($d) => $d['function']['name'], $defs);
+
+        $this->assertContains('search_app', $names);
+        $this->assertContains('explain_link_type', $names);
+    }
 }

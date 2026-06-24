@@ -62,6 +62,9 @@ class VoiceAssistantTest extends TestCase
     /** @var int Number of times the mocked ElevenLabsService::speak was invoked. */
     protected int $ttsCalls = 0;
 
+    /** @var string|null System prompt captured from the first LLM call. */
+    protected ?string $capturedSystemPrompt = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -128,6 +131,9 @@ class VoiceAssistantTest extends TestCase
         $openai = Mockery::mock(OpenAiService::class);
         $openai->shouldReceive('chat')->andReturnUsing(
             function ($user, $model, $messages, $opts = []) {
+                if ($this->llmCalls === 0 && isset($messages[0]['content'])) {
+                    $this->capturedSystemPrompt = (string) $messages[0]['content'];
+                }
                 $idx = $this->llmCalls++;
                 $resp = $this->llmResponses[$idx]
                     ?? ['content' => 'Done.', 'tool_calls' => [], 'credits_spent' => 0];
@@ -249,6 +255,94 @@ class VoiceAssistantTest extends TestCase
         $this->assertSame('Hi there!', $messages[count($messages) - 1]['content']);
     }
 
+    // ── 3b) surface context reaches the system prompt ─────────────────────────
+    //
+    // Surfaces tell the service which screen the user is driving so GPT
+    // prefers the right tools. The web sends `surface` as an object
+    // ({name:'wizard'}); mobile sends it as a bare string ('wizard').
+    // Both MUST produce the same surface hint — a regression here silently
+    // de-targets every mobile voice turn.
+
+    public function test_string_surface_context_is_honored_in_prompt(): void
+    {
+        $user = $this->makeUser('s1');
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
+        $this->mockVoiceServices([
+            ['content' => 'On it.', 'tool_calls' => [], 'credits_spent' => 7],
+        ]);
+
+        // Mobile contract: surface is a plain string.
+        $resp = $this->actingAs($user)->post(route('user.ai.voice.turn'), [
+            'audio'   => $this->fakeAudio(),
+            'context' => json_encode(['surface' => 'wizard']),
+        ]);
+
+        $resp->assertOk();
+        $this->assertNotNull($this->capturedSystemPrompt);
+        $this->assertStringContainsString(
+            'biolink creation wizard',
+            (string) $this->capturedSystemPrompt,
+            'A string surface must still inject the wizard hint into the prompt.'
+        );
+    }
+
+    public function test_object_surface_context_is_honored_in_prompt(): void
+    {
+        $user = $this->makeUser('s2');
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
+        $this->mockVoiceServices([
+            ['content' => 'On it.', 'tool_calls' => [], 'credits_spent' => 7],
+        ]);
+
+        // Web contract: surface is an object with a name (+ optional extra).
+        $resp = $this->actingAs($user)->post(route('user.ai.voice.turn'), [
+            'audio'   => $this->fakeAudio(),
+            'context' => json_encode(['surface' => ['name' => 'create_link']]),
+        ]);
+
+        $resp->assertOk();
+        $this->assertNotNull($this->capturedSystemPrompt);
+        $this->assertStringContainsString(
+            'Create Link type picker',
+            (string) $this->capturedSystemPrompt,
+            'An object surface must inject the create-link hint into the prompt.'
+        );
+    }
+
+    // ── 3c) dictation helper is always defined ────────────────────────────────
+    //
+    // Surfaces mount `x-data="voiceDictation(...)"` on always-rendered
+    // containers (header search box, companion composer). The reusable
+    // voiceDictation() control MUST therefore be defined for every
+    // authenticated user — even one whose plan blocks voice — or Alpine
+    // throws an init error and breaks the host component's other behaviour
+    // (e.g. the header search Enter handler). The full turn widget stays
+    // gated; only the dictation helper is unconditional.
+
+    public function test_voice_dictation_helper_is_defined_even_for_plan_blocked_user(): void
+    {
+        // Free user + a premium-only allow-list ⇒ voice is unavailable.
+        AiEngineSettings::setVoiceEnabledPlans(['premium']);
+
+        $user = $this->makeUser('vd');
+        $this->actingAs($user);
+
+        $html = view('partials.voice-assistant')->render();
+
+        // The reusable dictation control is defined regardless of plan…
+        $this->assertStringContainsString(
+            'window.voiceDictation',
+            $html,
+            'voiceDictation() must be defined for plan-blocked users so surface mics never reference an undefined function.'
+        );
+        // …but the full turn widget must NOT render for a blocked user.
+        $this->assertStringNotContainsString(
+            'x-data="voiceAssistant(',
+            $html,
+            'The turn widget must stay gated behind the voice allow-list.'
+        );
+    }
+
     // ── 4) destructive tool returns confirm_required ──────────────────────────
 
     public function test_destructive_tool_call_is_short_circuited_into_confirm_required(): void
@@ -348,5 +442,48 @@ class VoiceAssistantTest extends TestCase
         $this->assertSame(2, $this->llmCalls);
         $this->assertSame(7 + 4, $resp->json('credits.llm'));
         $this->assertSame(5 + (7 + 4) + 3, $resp->json('credits.total'));
+    }
+
+    // ── transcribe (dictation-only STT) ────────────────────────────
+    //
+    // The dictation endpoint is STT-only: it reuses the same plan gate
+    // and meter as a full turn but never calls the LLM or TTS. It backs
+    // the reusable `voiceDictation()` control on the companion composer
+    // (and mobile). These tests pin the gate and the happy-path shape.
+
+    public function test_transcribe_returns_403_when_plan_is_not_allow_listed(): void
+    {
+        AiEngineSettings::setVoiceEnabledPlans(['premium']);
+
+        $user = $this->makeUser('tr-gate');
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
+        $this->mockVoiceServices([]); // services bound but must never run
+
+        $resp = $this->actingAs($user)->post(route('user.ai.voice.transcribe'), [
+            'audio' => $this->fakeAudio(),
+        ]);
+
+        $resp->assertStatus(403);
+        $this->assertSame(0, $this->sttCalls, 'STT must not run for a plan-blocked user.');
+        $this->assertSame(0, $this->llmCalls, 'Dictation must never invoke the LLM.');
+        $this->assertSame(0, $this->ttsCalls, 'Dictation must never invoke TTS.');
+        $this->assertSame(500, app(AiUsageCharger::class)->getBalance($user));
+    }
+
+    public function test_transcribe_returns_text_without_calling_llm_or_tts(): void
+    {
+        $user = $this->makeUser('tr-ok');
+        app(WalletService::class)->credit($user, 500, ['reason' => 'test seed']);
+        $this->mockVoiceServices([]);
+
+        $resp = $this->actingAs($user)->post(route('user.ai.voice.transcribe'), [
+            'audio' => $this->fakeAudio(),
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJsonPath('text', 'hello assistant');
+        $this->assertSame(1, $this->sttCalls, 'Dictation must run STT exactly once.');
+        $this->assertSame(0, $this->llmCalls, 'Dictation must never invoke the LLM.');
+        $this->assertSame(0, $this->ttsCalls, 'Dictation must never invoke TTS.');
     }
 }

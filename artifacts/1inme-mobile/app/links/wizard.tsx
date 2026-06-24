@@ -1,8 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +22,11 @@ import {
 import { AppIcon } from "@/components/AppIcon";
 import { Button } from "@/components/Button";
 import { PreviewBlueprint } from "@/components/PreviewBlueprint";
+import {
+  onVoiceAction,
+  setVoiceSurface,
+} from "@/components/VoiceAssistant";
+import type { VoiceClientAction } from "@/lib/api/voice";
 import { TextField } from "@/components/TextField";
 import type { PreviewLayoutCell } from "@/lib/api/cardTemplates";
 import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
@@ -434,6 +444,54 @@ export default function BiolinkWizardScreen() {
       setBusy(false);
     }
   }
+
+  // ── Voice control ──────────────────────────────────────────────
+  // Spoken commands ("fill in my name", "next step", "build it") arrive
+  // as client_action intents from the floating assistant. We keep the
+  // newest handler in a ref so the listener (registered once on focus)
+  // always acts on current state without re-subscribing each render.
+  const voiceHandlerRef = useRef<(a: VoiceClientAction) => void>(() => {});
+  voiceHandlerRef.current = (a: VoiceClientAction) => {
+    if (a.type === "wizard_set_answer" && "field" in a) {
+      const field = String((a as { field: unknown }).field);
+      const value = (a as { value: unknown }).value;
+      setAnswers((prev) => ({ ...prev, [field]: String(value ?? "") }));
+      setFieldErrors((prev) => {
+        if (!prev[field]) return prev;
+        const { [field]: _drop, ...rest } = prev;
+        return rest;
+      });
+    } else if (a.type === "wizard_advance") {
+      const dir = (a as { direction?: string }).direction;
+      if (dir === "back") {
+        goBack();
+        return;
+      }
+      if (step === "group") {
+        if (group) reset("persona");
+      } else if (step === "persona") {
+        continueFromPersona();
+      } else if (step === "design") {
+        reset("basics");
+      } else if (step === "basics") {
+        continueFromBasics();
+      } else if (step === "additional") {
+        void onGenerate();
+      }
+    } else if (a.type === "wizard_generate") {
+      void onGenerate();
+    }
+  };
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("wizard");
+      const off = onVoiceAction((a) => voiceHandlerRef.current(a));
+      return () => {
+        off();
+        setVoiceSurface(null);
+      };
+    }, []),
+  );
 
   async function onAiGenerate() {
     if (!category || !pageType) return;

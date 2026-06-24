@@ -83,6 +83,16 @@ class VoiceAssistantService
 
         // 2. Build LLM prompt with tools
         $systemPrompt = $this->systemPrompt();
+        // Clients may pass `surface` either as a bare name string (mobile)
+        // or as an object with a `name` + extra context (web). Normalize
+        // both to an array so the hint is always applied.
+        $surface = $context['surface'] ?? null;
+        if (is_string($surface) && $surface !== '') {
+            $surface = ['name' => $surface];
+        }
+        if (is_array($surface) && !empty($surface['name'])) {
+            $systemPrompt .= "\n\n" . $this->surfaceHint($surface);
+        }
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
             $priorMessages,
@@ -208,6 +218,29 @@ class VoiceAssistantService
             . "send, charge, switch plan, invite) always confirm out loud first and only run "
             . "after the user explicitly confirms. If a tool returns 'confirm_required', "
             . "summarise what you're about to do and ask the user to confirm.";
+    }
+
+    /**
+     * Build a short hint telling the model which screen the user is on
+     * so it prefers the tools that drive that surface (wizard, create
+     * link, companion, search). The client passes `context.surface`.
+     */
+    protected function surfaceHint(array $surface): string
+    {
+        $name = (string) $surface['name'];
+        $detail = $surface;
+        unset($detail['name']);
+        $json = !empty($detail) ? (' Context: ' . json_encode($detail) . '.') : '';
+
+        $hints = [
+            'wizard'      => "The user is on the biolink creation wizard. Use wizard_set_answer to fill answer fields, wizard_advance to move between steps, and wizard_generate (which confirms first) to build the page.",
+            'create_link' => "The user is on the Create Link type picker. Use explain_link_type to describe a type and choose_link_type to pick one and continue.",
+            'companion'   => "The user is on the AI Companion chat screen.",
+            'app'         => "The user is in the main 1INME app. You can use search_app to find their links.",
+        ];
+        $base = $hints[$name] ?? "The user is on the '{$name}' screen.";
+
+        return $base . $json . ' Prefer tools that act on the current screen.';
     }
 
     /** Keep only role/content/tool fields the API accepts. */

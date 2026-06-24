@@ -12,7 +12,15 @@
         <h1 class="text-2xl font-bold text-white">Create Link</h1>
     </div>
 
-    <form method="POST" action="{{ route('user.links.choose-type') }}" x-data="{ type: '{{ old('type', $lastType ?? '') }}' }">
+    <form method="POST" action="{{ route('user.links.choose-type') }}"
+          x-data="{ type: '{{ old('type', $lastType ?? '') }}' }"
+          x-init="window.__voiceSurface = { name: 'create_link' }"
+          @voice-action.window="
+              if ($event.detail && $event.detail.type === 'select_link_type' && $event.detail.link_type) {
+                  type = $event.detail.link_type;
+                  $nextTick(() => $el.submit());
+              }
+          ">
         @csrf
 
         <div class="glass rounded-2xl p-6 mb-6">

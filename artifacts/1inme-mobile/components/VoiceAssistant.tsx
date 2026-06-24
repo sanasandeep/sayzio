@@ -37,6 +37,7 @@ import { NfcWriteSheet } from "@/components/NfcWriteSheet";
 import { useColors } from "@/hooks/useColors";
 import {
   type VoiceCapabilities,
+  type VoiceClientAction,
   type VoiceMessage,
   type VoicePendingConfirmation,
   type VoiceTurnResponse,
@@ -98,12 +99,58 @@ const STAGE_LABEL: Record<"stt" | "llm" | "tts", string> = {
   tts: "Voice speech",
 };
 
+/**
+ * The surface the floating mic is currently driving. Screens call
+ * `setVoiceSurface("companion")` on focus and `setVoiceSurface(null)`
+ * on blur so the next voice turn tells the server which tools to
+ * prefer (mirrors the web's `window.__voiceSurface`). Kept as a module
+ * singleton because the assistant is mounted once, globally.
+ */
+let activeVoiceSurface: string | null = null;
+export function setVoiceSurface(surface: string | null): void {
+  activeVoiceSurface = surface;
+}
+
+/**
+ * Lightweight client_action bus. The assistant emits the structured
+ * intent a voice tool returns (search / select_link_type / wizard_*),
+ * and whichever screen registered a handler via `onVoiceAction` acts on
+ * it. Mirrors the web's `voice-action` CustomEvent + `@voice-action.window`
+ * listeners. Last-writer-wins (one active surface at a time).
+ */
+type VoiceActionHandler = (action: VoiceClientAction) => void;
+const voiceActionHandlers = new Set<VoiceActionHandler>();
+export function onVoiceAction(handler: VoiceActionHandler): () => void {
+  voiceActionHandlers.add(handler);
+  return () => voiceActionHandlers.delete(handler);
+}
+function emitVoiceAction(action: VoiceClientAction): void {
+  for (const h of voiceActionHandlers) {
+    try {
+      h(action);
+    } catch {
+      /* a misbehaving surface shouldn't break the turn */
+    }
+  }
+}
+
 export function VoiceAssistant() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
+  // Hands-free: after each spoken reply finishes, automatically start
+  // listening again (unless there's a pending confirmation to resolve).
+  const [handsFree, setHandsFree] = useState(false);
+  const handsFreeRef = useRef(false);
+  useEffect(() => {
+    handsFreeRef.current = handsFree;
+  }, [handsFree]);
+  const pendingRef = useRef(false);
+  // Holds the latest startListening callback so the audio-finished
+  // handler can chain into it without a use-before-declaration cycle.
+  const startListeningRef = useRef<(() => void) | null>(null);
   const [view, setView] = useState<View_>("session");
   const [phase, setPhase] = useState<Phase>("idle");
   const [transcript, setTranscript] = useState<string>("");
@@ -243,6 +290,11 @@ export function VoiceAssistant() {
       const sub = player.addListener("playbackStatusUpdate", (s) => {
         if (s.didJustFinish) {
           setPhase((p) => (p === "speaking" ? "idle" : p));
+          // Hands-free: chain straight into the next listen once the
+          // reply finishes, unless a confirmation is awaiting the user.
+          if (handsFreeRef.current && !pendingRef.current) {
+            setTimeout(() => startListeningRef.current?.(), 350);
+          }
         }
       });
       return () => sub.remove();
@@ -298,10 +350,14 @@ export function VoiceAssistant() {
           ...clip,
           history,
           confirmedTools,
+          surface: activeVoiceSurface ?? undefined,
         });
         setTranscript(out.transcript);
         setReply(out.reply);
         setPending(out.pending_confirmations);
+        // Mirror into a ref so the hands-free chain can pause itself
+        // while a destructive tool awaits confirmation.
+        pendingRef.current = (out.pending_confirmations?.length ?? 0) > 0;
         setLastCredits(out.credits);
         setBalance(out.balance);
         setHistory(out.messages);
@@ -313,6 +369,12 @@ export function VoiceAssistant() {
               linkId: tr.result.nfc_write.link_id,
               url: tr.result.nfc_write.url,
             });
+          }
+          // Drive the active surface (wizard / create-link / search)
+          // with any structured intent the tool returned.
+          if (tr.result.client_action) {
+            const action = tr.result.client_action;
+            setTimeout(() => emitVoiceAction(action), 300);
           }
           const target = mapNavTarget(tr.result.navigate_to);
           if (target) {
@@ -375,6 +437,14 @@ export function VoiceAssistant() {
       setPhase("idle");
     }
   }, [recorder]);
+
+  // Keep the ref pointed at the latest startListening so the hands-free
+  // audio-finished handler (declared earlier) can chain into it.
+  useEffect(() => {
+    startListeningRef.current = () => {
+      void startListening();
+    };
+  }, [startListening]);
 
   /** Stop recording and ship the clip to the server. */
   const stopAndSend = useCallback(async () => {
@@ -626,6 +696,21 @@ export function VoiceAssistant() {
                 Voice Assistant
               </Text>
               <View style={styles.headerActions}>
+                {view === "session" && aiEnabled !== false ? (
+                  <Pressable
+                    onPress={() => setHandsFree((v) => !v)}
+                    hitSlop={12}
+                    accessibilityLabel={
+                      handsFree ? "Turn off hands-free" : "Turn on hands-free"
+                    }
+                  >
+                    <Feather
+                      name={handsFree ? "radio" : "mic"}
+                      size={20}
+                      color={handsFree ? colors.primary : colors.mutedForeground}
+                    />
+                  </Pressable>
+                ) : null}
                 <Pressable
                   onPress={() => (view === "help" ? setView("session") : openHelp())}
                   hitSlop={12}

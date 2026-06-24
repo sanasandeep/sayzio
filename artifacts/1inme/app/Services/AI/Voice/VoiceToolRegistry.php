@@ -4,6 +4,7 @@ namespace App\Services\AI\Voice;
 
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspacePermissions;
+use App\Modules\User\Support\LinkTypeCategories;
 use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use Illuminate\Support\Carbon;
@@ -142,6 +143,96 @@ class VoiceToolRegistry
                 'description' => 'Send the follower digest right now. Requires confirmation.',
                 'parameters'  => ['type' => 'object', 'properties' => (object) [], 'additionalProperties' => false],
                 'handler' => fn(User $u) => $this->doSendDigest($u),
+            ],
+
+            // ── Surface control (drive the page the user is on) ──
+            'search_app' => [
+                'category'    => 'read',
+                'role'        => 'user',
+                'destructive' => false,
+                'description' => 'Run the universal search across the user\'s links and open the results for a spoken query.',
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'query' => ['type' => 'string', 'description' => 'What to search for.'],
+                    ],
+                    'required'             => ['query'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => fn(User $u, array $args) => $this->doSearchApp($args),
+            ],
+            'explain_link_type' => [
+                'category'    => 'read',
+                'role'        => 'user',
+                'destructive' => false,
+                'description' => 'Explain what a given 1INME link type is and what it is best for.',
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'type' => ['type' => 'string', 'enum' => array_keys(LinkTypeCategories::types())],
+                    ],
+                    'required'             => ['type'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => fn(User $u, array $args) => $this->doExplainLinkType($args),
+            ],
+            'choose_link_type' => [
+                'category'    => 'creator',
+                'role'        => 'user',
+                'permission'  => 'links.create',
+                'destructive' => false,
+                'description' => 'On the Create Link page, pick a link type by name and continue to its setup step.',
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'type' => ['type' => 'string', 'enum' => array_keys(LinkTypeCategories::types())],
+                    ],
+                    'required'             => ['type'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => fn(User $u, array $args) => $this->doChooseLinkType($args),
+            ],
+            'wizard_set_answer' => [
+                'category'    => 'creator',
+                'role'        => 'user',
+                'permission'  => 'links.create',
+                'destructive' => false,
+                'description' => 'In the biolink wizard, fill one answer field (by its key, e.g. display_name, bio, instagram) with a spoken value.',
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'field' => ['type' => 'string', 'description' => 'Answer field key, e.g. display_name, headline, bio, instagram.'],
+                        'value' => ['type' => 'string', 'description' => 'The value to put in that field.'],
+                    ],
+                    'required'             => ['field', 'value'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => fn(User $u, array $args) => $this->doWizardSetAnswer($args),
+            ],
+            'wizard_advance' => [
+                'category'    => 'creator',
+                'role'        => 'user',
+                'permission'  => 'links.create',
+                'destructive' => false,
+                'description' => 'Move the biolink wizard forward to the next step or back to the previous step.',
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'direction' => ['type' => 'string', 'enum' => ['next', 'back']],
+                    ],
+                    'required'             => ['direction'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => fn(User $u, array $args) => $this->doWizardAdvance($args),
+            ],
+            'wizard_generate' => [
+                'category'    => 'creator',
+                'role'        => 'user',
+                'permission'  => 'links.create',
+                'destructive' => true,
+                'description' => 'Generate the biolink page from the wizard answers. Requires confirmation.',
+                'parameters'  => ['type' => 'object', 'properties' => (object) [], 'additionalProperties' => false],
+                'handler' => fn(User $u) => $this->doWizardGenerate(),
             ],
 
             // ── AI Studio ───────────────────────────────────────
@@ -442,6 +533,77 @@ class VoiceToolRegistry
         return [
             'summary'     => "Deleted link #{$id}.",
             'navigate_to' => route('user.links.index'),
+        ];
+    }
+
+    protected function doSearchApp(array $args): array
+    {
+        $query = trim((string) ($args['query'] ?? ''));
+        if ($query === '') return ['error' => 'I need something to search for.'];
+
+        return [
+            'summary'       => "Searching for \"{$query}\".",
+            'navigate_to'   => route('user.links.index', ['search' => $query]),
+            'client_action' => ['type' => 'search', 'query' => $query],
+            'data'          => ['query' => $query],
+        ];
+    }
+
+    protected function doExplainLinkType(array $args): array
+    {
+        $type = (string) ($args['type'] ?? '');
+        $info = LinkTypeCategories::types()[$type] ?? null;
+        if (!$info) return ['error' => "I don't know a link type called '{$type}'."];
+
+        return [
+            'summary' => "{$info['label']}: {$info['desc']}",
+            'data'    => ['type' => $type, 'label' => $info['label'], 'description' => $info['desc']],
+        ];
+    }
+
+    protected function doChooseLinkType(array $args): array
+    {
+        $type = (string) ($args['type'] ?? '');
+        $info = LinkTypeCategories::types()[$type] ?? null;
+        if (!$info) return ['error' => "I don't know a link type called '{$type}'."];
+
+        return [
+            'summary'       => "Selecting {$info['label']} and continuing.",
+            'navigate_to'   => route('user.links.create', ['type' => $type]),
+            'client_action' => ['type' => 'select_link_type', 'link_type' => $type],
+            'data'          => ['type' => $type, 'label' => $info['label']],
+        ];
+    }
+
+    protected function doWizardSetAnswer(array $args): array
+    {
+        $field = trim((string) ($args['field'] ?? ''));
+        $value = (string) ($args['value'] ?? '');
+        if ($field === '') return ['error' => 'I need to know which field to fill.'];
+
+        return [
+            'summary'       => "Set {$field} to \"{$value}\".",
+            'client_action' => ['type' => 'wizard_set_answer', 'field' => $field, 'value' => $value],
+            'data'          => ['field' => $field, 'value' => $value],
+        ];
+    }
+
+    protected function doWizardAdvance(array $args): array
+    {
+        $dir = (($args['direction'] ?? 'next') === 'back') ? 'back' : 'next';
+
+        return [
+            'summary'       => $dir === 'back' ? 'Going back a step.' : 'Moving to the next step.',
+            'client_action' => ['type' => 'wizard_advance', 'direction' => $dir],
+            'data'          => ['direction' => $dir],
+        ];
+    }
+
+    protected function doWizardGenerate(): array
+    {
+        return [
+            'summary'       => 'Generating your page now.',
+            'client_action' => ['type' => 'wizard_generate'],
         ];
     }
 
