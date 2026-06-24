@@ -34,7 +34,14 @@ async function forceLayout(
   layout: string,
   position: string,
 ): Promise<void> {
-  await page.route(`${APP_BASE}/pricing`, async (route) => {
+  // Match the /pricing document by PATH, not full origin. When the harness runs
+  // against APP_URL=http://localhost:80 (the dev workflow already serving on the
+  // :80 proxy), the browser normalizes away the default :80 port, so the actual
+  // navigation request URL is http://localhost/pricing. A `${APP_BASE}/pricing`
+  // glob still carries the :80 and would never match the normalized request —
+  // the interception would silently no-op and the layout rewrite never applies.
+  // A path regex matches whether we run on :80 (dev workflow) or :5000 (CI).
+  await page.route(/\/pricing(?:[?#]|$)/, async (route) => {
     if (route.request().resourceType() !== "document") {
       await route.continue();
       return;

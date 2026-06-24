@@ -66,6 +66,9 @@ class PricingPagesController extends Controller
             foreach ($currencies as $cur) {
                 $monthly = PricingResolver::priceForCurrency($p, $cur, 'monthly');
                 $annual  = PricingResolver::priceForCurrency($p, $cur, 'annual');
+                // First-term intro discount display blocks (null when none).
+                $monthly['intro'] = PricingResolver::introFor($p, $cur, 'monthly', (int) ($monthly['amount_minor'] ?? 0));
+                $annual['intro']  = PricingResolver::introFor($p, $cur, 'annual', (int) ($annual['amount_minor'] ?? 0));
                 $prices[$cur] = ['monthly' => $monthly, 'annual' => $annual];
                 $tax[$cur] = [
                     'monthly' => $taxFor((int) ($monthly['amount_minor'] ?? 0), $cur),

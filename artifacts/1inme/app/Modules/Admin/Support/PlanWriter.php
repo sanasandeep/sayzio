@@ -34,6 +34,7 @@ class PlanWriter
         unset($validated['addon_ids']);
 
         $validated['features'] = $this->collectFeatures($request, $validated['features'] ?? []);
+        $validated['intro_discount'] = \App\Services\Billing\IntroDiscount::normalize($request->input('intro_discount'));
 
         // Down-convert MINOR → MAJOR for legacy decimal columns; the
         // polymorphic prices table is then synced from the minor units.
@@ -65,6 +66,7 @@ class PlanWriter
         unset($validated['addon_ids']);
 
         $validated['features'] = $this->collectFeatures($request, $validated['features'] ?? [], $plan->features ?? []);
+        $validated['intro_discount'] = \App\Services\Billing\IntroDiscount::normalize($request->input('intro_discount'));
 
         $minor = $this->minorPrices($validated);
         foreach ($minor as $k => $v) {
@@ -285,6 +287,20 @@ class PlanWriter
             'sort_order' => 'integer|min:0',
             'is_popular' => 'nullable|boolean',
             'is_internal' => 'nullable|boolean',
+
+            // First-term introductory discount (folded through
+            // IntroDiscount::normalize() before persistence).
+            'intro_discount'           => 'nullable|array',
+            'intro_discount.enabled'   => 'nullable|boolean',
+            'intro_discount.type'      => 'nullable|in:percent,fixed',
+            'intro_discount.percent'   => 'nullable|integer|min:0|max:100',
+            'intro_discount.fixed'     => 'nullable|array',
+            'intro_discount.fixed.USD' => 'nullable|integer|min:0',
+            'intro_discount.fixed.INR' => 'nullable|integer|min:0',
+            'intro_discount.cycles'    => 'nullable|array',
+            'intro_discount.cycles.*'  => 'in:monthly,annual',
+            'intro_discount.label'     => 'nullable|string|max:120',
+
             'features' => 'nullable|array',
 
             // Quantity limits — accept -1 for unlimited.

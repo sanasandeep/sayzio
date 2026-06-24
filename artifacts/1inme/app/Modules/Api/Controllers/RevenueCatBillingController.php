@@ -57,14 +57,21 @@ class RevenueCatBillingController extends Controller
         $pricePair = function ($priceable, string $cur): array {
             $m = PricingResolver::priceForCurrency($priceable, $cur, 'monthly');
             $a = PricingResolver::priceForCurrency($priceable, $cur, 'annual');
+            // First-term intro discount blocks (null when none / not a Plan).
+            $introM = $priceable instanceof Plan
+                ? PricingResolver::introFor($priceable, $cur, 'monthly', (int) ($m['amount_minor'] ?? 0)) : null;
+            $introA = $priceable instanceof Plan
+                ? PricingResolver::introFor($priceable, $cur, 'annual', (int) ($a['amount_minor'] ?? 0)) : null;
             return [
                 'monthly' => [
                     'amount_minor' => (int) ($m['amount_minor'] ?? 0),
                     'formatted'    => $m['formatted'] ?? null,
+                    'intro'        => $introM,
                 ],
                 'annual'  => [
                     'amount_minor' => (int) ($a['amount_minor'] ?? 0),
                     'formatted'    => $a['formatted'] ?? null,
+                    'intro'        => $introA,
                 ],
             ];
         };

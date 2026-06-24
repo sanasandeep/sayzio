@@ -560,4 +560,59 @@ class PricingResolver
             ['amount_minor_units', 'is_active', 'updated_at']
         );
     }
+
+    /**
+     * First-term introductory-discount DISPLAY block for a plan, or null
+     * when no intro applies for this (currency, cycle). Pre-formats both
+     * the discounted first-term price and the normal (struck-through)
+     * price so views never re-derive currency formatting. Pass an already
+     * resolved `$normalMinor` to avoid a re-lookup; when omitted it's read
+     * from the prices table.
+     *
+     * @return array{first_minor:int,first_formatted:string,normal_minor:int,normal_formatted:string,amount_off_minor:int,amount_off_formatted:string,percent_off:int,type:string,label:?string}|null
+     */
+    public static function introFor(Plan $plan, string $currency, string $cycle, ?int $normalMinor = null): ?array
+    {
+        $currency = in_array($currency, ['USD', 'INR'], true) ? $currency : 'USD';
+        $cycle = $cycle === 'annual' ? 'annual' : 'monthly';
+        if ($normalMinor === null) {
+            $normalMinor = (int) self::buildPrice($plan, $currency, $cycle)['amount_minor'];
+        }
+
+        $d = \App\Services\Billing\IntroDiscount::compute($plan->introDiscount(), $currency, $cycle, (int) $normalMinor);
+        if (!$d) {
+            return null;
+        }
+
+        return [
+            'first_minor'          => $d['first_minor'],
+            'first_formatted'      => self::money($d['first_minor'], $currency),
+            'normal_minor'         => $d['normal_minor'],
+            'normal_formatted'     => self::money($d['normal_minor'], $currency),
+            'amount_off_minor'     => $d['amount_off_minor'],
+            'amount_off_formatted' => self::money($d['amount_off_minor'], $currency),
+            'percent_off'          => $d['percent_off'],
+            'type'                 => $d['type'],
+            'label'                => $d['label'],
+        ];
+    }
+
+    /**
+     * Amount actually charged for the FIRST term of a brand-new
+     * subscription: the intro-discounted price when an intro applies,
+     * otherwise the normal price. Lifecycle paths (renewals, upgrades,
+     * proration) must NOT use this — they always charge the full price so
+     * the customer reverts to the normal rate on renewal.
+     */
+    public static function firstTermMinor(Plan $plan, string $currency, string $cycle, ?int $normalMinor = null): int
+    {
+        $currency = in_array($currency, ['USD', 'INR'], true) ? $currency : 'USD';
+        $cycle = $cycle === 'annual' ? 'annual' : 'monthly';
+        if ($normalMinor === null) {
+            $normalMinor = (int) self::buildPrice($plan, $currency, $cycle)['amount_minor'];
+        }
+
+        $d = \App\Services\Billing\IntroDiscount::compute($plan->introDiscount(), $currency, $cycle, (int) $normalMinor);
+        return $d ? (int) $d['first_minor'] : (int) $normalMinor;
+    }
 }

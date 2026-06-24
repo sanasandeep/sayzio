@@ -12,7 +12,7 @@ class Plan extends Model
         'monthly_price_secondary', 'annual_price_secondary',
         'trial_days', 'grace_days', 'refund_window_days',
         'features', 'metadata', 'is_default', 'is_popular', 'status',
-        'is_archived', 'is_internal', 'sort_order',
+        'is_archived', 'is_internal', 'sort_order', 'intro_discount',
     ];
 
     protected function casts(): array
@@ -20,6 +20,7 @@ class Plan extends Model
         return [
             'features' => 'array',
             'metadata' => 'array',
+            'intro_discount' => 'array',
             'monthly_price' => 'decimal:2',
             'annual_price' => 'decimal:2',
             'monthly_price_secondary' => 'decimal:2',
@@ -49,6 +50,17 @@ class Plan extends Model
     public function prices()
     {
         return $this->morphMany(Price::class, 'priceable');
+    }
+
+    /**
+     * The normalized first-term introductory discount config for this
+     * plan, or null when none is configured / it's effectively off.
+     * Always read through this accessor (never the raw `intro_discount`
+     * column) so callers get the canonical, validated shape.
+     */
+    public function introDiscount(): ?array
+    {
+        return \App\Services\Billing\IntroDiscount::normalize($this->intro_discount);
     }
 
     public function scopeActive($query)

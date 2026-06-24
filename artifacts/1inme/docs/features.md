@@ -628,6 +628,24 @@ chat, floating-mic voice assistant).*
   `PlanRecommender`, which reads 6 usage gauges and recommends a plan via a
   ≥70% binding-cap rule; the pricing page also shows a comparison matrix, coin
   packages, and a competitor section (reduced-motion aware).
+- **First-term intro discount** — admin-configurable, per-plan, per-billing-
+  cycle introductory discount (config in `plans.intro_discount` jsonb, edited in
+  the plan form's *Intro discount* section). It can be a **percentage** or a
+  **fixed amount** (entered in minor units per currency, like the price inputs)
+  and can be toggled on/off and scoped to the monthly and/or annual cycle.
+  `App\Services\Billing\IntroDiscount` normalizes/validates the config and
+  computes the reduction; `PricingResolver::introFor()` returns the formatted
+  display block and `PricingResolver::firstTermMinor()` the actual first-term
+  charge. The discount applies **only to the FIRST term** of a brand-new
+  subscription (the `CheckoutController` "new plan" path); renewals and upgrades
+  always charge the full price, so the customer automatically reverts to the
+  normal rate on renewal — no expiry bookkeeping. `/pricing` and `/user/upgrade`
+  show the discounted price with the normal price struck through plus a savings
+  badge; mobile/API parity via the `intro` block on each plan price cell
+  (`/api/v1` plans catalogue). **No stacking:** the platform plan checkout has no
+  promo-code field, so the intro discount is the only automatic first-term
+  reduction — there is nothing to stack with, and if a promo-code flow is ever
+  added it must NOT combine with an active intro discount.
 - **Coin wallet** — prepaid balance (`Wallet` + `WalletTransaction` ledger);
   buy **coin packages** (some with bonus coins); coins pay add-ons and developer-
   API overage.

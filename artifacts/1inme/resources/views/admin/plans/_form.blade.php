@@ -183,6 +183,98 @@
             </div>
         </section>
 
+        {{-- ============================== INTRO DISCOUNT ============================== --}}
+        @php
+            $introCfg = old('intro_discount', $isEdit ? ($plan->introDiscount() ?? []) : []);
+            $introEnabled = (bool) ($introCfg['enabled'] ?? false);
+            $introType = ($introCfg['type'] ?? 'percent') === 'fixed' ? 'fixed' : 'percent';
+            $introPercent = (int) ($introCfg['percent'] ?? 0);
+            $introFixedUsd = (int) ($introCfg['fixed']['USD'] ?? 0);
+            $introFixedInr = (int) ($introCfg['fixed']['INR'] ?? 0);
+            $introCycles = (array) ($introCfg['cycles'] ?? ['monthly', 'annual']);
+            $introLabel = (string) ($introCfg['label'] ?? '');
+        @endphp
+        <section id="sec-intro" class="glass rounded-2xl border border-white/10 p-6"
+                 x-data="{ enabled: {{ $introEnabled ? 'true' : 'false' }}, type: '{{ $introType }}' }">
+            <header class="mb-4">
+                <h2 class="text-base font-semibold text-white">First-term intro discount</h2>
+                <p class="text-xs text-white/40">A one-time discount applied to the <strong>first billing term only</strong> of a brand-new subscription. Renewals and upgrades always charge the normal price. This is the only automatic discount — it never stacks with promo codes.</p>
+            </header>
+
+            {{-- Off switch (always submits a value so unchecking persists) --}}
+            <input type="hidden" name="intro_discount[enabled]" value="0">
+            <label class="flex items-center gap-3 mb-4 cursor-pointer">
+                <input type="checkbox" name="intro_discount[enabled]" value="1" x-model="enabled"
+                       class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
+                <span class="text-sm text-white/80">Enable an introductory discount for this plan</span>
+            </label>
+
+            <div x-show="enabled" x-cloak class="space-y-4">
+                {{-- Discount type --}}
+                <div>
+                    <label class="block text-xs text-white/40 mb-1.5">Discount type</label>
+                    <div class="flex gap-2">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="intro_discount[type]" value="percent" x-model="type" class="peer sr-only">
+                            <div class="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 text-center peer-checked:border-violet-500/60 peer-checked:text-white peer-checked:bg-violet-500/10">Percentage off</div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="intro_discount[type]" value="fixed" x-model="type" class="peer sr-only">
+                            <div class="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 text-center peer-checked:border-violet-500/60 peer-checked:text-white peer-checked:bg-violet-500/10">Fixed amount off</div>
+                        </label>
+                    </div>
+                </div>
+
+                {{-- Percentage --}}
+                <div x-show="type === 'percent'" x-cloak>
+                    <label class="block text-xs text-white/40 mb-1">Percent off (1–100)</label>
+                    <input type="number" name="intro_discount[percent]" value="{{ $introPercent }}" min="0" max="100" step="1"
+                           class="w-40 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                </div>
+
+                {{-- Fixed amounts (minor units, mirroring the price inputs) --}}
+                <div x-show="type === 'fixed'" x-cloak class="grid grid-cols-2 gap-6">
+                    <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+                        <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD off</div>
+                        <label class="block text-xs text-white/40 mb-1">Amount (USD, cents)</label>
+                        <input type="number" name="intro_discount[fixed][USD]" value="{{ $introFixedUsd }}" min="0" step="1"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                    <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+                        <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR off</div>
+                        <label class="block text-xs text-white/40 mb-1">Amount (INR, paise)</label>
+                        <input type="number" name="intro_discount[fixed][INR]" value="{{ $introFixedInr }}" min="0" step="1"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                </div>
+
+                {{-- Applicable billing cycles --}}
+                <div>
+                    <label class="block text-xs text-white/40 mb-1.5">Applies to billing cycles</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="intro_discount[cycles][]" value="monthly" {{ in_array('monthly', $introCycles, true) ? 'checked' : '' }}
+                                   class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
+                            <span class="text-sm text-white/70">Monthly</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="intro_discount[cycles][]" value="annual" {{ in_array('annual', $introCycles, true) ? 'checked' : '' }}
+                                   class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
+                            <span class="text-sm text-white/70">Annual</span>
+                        </label>
+                    </div>
+                    <p class="text-[11px] text-white/30 mt-1">Leave both unchecked to apply to every cycle.</p>
+                </div>
+
+                {{-- Optional marketing label --}}
+                <div>
+                    <label class="block text-xs text-white/40 mb-1">Badge label <span class="text-white/30">(optional, max 120 chars)</span></label>
+                    <input type="text" name="intro_discount[label]" value="{{ $introLabel }}" maxlength="120" placeholder="e.g. Launch offer — 50% off your first month"
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                </div>
+            </div>
+        </section>
+
         {{-- ============================== TRIAL & RETENTION ============================== --}}
         <section id="sec-trial" class="glass rounded-2xl border border-white/10 p-6">
             <header class="mb-4">

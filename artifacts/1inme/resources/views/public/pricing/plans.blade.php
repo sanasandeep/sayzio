@@ -370,6 +370,14 @@
             const r = c === 'annual' ? block.annual : block.monthly;
             return r && r.formatted ? r.formatted : '—';
         },
+        intro(plan){
+            // First-term introductory discount for the active currency +
+            // cycle (null when none applies). Drives the struck-through
+            // normal price, the discounted headline and the savings badge.
+            const block = this.cur(plan);
+            const r = this.cycle === 'annual' ? block.annual : block.monthly;
+            return (r && r.intro) ? r.intro : null;
+        },
         priceSize(plan){
             // The headline price uses a fluid (clamped) base size, but very
             // long currency strings — notably INR annual amounts like
@@ -492,21 +500,24 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto space-y-4" data-anim="fade-up">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-400/20 backdrop-blur-sm text-xs font-bold uppercase tracking-[.18em] text-violet-200 shadow-lg shadow-violet-900/20">
-                <span class="w-1.5 h-1.5 rounded-full bg-violet-400 pulse-dot"></span>
+        <div class="text-center max-w-3xl mx-auto space-y-5" data-anim="fade-up">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-violet-500/15 border border-violet-400/25 backdrop-blur-sm text-xs font-bold uppercase tracking-[.2em] text-violet-100 shadow-lg shadow-violet-900/25">
+                <span class="relative flex h-2 w-2">
+                    <span class="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75 animate-ping motion-reduce:hidden"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-violet-300"></span>
+                </span>
                 Pricing &amp; coins
             </div>
-            <h1 class="hero-title text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-                Pick your plan. <span class="grad-text">Make it yours.</span>
+            <h1 class="hero-title text-4xl sm:text-5xl lg:text-[3.65rem] font-bold tracking-tight leading-[1.05]">
+                Pricing that <span class="grad-text">scales with you.</span>
             </h1>
-            <p class="text-lg text-gray-400 max-w-xl mx-auto">
-                Simple pricing with powerful features — cancel anytime.
+            <p class="text-lg text-gray-300/90 max-w-xl mx-auto">
+                Start free, upgrade only when you outgrow it. Powerful features, transparent pricing — cancel anytime.
             </p>
-            <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1 text-xs text-gray-400">
-                <span class="inline-flex items-center gap-1.5"><i class="fas fa-circle-check text-emerald-400"></i> No card to start</span>
-                <span class="inline-flex items-center gap-1.5"><i class="fas fa-circle-check text-emerald-400"></i> Cancel anytime</span>
-                <span class="inline-flex items-center gap-1.5"><i class="fas fa-circle-check text-emerald-400"></i> Secure checkout</span>
+            <div class="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 pt-1 text-xs">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> No card to start</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> Cancel anytime</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> Secure checkout</span>
             </div>
             {{-- Currency switch — flips USD/INR instantly client-side (prices for
                  both currencies are embedded in each card's Alpine payload), with a
@@ -626,18 +637,32 @@
             @endif
         @endauth
 
-        {{-- Cycle toggle --}}
-        <div class="flex items-center justify-center gap-3 mt-10" data-anim="fade-up">
-            <div class="inline-flex rounded-full border border-white/10 bg-white/[0.02] p-1">
+        {{-- Cycle toggle — sliding segmented control that surfaces the
+             annual savings. The knob is an absolutely-positioned layer that
+             slides under the active label (transition disabled under
+             reduced-motion via the motion-reduce utilities). --}}
+        <div class="flex flex-col items-center justify-center gap-2.5 mt-10" data-anim="fade-up">
+            <div class="relative inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20">
+                {{-- Sliding knob --}}
+                <span class="absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full grad-bar shadow-lg shadow-violet-900/30 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                      :class="cycle==='annual' ? 'translate-x-full' : 'translate-x-0'" aria-hidden="true"></span>
                 <button type="button" @click="cycle='monthly'"
-                    :class="cycle==='monthly' ? 'seg-active' : 'text-gray-300 hover:text-white'"
-                    class="seg px-5 py-2 text-sm rounded-full">Monthly</button>
+                    :class="cycle==='monthly' ? 'text-white' : 'text-gray-400 hover:text-white'"
+                    class="relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors">Monthly</button>
                 <button type="button" @click="cycle='annual'"
-                    :class="cycle==='annual' ? 'seg-active' : 'text-gray-300 hover:text-white'"
-                    class="seg px-5 py-2 text-sm rounded-full inline-flex items-center gap-2">
+                    :class="cycle==='annual' ? 'text-white' : 'text-gray-400 hover:text-white'"
+                    class="relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5">
                     Annual
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-bold uppercase">save 2 months</span>
                 </button>
+            </div>
+            {{-- Savings callout — emphasised on annual, teasing on monthly --}}
+            <div class="h-5 text-xs" aria-live="polite">
+                <span x-show="cycle==='annual'" x-cloak class="inline-flex items-center gap-1.5 font-semibold text-emerald-300">
+                    <i class="fas fa-circle-check"></i> You're saving 2 months — that's ~17% off every year
+                </span>
+                <span x-show="cycle==='monthly'" x-cloak class="inline-flex items-center gap-1.5 text-gray-400">
+                    <i class="fas fa-piggy-bank text-emerald-400/80"></i> Switch to annual and save 2 months (~17%)
+                </span>
             </div>
         </div>
 
@@ -866,15 +891,34 @@
                                 : ($initialLen >= 7 ? 'price-md' : ''));
                         @endphp
                         <div class="plan-price px-4 py-4">
-                            <div class="flex items-baseline gap-1.5 min-w-0">
+                            {{-- First-term intro badge: only when a discount applies for
+                                 the active currency × cycle. --}}
+                            <template x-if="intro(plan)">
+                                <div class="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-300/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+                                    <i class="fas fa-bolt"></i>
+                                    <span x-text="(intro(plan)?.label) || ('Save ' + intro(plan)?.percent_off + '% first ' + (cycle==='annual' ? 'year' : 'month'))"></span>
+                                </div>
+                            </template>
+                            <div class="flex items-baseline gap-1.5 min-w-0 flex-wrap">
+                                {{-- Struck-through normal price when intro is active --}}
+                                <template x-if="intro(plan)">
+                                    <span class="text-base font-semibold text-gray-500 line-through decoration-2" x-text="intro(plan)?.normal_formatted"></span>
+                                </template>
                                 <span class="price-num font-bold text-white tracking-tight price-pop {{ $initialPriceSize }}"
                                       :class="{ 'price-md': priceSize(plan) === 'price-md', 'price-sm': priceSize(plan) === 'price-sm', 'price-xs': priceSize(plan) === 'price-xs' }"
                                       :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
-                                      x-text="money(plan, cycle)">{{ $initialFormatted }}</span>
+                                      x-text="intro(plan) ? intro(plan).first_formatted : money(plan, cycle)">{{ $initialFormatted }}</span>
                                 @unless(!empty($row['is_free']))
                                     <span class="price-suffix shrink-0 text-sm font-medium text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
                                 @endunless
                             </div>
+
+                            {{-- Intro fineprint: makes the revert-to-normal explicit --}}
+                            <template x-if="intro(plan)">
+                                <div class="text-[11px] text-emerald-300/90 mt-1.5">
+                                    First <span x-text="cycle==='annual' ? 'year' : 'month'"></span> only — renews at <span x-text="intro(plan)?.normal_formatted"></span>/<span x-text="cycle==='annual' ? 'yr' : 'mo'"></span>
+                                </div>
+                            </template>
 
                             {{-- Billing note (Linktree fineprint under the price) --}}
                             @if(!empty($row['is_free']))

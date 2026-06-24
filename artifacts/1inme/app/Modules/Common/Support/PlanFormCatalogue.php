@@ -345,6 +345,7 @@ class PlanFormCatalogue
         return [
             'sec-basics'        => 'Basics',
             'sec-pricing'       => 'Pricing',
+            'sec-intro'         => 'Intro discount',
             'sec-trial'         => 'Trial & retention',
             'sec-referral'      => 'Referral program',
             'sec-modules'       => 'Modules',

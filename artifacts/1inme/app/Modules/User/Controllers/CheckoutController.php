@@ -32,12 +32,28 @@ class CheckoutController extends Controller
             : collect();
 
         $items = [];
-        $planPriced = PricingResolver::priceFor($plan, $user, $cycle);
+        $planPriced = PricingResolver::priceForCurrency($plan, $currency, $cycle);
+        $normalMinor = (int) $planPriced['amount_minor'];
+        // First-term introductory discount (new subscriptions only). Intro
+        // applies here; renewals/upgrades always charge the full price.
+        $intro = PricingResolver::introFor($plan, $currency, $cycle, $normalMinor);
+        $planMinor = $intro ? (int) $intro['first_minor'] : $normalMinor;
         $items[] = [
-            'label'        => $plan->name . ' (' . $cycle . ')',
-            'amount_minor' => (int) $planPriced['amount_minor'],
+            'label'        => $plan->name . ' (' . $cycle . ')'
+                . ($intro ? ' — first ' . ($cycle === 'annual' ? 'year' : 'month') . ' intro' : ''),
+            'amount_minor' => $planMinor,
             'quantity'     => 1,
-            'meta'         => ['kind' => 'plan', 'plan_id' => $plan->id, 'cycle' => $cycle],
+            'meta'         => array_filter([
+                'kind'    => 'plan',
+                'plan_id' => $plan->id,
+                'cycle'   => $cycle,
+                'intro_discount' => $intro ? [
+                    'normal_minor'     => $normalMinor,
+                    'amount_off_minor' => (int) $intro['amount_off_minor'],
+                    'percent_off'      => (int) $intro['percent_off'],
+                    'type'             => $intro['type'],
+                ] : null,
+            ], fn ($v) => $v !== null),
         ];
         foreach ($addons as $a) {
             $p = PricingResolver::priceFor($a, $user, $cycle);
@@ -102,11 +118,27 @@ class CheckoutController extends Controller
             return back()->with('error', 'That payment method is not available right now.');
         }
 
+        $normalMinor = (int) PricingResolver::priceForCurrency($plan, $currency, $cycle)['amount_minor'];
+        // First-term introductory discount (new subscriptions only). Intro
+        // applies here; renewals/upgrades always charge the full price.
+        $intro = PricingResolver::introFor($plan, $currency, $cycle, $normalMinor);
+        $planMinor = $intro ? (int) $intro['first_minor'] : $normalMinor;
         $items = [[
-            'label'        => $plan->name . ' (' . $cycle . ')',
-            'amount_minor' => (int) PricingResolver::priceFor($plan, $user, $cycle)['amount_minor'],
+            'label'        => $plan->name . ' (' . $cycle . ')'
+                . ($intro ? ' — first ' . ($cycle === 'annual' ? 'year' : 'month') . ' intro' : ''),
+            'amount_minor' => $planMinor,
             'quantity'     => 1,
-            'meta'         => ['kind' => 'plan', 'plan_id' => $plan->id, 'cycle' => $cycle],
+            'meta'         => array_filter([
+                'kind'    => 'plan',
+                'plan_id' => $plan->id,
+                'cycle'   => $cycle,
+                'intro_discount' => $intro ? [
+                    'normal_minor'     => $normalMinor,
+                    'amount_off_minor' => (int) $intro['amount_off_minor'],
+                    'percent_off'      => (int) $intro['percent_off'],
+                    'type'             => $intro['type'],
+                ] : null,
+            ], fn ($v) => $v !== null),
         ]];
         foreach ((array) ($data['addons'] ?? []) as $addonId) {
             $a = Addon::findOrFail($addonId);

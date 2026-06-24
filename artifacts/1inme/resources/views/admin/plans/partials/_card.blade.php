@@ -12,6 +12,13 @@
                         <i class="fas fa-user-shield mr-1"></i>Internal
                     </span>
                 @endif
+                @php $introBadge = $plan->introDiscount(); @endphp
+                @if($introBadge)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-300"
+                          title="First-term intro discount active{{ !empty($introBadge['cycles']) ? ' — ' . implode(', ', $introBadge['cycles']) : '' }}">
+                        <i class="fas fa-bolt mr-1"></i>{{ $introBadge['type'] === 'percent' ? $introBadge['percent'] . '% intro' : 'Intro offer' }}
+                    </span>
+                @endif
             </h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                 {{ $plan->status === 'active' && !$plan->is_archived ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">

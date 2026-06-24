@@ -126,11 +126,29 @@
                 @endif
                 <div class="space-y-1">
                     <div class="text-xs uppercase tracking-wider text-white/40">{{ $plan->name }}</div>
-                    <div class="flex items-baseline gap-1">
+                    @php $introCell = "prices[currency] && prices[currency].{$cycle} && prices[currency].{$cycle}.intro ? prices[currency].{$cycle}.intro : null"; @endphp
+                    {{-- First-term intro badge --}}
+                    <template x-if="{{ $introCell }}">
+                        <div class="mb-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-300/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+                            <i class="fas fa-bolt"></i>
+                            <span x-text="(({{ $introCell }}).label) || ('Save ' + ({{ $introCell }}).percent_off + '% first {{ $cycle === 'annual' ? 'year' : 'month' }}')"></span>
+                        </div>
+                    </template>
+                    <div class="flex items-baseline gap-1 flex-wrap">
+                        {{-- Struck-through normal price when intro active --}}
+                        <template x-if="{{ $introCell }}">
+                            <span class="text-lg font-medium text-white/40 line-through decoration-2" x-text="({{ $introCell }}).normal_formatted"></span>
+                        </template>
                         <span class="text-3xl font-semibold text-white"
-                              x-text="(prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}'">{{ $row['shown']['formatted'] }}</span>
+                              x-text="({{ $introCell }}) ? ({{ $introCell }}).first_formatted : ((prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}')">{{ $row['shown']['formatted'] }}</span>
                         <span class="text-sm text-white/40">/ {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span>
                     </div>
+                    {{-- Intro fineprint: revert-to-normal on renewal --}}
+                    <template x-if="{{ $introCell }}">
+                        <div class="text-[11px] text-emerald-300/90">
+                            First {{ $cycle === 'annual' ? 'year' : 'month' }} only — renews at <span x-text="({{ $introCell }}).normal_formatted"></span>/{{ $cycle === 'annual' ? 'yr' : 'mo' }}
+                        </div>
+                    </template>
                     @if($cycle === 'annual')
                         <div class="text-[11px] text-white/40"
                              x-show="prices[currency] && prices[currency].monthly && prices[currency].monthly.amount_minor > 0" x-cloak>

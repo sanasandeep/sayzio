@@ -78,6 +78,9 @@ class UpgradeController extends Controller
             foreach ($currencies as $cur) {
                 $m = PricingResolver::priceForCurrency($p, $cur, 'monthly');
                 $a = PricingResolver::priceForCurrency($p, $cur, 'annual');
+                // First-term intro discount display blocks (null when none).
+                $m['intro'] = PricingResolver::introFor($p, $cur, 'monthly', (int) ($m['amount_minor'] ?? 0));
+                $a['intro'] = PricingResolver::introFor($p, $cur, 'annual', (int) ($a['amount_minor'] ?? 0));
                 $prices[$cur] = ['monthly' => $m, 'annual' => $a];
                 $taxByCur[$cur] = [
                     'monthly' => $taxFor((int) ($m['amount_minor'] ?? 0), $cur),
