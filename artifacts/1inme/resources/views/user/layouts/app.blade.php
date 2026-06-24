@@ -583,6 +583,13 @@
                     <span class="sidebar-tooltip">Stats</span>
                 </a>
                 @endif
+                <a href="{{ route('user.wallet.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div>
+                    <span class="nav-label">Wallet</span>
+                    <span class="sidebar-tooltip">Wallet — coin balance &amp; transactions</span>
+                </a>
 
                 {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                 @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
@@ -1219,6 +1226,7 @@
                         @if($__can['posts_view'])
                         <a href="{{ route('user.stats.index') }}" class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Stats</span></a>
                         @endif
+                        <a href="{{ route('user.wallet.show') }}" class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div> <span>Wallet</span></a>
 
                         {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                         @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
