@@ -1260,6 +1260,18 @@ class LinkController extends Controller
         if ($period === 'custom' && $request->query('to')) {
             $end = \Carbon\Carbon::parse($request->query('to'))->endOfDay();
         }
+
+        // Clamp the start of the range to the plan's stats-history retention so
+        // users can't query analytics older than their plan allows (the data
+        // beyond that window is pruned anyway). `-1` = unlimited (no clamp).
+        $retentionDays = workspace_owner()->statsRetentionDays();
+        if ($retentionDays !== -1) {
+            $earliest = now()->subDays($retentionDays)->startOfDay();
+            if ($start->lt($earliest)) {
+                $start = $earliest;
+            }
+        }
+
         return [$start, $end, $period, $groupBy];
     }
 

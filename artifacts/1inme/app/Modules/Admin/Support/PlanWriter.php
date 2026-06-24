@@ -181,6 +181,18 @@ class PlanWriter
             ? array_merge(['default' => $globalAliases], $aliasByType)
             : $globalAliases;
 
+        // ---- Stats history retention: enforce the 30-day floor ----
+        // -1 means "unlimited" (kept forever); any positive value below the
+        // floor is raised to 30 so every plan (especially Free) keeps at least
+        // a month of analytics history.
+        if (array_key_exists('stats_retention_days', $out)) {
+            $retention = (int) $out['stats_retention_days'];
+            if ($retention !== -1 && $retention < 30) {
+                $retention = 30;
+            }
+            $out['stats_retention_days'] = $retention;
+        }
+
         // ---- Boolean & select feature flags ----
         foreach (PlanFormCatalogue::featureFlags() as $flag) {
             if ($flag['type'] === 'bool') {
@@ -306,6 +318,7 @@ class PlanWriter
             'features.max_events'              => 'nullable|integer|min:-1',
             'features.api_calls_monthly'       => 'nullable|integer|min:-1',
             'features.api_rate_per_min'        => 'nullable|integer|min:-1',
+            'features.stats_retention_days'    => 'nullable|integer|min:-1',
             'features.signup_bonus_days'       => 'nullable|integer|min:0|max:3650',
             'features.referrer_free_days'      => 'nullable|integer|min:0|max:3650',
             'features.referred_free_days'      => 'nullable|integer|min:0|max:3650',

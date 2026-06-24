@@ -70,6 +70,7 @@ class CronJobsInspector
         'templates:check-design-health'         => 'Re-validate saved page/card template snapshots and alert admins when one develops design issues.',
         'plans:revert-expired-comps'            => 'Revert accounts whose admin-granted complimentary / time-limited plan window has elapsed.',
         'users:reactivate-due'                  => 'Auto-lift admin temporary account holds whose scheduled reactivation date has arrived.',
+        'stats:prune-history'                   => 'Delete click and visitor-session history older than the largest stats-retention window across all active plans (no-op while any plan keeps history forever).',
     ];
 
     /**

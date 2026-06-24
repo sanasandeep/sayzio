@@ -1015,4 +1015,23 @@ class User extends Authenticatable
 
         return (int) $raw;
     }
+
+    /**
+     * How many days of analytics history this user's plan can look back over.
+     * `-1` means unlimited (no clamp). Holders of `user.plan_limits.bypass`
+     * (e.g. super admins) are never clamped. Any configured value below the
+     * 30-day floor — or a missing/zero value — resolves to 30 so analytics
+     * always show at least a month.
+     */
+    public function statsRetentionDays(): int
+    {
+        if ($this->hasPermission('user.plan_limits.bypass')) {
+            return -1;
+        }
+        $days = (int) $this->getPlanFeature('stats_retention_days', 30);
+        if ($days === -1) {
+            return -1;
+        }
+        return $days < 30 ? 30 : $days;
+    }
 }

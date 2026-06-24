@@ -79,6 +79,7 @@ class PlanFormCatalogue
             ['key' => 'max_events',           'label' => 'Max events',              'default' => 0,   'module' => null,                 'hint' => 'Event listings / calendar entries.'],
             ['key' => 'api_calls_monthly',    'label' => 'API calls / month',       'default' => 0,   'module' => null,                 'hint' => 'Monthly included API-call allowance for API keys. Calls beyond this are paid with coins (admin-set overage rate). -1 = unlimited.'],
             ['key' => 'api_rate_per_min',     'label' => 'API requests / minute',   'default' => 0,   'module' => null,                 'hint' => 'Per-user rate limit for the public API.'],
+            ['key' => 'stats_retention_days', 'label' => 'Stats history (days)',    'default' => 365, 'module' => null,                 'hint' => 'How far back analytics can be viewed. Older click/session history is pruned. Minimum 30 days (values below are raised to 30 on save); -1 = unlimited (kept forever).'],
         ];
     }
 

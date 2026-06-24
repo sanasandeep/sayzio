@@ -381,3 +381,13 @@ Schedule::command('privacy:maintenance')
     ->hourlyAt(45)
     ->withoutOverlapping()
     ->onOneServer();
+
+// Daily: prune raw click & visitor-session history older than the largest
+// stats-retention window across all active plans, so the analytics tables
+// don't grow without bound. No-op while any active plan keeps history forever
+// (retention = -1), since global pruning must never delete data a user is
+// still entitled to view. Runs off-peak and is chunked to bound DB load.
+Schedule::command('stats:prune-history')
+    ->dailyAt('04:05')
+    ->withoutOverlapping()
+    ->onOneServer();
