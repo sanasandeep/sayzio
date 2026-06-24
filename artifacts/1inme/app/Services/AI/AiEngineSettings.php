@@ -130,6 +130,7 @@ PROMPT;
         $allow = self::askCoachEnabledPlans();
         if (!$allow) return null;
         return \App\Modules\Admin\Models\Plan::where('status', 'active')
+            ->public()
             ->whereIn('slug', $allow)
             ->orderBy('monthly_price')
             ->first();
@@ -425,6 +426,7 @@ PROMPT;
         $allow = self::voiceEnabledPlans();
         if (!$allow) return null;
         return \App\Modules\Admin\Models\Plan::where('status', 'active')
+            ->public()
             ->whereIn('slug', $allow)
             ->orderBy('monthly_price')
             ->first();

@@ -152,7 +152,7 @@ class SitePageController extends Controller
             };
             $unlockedOn = [];
             if ($featureKey) {
-                $plans = \App\Modules\Admin\Models\Plan::active()->ordered()->get();
+                $plans = \App\Modules\Admin\Models\Plan::active()->public()->ordered()->get();
                 $map = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($plans);
                 $slugsUnlocked = $map[$featureKey] ?? [];
                 foreach ($plans as $p) {

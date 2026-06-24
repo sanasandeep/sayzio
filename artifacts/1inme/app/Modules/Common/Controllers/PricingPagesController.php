@@ -59,7 +59,7 @@ class PricingPagesController extends Controller
             );
         };
 
-        $plans = Plan::active()->with('prices')->ordered()->get();
+        $plans = Plan::active()->public()->with('prices')->ordered()->get();
         $rows = $plans->map(function (Plan $p) use ($currencies, $taxFor) {
             $prices = [];
             $tax = [];
@@ -137,7 +137,7 @@ class PricingPagesController extends Controller
 
     public function features(Request $request)
     {
-        $plans = Plan::active()->ordered()->get();
+        $plans = Plan::active()->public()->ordered()->get();
         $unlocks = PremiumFeatures::unlocksByFeature($plans);
         $catalogue = PremiumFeatures::catalogue();
 

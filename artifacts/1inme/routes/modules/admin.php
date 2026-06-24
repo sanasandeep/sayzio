@@ -98,6 +98,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{plan}/edit', [PlanController::class, 'edit'])->middleware(CheckPermission::class . ':plans.manage')->name('edit');
             Route::put('{plan}', [PlanController::class, 'update'])->middleware(CheckPermission::class . ':plans.manage')->name('update');
             Route::post('{plan}/archive', [PlanController::class, 'archive'])->middleware(CheckPermission::class . ':plans.manage')->name('archive');
+            Route::post('{plan}/duplicate', [PlanController::class, 'duplicate'])->middleware(CheckPermission::class . ':plans.manage')->name('duplicate');
             Route::delete('{plan}', [PlanController::class, 'destroy'])->middleware(CheckPermission::class . ':plans.manage')->name('destroy');
         });
 

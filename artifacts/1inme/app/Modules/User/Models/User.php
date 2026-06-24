@@ -917,6 +917,7 @@ class User extends Authenticatable
     public function planThatUnlocks(string $key, $current = null)
     {
         $plans = \App\Modules\Admin\Models\Plan::where('status', 'active')
+            ->public()
             ->orderBy('monthly_price')->get();
         $isNumeric = str_starts_with($key, 'max_') || $key === 'storage_limit_mb' || $key === 'contacts_max';
         // Compare against the user's CURRENT PLAN CAP (not the usage count)

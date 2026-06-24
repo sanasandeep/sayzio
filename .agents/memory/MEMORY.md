@@ -1,3 +1,4 @@
+- [Internal (admin-only) plans](internal-admin-only-plans.md) — `Plan::scopePublic()` (is_internal=false) is the canonical filter; every self-serve list/upgrade surface adds `->public()`, admin list & assign-picker do not.
 - [Sharded PHPUnit runner](sharded-test-runner.md) — `composer test:sharded` bounds test memory by running shards; migrate once on shard 1, skip on the rest via SHARDED_TEST_SKIP_MIGRATION.
 - [Sanctum API feature tests](sanctum-api-tests.md) — `Sanctum::actingAs` breaks the TouchSessionToken middleware; auth API tests must use a real Bearer token.
 - [Card/brochure scan surfaces](card-brochure-scan-surfaces.md) — web + mobile API controllers both delegate to CardBrochureExtractionService (limits/credit gate/auto-refund live there); mobile biolink handoff seeds the stateless wizard via prefillCategory/prefillAnswers route params.

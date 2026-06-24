@@ -34,6 +34,7 @@ class UpgradeController extends Controller
         // (avoids the obvious N+1 on this page).
         $plans = Plan::where('status', 'active')
             ->where('is_archived', false)
+            ->public()
             ->with('prices')
             ->ordered()->get();
         $addons = Addon::where('status', 'active')

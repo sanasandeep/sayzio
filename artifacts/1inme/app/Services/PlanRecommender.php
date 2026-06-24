@@ -81,6 +81,11 @@ class PlanRecommender
             return null;
         }
 
+        // Never recommend an internal (admin/staff-only) plan. Callers
+        // generally pass an already-public collection, but filter here too
+        // so the recommender is safe regardless of its caller.
+        $plans = $plans->reject(fn (Plan $p) => (bool) $p->is_internal)->values();
+
         $currentPlan = $user->plan; // may be null for users without an assigned plan
         $usage = self::buildUsage($user, $currentPlan);
 

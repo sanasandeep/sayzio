@@ -124,6 +124,16 @@
                     </label>
                     <p class="text-[11px] text-white/40 mt-1 ml-2">Highlights this plan as the second card in the landing-page pricing block. Saving will clear the flag on any other plan.</p>
                 </div>
+                <div>
+                    <label class="flex items-center gap-2 text-sm text-white/80 p-2 rounded hover:bg-white/5">
+                        <input type="hidden" name="is_internal" value="0">
+                        <input type="checkbox" name="is_internal" value="1"
+                               {{ old('is_internal', $isEdit ? $plan->is_internal : false) ? 'checked' : '' }}
+                               class="rounded border-white/10 text-violet-400">
+                        Internal plan (admin/staff only)
+                    </label>
+                    <p class="text-[11px] text-white/40 mt-1 ml-2">Hides this plan from the public pricing page, the in-app upgrade page and the smart-upgrade recommender. It stays assignable to users by admins/staff — use it for private/comp plans that should never appear in self-serve checkout.</p>
+                </div>
             </div>
         </section>
 

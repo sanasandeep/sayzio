@@ -77,6 +77,7 @@ class HomeController extends Controller
         // landing page focused removes choice paralysis above the fold.
         $allPlans = Plan::where('status', 'active')
             ->where('is_archived', false)
+            ->public()
             ->with('prices')
             ->ordered()
             ->get();

@@ -46,11 +46,48 @@ class PlanController extends Controller
             : 'Plan restored.');
     }
 
+    /**
+     * Deep-copy an existing plan as an editable starting point. The copy
+     * is defensively created as internal + inactive (and never "popular"
+     * or "default") so it can never accidentally go live or appear on a
+     * public surface before the admin has reviewed it. The features blob
+     * and the polymorphic price rows are both carried over.
+     */
+    public function duplicate(Plan $plan)
+    {
+        $copyName = $plan->name . ' (Copy)';
+
+        $clone = $plan->replicate([
+            'slug', 'is_default', 'is_popular', 'is_archived',
+            'created_at', 'updated_at',
+        ]);
+        $clone->name = $copyName;
+        $clone->slug = $this->uniqueSlug($copyName);
+        $clone->is_default = false;
+        $clone->is_popular = false;
+        $clone->is_archived = false;
+        $clone->is_internal = true;
+        $clone->status = 'inactive';
+        $clone->save();
+
+        // Carry over addon attachments and the authoritative price rows.
+        $clone->addons()->sync($plan->addons()->pluck('addons.id')->all());
+        foreach ($plan->prices as $price) {
+            $newPrice = $price->replicate(['created_at', 'updated_at']);
+            $newPrice->priceable_id = $clone->id;
+            $newPrice->save();
+        }
+
+        return redirect()->route('admin.plans.edit', $clone)
+            ->with('success', 'Plan duplicated. The copy is internal (admin-only) and inactive — review and activate it when ready.');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate($this->rules());
         $validated['slug'] = $this->uniqueSlug($validated['name']);
         $validated['is_popular'] = $request->boolean('is_popular');
+        $validated['is_internal'] = $request->boolean('is_internal');
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
@@ -89,6 +126,7 @@ class PlanController extends Controller
     {
         $validated = $request->validate($this->rules());
         $validated['is_popular'] = $request->boolean('is_popular');
+        $validated['is_internal'] = $request->boolean('is_internal');
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
@@ -233,6 +271,7 @@ class PlanController extends Controller
             'status' => 'required|in:active,inactive',
             'sort_order' => 'integer|min:0',
             'is_popular' => 'nullable|boolean',
+            'is_internal' => 'nullable|boolean',
             'features' => 'nullable|array',
 
             // Quantity limits — accept -1 for unlimited.

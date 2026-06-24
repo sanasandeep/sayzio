@@ -7,6 +7,11 @@
                         <i class="fas fa-star mr-1"></i>Most Popular
                     </span>
                 @endif
+                @if($plan->is_internal)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300" title="Admin/staff-only — hidden from public pricing, upgrade and the recommender">
+                        <i class="fas fa-user-shield mr-1"></i>Internal
+                    </span>
+                @endif
             </h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                 {{ $plan->status === 'active' && !$plan->is_archived ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">
@@ -36,6 +41,10 @@
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
             <a href="{{ route('admin.plans.edit', $plan) }}" class="text-white/30 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
+            <form action="{{ route('admin.plans.duplicate', $plan) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="text-white/30 hover:text-violet-400" title="Duplicate (creates an internal, inactive copy)"><i class="fas fa-copy"></i></button>
+            </form>
             <form action="{{ route('admin.plans.archive', $plan) }}" method="POST" class="inline">
                 @csrf
                 <button type="submit" class="text-white/30 hover:text-amber-400" title="{{ $plan->is_archived ? 'Restore' : 'Archive (existing subscribers keep their plan)' }}">

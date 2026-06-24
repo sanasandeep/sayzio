@@ -12,7 +12,7 @@ class Plan extends Model
         'monthly_price_secondary', 'annual_price_secondary',
         'trial_days', 'grace_days', 'refund_window_days',
         'features', 'metadata', 'is_default', 'is_popular', 'status',
-        'is_archived', 'sort_order',
+        'is_archived', 'is_internal', 'sort_order',
     ];
 
     protected function casts(): array
@@ -27,6 +27,7 @@ class Plan extends Model
             'is_default' => 'boolean',
             'is_popular' => 'boolean',
             'is_archived' => 'boolean',
+            'is_internal' => 'boolean',
         ];
     }
 
@@ -58,6 +59,18 @@ class Plan extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order');
+    }
+
+    /**
+     * Self-serve / public surfaces only: excludes "internal" plans that
+     * admins/staff can assign to a user but which must never appear on the
+     * public pricing page, the in-app upgrade page, or the smart-upgrade
+     * recommender (e.g. comp / unlimited plans). Internal plans stay fully
+     * visible in the admin plan listings and the assign-plan picker.
+     */
+    public function scopePublic($query)
+    {
+        return $query->where('is_internal', false);
     }
 
     /**
