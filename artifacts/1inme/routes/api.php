@@ -276,6 +276,12 @@ Route::prefix('v1')->group(function () {
         Route::get ('/admin/schema-health/audits', [\App\Modules\Api\Controllers\SchemaHealthController::class, 'audits']);
         Route::post('/admin/schema-health/repair', [\App\Modules\Api\Controllers\SchemaHealthController::class, 'repair'])->middleware('throttle:10,1');
 
+        // Cron jobs reference (super-admin parity). Read-only list of the
+        // required scheduled jobs plus the single master crontab line, derived
+        // live from routes/console.php via CronJobsInspector and mirroring the
+        // web admin "Cron Jobs" page. Gated behind `settings.manage`.
+        Route::get ('/admin/cron-jobs', [\App\Modules\Api\Controllers\CronJobsController::class, 'index']);
+
         // Admin dashboard switch, role / admin-access assignment and
         // impersonation (mobile parity for the back-office tooling). The
         // operator's authority comes from their email-linked back-office
