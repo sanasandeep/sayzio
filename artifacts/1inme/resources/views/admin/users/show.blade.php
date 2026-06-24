@@ -3,6 +3,26 @@
 @section('page-title', 'User: ' . $user->name)
 
 @section('content')
+@if($user->isSuspended())
+<div class="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="text-sm text-rose-200">
+        <i class="fas fa-ban mr-1"></i>
+        <span class="font-semibold">Account suspended</span>
+        @if($user->suspension_reason)<span class="text-rose-200/80">— {{ $user->suspension_reason }}</span>@endif
+        @if($user->reactivate_at)
+            <span class="block text-xs text-rose-200/60 mt-1">Auto-reactivates on {{ $user->reactivate_at->format('M j, Y') }}</span>
+        @endif
+    </div>
+    @if(auth('admin')->user()?->hasPermission('users.edit'))
+    <form method="POST" action="{{ route('admin.users.reactivate', $user) }}">
+        @csrf
+        <button type="submit" class="px-4 py-2 bg-emerald-500/20 text-emerald-200 rounded-xl text-sm font-medium hover:bg-emerald-500/30 transition">
+            <i class="fas fa-unlock mr-1"></i> Reactivate now
+        </button>
+    </form>
+    @endif
+</div>
+@endif
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-1">
         <div class="glass rounded-2xl border border-white/10  p-6">
@@ -87,6 +107,77 @@
             </form>
         </div>
     </div>
+
+    @if(auth('admin')->user()?->hasPermission('users.edit'))
+    <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {{-- Assign plan, optionally as a complimentary / time-limited grant.
+             Leaving "Complimentary days" blank assigns the plan permanently
+             and clears any prior comp window. --}}
+        <div class="glass rounded-2xl border border-white/10 p-6">
+            <h3 class="text-lg font-semibold text-white mb-1">Assign plan</h3>
+            <p class="text-xs text-white/40 mb-4">Includes internal plans. Add a comp window to auto-revert to the default plan.</p>
+            <form method="POST" action="{{ route('admin.users.assign-plan', $user) }}" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
+                    <select name="plan_id" required
+                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        @foreach($plans as $plan)
+                            <option value="{{ $plan->id }}" {{ $user->plan_id == $plan->id ? 'selected' : '' }}>
+                                {{ $plan->name }}{{ $plan->is_internal ? ' (internal)' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-white/80 mb-1">Complimentary days <span class="text-white/40">(optional)</span></label>
+                    <input type="number" name="comp_days" min="1" max="3650" placeholder="e.g. 30 — leave blank for permanent"
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    @if($user->comp_plan_expires_at)
+                        <p class="text-xs text-amber-300/80 mt-1">Current comp window ends {{ $user->comp_plan_expires_at->format('M j, Y') }}.</p>
+                    @endif
+                </div>
+                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
+                    Assign plan
+                </button>
+            </form>
+        </div>
+
+        {{-- Suspend / reactivate. Suspension takes a required reason and an
+             optional auto-reactivation date enforced at login + by a job. --}}
+        <div class="glass rounded-2xl border border-white/10 p-6">
+            @if($user->isSuspended())
+                <h3 class="text-lg font-semibold text-white mb-1">Reactivate account</h3>
+                <p class="text-xs text-white/40 mb-4">This account is currently on hold. Lift it immediately below.</p>
+                <form method="POST" action="{{ route('admin.users.reactivate', $user) }}">
+                    @csrf
+                    <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition">
+                        <i class="fas fa-unlock mr-1"></i> Reactivate now
+                    </button>
+                </form>
+            @else
+                <h3 class="text-lg font-semibold text-white mb-1">Suspend account</h3>
+                <p class="text-xs text-white/40 mb-4">Blocks sign-in with a reason. Optionally auto-reactivate on a date.</p>
+                <form method="POST" action="{{ route('admin.users.suspend', $user) }}" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Reason</label>
+                        <textarea name="reason" rows="2" required maxlength="1000" placeholder="Shown to the user at sign-in"
+                                  class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Auto-reactivate at <span class="text-white/40">(optional)</span></label>
+                        <input type="datetime-local" name="reactivate_at"
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                    <button type="submit" class="px-6 py-2.5 bg-rose-600 text-white rounded-xl font-medium hover:bg-rose-700 transition">
+                        <i class="fas fa-ban mr-1"></i> Suspend account
+                    </button>
+                </form>
+            @endif
+        </div>
+    </div>
+    @endif
 
     @php
         // The user-detail route is gated by `users.view`, but the task

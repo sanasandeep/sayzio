@@ -64,6 +64,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // offline (marketing, user app, api, biolinks) without a deploy.
         $middleware->append(\App\Modules\Common\Middleware\MaintenanceMode::class);
 
+        // Session-time enforcement of admin temporary holds: an already
+        // signed-in user who gets suspended is logged out on their next
+        // web request (no-op for admin/API guards). See Task #2106.
+        $middleware->web(append: [
+            \App\Modules\User\Middleware\EnsureNotSuspended::class,
+        ]);
+
         $middleware->alias([
             'onboarding.gate'   => \App\Modules\User\Middleware\RedirectToOnboarding::class,
             'api.optional_auth' => \App\Modules\Api\Middleware\OptionalSanctum::class,

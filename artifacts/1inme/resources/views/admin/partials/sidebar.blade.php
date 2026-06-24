@@ -48,6 +48,14 @@
             <span class="sidebar-tooltip">Users</span>
         </a>
 
+        <a href="{{ route('admin.users.activity-log.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.users.activity-log.*') ? 'active' : '' }}"
+           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div>
+            <span class="nav-label">Activity log</span>
+            <span class="sidebar-tooltip">Activity log</span>
+        </a>
+
         <a href="{{ route('admin.staff.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">

@@ -6,6 +6,7 @@ use App\Modules\Admin\Controllers\PasswordResetController;
 use App\Modules\Admin\Controllers\DashboardController;
 use App\Modules\Admin\Controllers\StaffController;
 use App\Modules\Admin\Controllers\UserManagementController;
+use App\Modules\Admin\Controllers\ActivityLogController;
 use App\Modules\Admin\Controllers\UserRoleAuditExportController;
 use App\Modules\Admin\Controllers\RoleController;
 use App\Modules\Admin\Controllers\PlanController;
@@ -604,6 +605,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // there's no dedicated permission slug for it yet.
             Route::get('role-audit-exports', [UserRoleAuditExportController::class, 'index'])->name('role-audit-exports.index');
 
+            // Admin/staff user-management suite (Task #2106). Literal
+            // paths declared before the `{user}` wildcard so they're not
+            // swallowed by the show route.
+            Route::get ('create', [UserManagementController::class, 'create'])->middleware(CheckPermission::class . ':users.edit')->name('create');
+            Route::post('/',       [UserManagementController::class, 'store'])->middleware(CheckPermission::class . ':users.edit')->name('store');
+            Route::post('bulk',    [UserManagementController::class, 'bulkAction'])->middleware(CheckPermission::class . ':users.edit')->name('bulk');
+
+            // Activity log (audit viewer) — read access mirrors the user list.
+            Route::get('activity-log',        [ActivityLogController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('activity-log.index');
+            Route::get('activity-log/export', [ActivityLogController::class, 'export'])->middleware(CheckPermission::class . ':users.view')->name('activity-log.export');
+
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');
             Route::put('{user}', [UserManagementController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->name('update');
             Route::delete('{user}', [UserManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':users.delete')->name('destroy');
@@ -615,6 +627,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get ('{user}/roles/audit.csv', [\App\Modules\Admin\Controllers\UserRoleController::class, 'export'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.audit.export');
             Route::post  ('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'grantAdminAccess'])->middleware(CheckPermission::class . ':staff.create')->whereNumber('user')->name('admin-access.grant');
             Route::delete('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'revokeAdminAccess'])->middleware(CheckPermission::class . ':staff.delete')->whereNumber('user')->name('admin-access.revoke');
+
+            // Plan assignment (incl. comp / time-limited) + temporary hold.
+            Route::post('{user}/assign-plan', [UserManagementController::class, 'assignPlan'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('assign-plan');
+            Route::post('{user}/suspend',     [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('suspend');
+            Route::post('{user}/reactivate',  [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('reactivate');
         });
     });
 });

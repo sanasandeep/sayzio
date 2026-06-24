@@ -355,3 +355,19 @@ Schedule::call(fn () => app(\App\Modules\User\Services\CreatorDigestService::cla
     ->name('creator-digest:weekly')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Task #2106 — hourly: revert accounts whose admin-granted comp /
+// time-limited plan window has elapsed back to the default plan. Idempotent
+// (only touches comp_plan_expires_at <= now and clears the markers).
+Schedule::command('plans:revert-expired-comps')
+    ->hourlyAt(30)
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Task #2106 — hourly: auto-lift admin temporary holds whose scheduled
+// reactivation date has arrived. The login path also clears elapsed holds,
+// so this catches accounts whose owner never signs in during the window.
+Schedule::command('users:reactivate-due')
+    ->hourlyAt(35)
+    ->withoutOverlapping()
+    ->onOneServer();

@@ -191,6 +191,10 @@ class AuthController extends Controller
             return back()->withErrors(['password' => 'Invalid email or password.'])->withInput($request->only('email'));
         }
 
+        if ($msg = $this->suspensionMessage($user)) {
+            return back()->withErrors(['email' => $msg])->withInput($request->only('email'));
+        }
+
         if (($user->status ?? 'active') !== 'active') {
             return back()->withErrors(['email' => 'Your account is not active. Please contact support.'])->withInput($request->only('email'));
         }
@@ -373,6 +377,11 @@ class AuthController extends Controller
 
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
+        if ($user && ($msg = $this->suspensionMessage($user))) {
+            session()->forget(['otp_identifier', 'otp_type']);
+            return redirect()->route('user.login')->withErrors(['email' => $msg]);
+        }
+
         if ($user) {
             // If the user has a confirmed TOTP authenticator, gate the rest
             // of login behind a second-factor challenge instead of logging
@@ -425,6 +434,41 @@ class AuthController extends Controller
         return $type === 'email'
             ? User::where('email', $identifier)->first()
             : User::where('mobile', $identifier)->first();
+    }
+
+    /**
+     * Login gate for admin temporary holds (Task #2106). Returns a
+     * user-facing message (with the reason + any reactivation date) when
+     * the account is suspended, or null when it may sign in. Holds whose
+     * `reactivate_at` has already passed are auto-lifted here so a user
+     * isn't locked out past their scheduled date even before the nightly
+     * reactivation job runs.
+     */
+    private function suspensionMessage(?User $user): ?string
+    {
+        if (!$user || !$user->isSuspended()) {
+            return null;
+        }
+
+        if ($user->reactivate_at && $user->reactivate_at->isPast()) {
+            $user->forceFill([
+                'suspended_at'      => null,
+                'suspension_reason' => null,
+                'suspended_by'      => null,
+                'reactivate_at'     => null,
+            ])->save();
+            return null;
+        }
+
+        $reason = trim((string) $user->suspension_reason);
+        $msg = 'Your account has been suspended.';
+        if ($reason !== '') {
+            $msg .= ' Reason: ' . $reason;
+        }
+        if ($user->reactivate_at) {
+            $msg .= ' It is scheduled to be reactivated on ' . $user->reactivate_at->format('M j, Y') . '.';
+        }
+        return $msg;
     }
 
     public function demoLogin(Request $request)

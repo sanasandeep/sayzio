@@ -53,6 +53,10 @@ class User extends Authenticatable
         'dmca_email', 'creator_digest_last_sent_at',
         // Default Calendar account that "Keep in sync" event invites push to (Task #1233).
         'auto_sync_calendar_account_id',
+        // Admin/staff user-management suite (Task #2106): temporary
+        // hold/suspend + comp/time-limited plan window.
+        'suspended_at', 'suspension_reason', 'suspended_by', 'reactivate_at',
+        'comp_plan_expires_at', 'comp_plan_granted_by',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -107,7 +111,24 @@ class User extends Authenticatable
             'country_block_list'            => 'array',
             'country_allow_list'            => 'array',
             'creator_digest_last_sent_at'   => 'datetime',
+            // Admin/staff user-management suite (Task #2106).
+            'suspended_at'                  => 'datetime',
+            'reactivate_at'                 => 'datetime',
+            'comp_plan_expires_at'          => 'datetime',
+            'suspended_by'                  => 'integer',
+            'comp_plan_granted_by'          => 'integer',
         ];
+    }
+
+    /**
+     * Whether the account is on an admin temporary hold. `suspended_at`
+     * is the source of truth (orthogonal to the active/inactive/banned
+     * `status` column and the separate 18+ adult_flag_* suspension), so
+     * login enforcement and the admin UI both branch on this.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 
     /** Allowed DM access modes — see Task #1210. */

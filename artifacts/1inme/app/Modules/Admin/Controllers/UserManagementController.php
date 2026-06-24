@@ -3,6 +3,10 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\Role;
+use App\Modules\Admin\Services\AdminActionLogger;
+use App\Modules\Admin\Services\UserAccountNotifier;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserRoleAudit;
 use App\Modules\Admin\Models\Plan;
@@ -10,6 +14,9 @@ use App\Modules\User\Services\ReferralService;
 use App\Services\Billing\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserManagementController extends Controller
@@ -145,14 +152,23 @@ class UserManagementController extends Controller
         ];
     }
 
-    public function adjustWallet(Request $request, User $user, WalletService $wallets)
+    public function adjustWallet(Request $request, User $user, WalletService $wallets, AdminActionLogger $audit)
     {
         $data = $request->validate([
             'delta'  => 'required|integer|not_in:0',
             'reason' => 'required|string|max:255',
         ]);
         try {
-            $wallets->adjust($user, (int) $data['delta'], $data['reason'], optional(Auth::user())->id);
+            $delta = (int) $data['delta'];
+            // WalletService::adjust() already fires the user-facing
+            // in-app + email "wallet adjusted" notification, so we only
+            // need to record the operator action in the audit trail.
+            $wallets->adjust($user, $delta, $data['reason'], optional(Auth::guard('admin')->user())->id);
+            $audit->log(
+                $delta >= 0 ? AdminActionLogger::COINS_GRANTED : AdminActionLogger::COINS_DEDUCTED,
+                $user,
+                ['coins' => abs($delta), 'reason' => $data['reason']]
+            );
             return back()->with('success', 'Wallet adjusted.');
         } catch (\App\Services\Billing\InsufficientCoinsException $e) {
             return back()->with('error', "Adjustment would overdraw the wallet (balance {$e->balance}, needs {$e->required}).");
@@ -161,11 +177,325 @@ class UserManagementController extends Controller
         }
     }
 
+    /**
+     * Show the "Create account" form. Staff/admin creation controls are
+     * only surfaced when the operator holds `staff.create` (the same
+     * permission the dedicated Staff page enforces).
+     */
+    public function create()
+    {
+        $plans = Plan::active()->ordered()->get();
+        $operator = Auth::guard('admin')->user();
+        $canCreateStaff = $operator && $operator->hasPermission('staff.create');
+        $roles = $canCreateStaff
+            ? Role::where('guard', 'admin')->orderBy('name')->get()
+            : collect();
+
+        return view('admin.users.create', compact('plans', 'roles', 'canCreateStaff'));
+    }
+
+    /**
+     * Provision a new user account (name, email, handle, initial plan,
+     * optional starting coins, optional password/invite) and — where the
+     * operator is permitted — a matching back-office staff record.
+     */
+    public function store(
+        Request $request,
+        WalletService $wallets,
+        ReferralService $referrals,
+        AdminActionLogger $audit
+    ) {
+        $operator = Auth::guard('admin')->user();
+        $canCreateStaff = $operator && $operator->hasPermission('staff.create');
+
+        $validated = $request->validate([
+            'name'           => 'required|string|max:255',
+            'email'          => 'required|email|max:255|unique:users,email',
+            'handle'         => ['nullable', 'string', 'max:32', 'regex:/^[A-Za-z0-9_.\-]+$/', 'unique:users,handle'],
+            'plan_id'        => 'nullable|exists:plans,id',
+            'starting_coins' => 'nullable|integer|min:1|max:1000000',
+            'password'       => 'nullable|string|min:8',
+            'send_invite'    => 'sometimes|boolean',
+            'create_staff'   => 'sometimes|boolean',
+            'role_id'        => 'required_if:create_staff,1|nullable|exists:roles,id',
+        ]);
+
+        $wantsStaff = $request->boolean('create_staff');
+        if ($wantsStaff && ! $canCreateStaff) {
+            return back()->withInput()->with('error', 'You do not have permission to create staff accounts.');
+        }
+
+        // Auto-generate a password when none is supplied; that path always
+        // emails the user their credentials so they can sign in / reset.
+        $providedPassword = $validated['password'] ?? null;
+        $plainPassword = $providedPassword ?: Str::random(16);
+
+        $planId = $validated['plan_id'] ?? optional(Plan::defaultPlan())->id;
+
+        $user = User::create([
+            'name'     => $validated['name'],
+            'email'    => $validated['email'],
+            'handle'   => $validated['handle'] ?? null,
+            'password' => Hash::make($plainPassword),
+            'status'   => 'active',
+            'plan_id'  => $planId,
+        ]);
+
+        if ($planId && ($plan = Plan::find($planId))) {
+            $referrals->handlePlanActivation($user->fresh(), $plan);
+        }
+
+        $coins = (int) ($validated['starting_coins'] ?? 0);
+        if ($coins > 0) {
+            try {
+                $wallets->adjust($user, $coins, 'Initial coin grant on account creation', $operator?->id);
+            } catch (\Throwable $e) {
+                // Account already exists; a failed coin grant shouldn't abort it.
+            }
+        }
+
+        $staffCreated = false;
+        if ($wantsStaff && $canCreateStaff && ! empty($validated['role_id'])) {
+            if (! Admin::where('email', $validated['email'])->exists()) {
+                Admin::create([
+                    'name'     => $validated['name'],
+                    'email'    => $validated['email'],
+                    'password' => Hash::make($plainPassword),
+                    'role_id'  => $validated['role_id'],
+                    'status'   => 'active',
+                ]);
+                $staffCreated = true;
+            }
+        }
+
+        $audit->log(AdminActionLogger::ACCOUNT_CREATED, $user, [
+            'plan_id'        => $planId,
+            'starting_coins' => $coins,
+            'staff_created'  => $staffCreated,
+            'invited'        => $request->boolean('send_invite') || ! $providedPassword,
+        ]);
+
+        if ($request->boolean('send_invite') || ! $providedPassword) {
+            $this->sendCredentialsEmail($user, $plainPassword);
+        }
+
+        return redirect()->route('admin.users.show', $user)
+            ->with('success', 'Account created successfully.' . ($staffCreated ? ' Staff access granted.' : ''));
+    }
+
+    /**
+     * Assign a plan, optionally as a comp grant (free for N days). A comp
+     * grant records `comp_plan_expires_at` so the scheduled revert job can
+     * drop the account back to the default plan when the window elapses; a
+     * permanent assignment clears any prior comp window.
+     */
+    public function assignPlan(
+        Request $request,
+        User $user,
+        ReferralService $referrals,
+        AdminActionLogger $audit,
+        UserAccountNotifier $notifier
+    ) {
+        $data = $request->validate([
+            'plan_id'   => 'required|exists:plans,id',
+            'comp_days' => 'nullable|integer|min:1|max:3650',
+        ]);
+
+        $plan = Plan::findOrFail($data['plan_id']);
+        $previousPlanId = $user->plan_id;
+        $compDays = $data['comp_days'] ?? null;
+
+        $attrs = ['plan_id' => $plan->id];
+        if ($compDays) {
+            $expires = now()->addDays((int) $compDays);
+            $attrs['plan_expires_at']      = $expires;
+            $attrs['comp_plan_expires_at'] = $expires;
+            $attrs['comp_plan_granted_by'] = Auth::guard('admin')->id();
+        } else {
+            $attrs['comp_plan_expires_at'] = null;
+            $attrs['comp_plan_granted_by'] = null;
+        }
+        $user->update($attrs);
+
+        if ($plan->id != $previousPlanId) {
+            $referrals->handlePlanActivation($user->fresh(), $plan);
+        }
+
+        $audit->log(AdminActionLogger::PLAN_ASSIGNED, $user, [
+            'plan_id'          => $plan->id,
+            'plan_name'        => $plan->name,
+            'previous_plan_id' => $previousPlanId,
+            'comp_days'        => $compDays,
+        ]);
+
+        $notifier->planAssigned($user->fresh(), $plan->name, $compDays);
+
+        return back()->with('success', 'Plan assigned' . ($compDays ? " (complimentary for {$compDays} days)" : '') . '.');
+    }
+
+    /**
+     * Place an account on a temporary hold with a required reason and an
+     * optional auto-reactivation date. Enforced at login/session by the
+     * suspension middleware + auth checks.
+     */
+    public function suspend(
+        Request $request,
+        User $user,
+        AdminActionLogger $audit,
+        UserAccountNotifier $notifier
+    ) {
+        $data = $request->validate([
+            'reason'        => 'required|string|max:1000',
+            'reactivate_at' => 'nullable|date|after:now',
+        ]);
+
+        $reactivateAt = ! empty($data['reactivate_at'])
+            ? \Illuminate\Support\Carbon::parse($data['reactivate_at'])
+            : null;
+
+        $user->update([
+            'suspended_at'      => now(),
+            'suspension_reason' => $data['reason'],
+            'suspended_by'      => Auth::guard('admin')->id(),
+            'reactivate_at'     => $reactivateAt,
+        ]);
+
+        $audit->log(AdminActionLogger::ACCOUNT_SUSPENDED, $user, [
+            'reason'        => $data['reason'],
+            'reactivate_at' => $reactivateAt?->toDateTimeString(),
+        ]);
+
+        $notifier->suspended($user->fresh(), $data['reason'], $reactivateAt);
+
+        return back()->with('success', 'Account suspended.');
+    }
+
+    /** Lift a temporary hold immediately. */
+    public function reactivate(
+        Request $request,
+        User $user,
+        AdminActionLogger $audit,
+        UserAccountNotifier $notifier
+    ) {
+        if (! $user->isSuspended()) {
+            return back()->with('info', 'Account is not currently suspended.');
+        }
+
+        $user->update([
+            'suspended_at'      => null,
+            'suspension_reason' => null,
+            'suspended_by'      => null,
+            'reactivate_at'     => null,
+        ]);
+
+        $audit->log(AdminActionLogger::ACCOUNT_REACTIVATED, $user, []);
+        $notifier->reactivated($user->fresh());
+
+        return back()->with('success', 'Account reactivated.');
+    }
+
+    /**
+     * Bulk "assign plan" / "grant coins" over a set of selected users,
+     * reusing the single-user logic. Coin grants go through the wallet
+     * chokepoint with a per-(batch,user) idempotency key so a duplicate
+     * submit can't double-credit.
+     */
+    public function bulkAction(
+        Request $request,
+        WalletService $wallets,
+        ReferralService $referrals,
+        AdminActionLogger $audit,
+        UserAccountNotifier $notifier
+    ) {
+        $data = $request->validate([
+            'action'      => 'required|in:assign_plan,grant_coins',
+            'user_ids'    => 'required|array|min:1',
+            'user_ids.*'  => 'integer|exists:users,id',
+            'plan_id'     => 'required_if:action,assign_plan|nullable|exists:plans,id',
+            'coins'       => 'required_if:action,grant_coins|nullable|integer|min:1|max:1000000',
+            'reason'      => 'required_if:action,grant_coins|nullable|string|max:255',
+        ]);
+
+        $users = User::whereIn('id', array_unique($data['user_ids']))->get();
+        $operatorId = Auth::guard('admin')->id();
+        $count = 0;
+
+        if ($data['action'] === 'assign_plan') {
+            $plan = Plan::findOrFail($data['plan_id']);
+            foreach ($users as $u) {
+                $prev = $u->plan_id;
+                $u->update([
+                    'plan_id'              => $plan->id,
+                    'comp_plan_expires_at' => null,
+                    'comp_plan_granted_by' => null,
+                ]);
+                if ($plan->id != $prev) {
+                    $referrals->handlePlanActivation($u->fresh(), $plan);
+                }
+                $audit->log(AdminActionLogger::PLAN_ASSIGNED, $u, [
+                    'plan_id'          => $plan->id,
+                    'plan_name'        => $plan->name,
+                    'previous_plan_id' => $prev,
+                    'bulk'             => true,
+                ]);
+                $notifier->planAssigned($u->fresh(), $plan->name, null);
+                $count++;
+            }
+
+            return back()->with('success', "Assigned {$plan->name} to {$count} account(s).");
+        }
+
+        // grant_coins
+        $coins  = (int) $data['coins'];
+        $reason = (string) $data['reason'];
+        $batch  = (string) Str::uuid();
+
+        foreach ($users as $u) {
+            try {
+                $wallets->adjust($u, $coins, $reason, $operatorId, [
+                    'idempotency_key' => "bulk-grant:{$batch}:{$u->id}",
+                ]);
+                $audit->log(AdminActionLogger::COINS_GRANTED, $u, [
+                    'coins'  => $coins,
+                    'reason' => $reason,
+                    'bulk'   => true,
+                    'batch'  => $batch,
+                ]);
+                $count++;
+            } catch (\Throwable $e) {
+                // Skip this user, keep going with the rest of the batch.
+            }
+        }
+
+        return back()->with('success', "Granted {$coins} coins to {$count} account(s).");
+    }
+
+    /** Best-effort credentials/invite email for a freshly created account. */
+    protected function sendCredentialsEmail(User $user, string $plainPassword): void
+    {
+        if (! $user->email) {
+            return;
+        }
+        try {
+            $loginUrl = route('user.login');
+            $body = "An account has been created for you on " . config('app.name') . ".\n\n"
+                . "Email: {$user->email}\n"
+                . "Temporary password: {$plainPassword}\n\n"
+                . "Sign in here: {$loginUrl}\n"
+                . "Please change your password after your first sign-in.";
+            \Illuminate\Support\Facades\Mail::raw($body, function ($m) use ($user) {
+                $m->to($user->email)->subject('Your new ' . config('app.name') . ' account');
+            });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::info('Account credentials email skipped: ' . $e->getMessage());
+        }
+    }
+
     public function update(Request $request, User $user, ReferralService $referrals)
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'status' => 'sometimes|in:active,inactive,banned',
+            'status' => 'sometimes|in:active,inactive,banned,suspended',
             'plan_id' => 'sometimes|nullable|exists:plans,id',
             'plan_expires_at' => 'sometimes|nullable|date',
         ]);
