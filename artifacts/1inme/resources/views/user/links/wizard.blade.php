@@ -3,23 +3,25 @@
 
 @php
     /** @var \App\Modules\User\Models\BiolinkWizardDraft|null $draft */
-    $step             = (int) ($step ?? 0);
-    $categories       = $categories ?? [];
-    $pageTypes        = $pageTypes  ?? [];
-    $industriesByType = $industriesByType ?? [];
-    $basics           = $basics     ?? [];
-    $additional       = $additional ?? [];
-    $answers          = $draft?->answers ?? [];
+    $step                = (int) ($step ?? 0);
+    $groups              = $groups ?? [];
+    $groupPersonas       = $groupPersonas ?? [];
+    $industriesByPersona = $industriesByPersona ?? [];
+    $startingDesigns     = $startingDesigns ?? [];
+    $basics              = $basics     ?? [];
+    $additional          = $additional ?? [];
+    $answers             = $draft?->answers ?? [];
 
-    $totalSteps  = 4;
+    // Ladder: 0 group · 1 persona · 2 starting design · 3 basics · 4 additional.
+    $totalSteps  = 5;
     $progressPct = (int) round((($step + 1) / $totalSteps) * 100);
 
-    $currentCategory = collect($categories)->firstWhere('slug', $draft?->category);
-    $currentPageType = collect($pageTypes)->firstWhere('slug', $draft?->page_type);
-    // The chosen niche label, if any, looked up in the current page type's
-    // refinement list (the old standalone industry step, folded into step 2).
-    $currentIndustry = $draft?->page_type
-        ? collect($industriesByType[$draft->page_type] ?? [])->firstWhere('slug', $draft?->industry)
+    $currentGroup    = collect($groups)->firstWhere('key', $personaGroup ?? $draft?->persona_group);
+    $currentPersona  = $personaLabel ?? null;
+    // The chosen niche label, if any, looked up in the current persona's
+    // refinement list (the optional industry refinement, folded into step 1).
+    $currentIndustry = ($selectedPersona ?? $draft?->persona)
+        ? collect($industriesByPersona[$selectedPersona ?? $draft?->persona] ?? [])->firstWhere('slug', $draft?->industry)
         : null;
 @endphp
 
@@ -56,8 +58,8 @@
         <div class="flex items-center justify-between text-xs text-white/50 mb-2">
             <span>Step {{ $step + 1 }} of {{ $totalSteps }}</span>
             <span class="hidden sm:inline">
-                @if($currentCategory)<span class="text-white/70">{{ $currentCategory['label'] }}</span>@endif
-                @if($currentPageType) · <span class="text-white/70">{{ $currentPageType['label'] }}</span>@endif
+                @if($currentGroup)<span class="text-white/70">{{ $currentGroup['label'] }}</span>@endif
+                @if($currentPersona) · <span class="text-white/70">{{ $currentPersona }}</span>@endif
                 @if($currentIndustry) · <span class="text-white/70">{{ $currentIndustry['label'] }}</span>@endif
             </span>
         </div>
@@ -99,39 +101,30 @@
 
         <form method="POST" action="{{ route('user.links.wizard.save') }}">
             @csrf
-            <input type="hidden" name="_action" value="pick_category">
+            <input type="hidden" name="_action" value="pick_group">
 
             <h2 class="text-xl font-semibold text-white mb-1">What kind of page is this?</h2>
             <p class="text-sm text-white/50 mb-6">Pick the closest match — you can change anything later.</p>
 
             @php $catIndex = 0; @endphp
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach($categories as $cat)
-                    <button type="submit" name="category" value="{{ $cat['slug'] }}"
+                @foreach($groups as $grp)
+                    <button type="submit" name="persona_group" value="{{ $grp['key'] }}"
                         class="lt-card-reveal group text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:hover:-translate-y-1
-                               {{ $draft?->category === $cat['slug']
+                               {{ ($personaGroup ?? $draft?->persona_group) === $grp['key']
                                     ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
                                     : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20' }}"
                         style="animation-delay: {{ min($catIndex++ * 45, 540) }}ms">
-                        <div class="relative rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] aspect-[5/3]">
-                            <img src="{{ url('/wizard-placeholders/' . $cat['slug'] . '.svg') }}"
-                                 alt="{{ $cat['label'] }} preview" loading="lazy"
-                                 class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.06]"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="absolute inset-0 hidden items-center justify-center bg-violet-500/15 text-violet-300">
-                                <i class="fas {{ $cat['icon'] }} text-3xl"></i>
-                            </div>
-                        </div>
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-9 h-9 rounded-lg bg-violet-500/15 text-violet-300 flex items-center justify-center flex-shrink-0">
-                                    <i class="fas {{ $cat['icon'] }}"></i>
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/15 text-violet-300 flex items-center justify-center flex-shrink-0 text-lg">
+                                    <i class="fas {{ $grp['icon'] }}"></i>
                                 </div>
-                                <div class="text-sm font-semibold text-white truncate">{{ $cat['label'] }}</div>
+                                <div class="text-sm font-semibold text-white truncate">{{ $grp['label'] }}</div>
                             </div>
                             <i class="fas fa-arrow-right text-white/20 group-hover:text-violet-400 transition-colors flex-shrink-0"></i>
                         </div>
-                        <div class="text-xs text-white/50 leading-relaxed">{{ $cat['blurb'] }}</div>
+                        <div class="text-xs text-white/50 leading-relaxed">{{ $grp['blurb'] }}</div>
                     </button>
                 @endforeach
             </div>
@@ -139,29 +132,28 @@
     @endif
 
     {{-- ─────────────────────────────────────────────────────────────── --}}
-    {{-- Step 1 · Page type                                               --}}
+    {{-- Step 1 · Persona                                                 --}}
     {{-- ─────────────────────────────────────────────────────────────── --}}
-    {{-- Profile type + optional niche refinement (folded in). The page-type
-         cards now select-then-Continue (Alpine) so we can show an inline,
-         optional niche picker for combos that have a specific industries()
-         list before advancing. --}}
+    {{-- The personas inside the chosen group + an optional niche refinement
+         (folded in). Cards select-then-Continue (Alpine) so we can show an
+         inline, optional niche picker for personas whose resolved combo has a
+         specific industries() list before advancing. --}}
     @if($step === 1)
         <form method="POST" action="{{ route('user.links.wizard.save') }}"
-              x-data="{ pt: @js($draft?->page_type ?? ''), ind: @js($draft?->industry ?? '') }">
+              x-data="{ persona: @js($selectedPersona ?? $draft?->persona ?? ''), ind: @js($draft?->industry ?? '') }">
             @csrf
-            <input type="hidden" name="page_type" :value="pt">
+            <input type="hidden" name="persona" :value="persona">
             <input type="hidden" name="industry" :value="ind">
 
-            <h2 class="text-xl font-semibold text-white mb-1">More specifically — what fits best?</h2>
+            <h2 class="text-xl font-semibold text-white mb-1">Which best describes you?</h2>
             <p class="text-sm text-white/50 mb-6">We'll tailor the questions and the layout to this choice.</p>
 
             @php $ptIndex = 0; @endphp
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                @foreach($pageTypes as $pt)
-                    @php $ptIcon = \App\Modules\User\Services\BiolinkWizardQuestions::pageTypeIcon($draft->category, $pt['slug']); @endphp
-                    <button type="button" @click="pt = @js($pt['slug']); ind = ''"
+                @foreach($groupPersonas as $p)
+                    <button type="button" @click="persona = @js($p['slug']); ind = ''"
                         class="lt-card-reveal group relative overflow-hidden rounded-2xl p-5 text-left border transition-all duration-200 motion-safe:hover:-translate-y-1"
-                        :class="pt === @js($pt['slug'])
+                        :class="persona === @js($p['slug'])
                                     ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
                                     : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20'"
                         style="animation-delay: {{ min($ptIndex++ * 45, 540) }}ms">
@@ -169,26 +161,28 @@
                         <div class="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div class="relative flex items-start gap-4">
                             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-lg transition-all duration-200"
-                                 :class="pt === @js($pt['slug'])
+                                 :class="persona === @js($p['slug'])
                                             ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
                                             : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105'">
-                                <i class="fas {{ $ptIcon }}"></i>
+                                <i class="fas {{ $p['icon'] ?? 'fa-user' }}"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="text-white font-semibold">{{ $pt['label'] }}</div>
-                                <div class="text-xs text-white/50 mt-1 leading-relaxed">{{ $pt['blurb'] }}</div>
+                                <div class="text-white font-semibold">{{ $p['label'] }}</div>
+                                @if(!empty($p['blurb']))
+                                    <div class="text-xs text-white/50 mt-1 leading-relaxed">{{ $p['blurb'] }}</div>
+                                @endif
                             </div>
-                            <i class="fas fa-check text-violet-400 flex-shrink-0 mt-1" x-show="pt === @js($pt['slug'])" x-cloak></i>
+                            <i class="fas fa-check text-violet-400 flex-shrink-0 mt-1" x-show="persona === @js($p['slug'])" x-cloak></i>
                         </div>
                     </button>
                 @endforeach
             </div>
 
-            {{-- Optional niche refinement — only rendered for the selected page
-                 type when it has a specific industries() list. Drives placeholder
-                 imagery/accent; entirely skippable (leave none selected). --}}
-            @foreach($industriesByType as $ptSlug => $inds)
-                <div x-show="pt === @js($ptSlug)" x-cloak class="mt-7">
+            {{-- Optional niche refinement — only rendered for the selected
+                 persona when its resolved combo has a specific industries()
+                 list. Drives placeholder imagery/accent; entirely skippable. --}}
+            @foreach($industriesByPersona as $personaSlug => $inds)
+                <div x-show="persona === @js($personaSlug)" x-cloak class="mt-7">
                     <div class="flex items-center gap-2 mb-1">
                         <h3 class="text-sm font-semibold text-white">Refine your niche</h3>
                         <span class="text-[10px] uppercase tracking-wider text-white/30">optional</span>
@@ -219,7 +213,7 @@
                 <button type="submit" name="_action" value="back" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                     <i class="fas fa-arrow-left mr-1.5 text-xs"></i> Back
                 </button>
-                <button type="submit" name="_action" value="pick_page_type" x-bind:disabled="!pt"
+                <button type="submit" name="_action" value="pick_persona" x-bind:disabled="!persona"
                         class="bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
                     Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
                 </button>
@@ -228,9 +222,102 @@
     @endif
 
     {{-- ─────────────────────────────────────────────────────────────── --}}
-    {{-- Step 2 · Basic profile & branding                                --}}
+    {{-- Step 2 · Pick a starting design                                  --}}
     {{-- ─────────────────────────────────────────────────────────────── --}}
+    {{-- Persona-tagged page templates (+ "Start from scratch"). Selecting a
+         template seeds the page snapshot; the wizard answers / AI are layered
+         on top at generation. Locked (over-tier) designs are shown but not
+         selectable. Cards select-then-Continue via Alpine. --}}
     @if($step === 2)
+        <form method="POST" action="{{ route('user.links.wizard.save') }}"
+              x-data="{ tpl: @js((string) ($selectedTemplateId ?? '')) }">
+            @csrf
+            <input type="hidden" name="_action" value="pick_template">
+            <input type="hidden" name="template_id" :value="tpl">
+
+            <h2 class="text-xl font-semibold text-white mb-1">Pick a starting design</h2>
+            <p class="text-sm text-white/50 mb-6">
+                Start from a ready-made layout for {{ $currentPersona ?? 'your page' }} — we'll fill it with your details — or start from a blank page.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {{-- Start from scratch — always first, the original recipe/AI path. --}}
+                <button type="button" @click="tpl = ''"
+                    class="lt-card-reveal group text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:hover:-translate-y-1"
+                    :class="tpl === ''
+                                ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06]'">
+                    <div class="relative rounded-xl overflow-hidden border border-dashed border-white/15 bg-white/[0.02] aspect-[5/3] flex items-center justify-center">
+                        <i class="fas fa-wand-magic-sparkles text-3xl text-violet-300/70"></i>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="text-sm font-semibold text-white">Start from scratch</div>
+                        <i class="fas fa-check text-violet-400 flex-shrink-0" x-show="tpl === ''" x-cloak></i>
+                    </div>
+                    <div class="text-xs text-white/50 leading-relaxed">Build a fresh page from your answers — no template.</div>
+                </button>
+
+                @php $tdIndex = 1; @endphp
+                @foreach($startingDesigns as $td)
+                    @php $val = (string) $td['id']; $locked = !empty($td['locked']); @endphp
+                    <button type="button" @if($locked) disabled @else @click="tpl = @js($val)" @endif
+                        class="lt-card-reveal group relative text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 {{ $locked ? 'border-white/10 bg-white/[0.02] opacity-60 cursor-not-allowed' : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] motion-safe:hover:-translate-y-1' }}"
+                        @unless($locked)
+                            :class="tpl === @js($val)
+                                        ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                        : ''"
+                        @endunless
+                        style="animation-delay: {{ min($tdIndex++ * 45, 540) }}ms">
+                        <div class="relative rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] aspect-[5/3]">
+                            @if(!empty($td['thumbnail_url']))
+                                <img src="{{ $td['thumbnail_url'] }}" alt="{{ $td['name'] }} preview" loading="lazy"
+                                     class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.06]"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="absolute inset-0 hidden items-center justify-center bg-violet-500/10 text-violet-300">
+                                    <i class="fas fa-layer-group text-2xl"></i>
+                                </div>
+                            @else
+                                <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-violet-500/12 to-fuchsia-500/8 text-violet-300">
+                                    <i class="fas fa-layer-group text-2xl"></i>
+                                </div>
+                            @endif
+                            @if($td['recommended'])
+                                <div class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/90 text-white"><i class="fas fa-wand-magic-sparkles mr-1"></i>Recommended</div>
+                            @endif
+                            @if($locked)
+                                <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i>{{ $td['plan_tier'] }}</div>
+                            @endif
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="text-sm font-semibold text-white truncate">{{ $td['name'] }}</div>
+                            @unless($locked)
+                                <i class="fas fa-check text-violet-400 flex-shrink-0" x-show="tpl === @js($val)" x-cloak></i>
+                            @endunless
+                        </div>
+                        <div class="flex items-center gap-2 text-[11px] text-white/40">
+                            <span>{{ $td['category_label'] }}</span>
+                            <span>·</span>
+                            <span>{{ $td['blocks_count'] }} {{ \Illuminate\Support\Str::plural('block', $td['blocks_count']) }}</span>
+                        </div>
+                    </button>
+                @endforeach
+            </div>
+
+            <div class="mt-7 flex items-center justify-between gap-3">
+                <button type="submit" name="_action" value="back" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                    <i class="fas fa-arrow-left mr-1.5 text-xs"></i> Back
+                </button>
+                <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                    Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
+                </button>
+            </div>
+        </form>
+    @endif
+
+    {{-- ─────────────────────────────────────────────────────────────── --}}
+    {{-- Step 3 · Basic profile & branding                                --}}
+    {{-- ─────────────────────────────────────────────────────────────── --}}
+    @if($step === 3)
         <form method="POST" action="{{ route('user.links.wizard.save') }}" enctype="multipart/form-data" id="wizardBasicsForm">
             @csrf
             <input type="hidden" name="_action" value="save_basics">
@@ -289,9 +376,9 @@
     @endif
 
     {{-- ─────────────────────────────────────────────────────────────── --}}
-    {{-- Step 3 · Additional content                                      --}}
+    {{-- Step 4 · Additional content                                      --}}
     {{-- ─────────────────────────────────────────────────────────────── --}}
-    @if($step >= 3)
+    @if($step >= 4)
         <form method="POST" action="{{ route('user.links.wizard.finish') }}" enctype="multipart/form-data" id="wizardFinishForm">
             @csrf
 
@@ -306,6 +393,10 @@
                 // scans as a few short groups instead of one long list. The
                 // identity fields (always merged in first by baseIdentity) form
                 // "The basics"; everything else is "Links & details".
+                // The flat question set is derived from the draft's resolved
+                // (category, page_type, industry) — the controller doesn't pass
+                // it as a view var, so build it here from the same source.
+                $questions = \App\Modules\User\Services\BiolinkWizardQuestions::questions($draft->category, $draft->page_type, $draft->industry);
                 $identityKeys = ['display_name', 'headline', 'bio', 'avatar', 'brand_color'];
                 $basics = $details = [];
                 foreach ($questions as $q) {
@@ -524,8 +615,8 @@
          locally on every change so refreshes / accidental tab closes don't
          lose work, and pushes the same payload to the server every 5s when
          there are unsaved edits. The local cache is MERGED across steps so
-         step 2 (basics) and step 3 (additional) never clobber each other. --}}
-    @if($step >= 2)
+         step 3 (basics) and step 4 (additional) never clobber each other. --}}
+    @if($step >= 3)
         <script>
             (function () {
                 const main = document.getElementById('wizardFinishForm')

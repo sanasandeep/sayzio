@@ -27,17 +27,29 @@ import {
   generateWizardPage,
   getWizardQuestions,
   getWizardResources,
+  getWizardStartingDesigns,
   getWizardTaxonomy,
   uploadWizardImage,
   type WizardIndustry,
+  type WizardPersona,
   type WizardQuestion,
+  type WizardStartingDesign,
   type WizardVaultFile,
 } from "@/lib/api/wizard";
 
-// The four-step guided flow, mirroring the web wizard:
-//   industry (category) → profile type (+ optional inline niche) → basic
-//   profile & branding → additional content.
-type Step = "category" | "page_type" | "basics" | "additional";
+// The five-step guided flow, mirroring the web wizard (PersonaCatalog taxonomy):
+//   persona group → persona (+ optional inline niche) → starting design →
+//   basic profile & branding → additional content.
+type Step = "group" | "persona" | "design" | "basics" | "additional";
+
+const STEP_ORDER: Step[] = [
+  "group",
+  "persona",
+  "design",
+  "basics",
+  "additional",
+];
+const TOTAL_STEPS = STEP_ORDER.length;
 
 // Mirrors Link::BIOLINK_FAMILY on the server — the wizard always produces a
 // link of one of these types, so they all count toward the `max_biolinks` cap.
@@ -112,40 +124,14 @@ export default function BiolinkWizardScreen() {
     prefillAnswers?: string;
   }>();
 
-  const [step, setStep] = useState<Step>("category");
-  const [category, setCategory] = useState<string | null>(null);
-  const [pageType, setPageType] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>("group");
+  const [group, setGroup] = useState<string | null>(null);
+  const [persona, setPersona] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
+  // The chosen starting design (null = "Start from scratch"). Seeds the page
+  // snapshot before the recipe/AI layers the user's answers on top.
+  const [templateId, setTemplateId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-
-  // When arriving from a card/brochure scan, the review screen passes the
-  // seeded answers (and a category) so the user lands a step in with their
-  // details pre-filled. Applied once; answers persist as they pick a page type.
-  const prefilled = useRef(false);
-  useEffect(() => {
-    if (prefilled.current) return;
-    if (!params.prefillCategory && !params.prefillAnswers) return;
-    prefilled.current = true;
-    if (params.prefillAnswers) {
-      try {
-        const parsed = JSON.parse(params.prefillAnswers) as Record<
-          string,
-          unknown
-        >;
-        const seeded: Record<string, string> = {};
-        for (const [k, v] of Object.entries(parsed)) {
-          if (typeof v === "string" && v.trim() !== "") seeded[k] = v;
-        }
-        if (Object.keys(seeded).length) setAnswers(seeded);
-      } catch {
-        // Ignore malformed prefill — fall back to a blank wizard.
-      }
-    }
-    if (typeof params.prefillCategory === "string" && params.prefillCategory) {
-      setCategory(params.prefillCategory);
-      setStep("page_type");
-    }
-  }, [params.prefillCategory, params.prefillAnswers]);
 
   const [busy, setBusy] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
@@ -177,18 +163,35 @@ export default function BiolinkWizardScreen() {
   });
   const aiEnabled = resourcesQ.data?.ai_enabled ?? false;
 
-  const pageTypes = useMemo(
-    () => (category ? (taxonomyQ.data?.page_types[category] ?? []) : []),
-    [taxonomyQ.data, category],
+  // Step 1: the personas inside the chosen group (the second-level tiles).
+  const personas = useMemo<WizardPersona[]>(
+    () => (group ? (taxonomyQ.data?.personas[group] ?? []) : []),
+    [taxonomyQ.data, group],
   );
-  // The optional niche refinement, folded into the profile-type step. The
-  // taxonomy endpoint only returns a list for combos that have a *specific*
-  // industries() set, so an empty list means "no refinement for this combo"
-  // and the inline chips are simply not shown.
+  // The selected persona object — carries the legacy (category, page_type)
+  // combo the (unchanged) questions/generate endpoints are driven by.
+  const personaObj = useMemo<WizardPersona | null>(
+    () => personas.find((p) => p.slug === persona) ?? null,
+    [personas, persona],
+  );
+  const category = personaObj?.category ?? null;
+  const pageType = personaObj?.page_type ?? null;
+
+  // The optional niche refinement, folded into the persona step. The taxonomy
+  // only returns a list for personas whose combo has a *specific* industries()
+  // set, so an empty list means "no refinement here" and the chips are hidden.
   const industries = useMemo<WizardIndustry[]>(() => {
-    if (!category || !pageType) return [];
-    return taxonomyQ.data?.industries[`${category}.${pageType}`] ?? [];
-  }, [taxonomyQ.data, category, pageType]);
+    if (!persona) return [];
+    return taxonomyQ.data?.industries_by_persona[persona] ?? [];
+  }, [taxonomyQ.data, persona]);
+
+  // Step 2: persona-tagged starting designs (+ a "Start from scratch" card the
+  // client renders alongside). Loaded once the user reaches the design step.
+  const designsQ = useQuery({
+    queryKey: ["wizard-starting-designs", persona],
+    queryFn: () => getWizardStartingDesigns({ persona: persona! }),
+    enabled: step === "design" && !!persona,
+  });
 
   // Questions load once the combo is locked in (on the two content steps).
   const questionsQ = useQuery({
@@ -202,6 +205,49 @@ export default function BiolinkWizardScreen() {
     enabled:
       (step === "basics" || step === "additional") && !!category && !!pageType,
   });
+
+  // When arriving from a card/brochure scan, the review screen passes the seeded
+  // answers plus a legacy category. We seed the answers and, once the taxonomy
+  // has loaded, map that category to the first matching persona so the user
+  // lands on the starting-design step with their details pre-filled. Applied
+  // once. Falls back to a blank wizard if no persona matches.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current) return;
+    if (!params.prefillCategory && !params.prefillAnswers) return;
+    if (params.prefillCategory && !taxonomyQ.data) return; // wait for taxonomy
+
+    prefilled.current = true;
+
+    if (params.prefillAnswers) {
+      try {
+        const parsed = JSON.parse(params.prefillAnswers) as Record<
+          string,
+          unknown
+        >;
+        const seeded: Record<string, string> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === "string" && v.trim() !== "") seeded[k] = v;
+        }
+        if (Object.keys(seeded).length) setAnswers(seeded);
+      } catch {
+        // Ignore malformed prefill — fall back to a blank wizard.
+      }
+    }
+
+    const cat = params.prefillCategory;
+    if (typeof cat === "string" && cat && taxonomyQ.data) {
+      for (const [groupKey, list] of Object.entries(taxonomyQ.data.personas)) {
+        const match = list.find((p) => p.category === cat);
+        if (match) {
+          setGroup(groupKey);
+          setPersona(match.slug);
+          setStep("design");
+          break;
+        }
+      }
+    }
+  }, [params.prefillCategory, params.prefillAnswers, taxonomyQ.data]);
 
   // The wizard always produces a biolink-family link, so its real upfront
   // plan gate is the `max_biolinks` / `max_links` quota (mirrors the server
@@ -249,24 +295,27 @@ export default function BiolinkWizardScreen() {
     setStep(to);
   }
 
-  function pickCategory(slug: string) {
-    setCategory(slug);
-    setPageType(null);
+  // Step 0 → 1: pick a persona group, reset everything downstream.
+  function pickGroup(key: string) {
+    setGroup(key);
+    setPersona(null);
     setIndustry(null);
+    setTemplateId(null);
     setAnswers({});
     setSelectedMinds(new Set());
     setIncludePlatformMind(false);
     setSelectedFiles(new Set());
-    reset("page_type");
+    reset("persona");
   }
 
-  // Select a profile type WITHOUT advancing — the optional niche refinement is
-  // shown inline below the cards, and a Continue button moves on. Changing the
-  // page type resets the niche + answers since the question set changes.
-  function selectPageType(slug: string) {
-    if (slug === pageType) return;
-    setPageType(slug);
+  // Select a persona WITHOUT advancing — the optional niche refinement is shown
+  // inline below the cards, and a Continue button moves on. Changing the persona
+  // resets the niche, template and answers since the question set changes.
+  function selectPersona(slug: string) {
+    if (slug === persona) return;
+    setPersona(slug);
     setIndustry(null);
+    setTemplateId(null);
     setAnswers({});
     setError(null);
     setFieldErrors({});
@@ -282,15 +331,29 @@ export default function BiolinkWizardScreen() {
     setIndustry((cur) => (cur === slug ? null : slug));
   }
 
-  function continueFromPageType() {
-    if (!pageType) return;
+  function continueFromPersona() {
+    if (!persona) return;
+    reset("design");
+  }
+
+  // Step 2: choose a starting design (or "Start from scratch" → null) and
+  // advance. A locked template can't be selected — prompt to upgrade instead.
+  function pickTemplate(design: WizardStartingDesign | null) {
+    if (design?.locked) {
+      showUpgradePrompt({
+        message: `"${design.name}" is available on a higher plan. Upgrade to start from this design.`,
+      });
+      return;
+    }
+    setTemplateId(design ? design.id : null);
     reset("basics");
   }
 
   function goBack() {
     setError(null);
-    if (step === "page_type") reset("category");
-    else if (step === "basics") reset("page_type");
+    if (step === "persona") reset("group");
+    else if (step === "design") reset("persona");
+    else if (step === "basics") reset("design");
     else if (step === "additional") reset("basics");
     else router.back();
   }
@@ -351,9 +414,9 @@ export default function BiolinkWizardScreen() {
     setBusy(true);
     try {
       const link = await generateWizardPage({
-        category,
-        page_type: pageType,
+        persona,
         industry,
+        template_id: templateId,
         answers,
       });
       router.replace(`/links/${link.id}/blocks` as any);
@@ -381,9 +444,9 @@ export default function BiolinkWizardScreen() {
     setAiBusy(true);
     try {
       const link = await aiGenerateWizardPage({
-        category,
-        page_type: pageType,
+        persona,
         industry,
+        template_id: templateId,
         answers,
         ai_mind_ids: [...selectedMinds],
         include_platform_mind: includePlatformMind,
@@ -403,14 +466,7 @@ export default function BiolinkWizardScreen() {
     }
   }
 
-  const stepIndex =
-    step === "category"
-      ? 0
-      : step === "page_type"
-        ? 1
-        : step === "basics"
-          ? 2
-          : 3;
+  const stepIndex = STEP_ORDER.indexOf(step);
 
   // The server pre-splits the question set into the two content steps (single
   // source of truth shared with the web wizard): the basic profile & branding
@@ -426,25 +482,29 @@ export default function BiolinkWizardScreen() {
       <ScrollView contentContainerStyle={styles.body}>
         <View style={{ gap: 6 }}>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>
-            Step {stepIndex + 1} of 4
+            Step {stepIndex + 1} of {TOTAL_STEPS}
           </Text>
           <Text style={[styles.heading, { color: colors.foreground }]}>
-            {step === "category"
+            {step === "group"
               ? "What are you building?"
-              : step === "page_type"
-                ? "Pick a profile type"
-                : step === "basics"
-                  ? "Profile & branding"
-                  : "Add your content"}
+              : step === "persona"
+                ? "Pick the closest match"
+                : step === "design"
+                  ? "Pick a starting design"
+                  : step === "basics"
+                    ? "Profile & branding"
+                    : "Add your content"}
           </Text>
           <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-            {step === "category"
+            {step === "group"
               ? "We'll generate an opinionated page tailored to your choice."
-              : step === "page_type"
-                ? "Tailor the layout — then optionally refine your niche."
-                : step === "basics"
-                  ? "The essentials visitors see first — name, bio, photo and accent."
-                  : "Add what applies — skip the rest. Tweak any block afterwards."}
+              : step === "persona"
+                ? "Choose who you are — then optionally refine your niche."
+                : step === "design"
+                  ? "Start from a ready-made design, or from scratch."
+                  : step === "basics"
+                    ? "The essentials visitors see first — name, bio, photo and accent."
+                    : "Add what applies — skip the rest. Tweak any block afterwards."}
           </Text>
         </View>
 
@@ -457,7 +517,7 @@ export default function BiolinkWizardScreen() {
               styles.progressFill,
               {
                 backgroundColor: colors.primary,
-                width: `${((stepIndex + 1) / 4) * 100}%`,
+                width: `${((stepIndex + 1) / TOTAL_STEPS) * 100}%`,
               },
             ]}
           />
@@ -495,35 +555,35 @@ export default function BiolinkWizardScreen() {
           </Text>
         ) : null}
 
-        {step === "category" && taxonomyQ.data
-          ? taxonomyQ.data.categories.map((c) => (
+        {step === "group" && taxonomyQ.data
+          ? taxonomyQ.data.groups.map((g) => (
               <ChoiceCard
-                key={c.slug}
-                title={c.label}
-                blurb={c.blurb}
-                icon={c.icon}
-                selected={category === c.slug}
-                onPress={() => pickCategory(c.slug)}
+                key={g.key}
+                title={g.label}
+                blurb={g.blurb}
+                icon={g.icon}
+                selected={group === g.key}
+                onPress={() => pickGroup(g.key)}
               />
             ))
           : null}
 
-        {step === "page_type" ? (
+        {step === "persona" ? (
           <>
-            {pageTypes.map((p) => (
+            {personas.map((p) => (
               <ChoiceCard
                 key={p.slug}
                 title={p.label}
                 blurb={p.blurb}
                 icon={p.icon}
-                selected={pageType === p.slug}
-                onPress={() => selectPageType(p.slug)}
+                selected={persona === p.slug}
+                onPress={() => selectPersona(p.slug)}
               />
             ))}
 
-            {/* Optional niche refinement, folded in — only for combos with a
+            {/* Optional niche refinement, folded in — only for personas with a
                 specific industries() list (the taxonomy omits the rest). */}
-            {pageType && industries.length ? (
+            {persona && industries.length ? (
               <View style={{ gap: 10, marginTop: 6 }}>
                 <View style={{ gap: 2 }}>
                   <Text
@@ -556,10 +616,61 @@ export default function BiolinkWizardScreen() {
 
             <Button
               label="Continue"
-              onPress={continueFromPageType}
-              disabled={!pageType}
+              onPress={continueFromPersona}
+              disabled={!persona}
             />
           </>
+        ) : null}
+
+        {step === "design" ? (
+          designsQ.isLoading ? (
+            <ActivityIndicator
+              color={colors.primary}
+              style={{ marginTop: 24 }}
+            />
+          ) : designsQ.isError ? (
+            <>
+              <Text style={{ color: colors.destructive }}>
+                Couldn&apos;t load designs. Go back and retry, or start from
+                scratch below.
+              </Text>
+              {/* Even when template fetch fails, the user can always proceed
+                  from scratch so the design step never becomes a dead end. */}
+              <StartingDesignCard
+                title="Start from scratch"
+                blurb="A clean page built from your answers — no template."
+                icon="fa-wand-magic-sparkles"
+                selected={templateId === null}
+                onPress={() => pickTemplate(null)}
+              />
+            </>
+          ) : (
+            <>
+              {/* Always-available "Start from scratch" option (templateId = null). */}
+              <StartingDesignCard
+                title="Start from scratch"
+                blurb="A clean page built from your answers — no template."
+                icon="fa-wand-magic-sparkles"
+                selected={templateId === null}
+                onPress={() => pickTemplate(null)}
+              />
+
+              {(designsQ.data ?? []).map((d) => (
+                <StartingDesignCard
+                  key={d.id}
+                  title={d.name}
+                  blurb={d.description}
+                  thumbnailUrl={d.thumbnail_url}
+                  icon="fa-table-cells-large"
+                  recommended={d.recommended}
+                  locked={d.locked}
+                  blocksCount={d.blocks_count}
+                  selected={templateId === d.id}
+                  onPress={() => pickTemplate(d)}
+                />
+              ))}
+            </>
+          )
         ) : null}
 
         {step === "basics" || step === "additional" ? (
@@ -662,7 +773,7 @@ export default function BiolinkWizardScreen() {
           <Text style={{ color: colors.destructive }}>{error}</Text>
         ) : null}
 
-        {step !== "category" ? (
+        {step !== "group" ? (
           <Pressable onPress={goBack} style={{ marginTop: 8 }}>
             <Text style={[styles.back, { color: colors.mutedForeground }]}>
               ← Back
@@ -783,6 +894,119 @@ function IndustryTile({
       >
         {label}
       </Text>
+    </Pressable>
+  );
+}
+
+// A starting-design choice card for the design step. Shows a template thumbnail
+// (or a fallback icon), a "Recommended" badge for persona-matched designs, and
+// an upgrade lock for plan-gated templates. Tapping a locked card prompts an
+// upgrade rather than selecting it (handled by the parent's pickTemplate).
+function StartingDesignCard({
+  title,
+  blurb,
+  icon,
+  thumbnailUrl,
+  recommended,
+  locked,
+  blocksCount,
+  selected,
+  onPress,
+}: {
+  title: string;
+  blurb?: string;
+  icon: string;
+  thumbnailUrl?: string | null;
+  recommended?: boolean;
+  locked?: boolean;
+  blocksCount?: number;
+  selected?: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: selected ? colors.primary + "14" : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+          borderRadius: colors.radius,
+          opacity: pressed ? 0.85 : locked ? 0.7 : 1,
+        },
+      ]}
+    >
+      {thumbnailUrl ? (
+        <Image
+          source={{ uri: thumbnailUrl }}
+          style={[
+            styles.designThumb,
+            { borderColor: colors.border, borderRadius: colors.radius },
+          ]}
+        />
+      ) : (
+        <View
+          style={[
+            styles.iconBox,
+            {
+              backgroundColor: selected
+                ? colors.primary
+                : colors.primary + "22",
+            },
+          ]}
+        >
+          <AppIcon
+            name={icon}
+            size={20}
+            color={selected ? colors.primaryForeground : colors.primary}
+          />
+        </View>
+      )}
+      <View style={{ flex: 1, gap: 2 }}>
+        <View style={styles.designTitleRow}>
+          <Text
+            style={[styles.cardTitle, { color: colors.foreground }]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          {recommended ? (
+            <View
+              style={[
+                styles.designBadge,
+                { backgroundColor: colors.primary + "22" },
+              ]}
+            >
+              <Text style={[styles.designBadgeText, { color: colors.primary }]}>
+                Recommended
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        {blurb ? (
+          <Text
+            style={[styles.cardBlurb, { color: colors.mutedForeground }]}
+            numberOfLines={2}
+          >
+            {blurb}
+          </Text>
+        ) : null}
+        {typeof blocksCount === "number" && blocksCount > 0 ? (
+          <Text style={[styles.designMeta, { color: colors.mutedForeground }]}>
+            {blocksCount} block{blocksCount === 1 ? "" : "s"}
+          </Text>
+        ) : null}
+      </View>
+      {locked ? (
+        <UpgradeLockBadge />
+      ) : (
+        <Feather
+          name={selected ? "check-circle" : "chevron-right"}
+          size={20}
+          color={selected ? colors.primary : colors.mutedForeground}
+        />
+      )}
     </Pressable>
   );
 }
@@ -1370,6 +1594,33 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     lineHeight: 18,
+  },
+  designThumb: {
+    width: 64,
+    height: 64,
+    borderWidth: 1,
+    flexShrink: 0,
+    resizeMode: "cover",
+  },
+  designTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  designBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  designBadgeText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
+  },
+  designMeta: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    marginTop: 2,
   },
   industryGrid: {
     flexDirection: "row",

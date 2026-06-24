@@ -334,6 +334,7 @@ Route::prefix('v1')->group(function () {
         // /generate. Literal `wizard` segments win over `/links/{id}` (which is
         // whereNumber-guarded), so ordering here is purely cosmetic.
         Route::get ('/links/wizard/taxonomy',  [BiolinkWizardController::class, 'taxonomy']);
+        Route::get ('/links/wizard/starting-designs', [BiolinkWizardController::class, 'startingDesigns']);
         Route::get ('/links/wizard/questions', [BiolinkWizardController::class, 'questions']);
         Route::post('/links/wizard/image',     [BiolinkWizardController::class, 'uploadImage']);
         Route::post('/links/wizard/generate',  [BiolinkWizardController::class, 'generate']);

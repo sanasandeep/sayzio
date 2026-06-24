@@ -1,16 +1,19 @@
 // Source-driven tests for the mobile guided "Link in Bio" wizard.
 //
-// The wizard (app/links/wizard.tsx) walks four steps entirely in memory off a
-// single taxonomy payload, then POSTs every answer at once to
-// /links/wizard/generate (lib/api/wizard.ts). The redesigned flow is:
-//   1. category  (relabeled "Industry")
-//   2. page_type (relabeled "Profile type") — with the OPTIONAL niche
-//      refinement folded inline (chips shown only for combos that carry a
-//      *specific* industries() list; the taxonomy omits the rest)
-//   3. basics    (basic profile & branding fields)
-//   4. additional(everything else)
+// The wizard (app/links/wizard.tsx) walks five steps entirely in memory off a
+// single taxonomy payload (PersonaCatalog), then POSTs every answer at once to
+// /links/wizard/generate (lib/api/wizard.ts). The flow is:
+//   1. group   (persona groups)
+//   2. persona (41 personas) — with the OPTIONAL niche refinement folded inline
+//      (chips shown only for personas that carry a *specific* industries() list;
+//      the taxonomy omits the rest)
+//   3. design  (persona-tagged starting designs + "Start from scratch")
+//   4. basics  (basic profile & branding fields)
+//   5. additional (everything else)
 // The basics/additional split is computed server-side and shipped on the
-// question-set payload, so the two surfaces stay in lockstep.
+// question-set payload, so the two surfaces stay in lockstep. A selected
+// persona carries the legacy (category, page_type) combo that drives the
+// (unchanged) questions/generate endpoints.
 //
 // Following the convention in test-block-cache.mjs / test-upgrade-hint.mjs we
 // avoid a full RN/TS test runner: the step transitions and the inline-niche
@@ -41,119 +44,139 @@ function ok(label) {
 
 // ---------------------------------------------------------------------------
 // Replica of the wizard's pure step logic. Mirrors wizard.tsx exactly:
-//   - pickCategory       → step "page_type" (clears pageType/industry/answers)
-//   - selectPageType     → STAYS on "page_type" (sets pageType, resets niche)
+//   - pickGroup          → step "persona" (clears persona/industry/template/answers)
+//   - selectPersona      → STAYS on "persona" (sets persona, resets niche/template)
 //   - toggleIndustry     → toggles the inline niche (null when toggled off)
-//   - continueFromPageType → step "basics" (requires a pageType)
+//   - continueFromPersona→ step "design" (requires a persona)
+//   - pickTemplate       → step "basics" (locked design prompts upgrade instead)
 //   - basics "Continue"  → step "additional"
-//   - goBack             → walks one step back; from "category" it exits
-//   - resolveIndustries  → combo's taxonomy list (specific-only; may be empty)
-//   - stepIndex          → 0..3 for the progress bar
+//   - goBack             → walks one step back; from "group" it exits
+//   - resolveIndustries  → persona's taxonomy list (specific-only; may be empty)
+//   - stepIndex          → 0..4 for the progress bar
 // The wiring guards further down pin this replica to the real source.
 // ---------------------------------------------------------------------------
+const STEP_ORDER = ["group", "persona", "design", "basics", "additional"];
+
 function makeWizard() {
   return {
-    step: "category",
-    category: null,
-    pageType: null,
+    step: "group",
+    group: null,
+    persona: null,
     industry: null,
+    templateId: null,
     answers: {},
     exited: false,
   };
 }
-function pickCategory(s, slug) {
-  s.category = slug;
-  s.pageType = null;
+function pickGroup(s, key) {
+  s.group = key;
+  s.persona = null;
   s.industry = null;
+  s.templateId = null;
   s.answers = {};
-  s.step = "page_type";
+  s.step = "persona";
 }
-function selectPageType(s, slug) {
-  if (slug === s.pageType) return;
-  s.pageType = slug;
+function selectPersona(s, slug) {
+  if (slug === s.persona) return;
+  s.persona = slug;
   s.industry = null;
+  s.templateId = null;
   s.answers = {};
   // No step change — niche refinement is inline; Continue advances.
 }
 function toggleIndustry(s, slug) {
   s.industry = s.industry === slug ? null : slug;
 }
-function continueFromPageType(s) {
-  if (!s.pageType) return;
+function continueFromPersona(s) {
+  if (!s.persona) return;
+  s.step = "design";
+}
+function pickTemplate(s, design) {
+  if (design?.locked) return; // locked prompts upgrade, no advance
+  s.templateId = design ? design.id : null;
   s.step = "basics";
 }
 function continueFromBasics(s) {
   s.step = "additional";
 }
 function goBack(s) {
-  if (s.step === "page_type") s.step = "category";
-  else if (s.step === "basics") s.step = "page_type";
+  if (s.step === "persona") s.step = "group";
+  else if (s.step === "design") s.step = "persona";
+  else if (s.step === "basics") s.step = "design";
   else if (s.step === "additional") s.step = "basics";
   else s.exited = true;
 }
-// Specific-only: the taxonomy omits combos without a specific industries()
-// list, so an empty result means "no inline niche refinement for this combo".
-function resolveIndustries(taxonomy, category, pageType) {
-  if (!category || !pageType) return [];
-  return taxonomy?.industries?.[`${category}.${pageType}`] ?? [];
+// Specific-only: the taxonomy omits personas without a specific industries()
+// list, so an empty result means "no inline niche refinement for this persona".
+function resolveIndustries(taxonomy, persona) {
+  if (!persona) return [];
+  return taxonomy?.industries_by_persona?.[persona] ?? [];
 }
 function stepIndex(step) {
-  return step === "category"
-    ? 0
-    : step === "page_type"
-      ? 1
-      : step === "basics"
-        ? 2
-        : 3;
+  return STEP_ORDER.indexOf(step);
 }
 
 // ---------------------------------------------------------------------------
-// Fixture taxonomy. `business.local_shop` carries a specific industries list
-// (inline niche chips show). `personal.developer` deliberately has NO entry —
-// the redesigned flow shows no niche chips for it (refinement is optional and
-// only appears for combos with a specific list).
+// Fixture taxonomy. The `local_shop_owner` persona carries a specific
+// industries list (inline niche chips show). `developer` deliberately has NO
+// entry — the flow shows no niche chips for it (refinement is optional and only
+// appears for personas with a specific list).
 // ---------------------------------------------------------------------------
 const taxonomy = {
-  categories: [
-    { slug: "business", label: "Business" },
-    { slug: "personal", label: "Personal / Portfolio" },
+  groups: [
+    { key: "business", label: "Business" },
+    { key: "personal", label: "Personal / Portfolio" },
   ],
-  page_types: {
-    business: [{ slug: "local_shop", label: "Local Shop / Service" }],
-    personal: [{ slug: "developer", label: "Developer / Engineer" }],
+  personas: {
+    business: [
+      {
+        slug: "local_shop_owner",
+        label: "Local Shop / Service",
+        category: "business",
+        page_type: "local_shop",
+      },
+    ],
+    personal: [
+      {
+        slug: "developer",
+        label: "Developer / Engineer",
+        category: "personal",
+        page_type: "developer",
+      },
+    ],
   },
-  industries: {
-    "business.local_shop": [
+  industries_by_persona: {
+    local_shop_owner: [
       { slug: "bakery", label: "Bakery", icon: "fa-bread-slice" },
       { slug: "salon", label: "Hair / Beauty Salon", icon: "fa-scissors" },
     ],
-    // personal.developer intentionally absent — no inline niche.
+    // developer intentionally absent — no inline niche.
   },
 };
 
 // ===========================================================================
-// 1. Full advance: category → page_type (select + Continue) → basics →
-//    additional. The progress bar walks 0..3.
+// 1. Full advance: group → persona (select + Continue) → design → basics →
+//    additional. The progress bar walks 0..4.
 // ===========================================================================
 {
   const s = makeWizard();
-  assert.equal(s.step, "category");
+  assert.equal(s.step, "group");
   assert.equal(stepIndex(s.step), 0);
 
-  pickCategory(s, "business");
-  assert.equal(s.step, "page_type", "picking a category advances to the profile type step");
-  assert.equal(s.category, "business");
+  pickGroup(s, "business");
+  assert.equal(s.step, "persona", "picking a group advances to the persona step");
+  assert.equal(s.group, "business");
   assert.equal(stepIndex(s.step), 1);
 
-  // Selecting a profile type does NOT advance — niche refinement is inline.
-  selectPageType(s, "local_shop");
-  assert.equal(s.step, "page_type", "selecting a profile type stays on the step (inline niche)");
-  assert.equal(s.pageType, "local_shop");
+  // Selecting a persona does NOT advance — niche refinement is inline.
+  selectPersona(s, "local_shop_owner");
+  assert.equal(s.step, "persona", "selecting a persona stays on the step (inline niche)");
+  assert.equal(s.persona, "local_shop_owner");
   assert.equal(stepIndex(s.step), 1);
 
-  // This combo HAS a specific list, so inline niche chips show.
-  const niche = resolveIndustries(taxonomy, s.category, s.pageType);
-  assert.equal(niche[0].slug, "bakery", "a combo with a specific list shows inline niche chips");
+  // This persona HAS a specific list, so inline niche chips show.
+  const niche = resolveIndustries(taxonomy, s.persona);
+  assert.equal(niche[0].slug, "bakery", "a persona with a specific list shows inline niche chips");
 
   // The niche is optional and toggleable.
   toggleIndustry(s, "bakery");
@@ -163,54 +186,87 @@ const taxonomy = {
   toggleIndustry(s, "salon");
   assert.equal(s.industry, "salon", "tapping a different niche chip switches the selection");
 
-  continueFromPageType(s);
-  assert.equal(s.step, "basics", "Continue advances to the basics step");
+  continueFromPersona(s);
+  assert.equal(s.step, "design", "Continue advances to the starting-design step");
   assert.equal(stepIndex(s.step), 2);
+
+  // Pick a (non-locked) template → advances to basics, records the id.
+  pickTemplate(s, { id: 42, locked: false });
+  assert.equal(s.step, "basics", "picking a design advances to the basics step");
+  assert.equal(s.templateId, 42, "picking a design records its template id");
+  assert.equal(stepIndex(s.step), 3);
 
   continueFromBasics(s);
   assert.equal(s.step, "additional", "Continue from basics advances to the additional step");
-  assert.equal(stepIndex(s.step), 3);
+  assert.equal(stepIndex(s.step), 4);
 }
-ok("category → page_type (select + inline niche + Continue) → basics → additional");
+ok("group → persona (select + inline niche + Continue) → design → basics → additional");
 
-// A combo WITHOUT a specific list shows no inline niche chips.
+// A persona WITHOUT a specific list shows no inline niche chips.
 {
-  const niche = resolveIndustries(taxonomy, "personal", "developer");
-  assert.deepEqual(niche, [], "a combo without a specific list shows no inline niche chips");
+  const niche = resolveIndustries(taxonomy, "developer");
+  assert.deepEqual(niche, [], "a persona without a specific list shows no inline niche chips");
 }
-ok("a combo without a specific industries list shows no inline niche refinement");
+ok("a persona without a specific industries list shows no inline niche refinement");
 
-// Continue is gated on having selected a profile type.
+// Continue is gated on having selected a persona.
 {
   const s = makeWizard();
-  pickCategory(s, "business");
-  continueFromPageType(s);
-  assert.equal(s.step, "page_type", "Continue does nothing until a profile type is selected");
+  pickGroup(s, "business");
+  continueFromPersona(s);
+  assert.equal(s.step, "persona", "Continue does nothing until a persona is selected");
 }
-ok("Continue from the profile-type step requires a selection");
+ok("Continue from the persona step requires a selection");
+
+// "Start from scratch" advances with a null template id.
+{
+  const s = makeWizard();
+  pickGroup(s, "business");
+  selectPersona(s, "local_shop_owner");
+  continueFromPersona(s);
+  pickTemplate(s, null);
+  assert.equal(s.step, "basics", "Start from scratch advances to the basics step");
+  assert.equal(s.templateId, null, "Start from scratch leaves the template id null");
+}
+ok("Start from scratch advances with a null template id");
+
+// A locked design can't be selected — it does not advance.
+{
+  const s = makeWizard();
+  pickGroup(s, "business");
+  selectPersona(s, "local_shop_owner");
+  continueFromPersona(s);
+  pickTemplate(s, { id: 7, locked: true });
+  assert.equal(s.step, "design", "a locked design must not advance (prompts upgrade)");
+  assert.equal(s.templateId, null, "a locked design is not recorded as the template id");
+}
+ok("a locked starting design prompts an upgrade instead of advancing");
 
 // ===========================================================================
 // 2. Back navigation walks the steps in reverse, then exits the screen.
 // ===========================================================================
 {
   const s = makeWizard();
-  pickCategory(s, "business");
-  selectPageType(s, "local_shop");
-  continueFromPageType(s);
+  pickGroup(s, "business");
+  selectPersona(s, "local_shop_owner");
+  continueFromPersona(s);
+  pickTemplate(s, null);
   continueFromBasics(s);
   assert.equal(s.step, "additional");
 
   goBack(s);
   assert.equal(s.step, "basics", "Back from additional returns to the basics step");
   goBack(s);
-  assert.equal(s.step, "page_type", "Back from basics returns to the profile type step");
+  assert.equal(s.step, "design", "Back from basics returns to the design step");
   goBack(s);
-  assert.equal(s.step, "category", "Back from profile type returns to the category step");
+  assert.equal(s.step, "persona", "Back from design returns to the persona step");
+  goBack(s);
+  assert.equal(s.step, "group", "Back from persona returns to the group step");
   assert.equal(s.exited, false, "still on-screen at the first step");
   goBack(s);
   assert.equal(s.exited, true, "Back from the first step exits the wizard (router.back)");
 }
-ok("Back walks additional → basics → page_type → category, then exits");
+ok("Back walks additional → basics → design → persona → group, then exits");
 
 // ===========================================================================
 // 3. The niche is optional — advancing without selecting one leaves it null
@@ -218,9 +274,10 @@ ok("Back walks additional → basics → page_type → category, then exits");
 // ===========================================================================
 {
   const s = makeWizard();
-  pickCategory(s, "business");
-  selectPageType(s, "local_shop");
-  continueFromPageType(s);
+  pickGroup(s, "business");
+  selectPersona(s, "local_shop_owner");
+  continueFromPersona(s);
+  pickTemplate(s, null);
   assert.equal(s.step, "basics", "advancing without a niche still works");
   assert.equal(s.industry, null, "leaving the niche unset keeps it null");
 }
@@ -231,65 +288,94 @@ ok("the inline niche is optional — advancing without one leaves industry = nul
 //    two can't drift, and confirm the generation call is wired correctly.
 // ===========================================================================
 
-// 4a. Step transitions in the component route exactly as replicated.
+// 4a. Step order is the canonical 5-step list driving the progress bar.
 assert.match(
   wizardSrc,
-  /function pickCategory\(slug: string\)\s*\{[\s\S]*?reset\("page_type"\);/,
-  "pickCategory must advance to the page_type step",
+  /STEP_ORDER:\s*Step\[\]\s*=\s*\[\s*"group",\s*"persona",\s*"design",\s*"basics",\s*"additional",?\s*\]/,
+  "STEP_ORDER must be the canonical 5-step list",
+);
+assert.match(
+  wizardSrc,
+  /const stepIndex = STEP_ORDER\.indexOf\(step\)/,
+  "stepIndex must be derived from STEP_ORDER",
+);
+ok("component declares the canonical 5-step order");
+
+// 4b. Step transitions in the component route exactly as replicated.
+assert.match(
+  wizardSrc,
+  /function pickGroup\(key: string\)\s*\{[\s\S]*?reset\("persona"\);/,
+  "pickGroup must advance to the persona step",
 );
 {
-  const m = wizardSrc.match(/function selectPageType\(slug: string\)\s*\{[\s\S]*?\n\s\s\}/);
-  assert.ok(m, "could not find selectPageType()");
+  const m = wizardSrc.match(/function selectPersona\(slug: string\)\s*\{[\s\S]*?\n\s\s\}/);
+  assert.ok(m, "could not find selectPersona()");
   const body = m[0];
-  assert.match(body, /setPageType\(slug\);/, "selectPageType must set the page type");
+  assert.match(body, /setPersona\(slug\);/, "selectPersona must set the persona");
   assert.ok(
     !/reset\(/.test(body),
-    "selectPageType must NOT advance the step (niche refinement is inline)",
+    "selectPersona must NOT advance the step (niche refinement is inline)",
   );
 }
 assert.match(
   wizardSrc,
-  /function continueFromPageType\(\)\s*\{[\s\S]*?reset\("basics"\);/,
-  "continueFromPageType must advance to the basics step",
+  /function continueFromPersona\(\)\s*\{[\s\S]*?reset\("design"\);/,
+  "continueFromPersona must advance to the design step",
 );
+{
+  const m = wizardSrc.match(/function pickTemplate\([\s\S]*?\n\s\s\}/);
+  assert.ok(m, "could not find pickTemplate()");
+  const body = m[0];
+  assert.match(body, /design\?\.locked/, "pickTemplate must guard against locked designs");
+  assert.match(body, /reset\("basics"\);/, "pickTemplate must advance to the basics step");
+}
 assert.match(
   wizardSrc,
   /function toggleIndustry\(slug: string\)\s*\{[\s\S]*?cur === slug \? null : slug/,
   "toggleIndustry must toggle the niche selection (null when toggled off)",
 );
-ok("component step transitions match the redesigned 4-step flow");
+ok("component step transitions match the redesigned 5-step flow");
 
-// 4b. The inline niche is specific-only: no generic fallback remains anywhere.
+// 4c. The inline niche is specific-only: keyed by persona, with an empty fallback.
 assert.ok(
   !/GENERIC_INDUSTRIES/.test(wizardSrc),
   "the generic industry fallback must be removed (niche is specific-only now)",
 );
 assert.match(
   wizardSrc,
-  /taxonomyQ\.data\?\.industries\[`\$\{category\}\.\$\{pageType\}`\] \?\? \[\]/,
-  "the industries memo must read the combo's specific list with an empty fallback",
+  /taxonomyQ\.data\?\.industries_by_persona\[persona\] \?\? \[\]/,
+  "the industries memo must read the persona's specific list with an empty fallback",
 );
-ok("inline niche is specific-only (no generic fallback in the component)");
+ok("inline niche is specific-only, keyed by persona (no generic fallback)");
 
-// 4c. The niche chips only render for combos that carry a specific list.
+// 4d. The niche chips only render for personas that carry a specific list.
 assert.match(
   wizardSrc,
-  /pageType && industries\.length \?/,
-  "the inline niche chips must only render when the combo has a specific list",
+  /persona && industries\.length \?/,
+  "the inline niche chips must only render when the persona has a specific list",
 );
 ok("inline niche chips are gated on a non-empty specific list");
 
-// 4d. The basics/additional steps render from the server-split question set.
+// 4e. The design step loads persona-tagged starting designs and offers
+//     "Start from scratch".
 assert.match(
-  wizardSrc,
-  /questionsQ\.data\?\.basics \?\? \[\]/,
-  "the basics step must render from the server-provided basics split",
+  apiSrc,
+  /`\/links\/wizard\/starting-designs\?/,
+  "getWizardStartingDesigns must GET /links/wizard/starting-designs",
 );
 assert.match(
   wizardSrc,
-  /questionsQ\.data\?\.additional \?\? \[\]/,
-  "the additional step must render from the server-provided additional split",
+  /getWizardStartingDesigns\(\{ persona: persona! \}\)/,
+  "the design step must fetch persona-tagged starting designs",
 );
+assert.match(
+  wizardSrc,
+  /Start from scratch/,
+  "the design step must offer a Start-from-scratch option",
+);
+ok("design step loads persona-tagged designs and offers Start from scratch");
+
+// 4f. The basics/additional steps render from the server-split question set.
 assert.match(
   apiSrc,
   /basics: WizardQuestion\[\]/,
@@ -302,28 +388,29 @@ assert.match(
 );
 ok("basics/additional steps render from the server-provided question split");
 
-// 4e. goBack chains the steps in reverse and exits via router.back().
+// 4g. goBack chains the steps in reverse and exits via router.back().
 {
   const m = wizardSrc.match(/function goBack\(\)\s*\{[\s\S]*?\n\s\s\}/);
   assert.ok(m, "could not find goBack()");
   const body = m[0];
-  assert.match(body, /step === "page_type"\) reset\("category"\)/);
-  assert.match(body, /step === "basics"\) reset\("page_type"\)/);
+  assert.match(body, /step === "persona"\) reset\("group"\)/);
+  assert.match(body, /step === "design"\) reset\("persona"\)/);
+  assert.match(body, /step === "basics"\) reset\("design"\)/);
   assert.match(body, /step === "additional"\) reset\("basics"\)/);
   assert.match(body, /else router\.back\(\)/, "Back from the first step exits via router.back()");
 }
 ok("component goBack walks the steps in reverse and exits at the first step");
 
-// 4f. Generation wiring: onGenerate posts the full payload and routes to the
-//     new link's block editor; the API helper hits the generate endpoint.
+// 4h. Generation wiring: onGenerate posts the persona/template payload and
+//     routes to the new link's block editor; the API helper hits the endpoint.
 {
   const m = wizardSrc.match(/async function onGenerate\(\)\s*\{[\s\S]*?\n\s\s\}/);
   assert.ok(m, "could not find onGenerate()");
   const body = m[0];
   assert.match(
     body,
-    /generateWizardPage\(\{[\s\S]*?category,[\s\S]*?page_type: pageType,[\s\S]*?industry,[\s\S]*?answers,[\s\S]*?\}\)/,
-    "onGenerate must call generateWizardPage with the collected category/page_type/industry/answers",
+    /generateWizardPage\(\{[\s\S]*?persona,[\s\S]*?industry,[\s\S]*?template_id: templateId,[\s\S]*?answers,[\s\S]*?\}\)/,
+    "onGenerate must call generateWizardPage with persona/industry/template_id/answers",
   );
   assert.match(
     body,
@@ -341,6 +428,6 @@ assert.match(
   /"\/links\/wizard\/taxonomy"/,
   "getWizardTaxonomy must GET /links/wizard/taxonomy",
 );
-ok("generation wiring: onGenerate posts the payload via generateWizardPage and opens the block editor");
+ok("generation wiring: onGenerate posts persona/template payload and opens the block editor");
 
 console.log(`\n[test-wizard-flow] all ${passed} checks passed`);

@@ -31,10 +31,58 @@ export type WizardIndustry = {
   icon?: string;
 };
 
+// Step 1: persona groups (the "category" tiles). Step 2: the personas inside
+// the chosen group. PersonaCatalog is the single taxonomy source shared with
+// the web wizard; selecting a persona drives the question set + recipe.
+export type WizardGroup = {
+  key: string;
+  label: string;
+  icon?: string;
+  blurb?: string;
+};
+
+export type WizardPersona = {
+  slug: string;
+  label: string;
+  icon?: string;
+  image?: string;
+  group?: string;
+  blurb?: string;
+  // The legacy combo this persona resolves to (carried by the taxonomy so the
+  // questions endpoint can be driven straight from a persona selection).
+  category: string;
+  page_type: string;
+};
+
 export type WizardTaxonomy = {
+  // New persona taxonomy (the canonical Step 1/2 source).
+  groups: WizardGroup[];
+  // Personas keyed by their group `key`.
+  personas: Record<string, WizardPersona[]>;
+  // Optional niche refinement keyed by persona slug (specific-only).
+  industries_by_persona: Record<string, WizardIndustry[]>;
+  // Legacy keys (kept for backward compatibility; unused by the new flow).
   categories: WizardCategory[];
   page_types: Record<string, WizardPageType[]>;
   industries: Record<string, WizardIndustry[]>;
+};
+
+// Step 2 (starting design): a persona-tagged page template the wizard can seed
+// before layering the user's answers on top. Built by the shared
+// WizardStartingDesignService so the set matches the web wizard exactly.
+export type WizardStartingDesign = {
+  id: number;
+  name: string;
+  category: string;
+  category_label: string;
+  description?: string;
+  thumbnail_url?: string | null;
+  plan_tier: string;
+  locked: boolean;
+  recommended: boolean;
+  blocks_count: number;
+  content_summary?: { type: string; label: string; icon?: string; count?: number }[];
+  preview_layout?: unknown;
 };
 
 export type WizardQuestionType =
@@ -74,6 +122,21 @@ export async function getWizardTaxonomy(): Promise<WizardTaxonomy> {
   return res.data;
 }
 
+// Step 2: the persona-tagged starting designs (+ the client renders a "Start
+// from scratch" card alongside). `q` optionally filters by name/description.
+export async function getWizardStartingDesigns(params: {
+  persona: string;
+  q?: string | null;
+}): Promise<WizardStartingDesign[]> {
+  const qs = new URLSearchParams();
+  qs.set("persona", params.persona);
+  if (params.q) qs.set("q", params.q);
+  const res = await apiFetch<{ data: { starting_designs: WizardStartingDesign[] } }>(
+    `/links/wizard/starting-designs?${qs}`,
+  );
+  return res.data.starting_designs;
+}
+
 export async function getWizardQuestions(params: {
   category: string;
   page_type: string;
@@ -90,9 +153,11 @@ export async function getWizardQuestions(params: {
 }
 
 export async function generateWizardPage(payload: {
-  category: string;
-  page_type: string;
+  persona?: string | null;
+  category?: string | null;
+  page_type?: string | null;
   industry?: string | null;
+  template_id?: number | null;
   answers: Record<string, string>;
 }): Promise<Link> {
   const res = await apiFetch<{ data: { link: Link } }>(
@@ -132,9 +197,11 @@ export async function getWizardResources(): Promise<WizardResources> {
 }
 
 export async function aiGenerateWizardPage(payload: {
-  category: string;
-  page_type: string;
+  persona?: string | null;
+  category?: string | null;
+  page_type?: string | null;
   industry?: string | null;
+  template_id?: number | null;
   answers: Record<string, string>;
   ai_mind_ids?: number[];
   include_platform_mind?: boolean;

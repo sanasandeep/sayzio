@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Services;
 
+use App\Modules\Admin\Services\TemplateService;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
@@ -28,6 +29,7 @@ class WizardAiDraftService
     public function __construct(
         protected AiBiolinkBuilderService $builder,
         protected AiMindQueryService $minds,
+        protected TemplateService $templates,
     ) {}
 
     /**
@@ -37,6 +39,9 @@ class WizardAiDraftService
      * @param list<int>           $mindIds           Selected AI Brain (Mind) ids.
      * @param bool                $includePlatform   Fold in the platform Mind.
      * @param list<int>           $fileIds           Selected vault file ids.
+     * @param array<string,mixed>|null $templateSnapshot Starting-design snapshot;
+     *        when present it is seeded first and the AI draft is appended on top
+     *        (preserving the template's theme) instead of replacing the page.
      */
     public function generate(
         User $owner,
@@ -47,6 +52,7 @@ class WizardAiDraftService
         array $mindIds,
         bool $includePlatform,
         array $fileIds,
+        ?array $templateSnapshot = null,
     ): Link {
         $description = BiolinkWizardQuestions::describeForAi($category, $pageType, $industry, $answers);
 
@@ -90,8 +96,19 @@ class WizardAiDraftService
             'is_active' => true,
         ]);
 
+        // When the user picked a starting design, seed it first so the AI draft
+        // layers on top of it (append, preserving the template's theme) rather
+        // than replacing the page. "Start from scratch" keeps the replace path.
+        $seedTemplate = is_array($templateSnapshot) && !empty($templateSnapshot['blocks']);
+        if ($seedTemplate) {
+            $this->templates->applyPageToLink($link, $templateSnapshot, /*replace*/ true);
+        }
+
         try {
-            $this->builder->generate($owner, $link, $description, $linkUrls, $imageUrls, $fileUrls, $grounding);
+            $this->builder->generate(
+                $owner, $link, $description, $linkUrls, $imageUrls, $fileUrls, $grounding,
+                /*replaceBlocks*/ !$seedTemplate,
+            );
         } catch (\Throwable $e) {
             $link->delete();
             throw $e;

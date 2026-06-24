@@ -3,7 +3,13 @@ name: Biolink wizard mobile parity
 description: How the mobile guided Link-in-Bio wizard reuses the web wizard's services without DB drafts
 ---
 
-The guided Link-in-Bio wizard exists on web (per-user/workspace `biolink_wizard_drafts` rows so a tab can resume) and on mobile. Mobile is deliberately **stateless**: the client drives all four steps (category → page type → optional industry → Q&A) in memory and POSTs every answer at once.
+The guided Link-in-Bio wizard exists on web (per-user/workspace `biolink_wizard_drafts` rows so a tab can resume) and on mobile. Mobile is deliberately **stateless**: the client drives all five steps (persona group → persona +optional niche → starting design → basics → additional Q&A) in memory and POSTs every answer at once.
+
+**Taxonomy is PersonaCatalog, not raw category/page_type.** The wizard's user-facing taxonomy is persona groups → 41 personas; each persona maps via `wizardResolution()` to a legacy `[category,page_type,industry]` combo that still drives the unchanged questions/generate logic. **Why:** lets the richer persona UI sit on top without rewriting the recipe/question engine.
+- **Gotcha:** `PersonaCatalog` lives in `app/Modules/User/Services/`, NOT `Support`.
+- **Gotcha:** the model is `App\Modules\Admin\Models\PageTemplate` (NOT `User\Models`) — the API wizard controller once imported the wrong namespace and silently broke only the template-seeded generate path (taxonomy/no-template paths still worked, so it passes shallow smoke tests). When touching template logic in any module, confirm the import.
+
+**Starting-design step + layering:** `WizardStartingDesignService::forPersona()` filters templates by `recommended_personas`, falling back to ALL active only when a persona has zero tagged templates — so an unexpectedly huge result usually means an unrecognized persona slug hit the fallback. Selecting a template seeds the snapshot (replace=true), then wizard answers/AI layer on top with replace=false + `biolink=[]` to preserve the template's theme. **Why biolink=[]:** `applyPageToLink` array-merges biolink settings, so passing the wizard's would clobber the template palette. generate()/aiGenerate() accept nullable `persona`+`template_id`; `category`/`page_type` are `required_without:persona`.
 
 **Rule:** both surfaces share the same services — never duplicate the question taxonomy or page generation.
 - `BiolinkWizardQuestions` owns the taxonomy/questions AND the shared contract helpers `nameKeys()` / `hasName()` / `resolveTitle()` / `sanitizeAnswers()`.

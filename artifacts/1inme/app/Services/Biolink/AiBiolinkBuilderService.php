@@ -256,7 +256,7 @@ class AiBiolinkBuilderService
      *
      * @return array{credits_spent:int,blocks:int,model:string}
      */
-    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = ''): array
+    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = '', bool $replaceBlocks = true): array
     {
         $links  = $this->cleanUrls($links);
         $images = $this->cleanImageUrls($images);
@@ -297,7 +297,7 @@ class AiBiolinkBuilderService
                 throw new RuntimeException('The assistant could not build a page from that description. Add more detail and try again.');
             }
 
-            app(TemplateService::class)->applyPageToLink($link, $snapshot, true);
+            app(TemplateService::class)->applyPageToLink($link, $snapshot, $replaceBlocks);
         } catch (\Throwable $e) {
             if ($creditsSpent > 0) {
                 $this->credits->refund($user, $creditsSpent, [

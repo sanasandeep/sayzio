@@ -7,10 +7,13 @@ use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
+use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\User\Services\BiolinkPageRecipes;
 use App\Modules\User\Services\BiolinkWizardGenerator;
 use App\Modules\User\Services\BiolinkWizardQuestions;
+use App\Modules\User\Services\PersonaCatalog;
 use App\Modules\User\Services\WizardAiDraftService;
+use App\Modules\User\Services\WizardStartingDesignService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
@@ -42,6 +45,7 @@ class BiolinkWizardController extends Controller
     public function __construct(
         private BiolinkWizardGenerator $generator,
         private WizardAiDraftService $aiDraft,
+        private WizardStartingDesignService $startingDesigns,
     ) {}
 
     /**
@@ -135,29 +139,51 @@ class BiolinkWizardController extends Controller
         }
     }
 
-    /** Land on the wizard — show industry step or resume an existing draft. */
+    /** Land on the wizard — show the persona group step or resume a draft. */
     public function index(Request $request)
     {
         $draft = $this->loadDraft($request);
         $category = $draft?->category;
         $pageType = $draft?->page_type;
 
-        $pageTypes = $category ? BiolinkWizardQuestions::pageTypes($category) : [];
+        // Persona now drives the first two steps. Guard against legacy/partial
+        // drafts (e.g. created before personas existed, or interrupted) by
+        // never rendering a step the draft can't satisfy — this is read-only,
+        // the next POST corrects the stored step.
+        $step = (int) ($draft?->step ?? 0);
+        if (!$draft?->persona && $step >= 2) {
+            $step = $draft?->persona_group ? 1 : 0;
+        }
+        if (!$draft?->persona_group && $step >= 1) {
+            $step = 0;
+        }
 
-        // Per-page-type niche refinement options for the profile-type step.
-        // Only combos that have a *specific* industries() list contribute one;
-        // these drive placeholder imagery/accent and are entirely optional.
-        // (The old standalone "industry refinement" step is folded in here.)
-        $industriesByType = [];
-        if ($category) {
-            foreach ($pageTypes as $pt) {
-                $specific = BiolinkWizardQuestions::industries($category, $pt['slug']);
+        // Step 0 — the persona groups (the new "category" tiles).
+        $groups = PersonaCatalog::groups();
+
+        // Step 1 — the personas in the chosen group, plus any optional niche
+        // refinement (industries) available for each persona's resolved combo.
+        $groupPersonas = [];
+        $industriesByPersona = [];
+        if ($draft?->persona_group) {
+            $groupPersonas = PersonaCatalog::personasInGroup($draft->persona_group);
+            foreach ($groupPersonas as $p) {
+                $combo = PersonaCatalog::wizardResolution($p['slug']);
+                $specific = BiolinkWizardQuestions::industries($combo['category'], $combo['page_type']);
                 if (!empty($specific)) {
-                    $industriesByType[$pt['slug']] = array_map(static fn ($i) => $i + [
+                    $industriesByPersona[$p['slug']] = array_map(static fn ($i) => $i + [
                         'icon' => BiolinkWizardQuestions::industryIcon($i['slug']),
                     ], $specific);
                 }
             }
+        }
+
+        // Step 2 — persona-tagged starting designs (+ "Start from scratch" in
+        // the view). Built via the shared service so mobile shows the same set.
+        $owner = workspace_owner();
+        $startingDesigns = [];
+        if ($step === 2 && $draft?->persona) {
+            $startingDesigns = $this->startingDesigns->forPersona($draft->persona, $owner);
         }
 
         // The detailed question set, split into the two content steps.
@@ -169,11 +195,10 @@ class BiolinkWizardController extends Controller
 
         // AI-draft resources (only needed on the content steps). The user can
         // ground an AI auto-draft in their own AI Brains (Minds) + vault files.
-        $owner = workspace_owner();
         $myMinds = [];
         $platformMinds = [];
         $vaultFiles = [];
-        if ($draft && ($draft->step ?? 0) >= 2) {
+        if ($draft && $step >= 3) {
             \App\Modules\User\Models\AiMind::query()
                 ->where('is_disabled', false)
                 ->where(function ($q) use ($owner) {
@@ -204,20 +229,25 @@ class BiolinkWizardController extends Controller
         }
 
         return view('user.links.wizard', [
-            'draft'            => $draft,
-            'categories'       => BiolinkWizardQuestions::categories(),
-            'step'             => $draft?->step ?? 0,
-            'pageTypes'        => $pageTypes,
-            'industriesByType' => $industriesByType,
-            'basics'           => $split['basics'],
-            'additional'       => $split['additional'],
-            'myMinds'          => $myMinds,
-            'platformMinds'    => $platformMinds,
-            'vaultFiles'       => $vaultFiles,
-            'aiEnabled'        => AiEngineSettings::isEnabled(),
-            'selectedMindIds'  => $draft?->ai_mind_ids ?? [],
+            'draft'               => $draft,
+            'step'                => $step,
+            'groups'              => $groups,
+            'personaGroup'        => $draft?->persona_group,
+            'groupPersonas'       => $groupPersonas,
+            'industriesByPersona' => $industriesByPersona,
+            'selectedPersona'     => $draft?->persona,
+            'personaLabel'        => PersonaCatalog::labelFor($draft?->persona),
+            'startingDesigns'     => $startingDesigns,
+            'selectedTemplateId'  => $draft?->template_id,
+            'basics'              => $split['basics'],
+            'additional'          => $split['additional'],
+            'myMinds'             => $myMinds,
+            'platformMinds'       => $platformMinds,
+            'vaultFiles'          => $vaultFiles,
+            'aiEnabled'           => AiEngineSettings::isEnabled(),
+            'selectedMindIds'     => $draft?->ai_mind_ids ?? [],
             'includePlatformMind' => (bool) ($draft?->include_platform_mind ?? false),
-            'selectedFileIds'  => $draft?->file_ids ?? [],
+            'selectedFileIds'     => $draft?->file_ids ?? [],
         ]);
     }
 
@@ -228,18 +258,38 @@ class BiolinkWizardController extends Controller
         $action = $request->input('_action', 'next');
 
         switch ($action) {
-            case 'pick_category':
-                $draft->category  = $this->validateCategory($request->input('category'));
-                $draft->page_type = null;
-                $draft->industry  = null;
-                $draft->step      = 1;
+            case 'pick_group':
+                // Step 0 → 1. Picking a (new) group resets the downstream
+                // persona/combo/template so a change of mind never strands a
+                // stale starting design or page type.
+                $group = $this->validateGroup($request->input('persona_group'));
+                if ($group !== $draft->persona_group) {
+                    $draft->persona      = null;
+                    $draft->category     = null;
+                    $draft->page_type    = null;
+                    $draft->industry     = null;
+                    $draft->template_id  = null;
+                }
+                $draft->persona_group = $group;
+                $draft->step          = 1;
                 break;
 
-            case 'pick_page_type':
-                if (!$draft->category) {
+            case 'pick_persona':
+                if (!$draft->persona_group) {
                     return back()->with('error', 'Please pick a category first.');
                 }
-                $draft->page_type = $this->validatePageType($draft->category, $request->input('page_type'));
+                $persona = $this->validatePersona($draft->persona_group, $request->input('persona'));
+                // Changing persona invalidates the previously chosen design.
+                if ($persona !== $draft->persona) {
+                    $draft->template_id = null;
+                }
+                $draft->persona = $persona;
+                // PersonaCatalog is the single taxonomy source: resolve the
+                // persona to the legacy (category, page_type) combo that drives
+                // the question set + deterministic recipe engine.
+                $combo = PersonaCatalog::wizardResolution($persona);
+                $draft->category  = $combo['category'];
+                $draft->page_type = $combo['page_type'];
                 // Optional niche refinement is folded into this step. Only
                 // combos with a specific industries() list accept one; anything
                 // else is forced to null (→ category placeholder imagery).
@@ -247,9 +297,18 @@ class BiolinkWizardController extends Controller
                 $draft->step      = 2;
                 break;
 
+            case 'pick_template':
+                if (!$draft->persona) {
+                    return back()->with('error', 'Please pick what best describes you first.');
+                }
+                // null = "Start from scratch" (the original recipe/AI path).
+                $draft->template_id = $this->validateTemplate($request->input('template_id'));
+                $draft->step        = 3;
+                break;
+
             case 'save_basics':
                 if (!$draft->category || !$draft->page_type) {
-                    return back()->with('error', 'Pick an industry & profile type first.');
+                    return back()->with('error', 'Pick a category & profile type first.');
                 }
                 $existing = $draft->answers ?? [];
                 $merged = array_merge($existing, $this->collectAnswers($request, $draft));
@@ -276,13 +335,13 @@ class BiolinkWizardController extends Controller
                 }
 
                 $draft->answers = $merged;
-                $draft->step = 3;
+                $draft->step = 4;
                 break;
 
             case 'back':
-                // Steps are now a clean 0..3 ladder (industry → profile type →
-                // basics → additional), so a plain `step - 1` walks back
-                // correctly without any industry-step special-casing.
+                // Steps are a clean 0..4 ladder (group → persona → starting
+                // design → basics → additional), so a plain `step - 1` walks
+                // back correctly without any special-casing.
                 $cur = (int) ($draft->step ?? 0);
                 $draft->step = max(0, $cur - 1);
                 break;
@@ -369,10 +428,15 @@ class BiolinkWizardController extends Controller
         // type), the transaction rolls back and we won't leave an empty link
         // sitting in the user's dashboard. The recipe → Link generation core
         // lives in BiolinkWizardGenerator, shared with the mobile API wizard.
+        // Resolve the chosen starting design (null = "Start from scratch").
+        // A locked/inactive template degrades gracefully to scratch rather than
+        // blocking generation — the picker already hides locked picks.
+        $templateSnapshot = $this->resolveTemplateSnapshot($draft, $owner);
+
         try {
-            $link = DB::transaction(function () use ($owner, $draft, $answers) {
+            $link = DB::transaction(function () use ($owner, $draft, $answers, $templateSnapshot) {
                 $newLink = $this->generator->generate(
-                    $owner, $draft->category, $draft->page_type, $draft->industry, $answers,
+                    $owner, $draft->category, $draft->page_type, $draft->industry, $answers, $templateSnapshot,
                 );
 
                 // Wizard is single-shot — discard the draft now that the
@@ -449,6 +513,10 @@ class BiolinkWizardController extends Controller
             }
         }
 
+        // Seed the chosen starting design (null = "Start from scratch") so the
+        // AI draft layers on top of it instead of replacing the page.
+        $templateSnapshot = $this->resolveTemplateSnapshot($draft, $owner);
+
         try {
             $link = $this->aiDraft->generate(
                 $owner,
@@ -459,6 +527,7 @@ class BiolinkWizardController extends Controller
                 $draft->ai_mind_ids ?? [],
                 (bool) ($draft->include_platform_mind ?? false),
                 $draft->file_ids ?? [],
+                $templateSnapshot,
             );
         } catch (InsufficientCoinsForAiException $e) {
             return redirect()->route('user.upgrade')
@@ -607,6 +676,68 @@ SVG;
             abort(422, 'Invalid page type.');
         }
         return $value;
+    }
+
+    /** Validate the chosen persona group (step 0). */
+    protected function validateGroup($value): string
+    {
+        if (!is_string($value) || !PersonaCatalog::isValidGroup($value)) {
+            abort(422, 'Invalid category.');
+        }
+        return $value;
+    }
+
+    /** Validate that the chosen persona belongs to the chosen group (step 1). */
+    protected function validatePersona(string $group, $value): string
+    {
+        $slugs = array_column(PersonaCatalog::personasInGroup($group), 'slug');
+        if (!is_string($value) || !in_array($value, $slugs, true)) {
+            abort(422, 'Invalid persona.');
+        }
+        return $value;
+    }
+
+    /**
+     * Validate the chosen starting design (step 2). Blank/0 → null = "Start
+     * from scratch". A real id must reference an *active* template; lock state
+     * is tolerated here (re-checked at generation) so a stale pick never 422s.
+     */
+    protected function validateTemplate($value): ?int
+    {
+        if ($value === null || $value === '' || $value === '0' || $value === 0) {
+            return null;
+        }
+        if (!is_numeric($value)) {
+            abort(422, 'Invalid template.');
+        }
+        $id = (int) $value;
+        if (!PageTemplate::active()->whereKey($id)->exists()) {
+            abort(422, 'Invalid template.');
+        }
+        return $id;
+    }
+
+    /**
+     * Resolve a draft's chosen starting design to a snapshot to seed, or null
+     * for "Start from scratch". Inactive or plan-locked picks degrade to null
+     * so generation never hard-fails on a stale/over-tier selection.
+     *
+     * @return array<string,mixed>|null
+     */
+    protected function resolveTemplateSnapshot(BiolinkWizardDraft $draft, $owner): ?array
+    {
+        if (empty($draft->template_id)) {
+            return null;
+        }
+        $template = PageTemplate::active()->find($draft->template_id);
+        if (!$template) {
+            return null;
+        }
+        if ($this->startingDesigns->isLocked($template->plan_tier, $owner?->plan?->slug)) {
+            return null;
+        }
+        $snapshot = $template->snapshot;
+        return is_array($snapshot) ? $snapshot : null;
     }
 
     /**

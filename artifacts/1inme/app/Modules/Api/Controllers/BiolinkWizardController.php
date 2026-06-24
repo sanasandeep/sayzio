@@ -5,10 +5,13 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\LinkResource;
 use App\Modules\User\Models\Link;
+use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\BiolinkWizardGenerator;
 use App\Modules\User\Services\BiolinkWizardQuestions;
+use App\Modules\User\Services\PersonaCatalog;
 use App\Modules\User\Services\WizardAiDraftService;
+use App\Modules\User\Services\WizardStartingDesignService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
@@ -34,6 +37,7 @@ class BiolinkWizardController extends Controller
     public function __construct(
         private BiolinkWizardGenerator $generator,
         private WizardAiDraftService $aiDraft,
+        private WizardStartingDesignService $startingDesigns,
     ) {}
 
     /**
@@ -75,10 +79,61 @@ class BiolinkWizardController extends Controller
             }
         }
 
+        // Persona taxonomy (the new Step 1/2 source, shared with the web
+        // wizard). Step 1 = persona groups; Step 2 = the personas in a group.
+        // `industries_by_persona` folds the optional niche refinement into the
+        // persona step (specific-only, mirroring the legacy `industries` map)
+        // so the mobile client renders the same inline picker as web.
+        $personas = [];
+        $industriesByPersona = [];
+        foreach (PersonaCatalog::groups() as $grp) {
+            $key = $grp['key'];
+            foreach (PersonaCatalog::personasInGroup($key) as $p) {
+                $combo = PersonaCatalog::wizardResolution($p['slug']);
+                // Carry the resolved legacy combo so the (unchanged) questions
+                // endpoint can be driven straight from a persona selection.
+                $p['category']  = $combo['category'];
+                $p['page_type'] = $combo['page_type'];
+                $personas[$key][] = $p;
+                $specific = BiolinkWizardQuestions::industries($combo['category'], $combo['page_type']);
+                if (!empty($specific)) {
+                    $industriesByPersona[$p['slug']] = array_map(static function (array $ind) {
+                        $ind['icon'] = BiolinkWizardQuestions::industryIcon($ind['slug']);
+                        return $ind;
+                    }, $specific);
+                }
+            }
+        }
+
         return $this->ok([
+            'groups'                => PersonaCatalog::groups(),
+            'personas'              => $personas,
+            'industries_by_persona' => $industriesByPersona,
+            // Legacy keys kept for backward compatibility with older clients.
             'categories' => BiolinkWizardQuestions::categories(),
             'page_types' => $pageTypes,
             'industries' => $industries,
+        ]);
+    }
+
+    /**
+     * Step 2 (mobile): persona-tagged starting designs for the chosen persona,
+     * built via the shared WizardStartingDesignService so the set matches the
+     * web wizard exactly. The client renders these plus a "Start from scratch"
+     * card; selecting one sends its `template_id` to /generate or /ai-generate.
+     */
+    public function startingDesigns(Request $request)
+    {
+        $persona = (string) $request->query('persona', '');
+        if (!PersonaCatalog::isValid($persona)) {
+            return $this->fail('Invalid persona.', 422, 'invalid_persona');
+        }
+
+        $q = $request->query('q');
+        $q = is_string($q) && $q !== '' ? $q : null;
+
+        return $this->ok([
+            'starting_designs' => $this->startingDesigns->forPersona($persona, $request->user(), $q),
         ]);
     }
 
@@ -115,23 +170,20 @@ class BiolinkWizardController extends Controller
     public function generate(Request $request)
     {
         $data = $request->validate([
-            'category'  => ['required', 'string'],
-            'page_type' => ['required', 'string'],
-            'industry'  => ['nullable', 'string'],
-            'answers'   => ['required', 'array'],
+            'persona'     => ['nullable', 'string'],
+            'category'    => ['required_without:persona', 'string'],
+            'page_type'   => ['required_without:persona', 'string'],
+            'industry'    => ['nullable', 'string'],
+            'template_id' => ['nullable', 'integer'],
+            'answers'     => ['required', 'array'],
         ]);
 
-        $category = $data['category'];
-        $pageType = $data['page_type'];
-
-        if (!$this->isValidCategory($category)) {
-            return $this->fail('Invalid category.', 422, 'invalid_category');
-        }
-        if (!$this->isValidPageType($category, $pageType)) {
-            return $this->fail('Invalid page type.', 422, 'invalid_page_type');
+        [$category, $pageType, $personaError] = $this->resolveCombo($data);
+        if ($personaError !== null) {
+            return $personaError;
         }
 
-        // The niche refinement is optional and folded into the profile-type
+        // The niche refinement is optional and folded into the persona/profile
         // step — validate against the combo's *specific* list only (matching the
         // web wizard). Combos without a specific list force null; an empty/absent
         // value is always allowed (the user skipped the refinement).
@@ -178,8 +230,13 @@ class BiolinkWizardController extends Controller
             }
         }
 
+        // Optional starting design: seed the chosen template, then let the
+        // deterministic recipe layer the user's answers on top (preserving the
+        // template's theme). Null = "Start from scratch" (the original path).
+        $templateSnapshot = $this->resolveTemplateSnapshot($data['template_id'] ?? null, $owner);
+
         try {
-            $link = $this->generator->generate($owner, $category, $pageType, $industry, $answers);
+            $link = $this->generator->generate($owner, $category, $pageType, $industry, $answers, $templateSnapshot);
         } catch (Throwable $e) {
             report($e);
             return $this->fail('We hit a snag generating your page. Please try again.', 500, 'generation_failed');
@@ -199,9 +256,11 @@ class BiolinkWizardController extends Controller
     public function aiGenerate(Request $request)
     {
         $data = $request->validate([
-            'category'              => ['required', 'string'],
-            'page_type'             => ['required', 'string'],
+            'persona'               => ['nullable', 'string'],
+            'category'              => ['required_without:persona', 'string'],
+            'page_type'             => ['required_without:persona', 'string'],
             'industry'              => ['nullable', 'string'],
+            'template_id'           => ['nullable', 'integer'],
             'answers'               => ['required', 'array'],
             'ai_mind_ids'           => ['nullable', 'array'],
             'ai_mind_ids.*'         => ['integer'],
@@ -210,14 +269,9 @@ class BiolinkWizardController extends Controller
             'file_ids.*'            => ['integer'],
         ]);
 
-        $category = $data['category'];
-        $pageType = $data['page_type'];
-
-        if (!$this->isValidCategory($category)) {
-            return $this->fail('Invalid category.', 422, 'invalid_category');
-        }
-        if (!$this->isValidPageType($category, $pageType)) {
-            return $this->fail('Invalid page type.', 422, 'invalid_page_type');
+        [$category, $pageType, $personaError] = $this->resolveCombo($data);
+        if ($personaError !== null) {
+            return $personaError;
         }
 
         $industrySlugs = array_column(BiolinkWizardQuestions::industries($category, $pageType), 'slug');
@@ -261,6 +315,11 @@ class BiolinkWizardController extends Controller
             }
         }
 
+        // Optional starting design: seed the chosen template, then let the AI
+        // builder append on top (preserving the template's theme). Null = the
+        // original "Start from scratch" AI path.
+        $templateSnapshot = $this->resolveTemplateSnapshot($data['template_id'] ?? null, $owner);
+
         try {
             $link = $this->aiDraft->generate(
                 $owner,
@@ -271,6 +330,7 @@ class BiolinkWizardController extends Controller
                 $data['ai_mind_ids'] ?? [],
                 (bool) ($data['include_platform_mind'] ?? false),
                 $data['file_ids'] ?? [],
+                $templateSnapshot,
             );
         } catch (InsufficientCoinsForAiException $e) {
             return $this->fail('You don\'t have enough credits for AI generation. Top up or generate instantly instead.', 402, 'insufficient_credits');
@@ -366,6 +426,64 @@ class BiolinkWizardController extends Controller
         }
 
         return $this->ok(['photo_url' => $userFile->url]);
+    }
+
+    /**
+     * Resolve the (category, page_type) combo a request targets. A `persona`
+     * (the new Step 1/2 selection) is the preferred source and resolves to the
+     * legacy combo via PersonaCatalog; older clients may still post category +
+     * page_type directly. Returns [category, pageType, errorResponse|null] —
+     * when the third element is non-null the caller should return it.
+     *
+     * @param array<string,mixed> $data
+     * @return array{0:string,1:string,2:\Illuminate\Http\JsonResponse|null}
+     */
+    private function resolveCombo(array $data): array
+    {
+        $persona = isset($data['persona']) && $data['persona'] !== '' ? (string) $data['persona'] : null;
+
+        if ($persona !== null) {
+            if (!PersonaCatalog::isValid($persona)) {
+                return ['', '', $this->fail('Invalid persona.', 422, 'invalid_persona')];
+            }
+            $combo = PersonaCatalog::wizardResolution($persona);
+            return [$combo['category'], $combo['page_type'], null];
+        }
+
+        $category = (string) ($data['category'] ?? '');
+        $pageType = (string) ($data['page_type'] ?? '');
+        if (!$this->isValidCategory($category)) {
+            return ['', '', $this->fail('Invalid category.', 422, 'invalid_category')];
+        }
+        if (!$this->isValidPageType($category, $pageType)) {
+            return ['', '', $this->fail('Invalid page type.', 422, 'invalid_page_type')];
+        }
+
+        return [$category, $pageType, null];
+    }
+
+    /**
+     * Resolve an optional starting-design `template_id` to its block snapshot,
+     * mirroring the web wizard: only active, plan-allowed templates seed a page;
+     * anything else (missing, locked, no snapshot) degrades to "Start from
+     * scratch" by returning null.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function resolveTemplateSnapshot($templateId, $owner): ?array
+    {
+        if (empty($templateId)) {
+            return null;
+        }
+        $template = PageTemplate::active()->find($templateId);
+        if (!$template) {
+            return null;
+        }
+        if ($this->startingDesigns->isLocked($template->plan_tier, $owner?->plan?->slug)) {
+            return null;
+        }
+        $snapshot = $template->snapshot;
+        return is_array($snapshot) ? $snapshot : null;
     }
 
     private function isValidCategory(string $category): bool
