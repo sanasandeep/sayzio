@@ -1006,6 +1006,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('social-oauth/{provider}/connect',  [\App\Modules\User\Controllers\SocialOAuthController::class, 'connect'])->middleware('workspace.can:settings.edit')->name('social-oauth.connect');
         Route::get('social-oauth/{provider}/merge',    [\App\Modules\User\Controllers\SocialOAuthController::class, 'mergeConnect'])->middleware('workspace.can:settings.edit')->name('social-oauth.merge');
 
+        // Inline "merge accounts?" offer raised when a Connect flow finds the
+        // provider identity already bound to a different account. Accept jumps
+        // straight to the merge preview (the OAuth round-trip already proved
+        // ownership); decline dismisses the offer.
+        Route::post('social-oauth/merge-offer/accept',  [\App\Modules\User\Controllers\SocialOAuthController::class, 'acceptMergeOffer'])->middleware('workspace.can:settings.edit')->name('social-oauth.merge-offer.accept');
+        Route::post('social-oauth/merge-offer/decline', [\App\Modules\User\Controllers\SocialOAuthController::class, 'declineMergeOffer'])->middleware('workspace.can:settings.edit')->name('social-oauth.merge-offer.decline');
+
         // Linked identifiers (multi-identity account settings).
         Route::prefix('identifiers')->name('identifiers.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/',                                [\App\Modules\User\Controllers\LinkedIdentifierController::class, 'index'])->name('index');

@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { useAuth, type AuthUser } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import type { ApiError } from "@/lib/api";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 // Friendly display names for the providers we name in failure copy. Mirrors
@@ -40,6 +42,9 @@ export default function OAuthCallback() {
   // The provider that failed, when the redirect tells us which one it was.
   // Drives the provider-specific guidance line on the failure screen.
   const [providerLabel, setProviderLabel] = useState<string | null>(null);
+  // Set to the provider name when the social identity already belongs to a
+  // different 1INME account (`identity_taken`); drives the merge prompt.
+  const [mergeProvider, setMergeProvider] = useState<string | null>(null);
   const ran = useRef(false);
 
   useEffect(() => {
@@ -110,7 +115,13 @@ export default function OAuthCallback() {
           router.replace("/(tabs)");
           maybeOfferBiometricEnrollment(auth);
         })
-        .catch((e) => {
+        .catch((e: ApiError) => {
+          // Identity (or its email) already bound to another 1INME account —
+          // offer the web merge flow instead of a dead-end error.
+          if (e?.code === "identity_taken") {
+            setMergeProvider(provider);
+            return;
+          }
           if (label) setProviderLabel(label);
           setError(e?.message ?? "Sign-in failed");
         });
@@ -129,7 +140,12 @@ export default function OAuthCallback() {
         { backgroundColor: colors.background },
       ]}
     >
-      {error ? (
+      {mergeProvider ? (
+        <SocialMergePrompt
+          provider={mergeProvider}
+          onDismiss={() => router.replace("/(auth)")}
+        />
+      ) : error ? (
         <>
           <Text style={[styles.title, { color: colors.foreground }]}>
             Sign-in failed

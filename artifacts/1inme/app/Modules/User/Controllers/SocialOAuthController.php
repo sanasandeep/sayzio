@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\SocialAccountConnection;
 use App\Modules\User\Models\User;
@@ -10,6 +11,7 @@ use App\Modules\User\Services\SocialFollowers\FollowerFetcherRegistry;
 use App\Modules\User\Services\SocialFollowers\SocialOAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -118,7 +120,7 @@ class SocialOAuthController extends Controller
         // account.
         if ($mode === 'login') {
             try {
-                [$externalId, $handle] = $oauth->fetchProfile($provider, $code, $state);
+                [$externalId, $handle, $email] = $oauth->fetchProfile($provider, $code, $state);
             } catch (\Throwable $e) {
                 if ($isMobile) {
                     return redirect()->away($mobileReturn . '?error=' . rawurlencode('provider_failed'));
@@ -133,6 +135,57 @@ class SocialOAuthController extends Controller
             if (! $user && $handle) {
                 $user = LinkedIdentifier::resolveUser('social', '', $provider, (string) $handle);
             }
+
+            // Email-based resolution / account creation. Only providers that
+            // return a verified email (currently Google — `openid email
+            // profile`) reach this; every other provider yields a null
+            // email and falls straight through to the "no linked account"
+            // error below, preserving their existing behaviour. This mirrors
+            // the mobile native flow (Api\SocialAuthController::exchange):
+            // an unbound social identity whose email matches an existing
+            // account is auto-linked to it, otherwise a fresh free-plan
+            // account is created. Either way the social identity is then
+            // bound so subsequent sign-ins resolve straight to the account.
+            if (! $user && $email) {
+                $user = LinkedIdentifier::resolveUser('email', $email)
+                    ?: User::where('email', $email)->first();
+                if (! $user) {
+                    $freePlan = Plan::defaultPlan();
+                    $user = User::create([
+                        'name'              => $handle ?: (ucfirst($provider) . ' user'),
+                        'email'             => $email,
+                        'password'          => Hash::make(Str::random(48)),
+                        'plan_id'           => $freePlan?->id,
+                        'status'            => 'active',
+                        'email_verified_at' => now(),
+                    ]);
+                    if (method_exists($user, 'ensureDefaultWorkspace')) {
+                        $user->ensureDefaultWorkspace();
+                    }
+                }
+
+                // Bind the social identity to the resolved/created account.
+                // Stay defensive: if it is somehow already owned by a
+                // different account (handle/id legacy drift), don't rebind —
+                // fall through and let the visitor sign in via that account
+                // through the normal resolve path next time.
+                $value    = LinkedIdentifier::normalize('social', '', $provider, (string) $externalId);
+                $existsId = LinkedIdentifier::where('kind', 'social')->where('value', $value)->first();
+                if (! $existsId) {
+                    LinkedIdentifier::create([
+                        'user_id'     => $user->id,
+                        'kind'        => 'social',
+                        'value'       => $value,
+                        'provider'    => $provider,
+                        'external_id' => (string) $externalId,
+                        'verified_at' => now(),
+                        'is_primary'  => false,
+                    ]);
+                } elseif ($existsId->user_id === $user->id) {
+                    $existsId->forceFill(['verified_at' => now()])->save();
+                }
+            }
+
             if (! $user) {
                 if ($isMobile) {
                     return redirect()->away($mobileReturn . '?error=' . rawurlencode('no_linked_account'));
@@ -236,15 +289,19 @@ class SocialOAuthController extends Controller
         // Wrap connect+ownership-check in a single transaction so that if
         // the social identity already belongs to another account, we
         // don't leave behind a half-written SocialAccountConnection.
+        $conflictUserId = null;
         try {
-            $conn = \DB::transaction(function () use ($oauth, $provider, $code, $state, $registry) {
+            $conn = \DB::transaction(function () use ($oauth, $provider, $code, $state, $registry, &$conflictUserId) {
                 $conn = $oauth->exchangeAndPersist($provider, Auth::id(), $code, $state);
                 $value = LinkedIdentifier::normalize('social', '', $provider, (string) ($conn->external_id ?: $conn->handle));
                 $existing = LinkedIdentifier::where('kind', 'social')->where('value', $value)->first();
                 if ($existing && $existing->user_id !== Auth::id()) {
                     // Roll the transaction back — this provider identity
                     // is already bound to a different live account; the
-                    // user must merge instead of silently rebinding.
+                    // user must merge instead of silently rebinding. Stash
+                    // the conflicting account id so the catch can offer an
+                    // inline merge.
+                    $conflictUserId = $existing->user_id;
                     throw new \RuntimeException('__identity_owned_by_other__');
                 }
                 if (! $existing) {
@@ -266,6 +323,22 @@ class SocialOAuthController extends Controller
             $registry->refresh($conn);
         } catch (\Throwable $e) {
             if ($e->getMessage() === '__identity_owned_by_other__') {
+                // Offer an inline merge instead of a dead-end error. The
+                // OAuth round-trip just proved the signed-in user controls
+                // this provider identity, and that identity belongs to
+                // $conflictUserId — the same proof the dedicated merge OAuth
+                // challenge collects — so accepting can jump straight to the
+                // merge preview. The offer is stashed in the session and
+                // rendered as a banner on the Connected Accounts page.
+                $other = $conflictUserId ? User::find($conflictUserId) : null;
+                if ($other && $other->id !== Auth::id()) {
+                    session(['social_merge_offer' => [
+                        'secondary_id' => $other->id,
+                        'provider'     => $provider,
+                        'label'        => $other->email ?: ('account #' . $other->id),
+                    ]]);
+                    return redirect()->route('user.social-accounts.index');
+                }
                 return redirect()->route('user.social-accounts.index')
                     ->with('error', 'That ' . SocialAccountConnection::platformLabel($provider)
                         . ' identity is already linked to another 1INME account. Use Account Settings → "Merge another account into this one" to combine them.');
@@ -328,5 +401,46 @@ class SocialOAuthController extends Controller
             'social_oauth_mode_'  . $provider => 'merge',
         ]);
         return redirect()->away($oauth->authorizeUrl($provider, $state));
+    }
+
+    /**
+     * Accept the inline "merge accounts?" offer raised when a Connect flow
+     * found the provider identity already bound to a different account.
+     *
+     * The connect-mode OAuth round-trip already proved the signed-in user
+     * controls that identity (which belongs to the secondary account), so
+     * that is sufficient proof to seed the merge challenge and jump straight
+     * to the preview — exactly what the dedicated merge OAuth flow does.
+     */
+    public function acceptMergeOffer(Request $request)
+    {
+        $offer = session('social_merge_offer');
+        session()->forget('social_merge_offer');
+
+        if (! is_array($offer) || empty($offer['secondary_id'])) {
+            return redirect()->route('user.social-accounts.index')
+                ->with('error', 'That merge offer has expired. Connect the account again to retry.');
+        }
+
+        $other = User::find((int) $offer['secondary_id']);
+        if (! $other || $other->id === Auth::id()) {
+            return redirect()->route('user.social-accounts.index')
+                ->with('error', 'The other account could no longer be found.');
+        }
+
+        session([
+            'merge_secondary_id'     => $other->id,
+            'merge_primary_id'       => Auth::id(),
+            'merge_challenge_active' => true,
+        ]);
+        return redirect()->route('user.merge.preview');
+    }
+
+    /** Dismiss the inline merge offer and leave the accounts separate. */
+    public function declineMergeOffer(Request $request)
+    {
+        session()->forget('social_merge_offer');
+        return redirect()->route('user.social-accounts.index')
+            ->with('status', 'No problem — the accounts were left separate.');
     }
 }

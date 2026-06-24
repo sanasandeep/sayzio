@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
+import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -134,7 +135,13 @@ export default function AuthLanding() {
         router.replace("/(tabs)");
         maybeOfferBiometricEnrollment(auth);
       })
-      .catch((e: { message?: string }) => {
+      .catch((e: ApiError) => {
+        // The Google account (or its email) already belongs to a different
+        // 1INME account — offer the web merge flow instead of a dead-end error.
+        if (e?.code === "identity_taken") {
+          setMergeProvider("google");
+          return;
+        }
         const msg = e?.message ?? "Google sign-in failed";
         if (Platform.OS === "web") setError(msg);
         else Alert.alert("Sign in", msg);
@@ -146,6 +153,9 @@ export default function AuthLanding() {
   const [identifier, setIdentifier] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Set to the provider name when a social sign-in hits an account conflict
+  // (`identity_taken`); drives the inline "merge accounts?" prompt.
+  const [mergeProvider, setMergeProvider] = useState<string | null>(null);
 
   // Login-method policy: email is always available; WhatsApp (mobile) login
   // is behind an admin toggle with an allowed-country-code list. Default to
@@ -440,6 +450,13 @@ export default function AuthLanding() {
             );
           })}
         </View>
+
+        {mergeProvider ? (
+          <SocialMergePrompt
+            provider={mergeProvider}
+            onDismiss={() => setMergeProvider(null)}
+          />
+        ) : null}
 
         <View style={{ height: 28 }} />
 

@@ -50,6 +50,22 @@ class SocialOAuthService
             'scope'             => 'r_liteprofile r_organization_social',
             'profile_url'       => 'https://api.linkedin.com/v2/me',
         ],
+        'google' => [
+            // Shares the GOOGLE_CLIENT_ID/SECRET Google project that the
+            // mobile native sign-in (Api\SocialAuthController::verifyGoogle)
+            // already verifies tokens against, so a single OAuth client
+            // covers web + mobile. The web client must be registered as a
+            // "Web application" with this controller's callback URL.
+            'client_id_env'     => 'GOOGLE_CLIENT_ID',
+            'client_secret_env' => 'GOOGLE_CLIENT_SECRET',
+            'authorize_url'     => 'https://accounts.google.com/o/oauth2/v2/auth',
+            'token_url'         => 'https://oauth2.googleapis.com/token',
+            'scope'             => 'openid email profile',
+            // userinfo v2 returns `id` (== the OIDC `sub` the mobile native
+            // flow keys on) plus `email` and `name`, matching the id/handle
+            // extraction below.
+            'profile_url'       => 'https://www.googleapis.com/oauth2/v2/userinfo',
+        ],
         'twitter' => [
             'client_id_env'     => 'TWITTER_CLIENT_ID',
             'client_secret_env' => 'TWITTER_CLIENT_SECRET',
@@ -250,12 +266,18 @@ class SocialOAuthService
     }
 
     /**
-     * Exchange the auth code and fetch only the user's external id +
-     * handle, without persisting a connection. Used by the login and
-     * merge-challenge OAuth flows where we just need to identify the
-     * remote user.
+     * Exchange the auth code and fetch the user's external id, handle and
+     * (when the provider returns one) email, without persisting a
+     * connection. Used by the login and merge-challenge OAuth flows where
+     * we just need to identify the remote user.
      *
-     * @return array{0:string, 1:?string} [externalId, handle]
+     * The email is only populated by providers whose profile_url requests
+     * it (currently Google — `openid email profile`). Every other provider
+     * here fetches id/name only, so the email is null for them and the
+     * email-based account resolution in the controller is effectively a
+     * Google-only path.
+     *
+     * @return array{0:string, 1:?string, 2:?string} [externalId, handle, email]
      */
     public function fetchProfile(string $provider, string $code, string $state): array
     {
@@ -291,7 +313,11 @@ class SocialOAuthService
             ?? $profile['name']
             ?? $profile['data']['display_name']
             ?? null;
-        return [$externalId, $handle];
+        $email = $profile['email']
+            ?? $profile['data']['email']
+            ?? null;
+        $email = is_string($email) && $email !== '' ? strtolower(trim($email)) : null;
+        return [$externalId, $handle, $email];
     }
 
     /**

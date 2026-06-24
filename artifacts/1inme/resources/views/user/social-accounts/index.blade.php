@@ -30,6 +30,47 @@
         'chips'    => $hero_chips,
     ])
 
+    {{-- Inline "merge accounts?" offer — raised when a Connect flow found
+         the provider identity already bound to a different 1INME account.
+         The OAuth round-trip already proved ownership, so "Merge" jumps
+         straight to the merge preview. --}}
+    @if(session('social_merge_offer'))
+        @php($__mergeOffer = session('social_merge_offer'))
+        <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-start gap-3"
+             style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.35); color: var(--text-primary);">
+            <i class="fas fa-code-merge mt-0.5" style="color:#7c3aed;"></i>
+            <div class="flex-1 min-w-0">
+                <div class="font-semibold" style="color:#7c3aed;">
+                    That {{ \App\Modules\User\Models\SocialAccountConnection::platformLabel($__mergeOffer['provider'] ?? '') }} account already belongs to another 1INME account
+                </div>
+                <div class="text-xs mt-0.5" style="color: var(--text-muted);">
+                    It's linked to <span class="font-semibold">{{ $__mergeOffer['label'] ?? 'another account' }}</span>.
+                    Do you want to merge that account into this one? Everything from it will move here — this can't be undone.
+                </div>
+                @if($__canEdit)
+                    <div class="flex items-center gap-2 mt-3">
+                        <form method="POST" action="{{ route('user.social-oauth.merge-offer.accept') }}">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                    style="background: rgba(124,58,237,0.15); color:#7c3aed; border: 1px solid rgba(124,58,237,0.4);">
+                                <i class="fas fa-code-merge"></i> Merge accounts
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('user.social-oauth.merge-offer.decline') }}">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                    style="background: var(--bg-glass-input); color: var(--text-muted); border: 1px solid var(--border-glass);">
+                                Not now
+                            </button>
+                        </form>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     {{-- Top-level health banner: only renders when at least one connection is broken or stale. --}}
     @if($failingConnections->count() > 0)
         <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-start gap-3"

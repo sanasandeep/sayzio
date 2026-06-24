@@ -131,6 +131,19 @@
                     </div>
                 </form>
 
+                <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
+                    <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Or sign up with</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        @foreach(['google' => 'fab fa-google', 'instagram' => 'fab fa-instagram', 'facebook' => 'fab fa-facebook', 'twitter' => 'fab fa-x-twitter', 'linkedin' => 'fab fa-linkedin', 'pinterest' => 'fab fa-pinterest', 'tiktok' => 'fab fa-tiktok'] as $p => $icon)
+                            <a href="{{ route('user.social-oauth.login', $p) }}"
+                               class="btn-ghost w-full justify-center text-xs py-2"
+                               title="Sign up with {{ ucfirst($p === 'twitter' ? 'X' : $p) }}">
+                                <i class="{{ $icon }} text-[12px]"></i>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+
                 <script>
                 (function(){
                     const input = document.getElementById('referral_code_input');
