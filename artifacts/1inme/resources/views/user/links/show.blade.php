@@ -480,6 +480,8 @@
     $heroActions = [];
     if ($canExportStats) {
         $heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.clicks.export', $link).'?'.http_build_query($qs), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'];
+    } else {
+        $heroActions[] = ['label' => 'Upgrade to export', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'CSV export is a paid feature — upgrade your plan to download stats.'];
     }
     $heroActions[] = ['label' => 'QR', 'url' => route('user.links.qrcode', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost'];
     if ($link->type === 'biolink') {
@@ -730,6 +732,11 @@
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}"
                class="section-pill" title="Download a CSV of all clicks including bot/scraper hits in this date range.">
                 <i class="fas fa-file-csv mr-1"></i> Export CSV (with bots)
+            </a>
+            @else
+            <a href="{{ route('user.upgrade') }}"
+               class="section-pill" title="CSV export is a paid feature — upgrade your plan to download stats.">
+                <i class="fas fa-lock mr-1"></i> Upgrade to export
             </a>
             @endif
         </div>
@@ -2032,6 +2039,8 @@
             @if($canExportStats)
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action" title="Real visitors only — bot/scraper hits excluded"><i class="fas fa-file-csv"></i> Export full log</a>
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}" class="table-action" title="Includes bot/scraper hits with an Is Bot column"><i class="fas fa-robot"></i> Include bots</a>
+            @else
+            <a href="{{ route('user.upgrade') }}" class="table-action" title="CSV export is a paid feature — upgrade your plan to download stats."><i class="fas fa-lock"></i> Upgrade to export</a>
             @endif
         </div>
     </div>

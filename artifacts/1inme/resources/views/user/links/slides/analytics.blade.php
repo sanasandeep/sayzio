@@ -89,6 +89,12 @@
                class="pill ml-auto">
                 <i class="fas fa-download text-[9px]"></i> Download CSV
             </a>
+            @else
+            <a href="{{ route('user.upgrade') }}"
+               class="pill ml-auto"
+               title="CSV export is a paid feature — upgrade your plan to download stats.">
+                <i class="fas fa-lock text-[9px]"></i> Upgrade to export
+            </a>
             @endif
         </div>
     </div>
