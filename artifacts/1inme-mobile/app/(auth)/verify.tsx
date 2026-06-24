@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useCooldown } from "@/hooks/useCooldown";
 import type { ApiError } from "@/lib/api";
 import { verifyBackupCode } from "@/lib/api/security";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
@@ -45,6 +46,7 @@ export default function Verify() {
   const [busy, setBusy] = useState<null | "verify" | "resend">(null);
   const [error, setError] = useState<string | null>(null);
   const [resentAt, setResentAt] = useState<number | null>(null);
+  const cooldown = useCooldown(30);
 
   const verify = async () => {
     if (code.trim().length < 4) {
@@ -93,6 +95,7 @@ export default function Verify() {
     try {
       await sendOtp({ channel, identifier });
       setResentAt(Date.now());
+      cooldown.start();
     } catch (e) {
       setError((e as ApiError)?.message ?? "Could not resend");
     } finally {
@@ -154,11 +157,17 @@ export default function Verify() {
           <>
             <View style={{ height: 12 }} />
             <Button
-              label={resentAt ? "Code sent again" : "Resend code"}
+              label={
+                cooldown.active
+                  ? `Resend in ${cooldown.remaining}s`
+                  : resentAt
+                    ? "Code sent again"
+                    : "Resend code"
+              }
               variant="ghost"
               onPress={resend}
               loading={busy === "resend"}
-              disabled={!!busy && busy !== "resend"}
+              disabled={(!!busy && busy !== "resend") || cooldown.active}
             />
           </>
         ) : null}

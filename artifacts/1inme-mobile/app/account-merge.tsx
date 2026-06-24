@@ -14,6 +14,7 @@ import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useCooldown } from "@/hooks/useCooldown";
 import type { ApiError } from "@/lib/api";
 import {
   mergeChallenge,
@@ -43,6 +44,7 @@ export default function AccountMerge() {
   const [resending, setResending] = useState(false);
   const [resentAt, setResentAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const cooldown = useCooldown(30);
 
   const webBottom = Platform.OS === "web" ? 34 : 0;
   const bottomPad = insets.bottom + 32 + webBottom;
@@ -77,6 +79,7 @@ export default function AccountMerge() {
     setPreview(null);
     setKeepPlan("primary");
     setResentAt(null);
+    cooldown.clear();
     setError(null);
   };
 
@@ -91,6 +94,7 @@ export default function AccountMerge() {
     try {
       await mergeChallenge({ kind, value: v });
       setResentAt(null);
+      cooldown.start();
       setStep("verify");
     } catch (e) {
       setError((e as ApiError)?.message ?? "Could not send a code. Please try again.");
@@ -107,6 +111,7 @@ export default function AccountMerge() {
     try {
       await mergeChallenge({ kind, value: v });
       setResentAt(Date.now());
+      cooldown.start();
     } catch (e) {
       setError((e as ApiError)?.message ?? "Could not resend the code. Please try again.");
     } finally {
@@ -236,11 +241,17 @@ export default function AccountMerge() {
             <Button label="Verify" onPress={verifyCode} loading={busy} disabled={resending} />
             <View style={{ height: 12 }} />
             <Button
-              label={resentAt ? "Code sent again" : "Resend code"}
+              label={
+                cooldown.active
+                  ? `Resend in ${cooldown.remaining}s`
+                  : resentAt
+                    ? "Code sent again"
+                    : "Resend code"
+              }
               variant="ghost"
               onPress={resendCode}
               loading={resending}
-              disabled={busy}
+              disabled={busy || cooldown.active}
             />
             <View style={{ height: 8 }} />
             <Button
@@ -250,6 +261,7 @@ export default function AccountMerge() {
                 setStep("identify");
                 setCode("");
                 setResentAt(null);
+                cooldown.clear();
                 setError(null);
               }}
               disabled={busy || resending}
