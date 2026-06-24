@@ -8,6 +8,7 @@ use App\Modules\Admin\Models\Permission;
 use App\Modules\Admin\Models\ProtectedAccount;
 use App\Modules\Admin\Models\Role;
 use App\Modules\Admin\Services\AdminActionLogger;
+use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -103,6 +104,77 @@ class ProtectedAccountGuardTest extends TestCase
     }
 
     /**
+     * Give a user a key owned relation (a link) so blocked-destroy tests
+     * can prove the account *and its data* survived the attempt — not just
+     * that the row exists, but that a future cascading-delete refactor
+     * didn't quietly take the children with it.
+     */
+    private function makeLinkFor(User $user, array $attrs = []): Link
+    {
+        return Link::create(array_merge([
+            'user_id'  => $user->id,
+            'type'     => 'short',
+            'alias'    => 'lk' . Str::random(8),
+            'title'    => 'Owned link',
+            'long_url' => 'https://example.com/' . Str::random(6),
+        ], $attrs));
+    }
+
+    /**
+     * Assert a protected user row is physically present and byte-for-byte
+     * unchanged after a blocked destructive request, including its owned
+     * link relation(s). This closes the loop the controller-level audit
+     * assertion leaves open: a refactor could log the block yet still
+     * delete/mutate the row, and only a direct "row still present and
+     * identical" check would catch it.
+     *
+     * @param array<int, int> $linkIds owned link ids that must survive
+     */
+    private function assertUserPersistedIntact(User $before, array $linkIds = []): void
+    {
+        $this->assertDatabaseHas('users', [
+            'id'           => $before->id,
+            'email'        => $before->email,
+            'name'         => $before->name,
+            'status'       => $before->status,
+            'suspended_at' => $before->suspended_at,
+        ]);
+
+        $after = User::find($before->id);
+        $this->assertNotNull($after, 'Protected user row vanished after a blocked attempt.');
+        $this->assertSame($before->status, $after->status);
+        $this->assertNull($after->suspended_at, 'Protected user was suspended despite the guard.');
+
+        foreach ($linkIds as $linkId) {
+            $this->assertDatabaseHas('links', [
+                'id'      => $linkId,
+                'user_id' => $before->id,
+            ]);
+        }
+    }
+
+    /**
+     * Assert a protected staff (admin-pool) row is present and unchanged
+     * after a blocked destructive request, including its role relation.
+     */
+    private function assertStaffPersistedIntact(Admin $before): void
+    {
+        $this->assertDatabaseHas('admins', [
+            'id'      => $before->id,
+            'email'   => $before->email,
+            'name'    => $before->name,
+            'status'  => $before->status,
+            'role_id' => $before->role_id,
+        ]);
+
+        $after = Admin::find($before->id);
+        $this->assertNotNull($after, 'Protected staff row vanished after a blocked attempt.');
+        $this->assertSame($before->status, $after->status);
+        $this->assertSame($before->role_id, $after->role_id, 'Protected staff lost its role relation.');
+        $this->assertNotNull($after->role, 'Protected staff role relation no longer resolves.');
+    }
+
+    /**
      * Assert exactly one new audit row with the given action references
      * the target email (matched case-insensitively against either the
      * snapshotted target_email or the details payload, since staff blocks
@@ -129,14 +201,17 @@ class ProtectedAccountGuardTest extends TestCase
     {
         $operator = $this->makeSuperAdmin();
         $user = $this->makeUser(['email' => 'protected-del@ex.com']);
+        $link = $this->makeLinkFor($user);
         $this->protect($user->email);
 
         $this->actingAs($operator, 'admin')
             ->delete('/admin/users/' . $user->id)
             ->assertRedirect();
 
-        $this->assertDatabaseHas('users', ['id' => $user->id]);
         $this->assertActionLogged(AdminActionLogger::DELETE_BLOCKED, $user->email);
+        // The account *and* its owned link must physically survive the
+        // blocked delete — not merely that an audit row was written.
+        $this->assertUserPersistedIntact($user, [$link->id]);
     }
 
     public function test_destroying_an_unprotected_user_succeeds(): void
@@ -160,6 +235,7 @@ class ProtectedAccountGuardTest extends TestCase
     {
         $operator = $this->makeSuperAdmin();
         $user = $this->makeUser(['email' => 'protected-susp@ex.com']);
+        $link = $this->makeLinkFor($user);
         $this->protect($user->email);
 
         $this->actingAs($operator, 'admin')
@@ -170,6 +246,7 @@ class ProtectedAccountGuardTest extends TestCase
 
         $this->assertNull($user->fresh()->suspended_at);
         $this->assertActionLogged(AdminActionLogger::SUSPEND_BLOCKED, $user->email);
+        $this->assertUserPersistedIntact($user, [$link->id]);
     }
 
     // ---------------------------------------------------------------
@@ -181,6 +258,7 @@ class ProtectedAccountGuardTest extends TestCase
     {
         $operator = $this->makeSuperAdmin();
         $user = $this->makeUser(['email' => "protected-{$status}@ex.com", 'status' => 'active']);
+        $link = $this->makeLinkFor($user);
         $this->protect($user->email);
 
         $this->actingAs($operator, 'admin')
@@ -191,6 +269,7 @@ class ProtectedAccountGuardTest extends TestCase
 
         $this->assertSame('active', $user->fresh()->status);
         $this->assertActionLogged(AdminActionLogger::SUSPEND_BLOCKED, $user->email);
+        $this->assertUserPersistedIntact($user, [$link->id]);
     }
 
     public static function blockingStatuses(): array
@@ -255,8 +334,8 @@ class ProtectedAccountGuardTest extends TestCase
             ->delete('/admin/staff/' . $staff->id)
             ->assertRedirect();
 
-        $this->assertDatabaseHas('admins', ['id' => $staff->id]);
         $this->assertActionLogged(AdminActionLogger::DELETE_BLOCKED, $staff->email);
+        $this->assertStaffPersistedIntact($staff);
     }
 
     public function test_deactivating_a_protected_staff_member_is_blocked_and_logged(): void
@@ -279,6 +358,7 @@ class ProtectedAccountGuardTest extends TestCase
 
         $this->assertSame('active', $staff->fresh()->status);
         $this->assertActionLogged(AdminActionLogger::SUSPEND_BLOCKED, $staff->email);
+        $this->assertStaffPersistedIntact($staff);
     }
 
     // ---------------------------------------------------------------
@@ -362,5 +442,85 @@ class ProtectedAccountGuardTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('protected_accounts', ['id' => $locked->id]);
+    }
+
+    // ---------------------------------------------------------------
+    // End-to-end: a protected account survives a *full* deletion attempt
+    // ---------------------------------------------------------------
+
+    /**
+     * The single most important guarantee, exercised end-to-end: fire every
+     * destructive admin path (delete + suspend + status→banned/suspended/
+     * inactive) at the SAME protected user, back to back, and confirm the
+     * account — and its owned link — is still present and unchanged after
+     * the whole barrage. A refactor that blocks one path but regresses
+     * another, or that logs the block yet mutates the row, fails here.
+     */
+    public function test_protected_user_survives_a_full_sequence_of_destructive_attempts(): void
+    {
+        $operator = $this->makeSuperAdmin();
+        $user = $this->makeUser(['email' => 'survivor@ex.com', 'status' => 'active']);
+        $link = $this->makeLinkFor($user);
+        $this->protect($user->email);
+
+        // 1. Hard delete.
+        $this->actingAs($operator, 'admin')
+            ->delete('/admin/users/' . $user->id)
+            ->assertRedirect();
+        $this->assertUserPersistedIntact($user, [$link->id]);
+
+        // 2. Suspend (temporary hold).
+        $this->actingAs($operator, 'admin')
+            ->post('/admin/users/' . $user->id . '/suspend', ['reason' => 'spam'])
+            ->assertRedirect();
+        $this->assertUserPersistedIntact($user, [$link->id]);
+
+        // 3. Each blocking status change, in turn.
+        foreach (['banned', 'suspended', 'inactive'] as $status) {
+            $this->actingAs($operator, 'admin')
+                ->put('/admin/users/' . $user->id, ['status' => $status])
+                ->assertRedirect();
+            $this->assertUserPersistedIntact($user, [$link->id]);
+        }
+
+        // After the full barrage the account is untouched and still active.
+        $final = $user->fresh();
+        $this->assertSame('active', $final->status);
+        $this->assertNull($final->suspended_at);
+        $this->assertSame(1, $user->links()->count(), 'Owned link was lost during the deletion barrage.');
+    }
+
+    /**
+     * Staff-pool counterpart: fire delete + deactivate at the same protected
+     * staff member in sequence and confirm the admin row (and its role
+     * relation) survives both.
+     */
+    public function test_protected_staff_survives_a_full_sequence_of_destructive_attempts(): void
+    {
+        $operator = $this->makeSuperAdmin();
+        $staff = $this->makeStaffWithPermission('users.view', [
+            'email'  => 'survivor-staff@ex.com',
+            'status' => 'active',
+        ]);
+        $this->protect($staff->email);
+
+        // 1. Hard delete.
+        $this->actingAs($operator, 'admin')
+            ->delete('/admin/staff/' . $staff->id)
+            ->assertRedirect();
+        $this->assertStaffPersistedIntact($staff);
+
+        // 2. Deactivate (status → inactive, the staff "suspend").
+        $this->actingAs($operator, 'admin')
+            ->put('/admin/staff/' . $staff->id, [
+                'name'    => $staff->name,
+                'email'   => $staff->email,
+                'role_id' => $staff->role_id,
+                'status'  => 'inactive',
+            ])
+            ->assertRedirect();
+        $this->assertStaffPersistedIntact($staff);
+
+        $this->assertSame('active', $staff->fresh()->status);
     }
 }
