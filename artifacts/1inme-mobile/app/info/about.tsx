@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { InfoPage, type EefindBlock, type InfoSection } from "@/components/InfoPage";
+import {
+  InfoPage,
+  type EefindBlock,
+  type FounderBlock,
+  type InfoSection,
+} from "@/components/InfoPage";
 import { fetchAboutContent } from "@/lib/api/siteContent";
 
 const INTRO =
@@ -24,6 +29,16 @@ const FALLBACK_SECTIONS: InfoSection[] = [
     body: "Built-in NFC writer, QR codes, universal links, and a fast in-app dialer turn every moment into an opportunity to connect.",
   },
 ];
+
+// "Meet the founder" spotlight, mirroring the web/marketing About page
+// (SitePagesContent::aboutExtraDefault() → 'founder'). The runtime About
+// content endpoint does not yet return founder copy, so this stays static.
+const FOUNDER: FounderBlock = {
+  eyebrow: "Meet the founder",
+  name: "Sandeep Sana",
+  role: "Founder & CEO",
+  bio: "Guided by this belief, Sandeep Sana, Founder & CEO of 1INME, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of 1INME, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
+};
 
 const FALLBACK_EEFIND: EefindBlock = {
   eyebrow: "Part of EEFind",
@@ -60,6 +75,12 @@ export default function About() {
   }, []);
 
   return (
-    <InfoPage title="About 1INME" intro={INTRO} sections={sections} eefind={eefind} />
+    <InfoPage
+      title="About 1INME"
+      intro={INTRO}
+      sections={sections}
+      founder={FOUNDER}
+      eefind={eefind}
+    />
   );
 }

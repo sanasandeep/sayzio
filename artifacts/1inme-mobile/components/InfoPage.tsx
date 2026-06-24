@@ -34,15 +34,24 @@ export type EefindBlock = {
   websiteUrl: string;
 };
 
+export type FounderBlock = {
+  eyebrow: string;
+  name: string;
+  role: string;
+  bio: string;
+};
+
 export function InfoPage({
   title,
   intro,
   sections,
+  founder,
   eefind,
 }: {
   title: string;
   intro?: string;
   sections: InfoSection[];
+  founder?: FounderBlock;
   eefind?: EefindBlock;
 }) {
   const colors = useColors();
@@ -86,6 +95,34 @@ export function InfoPage({
             </Text>
           </View>
         ))}
+        {founder ? (
+          <View
+            style={[
+              styles.eefindCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>
+              {founder.eyebrow}
+            </Text>
+            <Text style={[styles.h2, { color: colors.foreground }]}>
+              {founder.name}
+            </Text>
+            <Text
+              style={[styles.founderRole, { color: colors.primary }]}
+            >
+              {founder.role}
+            </Text>
+            <Text
+              style={[
+                styles.body,
+                { color: colors.mutedForeground, marginTop: 10 },
+              ]}
+            >
+              {founder.bio}
+            </Text>
+          </View>
+        ) : null}
         {eefind ? (
           <View
             style={[
@@ -240,6 +277,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: "uppercase",
     textAlign: "center",
+  },
+  founderRole: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 14,
+    marginTop: 2,
   },
   eefindMeta: { marginTop: 22 },
   metaLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
