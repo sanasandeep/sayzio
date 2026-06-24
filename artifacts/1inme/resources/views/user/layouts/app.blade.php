@@ -590,7 +590,7 @@
                     <span class="nav-label">Wallet
                         @if(\App\Services\Billing\WalletService::isEnabled())
                         @php $__coins = (int) (auth()->user()->wallet?->balance ?? 0); @endphp
-                        <span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__coins) }} coins">{{ $__coins >= 1000 ? round($__coins / 1000, 1) . 'k' : $__coins }}</span>
+                        <span data-wallet-badge class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__coins) }} coins">{{ $__coins >= 1000 ? round($__coins / 1000, 1) . 'k' : $__coins }}</span>
                         @endif
                     </span>
                     <span class="sidebar-tooltip">Wallet — coin balance &amp; transactions</span>
@@ -1234,7 +1234,7 @@
                         <a href="{{ route('user.wallet.show') }}" class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div> <span>Wallet
                             @if(\App\Services\Billing\WalletService::isEnabled())
                             @php $__mCoins = (int) (auth()->user()->wallet?->balance ?? 0); @endphp
-                            <span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__mCoins) }} coins">{{ $__mCoins >= 1000 ? round($__mCoins / 1000, 1) . 'k' : $__mCoins }}</span>
+                            <span data-wallet-badge class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__mCoins) }} coins">{{ $__mCoins >= 1000 ? round($__mCoins / 1000, 1) . 'k' : $__mCoins }}</span>
                             @endif
                         </span></a>
 
@@ -1548,6 +1548,44 @@
         }
     })();
     </script>
+
+    @if(\App\Services\Billing\WalletService::isEnabled())
+    <script>
+    // Keeps the sidebar coin badge (desktop + mobile drawer) fresh after a
+    // balance-changing action — no full page reload.
+    //   - window.refreshWalletBadge()                fetches the live balance.
+    //   - dispatch 'wallet:refresh'                  re-fetches the balance.
+    //   - dispatch 'wallet:balance' (detail.balance) sets it directly (broadcast).
+    (function(){
+        var URL = @json(route('user.wallet.balance'));
+        function fmt(n){ return n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : String(n); }
+        function paint(coins){
+            var c = Number(coins) || 0;
+            document.querySelectorAll('[data-wallet-badge]').forEach(function(el){
+                el.textContent = fmt(c);
+                el.setAttribute('title', c.toLocaleString('en-US') + ' coins');
+            });
+        }
+        var inFlight = false;
+        function refresh(){
+            if (inFlight) return;
+            inFlight = true;
+            fetch(URL, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+                .then(function(r){ return r.ok ? r.json() : null; })
+                .then(function(d){ if (d && d.enabled && typeof d.balance !== 'undefined') paint(d.balance); })
+                .catch(function(){})
+                .finally(function(){ inFlight = false; });
+        }
+        window.refreshWalletBadge = refresh;
+        window.addEventListener('wallet:refresh', refresh);
+        window.addEventListener('wallet:balance', function(e){
+            if (e && e.detail && typeof e.detail.balance !== 'undefined') paint(e.detail.balance);
+            else refresh();
+        });
+    })();
+    </script>
+    @endif
+
     @include('common.partials.site-assistant', ['surface' => 'app'])
 
     @include('common.partials.global-shortcuts')

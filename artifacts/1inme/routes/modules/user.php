@@ -861,6 +861,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // Wallet & coins (customer-facing).
         Route::get ('wallet',                [\App\Modules\User\Controllers\WalletController::class, 'show'])->name('wallet.show');
+        Route::get ('wallet/balance',        [\App\Modules\User\Controllers\WalletController::class, 'balance'])->name('wallet.balance');
         Route::get ('wallet/transactions',   [\App\Modules\User\Controllers\WalletController::class, 'transactions'])->name('wallet.transactions');
         Route::get ('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buy'])->name('wallet.buy');
         Route::post('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buyHandoff'])->name('wallet.buy.handoff');

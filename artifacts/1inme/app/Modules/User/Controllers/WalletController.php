@@ -41,6 +41,27 @@ class WalletController extends Controller
         ]);
     }
 
+    /**
+     * Lightweight JSON balance probe for the sidebar coin badge so it can
+     * refresh after a coin-changing action (spend/credit) without a full
+     * page reload. Returns the raw integer plus pre-formatted display
+     * strings that mirror the Blade badge ("1.2k" abbreviation + a
+     * thousands-separated title).
+     */
+    public function balance(Request $request)
+    {
+        if (!WalletService::isEnabled()) {
+            return response()->json(['enabled' => false]);
+        }
+        $coins = $this->wallets->getBalance($request->user());
+        return response()->json([
+            'enabled'   => true,
+            'balance'   => $coins,
+            'display'   => $coins >= 1000 ? round($coins / 1000, 1) . 'k' : (string) $coins,
+            'formatted' => number_format($coins),
+        ]);
+    }
+
     public function transactions(Request $request)
     {
         if (!WalletService::isEnabled()) abort(404);
