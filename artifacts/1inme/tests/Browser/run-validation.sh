@@ -83,5 +83,61 @@ else
   echo "==> Ephemeral app server is up at $APP_URL"
 fi
 
+# Warm the shared app server before handing it to Playwright. The first render
+# of each public route is the expensive one: over a distant RDS a cold home
+# render is ~30s while a warm one is ~2s, because that first hit primes the
+# file-backed config/AppSetting caches (shared across all php-cli workers) and
+# the per-worker opcache. Paying that cost ONCE here — instead of once per spec
+# inside a tight Playwright navigation budget — is what makes running the whole
+# Browser suite as an unattended gate feasible. Best-effort: warm-up failures
+# never fail the run (the specs themselves are the real assertions), and when
+# APP_URL is already warm (dev workflow up) each probe just returns fast.
+warm() {
+  local base="${APP_URL%/}"
+  echo "==> Warming app server at $base (priming shared caches; one-time cold cost)"
+  local route code
+  # Public routes the marketing / consent / home specs navigate to.
+  for route in /up / /pricing /contact /user/login; do
+    code=$(curl -fsS -o /dev/null -w "%{http_code} %{time_total}s" --max-time 90 \
+      "${base}${route}" 2>/dev/null || echo "down")
+    echo "    warm ${route} -> ${code}"
+  done
+
+  # Authenticated editor warm-up. The biolink block editor
+  # (/user/links/{id}/blocks) is the single heaviest authenticated render and
+  # the card-gallery spec opens it; its cold first paint (Blade compile + block
+  # catalogs + plan gates) otherwise lands inside the spec's navigation budget
+  # and flakes. Log in as the demo user via the real CSRF-protected demo-login
+  # form, then GET one editor page so that compile/opcache cost is paid here
+  # instead. Best-effort throughout: any failure (no demo link, CSRF drift) just
+  # leaves the editor cold and the generous navigationTimeout still absorbs it.
+  local jar token loginhtml
+  jar="$(mktemp)"
+  loginhtml=$(curl -fsS -c "$jar" -b "$jar" --max-time 60 "${base}/user/login" 2>/dev/null || true)
+  # Keep this best-effort under `set -euo pipefail`: if the markup changes or no
+  # token is present, `grep` exits non-zero and (with pipefail) would otherwise
+  # abort the whole run. `|| true` ensures a missing token just leaves $token
+  # empty and we fall through to the "skipped" branch below.
+  token=$(printf '%s' "$loginhtml" \
+    | grep -oE 'name="_token" value="[^"]+"' \
+    | head -1 \
+    | sed -E 's/.*value="([^"]+)".*/\1/' || true)
+  if [ -n "$token" ]; then
+    code=$(curl -fsS -c "$jar" -b "$jar" -o /dev/null -w "%{http_code}" --max-time 60 \
+      -X POST "${base}/user/demo-login" -d "_token=${token}" 2>/dev/null || echo "down")
+    echo "    warm demo-login -> ${code}"
+    # Link id 1 is the demo user's first link in the seeded DB; even if the spec
+    # later opens a different link, hitting any editor page compiles the heavy
+    # shared editor view. --max-time covers a cold first render.
+    code=$(curl -fsS -c "$jar" -b "$jar" -o /dev/null -w "%{http_code} %{time_total}s" --max-time 90 \
+      "${base}/user/links/1/blocks" 2>/dev/null || echo "down")
+    echo "    warm /user/links/1/blocks -> ${code}"
+  else
+    echo "    warm editor -> skipped (no CSRF token from /user/login)"
+  fi
+  rm -f "$jar"
+}
+warm
+
 echo "==> Running Playwright Browser specs against $APP_URL"
 APP_URL="$APP_URL" pnpm exec playwright test "$@"

@@ -25,18 +25,23 @@ fixture exists), then drives a real browser against the public alias.
 ## Validation step (runs on every change)
 
 So a runtime regression (a CSS/Alpine break in the home-page mobile
-sign-in popup, or a shape-aware card-gallery preview rendering blank
-tiles) gets caught automatically instead of only when someone remembers
-to run `pnpm test:e2e`, the gated specs are wired into a named validation
-step called `e2e`. It runs the wrapper `tests/Browser/run-validation.sh`
-(also exposed as the `test:e2e:ci` package script) scoped to the two
-self-bootstrapping specs below, so a failing assertion in either blocks
-the change instead of passing silently.
+sign-in popup, a shape-aware card-gallery preview rendering blank tiles,
+or a cookie-consent layout reserving a phantom footer band) gets caught
+automatically instead of only when someone remembers to run
+`pnpm test:e2e`, the gated specs are wired into a named validation step
+called `e2e`. It runs the wrapper `tests/Browser/run-validation.sh` (also
+exposed as the `test:e2e:ci` package script) scoped to the reliable
+broader subset below, so a failing assertion in any of them blocks the
+change instead of passing silently.
 
 The registered validation command is:
 
 ```
-bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts
+bash artifacts/1inme/tests/Browser/run-validation.sh \
+  home-auth-modal-mobile.spec.ts \
+  biolink-editor-card-gallery-preview.spec.ts \
+  cookie-consent-footer-gap.spec.ts \
+  cookie-consent-layout-styles.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -48,40 +53,75 @@ The wrapper handles its own prerequisites:
   boots an ephemeral `php artisan serve` on port 5000 (probing the
   lightweight `/up` route, since the home page is slow to render), waits
   for it, runs the spec(s), and tears the server down on exit.
+- **Warms the shared app server before Playwright starts** (see below).
 
 It does **not** run database migrations — the schema must already exist
 on the (distant) RDS before any per-spec seeds can write fixtures.
 
-### Why only these two specs are gated (not the whole suite)
+### Warm-server strategy (why the whole suite is now feasible)
 
-The validation step is intentionally scoped to the two specs that run
-reliably as an unattended gate here:
+The dominant cost is the *first* render of each route: over a distant RDS
+a cold home render is ~30s and a cold biolink-editor render ~20s, while a
+warm one is ~2-3s. That first hit primes the file-backed config/AppSetting
+caches (shared across all php-cli workers) and the per-worker opcache; the
+editor's first paint also compiles the heavy block-editor Blade view.
 
-- `home-auth-modal-mobile.spec.ts` — needs no seeding; it just visits `/`
-  with a consent cookie.
+Booting **one** ephemeral server for the whole Playwright run (specs share
+it) and then **warming it once up front** — instead of paying a cold
+render inside every spec's tight navigation budget — is what turns the
+full suite from "too slow/flaky to gate" into a bounded ~5-8 min run. The
+`warm()` step in `run-validation.sh`:
+
+1. GETs the public routes the specs use (`/`, `/pricing`, `/contact`,
+   `/user/login`).
+2. Logs in as the demo user via the real CSRF-protected `demo-login` form
+   and GETs `/user/links/1/blocks`, so the heavy authenticated editor
+   render is compiled here rather than mid-spec.
+
+All warm-up steps are best-effort: a failure (e.g. no demo link, CSRF
+drift, or an already-warm `localhost:80`) is logged and never fails the
+run — the specs themselves are the real assertions.
+
+Because the server is pre-warmed, `playwright.config.ts` budgets are tuned
+down from the old cold-render-per-spec headroom (per-test `60s`,
+`navigationTimeout 45s`) while still leaving slack for a cold php-cli
+worker the warm-up loop didn't reach. `retries: 1` absorbs the rare flake
+where a heavy editor spec loses a CPU race (php server + node + Chromium
+all share this box) and misses a client-side wait by a hair — a real,
+consistently-failing regression still fails both attempts.
+
+### Why these four specs are gated (and not the whole suite)
+
+The gate covers the specs that run reliably as an unattended check here:
+
+- `home-auth-modal-mobile.spec.ts` — needs no seeding; visits `/` with a
+  consent cookie and drives the mobile sign-in popup.
 - `biolink-editor-card-gallery-preview.spec.ts` — self-bootstrapping: it
   seeds one no-thumbnail card template per shape family via `php artisan
   tinker`, logs in as the demo user, and asserts the shape-aware gallery
-  preview draws a real mock for every tile (not a blank fallback). Gating
-  it means a regression that makes card-gallery previews render blank
-  tiles blocks the change instead of passing silently.
+  preview draws a real mock for every tile (not a blank fallback).
+- `cookie-consent-footer-gap.spec.ts` — pins the "no phantom band below
+  the footer" invariant for the default banner layout. No login/seeding.
+- `cookie-consent-layout-styles.spec.ts` — extends the footer-reserve
+  guard across the corner / pill / modal / takeover consent layouts. No
+  login/seeding.
 
-The other specs are NOT gated because, in this environment, they fail or
-flake for reasons unrelated to the code under test:
+The remaining specs are still NOT gated because, in this environment, they
+fail or flake for reasons unrelated to the code under test:
 
-- `biolink-editor-palette-dnd.spec.ts` waits on a navigation that the
-  palette-drop flow no longer triggers (drops insert in-place), so it
-  times out independent of the code under test.
-- `slides-mode` and the consent *layout-style* specs seed via `php artisan
-  tinker` and render heavy pages; they run fine manually but are slower /
-  less stable as an unattended gate.
-- Cold page renders over the distant RDS can take 30-45s, so navigation
-  budgets had to be raised in `playwright.config.ts` to keep the gated
-  specs stable.
+- `biolink-editor-palette-dnd.spec.ts` — the palette-drop assertions are
+  unstable here (block counts come back off-by-one and the shared page
+  context closes mid-test), independent of the warm-server change.
+- `slides-mode.spec.ts` — its `php artisan tinker` seed intermittently
+  trips a psysh / PHP 8.4 `ParseErrorException` parse error, so the seed
+  (not the assertion) fails. Runs fine when tinker behaves.
+- `cookie-consent-footer-reserve.spec.ts` — two of its three tests pass,
+  but the "Customize" expansion test's reserve-settle wait does not
+  reliably converge here.
 
-(`php artisan tinker` seeding, once broken here by a psysh/PHP 8.4 parse
-error, works again — which is what lets the self-bootstrapping
-card-gallery spec be gated.)
+Run the full suite manually (slow renders and all) with `pnpm test:e2e`;
+each spec self-warms via the shared server when launched through the
+wrapper.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
