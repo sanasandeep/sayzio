@@ -307,6 +307,16 @@ Route::post('/subscriptions/manage/send-link',
     ->name('site.subscriptions.manage.send')
     ->middleware('throttle:10,10');
 
+// ---- Public Privacy Data Requests (GDPR/CCPA). Must precede the
+//      catch-all /{alias} routes. The form is linked from Contact Us. ----
+Route::controller(\App\Modules\Common\Controllers\PrivacyRequestController::class)
+    ->prefix('privacy/request')->name('privacy.')->group(function () {
+        Route::get('/',  'show')->name('request');
+        Route::post('/', 'submit')->name('submit')->middleware('throttle:10,10');
+        Route::get('/verify/{token}',     'verify')->name('verify')->where('token', '[A-Za-z0-9]+');
+        Route::get('/download/{token}',   'download')->name('download')->where('token', '[A-Za-z0-9]+');
+    });
+
 // ---- Public branding feed (admin logos, CORS-open; consumed by the
 //      marketing site + mobile app). Must precede the catch-all /{alias}. ----
 Route::get('/branding.json', [\App\Modules\Common\Controllers\BrandingFeedController::class, 'feed'])->name('site.branding.feed');

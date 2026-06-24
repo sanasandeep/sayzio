@@ -356,6 +356,14 @@
             <span class="sidebar-tooltip">Contact Inbox</span>
         </a>
 
+        <a href="{{ route('admin.privacy-requests.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"
+           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div>
+            <span class="nav-label">Privacy Requests</span>
+            <span class="sidebar-tooltip">Privacy Requests</span>
+        </a>
+
         <a href="{{ route('admin.biolink-reports.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.biolink-reports.*') ? 'active' : '' }}"
            style="--nav-tint:#dc2626; --nav-tint-soft:rgba(220,38,38,0.12);">

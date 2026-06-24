@@ -597,6 +597,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{user}/restore',          [\App\Modules\Admin\Controllers\AdultModerationController::class, 'restore'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('restore');
         });
 
+        // Privacy data requests (GDPR/CCPA). Staff review verified
+        // deletion/export requests; viewing mirrors the user list gate,
+        // while approve/reject (which can trigger irreversible deletion)
+        // require the stronger users.delete permission.
+        Route::prefix('privacy-requests')->name('privacy-requests.')->group(function () {
+            Route::get ('/',                       [\App\Modules\Admin\Controllers\PrivacyRequestController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
+            Route::get ('{privacyRequest}',        [\App\Modules\Admin\Controllers\PrivacyRequestController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->whereNumber('privacyRequest')->name('show');
+            Route::post('{privacyRequest}/approve', [\App\Modules\Admin\Controllers\PrivacyRequestController::class, 'approve'])->middleware(CheckPermission::class . ':users.delete')->whereNumber('privacyRequest')->name('approve');
+            Route::post('{privacyRequest}/reject',  [\App\Modules\Admin\Controllers\PrivacyRequestController::class, 'reject'])->middleware(CheckPermission::class . ':users.delete')->whereNumber('privacyRequest')->name('reject');
+        });
+
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserManagementController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
 

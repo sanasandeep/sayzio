@@ -371,3 +371,13 @@ Schedule::command('users:reactivate-due')
     ->hourlyAt(35)
     ->withoutOverlapping()
     ->onOneServer();
+
+// Hourly: housekeep GDPR/CCPA privacy data requests — expire unverified
+// requests whose email link has lapsed, prune stale export archives once
+// their download window closes, and dispatch any approved deletion whose
+// cooling-off window has elapsed (safety net for the delayed queue job).
+// Fully idempotent so a per-hour cadence is safe.
+Schedule::command('privacy:maintenance')
+    ->hourlyAt(45)
+    ->withoutOverlapping()
+    ->onOneServer();

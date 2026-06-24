@@ -315,6 +315,39 @@
     </div>
 </section>
 
+<section class="pb-16">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
+        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8">
+            <div class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-emerald-300 font-semibold mb-2">
+                <i class="fas fa-user-shield"></i> Your privacy
+            </div>
+            <h2 class="text-xl font-bold text-white">Manage your personal data</h2>
+            <p class="text-sm text-gray-400 mt-1.5 max-w-2xl leading-relaxed">
+                Under data-protection laws such as the GDPR and CCPA, you can ask us to permanently delete your
+                account or send you a full copy of the data we hold about you. We verify every request before acting on it.
+            </p>
+            <div class="mt-5 grid sm:grid-cols-2 gap-4">
+                <a href="{{ route('privacy.request', ['type' => 'export']) }}"
+                   class="group flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-violet-400/40 transition">
+                    <div class="w-10 h-10 shrink-0 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300"><i class="fas fa-download"></i></div>
+                    <div>
+                        <div class="text-sm font-bold text-white">Export my data</div>
+                        <div class="text-xs text-gray-400 mt-0.5">Get a downloadable archive of your account and files.</div>
+                    </div>
+                </a>
+                <a href="{{ route('privacy.request', ['type' => 'deletion']) }}"
+                   class="group flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-red-400/40 transition">
+                    <div class="w-10 h-10 shrink-0 rounded-lg bg-red-500/15 border border-red-400/30 flex items-center justify-center text-red-300"><i class="fas fa-user-slash"></i></div>
+                    <div>
+                        <div class="text-sm font-bold text-white">Delete my account</div>
+                        <div class="text-xs text-gray-400 mt-0.5">Permanently remove your account and personal data.</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
 @include('public.partials.subscribe-block', [
     'heading' => 'Or reach us on the channel that suits you.',
     'subtext' => 'Subscribe by email, follow our WhatsApp Channel for short broadcasts, or DM us for a 1:1 conversation.',
