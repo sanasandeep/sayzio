@@ -13,9 +13,25 @@
         <h2 class="text-white font-medium mb-3">Your order</h2>
         <div class="divide-y divide-white/5 text-sm">
             @foreach($items as $li)
-                <div class="flex items-center justify-between py-2 text-white/80">
-                    <span>{{ $li['label'] }}</span>
-                    <span class="font-mono">{{ number_format($li['amount_minor']/100, 2) }} {{ $currency }}</span>
+                @php($intro = $li['meta']['intro_discount'] ?? null)
+                @php($term = ($li['meta']['cycle'] ?? null) === 'annual' ? 'year' : 'month')
+                <div class="py-2">
+                    <div class="flex items-center justify-between text-white/80">
+                        <span>{{ $li['label'] }}</span>
+                        <span class="font-mono">
+                            @if($intro)
+                                <span class="text-white/40 line-through mr-1">{{ number_format(($intro['normal_minor'] ?? 0)/100, 2) }}</span>
+                            @endif
+                            {{ number_format($li['amount_minor']/100, 2) }} {{ $currency }}
+                        </span>
+                    </div>
+                    @if($intro)
+                        <div class="flex items-center justify-between text-emerald-300/90 text-xs mt-1">
+                            <span>Intro discount@if(!empty($intro['percent_off'])) ({{ $intro['percent_off'] }}% off)@endif</span>
+                            <span class="font-mono">−{{ number_format(($intro['amount_off_minor'] ?? 0)/100, 2) }} {{ $currency }}</span>
+                        </div>
+                        <p class="text-xs text-white/40 mt-1">Renews at {{ number_format(($intro['normal_minor'] ?? 0)/100, 2) }} {{ $currency }}/{{ $term }}</p>
+                    @endif
                 </div>
             @endforeach
         </div>
