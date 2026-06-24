@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -10,9 +15,11 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DictationMic } from "@/components/DictationMic";
 import { DomainPicker } from "@/components/DomainPicker";
 import { TextField } from "@/components/TextField";
 import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
+import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { listAvailableDomains } from "@/lib/api/domains";
@@ -49,6 +56,21 @@ export default function CreateLinkScreen() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Tell the floating Voice Assistant that voice turns started while
+  // this form is open should prefer the create-link tools.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("create_link");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+
+  // Append a dictated chunk to whichever field's setter is passed in,
+  // mirroring the web's per-field `l({ onText })` dictation factory.
+  const dictateInto =
+    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
+      setter((v) => (v ? v.trim() + " " : "") + t);
 
   const domainsQ = useQuery({
     queryKey: ["domains-available"],
@@ -183,6 +205,7 @@ export default function CreateLinkScreen() {
           value={title}
           onChangeText={setTitle}
           placeholder="Optional internal label"
+          trailing={<DictationMic onText={dictateInto(setTitle)} />}
         />
         <TextField
           label="Custom alias"
@@ -191,6 +214,7 @@ export default function CreateLinkScreen() {
           placeholder="leave blank to auto-generate"
           autoCapitalize="none"
           autoCorrect={false}
+          trailing={<DictationMic onText={dictateInto(setAlias)} />}
         />
 
         <DomainPicker
@@ -228,6 +252,7 @@ export default function CreateLinkScreen() {
               value={fileName}
               onChangeText={setFileName}
               placeholder="report.pdf"
+              trailing={<DictationMic onText={dictateInto(setFileName)} />}
             />
           </>
         ) : null}
@@ -239,12 +264,14 @@ export default function CreateLinkScreen() {
               value={vcFullName}
               onChangeText={setVcFullName}
               placeholder="Jane Doe"
+              trailing={<DictationMic onText={dictateInto(setVcFullName)} />}
             />
             <TextField
               label="Organization"
               value={vcOrg}
               onChangeText={setVcOrg}
               placeholder="Acme Inc."
+              trailing={<DictationMic onText={dictateInto(setVcOrg)} />}
             />
             <TextField
               label="Email"
@@ -285,6 +312,7 @@ export default function CreateLinkScreen() {
               value={evLocation}
               onChangeText={setEvLocation}
               placeholder="123 Main St"
+              trailing={<DictationMic onText={dictateInto(setEvLocation)} />}
             />
           </>
         ) : null}

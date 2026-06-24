@@ -21,6 +21,7 @@ import {
 
 import { AppIcon } from "@/components/AppIcon";
 import { Button } from "@/components/Button";
+import { DictationMic } from "@/components/DictationMic";
 import { PreviewBlueprint } from "@/components/PreviewBlueprint";
 import {
   onVoiceAction,
@@ -1261,6 +1262,13 @@ function QuestionField({
         value={value}
         onChangeText={onChange}
         placeholder={question.placeholder ?? undefined}
+        trailing={
+          question.type === "text" || question.type === "textarea" ? (
+            <DictationMic
+              onText={(t) => onChange(value ? value.trim() + " " + t : t)}
+            />
+          ) : undefined
+        }
         multiline={question.type === "textarea"}
         keyboardType={
           question.type === "email"
