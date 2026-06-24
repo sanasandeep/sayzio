@@ -1,20 +1,28 @@
 ---
-name: Biolink palette DnD spec expects a navigation that no longer happens
-description: Why tests/Browser/biolink-editor-palette-dnd.spec.ts times out on waitForNavigation regardless of palette markup changes
+name: Biolink palette DnD spec — in-place insert, no navigation
+description: tests/Browser/biolink-editor-palette-dnd.spec.ts asserts in-place insert (no reload) and is now a gated e2e spec
 ---
 
 The palette-create path (`paletteCreateBlock` in `biolink-editor.blade.php`)
 inserts the new block **in place** and does NOT reload — only the
 move-existing-block (`onAdd` → `doMoveBlock`) and card-add paths call
-`location.reload()`. The spec's `dropPalette` helper must reflect that: it
-asserts the target list (`#blockList > .block-card-wrapper` or
+`location.reload()`. The spec's `dropPalette` helper reflects that: it asserts
+the target list (`#blockList > .block-card-wrapper` or
 `.card-child-list[data-card-id] > .child-block-card`) gains one card and the
-"Block added" success toast shows — NOT `waitForNavigation` (which used to time
-out, since no reload ever happens).
+"Block added" success toast shows — NOT `waitForNavigation`.
+
+This spec is now **gated** in the `e2e` validation step (see
+browser-e2e-validation-gate.md). It seeds via `php artisan tinker`, logs in as
+the demo user, and drives the real drop pipeline through the `window.__editorTest`
+hook (armed only when a Playwright init script sets `window.__E2E__`).
 
 **Why this matters:** if you change the "Add blocks" palette markup/Alpine and
 this spec fails, it is NOT a navigation issue — the drop pipeline never reloads.
 
 **How to apply:** the palette tiles' drop contract is `.palette-block-item`
 elements (flat direct children of `#paletteList`) carrying `data-block-type`;
-keep that intact and drops keep working.
+keep that intact and drops keep working. The helpers use generous explicit
+timeouts (openEditor goto/waitForFunction 120s; dropPalette toHaveCount/toast
+60s) because cold editor renders + store round-trips over the distant RDS far
+exceed Playwright defaults — a 30s default here surfaces as an intermittent
+"waitForFunction timeout" that is really just slowness, not a logic bug.

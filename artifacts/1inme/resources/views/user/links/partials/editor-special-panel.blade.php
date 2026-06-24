@@ -64,7 +64,7 @@
     <div class="flex-1 overflow-y-auto p-3" style="min-height:0;">
         {{-- FORMS PICKER --}}
         <div x-show="specialMode === 'forms'" x-cloak>
-            @if(empty($userForms) || count($userForms) === 0)
+            @if(empty($userForms) || !is_countable($userForms) || count($userForms) === 0)
                 <div class="text-center py-10">
                     <i class="fas fa-clipboard-list text-2xl mb-2" style="color: var(--text-faint);"></i>
                     <p class="text-sm mb-3" style="color: var(--text-muted);">You haven't created any forms yet.</p>
@@ -99,7 +99,7 @@
 
         {{-- BUZZ PICKER --}}
         <div x-show="specialMode === 'buzz'" x-cloak>
-            @if(empty($userBuzz) || count($userBuzz) === 0)
+            @if(empty($userBuzz) || !is_countable($userBuzz) || count($userBuzz) === 0)
                 <div class="text-center py-10">
                     <i class="fas fa-bell text-2xl mb-2" style="color: var(--text-faint);"></i>
                     <p class="text-sm mb-3" style="color: var(--text-muted);">No Buzz campaigns yet.</p>
@@ -134,7 +134,7 @@
 
         {{-- AI COMPANIONS --}}
         <div x-show="specialMode === 'companions'" x-cloak>
-            @if(empty($userCompanions) || count($userCompanions) === 0)
+            @if(empty($userCompanions) || !is_countable($userCompanions) || count($userCompanions) === 0)
                 <div class="text-center py-10">
                     <i class="fas fa-robot text-2xl mb-2" style="color: var(--text-faint);"></i>
                     <p class="text-sm mb-3" style="color: var(--text-muted);">No biolink AI Companions yet.</p>

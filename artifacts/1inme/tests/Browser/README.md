@@ -26,13 +26,14 @@ fixture exists), then drives a real browser against the public alias.
 
 So a runtime regression (a CSS/Alpine break in the home-page mobile
 sign-in popup, a shape-aware card-gallery preview rendering blank tiles,
-or a cookie-consent layout reserving a phantom footer band) gets caught
-automatically instead of only when someone remembers to run
-`pnpm test:e2e`, the gated specs are wired into a named validation step
-called `e2e`. It runs the wrapper `tests/Browser/run-validation.sh` (also
-exposed as the `test:e2e:ci` package script) scoped to the reliable
-broader subset below, so a failing assertion in any of them blocks the
-change instead of passing silently.
+a broken block-editor drag-and-drop, or a cookie-consent layout
+reserving a phantom footer band) gets caught automatically instead of
+only when someone remembers to run `pnpm test:e2e`, the gated specs are
+wired into a named validation step called `e2e`. It runs the wrapper
+`tests/Browser/run-validation.sh` (also exposed as the `test:e2e:ci`
+package script) scoped to the reliable broader subset below, so a
+failing assertion in any of them blocks the change instead of passing
+silently.
 
 The registered validation command is:
 
@@ -40,6 +41,7 @@ The registered validation command is:
 bash artifacts/1inme/tests/Browser/run-validation.sh \
   home-auth-modal-mobile.spec.ts \
   biolink-editor-card-gallery-preview.spec.ts \
+  biolink-editor-palette-dnd.spec.ts \
   cookie-consent-footer-gap.spec.ts \
   cookie-consent-layout-styles.spec.ts
 ```
@@ -88,9 +90,12 @@ down from the old cold-render-per-spec headroom (per-test `60s`,
 worker the warm-up loop didn't reach. `retries: 1` absorbs the rare flake
 where a heavy editor spec loses a CPU race (php server + node + Chromium
 all share this box) and misses a client-side wait by a hair — a real,
-consistently-failing regression still fails both attempts.
+consistently-failing regression still fails both attempts. The
+card-gallery and palette-dnd describe blocks additionally keep their own
+generous per-test ceilings and explicit per-call timeouts on the slow
+editor-open / store round-trips.
 
-### Why these four specs are gated (and not the whole suite)
+### Why these five specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -100,6 +105,12 @@ The gate covers the specs that run reliably as an unattended check here:
   seeds one no-thumbnail card template per shape family via `php artisan
   tinker`, logs in as the demo user, and asserts the shape-aware gallery
   preview draws a real mock for every tile (not a blank fallback).
+- `biolink-editor-palette-dnd.spec.ts` — self-bootstrapping: it seeds a
+  biolink (with a Card Container child) via `php artisan tinker`, logs in
+  as the demo user, and drives the real palette-drop pipeline through the
+  `window.__editorTest` hook (armed only when `window.__E2E__` is set),
+  asserting each drop inserts a block in place (no reload). Gating it
+  catches regressions in the editor render or the drop/persist flow.
 - `cookie-consent-footer-gap.spec.ts` — pins the "no phantom band below
   the footer" invariant for the default banner layout. No login/seeding.
 - `cookie-consent-layout-styles.spec.ts` — extends the footer-reserve
@@ -109,9 +120,6 @@ The gate covers the specs that run reliably as an unattended check here:
 The remaining specs are still NOT gated because, in this environment, they
 fail or flake for reasons unrelated to the code under test:
 
-- `biolink-editor-palette-dnd.spec.ts` — the palette-drop assertions are
-  unstable here (block counts come back off-by-one and the shared page
-  context closes mid-test), independent of the warm-server change.
 - `slides-mode.spec.ts` — its `php artisan tinker` seed intermittently
   trips a psysh / PHP 8.4 `ParseErrorException` parse error, so the seed
   (not the assertion) fails. Runs fine when tinker behaves.
@@ -119,16 +127,12 @@ fail or flake for reasons unrelated to the code under test:
   but the "Customize" expansion test's reserve-settle wait does not
   reliably converge here.
 
-Run the full suite manually (slow renders and all) with `pnpm test:e2e`;
-each spec self-warms via the shared server when launched through the
-wrapper.
-
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the two gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the five gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
@@ -140,16 +144,16 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
   slides render, the active-slide class moves on `ArrowRight` /
   `ArrowLeft` and on a synthesized swipe-left gesture, and the inline
   `/sl/{alias}/view` tracker pings during navigation.
-- `biolink-editor-palette-dnd.spec.ts` — task #1340. Seeds a biolink at
-  alias `e2e-editor-dnd` (divider, spacer, and a card with one paragraph
-  child) and logs in as the demo user, then drives the real palette-drop
-  pipeline through production-safe `window.__editorTest` hooks (armed only
-  when `window.__E2E__` is set). Asserts a palette tile drops at the top,
-  between blocks, at the end, and inside a Card Container (verifying
-  position and parent); that card-type tiles are rejected inside a Card
-  Container; and that `prefers-reduced-motion` disables the drop
-  animation. All tests share one logged-in browser context because the
-  `demo-login` route is rate-limited.
+- `biolink-editor-palette-dnd.spec.ts` — task #1340. Gated. Seeds a
+  biolink at alias `e2e-editor-dnd` (divider, spacer, and a card with one
+  paragraph child) and logs in as the demo user, then drives the real
+  palette-drop pipeline through production-safe `window.__editorTest`
+  hooks (armed only when `window.__E2E__` is set). Asserts a palette tile
+  drops at the top, between blocks, at the end, and inside a Card
+  Container (verifying position and parent); that card-type tiles are
+  rejected inside a Card Container; and that `prefers-reduced-motion`
+  disables the drop animation. All tests share one logged-in browser
+  context because the `demo-login` route is rate-limited.
 - `home-auth-modal-mobile.spec.ts` — gated. On a mobile viewport, opens
   the home-page sign-in popup, asserts the correct tab is active, the
   close button clears the tabs, background scroll is locked, and the X /

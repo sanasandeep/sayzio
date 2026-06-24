@@ -67,6 +67,9 @@ if (!$u) {
 }
 $rid = DB::table('roles')->where('slug', 'user-admin')->where('guard', 'web')->value('id');
 if ($rid) { $u->roles()->syncWithoutDetaching([$rid]); $u->flushPermissionCache(); }
+// Mark onboarded so the post-login RedirectToOnboarding soft gate doesn't bounce
+// us through the heavy onboarding wizard before the editor (active-user state).
+if ($u->onboarded_at === null) { $u->onboarded_at = now(); $u->save(); }
 $ws = app(WorkspaceContext::class)->resolve($u);
 
 $bio = Link::withoutGlobalScope('workspace')->where('alias', '${ALIAS}')->first();
@@ -99,12 +102,33 @@ echo 'LINKID=' . $bio->id . ' CARDID=' . $card->id;
   return { linkId: Number(m[1]), cardId: Number(m[2]) };
 }
 
-/** Log in as the demo user (non-prod quick-login) via the login form. */
+/**
+ * Log in as the demo user (non-prod quick-login). Submits the demo-login form
+ * via JS rather than a click, and waits only for the demo-login POST response
+ * (not the redirect target render) so the heavy post-login dashboard render
+ * never blocks the suite — see the inline note below.
+ */
 async function loginAsDemo(page: Page): Promise<void> {
   await page.goto("/user/login");
+  // Wait only for the demo-login POST itself — Laravel sets the authenticated
+  // session cookie on its 302 response, so the context is logged in as soon as
+  // that returns. We deliberately do NOT wait for the redirect target to render
+  // (the dashboard is a heavy ~20-30s cold Blade render over the distant RDS,
+  // and openEditor navigates straight to the editor anyway).
   await Promise.all([
-    page.waitForURL(/\/user\/dashboard/),
-    page.locator('form[action$="/user/demo-login"] button[type="submit"]').click(),
+    page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/user/demo-login") &&
+        r.request().method() === "POST",
+      { timeout: 90_000 },
+    ),
+    page.evaluate(() => {
+      const form = document.querySelector<HTMLFormElement>(
+        'form[action$="/user/demo-login"]',
+      );
+      if (!form) throw new Error("demo-login form not found");
+      form.submit();
+    }),
   ]);
 }
 
@@ -113,9 +137,15 @@ async function openEditor(page: Page, linkId: number): Promise<void> {
   await page.addInitScript(() => {
     (window as unknown as { __E2E__: boolean }).__E2E__ = true;
   });
-  await page.goto(`/user/links/${linkId}/blocks`);
+  // The editor is a heavy cold Blade render over the distant RDS (well past the
+  // default 30s navigation/wait budget), and this suite reseeds via tinker before
+  // every test so the render is always cold — give both the navigation and the
+  // test-hook poll real headroom or later tests intermittently time out here.
+  await page.goto(`/user/links/${linkId}/blocks`, { timeout: 120_000 });
   await page.waitForFunction(
     () => !!(window as unknown as { __editorTest?: unknown }).__editorTest,
+    undefined,
+    { timeout: 120_000 },
   );
 }
 
@@ -178,12 +208,24 @@ async function dropPalette(
   );
 
   // The in-place insert adds exactly one real block card to the target list…
-  await expect(page.locator(cardSelector)).toHaveCount(before + 1);
+  // A generous timeout: the store round-trip (controller create + block-card
+  // partial render) is slow over the distant RDS, well past the default 10s
+  // expect budget — too short a wait aborts the in-flight POST.
+  await expect(page.locator(cardSelector)).toHaveCount(before + 1, {
+    timeout: 60_000,
+  });
   // …and a success toast confirms the persisted creation.
-  await expect(page.getByText("Block added").last()).toBeVisible();
+  await expect(page.getByText("Block added").last()).toBeVisible({
+    timeout: 60_000,
+  });
 }
 
 test.describe("biolink editor — palette drag-and-drop block creation", () => {
+  // Cold editor renders plus slow store round-trips over the distant RDS push a
+  // single drop test past the default 90s budget; give the suite real headroom
+  // (mirrors the card-gallery preview spec).
+  test.describe.configure({ timeout: 180_000 });
+
   let baseline: Baseline;
 
   test.beforeAll(async ({ browser }) => {

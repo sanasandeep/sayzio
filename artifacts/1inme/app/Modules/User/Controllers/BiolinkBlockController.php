@@ -76,7 +76,7 @@ class BiolinkBlockController extends Controller
                     'title'     => $f->title,
                     'slug'      => $f->slug,
                     'is_active' => (bool) $f->is_active,
-                ])->values()
+                ])->values()->all()
         );
 
         $userBuzz = \Illuminate\Support\Facades\Cache::remember(
@@ -90,7 +90,7 @@ class BiolinkBlockController extends Controller
                     'name'      => $b->name,
                     'type'      => $b->type,
                     'is_active' => (bool) $b->is_active,
-                ])->values()
+                ])->values()->all()
         );
 
         // AI Companions the owner can drop into a biolink block. We
@@ -108,7 +108,7 @@ class BiolinkBlockController extends Controller
                     'public_id'   => $c->public_id,
                     'name'        => $c->name,
                     'is_disabled' => (bool) $c->is_disabled,
-                ])->values()
+                ])->values()->all()
         );
 
         return view('user.links.biolink-editor', compact(
