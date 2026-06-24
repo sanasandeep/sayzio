@@ -1,5 +1,12 @@
 import { Stack } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Platform } from "react-native";
 
@@ -10,14 +17,33 @@ export type InfoSection = {
   body: string;
 };
 
+export type InfoStat = {
+  value: string;
+  label: string;
+};
+
+export type EefindBlock = {
+  eyebrow: string;
+  heading: string;
+  body: string;
+  stats: InfoStat[];
+  address: string;
+  email: string;
+  whatsapp: string;
+  website: string;
+  websiteUrl: string;
+};
+
 export function InfoPage({
   title,
   intro,
   sections,
+  eefind,
 }: {
   title: string;
   intro?: string;
   sections: InfoSection[];
+  eefind?: EefindBlock;
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -60,6 +86,110 @@ export function InfoPage({
             </Text>
           </View>
         ))}
+        {eefind ? (
+          <View
+            style={[
+              styles.eefindCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>
+              {eefind.eyebrow}
+            </Text>
+            <Text style={[styles.h2, { color: colors.foreground }]}>
+              {eefind.heading}
+            </Text>
+            <Text
+              style={[
+                styles.body,
+                { color: colors.mutedForeground, marginTop: 8 },
+              ]}
+            >
+              {eefind.body}
+            </Text>
+            <View style={styles.statRow}>
+              {eefind.stats.map((stat) => (
+                <View
+                  key={stat.label}
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.muted,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.statValue, { color: colors.primary }]}>
+                    {stat.value}
+                  </Text>
+                  <Text
+                    style={[styles.statLabel, { color: colors.mutedForeground }]}
+                  >
+                    {stat.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.eefindMeta}>
+              <Text style={[styles.metaLabel, { color: colors.foreground }]}>
+                Registered office
+              </Text>
+              <Text style={[styles.metaValue, { color: colors.mutedForeground }]}>
+                {eefind.address}
+              </Text>
+
+              <Text
+                style={[
+                  styles.metaLabel,
+                  { color: colors.foreground, marginTop: 12 },
+                ]}
+              >
+                Email
+              </Text>
+              <Pressable
+                onPress={() => Linking.openURL(`mailto:${eefind.email}`)}
+              >
+                <Text style={[styles.metaLink, { color: colors.primary }]}>
+                  {eefind.email}
+                </Text>
+              </Pressable>
+
+              <Text
+                style={[
+                  styles.metaLabel,
+                  { color: colors.foreground, marginTop: 12 },
+                ]}
+              >
+                WhatsApp
+              </Text>
+              <Pressable
+                onPress={() =>
+                  Linking.openURL(
+                    `https://wa.me/${eefind.whatsapp.replace(/[^0-9]/g, "")}`,
+                  )
+                }
+              >
+                <Text style={[styles.metaLink, { color: colors.primary }]}>
+                  {eefind.whatsapp}
+                </Text>
+              </Pressable>
+
+              <Text
+                style={[
+                  styles.metaLabel,
+                  { color: colors.foreground, marginTop: 12 },
+                ]}
+              >
+                Website
+              </Text>
+              <Pressable onPress={() => Linking.openURL(eefind.websiteUrl)}>
+                <Text style={[styles.metaLink, { color: colors.primary }]}>
+                  {eefind.website}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -76,4 +206,52 @@ const styles = StyleSheet.create({
   section: { gap: 8, marginTop: 8 },
   h2: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 20 },
   body: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 16, lineHeight: 25 },
+  eefindCard: {
+    marginTop: 16,
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+  },
+  eyebrow: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  statRow: { flexDirection: "row", gap: 10, marginTop: 20 },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    alignItems: "center",
+  },
+  statValue: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 22,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 11,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+  eefindMeta: { marginTop: 22 },
+  metaLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  metaValue: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 2,
+  },
+  metaLink: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 14,
+    marginTop: 2,
+  },
 });
