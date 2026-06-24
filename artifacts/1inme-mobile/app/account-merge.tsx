@@ -40,6 +40,8 @@ export default function AccountMerge() {
   const [keepPlan, setKeepPlan] = useState<"primary" | "secondary">("primary");
   const [movedCount, setMovedCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resentAt, setResentAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const webBottom = Platform.OS === "web" ? 34 : 0;
@@ -74,6 +76,7 @@ export default function AccountMerge() {
     setMergeToken(null);
     setPreview(null);
     setKeepPlan("primary");
+    setResentAt(null);
     setError(null);
   };
 
@@ -87,11 +90,27 @@ export default function AccountMerge() {
     setError(null);
     try {
       await mergeChallenge({ kind, value: v });
+      setResentAt(null);
       setStep("verify");
     } catch (e) {
       setError((e as ApiError)?.message ?? "Could not send a code. Please try again.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resendCode = async () => {
+    const v = value.trim();
+    if (!v) return;
+    setResending(true);
+    setError(null);
+    try {
+      await mergeChallenge({ kind, value: v });
+      setResentAt(Date.now());
+    } catch (e) {
+      setError((e as ApiError)?.message ?? "Could not resend the code. Please try again.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -214,7 +233,15 @@ export default function AccountMerge() {
               error={error ?? undefined}
             />
             <View style={{ height: 16 }} />
-            <Button label="Verify" onPress={verifyCode} loading={busy} />
+            <Button label="Verify" onPress={verifyCode} loading={busy} disabled={resending} />
+            <View style={{ height: 12 }} />
+            <Button
+              label={resentAt ? "Code sent again" : "Resend code"}
+              variant="ghost"
+              onPress={resendCode}
+              loading={resending}
+              disabled={busy}
+            />
             <View style={{ height: 8 }} />
             <Button
               label="Back"
@@ -222,9 +249,10 @@ export default function AccountMerge() {
               onPress={() => {
                 setStep("identify");
                 setCode("");
+                setResentAt(null);
                 setError(null);
               }}
-              disabled={busy}
+              disabled={busy || resending}
             />
           </>
         ) : null}
