@@ -38,13 +38,16 @@ class LinkAliasController extends Controller
         abort_if($link->user_id !== $request->user()->id, 403);
 
         $user = $request->user();
-        $maxExtras = $user->getMaxAliasesPerLink();
+        // Cap is resolved per the TARGET link's type — a plan may allow, say,
+        // 5 extra aliases on a biolink but only 1 on a short link.
+        $maxExtras = $user->getMaxAliasesPerLink($link->type);
         $currentExtras = $link->aliases()->count();
 
         if ($maxExtras !== -1 && $currentExtras >= $maxExtras) {
+            $typeLabel = \App\Modules\Common\Support\PlanFormCatalogue::aliasLinkTypes()[$link->type] ?? 'link';
             $msg = $maxExtras === 0
-                ? 'Your current plan does not include additional aliases. Upgrade to add custom alternative URLs.'
-                : "You've reached your plan's alias limit ({$maxExtras} extras per biolink). Upgrade for more.";
+                ? "Your current plan does not include additional aliases for this {$typeLabel}. Upgrade to add custom alternative URLs."
+                : "You've reached your plan's alias limit ({$maxExtras} extra " . ($maxExtras === 1 ? 'alias' : 'aliases') . " per {$typeLabel}). Upgrade for more.";
             return $this->respond($request, false, $msg, 403);
         }
 

@@ -65,7 +65,7 @@ class PlanFormCatalogue
             ['key' => 'storage_limit_mb',     'label' => 'Total storage (MB)',      'default' => 100, 'module' => null,                 'hint' => 'Total disk space across all uploads. See the Storage section for a GB converter.'],
             ['key' => 'max_file_size_mb',     'label' => 'Max upload size (MB)',    'default' => 5,   'module' => null,                 'hint' => 'Largest single file a user can upload.'],
             ['key' => 'contacts_max',         'label' => 'Max contacts',            'default' => 100, 'module' => 'module_contacts',    'hint' => 'CRM entries this plan can keep stored.'],
-            ['key' => 'max_aliases_per_link', 'label' => 'Extra aliases per link',  'default' => 0,   'module' => 'module_short_links', 'hint' => 'Additional aliases beyond the primary one.'],
+            ['key' => 'max_aliases_per_link', 'label' => 'Extra aliases per link',  'default' => 0,   'module' => 'module_short_links', 'hint' => 'Global fallback for additional aliases beyond the primary one. Override per link type below. -1 = unlimited.'],
             ['key' => 'min_alias_length',     'label' => 'Min alias length',        'default' => 3,   'module' => 'module_short_links', 'hint' => 'Minimum length for the visitor-facing alias.', 'max' => 191],
             ['key' => 'max_alias_length',     'label' => 'Max alias length',        'default' => 50,  'module' => 'module_short_links', 'hint' => 'Hard cap is 191 characters.', 'max' => 191],
             ['key' => 'max_forms',            'label' => 'Max forms',               'default' => 1,   'module' => 'module_forms',       'hint' => 'Custom form definitions a user can publish.'],
@@ -78,6 +78,40 @@ class PlanFormCatalogue
             ['key' => 'max_events',           'label' => 'Max events',              'default' => 0,   'module' => null,                 'hint' => 'Event listings / calendar entries.'],
             ['key' => 'api_calls_monthly',    'label' => 'API calls / month',       'default' => 0,   'module' => null,                 'hint' => 'Monthly included API-call allowance for API keys. Calls beyond this are paid with coins (admin-set overage rate). -1 = unlimited.'],
             ['key' => 'api_rate_per_min',     'label' => 'API requests / minute',   'default' => 0,   'module' => null,                 'hint' => 'Per-user rate limit for the public API.'],
+        ];
+    }
+
+    /**
+     * Link types that can carry their own per-type "extra aliases" cap.
+     *
+     * The plan feature `max_aliases_per_link` may be either a scalar (the
+     * global allowance, applied to every type) OR a map keyed by these
+     * type slugs with an optional `default` fallback. The admin form, the
+     * writer and the seeder all iterate this single list so the surfaces
+     * stay in lockstep. Slugs match `links.type`.
+     *
+     * @return array<string,string> slug => human label
+     */
+    public static function aliasLinkTypes(): array
+    {
+        return [
+            'short'           => 'Short link',
+            'biolink'         => 'Link in Bio',
+            'conversational'  => 'Conversational page',
+            'slides'          => 'Slides page',
+            'ai_chat'         => 'AI chatbot page',
+            'restaurant_menu' => 'Restaurant menu',
+            'reviews'         => 'Reviews page',
+            'resume'          => 'Resume / Portfolio',
+            'paid_page'       => 'Paid page',
+            'file'            => 'File',
+            'qr'              => 'QR code',
+            'event'           => 'Event',
+            'vcard'           => 'Digital card',
+            'social'          => 'Social',
+            'sms'             => 'SMS',
+            'wifi'            => 'WiFi',
+            'pdf'             => 'PDF',
         ];
     }
 
@@ -278,7 +312,7 @@ class PlanFormCatalogue
     public static function moduleKeys(): array
     {
         return [
-            'module_short_links'  => ['max_links', 'max_aliases_per_link', 'min_alias_length', 'max_alias_length',
+            'module_short_links'  => ['max_links', 'max_aliases_per_link', 'max_aliases_per_link_by_type', 'min_alias_length', 'max_alias_length',
                                       'pixels', 'utm_params', 'link_protection', 'qr_customization', 'seo_settings',
                                       'link_password', 'link_expiry', 'link_geo_targeting', 'link_device_targeting',
                                       'link_deep_link', 'link_smart_rules', 'link_active_window'],

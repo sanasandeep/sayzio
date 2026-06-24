@@ -5,7 +5,7 @@
      * Drop-in: @include('user.links.partials.aliases-card', ['link' => $link])
      */
     use App\Modules\Common\Support\PlatformHosts;
-    $maxExtras  = auth()->user()->getMaxAliasesPerLink();
+    $maxExtras  = auth()->user()->getMaxAliasesPerLink($link->type);
     $extras     = $link->aliases()->orderBy('created_at')->get();
     $usedExtras = $extras->count();
     $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;

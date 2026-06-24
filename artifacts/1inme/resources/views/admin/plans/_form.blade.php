@@ -298,6 +298,41 @@
                     </div>
                 @endforeach
             </div>
+
+            {{-- Per-link-type alias overrides. The "Extra aliases per link"
+                 field above is the global fallback; any type left blank here
+                 inherits it. A type set here overrides the global for links of
+                 that type only. -1 = unlimited, 0 = none. --}}
+            @php
+                $aliasTypes = PlanFormCatalogue::aliasLinkTypes();
+                $aliasRaw   = $val('max_aliases_per_link', 0);
+                $aliasByType = is_array($aliasRaw) ? $aliasRaw : [];
+            @endphp
+            <div class="mt-6 pt-5 border-t border-white/10" x-bind:class="modules['module_short_links'] ? '' : 'opacity-40'"
+                 x-data="{ open: {{ count(array_diff(array_keys($aliasByType), ['default'])) ? 'true' : 'false' }} }">
+                <button type="button" @click="open = !open"
+                        class="flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white">
+                    <i class="fas" :class="open ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                    Per-link-type alias overrides
+                    <span class="text-[10px] text-white/40 font-normal">— optional; blank inherits the global "Extra aliases per link"</span>
+                </button>
+                <div x-show="open" x-cloak class="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    @foreach($aliasTypes as $slug => $label)
+                        @php $tv = $aliasByType[$slug] ?? null; @endphp
+                        <div>
+                            <label class="block text-[11px] text-white/60 mb-1">{{ $label }}</label>
+                            <div class="flex items-stretch gap-1">
+                                <input type="number" name="features[max_aliases_per_link_by_type][{{ $slug }}]"
+                                       value="{{ is_numeric($tv) ? $tv : '' }}" min="-1" placeholder="inherit"
+                                       x-ref="alias_{{ $slug }}"
+                                       class="flex-1 min-w-0 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-l-lg text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                <button type="button" @click="$refs.alias_{{ $slug }}.value = '-1'" title="Set to unlimited (-1)"
+                                        class="px-2.5 bg-white/10 border border-white/10 border-l-0 rounded-r-lg text-white/70 hover:text-white hover:bg-white/15 text-sm font-bold">∞</button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
         </section>
 
         {{-- ============================== TEAM MANAGEMENT ============================== --}}

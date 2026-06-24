@@ -70,9 +70,21 @@
         <h2 class="text-base font-semibold text-white mb-4">Quantity limits</h2>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
             @foreach($quantities as $q)
+                @php $qv = $features[$q['key']] ?? $q['default']; @endphp
                 <div class="flex justify-between border border-white/5 rounded-lg px-3 py-2 bg-white/[0.02]">
                     <span class="text-white/60">{{ $q['label'] }}</span>
-                    <span class="text-white font-medium">{{ $fmt($features[$q['key']] ?? $q['default']) }}</span>
+                    @if(is_array($qv))
+                        {{-- max_aliases_per_link can be a per-type map: show the
+                             default plus any overrides as a compact summary. --}}
+                        <span class="text-white font-medium text-right">
+                            {{ $fmt($qv['default'] ?? 0) }}
+                            <span class="text-white/40 text-[10px] block">
+                                @foreach(array_diff_key($qv, ['default' => true]) as $t => $tv){{ $t }}: {{ $fmt($tv) }}@if(!$loop->last), @endif @endforeach
+                            </span>
+                        </span>
+                    @else
+                        <span class="text-white font-medium">{{ $fmt($qv) }}</span>
+                    @endif
                 </div>
             @endforeach
             <div class="flex justify-between border border-white/5 rounded-lg px-3 py-2 bg-white/[0.02]">

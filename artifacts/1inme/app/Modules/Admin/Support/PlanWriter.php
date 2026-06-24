@@ -161,6 +161,26 @@ class PlanWriter
             }
         }
 
+        // ---- Per-link-type alias caps ----
+        // The global field (`max_aliases_per_link`) was already cast to int by
+        // the quantityLimits loop above. Per-type overrides arrive as
+        // `max_aliases_per_link_by_type[<type>]`; blank entries mean "inherit
+        // the global value". When ANY per-type value is set we persist a map
+        // (`['default' => global, '<type>' => int, ...]`); otherwise we keep
+        // the legacy scalar so existing readers stay backward compatible.
+        $globalAliases = (int) ($out['max_aliases_per_link'] ?? 0);
+        $aliasByType = [];
+        $knownAliasTypes = PlanFormCatalogue::aliasLinkTypes();
+        foreach ((array) ($features['max_aliases_per_link_by_type'] ?? []) as $type => $v) {
+            if (!array_key_exists($type, $knownAliasTypes)) continue;
+            if ($v === '' || $v === null) continue; // blank = inherit global
+            $aliasByType[$type] = (int) $v;
+        }
+        unset($out['max_aliases_per_link_by_type']);
+        $out['max_aliases_per_link'] = $aliasByType
+            ? array_merge(['default' => $globalAliases], $aliasByType)
+            : $globalAliases;
+
         // ---- Boolean & select feature flags ----
         foreach (PlanFormCatalogue::featureFlags() as $flag) {
             if ($flag['type'] === 'bool') {
@@ -269,6 +289,8 @@ class PlanWriter
             'features.storage_limit_mb'        => 'nullable|integer|min:-1',
             'features.contacts_max'            => 'nullable|integer|min:-1',
             'features.max_aliases_per_link'    => 'nullable|integer|min:-1',
+            'features.max_aliases_per_link_by_type'   => 'nullable|array',
+            'features.max_aliases_per_link_by_type.*' => 'nullable|integer|min:-1',
             'features.min_alias_length'        => 'nullable|integer|min:-1|max:191',
             'features.max_alias_length'        => 'nullable|integer|min:-1|max:191',
             'features.max_workspaces'          => 'nullable|integer|min:-1',

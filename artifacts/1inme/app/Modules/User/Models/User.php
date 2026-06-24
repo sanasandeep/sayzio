@@ -985,12 +985,34 @@ class User extends Authenticatable
     }
 
     /**
-     * Maximum number of additional aliases per biolink for this user.
-     * The primary alias does NOT count toward the limit (it's free with the link).
-     * `-1` means unlimited.
+     * Maximum number of additional aliases for a link of the given type.
+     * The primary alias does NOT count toward the limit (it's free with the
+     * link). `-1` means unlimited; `0` means no extra aliases.
+     *
+     * The plan feature `max_aliases_per_link` may be stored as either:
+     *  - a scalar int  — the legacy / global allowance applied to every type, or
+     *  - a map         — `['default' => int, '<type>' => int, ...]` where a
+     *                    per-type entry wins, otherwise the map's `default`
+     *                    key, otherwise the catalogue default (0).
+     *
+     * When no $type is supplied the global / default value is returned.
      */
-    public function getMaxAliasesPerLink(): int
+    public function getMaxAliasesPerLink(?string $type = null): int
     {
-        return (int) $this->getPlanFeature('max_aliases_per_link', 0);
+        $raw = $this->getPlanFeature('max_aliases_per_link', 0);
+
+        // Bypass holders get PHP_INT_MAX (int) from getPlanFeature regardless
+        // of the stored shape, so the is_int() branch below covers them.
+        if (is_array($raw)) {
+            if ($type !== null && isset($raw[$type]) && is_numeric($raw[$type])) {
+                return (int) $raw[$type];
+            }
+            if (isset($raw['default']) && is_numeric($raw['default'])) {
+                return (int) $raw['default'];
+            }
+            return 0;
+        }
+
+        return (int) $raw;
     }
 }

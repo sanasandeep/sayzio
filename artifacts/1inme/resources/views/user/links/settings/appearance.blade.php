@@ -10,7 +10,7 @@
     // Aliases UI is fully owned by partials/aliases-card.blade.php (computes
     // its own $extras/$usedExtras/$aliasHost/$canAddMore from $link). We only
     // forward $maxExtras since some controller paths still pass it explicitly.
-    $maxExtras = $maxExtras ?? (auth()->user()?->getMaxAliasesPerLink() ?? 0);
+    $maxExtras = $maxExtras ?? (auth()->user()?->getMaxAliasesPerLink($link->type) ?? 0);
     $bgType = $bs['background_type'] ?? 'color';
     $bgColor = $bs['background_color'] ?? '#0a0612';
     $fontColor = $bs['font_color'] ?? '#ffffff';
