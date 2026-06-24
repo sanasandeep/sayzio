@@ -1018,7 +1018,7 @@
                     ['analytics',                'Analytics depth',         'analytics'],
                     ['pixels',                   'Marketing pixels',        'bool'],
                     ['utm_params',               'UTM parameters',          'bool'],
-                    ['custom_domains',           'Custom domains',          'bool'],
+                    ['max_custom_domains',       'Custom domains',          'number'],
                     ['seo_settings',             'SEO & social previews',   'bool'],
                 ],
                 'Per-link controls' => [

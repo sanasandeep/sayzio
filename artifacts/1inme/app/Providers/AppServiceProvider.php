@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Modules\User\Models\Contact;
+use App\Modules\User\Models\Domain;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Project;
 use App\Modules\User\Models\UserFile;
@@ -301,7 +302,7 @@ class AppServiceProvider extends ServiceProvider
             }
         };
 
-        foreach ([Link::class, Contact::class, UserFile::class, Project::class] as $modelClass) {
+        foreach ([Link::class, Contact::class, UserFile::class, Project::class, Domain::class] as $modelClass) {
             $modelClass::created($forget);
             $modelClass::updated($forget);
             $modelClass::deleted($forget);

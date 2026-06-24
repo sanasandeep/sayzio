@@ -29,9 +29,9 @@ use Illuminate\Support\Facades\Cache;
  * can render it without further computation.
  *
  * Performance: the per-user usage counts (links, biolinks, projects,
- * storage bytes, contacts, files) are cached for {@see CACHE_TTL_SECONDS}
- * so the busy /pricing and /user/upgrade pages don't run six count
- * queries on every request. The cache is also event-busted whenever
+ * storage bytes, contacts, files, custom domains) are cached for
+ * {@see CACHE_TTL_SECONDS} so the busy /pricing and /user/upgrade pages
+ * don't run a count query per signal on every request. The cache is also event-busted whenever
  * one of the underlying models is created or deleted (see
  * AppServiceProvider::boot) so gauges stay believable for the user
  * who just performed the write.
@@ -59,6 +59,7 @@ class PlanRecommender
             'storage_limit_mb' => ['label' => 'storage'],
             'contacts_max'     => ['label' => 'contacts'],
             'max_files'        => ['label' => 'files'],
+            'max_custom_domains' => ['label' => 'custom domains'],
         ];
     }
 
@@ -244,7 +245,7 @@ class PlanRecommender
     }
 
     /**
-     * Run the six per-user usage queries. Kept as its own method so the
+     * Run the per-user usage queries. Kept as its own method so the
      * caching wrapper above is a one-liner and tests can exercise the
      * raw computation directly when needed.
      *
@@ -259,6 +260,7 @@ class PlanRecommender
             'storage_limit_mb' => (int) round($user->getStorageUsedBytes() / 1048576),
             'contacts_max'     => (int) Contact::where('user_id', $user->id)->count(),
             'max_files'        => (int) UserFile::where('user_id', $user->id)->count(),
+            'max_custom_domains' => (int) $user->domains()->count(),
         ];
     }
 
