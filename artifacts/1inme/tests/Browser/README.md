@@ -43,7 +43,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   biolink-editor-card-gallery-preview.spec.ts \
   biolink-editor-palette-dnd.spec.ts \
   cookie-consent-footer-gap.spec.ts \
-  cookie-consent-layout-styles.spec.ts
+  cookie-consent-layout-styles.spec.ts \
+  voice-assistant-bridge.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -95,7 +96,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these five specs are gated (and not the whole suite)
+### Why these six specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -116,6 +117,16 @@ The gate covers the specs that run reliably as an unattended check here:
 - `cookie-consent-layout-styles.spec.ts` — extends the footer-reserve
   guard across the corner / pill / modal / takeover consent layouts. No
   login/seeding.
+- `voice-assistant-bridge.spec.ts` — self-bootstrapping: it turns on the
+  Voice Assistant via `php artisan tinker` (no API key — the turn endpoint
+  is mocked in the browser), logs in as the demo user, and drives the real
+  floating widget's `sendTurn()` against a mocked STT/LLM/TTS response. It
+  asserts the `client_action` / `voice-action` bridge reaches each surface:
+  `select_link_type` picks the type and submits the Create form,
+  `wizard_advance` clicks the wizard's forward submit, and a `navigate_to`
+  is deferred until the spoken reply's audio ends (yet fires immediately
+  when there is no audio). All tests share one logged-in context (the
+  `demo-login` route is rate-limited).
 
 The remaining specs are still NOT gated because, in this environment, they
 fail or flake for reasons unrelated to the code under test:
