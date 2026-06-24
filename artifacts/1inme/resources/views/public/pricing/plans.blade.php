@@ -311,6 +311,16 @@
     html.light-mode .grad-bar.text-white,
     html.light-mode .grad-bar .text-white { color: #fff !important; }
 
+    /* Cycle toggle (Monthly/Annual): the active label uses the `.text-white`
+       utility but sits on the violet knob as a SIBLING (not a child of
+       .grad-bar), so the global light-mode remap darkens it to gray-on-violet.
+       Force it back to white. The inactive label's `hover:text-white` would
+       also turn invisible on the light track, so darken it on hover instead.
+       Same reasoning for the currency segmented control's inactive buttons. */
+    html.light-mode .cycle-seg.text-white { color: #fff !important; }
+    html.light-mode .cycle-seg:not(.text-white):hover { color: #111827 !important; }
+    html.light-mode .seg:not(.seg-active):hover { color: #111827 !important; }
+
     /* ── Arbitrary white-opacity utilities the global remap misses ──
        marketing-anim.css only remaps bg-white/{.03,.05,.07}; this page also
        leans on /[0.02] and /[0.04] soft fills plus /[0.08] /[0.10] hovers,
@@ -648,10 +658,10 @@
                       :class="cycle==='annual' ? 'translate-x-full' : 'translate-x-0'" aria-hidden="true"></span>
                 <button type="button" @click="cycle='monthly'"
                     :class="cycle==='monthly' ? 'text-white' : 'text-gray-400 hover:text-white'"
-                    class="relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors">Monthly</button>
+                    class="cycle-seg relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors">Monthly</button>
                 <button type="button" @click="cycle='annual'"
                     :class="cycle==='annual' ? 'text-white' : 'text-gray-400 hover:text-white'"
-                    class="relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5">
+                    class="cycle-seg relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5">
                     Annual
                 </button>
             </div>
@@ -875,7 +885,7 @@
                                 </span>
                             @endif
                         </div>
-                        <p class="text-sm text-gray-400 mt-1.5 leading-snug min-h-[2.5rem]">{{ $plan->description }}</p>
+                        <p class="text-sm text-gray-400 mt-1.5 leading-snug min-h-[3.75rem] line-clamp-3">{{ $plan->description }}</p>
                     </div>
 
                     {{-- ── Body: price → billing note → CTA → feature list ── --}}
@@ -922,9 +932,9 @@
 
                             {{-- Billing note (Linktree fineprint under the price) --}}
                             @if(!empty($row['is_free']))
-                                <div class="text-xs text-gray-400 mt-1.5">Free forever — no card required</div>
+                                <div class="text-xs text-gray-400 mt-1.5 min-h-[2.5rem]">Free forever — no card required</div>
                             @else
-                                <div class="text-xs text-gray-400 mt-1.5 min-h-[1rem]" x-text="billingNote(plan)"></div>
+                                <div class="text-xs text-gray-400 mt-1.5 min-h-[2.5rem]" x-text="billingNote(plan)"></div>
                             @endif
 
                             {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
