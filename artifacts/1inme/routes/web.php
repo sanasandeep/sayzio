@@ -465,6 +465,8 @@ Route::get   ('/@{handle}/subscribe', [\App\Modules\Common\Controllers\CreatorMo
     ->where('handle', '[A-Za-z0-9_]+')->name('creator-profile.subscribe.show');
 Route::post  ('/@{handle}/subscribe', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'subscribe'])
     ->where('handle', '[A-Za-z0-9_]+')->middleware('throttle:30,1')->name('creator-profile.subscribe');
+Route::post  ('/@{handle}/subscribe/preview-promo', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'previewPromo'])
+    ->where('handle', '[A-Za-z0-9_]+')->middleware('throttle:60,1')->name('creator-profile.subscribe.preview-promo');
 Route::post  ('/@{handle}/p/{post}/unlock', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'unlock'])
     ->where(['handle' => '[A-Za-z0-9_]+', 'post' => '[0-9]+'])
     ->middleware('throttle:30,1')->name('creator-profile.unlock');

@@ -70,6 +70,68 @@ class CreatorMonetizationPublicController extends Controller
         return redirect()->away($r['url']);
     }
 
+    /**
+     * Live promo-code check for the public subscribe page. Returns the
+     * discounted price (or the explicit unusableReason()) as JSON so a
+     * fan can validate a code before the full-page subscribe round-trip.
+     * Mirrors the validation in subscribe() exactly.
+     */
+    public function previewPromo(Request $request, string $handle)
+    {
+        $creator = $this->creatorOr404($handle);
+        $data = $request->validate([
+            'tier_id'    => 'required|integer',
+            'cycle'      => 'nullable|in:monthly,yearly',
+            'promo_code' => 'required|string|max:40',
+        ]);
+
+        $tier = SubscriptionTier::where('user_id', $creator->id)
+            ->whereKey($data['tier_id'])->where('is_active', true)->first();
+        if (!$tier) {
+            return response()->json(['ok' => false, 'reason' => 'Plan not found.'], 404);
+        }
+        if ($tier->is_free) {
+            return response()->json(['ok' => false, 'reason' => 'This plan is free — no code needed.'], 422);
+        }
+
+        $promo = SubscriptionPromoCode::where('user_id', $creator->id)
+            ->where('code', strtoupper(trim($data['promo_code'])))->first();
+        if (!$promo) {
+            return response()->json(['ok' => false, 'reason' => 'We couldn\'t find that code.']);
+        }
+        if ($reason = $promo->unusableReason($tier)) {
+            return response()->json(['ok' => false, 'reason' => $reason]);
+        }
+
+        $cycle    = $data['cycle'] ?? 'monthly';
+        $original = $tier->priceForCycle($cycle);
+        $final    = $promo->applyTo($original);
+        $currency = $tier->currency ?: 'USD';
+
+        return response()->json([
+            'ok'             => true,
+            'code'           => $promo->code,
+            'describe'       => $promo->describe(),
+            'cycle'          => $cycle,
+            'original_cents' => $original,
+            'final_cents'    => $final,
+            'currency'       => $currency,
+            'original'       => $this->formatMoney($original, $currency),
+            'final'          => $this->formatMoney($final, $currency),
+            'savings'        => $this->formatMoney(max(0, $original - $final), $currency),
+        ]);
+    }
+
+    protected function formatMoney(int $cents, string $currency): string
+    {
+        $symbol = match (strtoupper($currency)) {
+            'USD', 'CAD', 'AUD' => '$',
+            'EUR' => '€', 'GBP' => '£', 'JPY' => '¥', 'INR' => '₹',
+            default => '',
+        };
+        return $symbol . number_format($cents / 100, 2) . ($symbol ? '' : ' ' . strtoupper($currency));
+    }
+
     public function unlock(Request $request, string $handle, int $post)
     {
         $creator = $this->creatorOr404($handle);

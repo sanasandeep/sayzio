@@ -98,9 +98,14 @@
                     <input type="hidden" name="tier_id" value="{{ $tier->id }}">
                     <input type="hidden" name="cycle" value="monthly" class="cycle-input">
                     @if(!$tier->is_free)
-                        <input type="text" name="promo_code" placeholder="Promo code (optional)"
-                               class="w-full px-3 py-2 rounded-lg border bg-transparent text-sm uppercase font-mono"
-                               style="border-color: var(--border-color); color: var(--text-primary);">
+                        <div class="flex gap-2">
+                            <input type="text" name="promo_code" placeholder="Promo code (optional)"
+                                   class="promo-input flex-1 px-3 py-2 rounded-lg border bg-transparent text-sm uppercase font-mono"
+                                   style="border-color: var(--border-color); color: var(--text-primary);">
+                            <button type="button" class="promo-apply px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap"
+                                    style="border-color: {{ $color }}; color: {{ $color }};">Apply</button>
+                        </div>
+                        <div class="promo-result text-sm hidden"></div>
                     @endif
                     <button type="submit" class="w-full py-2.5 rounded-lg font-semibold text-sm" style="background: {{ $color }}; color: white;">
                         @if($tier->is_free)
@@ -124,6 +129,17 @@
 </div>
 
 <script>
+const PROMO_PREVIEW_URL = @json(route('creator-profile.subscribe.preview-promo', ['handle' => $creator->handle]));
+const CSRF_TOKEN = @json(csrf_token());
+
+function clearPromoResult(form) {
+    const box = form.querySelector('.promo-result');
+    if (!box) return;
+    box.classList.add('hidden');
+    box.textContent = '';
+    box.removeAttribute('style');
+}
+
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.cycle-btn');
     if (!btn) return;
@@ -139,6 +155,74 @@ document.addEventListener('click', (e) => {
     document.querySelectorAll('.price-monthly').forEach((p) => p.classList.toggle('hidden', cycle === 'yearly'));
     document.querySelectorAll('.price-yearly').forEach((p) => p.classList.toggle('hidden', cycle !== 'yearly'));
     document.querySelectorAll('.yearly-discount').forEach((d) => d.classList.toggle('hidden', cycle !== 'yearly'));
+    // A code validated for the old cycle may price differently now.
+    document.querySelectorAll('.subscribe-form').forEach(clearPromoResult);
+});
+
+// Re-checking after an edit avoids showing a stale "valid" result.
+document.addEventListener('input', (e) => {
+    if (e.target.classList.contains('promo-input')) {
+        clearPromoResult(e.target.closest('.subscribe-form'));
+    }
+});
+
+document.addEventListener('click', async (e) => {
+    const apply = e.target.closest('.promo-apply');
+    if (!apply) return;
+    const form  = apply.closest('.subscribe-form');
+    const input = form.querySelector('.promo-input');
+    const box   = form.querySelector('.promo-result');
+    const code  = (input.value || '').trim();
+    if (!box) return;
+
+    if (!code) {
+        box.classList.remove('hidden');
+        box.textContent = 'Enter a promo code first.';
+        box.style.color = 'var(--text-faint)';
+        return;
+    }
+
+    apply.disabled = true;
+    const prevLabel = apply.textContent;
+    apply.textContent = '…';
+    box.classList.remove('hidden');
+    box.textContent = 'Checking…';
+    box.style.color = 'var(--text-faint)';
+
+    try {
+        const res = await fetch(PROMO_PREVIEW_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                tier_id:    form.querySelector('input[name="tier_id"]').value,
+                cycle:      form.querySelector('.cycle-input').value,
+                promo_code: code,
+            }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data && data.ok) {
+            box.innerHTML = '<span style="font-weight:600;">' + data.describe + '</span> applied — '
+                + '<span style="text-decoration:line-through;opacity:.6;">' + data.original + '</span> '
+                + '<span style="font-weight:700;">' + data.final + '</span>'
+                + (data.savings && data.final_cents < data.original_cents
+                    ? ' <span style="opacity:.8;">(save ' + data.savings + ')</span>' : '');
+            box.style.color = '#10b981';
+        } else {
+            box.textContent = (data && data.reason) ? data.reason : 'We couldn\'t check that code right now.';
+            box.style.color = '#ef4444';
+        }
+    } catch (err) {
+        box.textContent = 'We couldn\'t check that code right now.';
+        box.style.color = '#ef4444';
+    } finally {
+        apply.disabled = false;
+        apply.textContent = prevLabel;
+    }
 });
 </script>
 @endsection
