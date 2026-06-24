@@ -285,6 +285,26 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         return `background:${b.bg}; color:${b.text}; border:0;`;
     }
 
+    // Resolve the page's current theme so an `auto` banner can follow the site
+    // instead of the OS. Returns true (dark) / false (light) when the site theme
+    // system is present, or null when this surface has no site theme system.
+    function siteThemeIsDark() {
+        try {
+            if (document.documentElement.classList.contains('light-mode')) return false;
+            if (localStorage.getItem('1inme_theme') === 'dark') return true;
+        } catch (e) {}
+        return null;
+    }
+
+    // For theme="auto": follow the site theme when present, else the OS setting.
+    function autoIsDark() {
+        const site = siteThemeIsDark();
+        if (site !== null) return site;
+        try {
+            return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        } catch (e) { return false; }
+    }
+
     function buildHost() {
         // One-shot overrides (e.g. inline/pill -> modal for the customize sheet) take effect for this render only;
         // cfg itself is left untouched so subsequent reopens use the admin-configured layout.
@@ -307,9 +327,7 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         host.style.setProperty('--cc-card-max', Math.round((cfg.maxWidth || 440) * sizeShrink) + 'px');
 
         if (cfg.theme === 'auto') {
-            try {
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) host.classList.add('cc-is-dark');
-            } catch (e) {}
+            host.classList.toggle('cc-is-dark', autoIsDark());
         }
 
         // Backdrop only for modal/takeover.
@@ -491,6 +509,17 @@ window.__cookieConsent = window.__cookieConsent || (function(){
             };
             window.addEventListener('scroll', onScroll, { passive: true });
         }
+        // While shown with an `auto` theme, keep the banner in step with live
+        // site light/dark toggles (the `html.light-mode` class flipping).
+        if (cfg.theme === 'auto' && !state.themeObserver && window.MutationObserver) {
+            state.themeObserver = new MutationObserver(function(){
+                if (state.host) state.host.classList.toggle('cc-is-dark', autoIsDark());
+            });
+            state.themeObserver.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['class'],
+            });
+        }
     }
     function hide() {
         if (state.host) { state.host.remove(); state.host = null; }
@@ -499,6 +528,10 @@ window.__cookieConsent = window.__cookieConsent || (function(){
             window.removeEventListener('resize', state.reserveListener);
             window.removeEventListener('orientationchange', state.reserveListener);
             state.reserveListener = null;
+        }
+        if (state.themeObserver) {
+            state.themeObserver.disconnect();
+            state.themeObserver = null;
         }
     }
 
