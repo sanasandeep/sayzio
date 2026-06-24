@@ -25,7 +25,8 @@ type Row = {
     | "/security/two-factor"
     | "/security/backup-codes"
     | "/security/trusted-contacts"
-    | "/security/cool-off";
+    | "/security/cool-off"
+    | "/account-merge";
   icon: keyof typeof Feather.glyphMap;
   title: string;
   body: string;
@@ -129,6 +130,13 @@ export default function SecurityHub() {
         pending.length > 0
           ? `${pending.length} pending`
           : `${coolOffHours}h delay`,
+    },
+    {
+      href: "/account-merge",
+      icon: "git-merge",
+      title: "Merge another account",
+      body: "Have a second 1INME account? Pull its links, content and sign-in methods into this one, then delete it.",
+      badge: null,
     },
   ];
 

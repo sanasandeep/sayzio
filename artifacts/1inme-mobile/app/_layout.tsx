@@ -134,6 +134,7 @@ function RootLayoutNav() {
       <Stack.Screen name="reviews/[alias]" options={{ title: "Reviews" }} />
       <Stack.Screen name="paid-page/[alias]" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
+      <Stack.Screen name="account-merge" options={{ title: "Merge accounts" }} />
       <Stack.Screen name="resume" options={{ title: "Resume" }} />
       <Stack.Screen name="payouts" options={{ title: "Earnings & Payouts" }} />
       <Stack.Screen name="qr-studio" options={{ title: "QR studio" }} />

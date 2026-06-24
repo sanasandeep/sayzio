@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Api\Controllers\AccountMergeController;
 use App\Modules\Api\Controllers\AdminAccessController;
 use App\Modules\Api\Controllers\AuthController;
 use App\Modules\Api\Controllers\BiolinkBlockController;
@@ -235,6 +236,19 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/profile',   [ProfileController::class, 'show']);
         Route::patch('/profile', [ProfileController::class, 'update']);
+
+        // ── Account merge (Task #2174) ───────────────────────────────
+        // Stateless Bearer-token mirror of the web /user/merge flow so a
+        // mobile user can swallow a duplicate account they also control,
+        // without hopping out to the browser. challenge → verify →
+        // preview → confirm; the proven secondary id rides between steps
+        // in an encrypted "merge token" instead of a session.
+        Route::prefix('account/merge')->group(function () {
+            Route::post('/challenge', [AccountMergeController::class, 'challenge'])->middleware('throttle:otp-send');
+            Route::post('/verify',    [AccountMergeController::class, 'verify'])->middleware('throttle:otp-verify');
+            Route::post('/preview',   [AccountMergeController::class, 'preview']);
+            Route::post('/confirm',   [AccountMergeController::class, 'confirm'])->middleware('throttle:10,1');
+        });
 
         // ── Reviews moderation (owner-scoped) ────────────────────────
         // Bearer-token parity for the web /user/.../reviews/* moderation

@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
-import { getBaseUrl } from "@/lib/api";
 
 // Friendly provider names for the merge copy. Mirrors PROVIDER_LABELS in
 // app/oauth-callback.tsx and SOCIALS in app/(auth)/index.tsx.
@@ -23,10 +23,10 @@ const PROVIDER_LABELS: Record<string, string> = {
  * provider identity (or its email) already bound to a different 1INME
  * account — the backend returns HTTP 409 `identity_taken`.
  *
- * Merging two accounts is a web-session-only flow (it requires proving
- * ownership of the other account via the challenge step), so the mobile app
- * can't complete it in-process. Instead we explain the conflict and hand the
- * user off to the web merge flow at /user/merge.
+ * Merging is completed natively (Task #2174): the in-app merge flow at
+ * /account-merge proves ownership of the other account via an OTP challenge
+ * and then runs the merge over the REST API. We send the user there instead
+ * of bouncing them out to the web /user/merge page.
  */
 export function SocialMergePrompt({
   provider,
@@ -36,11 +36,12 @@ export function SocialMergePrompt({
   onDismiss: () => void;
 }) {
   const colors = useColors();
+  const router = useRouter();
   const label = PROVIDER_LABELS[provider] ?? "That social";
 
-  const openWebMerge = () => {
-    const url = `${getBaseUrl()}/user/merge`;
-    void Linking.openURL(url);
+  const openMerge = () => {
+    onDismiss();
+    router.push("/account-merge");
   };
 
   return (
@@ -62,11 +63,11 @@ export function SocialMergePrompt({
       </View>
       <Text style={[styles.body, { color: colors.mutedForeground }]}>
         That {label} account already belongs to another 1INME account. You can
-        merge them on the web — open the merge page, sign in to the account you
-        want to keep, and confirm. This can&apos;t be undone.
+        merge them here — we&apos;ll send a code to the other account to confirm
+        it&apos;s yours, then move everything across. This can&apos;t be undone.
       </Text>
       <View style={styles.actions}>
-        <Button label="Merge on the web" onPress={openWebMerge} />
+        <Button label="Merge accounts" onPress={openMerge} />
         <Button label="Not now" variant="outline" onPress={onDismiss} />
       </View>
     </View>
