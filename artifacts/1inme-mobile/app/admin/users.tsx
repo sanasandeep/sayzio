@@ -101,6 +101,11 @@ export default function AdminUsersScreen() {
                   {u.email}
                 </Text>
               </View>
+              {u.is_protected ? (
+                <View style={[styles.protectedPill, { backgroundColor: colors.primary + "1a" }]}>
+                  <Feather name="shield" size={11} color={colors.primary} />
+                </View>
+              ) : null}
               {u.is_admin ? (
                 <View
                   style={[
@@ -148,4 +153,11 @@ const styles = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 20 },
   name: { fontSize: 15, fontWeight: "600" },
   adminPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  protectedPill: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

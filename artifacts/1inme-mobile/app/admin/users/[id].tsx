@@ -127,6 +127,7 @@ export default function UserRolesScreen() {
 
   const data = query.data;
   const canImpersonate = !!ctxQuery.data?.can.impersonate;
+  const isProtected = !!data?.user.is_protected;
 
   const dirty = useMemo(() => {
     if (!data || selected === null) return false;
@@ -182,6 +183,14 @@ export default function UserRolesScreen() {
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.title, { color: colors.foreground }]}>{data.user.name}</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>{data.user.email}</Text>
+              {isProtected ? (
+                <View style={[styles.protectedPill, { backgroundColor: colors.primary + "1a" }]}>
+                  <Feather name="shield" size={12} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>
+                    Protected — can't be deleted or suspended
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             {/* Web roles */}
@@ -335,13 +344,19 @@ export default function UserRolesScreen() {
               )}
 
               {data.admin_account && data.can_revoke_admin ? (
-                <Button
-                  label="Revoke admin access"
-                  variant="outline"
-                  onPress={confirmRevoke}
-                  loading={revoke.isPending}
-                  style={{ marginTop: 10 }}
-                />
+                isProtected ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 10 }}>
+                    This account is protected — its admin access can't be revoked.
+                  </Text>
+                ) : (
+                  <Button
+                    label="Revoke admin access"
+                    variant="outline"
+                    onPress={confirmRevoke}
+                    loading={revoke.isPending}
+                    style={{ marginTop: 10 }}
+                  />
+                )
               ) : null}
             </View>
 
@@ -375,6 +390,16 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: "700" },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  protectedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    marginTop: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
   roleRow: {
     flexDirection: "row",
     alignItems: "flex-start",

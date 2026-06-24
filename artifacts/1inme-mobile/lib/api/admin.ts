@@ -15,6 +15,10 @@ export type AdminCapabilities = {
   grant_admin: boolean;
   revoke_admin: boolean;
   impersonate: boolean;
+  // Protected-accounts list: read needs `view_protected` (users.view),
+  // add/remove needs `manage_protected` (super-admin only).
+  view_protected: boolean;
+  manage_protected: boolean;
 };
 
 export type AdminContext = {
@@ -37,6 +41,9 @@ export type AdminUserRow = {
   plan: string | null;
   is_admin: boolean;
   admin_status: string | null;
+  // On the canonical never-delete/suspend list — the UI hides destructive
+  // controls; the server refuses regardless (defense in depth).
+  is_protected: boolean;
 };
 
 export type AdminUsersPage = {
@@ -67,7 +74,7 @@ export type AdminRoleOption = {
 };
 
 export type UserRolesPanel = {
-  user: { id: number; name: string; email: string };
+  user: { id: number; name: string; email: string; is_protected: boolean };
   roles: AssignableRole[];
   admin_account: {
     id: number;
@@ -148,6 +155,55 @@ export async function impersonateUser(
   const res = await apiFetch<{ data: ImpersonationGrant }>(
     `/admin/users/${userId}/impersonate`,
     { method: "POST" },
+  );
+  return res.data;
+}
+
+// ── Protected accounts ────────────────────────────────────────────
+// The canonical list of accounts that can never be deleted or suspended
+// (mirrors the web back-office page). Staff with `users.view` may read it;
+// only a super-admin may add/remove entries. The hard-locked seeds
+// (super-admin + demo) can never be removed.
+
+export type ProtectedAccount = {
+  id: number;
+  email: string;
+  label: string | null;
+  locked: boolean;
+};
+
+export type ProtectedAccountsList = {
+  accounts: ProtectedAccount[];
+  can_manage: boolean;
+};
+
+export async function listProtectedAccounts(): Promise<ProtectedAccountsList> {
+  const res = await apiFetch<{ data: ProtectedAccountsList }>(
+    "/admin/protected-accounts",
+  );
+  return res.data;
+}
+
+export async function addProtectedAccount(
+  email: string,
+  label?: string,
+): Promise<ProtectedAccountsList> {
+  const res = await apiFetch<{ data: ProtectedAccountsList }>(
+    "/admin/protected-accounts",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, label: label?.trim() || undefined }),
+    },
+  );
+  return res.data;
+}
+
+export async function removeProtectedAccount(
+  id: number,
+): Promise<ProtectedAccountsList> {
+  const res = await apiFetch<{ data: ProtectedAccountsList }>(
+    `/admin/protected-accounts/${id}`,
+    { method: "DELETE" },
   );
   return res.data;
 }

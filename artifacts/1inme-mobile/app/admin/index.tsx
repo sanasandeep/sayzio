@@ -49,6 +49,14 @@ export default function AdminHubScreen() {
       href: "/admin/users",
       enabled: !!can?.manage_roles || !!can?.view_users,
     },
+    {
+      key: "view_protected",
+      icon: "lock",
+      label: "Protected accounts",
+      description: "Accounts that can never be deleted or suspended",
+      href: "/admin/protected-accounts",
+      enabled: !!can?.view_protected,
+    },
   ];
 
   return (

@@ -6,7 +6,9 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
 use App\Modules\Api\Support\SessionTokenIssuer;
 use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\ProtectedAccount;
 use App\Modules\Admin\Models\Role;
+use App\Modules\Admin\Services\AdminActionLogger;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserRoleAudit;
 use App\Modules\User\Services\UserRoleAuditLogger;
@@ -108,8 +110,22 @@ class AdminAccessController extends Controller
                 ->keyBy(fn (Admin $a) => strtolower(trim((string) $a->email)));
         }
 
-        $rows = collect($paginator->items())->map(function (User $u) use ($adminsByEmail) {
-            $linked = $adminsByEmail[strtolower(trim((string) $u->email))] ?? null;
+        // Lowercased set of protected emails on this page so the mobile UI
+        // can flag protected accounts and hide their delete/suspend controls
+        // (defense in depth — the server also refuses regardless of the UI).
+        $protectedEmails = [];
+        if (! empty($emails)) {
+            $protectedEmails = ProtectedAccount::query()
+                ->whereIn('email', $emails)
+                ->pluck('email')
+                ->map(fn ($e) => strtolower(trim((string) $e)))
+                ->flip()
+                ->all();
+        }
+
+        $rows = collect($paginator->items())->map(function (User $u) use ($adminsByEmail, $protectedEmails) {
+            $key = strtolower(trim((string) $u->email));
+            $linked = $adminsByEmail[$key] ?? null;
             return [
                 'id'           => $u->id,
                 'name'         => $u->name,
@@ -120,6 +136,7 @@ class AdminAccessController extends Controller
                 'plan'         => $u->plan?->name,
                 'is_admin'     => $linked !== null,
                 'admin_status' => $linked?->status,
+                'is_protected' => isset($protectedEmails[$key]),
             ];
         })->all();
 
@@ -167,9 +184,10 @@ class AdminAccessController extends Controller
 
         return $this->ok([
             'user' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
+                'id'           => $user->id,
+                'name'         => $user->name,
+                'email'        => $user->email,
+                'is_protected' => ProtectedAccount::isProtected($user),
             ],
             'roles' => $roles->map(fn (Role $r) => [
                 'id'          => $r->id,
@@ -314,7 +332,7 @@ class AdminAccessController extends Controller
      * Revoke a user's back-office admin access, mirroring the web
      * revokeAdminAccess(). Gated behind `staff.delete`.
      */
-    public function revokeAdminAccess(Request $request, int $userId)
+    public function revokeAdminAccess(Request $request, int $userId, AdminActionLogger $audit)
     {
         $admin = $this->activeAdmin($request);
         if (! $admin || ! $admin->hasPermission('staff.delete')) {
@@ -334,6 +352,21 @@ class AdminAccessController extends Controller
         // An operator must never revoke their own admin access mid-session.
         if ((int) $linked->id === (int) $admin->id) {
             return $this->fail('You cannot revoke your own admin access.', 422, 'self_revoke');
+        }
+
+        // Deleting the back-office admin record for a protected account is a
+        // delete in disguise — refuse it server-side regardless of which
+        // surface initiated it (mirrors the web StaffController guard).
+        if (ProtectedAccount::isProtected($user) || ProtectedAccount::isProtected($linked)) {
+            $audit->log(AdminActionLogger::DELETE_BLOCKED, $user, [
+                'email'  => $user->email,
+                'reason' => 'Account is protected and its admin access cannot be revoked.',
+            ], $admin);
+            return $this->fail(
+                'This account is protected and its admin access cannot be revoked.',
+                422,
+                'account_protected'
+            );
         }
 
         $linked->delete();
@@ -399,11 +432,15 @@ class AdminAccessController extends Controller
     protected function capabilities(?Admin $admin): array
     {
         return [
-            'view_users'   => (bool) $admin?->hasPermission('users.view'),
-            'manage_roles' => (bool) $admin?->hasPermission('users.edit'),
-            'grant_admin'  => (bool) $admin?->hasPermission('staff.create'),
-            'revoke_admin' => (bool) $admin?->hasPermission('staff.delete'),
-            'impersonate'  => (bool) $admin?->hasPermission('users.impersonate'),
+            'view_users'       => (bool) $admin?->hasPermission('users.view'),
+            'manage_roles'     => (bool) $admin?->hasPermission('users.edit'),
+            'grant_admin'      => (bool) $admin?->hasPermission('staff.create'),
+            'revoke_admin'     => (bool) $admin?->hasPermission('staff.delete'),
+            'impersonate'      => (bool) $admin?->hasPermission('users.impersonate'),
+            // Protected-accounts list: staff with users.view may read it,
+            // only a super-admin may add/remove entries (mirrors the web).
+            'view_protected'   => (bool) $admin?->hasPermission('users.view'),
+            'manage_protected' => (bool) ($admin && $admin->isSuperAdmin()),
         ];
     }
 }

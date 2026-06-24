@@ -290,6 +290,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'revokeAdminAccess'])->whereNumber('user');
         Route::post  ('/admin/users/{user}/impersonate',      [AdminAccessController::class, 'impersonate'])->whereNumber('user')->middleware('throttle:20,1');
 
+        // Protected accounts (mobile parity for the web back-office page).
+        // The canonical never-delete/suspend list: staff with `users.view`
+        // read it; only a super-admin may add/remove entries, and the
+        // hard-locked seeds (super-admin + demo) can never be removed.
+        Route::get   ('/admin/protected-accounts',      [\App\Modules\Api\Controllers\ProtectedAccountController::class, 'index']);
+        Route::post  ('/admin/protected-accounts',      [\App\Modules\Api\Controllers\ProtectedAccountController::class, 'store']);
+        Route::delete('/admin/protected-accounts/{protectedAccount}', [\App\Modules\Api\Controllers\ProtectedAccountController::class, 'destroy'])->whereNumber('protectedAccount');
+
         // Plan editor (mobile parity for the back-office plan management).
         // Lists plans WITH the admin-only `is_internal` flag, accepts it on
         // create/update, and mirrors the web deep-copy Duplicate action.

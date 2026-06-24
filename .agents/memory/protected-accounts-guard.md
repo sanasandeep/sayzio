@@ -29,3 +29,14 @@ suspend + status→banned/suspended/inactive, StaffController status→inactive 
 delete). The 18+ adult-flag "suspend" in `AdultModerationController` is a different
 concept (toggles the public NSFW tag, not the account) and is intentionally NOT
 guarded.
+
+**Mobile parity (Expo):** the bearer-token admin API now mirrors the web. The only
+destructive admin action exposed on mobile is `AdminAccessController::revokeAdminAccess`
+(deletes the linked Admin = staff-delete) — it's guarded with `isProtected` and a
+`DELETE_BLOCKED` log. `users()`/`userRoles()` payloads carry `is_protected`, and
+`capabilities()` carries `view_protected` (users.view) + `manage_protected`
+(superadmin). A parity `Api\Controllers\ProtectedAccountController` (routes
+`/api/v1/admin/protected-accounts`) reads/edits the list. Because the API runs
+under the sanctum guard with no admin-guard binding, `AdminActionLogger::log` would
+default the operator to null — always pass the resolved `$admin` (from
+`User::adminAccount()`) as the 4th arg.
