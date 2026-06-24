@@ -75,3 +75,4 @@
 - [Unified biolink renderer](unified-biolink-renderer.md) — public blocks (top-level + card children) all dispatch through common/partials/biolink-block-render; register a type once in $__blockPartials or add a fallback @elseif.
 - [Admin template-preview auth quirk](template-preview-route-auth.md) — admin.templates.preview is admin-guarded but reads $request->user() (web guard); feature tests must `be(admin,'admin')` then `be(webUser,'web')` (web last) or every preview hits the error fallback.
 - [1inme browser e2e fast login](1inme-browser-e2e-fast-login.md) — wait only for the demo-login POST (not dashboard/onboarding cold renders) + pre-seed onboarded_at; submit form via JS, not click, to fit the 120s tool cap.
+- [PHP 8.4 deprecation guard](php84-deprecation-guard.md) — `composer lint:deprecations` greps `php -l` OUTPUT (lint exits 0) for compile-time deprecations; needs a separate PHP 8.4 CI job since main suite pins 8.3.

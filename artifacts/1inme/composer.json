@@ -65,6 +65,9 @@
         "lint:views": [
             "@php artisan test --filter=BladeViewsCompileTest"
         ],
+        "lint:deprecations": [
+            "@php scripts/check-php-deprecations.php app tests"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

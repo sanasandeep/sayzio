@@ -122,3 +122,34 @@ jobs:
         # extra grants are needed. Cuts CI wall time noticeably as the
         # suite grows past 60+ test files.
         run: php artisan test --parallel
+
+  php84-deprecations:
+    name: PHP 8.4 deprecation guard
+    runs-on: ubuntu-latest
+
+    # PHP 8.4 emits a compile-time deprecation for every implicitly-nullable
+    # parameter (`Type $x = null` missing the explicit `?`), and these become
+    # hard errors in a future PHP version. The phpunit-postgres job above runs
+    # on PHP 8.3, which never raises them, so this dedicated job pins PHP 8.4
+    # and lints the codebase to catch the warnings before they pile up.
+    #
+    # The check is a pure `php -l` scan (see scripts/check-php-deprecations.php):
+    # it never executes app code, so it needs no Composer install and no
+    # database service — just PHP and the source tree.
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Scan app/ and tests/ for PHP 8.4 deprecations
+        run: composer lint:deprecations
