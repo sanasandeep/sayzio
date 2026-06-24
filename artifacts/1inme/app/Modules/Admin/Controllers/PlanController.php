@@ -122,6 +122,7 @@ class PlanController extends Controller
             'max_workspaces' => 1,
             'max_seats_per_workspace' => 1,
             'custom_domains' => false,
+            'max_custom_domains' => 0,
             'qr_customization' => false,
             'analytics' => 'basic',
             'pixels' => false,

@@ -32,6 +32,25 @@ class DomainController extends Controller
 
     public function store(Request $request)
     {
+        $user = $request->user();
+
+        // Per-plan numeric cap on how many of their own domains a user may
+        // connect. The `custom_domains` boolean (enforced by the route's
+        // CheckPlanLimit middleware) already governs whether the feature is
+        // available at all; this caps the count. -1 = unlimited. We fall back
+        // to unlimited when the key is unset so plans predating this limit keep
+        // working until an admin sets a value (the seeder backfills it).
+        $maxDomains = (int) ($user->plan?->features['max_custom_domains'] ?? -1);
+        if ($maxDomains !== -1) {
+            $current = $user->domains()->count();
+            if ($current >= $maxDomains) {
+                $message = $maxDomains === 0
+                    ? "Your current plan doesn't allow connecting your own domains. Upgrade your plan to connect a custom domain."
+                    : "You've reached your plan's custom-domain limit ({$maxDomains}). Upgrade your plan to connect more domains.";
+                return back()->with('error', $message);
+            }
+        }
+
         $data = $request->validate([
             'domain' => 'required|string|max:191|regex:/^[a-z0-9.\-]+\.[a-z]{2,}$/i|unique:domains,domain',
         ]);

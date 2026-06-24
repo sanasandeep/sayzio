@@ -65,6 +65,7 @@ class PlanFormCatalogue
             ['key' => 'storage_limit_mb',     'label' => 'Total storage (MB)',      'default' => 100, 'module' => null,                 'hint' => 'Total disk space across all uploads. See the Storage section for a GB converter.'],
             ['key' => 'max_file_size_mb',     'label' => 'Max upload size (MB)',    'default' => 5,   'module' => null,                 'hint' => 'Largest single file a user can upload.'],
             ['key' => 'contacts_max',         'label' => 'Max contacts',            'default' => 100, 'module' => 'module_contacts',    'hint' => 'CRM entries this plan can keep stored.'],
+            ['key' => 'max_custom_domains',   'label' => 'Max custom domains',      'default' => 0,   'module' => 'module_domains',     'hint' => 'How many of their own domains a user can connect. The Custom Domains toggle governs whether the feature is available at all.'],
             ['key' => 'max_aliases_per_link', 'label' => 'Extra aliases per link',  'default' => 0,   'module' => 'module_short_links', 'hint' => 'Global fallback for additional aliases beyond the primary one. Override per link type below. -1 = unlimited.'],
             ['key' => 'min_alias_length',     'label' => 'Min alias length',        'default' => 3,   'module' => 'module_short_links', 'hint' => 'Minimum length for the visitor-facing alias.', 'max' => 191],
             ['key' => 'max_alias_length',     'label' => 'Max alias length',        'default' => 50,  'module' => 'module_short_links', 'hint' => 'Hard cap is 191 characters.', 'max' => 191],
@@ -329,7 +330,7 @@ class PlanFormCatalogue
             'module_ecommerce'    => ['ecommerce'],
             'module_ai_suite'     => ['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant'],
             'module_branding'     => ['custom_branding', 'remove_branding', 'custom_favicon', 'custom_code'],
-            'module_domains'      => ['custom_domains'],
+            'module_domains'      => ['custom_domains', 'max_custom_domains'],
             'module_integrations' => ['integration_accounts_max', 'integration_providers_allowed'],
         ];
     }

@@ -288,6 +288,7 @@ class PlanWriter
             'features.max_file_size_mb'        => 'nullable|integer|min:-1',
             'features.storage_limit_mb'        => 'nullable|integer|min:-1',
             'features.contacts_max'            => 'nullable|integer|min:-1',
+            'features.max_custom_domains'      => 'nullable|integer|min:-1',
             'features.max_aliases_per_link'    => 'nullable|integer|min:-1',
             'features.max_aliases_per_link_by_type'   => 'nullable|array',
             'features.max_aliases_per_link_by_type.*' => 'nullable|integer|min:-1',
