@@ -2,6 +2,8 @@
 
 "1INME" is a pnpm workspace monorepo for a link-management SaaS platform. It lets creators, businesses, and individuals create, manage, track, and brand links, biolinks (mini-websites), and QR codes — with deep customization, detailed analytics, and tracking.
 
+Docs: exhaustive feature catalog in `artifacts/1inme/docs/features.md`; end-user guide in `docs/knowledge-base.md`; REST API reference in `docs/api.md`.
+
 # User Preferences
 
 I prefer iterative development. I want to be asked before making major changes. I do not want changes to the folder `artifacts/1inme/resources/views/vendor/`.
