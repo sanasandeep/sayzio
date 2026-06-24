@@ -95,6 +95,35 @@
     $ctaSecondaryUrl = trim((string)($ctaCfg['secondary_url'] ?? ''));
     if ($ctaSecondaryUrl === '') $ctaSecondaryUrl = route('site.contact');
 
+    // About EEFind (parent company). Every leaf has a literal fallback —
+    // the canonical copy lives in SitePagesContent::aboutEefindDefault()
+    // — so the section keeps rendering even on a row seeded before this
+    // block existed or when an admin blanks a field.
+    $eefindDefaults = \App\Modules\Common\Support\SitePagesContent::aboutEefindDefault();
+    $eefindCfg      = is_array($extraArr['eefind'] ?? null) ? $extraArr['eefind'] : [];
+    $eefindEyebrow  = $or($eefindCfg['eyebrow'] ?? '', $eefindDefaults['eyebrow']);
+    $eefindHeading  = $or($eefindCfg['heading'] ?? '', $eefindDefaults['heading']);
+    $eefindBody     = $or($eefindCfg['body']    ?? '', $eefindDefaults['body']);
+    $eefindAddress  = $or($eefindCfg['address'] ?? '', $eefindDefaults['address']);
+    $eefindEmail    = $or($eefindCfg['email']   ?? '', $eefindDefaults['email']);
+    $eefindWhatsapp = $or($eefindCfg['whatsapp']?? '', $eefindDefaults['whatsapp']);
+    $eefindWebsite  = $or($eefindCfg['website'] ?? '', $eefindDefaults['website']);
+    $eefindWebsiteUrl = trim((string)($eefindCfg['website_url'] ?? ''));
+    if ($eefindWebsiteUrl === '') $eefindWebsiteUrl = $eefindDefaults['website_url'];
+    $eefindStats = (array)($eefindCfg['stats'] ?? $eefindDefaults['stats']);
+    $eefindVisibleStats = [];
+    foreach ($eefindStats as $s) {
+        if (!is_array($s)) continue;
+        $value = trim((string)($s['value'] ?? ''));
+        $label = trim((string)($s['label'] ?? ''));
+        if ($value === '' && $label === '') continue;
+        $eefindVisibleStats[] = [
+            'value'  => $value,
+            'suffix' => (string)($s['suffix'] ?? ''),
+            'label'  => $label,
+        ];
+    }
+
     // Lower-section render order. The admin can re-order the seven
     // lower sections of /about; we sanitise their saved list here so a
     // partial or stale value still renders every section exactly once,
@@ -323,6 +352,74 @@
                 </div>
             </section>
             @endif
+            @break
+
+        @case('eefind')
+            <section class="pb-16">
+                <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
+                    <div class="bg-white/[0.03] border border-white/10 rounded-3xl p-6 sm:p-10">
+                        @if($eefindEyebrow !== '')
+                            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                                <i class="fas fa-building text-[10px]"></i> {{ $eefindEyebrow }}
+                            </span>
+                        @endif
+                        @if($eefindHeading !== '')
+                            <h2 class="mt-4 text-2xl sm:text-3xl font-bold tracking-tight text-white">{{ $eefindHeading }}</h2>
+                        @endif
+                        @if($eefindBody !== '')
+                            <p class="mt-4 text-gray-300 leading-relaxed max-w-3xl">{{ $eefindBody }}</p>
+                        @endif
+
+                        @if(!empty($eefindVisibleStats))
+                            <div class="mt-7 grid grid-cols-3 gap-4 max-w-xl">
+                                @foreach($eefindVisibleStats as $s)
+                                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-center">
+                                        <div class="text-2xl sm:text-3xl font-bold text-white">
+                                            @if(is_numeric($s['value']))
+                                                <span data-count="{{ $s['value'] }}"@if($s['suffix'] !== '') data-count-suffix="{{ $s['suffix'] }}"@endif></span>
+                                            @else
+                                                {{ $s['value'] }}{{ $s['suffix'] }}
+                                            @endif
+                                        </div>
+                                        @if($s['label'] !== '')
+                                            <div class="text-[11px] uppercase tracking-wider text-gray-500 mt-1">{{ $s['label'] }}</div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if($eefindAddress !== '' || $eefindEmail !== '' || $eefindWhatsapp !== '' || $eefindWebsite !== '')
+                            <div class="mt-7 grid sm:grid-cols-2 gap-3 text-sm">
+                                @if($eefindAddress !== '')
+                                    <div class="flex items-start gap-3 text-gray-300">
+                                        <i class="fas fa-location-dot text-violet-400 mt-0.5"></i>
+                                        <span>{{ $eefindAddress }}</span>
+                                    </div>
+                                @endif
+                                @if($eefindEmail !== '')
+                                    <div class="flex items-start gap-3 text-gray-300">
+                                        <i class="fas fa-envelope text-violet-400 mt-0.5"></i>
+                                        <a href="mailto:{{ $eefindEmail }}" class="hover:text-white transition">{{ $eefindEmail }}</a>
+                                    </div>
+                                @endif
+                                @if($eefindWhatsapp !== '')
+                                    <div class="flex items-start gap-3 text-gray-300">
+                                        <i class="fab fa-whatsapp text-violet-400 mt-0.5"></i>
+                                        <span>{{ $eefindWhatsapp }}</span>
+                                    </div>
+                                @endif
+                                @if($eefindWebsite !== '')
+                                    <div class="flex items-start gap-3 text-gray-300">
+                                        <i class="fas fa-globe text-violet-400 mt-0.5"></i>
+                                        <a href="{{ $eefindWebsiteUrl }}" target="_blank" rel="noopener" class="hover:text-white transition">{{ $eefindWebsite }}</a>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </section>
             @break
 
         @case('milestones')

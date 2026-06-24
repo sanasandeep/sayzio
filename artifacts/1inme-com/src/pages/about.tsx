@@ -173,6 +173,78 @@ export default function About() {
 
           <div className="max-w-3xl mx-auto glass-card p-10 rounded-3xl mb-24">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
+              Part of EEFind
+            </p>
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-4">
+              Built by EEFind Private Limited
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              1INME is a brand and product of EEFIND PVT LTD (EEFind Private
+              Limited) — an aggregator marketplace on a mission to be "The All in
+              One App for everything essential." From groceries home-delivered by
+              neighbourhood stores to trusted home help like carpentry, plumbing
+              and home cleaning, EEFind brings everyday essentials together in one
+              place. Their promise sums up the philosophy 1INME is built on: "We
+              are not in a hurry to deliver in 10 mins. We drive safe."
+            </p>
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {[
+                { stat: "4,000+", label: "Products" },
+                { stat: "2,000+", label: "Merchants" },
+                { stat: "35+", label: "Cities live" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-2xl bg-primary/5 border border-primary/10 p-4 text-center"
+                >
+                  <div className="text-2xl lg:text-3xl font-bold text-primary mb-1">
+                    {item.stat}
+                  </div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                    {item.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3 text-sm text-muted-foreground">
+              <div>
+                <span className="font-semibold text-foreground">
+                  Registered office
+                </span>
+                <br />8 Amrutha Nilayam, Banjara Hills, Hyderabad, Telangana
+                500034
+              </div>
+              <div className="space-y-1">
+                <div>
+                  <span className="font-semibold text-foreground">Email</span>{" "}
+                  <a
+                    href="mailto:support@eefind.com"
+                    className="hover:text-primary transition-colors"
+                  >
+                    support@eefind.com
+                  </a>
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">WhatsApp</span>{" "}
+                  +91 81210 57755
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Website</span>{" "}
+                  <a
+                    href="https://eefind.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary transition-colors"
+                  >
+                    eefind.com
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-3xl mx-auto glass-card p-10 rounded-3xl mb-24">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
               Meet the founder
             </p>
             <h2 className="text-2xl font-bold mb-1">Sandeep Sana</h2>

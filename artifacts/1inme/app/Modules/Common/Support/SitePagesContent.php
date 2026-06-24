@@ -1388,7 +1388,34 @@ class SitePagesContent
      */
     public static function aboutLowerSectionSlugs(): array
     {
-        return ['story', 'team_band', 'founder', 'milestones', 'cta'];
+        return ['story', 'team_band', 'founder', 'eefind', 'milestones', 'cta'];
+    }
+
+    /**
+     * Default "About EEFind" parent-company block for the public /about
+     * page. 1INME is a brand/product of EEFIND PVT LTD (EEFind Private
+     * Limited); this section tells visitors who builds 1INME using the
+     * real company details sourced from eefind.com. Editable like every
+     * other /about group; all copy lives here as the single source of
+     * truth for the literal fallbacks the Blade view uses.
+     */
+    public static function aboutEefindDefault(): array
+    {
+        return [
+            'eyebrow'     => 'Part of EEFind',
+            'heading'     => 'Built by EEFind Private Limited',
+            'body'        => '1INME is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy 1INME is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
+            'stats' => [
+                ['value' => '4000', 'suffix' => '+', 'label' => 'Products'],
+                ['value' => '2000', 'suffix' => '+', 'label' => 'Merchants'],
+                ['value' => '35',   'suffix' => '+', 'label' => 'Cities live'],
+            ],
+            'address'     => '8 Amrutha Nilayam, Banjara Hills, Hyderabad, Telangana 500034',
+            'email'       => 'support@eefind.com',
+            'whatsapp'    => '+91 81210 57755',
+            'website'     => 'eefind.com',
+            'website_url' => 'https://eefind.com',
+        ];
     }
 
     /**
@@ -1451,6 +1478,7 @@ class SitePagesContent
                 'bio'    => "Guided by this belief, Sandeep Sana, Founder & CEO of 1INME, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of 1INME, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
                 'links'  => ['twitter' => '', 'linkedin' => ''],
             ],
+            'eefind' => self::aboutEefindDefault(),
             'milestones' => [
                 ['date' => '2023-04', 'title' => 'Idea on a whiteboard', 'description' => "An offhand conversation about how messy social bios are turns into the first sketch of 1INME."],
                 ['date' => '2023-09', 'title' => 'First public beta',    'description' => "We open the doors to a handful of friends and creators. Biolinks and short links only — but it works."],
@@ -1671,6 +1699,44 @@ class SitePagesContent
             ],
         ];
 
+        // --- About EEFind (parent company) ---
+        // The whole block is admin-editable. When the `eefind` key is
+        // absent entirely (a row seeded before this section existed and
+        // not yet backfilled) we fall back to the code defaults so the
+        // parent-company section never silently disappears. When it is
+        // present we normalise each field, trimming and clamping length.
+        if (array_key_exists('eefind', $input) && is_array($input['eefind'])) {
+            $eeIn = (array) $input['eefind'];
+            $eeStatsIn = (array) ($eeIn['stats'] ?? []);
+            $eeStats = [];
+            foreach (array_values($eeStatsIn) as $row) {
+                if (!is_array($row)) continue;
+                $value = trim((string) ($row['value'] ?? ''));
+                $suffix = trim((string) ($row['suffix'] ?? ''));
+                $label = trim((string) ($row['label'] ?? ''));
+                if ($value === '' && $label === '' && $suffix === '') continue;
+                $eeStats[] = [
+                    'value'  => mb_substr($value, 0, 40),
+                    'suffix' => mb_substr($suffix, 0, 10),
+                    'label'  => mb_substr($label, 0, 120),
+                ];
+                if (count($eeStats) >= 6) break;
+            }
+            $eefind = [
+                'eyebrow'     => mb_substr(trim((string) ($eeIn['eyebrow']     ?? '')), 0, 120),
+                'heading'     => mb_substr(trim((string) ($eeIn['heading']     ?? '')), 0, 200),
+                'body'        => mb_substr(trim((string) ($eeIn['body']        ?? '')), 0, 2000),
+                'stats'       => $eeStats,
+                'address'     => mb_substr(trim((string) ($eeIn['address']     ?? '')), 0, 300),
+                'email'       => mb_substr(trim((string) ($eeIn['email']       ?? '')), 0, 190),
+                'whatsapp'    => mb_substr(trim((string) ($eeIn['whatsapp']    ?? '')), 0, 60),
+                'website'     => mb_substr(trim((string) ($eeIn['website']     ?? '')), 0, 190),
+                'website_url' => mb_substr(trim((string) ($eeIn['website_url'] ?? '')), 0, 300),
+            ];
+        } else {
+            $eefind = self::aboutEefindDefault();
+        }
+
         $milestones = [];
         foreach ((array) ($input['milestones'] ?? []) as $m) {
             if (!is_array($m)) continue;
@@ -1733,6 +1799,7 @@ class SitePagesContent
             'section_visibility' => $sectionVisibility,
             'cta'                => $cta,
             'founder'            => $founder,
+            'eefind'             => $eefind,
             'milestones'         => $milestones,
         ];
     }

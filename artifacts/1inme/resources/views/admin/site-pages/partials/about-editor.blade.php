@@ -12,6 +12,17 @@
     $aboutSectionTitles = array_replace($aboutDefaults['section_titles'], (array)($aboutExtra['section_titles'] ?? []));
     $aboutCta = array_replace($aboutDefaults['cta'], (array)($aboutExtra['cta'] ?? []));
     $founder = $aboutExtra['founder'] ?? $aboutDefaults['founder'];
+    // About EEFind (parent company): merge saved scalars over the defaults
+    // so a row seeded before this block existed still renders every field.
+    $aboutEefind = array_replace(
+        $aboutDefaults['eefind'],
+        array_intersect_key((array)($aboutExtra['eefind'] ?? []), [
+            'eyebrow' => 1, 'heading' => 1, 'body' => 1,
+            'address' => 1, 'email' => 1, 'whatsapp' => 1,
+            'website' => 1, 'website_url' => 1,
+        ])
+    );
+    $aboutEefindStats = array_values((array)($aboutExtra['eefind']['stats'] ?? $aboutDefaults['eefind']['stats']));
     $milestoneRows = array_values((array)($aboutExtra['milestones'] ?? []));
 
     // Section order control: build the editor list in the saved order
@@ -24,6 +35,7 @@
         'story'       => ['label' => 'Story', 'desc' => 'Heading + body cards above the team band.'],
         'team_band'   => ['label' => 'Team photo band', 'desc' => 'Wide team image strip.'],
         'founder'     => ['label' => 'Founder', 'desc' => 'Featured founder card with photo and bio.'],
+        'eefind'      => ['label' => 'About EEFind (parent company)', 'desc' => 'Parent-company block — who builds 1INME.'],
         'milestones'  => ['label' => 'Milestones', 'desc' => 'Vertical timeline of dated milestones.'],
         'cta'         => ['label' => 'Bottom call to action', 'desc' => 'The "Want to build with us?" panel.'],
     ];
@@ -494,6 +506,87 @@
             <div>
                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">LinkedIn URL</label>
                 <input type="url" name="extra[founder][links][linkedin]" value="{{ $founder['links']['linkedin'] ?? '' }}" placeholder="https://linkedin.com/in/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+            </div>
+        </div>
+    </div>
+
+    {{-- ========== ABOUT EEFIND (PARENT COMPANY) ========== --}}
+    <div>
+        <h3 class="text-sm font-semibold text-white">About EEFind (parent company)</h3>
+        <p class="text-xs text-white/50 mb-3">The parent-company block explaining that 1INME is built by EEFind Private Limited. Use the Section order control above to position or hide it.</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+            <div class="grid sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Eyebrow / pill label</label>
+                    <input type="text" name="extra[eefind][eyebrow]" value="{{ $aboutEefind['eyebrow'] }}" maxlength="120" placeholder="Part of EEFind" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.eefind.eyebrow')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Heading</label>
+                    <input type="text" name="extra[eefind][heading]" value="{{ $aboutEefind['heading'] }}" maxlength="200" placeholder="Built by EEFind Private Limited" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.eefind.heading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Body</label>
+                <textarea name="extra[eefind][body]" rows="4" maxlength="2000" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $aboutEefind['body'] }}</textarea>
+                @error('extra.eefind.body')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+
+            <div x-data="{ rows: {{ json_encode($aboutEefindStats) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <label class="text-[10px] uppercase tracking-wider text-white/40">Company stats</label>
+                        <p class="text-[11px] text-white/40">Numeric values animate; non-numeric values are shown as plain text. Remove all to hide the row.</p>
+                    </div>
+                    <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:''})" :disabled="rows.length>=6" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add stat</button>
+                </div>
+                <template x-for="(s, i) in rows" :key="i">
+                    <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[10px] uppercase tracking-wider text-white/40">Stat <span x-text="i+1"></span></span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-down"></i></button>
+                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid sm:grid-cols-3 gap-2">
+                            <input type="text" :name="'extra[eefind][stats]['+i+'][value]'" x-model="s.value" maxlength="40" placeholder="4000" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                            <input type="text" :name="'extra[eefind][stats]['+i+'][suffix]'" x-model="s.suffix" maxlength="10" placeholder="+" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                            <input type="text" :name="'extra[eefind][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Products" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                        </div>
+                    </div>
+                </template>
+                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No stats — the company stats row will be hidden.</div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Registered office address</label>
+                    <input type="text" name="extra[eefind][address]" value="{{ $aboutEefind['address'] }}" maxlength="300" placeholder="8 Amrutha Nilayam, Banjara Hills, Hyderabad, Telangana 500034" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.eefind.address')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Support email</label>
+                    <input type="text" name="extra[eefind][email]" value="{{ $aboutEefind['email'] }}" maxlength="190" placeholder="support@eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.eefind.email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">WhatsApp</label>
+                    <input type="text" name="extra[eefind][whatsapp]" value="{{ $aboutEefind['whatsapp'] }}" maxlength="60" placeholder="+91 81210 57755" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.eefind.whatsapp')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Website (display text)</label>
+                    <input type="text" name="extra[eefind][website]" value="{{ $aboutEefind['website'] }}" maxlength="190" placeholder="eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.eefind.website')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Website URL <span class="normal-case tracking-normal text-white/40">(blank = https://eefind.com)</span></label>
+                    <input type="text" name="extra[eefind][website_url]" value="{{ $aboutEefind['website_url'] }}" maxlength="300" placeholder="https://eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.eefind.website_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
             </div>
         </div>
     </div>
