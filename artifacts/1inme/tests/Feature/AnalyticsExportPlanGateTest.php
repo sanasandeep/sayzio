@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Coverage for the `analytics_export` plan gate that protects the three CSV
+ * Coverage for the `analytics_export` plan gate that protects the CSV
  * export endpoints. A free-plan owner must be bounced with the upgrade error
  * (never handed a CSV); a paid-plan owner must receive the CSV download.
  *
@@ -20,6 +20,7 @@ use Tests\TestCase;
  *  - user.links.clicks.export       (LinkController::exportClicks)
  *  - user.links.followers.export    (LinkController::followersExport)
  *  - user.links.slides.analytics.csv (SlideDeckController::exportCsv)
+ *  - user.stats.export              (CreatorStatsController::export)
  */
 class AnalyticsExportPlanGateTest extends TestCase
 {
@@ -143,6 +144,22 @@ class AnalyticsExportPlanGateTest extends TestCase
         $u = $this->user($this->paidPlan());
         $link = $this->link($u, Link::TYPE_SLIDES);
         $resp = $this->actingAs($u)->get(route('user.links.slides.analytics.csv', $link));
+        $this->assertCsvDownload($resp);
+    }
+
+    // ===== Creator-stats dashboard export =====
+
+    public function test_creator_stats_export_blocked_for_free_plan(): void
+    {
+        $u = $this->user($this->freePlan());
+        $resp = $this->actingAs($u)->get(route('user.stats.export'));
+        $this->assertExportBlocked($resp);
+    }
+
+    public function test_creator_stats_export_allowed_for_paid_plan(): void
+    {
+        $u = $this->user($this->paidPlan());
+        $resp = $this->actingAs($u)->get(route('user.stats.export'));
         $this->assertCsvDownload($resp);
     }
 }
