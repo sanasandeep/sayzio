@@ -10,9 +10,9 @@
         <div>
             <h1 class="text-2xl font-bold text-white">AI Personas</h1>
             <p class="text-sm text-white/50 mt-1">Configurable agents that combine a system prompt, tone, and the Minds you choose. Test them here, then wire them into widgets.</p>
-            <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_personas_per_user'] }} used &middot; up to {{ $caps['max_minds_per_persona'] }} Minds per Persona</p>
+            <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_personas_per_user'] == -1 ? '∞' : $caps['max_personas_per_user'] }} used &middot; up to {{ $caps['max_minds_per_persona'] }} Minds per Persona</p>
         </div>
-        @if($used < $caps['max_personas_per_user'])
+        @if($caps['max_personas_per_user'] == -1 || $used < $caps['max_personas_per_user'])
             <a href="{{ route('user.ai-personas.create') }}" class="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm">
                 <i class="fas fa-plus"></i> New Persona
             </a>

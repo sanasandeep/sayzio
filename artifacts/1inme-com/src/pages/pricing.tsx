@@ -29,7 +29,7 @@ export default function Pricing() {
         "Custom domains",
         "Removed branding",
         "50 short links",
-        "Advanced blocks"
+        "AI Minds, Personas & Companions"
       ],
       cta: "Get started",
       variant: "outline" as const,
@@ -44,7 +44,7 @@ export default function Pricing() {
         "Priority support",
         "Full analytics",
         "500 short links",
-        "Team seats (up to 3)"
+        "Site Assistant widget & AI coach"
       ],
       cta: "Upgrade now",
       variant: "default" as const,
@@ -58,7 +58,7 @@ export default function Pricing() {
         "API access",
         "White-labeling",
         "Unlimited short links",
-        "10 team seats"
+        "AI Voice Assistant & unlimited AI"
       ],
       cta: "Upgrade now",
       variant: "outline" as const,

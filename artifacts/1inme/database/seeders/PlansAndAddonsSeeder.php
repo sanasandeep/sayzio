@@ -55,6 +55,18 @@ class PlansAndAddonsSeeder extends Seeder
     {
         $defs = $this->planDefinitions();
 
+        // First-class per-plan AI feature limits. Merged here (rather than
+        // hardcoded inside each tier's array) so the values live in ONE place
+        // shared with the backfill migration, and so both the create path and
+        // the overlay-fill path below pick them up. Existing per-tier keys
+        // (e.g. ai_widget / ai_voice_assistant) win over these defaults.
+        $aiLimits = self::aiFeatureLimits();
+        foreach ($defs as &$def) {
+            $extra = $aiLimits[$def['slug']] ?? [];
+            $def['features'] = array_merge($extra, $def['features']);
+        }
+        unset($def);
+
         // Batch-load every existing plan row up front in ONE query, keyed by
         // slug, then diff in memory. This avoids the per-plan SELECT (and the
         // redundant re-SELECT after write) that made a no-op convergence run
@@ -99,6 +111,81 @@ class PlansAndAddonsSeeder extends Seeder
         // Make sure the polymorphic `prices` table has rows for both
         // currencies. Batched so all plans' existing prices load in ONE query.
         $this->seedPricesForModels(Plan::class, $priceItems);
+    }
+
+    /**
+     * First-class per-plan AI feature limits, keyed by plan slug.
+     *
+     * Quantity keys (-1 = Unlimited): max_minds, max_personas, max_companions.
+     * Availability keys (bool): ask_coach, card_scan, ai_resume_tools.
+     * (Site Assistant `ai_widget` and Voice Assistant `ai_voice_assistant`
+     * already live in each tier's features array and are not repeated here.)
+     *
+     * Exposed publicly + statically so the additive backfill migration can
+     * reuse the exact same source of truth.
+     *
+     * @return array<string, array<string, int|bool>>
+     */
+    public static function aiFeatureLimits(): array
+    {
+        return [
+            'free' => [
+                'max_minds'       => 1,
+                'max_personas'    => 1,
+                'max_companions'  => 1,
+                'ask_coach'       => false,
+                'card_scan'       => false,
+                'ai_resume_tools' => false,
+            ],
+            'creator' => [
+                'max_minds'       => 3,
+                'max_personas'    => 3,
+                'max_companions'  => 2,
+                'ask_coach'       => true,
+                'card_scan'       => true,
+                'ai_resume_tools' => true,
+            ],
+            'professional' => [
+                'max_minds'       => 10,
+                'max_personas'    => 10,
+                'max_companions'  => 5,
+                'ask_coach'       => true,
+                'card_scan'       => true,
+                'ai_resume_tools' => true,
+            ],
+            'business' => [
+                'max_minds'       => -1,
+                'max_personas'    => -1,
+                'max_companions'  => -1,
+                'ask_coach'       => true,
+                'card_scan'       => true,
+                'ai_resume_tools' => true,
+            ],
+            'agency' => [
+                'max_minds'       => -1,
+                'max_personas'    => -1,
+                'max_companions'  => -1,
+                'ask_coach'       => true,
+                'card_scan'       => true,
+                'ai_resume_tools' => true,
+            ],
+            'developer' => [
+                'max_minds'       => 10,
+                'max_personas'    => 10,
+                'max_companions'  => 5,
+                'ask_coach'       => true,
+                'card_scan'       => true,
+                'ai_resume_tools' => true,
+            ],
+            'enterprise-api' => [
+                'max_minds'       => -1,
+                'max_personas'    => -1,
+                'max_companions'  => -1,
+                'ask_coach'       => true,
+                'card_scan'       => true,
+                'ai_resume_tools' => true,
+            ],
+        ];
     }
 
     /**

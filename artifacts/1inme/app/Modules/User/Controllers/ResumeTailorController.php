@@ -23,6 +23,8 @@ use Illuminate\Http\Request;
  */
 class ResumeTailorController extends Controller
 {
+    use \App\Modules\User\Concerns\GatesResumeAiTools;
+
     public function __construct(
         protected ResumeTailorService $tailor,
         protected AiUsageCharger $credits,
@@ -36,6 +38,9 @@ class ResumeTailorController extends Controller
 
         if (!AiEngineSettings::isEnabled()) {
             return response()->json(['message' => 'AI Engine is disabled.'], 404);
+        }
+        if ($gate = $this->resumeToolsGate($request)) {
+            return $gate;
         }
 
         $resume = $request->user()->ensureResume();
@@ -56,6 +61,9 @@ class ResumeTailorController extends Controller
 
         if (!AiEngineSettings::isEnabled()) {
             return response()->json(['message' => 'AI Engine is disabled.'], 404);
+        }
+        if ($gate = $this->resumeToolsGate($request)) {
+            return $gate;
         }
 
         $resume = $request->user()->ensureResume();

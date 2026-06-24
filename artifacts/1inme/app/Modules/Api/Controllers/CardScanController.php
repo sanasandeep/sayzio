@@ -64,6 +64,17 @@ class CardScanController extends Controller
             return $this->fail('Please attach at least one image or PDF.', 422, 'no_files');
         }
 
+        $user = $request->user();
+
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($user, 'card_scan')) {
+            $plan = \App\Services\AI\AiPlanAccess::featureUpgradePlan($user, 'card_scan');
+            $msg  = 'The Card & Brochure Scanner is not available on your current plan.';
+            if ($plan) {
+                $msg .= ' Upgrade to the ' . $plan->name . ' plan to use it.';
+            }
+            return $this->fail($msg, 403, 'plan_upgrade_required', ['upgrade_plan' => $plan?->slug]);
+        }
+
         if (!AiEngineSettings::isEnabled() || !AiEngineSettings::openAiKey()) {
             return $this->fail(
                 'AI scanning is currently unavailable. Please try again later.',
@@ -71,8 +82,6 @@ class CardScanController extends Controller
                 'ai_unavailable',
             );
         }
-
-        $user = $request->user();
 
         try {
             $scan = $this->extractor->extract($user, $user, $uploads);

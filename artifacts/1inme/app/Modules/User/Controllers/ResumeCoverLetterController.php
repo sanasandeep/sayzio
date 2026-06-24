@@ -31,6 +31,8 @@ use Illuminate\Http\Response;
  */
 class ResumeCoverLetterController extends Controller
 {
+    use \App\Modules\User\Concerns\GatesResumeAiTools;
+
     public function __construct(
         protected ResumeCoverLetterService $letters,
         protected AiUsageCharger $credits,
@@ -46,6 +48,9 @@ class ResumeCoverLetterController extends Controller
 
         if (!AiEngineSettings::isEnabled()) {
             return response()->json(['message' => 'AI Engine is disabled.'], 404);
+        }
+        if ($gate = $this->resumeToolsGate($request)) {
+            return $gate;
         }
 
         $resume = $request->user()->ensureResume();
@@ -78,6 +83,9 @@ class ResumeCoverLetterController extends Controller
 
         if (!AiEngineSettings::isEnabled()) {
             return response()->json(['message' => 'AI Engine is disabled.'], 404);
+        }
+        if ($gate = $this->resumeToolsGate($request)) {
+            return $gate;
         }
 
         $resume = $request->user()->ensureResume();
@@ -158,6 +166,9 @@ class ResumeCoverLetterController extends Controller
 
         if (!AiEngineSettings::isEnabled()) {
             return response()->json(['message' => 'AI Engine is disabled.'], 404);
+        }
+        if ($gate = $this->resumeToolsGate($request)) {
+            return $gate;
         }
 
         $resume = $request->user()->ensureResume();

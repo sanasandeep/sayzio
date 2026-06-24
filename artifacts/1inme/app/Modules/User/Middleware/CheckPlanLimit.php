@@ -217,6 +217,27 @@ class CheckPlanLimit
                 }
                 break;
 
+            case 'ai_minds':
+                $cur = \App\Modules\User\Models\AiMind::where('user_id', $user->id)->count();
+                if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'minds', $cur)) {
+                    return back()->with('error', \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'minds', 'AI Mind', $cur));
+                }
+                break;
+
+            case 'ai_personas':
+                $cur = \App\Modules\User\Models\AiPersonaAgent::where('user_id', $user->id)->count();
+                if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'personas', $cur)) {
+                    return back()->with('error', \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'personas', 'Persona', $cur));
+                }
+                break;
+
+            case 'ai_companions':
+                $cur = \App\Modules\User\Models\AiCompanion::where('user_id', $user->id)->count();
+                if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'companions', $cur)) {
+                    return back()->with('error', \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'companions', 'Companion', $cur));
+                }
+                break;
+
             case 'link_password':
             case 'link_expiry':
             case 'link_geo_targeting':

@@ -34,6 +34,16 @@ class CardScanController extends Controller
     /** Upload form. Shared between Contacts entry and the wizard shortcut. */
     public function create(Request $request)
     {
+        // Plan gate: when the user's plan doesn't unlock the Card & Brochure
+        // Scanner, send them to the self-serve upgrade page instead of the
+        // uploader (falls back to "on" when the plan predates the key).
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($request->user(), 'card_scan')) {
+            return view('user.ai.disabled', [
+                'title'       => 'Card & Brochure Scanner',
+                'upgradePlan' => \App\Services\AI\AiPlanAccess::featureUpgradePlan($request->user(), 'card_scan'),
+            ]);
+        }
+
         $from = $request->query('from') === 'wizard' ? 'wizard' : 'contacts';
         return view('user.contacts.scan_create', [
             'from'      => $from,
@@ -65,6 +75,15 @@ class CardScanController extends Controller
 
         $owner = workspace_owner();
         $actor = $request->user();
+
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($actor, 'card_scan')) {
+            $plan = \App\Services\AI\AiPlanAccess::featureUpgradePlan($actor, 'card_scan');
+            $msg  = 'The Card & Brochure Scanner is not available on your current plan.';
+            if ($plan) {
+                $msg .= ' Upgrade to the ' . $plan->name . ' plan to use it.';
+            }
+            return back()->with('error', $msg);
+        }
 
         if (!AiEngineSettings::isEnabled() || !AiEngineSettings::openAiKey()) {
             return back()->with('error', 'AI scanning is currently unavailable. Please try again later.');

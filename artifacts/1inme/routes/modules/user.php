@@ -927,8 +927,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // distinct from the stateless `ai/mind` summary tool above.
         Route::prefix('minds')->name('minds.')->group(function () {
             Route::get ('/',                   [\App\Modules\User\Controllers\MindController::class, 'index'])->name('index');
-            Route::get ('create',              [\App\Modules\User\Controllers\MindController::class, 'create'])->name('create');
-            Route::post('/',                   [\App\Modules\User\Controllers\MindController::class, 'store'])->name('store');
+            Route::get ('create',              [\App\Modules\User\Controllers\MindController::class, 'create'])->middleware(CheckPlanLimit::class . ':ai_minds')->name('create');
+            Route::post('/',                   [\App\Modules\User\Controllers\MindController::class, 'store'])->middleware(CheckPlanLimit::class . ':ai_minds')->name('store');
             Route::get ('{mind}',              [\App\Modules\User\Controllers\MindController::class, 'edit'])->whereNumber('mind')->name('edit');
             Route::put ('{mind}',              [\App\Modules\User\Controllers\MindController::class, 'update'])->whereNumber('mind')->name('update');
             Route::delete('{mind}',            [\App\Modules\User\Controllers\MindController::class, 'destroy'])->whereNumber('mind')->name('destroy');
@@ -947,12 +947,12 @@ Route::prefix('user')->name('user.')->group(function () {
         // writes a new ai_persona_versions row and can be rolled back.
         Route::prefix('ai-personas')->name('ai-personas.')->group(function () {
             Route::get   ('/',                 [\App\Modules\User\Controllers\AI\PersonasController::class, 'index'])->name('index');
-            Route::get   ('create',            [\App\Modules\User\Controllers\AI\PersonasController::class, 'create'])->name('create');
-            Route::post  ('/',                 [\App\Modules\User\Controllers\AI\PersonasController::class, 'store'])->name('store');
+            Route::get   ('create',            [\App\Modules\User\Controllers\AI\PersonasController::class, 'create'])->middleware(CheckPlanLimit::class . ':ai_personas')->name('create');
+            Route::post  ('/',                 [\App\Modules\User\Controllers\AI\PersonasController::class, 'store'])->middleware(CheckPlanLimit::class . ':ai_personas')->name('store');
             Route::get   ('{persona}',         [\App\Modules\User\Controllers\AI\PersonasController::class, 'edit'])->whereNumber('persona')->name('edit');
             Route::put   ('{persona}',         [\App\Modules\User\Controllers\AI\PersonasController::class, 'update'])->whereNumber('persona')->name('update');
             Route::delete('{persona}',         [\App\Modules\User\Controllers\AI\PersonasController::class, 'destroy'])->whereNumber('persona')->name('destroy');
-            Route::post  ('{persona}/duplicate',[\App\Modules\User\Controllers\AI\PersonasController::class, 'duplicate'])->whereNumber('persona')->name('duplicate');
+            Route::post  ('{persona}/duplicate',[\App\Modules\User\Controllers\AI\PersonasController::class, 'duplicate'])->whereNumber('persona')->middleware(CheckPlanLimit::class . ':ai_personas')->name('duplicate');
             Route::post  ('{persona}/versions/{version}/rollback', [\App\Modules\User\Controllers\AI\PersonasController::class, 'rollback'])->whereNumber('persona')->whereNumber('version')->name('rollback');
             Route::post  ('{persona}/test',    [\App\Modules\User\Controllers\AI\PersonasController::class, 'test'])->whereNumber('persona')->middleware('throttle:20,1')->name('test');
         });
@@ -962,8 +962,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // auto-reply bot. CRUD + conversation browser + analytics.
         Route::prefix('ai-companions')->name('ai-companions.')->group(function () {
             Route::get   ('/',                            [\App\Modules\User\Controllers\AI\CompanionsController::class, 'index'])->name('index');
-            Route::get   ('create',                       [\App\Modules\User\Controllers\AI\CompanionsController::class, 'create'])->name('create');
-            Route::post  ('/',                            [\App\Modules\User\Controllers\AI\CompanionsController::class, 'store'])->name('store');
+            Route::get   ('create',                       [\App\Modules\User\Controllers\AI\CompanionsController::class, 'create'])->middleware(CheckPlanLimit::class . ':ai_companions')->name('create');
+            Route::post  ('/',                            [\App\Modules\User\Controllers\AI\CompanionsController::class, 'store'])->middleware(CheckPlanLimit::class . ':ai_companions')->name('store');
             Route::get   ('{companion}',                  [\App\Modules\User\Controllers\AI\CompanionsController::class, 'edit'])->whereNumber('companion')->name('edit');
             Route::put   ('{companion}',                  [\App\Modules\User\Controllers\AI\CompanionsController::class, 'update'])->whereNumber('companion')->name('update');
             Route::delete('{companion}',                  [\App\Modules\User\Controllers\AI\CompanionsController::class, 'destroy'])->whereNumber('companion')->name('destroy');

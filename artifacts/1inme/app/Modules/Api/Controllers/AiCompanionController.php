@@ -77,9 +77,10 @@ class AiCompanionController extends Controller
         $user = $request->user();
         $caps = CompanionSettings::caps();
 
-        if (AiCompanion::where('user_id', $user->id)->count() >= $caps['max_companions_per_user']) {
+        $current = AiCompanion::where('user_id', $user->id)->count();
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'companions', $current)) {
             return $this->fail(
-                "You have reached the {$caps['max_companions_per_user']}-Companion limit.",
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'companions', 'Companion', $current),
                 422,
                 'companion_limit',
             );
@@ -138,9 +139,10 @@ class AiCompanionController extends Controller
         $user = $request->user();
         $caps = PersonaSettings::caps();
 
-        if (AiPersonaAgent::where('user_id', $user->id)->count() >= $caps['max_personas_per_user']) {
+        $current = AiPersonaAgent::where('user_id', $user->id)->count();
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'personas', $current)) {
             return $this->fail(
-                "You have reached the {$caps['max_personas_per_user']}-persona limit.",
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'personas', 'Persona', $current),
                 422,
                 'persona_limit',
             );

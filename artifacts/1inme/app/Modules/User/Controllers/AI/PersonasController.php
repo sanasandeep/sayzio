@@ -48,6 +48,8 @@ class PersonasController extends Controller
             ->latest('updated_at')
             ->get();
         $caps = PersonaSettings::caps();
+        // Effective per-plan cap (falls back to the global admin cap).
+        $caps['max_personas_per_user'] = \App\Services\AI\AiPlanAccess::quantityCap($user, 'personas');
 
         return view('user.ai-personas.index', [
             'personas' => $personas,
@@ -59,11 +61,11 @@ class PersonasController extends Controller
     public function create(Request $request)
     {
         $this->ensureEnabled();
-        $caps = PersonaSettings::caps();
-        $current = AiPersonaAgent::where('user_id', $request->user()->id)->count();
-        if ($current >= $caps['max_personas_per_user']) {
+        $user = $request->user();
+        $current = AiPersonaAgent::where('user_id', $user->id)->count();
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'personas', $current)) {
             return redirect()->route('user.ai-personas.index')->with('error',
-                "You have reached the {$caps['max_personas_per_user']}-persona limit.");
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'personas', 'Persona', $current));
         }
         return view('user.ai-personas.create', [
             'templates' => PersonaTemplates::all(),
@@ -74,10 +76,10 @@ class PersonasController extends Controller
     {
         $this->ensureEnabled();
         $user = $request->user();
-        $caps = PersonaSettings::caps();
-        if (AiPersonaAgent::where('user_id', $user->id)->count() >= $caps['max_personas_per_user']) {
+        $current = AiPersonaAgent::where('user_id', $user->id)->count();
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'personas', $current)) {
             return back()->with('error',
-                "You have reached the {$caps['max_personas_per_user']}-persona limit.");
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'personas', 'Persona', $current));
         }
 
         $data = $request->validate([
@@ -226,11 +228,11 @@ class PersonasController extends Controller
     {
         $this->ensureEnabled();
         $this->authorize_($persona, $request->user());
-        $caps = PersonaSettings::caps();
         $user = $request->user();
-        if (AiPersonaAgent::where('user_id', $user->id)->count() >= $caps['max_personas_per_user']) {
+        $current = AiPersonaAgent::where('user_id', $user->id)->count();
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'personas', $current)) {
             return back()->with('error',
-                "You have reached the {$caps['max_personas_per_user']}-persona limit.");
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'personas', 'Persona', $current));
         }
 
         $cfg = $persona->snapshotConfig();

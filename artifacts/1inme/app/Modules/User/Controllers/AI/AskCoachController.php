@@ -60,10 +60,10 @@ class AskCoachController extends Controller
         // Engine is on but the user's plan may not unlock Ask Coach. Show
         // the self-serve gate page (upgrade + coins) instead of a bare 403
         // so they know exactly how to switch it on.
-        if (!AiEngineSettings::askCoachAllowedFor($request->user())) {
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($request->user(), 'ask_coach')) {
             return view('user.ai.disabled', [
                 'title'       => 'Ask Coach',
-                'upgradePlan' => AiEngineSettings::askCoachUpgradePlanFor($request->user()),
+                'upgradePlan' => \App\Services\AI\AiPlanAccess::featureUpgradePlan($request->user(), 'ask_coach'),
             ]);
         }
         $this->ensureEnabled($request);
@@ -651,7 +651,7 @@ class AskCoachController extends Controller
     {
         if (!AiEngineSettings::isEnabled()) abort(404);
         $user = $request->user();
-        if ($user && !AiEngineSettings::askCoachAllowedFor($user)) {
+        if ($user && !\App\Services\AI\AiPlanAccess::featureAllowed($user, 'ask_coach')) {
             abort(403, 'Ask Coach is not available on your current plan.');
         }
     }

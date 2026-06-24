@@ -12,8 +12,8 @@
             <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI personas and coach can draw on. Add text, FAQs, documents, links, or live 1INME data.</p>
         </div>
         <div class="flex items-center gap-2">
-            <span class="text-xs text-white/40">{{ $usedMinds }} / {{ $caps['max_minds_per_user'] }} minds</span>
-            @if($usedMinds < $caps['max_minds_per_user'])
+            <span class="text-xs text-white/40">{{ $usedMinds }} / {{ $caps['max_minds_per_user'] == -1 ? '∞' : $caps['max_minds_per_user'] }} minds</span>
+            @if($caps['max_minds_per_user'] == -1 || $usedMinds < $caps['max_minds_per_user'])
                 <a href="{{ route('user.minds.create') }}" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">
                     <i class="fas fa-plus mr-1"></i> New mind
                 </a>

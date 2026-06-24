@@ -1037,6 +1037,16 @@
                     ['vaults',                   'Credential vault',        'bool'],
                     ['creator_profile_public',   'Public creator profile',  'bool'],
                 ],
+                'AI features' => [
+                    ['max_minds',                'AI Minds',                'number'],
+                    ['max_personas',             'AI Personas',             'number'],
+                    ['max_companions',           'AI Companions',           'number'],
+                    ['ai_widget',                'Site Assistant widget',   'bool'],
+                    ['ai_voice_assistant',       'Voice Assistant',         'bool'],
+                    ['ask_coach',                'Ask Coach',               'bool'],
+                    ['card_scan',                'Card & Brochure Scanner', 'bool'],
+                    ['ai_resume_tools',          'AI Resume Tools',         'bool'],
+                ],
                 'Developer API' => [
                     ['api_access',               'API access',              'bool'],
                     ['api_calls_monthly',        'API calls / month',       'number'],

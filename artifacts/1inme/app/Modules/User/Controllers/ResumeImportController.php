@@ -21,6 +21,8 @@ use Illuminate\Validation\Rule;
  */
 class ResumeImportController extends Controller
 {
+    use \App\Modules\User\Concerns\GatesResumeAiTools;
+
     public function __construct(protected ResumeImportService $importer) {}
 
     /** POST /resume/import/file — upload + parse a PDF/DOCX. */
@@ -93,6 +95,10 @@ class ResumeImportController extends Controller
             'sections'   => ['nullable', 'array'],
             'sections.*' => ['string', Rule::in(['summary', 'experience', 'skills', 'projects'])],
         ]);
+
+        if ($gate = $this->resumeToolsGate($request)) {
+            return $gate;
+        }
 
         $resume = $request->user()->resolveResume($request);
         $context = [

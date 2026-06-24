@@ -45,6 +45,8 @@ class CompanionsController extends Controller
             ->get();
 
         $caps = CompanionSettings::caps();
+        // Effective per-plan cap (falls back to the global admin cap).
+        $caps['max_companions_per_user'] = \App\Services\AI\AiPlanAccess::quantityCap($user, 'companions');
 
         return view('user.ai-companions.index', [
             'companions' => $companions,
@@ -59,10 +61,12 @@ class CompanionsController extends Controller
         $this->ensureEnabled();
         $user = $request->user();
         $caps = CompanionSettings::caps();
+        $caps['max_companions_per_user'] = \App\Services\AI\AiPlanAccess::quantityCap($user, 'companions');
 
-        if (AiCompanion::where('user_id', $user->id)->count() >= $caps['max_companions_per_user']) {
+        $current = AiCompanion::where('user_id', $user->id)->count();
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'companions', $current)) {
             return redirect()->route('user.ai-companions.index')->with('error',
-                "You have reached the {$caps['max_companions_per_user']}-Companion limit.");
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'companions', 'Companion', $current));
         }
 
         $personas = AiPersonaAgent::where('user_id', $user->id)
@@ -81,11 +85,10 @@ class CompanionsController extends Controller
     {
         $this->ensureEnabled();
         $user = $request->user();
-        $caps = CompanionSettings::caps();
-
-        if (AiCompanion::where('user_id', $user->id)->count() >= $caps['max_companions_per_user']) {
+        $current = AiCompanion::where('user_id', $user->id)->count();
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'companions', $current)) {
             return back()->with('error',
-                "You have reached the {$caps['max_companions_per_user']}-Companion limit.");
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'companions', 'Companion', $current));
         }
 
         $data = $request->validate([

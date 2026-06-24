@@ -190,6 +190,9 @@
                         'max_events' => 'events',
                         'max_workspaces' => 'team workspaces',
                         'max_seats_per_workspace' => 'seats per workspace',
+                        'max_minds' => 'AI Minds',
+                        'max_personas' => 'AI Personas',
+                        'max_companions' => 'AI Companions',
                     ] as $key => $label)
                         @if(isset($features[$key]) && (int) $features[$key] !== 0)
                             <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $features[$key] == -1 ? 'Unlimited' : number_format((int)$features[$key]) }} {{ $label }}</span></li>
@@ -206,6 +209,11 @@
                             'link_device_targeting'   => 'Device targeting per link',
                             'link_deep_link'          => 'Deep-link / open-in-app',
                             'link_smart_rules'        => 'Smart redirect rules',
+                            'ai_widget'               => 'Site Assistant widget',
+                            'ai_voice_assistant'      => 'Voice Assistant',
+                            'ask_coach'               => 'Ask Coach',
+                            'card_scan'               => 'Card & Brochure Scanner',
+                            'ai_resume_tools'         => 'AI Resume Tools',
                         ];
                     @endphp
                     @foreach($boolFeatures as $key => $label)

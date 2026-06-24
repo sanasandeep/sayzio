@@ -40,10 +40,15 @@ class MindController extends Controller
             ->withCount(['sources', 'chunks'])
             ->get();
 
+        // Surface the user's effective per-plan cap (falls back to the global
+        // admin cap when the plan predates the key) in the dashboard counter.
+        $caps = AiMindSettings::caps();
+        $caps['max_minds_per_user'] = \App\Services\AI\AiPlanAccess::quantityCap($user, 'minds');
+
         return view('user.minds.index', [
             'mine'     => $mine,
             'platform' => $platform,
-            'caps'     => AiMindSettings::caps(),
+            'caps'     => $caps,
             'usedMinds'=> $mine->count(),
         ]);
     }
@@ -58,10 +63,10 @@ class MindController extends Controller
     {
         $this->ensureEnabled();
         $user = $request->user();
-        $caps = AiMindSettings::caps();
         $current = AiMind::where('user_id', $user->id)->count();
-        if ($current >= $caps['max_minds_per_user']) {
-            return back()->with('error', "You have reached the {$caps['max_minds_per_user']}-mind limit. Delete an existing mind or contact support to raise the cap.");
+        if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'minds', $current)) {
+            return back()->with('error',
+                \App\Services\AI\AiPlanAccess::quantityLimitMessage($user, 'minds', 'AI Mind', $current));
         }
 
         $data = $request->validate([
