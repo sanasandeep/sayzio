@@ -6,12 +6,26 @@ description: Constraints for the shared TemplatePreviewLayoutBuilder and the bio
 # Template preview blueprint (`TemplatePreviewLayoutBuilder`)
 
 The builder turns a template's blocks into a tiny row/cell blueprint shown as a
-gallery thumbnail. It is consumed by **three** surfaces that all read the same
+gallery thumbnail. It is consumed by **four** surfaces that all read the same
 cell shape hints:
 
 1. Web **card** gallery — biolink editor "Templates & more" overlay (Alpine).
 2. Web **page** templates picker (`templates/picker.blade.php`).
 3. **Mobile** card gallery — served by `Api/Controllers/CardTemplateController`, rendered in RN.
+4. Guided biolink **wizard** starting-design step (web + mobile) — shows the
+   blueprint when a design has no static `thumbnail_url` (most don't), instead of
+   a generic `fa-layer-group` icon.
+
+## Shared renderers (don't re-inline the blueprint)
+- **Web:** the blueprint markup + `.tpl-prev-*`/shimmer CSS (CSS wrapped in
+  `@once`) live in `user/links/partials/template-preview-blueprint.blade.php`,
+  `@include`d with `['previewRows' => ...]`. Both `templates/picker.blade.php`
+  and `wizard.blade.php` use it. The picker's own `<style>` keeps only `mark.tpl-mark`.
+- **Mobile:** `components/PreviewBlueprint.tsx` exports `PreviewBlueprint`,
+  `BlueprintCell`, `parsePreviewBg`, `gradientPoints`, `ShimmerOverlay`
+  (RN can't take CSS gradient strings — `parsePreviewBg`/`gradientPoints` convert
+  them for `expo-linear-gradient`). `blocks/[id]` and `wizard.tsx` both import it;
+  do NOT re-define these locally. Cell type is `PreviewLayoutCell` from `lib/api/cardTemplates`.
 
 ## Row cap is per-surface, not global
 `build($items, $maxRows = 6)` takes a max-rows arg. **Only the web card gallery

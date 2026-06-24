@@ -16,7 +16,9 @@ import {
 
 import { AppIcon } from "@/components/AppIcon";
 import { Button } from "@/components/Button";
+import { PreviewBlueprint } from "@/components/PreviewBlueprint";
 import { TextField } from "@/components/TextField";
+import type { PreviewLayoutCell } from "@/lib/api/cardTemplates";
 import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
@@ -661,6 +663,7 @@ export default function BiolinkWizardScreen() {
                   title={d.name}
                   blurb={d.description}
                   thumbnailUrl={d.thumbnail_url}
+                  previewLayout={d.preview_layout}
                   icon="fa-table-cells-large"
                   recommended={d.recommended}
                   locked={d.locked}
@@ -907,6 +910,7 @@ function StartingDesignCard({
   blurb,
   icon,
   thumbnailUrl,
+  previewLayout,
   recommended,
   locked,
   blocksCount,
@@ -917,6 +921,7 @@ function StartingDesignCard({
   blurb?: string;
   icon: string;
   thumbnailUrl?: string | null;
+  previewLayout?: PreviewLayoutCell[][];
   recommended?: boolean;
   locked?: boolean;
   blocksCount?: number;
@@ -924,6 +929,11 @@ function StartingDesignCard({
   onPress: () => void;
 }) {
   const colors = useColors();
+  // Prefer a real static thumbnail; otherwise render the auto-generated
+  // mini-blueprint of the template's blocks so the card shows the actual
+  // layout instead of a generic icon. Falls back to the icon only when
+  // neither is available (e.g. "Start from scratch").
+  const hasPreview = Array.isArray(previewLayout) && previewLayout.length > 0;
   return (
     <Pressable
       onPress={onPress}
@@ -945,6 +955,20 @@ function StartingDesignCard({
             { borderColor: colors.border, borderRadius: colors.radius },
           ]}
         />
+      ) : hasPreview ? (
+        <View
+          style={[
+            styles.designThumb,
+            {
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+              overflow: "hidden",
+              backgroundColor: colors.primary + "10",
+            },
+          ]}
+        >
+          <PreviewBlueprint rows={previewLayout!} height={62} />
+        </View>
       ) : (
         <View
           style={[

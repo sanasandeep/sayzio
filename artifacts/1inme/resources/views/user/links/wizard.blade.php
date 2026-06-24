@@ -268,6 +268,7 @@
                                         : ''"
                         @endunless
                         style="animation-delay: {{ min($tdIndex++ * 45, 540) }}ms">
+                        @php $previewRows = $td['preview_layout'] ?? []; @endphp
                         <div class="relative rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] aspect-[5/3]">
                             @if(!empty($td['thumbnail_url']))
                                 <img src="{{ $td['thumbnail_url'] }}" alt="{{ $td['name'] }} preview" loading="lazy"
@@ -275,6 +276,13 @@
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                 <div class="absolute inset-0 hidden items-center justify-center bg-violet-500/10 text-violet-300">
                                     <i class="fas fa-layer-group text-2xl"></i>
+                                </div>
+                            @elseif(!empty($previewRows))
+                                {{-- Auto-generated mini blueprint of the template's top-level
+                                     blocks — same shared partial the template picker uses, so
+                                     designs without a static thumbnail still show a real preview. --}}
+                                <div class="absolute inset-0 transition-transform duration-300 motion-safe:group-hover:scale-[1.06]">
+                                    @include('user.links.partials.template-preview-blueprint', ['previewRows' => $previewRows])
                                 </div>
                             @else
                                 <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-violet-500/12 to-fuchsia-500/8 text-violet-300">

@@ -1,4 +1,5 @@
 import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
+import type { PreviewLayoutCell } from "@/lib/api/cardTemplates";
 import type { Link } from "@/lib/api/links";
 import { getToken } from "@/lib/secure";
 
@@ -82,7 +83,10 @@ export type WizardStartingDesign = {
   recommended: boolean;
   blocks_count: number;
   content_summary?: { type: string; label: string; icon?: string; count?: number }[];
-  preview_layout?: unknown;
+  // Auto-generated mini-blueprint of the template's top-level blocks, used to
+  // render a richer visual preview card when no static thumbnail_url is set.
+  // Same shape the card/page template pickers consume.
+  preview_layout?: PreviewLayoutCell[][];
 };
 
 export type WizardQuestionType =
