@@ -32,12 +32,25 @@
     }
     .grad-glow:hover::before, .grad-glow.is-popular::before { opacity: 1; }
     .grad-glow:hover { transform: translateY(-4px); }
+    /* The accent plan card already sits lifted (-6px); keep it leading on hover. */
+    .grad-glow.is-accent:hover { transform: translateY(-10px); }
     .grad-glow { transition: transform .35s cubic-bezier(.2,.7,.2,1); }
     .grad-glow.is-current::before {
         opacity: 1;
         background: #34d399;
     }
     .price-num { font-variant-numeric: tabular-nums; }
+    /* Headline plan price — fluid base size with content-aware step-downs
+       (driven by priceSize()) so long INR annual amounts like ₹40,670.00
+       never overflow the card. Scoped to .plan-price so the coin-package
+       prices (which use their own Tailwind sizes) are left alone. */
+    .plan-price .price-num {
+        font-size: clamp(2rem, 1.4rem + 2.6vw, 3rem);
+        line-height: 1.04; word-break: keep-all;
+    }
+    .plan-price .price-num.price-md { font-size: clamp(1.75rem, 1.25rem + 2.1vw, 2.5rem); }
+    .plan-price .price-num.price-sm { font-size: clamp(1.5rem, 1.1rem + 1.7vw, 2.1rem); }
+    .plan-price .price-num.price-xs { font-size: clamp(1.25rem, .95rem + 1.3vw, 1.75rem); }
     .price-pop { animation: pricePop .35s cubic-bezier(.2,.7,.2,1); }
     @keyframes pricePop {
         0%   { transform: translateY(6px); opacity: 0; }
@@ -118,35 +131,54 @@
         padding: .85rem 1rem; border-top: 1px solid rgba(255,255,255,.05);
         font-size: .82rem; color: #cbd5e1;
         display: flex; align-items: center;
+        transition: background-color .18s ease;
     }
+    /* Zebra striping: every other feature row gets a faint wash so the eye
+       tracks across the wide grid. Group headers reset the rhythm. */
+    .feat-cell.feat-stripe { background: rgba(255,255,255,.022); }
     .feat-cell.text-center { justify-content: center; text-align: center; }
     .feat-cell.feat-head {
-        border-top: 0; background: #11101c;
+        border-top: 0;
+        background: rgba(17,16,28,.92); backdrop-filter: blur(8px);
         text-transform: uppercase; letter-spacing: .08em;
         font-size: .68rem; font-weight: 700; color: #94a3b8;
+        padding-top: 1rem; padding-bottom: 1rem;
         position: sticky; top: 0; z-index: 3;
+        box-shadow: inset 0 -1px 0 rgba(167,139,250,.22);
     }
     .feat-cell.feat-row-name {
         position: sticky; left: 0; background: #0b0a14;
         z-index: 2; color: #e5e7eb; font-weight: 500;
+        box-shadow: inset -1px 0 0 rgba(255,255,255,.04);
     }
+    .feat-cell.feat-row-name.feat-stripe { background: #0d0c17; }
     /* The top-left corner cell sits at both sticky axes → highest layer. */
-    .feat-cell.feat-head.feat-row-name { z-index: 4; background: #11101c; }
+    .feat-cell.feat-head.feat-row-name { z-index: 4; background: rgba(17,16,28,.96); }
     .feat-cell.feat-group {
-        background: rgba(124,58,237,.10); color: #c4b5fd;
+        background: linear-gradient(90deg, rgba(124,58,237,.18), rgba(124,58,237,.08));
+        color: #c4b5fd;
         text-transform: uppercase; letter-spacing: .08em;
         font-size: .66rem; font-weight: 700;
-        padding: .55rem 1rem;
+        padding: .6rem 1rem;
         position: sticky; left: 0; z-index: 1;
+        box-shadow: inset 2px 0 0 rgba(167,139,250,.55);
     }
     .feat-cell.feat-popular-col {
         background: rgba(124,58,237,.07);
+        box-shadow: inset 1px 0 0 rgba(167,139,250,.12), inset -1px 0 0 rgba(167,139,250,.12);
     }
-    .feat-cell.feat-head.feat-popular-col { background: rgba(124,58,237,.16); }
+    .feat-cell.feat-popular-col.feat-stripe { background: rgba(124,58,237,.10); }
+    .feat-cell.feat-head.feat-popular-col {
+        background: rgba(124,58,237,.20);
+        box-shadow: inset 0 -1px 0 rgba(167,139,250,.45), inset 1px 0 0 rgba(167,139,250,.3), inset -1px 0 0 rgba(167,139,250,.3);
+    }
     .feat-mark { display: inline-flex; align-items: center; justify-content: center;
-                 width: 26px; height: 26px; border-radius: 9999px; }
-    .feat-mark-yes { background: rgba(16,185,129,.14); color: #34d399; }
-    .feat-mark-no  { background: rgba(148,163,184,.10); color: #64748b; }
+                 width: 28px; height: 28px; border-radius: 9999px; }
+    .feat-mark-yes {
+        background: rgba(16,185,129,.18); color: #34d399;
+        box-shadow: 0 0 0 1px rgba(52,211,153,.35), 0 4px 12px -6px rgba(16,185,129,.6);
+    }
+    .feat-mark-no  { background: rgba(148,163,184,.08); color: #5b647a; }
 
     /* Light-mode overrides for the comparison matrix (dark is the default).
        The global marketing-anim.css recolors utility classes, but these
@@ -162,14 +194,18 @@
         background: #ffffff; color: #1e293b;
     }
     html.light-mode .feat-cell.feat-head.feat-row-name { background: #f1f0f7; }
-    html.light-mode .feat-cell.feat-group {
-        background: #ece9fb; color: #6d28d9;
-    }
     html.light-mode .feat-cell.feat-popular-col {
         background: rgba(124,58,237,.06);
     }
     html.light-mode .feat-cell.feat-head.feat-popular-col { background: #e6e0fb; }
     html.light-mode .feat-mark-no { color: #94a3b8; }
+    html.light-mode .feat-cell.feat-stripe { background: rgba(15,23,42,.028); }
+    html.light-mode .feat-cell.feat-row-name.feat-stripe { background: #f7f7fb; }
+    html.light-mode .feat-cell.feat-popular-col.feat-stripe { background: rgba(124,58,237,.09); }
+    html.light-mode .feat-cell.feat-group {
+        background: linear-gradient(90deg, #e7e2fb, #f1eefc); color: #6d28d9;
+    }
+    html.light-mode .feat-mark-yes { box-shadow: 0 0 0 1px rgba(16,185,129,.3), 0 4px 12px -6px rgba(16,185,129,.4); }
 
     /* Linktree-style plan card: a tinted header band sits flush at the
        top, with the body (price, CTA, grouped feature list) below. The
@@ -178,35 +214,55 @@
        ribbons. */
     .plan-card {
         overflow: hidden;
-        background: rgba(255,255,255,.02);
+        background:
+            radial-gradient(140% 80% at 50% -10%, rgba(255,255,255,.05), transparent 60%),
+            rgba(255,255,255,.02);
         box-shadow: 0 18px 40px -30px rgba(0,0,0,.8);
         transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;
     }
-    .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(124,58,237,.6); }
-    .plan-card.is-accent { box-shadow: 0 30px 70px -34px rgba(124,58,237,.55); }
-    .plan-card.is-current { box-shadow: 0 30px 70px -34px rgba(16,185,129,.45); }
+    .plan-card:hover { box-shadow: 0 34px 80px -34px rgba(124,58,237,.6); }
+    /* Accent (recommended / most-popular) tier — lifted, glowier, and a
+       half-step larger so the hero card clearly leads the rail. */
+    .plan-card.is-accent {
+        box-shadow: 0 40px 90px -34px rgba(124,58,237,.6), 0 0 0 1px rgba(167,139,250,.18) inset;
+        transform: translateY(-6px);
+    }
+    .plan-card.is-accent:hover { box-shadow: 0 50px 110px -34px rgba(124,58,237,.7), 0 0 0 1px rgba(167,139,250,.28) inset; }
+    .plan-card.is-current {
+        box-shadow: 0 34px 80px -34px rgba(16,185,129,.5), 0 0 0 1px rgba(52,211,153,.18) inset;
+    }
 
     /* Header band: a subtle tinted strip; accent/current get a richer
-       diagonal wash so the highlighted tiers read as premium. */
+       diagonal wash so the highlighted tiers read as premium. A thin
+       gradient top bar crowns the highlighted tiers. */
     .plan-band {
         position: relative;
         background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
         border-bottom: 1px solid rgba(255,255,255,.06);
     }
-    .plan-band.is-accent  { background: linear-gradient(135deg, rgba(124,58,237,.28), rgba(168,85,247,.10)); border-bottom-color: rgba(167,139,250,.34); }
-    .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.22), rgba(52,211,153,.08)); border-bottom-color: rgba(52,211,153,.32); }
-    .plan-card.is-accent  { background: rgba(124,58,237,.06); }
-    .plan-card.is-current { background: rgba(16,185,129,.05); }
+    .plan-band.is-accent  { background: linear-gradient(135deg, rgba(124,58,237,.30), rgba(168,85,247,.10)); border-bottom-color: rgba(167,139,250,.34); }
+    .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.24), rgba(52,211,153,.08)); border-bottom-color: rgba(52,211,153,.32); }
+    .plan-band.is-accent::before,
+    .plan-band.is-current::before {
+        content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    }
+    .plan-band.is-accent::before  { background: linear-gradient(90deg,#7c3aed,#a855f7,#ec4899); }
+    .plan-band.is-current::before { background: linear-gradient(90deg,#10b981,#34d399); }
+    .plan-card.is-accent  { background: radial-gradient(140% 80% at 50% -10%, rgba(124,58,237,.14), transparent 60%), rgba(124,58,237,.06); }
+    .plan-card.is-current { background: radial-gradient(140% 80% at 50% -10%, rgba(16,185,129,.12), transparent 60%), rgba(16,185,129,.05); }
 
     /* Price block — a quiet inset panel so the headline number anchors
-       the card body. */
+       the card body. A faint top sheen adds depth without distraction. */
     .plan-price {
-        background: rgba(255,255,255,.03);
-        border: 1px solid rgba(255,255,255,.06);
+        position: relative; overflow: hidden;
+        background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+        border: 1px solid rgba(255,255,255,.07);
         border-radius: .9rem;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
     }
-    .plan-card.is-accent .plan-price { background: rgba(124,58,237,.10); border-color: rgba(167,139,250,.25); }
-    .plan-card.is-current .plan-price { background: rgba(16,185,129,.08); border-color: rgba(52,211,153,.22); }
+    .plan-card.is-accent .plan-price { background: linear-gradient(180deg, rgba(124,58,237,.16), rgba(124,58,237,.06)); border-color: rgba(167,139,250,.28); }
+    .plan-card.is-current .plan-price { background: linear-gradient(180deg, rgba(16,185,129,.14), rgba(16,185,129,.05)); border-color: rgba(52,211,153,.24); }
+    .price-suffix { opacity: .85; }
 
     /* Light-mode counterparts (dark is the default; the global
        marketing-anim.css doesn't know these custom classes). */
@@ -279,6 +335,21 @@
             const block = this.cur(plan);
             const r = c === 'annual' ? block.annual : block.monthly;
             return r && r.formatted ? r.formatted : '—';
+        },
+        priceSize(plan){
+            // The headline price uses a fluid (clamped) base size, but very
+            // long currency strings — notably INR annual amounts like
+            // ₹40,670.00 — still need to step down a notch (or two) so they
+            // never run past the card edge. We measure the visible glyph
+            // count (digits + symbol + separators, spaces ignored) and pick
+            // a size bucket. Reactive on currency + cycle, so it re-fits the
+            // instant the visitor flips either toggle.
+            const s = (this.money(plan, this.cycle) || '').replace(/\s/g, '');
+            const len = s.length;
+            if (len >= 11) return 'price-xs';
+            if (len >= 9)  return 'price-sm';
+            if (len >= 7)  return 'price-md';
+            return '';
         },
         hasAnnual(plan){
             const a = this.cur(plan).annual;
@@ -750,14 +821,24 @@
 
                     {{-- ── Body: price → billing note → CTA → feature list ── --}}
                     <div class="px-5 sm:px-6 pt-5 pb-6 flex flex-col flex-grow">
+                        @php
+                            // Initial (server-rendered) price-size bucket so the
+                            // number fits before Alpine hydrates and takes over
+                            // the reactive sizing. Mirrors the priceSize() JS.
+                            $initialFormatted = $row['prices'][$currency][$cycle]['formatted'] ?? '—';
+                            $initialLen = mb_strlen((string) preg_replace('/\s/', '', $initialFormatted));
+                            $initialPriceSize = $initialLen >= 11 ? 'price-xs'
+                                : ($initialLen >= 9 ? 'price-sm'
+                                : ($initialLen >= 7 ? 'price-md' : ''));
+                        @endphp
                         <div class="plan-price px-4 py-4">
-                            <div class="flex items-baseline gap-1">
-                                <span class="price-num text-5xl font-bold text-white tracking-tight"
-                                      :class="'price-pop'"
+                            <div class="flex items-baseline gap-1.5 min-w-0">
+                                <span class="price-num font-bold text-white tracking-tight price-pop {{ $initialPriceSize }}"
+                                      :class="{ 'price-md': priceSize(plan) === 'price-md', 'price-sm': priceSize(plan) === 'price-sm', 'price-xs': priceSize(plan) === 'price-xs' }"
                                       :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
-                                      x-text="money(plan, cycle)">{{ $row['prices'][$currency][$cycle]['formatted'] ?? '—' }}</span>
+                                      x-text="money(plan, cycle)">{{ $initialFormatted }}</span>
                                 @unless(!empty($row['is_free']))
-                                    <span class="text-sm text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
+                                    <span class="price-suffix shrink-0 text-sm font-medium text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
                                 @endunless
                             </div>
 
@@ -935,12 +1016,12 @@
             $renderCell = function ($plan, $key, $kind) {
                 $features = $plan->features ?? [];
                 if (!array_key_exists($key, $features) && $kind !== 'analytics') {
-                    return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-times text-[10px]"></i></span>';
+                    return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
                 }
                 $val = $features[$key] ?? null;
                 if ($kind === 'number') {
                     if ((int) $val === -1) return '<span class="text-emerald-300 font-semibold">Unlimited</span>';
-                    if ((int) $val === 0)  return '<span class="feat-mark feat-mark-no"><i class="fas fa-times text-[10px]"></i></span>';
+                    if ((int) $val === 0)  return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
                     return '<span class="text-white font-semibold">' . number_format((int) $val) . '</span>';
                 }
                 if ($kind === 'analytics') {
@@ -950,7 +1031,7 @@
                 }
                 return $val
                     ? '<span class="feat-mark feat-mark-yes" aria-label="Included"><i class="fas fa-check text-[11px]"></i></span>'
-                    : '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-times text-[10px]"></i></span>';
+                    : '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
             };
         @endphp
         <div class="mt-16" data-anim="fade-up">
@@ -978,11 +1059,12 @@
                         {{-- Grouped rows --}}
                         @foreach($matrixGroups as $groupName => $rows)
                             <div class="feat-cell feat-group" style="grid-column: span {{ count($plans) + 1 }};">{{ $groupName }}</div>
-                            @foreach($rows as [$fkey, $flabel, $fkind])
-                                <div class="feat-cell feat-row-name">{{ $flabel }}</div>
+                            @foreach($rows as $ri => [$fkey, $flabel, $fkind])
+                                @php $stripe = $ri % 2 === 1 ? 'feat-stripe' : ''; @endphp
+                                <div class="feat-cell feat-row-name {{ $stripe }}">{{ $flabel }}</div>
                                 @foreach($plans as $prow)
                                     @php $p = $prow['model']; @endphp
-                                    <div class="feat-cell text-center {{ $p->is_popular ? 'feat-popular-col' : '' }}">
+                                    <div class="feat-cell text-center {{ $stripe }} {{ $p->is_popular ? 'feat-popular-col' : '' }}">
                                         {!! $renderCell($p, $fkey, $fkind) !!}
                                     </div>
                                 @endforeach
