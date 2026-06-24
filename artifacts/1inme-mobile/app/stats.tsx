@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -42,16 +42,11 @@ export default function StatsScreen() {
   const [range, setRange] = useState<RangeKey>("30d");
   const q = useQuery({ queryKey: ["creator-stats", range], queryFn: () => fetchStats(range) });
   const profileQ = useQuery({ queryKey: ["profile"], queryFn: getProfile });
-  const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([q.refetch(), profileQ.refetch()]);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const onRefresh = useCallback(() => {
+    q.refetch();
+    profileQ.refetch();
+  }, [q, profileQ]);
   // Mirror the web `analytics_export` ("Stats CSV export") paid gate.
   // Default-true matches the server helper's fallback, so the control
   // only hides once we know the plan lacks the feature.
@@ -80,7 +75,7 @@ export default function StatsScreen() {
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={q.isRefetching}
             onRefresh={onRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
