@@ -1,7 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -193,11 +198,13 @@ import {
   visiblePricingItems,
 } from "@/components/BlockListPreview";
 import { Button } from "@/components/Button";
+import { DictationMic } from "@/components/DictationMic";
 import {
   IconPickerButton,
   IconPickerModal,
 } from "@/components/IconPickerModal";
 import { TextField } from "@/components/TextField";
+import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { getLink } from "@/lib/api/links";
 import {
@@ -806,6 +813,21 @@ export default function EditBlockScreen() {
     return Array.from(present);
   }, [block]);
 
+  // Voice turns started while this editor is open prefer the general
+  // in-app tools; dictation works via the per-field mics regardless.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("app");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+
+  // Append a dictated chunk to whichever field's setter is passed in,
+  // mirroring the create form's per-field dictation factory.
+  const dictateInto =
+    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
+      setter((v) => (v ? v.trim() + " " : "") + t);
+
   if (q.isLoading) {
     return (
       <View style={styles.center}>
@@ -1196,6 +1218,22 @@ export default function EditBlockScreen() {
                               prev.map((p, i) => (i === idx ? { ...p, text: t } : p)),
                             )
                           }
+                          trailing={
+                            <DictationMic
+                              onText={(t) =>
+                                setListItems((prev) =>
+                                  prev.map((p, i) =>
+                                    i === idx
+                                      ? {
+                                          ...p,
+                                          text: p.text ? p.text.trim() + " " + t : t,
+                                        }
+                                      : p,
+                                  ),
+                                )
+                              }
+                            />
+                          }
                         />
                       </View>
                       <Pressable
@@ -1243,6 +1281,22 @@ export default function EditBlockScreen() {
                           prev.map((p, i) => (i === idx ? { ...p, name: t } : p)),
                         )
                       }
+                      trailing={
+                        <DictationMic
+                          onText={(t) =>
+                            setPricingItems((prev) =>
+                              prev.map((p, i) =>
+                                i === idx
+                                  ? {
+                                      ...p,
+                                      name: p.name ? p.name.trim() + " " + t : t,
+                                    }
+                                  : p,
+                              ),
+                            )
+                          }
+                        />
+                      }
                     />
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       <View style={{ flex: 1 }}>
@@ -1282,6 +1336,24 @@ export default function EditBlockScreen() {
                         )
                       }
                       style={{ minHeight: 60, paddingTop: 12, textAlignVertical: "top" }}
+                      trailing={
+                        <DictationMic
+                          onText={(t) =>
+                            setPricingItems((prev) =>
+                              prev.map((p, i) =>
+                                i === idx
+                                  ? {
+                                      ...p,
+                                      description: p.description
+                                        ? p.description.trim() + " " + t
+                                        : t,
+                                    }
+                                  : p,
+                              ),
+                            )
+                          }
+                        />
+                      }
                     />
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       <View style={{ flex: 1, flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
@@ -1425,11 +1497,31 @@ export default function EditBlockScreen() {
               label="Name"
               value={values.name ?? ""}
               onChangeText={(t) => setValues((p) => ({ ...p, name: t }))}
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setValues((p) => ({
+                      ...p,
+                      name: p.name ? p.name.trim() + " " + t : t,
+                    }))
+                  }
+                />
+              }
             />
             <TextField
               label="Title / tagline"
               value={values.title ?? ""}
               onChangeText={(t) => setValues((p) => ({ ...p, title: t }))}
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setValues((p) => ({
+                      ...p,
+                      title: p.title ? p.title.trim() + " " + t : t,
+                    }))
+                  }
+                />
+              }
             />
             <TextField
               label="Bio"
@@ -1438,6 +1530,16 @@ export default function EditBlockScreen() {
               multiline
               numberOfLines={4}
               style={{ height: 110, textAlignVertical: "top", paddingTop: 12 }}
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setValues((p) => ({
+                      ...p,
+                      bio: p.bio ? p.bio.trim() + " " + t : t,
+                    }))
+                  }
+                />
+              }
             />
             <TextField
               label="Avatar image URL"
@@ -1485,6 +1587,16 @@ export default function EditBlockScreen() {
               label="Location"
               value={values.location ?? ""}
               onChangeText={(t) => setValues((p) => ({ ...p, location: t }))}
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setValues((p) => ({
+                      ...p,
+                      location: p.location ? p.location.trim() + " " + t : t,
+                    }))
+                  }
+                />
+              }
             />
             <TextField
               label="Website"
@@ -1498,6 +1610,18 @@ export default function EditBlockScreen() {
               hint="Shown on the founder layout."
               value={values.cta_label ?? ""}
               onChangeText={(t) => setValues((p) => ({ ...p, cta_label: t }))}
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setValues((p) => ({
+                      ...p,
+                      cta_label: p.cta_label
+                        ? p.cta_label.trim() + " " + t
+                        : t,
+                    }))
+                  }
+                />
+              }
             />
             <TextField
               label="Button URL"
@@ -1675,6 +1799,24 @@ export default function EditBlockScreen() {
                           p.map((s, i) => (i === idx ? { ...s, label: t } : s)),
                         )
                       }
+                      trailing={
+                        <DictationMic
+                          onText={(t) =>
+                            setProfileStats((p) =>
+                              p.map((s, i) =>
+                                i === idx
+                                  ? {
+                                      ...s,
+                                      label: s.label
+                                        ? s.label.trim() + " " + t
+                                        : t,
+                                    }
+                                  : s,
+                              ),
+                            )
+                          }
+                        />
+                      }
                     />
                   </View>
                 ))}
@@ -1742,6 +1884,24 @@ export default function EditBlockScreen() {
                           setProfileBadges((p) =>
                             p.map((b, i) => (i === idx ? { ...b, label: t } : b)),
                           )
+                        }
+                        trailing={
+                          <DictationMic
+                            onText={(t) =>
+                              setProfileBadges((p) =>
+                                p.map((b, i) =>
+                                  i === idx
+                                    ? {
+                                        ...b,
+                                        label: b.label
+                                          ? b.label.trim() + " " + t
+                                          : t,
+                                      }
+                                    : b,
+                                ),
+                              )
+                            }
+                          />
                         }
                       />
                     </View>
@@ -2282,6 +2442,7 @@ export default function EditBlockScreen() {
                   value={expiredLabel}
                   onChangeText={(t) => setExpiredLabel(t.slice(0, 40))}
                   placeholder="Sold out"
+                  trailing={<DictationMic onText={dictateInto(setExpiredLabel)} />}
                 />
               </View>
               <View style={{ flex: 1 }}>

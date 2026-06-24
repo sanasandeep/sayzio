@@ -1,8 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,9 +22,11 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DictationMic } from "@/components/DictationMic";
 import { DomainPicker } from "@/components/DomainPicker";
 import { NfcWriteSheet } from "@/components/NfcWriteSheet";
 import { TextField } from "@/components/TextField";
+import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import { listAvailableDomains } from "@/lib/api/domains";
@@ -235,6 +242,21 @@ export default function EditLinkScreen() {
       router.replace("/(tabs)/links");
     },
   });
+
+  // Voice turns started while this editor is open prefer the general
+  // in-app tools; dictation works via the per-field mics regardless.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("app");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+
+  // Append a dictated chunk to whichever field's setter is passed in,
+  // mirroring the create form's per-field dictation factory.
+  const dictateInto =
+    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
+      setter((v) => (v ? v.trim() + " " : "") + t);
 
   if (!Number.isFinite(id)) return null;
   if (q.isLoading) {
@@ -479,13 +501,19 @@ export default function EditLinkScreen() {
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             Basics
           </Text>
-          <TextField label="Title" value={title} onChangeText={setTitle} />
+          <TextField
+            label="Title"
+            value={title}
+            onChangeText={setTitle}
+            trailing={<DictationMic onText={dictateInto(setTitle)} />}
+          />
           <TextField
             label="Alias"
             value={alias}
             onChangeText={setAlias}
             autoCapitalize="none"
             autoCorrect={false}
+            trailing={<DictationMic onText={dictateInto(setAlias)} />}
           />
           {meta.kind !== "biolink" &&
           meta.kind !== "vcard" &&
@@ -667,6 +695,7 @@ export default function EditLinkScreen() {
             label="SEO title"
             value={seoTitle}
             onChangeText={setSeoTitle}
+            trailing={<DictationMic onText={dictateInto(setSeoTitle)} />}
           />
           <TextField
             label="SEO description"
@@ -675,6 +704,7 @@ export default function EditLinkScreen() {
             multiline
             numberOfLines={3}
             style={{ height: 88, textAlignVertical: "top", paddingTop: 12 }}
+            trailing={<DictationMic onText={dictateInto(setSeoDesc)} />}
           />
         </View>
 
@@ -713,6 +743,7 @@ export default function EditLinkScreen() {
                   maxLength={500}
                   placeholder={DEFAULT_BANNER_TEXT}
                   style={{ height: 88, textAlignVertical: "top", paddingTop: 12 }}
+                  trailing={<DictationMic onText={dictateInto(setPrivacyText)} />}
                 />
                 <TextField
                   label="Accept button"
@@ -720,6 +751,9 @@ export default function EditLinkScreen() {
                   onChangeText={setPrivacyAccept}
                   maxLength={40}
                   placeholder={DEFAULT_ACCEPT_LABEL}
+                  trailing={
+                    <DictationMic onText={dictateInto(setPrivacyAccept)} />
+                  }
                 />
                 <TextField
                   label="Decline button"
@@ -727,6 +761,9 @@ export default function EditLinkScreen() {
                   onChangeText={setPrivacyDecline}
                   maxLength={40}
                   placeholder={DEFAULT_DECLINE_LABEL}
+                  trailing={
+                    <DictationMic onText={dictateInto(setPrivacyDecline)} />
+                  }
                 />
               </View>
             ) : null}

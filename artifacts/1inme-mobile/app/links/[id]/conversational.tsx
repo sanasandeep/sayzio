@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -15,7 +15,9 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DictationMic } from "@/components/DictationMic";
 import { TextField } from "@/components/TextField";
+import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import {
   getConversationalFlow,
@@ -165,6 +167,21 @@ export default function ConversationalEditorScreen() {
     })),
   ];
 
+  // Voice turns started while this editor is open prefer the general
+  // in-app tools; dictation works via the per-field mics regardless.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("app");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+
+  // Append a dictated chunk to whichever field's setter is passed in,
+  // mirroring the create form's per-field dictation factory.
+  const dictateInto =
+    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
+      setter((v) => (v ? v.trim() + " " : "") + t);
+
   if (!Number.isFinite(id)) return null;
   if (q.isLoading) {
     return (
@@ -230,6 +247,7 @@ export default function ConversationalEditorScreen() {
             onChangeText={setName}
             maxLength={120}
             placeholder="Internal name (optional)"
+            trailing={<DictationMic onText={dictateInto(setName)} />}
           />
           <TextField
             label="Intro message"
@@ -240,6 +258,7 @@ export default function ConversationalEditorScreen() {
             maxLength={2000}
             placeholder="First thing the bot says…"
             style={{ height: 84, textAlignVertical: "top", paddingTop: 12 }}
+            trailing={<DictationMic onText={dictateInto(setIntro)} />}
           />
           <TextField
             label="Default typing pause (ms)"
@@ -329,6 +348,16 @@ export default function ConversationalEditorScreen() {
                   }
                   maxLength={160}
                   placeholder="Button label"
+                  trailing={
+                    <DictationMic
+                      onText={(t) =>
+                        updateActionAt(i, (x) => ({
+                          ...x,
+                          label: x.label ? x.label.trim() + " " + t : t,
+                        }))
+                      }
+                    />
+                  }
                 />
                 {a.kind === "show_block" ? (
                   <SelectField
@@ -541,6 +570,18 @@ function StepCard({
         maxLength={2000}
         style={{ height: 80, textAlignVertical: "top", paddingTop: 12 }}
         placeholder="What the bot says…"
+        trailing={
+          <DictationMic
+            onText={(t) =>
+              set((x) => ({
+                ...x,
+                message_text: x.message_text
+                  ? x.message_text.trim() + " " + t
+                  : t,
+              }))
+            }
+          />
+        }
       />
 
       <SelectField
@@ -621,6 +662,17 @@ function StepCard({
             value={s.settings.placeholder ?? ""}
             onChangeText={(v) => patchSettings({ placeholder: v })}
             placeholder="Type your answer…"
+            trailing={
+              <DictationMic
+                onText={(t) =>
+                  patchSettings({
+                    placeholder: s.settings.placeholder
+                      ? s.settings.placeholder.trim() + " " + t
+                      : t,
+                  })
+                }
+              />
+            }
           />
           <View style={styles.row2}>
             <View style={styles.flex1}>
@@ -688,6 +740,20 @@ function StepCard({
               })
             }
             placeholder="That doesn't look right…"
+            trailing={
+              <DictationMic
+                onText={(t) =>
+                  patchSettings({
+                    validation: {
+                      ...(s.settings.validation ?? {}),
+                      error_message: s.settings.validation?.error_message
+                        ? s.settings.validation.error_message.trim() + " " + t
+                        : t,
+                    },
+                  })
+                }
+              />
+            }
           />
         </View>
       ) : null}
@@ -719,6 +785,20 @@ function StepCard({
               patchSettings({ media: { ...(s.settings.media ?? {}), alt: v } })
             }
             placeholder="Describe the media"
+            trailing={
+              <DictationMic
+                onText={(t) =>
+                  patchSettings({
+                    media: {
+                      ...(s.settings.media ?? {}),
+                      alt: s.settings.media?.alt
+                        ? s.settings.media.alt.trim() + " " + t
+                        : t,
+                    },
+                  })
+                }
+              />
+            }
           />
         </View>
       ) : null}
@@ -965,6 +1045,22 @@ function AiPanel({
               )
             }
             placeholder="Pricing question"
+            trailing={
+              <DictationMic
+                onText={(t) =>
+                  setIntents(
+                    intents.map((x, idx) =>
+                      idx === ii
+                        ? {
+                            ...x,
+                            label: x.label ? x.label.trim() + " " + t : t,
+                          }
+                        : x,
+                    ),
+                  )
+                }
+              />
+            }
           />
           <TextField
             label="Example utterances"
@@ -977,6 +1073,24 @@ function AiPanel({
               )
             }
             placeholder="how much, cost, price (comma list)"
+            trailing={
+              <DictationMic
+                onText={(t) =>
+                  setIntents(
+                    intents.map((x, idx) =>
+                      idx === ii
+                        ? {
+                            ...x,
+                            examples: x.examples
+                              ? x.examples.trim() + " " + t
+                              : t,
+                          }
+                        : x,
+                    ),
+                  )
+                }
+              />
+            }
           />
           <SelectField
             label="Route to"
@@ -1134,6 +1248,22 @@ function ChoicesEditor({
                 )
               }
               placeholder="Tappable label"
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setChoices(
+                      choices.map((x, idx) =>
+                        idx === ci
+                          ? {
+                              ...x,
+                              label: x.label ? x.label.trim() + " " + t : t,
+                            }
+                          : x,
+                      ),
+                    )
+                  }
+                />
+              }
             />
             <TextField
               label="Value"

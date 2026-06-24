@@ -2,8 +2,8 @@ import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,7 +20,9 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DictationMic } from "@/components/DictationMic";
 import { TextField } from "@/components/TextField";
+import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import {
@@ -221,6 +223,21 @@ export default function RestaurantMenuBuilderScreen() {
       setPhotoUploading(false);
     }
   };
+
+  // Voice turns started while this editor is open prefer the general
+  // in-app tools; dictation works via the per-field mics regardless.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("app");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+
+  // Append a dictated chunk to whichever field's setter is passed in,
+  // mirroring the create form's per-field dictation factory.
+  const dictateInto =
+    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
+      setter((v) => (v ? v.trim() + " " : "") + t);
 
   if (q.isLoading) {
     return (
@@ -589,6 +606,7 @@ export default function RestaurantMenuBuilderScreen() {
                     value={tableLabel}
                     onChangeText={setTableLabel}
                     placeholder="Table 1"
+                    trailing={<DictationMic onText={dictateInto(setTableLabel)} />}
                   />
                 </View>
                 <Pressable
@@ -642,6 +660,17 @@ export default function RestaurantMenuBuilderScreen() {
                 setCatModal((p) => (p ? { ...p, name: v } : p))
               }
               placeholder="Starters"
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setCatModal((p) =>
+                      p
+                        ? { ...p, name: p.name ? p.name.trim() + " " + t : t }
+                        : p,
+                    )
+                  }
+                />
+              }
             />
             <TextField
               label="Description (optional)"
@@ -651,6 +680,22 @@ export default function RestaurantMenuBuilderScreen() {
               }
               multiline
               numberOfLines={2}
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setCatModal((p) =>
+                      p
+                        ? {
+                            ...p,
+                            description: p.description
+                              ? p.description.trim() + " " + t
+                              : t,
+                          }
+                        : p,
+                    )
+                  }
+                />
+              }
             />
             <View style={styles.modalActions}>
               <Button
@@ -699,6 +744,17 @@ export default function RestaurantMenuBuilderScreen() {
                   setItemModal((p) => (p ? { ...p, name: v } : p))
                 }
                 placeholder="Margherita pizza"
+                trailing={
+                  <DictationMic
+                    onText={(t) =>
+                      setItemModal((p) =>
+                        p
+                          ? { ...p, name: p.name ? p.name.trim() + " " + t : t }
+                          : p,
+                      )
+                    }
+                  />
+                }
               />
               <TextField
                 label="Description (optional)"
@@ -708,6 +764,22 @@ export default function RestaurantMenuBuilderScreen() {
                 }
                 multiline
                 numberOfLines={2}
+                trailing={
+                  <DictationMic
+                    onText={(t) =>
+                      setItemModal((p) =>
+                        p
+                          ? {
+                              ...p,
+                              description: p.description
+                                ? p.description.trim() + " " + t
+                                : t,
+                            }
+                          : p,
+                      )
+                    }
+                  />
+                }
               />
               <TextField
                 label={`Price (${cur})`}

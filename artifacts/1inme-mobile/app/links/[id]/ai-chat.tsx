@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -14,7 +14,9 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DictationMic } from "@/components/DictationMic";
 import { TextField } from "@/components/TextField";
+import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import {
   getAiChat,
@@ -93,6 +95,15 @@ export default function AiChatEditorScreen() {
     },
   });
 
+  // Voice turns started while this editor is open prefer the general
+  // in-app tools; dictation works via the per-field mics regardless.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("app");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+
   if (!Number.isFinite(id)) return null;
   if (q.isLoading) {
     return (
@@ -121,6 +132,12 @@ export default function AiChatEditorScreen() {
       return next;
     });
   }
+
+  // Append a dictated chunk to whichever field's setter is passed in,
+  // mirroring the create form's per-field dictation factory.
+  const dictateInto =
+    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
+      setter((v) => (v ? v.trim() + " " : "") + t);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -181,6 +198,7 @@ export default function AiChatEditorScreen() {
             onChangeText={setName}
             maxLength={120}
             placeholder="Shown in the chat header"
+            trailing={<DictationMic onText={dictateInto(setName)} />}
           />
           <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
             Persona (the brain)
@@ -242,6 +260,7 @@ export default function AiChatEditorScreen() {
             maxLength={1000}
             placeholder="Hi! Ask me anything about…"
             style={{ height: 88, textAlignVertical: "top", paddingTop: 12 }}
+            trailing={<DictationMic onText={dictateInto(setGreeting)} />}
           />
           <TextField
             label="Input placeholder"
@@ -249,6 +268,7 @@ export default function AiChatEditorScreen() {
             onChangeText={setPlaceholder}
             maxLength={120}
             placeholder="Ask me anything…"
+            trailing={<DictationMic onText={dictateInto(setPlaceholder)} />}
           />
           <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
             Starter questions (up to 6)
@@ -260,6 +280,13 @@ export default function AiChatEditorScreen() {
               onChangeText={(v) => setStarterAt(i, v)}
               maxLength={200}
               placeholder={`Suggested question ${i + 1}`}
+              trailing={
+                <DictationMic
+                  onText={(t) =>
+                    setStarterAt(i, s ? s.trim() + " " + t : t)
+                  }
+                />
+              }
             />
           ))}
           <RowSwitch
