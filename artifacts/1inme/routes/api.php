@@ -194,6 +194,12 @@ Route::prefix('v1')->group(function () {
     // Public read-only catalog
     Route::get('/plans', [PlanController::class, 'index']);
 
+    // Public marketing content for the mobile "Info" screens. Mirrors the
+    // admin-editable web /about page (incl. the EEFind parent-company block)
+    // so mobile copy stays in sync without an app rebuild.
+    Route::middleware('throttle:60,1')
+        ->get('/site/about', [\App\Modules\Api\Controllers\SiteContentController::class, 'about']);
+
     // Auto-pixel interstitial fire beacon — public, anonymous visitors.
     // The interstitial loads the configured pixel scripts then POSTs here
     // to record one row in `link_pixel_fires` so the dashboard can show
