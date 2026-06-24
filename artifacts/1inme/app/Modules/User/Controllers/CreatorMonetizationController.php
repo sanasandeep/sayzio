@@ -440,6 +440,47 @@ class CreatorMonetizationController extends Controller
         return back()->with('success', 'Promo code added.');
     }
 
+    /**
+     * Edit an existing promo code. The code itself and the discount
+     * *kind* are immutable (changing them would silently rewrite what a
+     * shared link means); creators edit the value, expiry, redemption
+     * cap, eligible tiers, and active state. Reuses the create rules.
+     */
+    public function updatePromo(Request $request, SubscriptionPromoCode $promo)
+    {
+        if ((int) $promo->user_id !== (int) $request->user()->id) abort(403);
+
+        $data = $request->validate([
+            'label'            => 'nullable|string|max:120',
+            'value'            => 'required|integer|min:0|max:100000',
+            'max_redemptions'  => 'nullable|integer|min:1|max:100000',
+            'expires_at'       => 'nullable|date',
+            'tier_ids'         => 'nullable|array',
+            'tier_ids.*'       => 'integer',
+            'is_active'        => 'nullable|boolean',
+        ]);
+
+        // A cap below the count already redeemed would be confusing —
+        // it can never go back up, so reject it with a clear message.
+        if (isset($data['max_redemptions']) && $data['max_redemptions'] < $promo->redemptions_count) {
+            return back()->withErrors([
+                'max_redemptions' => "This code has already been used {$promo->redemptions_count} time(s); the cap can't be lower.",
+            ])->withInput();
+        }
+
+        $promo->label               = $data['label'] ?? null;
+        $promo->value               = (int) $data['value'];
+        $promo->max_redemptions     = $data['max_redemptions'] ?? null;
+        $promo->expires_at          = $data['expires_at'] ?? null;
+        $promo->applies_to_tier_ids = $data['tier_ids'] ?? null;
+        if (array_key_exists('is_active', $data)) {
+            $promo->is_active = (bool) $data['is_active'];
+        }
+        $promo->save();
+
+        return back()->with('success', 'Promo code updated.');
+    }
+
     public function destroyPromo(Request $request, SubscriptionPromoCode $promo)
     {
         if ((int) $promo->user_id !== (int) $request->user()->id) abort(403);

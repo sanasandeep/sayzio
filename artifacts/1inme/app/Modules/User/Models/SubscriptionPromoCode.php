@@ -21,6 +21,11 @@ class SubscriptionPromoCode extends Model
         self::KIND_MONTHS_FREE, self::KIND_FOUNDER, self::KIND_LIFETIME,
     ];
 
+    public const STATUS_ACTIVE         = 'active';
+    public const STATUS_DISABLED       = 'disabled';
+    public const STATUS_EXPIRED        = 'expired';
+    public const STATUS_FULLY_REDEEMED = 'fully_redeemed';
+
     protected $fillable = [
         'user_id', 'code', 'label', 'kind', 'value',
         'applies_to_tier_ids', 'max_redemptions', 'redemptions_count',
@@ -52,6 +57,50 @@ class SubscriptionPromoCode extends Model
             }
         }
         return true;
+    }
+
+    /**
+     * Human-readable reason a code can't be applied, or null when it's
+     * usable. Mirrors isUsable() so checkout can surface the *why*.
+     */
+    public function unusableReason(?SubscriptionTier $tier = null): ?string
+    {
+        if (!$this->is_active) {
+            return 'This code has been disabled by the creator.';
+        }
+        if ($this->expires_at && $this->expires_at->isPast()) {
+            return 'This code expired on ' . $this->expires_at->format('M j, Y') . '.';
+        }
+        if ($this->max_redemptions !== null && $this->redemptions_count >= $this->max_redemptions) {
+            return 'This code has reached its redemption limit.';
+        }
+        if ($tier && is_array($this->applies_to_tier_ids) && count($this->applies_to_tier_ids) > 0) {
+            if (!in_array((int) $tier->id, array_map('intval', $this->applies_to_tier_ids), true)) {
+                return 'This code can\'t be applied to the selected plan.';
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lifecycle status, independent of any tier: disabled, expired,
+     * fully_redeemed, or active. Used for the management list badges.
+     */
+    public function status(): string
+    {
+        if (!$this->is_active) return self::STATUS_DISABLED;
+        if ($this->expires_at && $this->expires_at->isPast()) return self::STATUS_EXPIRED;
+        if ($this->max_redemptions !== null && $this->redemptions_count >= $this->max_redemptions) {
+            return self::STATUS_FULLY_REDEEMED;
+        }
+        return self::STATUS_ACTIVE;
+    }
+
+    /** Remaining redemptions, or null when the code is uncapped. */
+    public function remainingRedemptions(): ?int
+    {
+        if ($this->max_redemptions === null) return null;
+        return max(0, $this->max_redemptions - $this->redemptions_count);
     }
 
     /** Returns the discounted price in cents, never negative. */

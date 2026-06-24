@@ -337,6 +337,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::get ('/promos',                 [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'promos'])->name('promos');
             Route::post('/promos',                 [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'storePromo'])->name('promos.store');
+            Route::put ('/promos/{promo}',         [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'updatePromo'])->name('promos.update');
             Route::delete('/promos/{promo}',       [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'destroyPromo'])->name('promos.destroy');
             Route::post('/promos/{promo}/toggle', [\App\Modules\User\Controllers\CreatorMonetizationController::class, 'togglePromo'])->name('promos.toggle');
 

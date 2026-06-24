@@ -53,8 +53,11 @@ class CreatorMonetizationPublicController extends Controller
         if (!empty($data['promo_code'])) {
             $promo = SubscriptionPromoCode::where('user_id', $creator->id)
                 ->where('code', strtoupper(trim($data['promo_code'])))->first();
-            if (!$promo || !$promo->isUsable($tier)) {
-                return back()->withErrors(['promo_code' => 'That code isn\'t valid for this tier.'])->withInput();
+            if (!$promo) {
+                return back()->withErrors(['promo_code' => 'We couldn\'t find that code.'])->withInput();
+            }
+            if ($reason = $promo->unusableReason($tier)) {
+                return back()->withErrors(['promo_code' => $reason])->withInput();
             }
         }
 
