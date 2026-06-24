@@ -23,6 +23,10 @@ class ActivityLogController extends Controller
         'account.created'     => 'Account created',
         'account.suspended'   => 'Account suspended',
         'account.reactivated' => 'Account reactivated',
+        'protected.added'     => 'Protected account added',
+        'protected.removed'   => 'Protected account removed',
+        'account.delete_blocked'  => 'Delete blocked (protected)',
+        'account.suspend_blocked' => 'Suspend blocked (protected)',
     ];
 
     public function index(Request $request)

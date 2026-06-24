@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\ProtectedAccount;
 use App\Modules\Admin\Models\Role;
 use App\Modules\Admin\Services\AdminActionLogger;
 use App\Modules\Admin\Services\UserAccountNotifier;
@@ -72,7 +73,15 @@ class UserManagementController extends Controller
         $operator = Auth::guard('admin')->user();
         $canManageAdminAccess = $operator && $operator->hasPermission('staff.create');
 
-        return view('admin.users.index', compact('users', 'plans', 'adminAccounts', 'canManageAdminAccess'));
+        // Lowercased set of protected emails on this page so the view can
+        // hide delete/suspend controls for protected accounts.
+        $protectedEmails = ProtectedAccount::query()
+            ->whereIn('email', $emails)
+            ->pluck('email')
+            ->map(fn ($e) => strtolower(trim((string) $e)))
+            ->flip();
+
+        return view('admin.users.index', compact('users', 'plans', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails'));
     }
 
     public function show(Request $request, User $user)
@@ -124,10 +133,12 @@ class UserManagementController extends Controller
         $auditSources   = UserRoleAudit::sourceFilters();
         $auditRanges    = UserRoleAudit::rangeFilters();
 
+        $isProtected = ProtectedAccount::isProtected($user);
+
         return view('admin.users.show', compact(
             'user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions',
             'roleAudits', 'auditFilters', 'auditRoleSlugs', 'auditActions',
-            'auditSources', 'auditRanges'
+            'auditSources', 'auditRanges', 'isProtected'
         ));
     }
 
@@ -344,6 +355,14 @@ class UserManagementController extends Controller
         AdminActionLogger $audit,
         UserAccountNotifier $notifier
     ) {
+        if (ProtectedAccount::isProtected($user)) {
+            $audit->log(AdminActionLogger::SUSPEND_BLOCKED, $user, [
+                'email'  => $user->email,
+                'reason' => 'Account is protected and cannot be suspended.',
+            ]);
+            return back()->with('error', 'This account is protected and cannot be suspended.');
+        }
+
         $data = $request->validate([
             'reason'        => 'required|string|max:1000',
             'reactivate_at' => 'nullable|date|after:now',
@@ -491,7 +510,7 @@ class UserManagementController extends Controller
         }
     }
 
-    public function update(Request $request, User $user, ReferralService $referrals)
+    public function update(Request $request, User $user, ReferralService $referrals, AdminActionLogger $audit)
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -499,6 +518,21 @@ class UserManagementController extends Controller
             'plan_id' => 'sometimes|nullable|exists:plans,id',
             'plan_expires_at' => 'sometimes|nullable|date',
         ]);
+
+        // Changing a protected account's status to anything that blocks
+        // sign-in (banned/suspended/inactive) is a suspend in disguise —
+        // block it server-side regardless of which surface initiated it.
+        if (array_key_exists('status', $validated)
+            && in_array($validated['status'], ['banned', 'suspended', 'inactive'], true)
+            && $validated['status'] !== $user->status
+            && ProtectedAccount::isProtected($user)) {
+            $audit->log(AdminActionLogger::SUSPEND_BLOCKED, $user, [
+                'email'           => $user->email,
+                'attempted_status' => $validated['status'],
+                'reason'          => 'Account is protected and cannot be suspended.',
+            ]);
+            return redirect()->back()->with('error', 'This account is protected and cannot be suspended.');
+        }
 
         $previousPlanId = $user->plan_id;
         $user->update($validated);
@@ -534,8 +568,17 @@ class UserManagementController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'Impersonation stopped.');
     }
 
-    public function destroy(User $user)
+    public function destroy(User $user, AdminActionLogger $audit)
     {
+        if (ProtectedAccount::isProtected($user)) {
+            $audit->log(AdminActionLogger::DELETE_BLOCKED, $user, [
+                'email'  => $user->email,
+                'reason' => 'Account is protected and cannot be deleted.',
+            ]);
+            return redirect()->route('admin.users.index')
+                ->with('error', 'This account is protected and cannot be deleted.');
+        }
+
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'User deleted successfully.');
     }

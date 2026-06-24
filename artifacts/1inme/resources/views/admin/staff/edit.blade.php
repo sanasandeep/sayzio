@@ -47,10 +47,15 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
-                        <select name="status" required class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <select name="status" required @if(!empty($isProtected)) disabled @endif class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none @if(!empty($isProtected)) opacity-60 cursor-not-allowed @endif">
                             <option value="active" {{ $staff->status == 'active' ? 'selected' : '' }}>Active</option>
                             <option value="inactive" {{ $staff->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
                         </select>
+                        @if(!empty($isProtected))
+                        {{-- A disabled select isn't submitted; keep the current status in the payload. --}}
+                        <input type="hidden" name="status" value="{{ $staff->status }}">
+                        <p class="mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account — cannot be deactivated.</p>
+                        @endif
                     </div>
                 </div>
 

@@ -30,6 +30,7 @@ use App\Modules\Admin\Controllers\TaxController;
 use App\Modules\Admin\Controllers\GatewaySettingsController;
 use App\Modules\Admin\Controllers\PendingPaymentController;
 use App\Modules\Admin\Controllers\DemoContentController;
+use App\Modules\Admin\Controllers\ProtectedAccountController;
 use App\Modules\Admin\Controllers\TestimonialController;
 use App\Modules\Admin\Controllers\SiteStatController;
 use App\Modules\Admin\Middleware\CheckPermission;
@@ -68,6 +69,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/',     [DemoContentController::class, 'index'])->name('index');
             Route::post('seed', [DemoContentController::class, 'seed'])->name('seed');
             Route::post('wipe', [DemoContentController::class, 'wipe'])->name('wipe');
+        });
+
+        // Protected accounts: staff with `users.view` can read the list;
+        // add/remove is gated to super-admins inside the controller.
+        Route::prefix('protected-accounts')->name('protected-accounts.')->group(function () {
+            Route::get('/',  [ProtectedAccountController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
+            Route::post('/', [ProtectedAccountController::class, 'store'])->middleware(CheckPermission::class . ':users.view')->name('store');
+            Route::delete('{protectedAccount}', [ProtectedAccountController::class, 'destroy'])->middleware(CheckPermission::class . ':users.view')->whereNumber('protectedAccount')->name('destroy');
         });
 
         Route::prefix('staff')->name('staff.')->group(function () {

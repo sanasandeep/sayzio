@@ -50,6 +50,10 @@ class AdminActionAudit extends Model
             'account.created'      => 'Account created',
             'account.suspended'    => 'Account suspended',
             'account.reactivated'  => 'Account reactivated',
+            'protected.added'      => 'Protected account added',
+            'protected.removed'    => 'Protected account removed',
+            'account.delete_blocked'  => 'Delete blocked (protected)',
+            'account.suspend_blocked' => 'Suspend blocked (protected)',
             default                => ucfirst(str_replace(['.', '_'], ' ', $this->action)),
         };
     }

@@ -4,7 +4,9 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\ProtectedAccount;
 use App\Modules\Admin\Models\Role;
+use App\Modules\Admin\Services\AdminActionLogger;
 use App\Modules\User\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,6 +39,22 @@ class StaffController extends Controller
         $staff = $query->latest()->paginate(15)->withQueryString();
         $roles = Role::all();
 
+        // Lowercased set of protected emails on this page so the view can
+        // hide the delete control for protected staff accounts.
+        $staffEmails = $staff->getCollection()
+            ->pluck('email')
+            ->filter()
+            ->map(fn ($e) => strtolower(trim((string) $e)))
+            ->unique()
+            ->values()
+            ->all();
+
+        $protectedEmails = ProtectedAccount::query()
+            ->whereIn('email', $staffEmails)
+            ->pluck('email')
+            ->map(fn ($e) => strtolower(trim((string) $e)))
+            ->flip();
+
         // Admin-guard roles power the inline "Promote existing user" control
         // so an operator can pick a back-office role without leaving this page.
         $adminRoles = Role::query()
@@ -44,7 +62,7 @@ class StaffController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.staff.index', compact('staff', 'roles', 'adminRoles'));
+        return view('admin.staff.index', compact('staff', 'roles', 'adminRoles', 'protectedEmails'));
     }
 
     /**
@@ -114,10 +132,11 @@ class StaffController extends Controller
     public function edit(Admin $staff)
     {
         $roles = Role::all();
-        return view('admin.staff.edit', compact('staff', 'roles'));
+        $isProtected = ProtectedAccount::isProtected($staff);
+        return view('admin.staff.edit', compact('staff', 'roles', 'isProtected'));
     }
 
-    public function update(Request $request, Admin $staff)
+    public function update(Request $request, Admin $staff, AdminActionLogger $audit)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -126,6 +145,17 @@ class StaffController extends Controller
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:active,inactive',
         ]);
+
+        // Deactivating a protected staff account is a suspend — block it.
+        if ($validated['status'] === 'inactive'
+            && $staff->status !== 'inactive'
+            && ProtectedAccount::isProtected($staff)) {
+            $audit->log(AdminActionLogger::SUSPEND_BLOCKED, $staff->userAccount(), [
+                'email'  => $staff->email,
+                'reason' => 'Staff account is protected and cannot be deactivated.',
+            ]);
+            return back()->with('error', 'This account is protected and cannot be deactivated.');
+        }
 
         if (empty($validated['password'])) {
             unset($validated['password']);
@@ -138,10 +168,18 @@ class StaffController extends Controller
         return redirect()->route('admin.staff.index')->with('success', 'Staff member updated successfully.');
     }
 
-    public function destroy(Admin $staff)
+    public function destroy(Admin $staff, AdminActionLogger $audit)
     {
         if ($staff->id === Auth::guard('admin')->id()) {
             return back()->with('error', 'You cannot delete your own account.');
+        }
+
+        if (ProtectedAccount::isProtected($staff)) {
+            $audit->log(AdminActionLogger::DELETE_BLOCKED, $staff->userAccount(), [
+                'email'  => $staff->email,
+                'reason' => 'Staff account is protected and cannot be deleted.',
+            ]);
+            return back()->with('error', 'This account is protected and cannot be deleted.');
         }
 
         $staff->delete();

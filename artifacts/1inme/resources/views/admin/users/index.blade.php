@@ -158,10 +158,14 @@
                             <button type="submit" class="text-white/30 hover:text-amber-400" title="Login as user"><i class="fas fa-user-secret"></i></button>
                         </form>
                         @endif
+                        @if(isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $user->email))))
+                        <span class="text-emerald-400/70" title="Protected — cannot be deleted or suspended"><i class="fas fa-shield-alt"></i></span>
+                        @else
                         <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this user?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
                             <button type="submit" class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
                         </form>
+                        @endif
                     </div>
                 </td>
             </tr>

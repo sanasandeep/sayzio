@@ -64,6 +64,14 @@
             <span class="sidebar-tooltip">Staff</span>
         </a>
 
+        <a href="{{ route('admin.protected-accounts.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.protected-accounts.*') ? 'active' : '' }}"
+           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-shield-alt"></i></div>
+            <span class="nav-label">Protected accounts</span>
+            <span class="sidebar-tooltip">Protected accounts</span>
+        </a>
+
         <a href="{{ route('admin.roles.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
            style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">

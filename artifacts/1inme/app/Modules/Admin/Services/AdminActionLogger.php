@@ -28,6 +28,10 @@ class AdminActionLogger
     public const ACCOUNT_CREATED     = 'account.created';
     public const ACCOUNT_SUSPENDED   = 'account.suspended';
     public const ACCOUNT_REACTIVATED = 'account.reactivated';
+    public const PROTECTED_ADDED     = 'protected.added';
+    public const PROTECTED_REMOVED   = 'protected.removed';
+    public const DELETE_BLOCKED      = 'account.delete_blocked';
+    public const SUSPEND_BLOCKED     = 'account.suspend_blocked';
 
     /**
      * Record one action.

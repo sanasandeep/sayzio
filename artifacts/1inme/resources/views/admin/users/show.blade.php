@@ -79,11 +79,16 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
-                            <select name="status" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            <select name="status" @if(!empty($isProtected)) disabled @endif class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none @if(!empty($isProtected)) opacity-60 cursor-not-allowed @endif">
                                 <option value="active" {{ $user->status == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ $user->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
                                 <option value="banned" {{ $user->status == 'banned' ? 'selected' : '' }}>Banned</option>
                             </select>
+                            @if(!empty($isProtected))
+                            {{-- A disabled select isn't submitted; keep the current status in the payload so this account can never be suspended/banned via the edit form. --}}
+                            <input type="hidden" name="status" value="{{ $user->status }}">
+                            <p class="mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account — status is locked.</p>
+                            @endif
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
@@ -146,7 +151,10 @@
         {{-- Suspend / reactivate. Suspension takes a required reason and an
              optional auto-reactivation date enforced at login + by a job. --}}
         <div class="glass rounded-2xl border border-white/10 p-6">
-            @if($user->isSuspended())
+            @if(!empty($isProtected))
+                <h3 class="text-lg font-semibold text-white mb-1"><i class="fas fa-shield-alt text-emerald-400 mr-1"></i> Protected account</h3>
+                <p class="text-xs text-white/40">This account is on the protected list and cannot be suspended or deleted. Manage protection from <a href="{{ route('admin.protected-accounts.index') }}" class="text-violet-300 hover:text-violet-200 underline">Protected accounts</a>.</p>
+            @elseif($user->isSuspended())
                 <h3 class="text-lg font-semibold text-white mb-1">Reactivate account</h3>
                 <p class="text-xs text-white/40 mb-4">This account is currently on hold. Lift it immediately below.</p>
                 <form method="POST" action="{{ route('admin.users.reactivate', $user) }}">

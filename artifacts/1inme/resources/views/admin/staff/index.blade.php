@@ -69,7 +69,9 @@
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                         <a href="{{ route('admin.staff.edit', $member) }}" class="text-white/30 hover:text-violet-400"><i class="fas fa-edit"></i></a>
-                        @if($member->id !== auth()->guard('admin')->id())
+                        @if(isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $member->email))))
+                        <span class="text-emerald-400/70" title="Protected — cannot be deleted or deactivated"><i class="fas fa-shield-alt"></i></span>
+                        @elseif($member->id !== auth()->guard('admin')->id())
                         <form action="{{ route('admin.staff.destroy', $member) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this staff member?', message: 'They will lose admin access immediately.', confirmText: 'Remove', confirmIcon: 'fa-user-minus', iconClass: 'fa-user-minus'})">
                             @csrf @method('DELETE')
                             <button type="submit" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button>
