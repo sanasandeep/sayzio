@@ -1455,6 +1455,9 @@ class LinkController extends Controller
     public function followersExport(Request $request, Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
+        if (!workspace_owner()?->getPlanFeature('analytics_export', true)) {
+            return back()->with('error', 'Exporting stats is a paid feature. Upgrade your plan to download CSV exports.');
+        }
 
         [$startDate, $endDate, $period] = $this->resolveAnalyticsRange($request);
 
@@ -2196,6 +2199,9 @@ class LinkController extends Controller
     public function exportClicks(Request $request, Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
+        if (!workspace_owner()?->getPlanFeature('analytics_export', true)) {
+            return back()->with('error', 'Exporting stats is a paid feature. Upgrade your plan to download CSV exports.');
+        }
         [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
 
         // CSV exports default to real-human traffic — bot/scraper hits are

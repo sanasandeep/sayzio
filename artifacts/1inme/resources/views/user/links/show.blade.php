@@ -476,10 +476,12 @@
     } elseif ($link->type === 'biolink') {
         $favSrc = url('favicon.ico');
     }
-    $heroActions = [
-        ['label' => 'Export CSV', 'url' => route('user.links.clicks.export', $link).'?'.http_build_query($qs), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'],
-        ['label' => 'QR', 'url' => route('user.links.qrcode', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost'],
-    ];
+    $canExportStats = (bool) (workspace_owner()?->getPlanFeature('analytics_export', true));
+    $heroActions = [];
+    if ($canExportStats) {
+        $heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.clicks.export', $link).'?'.http_build_query($qs), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'];
+    }
+    $heroActions[] = ['label' => 'QR', 'url' => route('user.links.qrcode', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost'];
     if ($link->type === 'biolink') {
         $heroActions[] = ['label' => 'Edit Blocks', 'url' => route('user.links.blocks.editor', $link), 'icon' => 'fa-th-large', 'class' => 'btn-primary'];
     }
@@ -724,10 +726,12 @@
                class="section-pill" title="See and manage every bot family you've chosen to drop from tracking.">
                 <i class="fas fa-ban mr-1"></i> Manage blocked bots
             </a>
+            @if($canExportStats)
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}"
                class="section-pill" title="Download a CSV of all clicks including bot/scraper hits in this date range.">
                 <i class="fas fa-file-csv mr-1"></i> Export CSV (with bots)
             </a>
+            @endif
         </div>
     </div>
     @if($botFamilyBreakdown->isEmpty())
@@ -2025,8 +2029,10 @@
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-list"></i></div> Recent Clicks</div>
         <div class="flex items-center gap-2">
+            @if($canExportStats)
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action" title="Real visitors only — bot/scraper hits excluded"><i class="fas fa-file-csv"></i> Export full log</a>
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}" class="table-action" title="Includes bot/scraper hits with an Is Bot column"><i class="fas fa-robot"></i> Include bots</a>
+            @endif
         </div>
     </div>
     <div id="recent-clicks-container" data-endpoint="{{ route('user.links.clicks.partial', $link) }}?{{ http_build_query($qs) }}">

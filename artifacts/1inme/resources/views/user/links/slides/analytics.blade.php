@@ -83,11 +83,13 @@
                 <input type="date" name="to" value="{{ $toQ }}" class="theme-input text-xs py-1.5 px-2">
                 <button class="pill {{ $period === 'custom' ? 'pill-active' : '' }}"><i class="fas fa-check text-[9px]"></i> Apply</button>
             </form>
+            @if(workspace_owner()?->getPlanFeature('analytics_export', true))
             <a id="sl-csv-btn"
                href="{{ route('user.links.slides.analytics.csv', $link) }}{{ $csvQuery ? '?' . $csvQuery : '' }}"
                class="pill ml-auto">
                 <i class="fas fa-download text-[9px]"></i> Download CSV
             </a>
+            @endif
         </div>
     </div>
 

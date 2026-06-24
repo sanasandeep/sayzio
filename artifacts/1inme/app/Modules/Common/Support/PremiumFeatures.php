@@ -33,6 +33,7 @@ class PremiumFeatures
             ['key' => 'pixels', 'group' => 'Tracking & analytics', 'name' => 'Marketing pixels', 'description' => 'Drop Meta, TikTok, Google Ads and other tracking pixels onto your links and biolink pages so your ad campaigns can attribute clicks and conversions.'],
             ['key' => 'utm_params', 'group' => 'Tracking & analytics', 'name' => 'UTM parameters', 'description' => 'Auto-append UTM source/medium/campaign tags to your links so the visits show up cleanly in Google Analytics and other tools.'],
             ['key' => 'analytics', 'group' => 'Tracking & analytics', 'name' => 'Analytics depth', 'description' => 'Basic plans show clicks and top countries; advanced unlocks geographic, device, referrer and cohort breakdowns plus the Performance Coach.'],
+            ['key' => 'analytics_export', 'group' => 'Tracking & analytics', 'name' => 'Stats CSV export', 'description' => 'Download your link click logs, follower lists and slide analytics as CSV files for spreadsheets and offline reporting.'],
             ['key' => 'audience_followers', 'group' => 'Tracking & analytics', 'name' => 'Audience & followers', 'description' => 'Lightweight viewer accounts, live follower counts, daily digest emails and one-tap follow buttons on every social block — so visitors become an audience you actually own.'],
 
             // ---- Audience growth ----

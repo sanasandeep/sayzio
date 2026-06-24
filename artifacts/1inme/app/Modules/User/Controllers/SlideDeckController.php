@@ -445,9 +445,12 @@ class SlideDeckController extends Controller
      * period/from/to filters as the JSON analytics endpoint so the export
      * matches what's on screen.
      */
-    public function exportCsv(Request $request, Link $link): StreamedResponse
+    public function exportCsv(Request $request, Link $link): \Symfony\Component\HttpFoundation\Response
     {
         $this->authorizeLink($link);
+        if (!workspace_owner()?->getPlanFeature('analytics_export', true)) {
+            return back()->with('error', 'Exporting stats is a paid feature. Upgrade your plan to download CSV exports.');
+        }
         $deck = $this->ensureDeck($link);
         $slides = $deck->slides()->orderBy('sort_order')->get(['id', 'sort_order', 'title']);
 

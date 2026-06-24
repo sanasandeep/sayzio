@@ -175,6 +175,7 @@ class PlanFormCatalogue
             ['key' => 'analytics',            'type' => 'select', 'module' => null,
              'options' => ['basic' => 'Basic — clicks, top countries', 'advanced' => 'Advanced — geo, device, referrer, cohorts'],
              'default' => 'basic'],
+            ['key' => 'analytics_export',     'type' => 'bool',   'module' => null],
         ];
     }
 
