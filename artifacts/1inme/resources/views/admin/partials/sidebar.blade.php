@@ -396,6 +396,14 @@
             <span class="sidebar-tooltip">Maintenance Mode</span>
         </a>
 
+        <a href="{{ route('admin.cron-jobs.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.cron-jobs.*') ? 'active' : '' }}"
+           style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-clock"></i></div>
+            <span class="nav-label">Cron Jobs</span>
+            <span class="sidebar-tooltip">Cron Jobs</span>
+        </a>
+
         <a href="{{ route('admin.demo-content.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.demo-content.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
