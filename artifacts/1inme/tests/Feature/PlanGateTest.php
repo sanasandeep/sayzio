@@ -21,7 +21,7 @@ class PlanGateTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function plan(array $features = [], string $slug = null): Plan
+    private function plan(array $features = [], ?string $slug = null): Plan
     {
         $slug = $slug ?: ('p' . Str::random(6));
         return Plan::create([
