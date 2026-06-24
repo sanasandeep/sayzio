@@ -81,3 +81,4 @@
 - [Verify 1inme code w/o HTTP](api-stateless-merge-token.md) — distant-RDS dev `php -S` crashes on DB-heavy authed routes (even /api/v1/profile); verify controller logic via a standalone bootstrap PHP script, NOT tinker REPL (mangles multi-statement input).
 - [Per-plan stats retention](stats-retention-pruning.md) — `stats_retention_days` (-1=forever, 30 floor); view-clamp defaults missing→30 (safe), prune defaults missing/any-(-1)→no-op (never mass-delete unconfigured); prune is global-max, chunked.
 - [post-merge river CANCEL](post-merge-river-cancel.md) — external orchestrator cancel (not a script bug), self-heals via idempotent retry; only lever is keeping all best-effort seeders OFF the foreground critical path.
+- [Stats CSV export gating](stats-csv-export-gating.md) — analytics_export gates link/follower/slide + creator-stats dashboard + mobile Stats export; mobile reads capabilities.analytics_export; /api/v1/stats is an unimplemented stub.

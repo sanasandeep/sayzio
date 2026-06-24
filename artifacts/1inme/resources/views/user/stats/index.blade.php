@@ -48,9 +48,15 @@
                     <option value="{{ $key }}" {{ $range === $key ? 'selected' : '' }}>{{ $r['label'] }}</option>
                 @endforeach
             </select>
-            <a href="{{ route('user.stats.export', ['range' => $range]) }}" class="px-3 py-2 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white text-sm font-semibold hover:opacity-90 transition">
-                <i class="fas fa-download mr-1"></i> CSV
-            </a>
+            @if(workspace_owner()?->getPlanFeature('analytics_export', true))
+                <a href="{{ route('user.stats.export', ['range' => $range]) }}" class="px-3 py-2 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white text-sm font-semibold hover:opacity-90 transition">
+                    <i class="fas fa-download mr-1"></i> CSV
+                </a>
+            @else
+                <a href="{{ route('user.upgrade') }}" class="px-3 py-2 rounded-lg bg-white/10 text-sm font-semibold hover:bg-white/20 transition" style="color: var(--text-faint);" title="Exporting stats is a paid feature. Upgrade your plan to download CSV exports.">
+                    <i class="fas fa-lock mr-1"></i> CSV
+                </a>
+            @endif
         </form>
     </div>
 

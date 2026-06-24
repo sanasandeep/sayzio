@@ -1,11 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { apiFetch, getBaseUrl } from "@/lib/api";
+import { getProfile } from "@/lib/api/profile";
 
 // Task #1211 — mobile parity stub for the unified Stats home (web
 // route: /user/stats). The web view ships the chart-heavy "how am I
@@ -29,6 +30,11 @@ async function fetchStats(): Promise<StatsResponse> {
 export default function StatsScreen() {
   const colors = useColors();
   const q = useQuery({ queryKey: ["creator-stats"], queryFn: fetchStats });
+  const profileQ = useQuery({ queryKey: ["profile"], queryFn: getProfile });
+  // Mirror the web `analytics_export` ("Stats CSV export") paid gate.
+  // Default-true matches the server helper's fallback, so the control
+  // only hides once we know the plan lacks the feature.
+  const canExport = profileQ.data?.capabilities?.analytics_export ?? true;
 
   const tile = (icon: any, label: string, value: string, sub?: string) => (
     <View style={[styles.tile, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
@@ -95,11 +101,23 @@ export default function StatsScreen() {
               label="Open full dashboard"
               onPress={() => Linking.openURL(`${getBaseUrl().replace(/\/api\/?$/, "")}/user/stats`)}
             />
-            <Button
-              label="Export CSV"
-              variant="outline"
-              onPress={() => Linking.openURL(`${getBaseUrl().replace(/\/api\/?$/, "")}/user/stats/export`)}
-            />
+            {canExport ? (
+              <Button
+                label="Export CSV"
+                variant="outline"
+                onPress={() => Linking.openURL(`${getBaseUrl().replace(/\/api\/?$/, "")}/user/stats/export`)}
+              />
+            ) : (
+              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_700Bold" }}>
+                  Stats CSV export is a paid feature
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4, marginBottom: 12 }}>
+                  Upgrade your plan to download CSV exports.
+                </Text>
+                <Button label="Upgrade plan" onPress={() => router.push("/upgrade")} />
+              </View>
+            )}
           </>
         )}
       </ScrollView>

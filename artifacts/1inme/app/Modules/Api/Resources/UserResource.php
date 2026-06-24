@@ -44,6 +44,12 @@ class UserResource
                 'capabilities'      => [
                     'link_smart_rules' => (bool) $u->planFeatureEnabled('link_smart_rules'),
                     'max_smart_rules'  => self::resolveMaxSmartRules($u),
+                    // Mirrors the web `analytics_export` gate (Stats CSV
+                    // export). Lets the mobile Stats screen hide its
+                    // "Export CSV" control + show an upgrade prompt without
+                    // a second round-trip. Default-true matches the web
+                    // helper's fallback for plans that don't set the key.
+                    'analytics_export' => (bool) $u->getPlanFeature('analytics_export', true),
                 ],
             ]);
         }

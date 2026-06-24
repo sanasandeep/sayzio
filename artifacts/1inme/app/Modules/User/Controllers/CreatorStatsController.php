@@ -80,8 +80,12 @@ class CreatorStatsController extends Controller
      * counters because that's the granularity creators want to drop into
      * a spreadsheet for monthly reports — anything richer is in-app.
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request)
     {
+        if (!workspace_owner()?->getPlanFeature('analytics_export', true)) {
+            return back()->with('error', 'Exporting stats is a paid feature. Upgrade your plan to download CSV exports.');
+        }
+
         $user = Auth::user();
         [$range, $start, $end] = $this->resolveRange($request);
 

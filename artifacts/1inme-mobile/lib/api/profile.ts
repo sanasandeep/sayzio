@@ -24,6 +24,15 @@ export type Profile = {
   country_block_text?: string | null;
   country_allow_text?: string | null;
   dmca_email?: string | null;
+  // Plan capabilities surfaced on the self payload so screens can gate
+  // UI without a second round-trip. `analytics_export` mirrors the web
+  // "Stats CSV export" paid feature (default-true when the plan doesn't
+  // set the key, matching the server helper's fallback).
+  capabilities?: {
+    link_smart_rules?: boolean;
+    max_smart_rules?: number;
+    analytics_export?: boolean;
+  };
 };
 
 export type ProfilePayload = Partial<{
