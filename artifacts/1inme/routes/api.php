@@ -124,6 +124,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/creator/payments',     [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerPayments']);
         Route::get('/me/creator/tiers',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerTiers']);
 
+        // Unified creator Stats home (mobile parity for web /user/stats).
+        Route::get('/stats', [\App\Modules\Api\Controllers\CreatorStatsApiController::class, 'index']);
+
         // In-page Product storefront (Task #1763). The cart lives in the app
         // (no session on the Sanctum path) and is posted as line items.
         Route::post('/store/{alias}/buy',      [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'buy'])->middleware('throttle:30,1');
