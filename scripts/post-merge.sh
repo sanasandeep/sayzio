@@ -45,29 +45,34 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
     || php artisan db:reconcile-migrations --force \
     || echo "::1inme:: POST-MERGE: migrations did not fully apply — schema may be incomplete. The hourly db:check-pending-migrations check will alert admins. Non-fatal; continuing." >&2
 
-  # Reseed the curated card template library so blueprints added between merges
-  # land in prod. CardTemplateSeeder is idempotent and preserves admin-edited
-  # rows (see CardTemplateSeeder::SEED_VERSION + CardTemplate::wasCustomized).
-  php artisan db:seed --class=Database\\Seeders\\CardTemplateSeeder --force 2>/dev/null || true
-
-  # Onboarding page templates. The "Who are you?" persona picker reads from
-  # page_templates, which starts empty in a freshly provisioned environment. The
-  # three seeders below ensure every PersonaCatalog persona ends up with >= 10
-  # recommended templates so the picker is never empty. They are all idempotent
-  # (a re-run on a populated DB is a safe no-op) but are NOT a full `db:seed`
-  # (DatabaseSeeder also creates non-idempotent roles/permissions/admin).
+  # Catalog + onboarding seeders, ALL detached to the background.
   #
-  # The expanded library inserts ~400 rows one-by-one and is slow over the
-  # distant RDS, so it is detached to the background to stay within the
-  # post-merge budget. Logs -> storage/logs/post-merge-recover.log.
-  echo "seeding plan/addon catalog + onboarding page templates in background..."
+  # Why background: every one of these is idempotent and best-effort (a re-run on
+  # a populated DB is a safe no-op), and none is required for the app to serve —
+  # so none belongs on the post-merge critical path. Over the distant RDS each
+  # pass is slow, and a long foreground run widens the window in which the merge
+  # orchestrator can externally cancel this job (the `river CANCEL` failures).
+  # Detaching them keeps the gating run short and also keeps their stack traces
+  # (e.g. CardTemplateSeeder when a concurrent merge has the schema mid-apply)
+  # OUT of the gating stdout — they go to storage/logs/post-merge-recover.log.
+  #
+  # Contents:
+  # - CardTemplateSeeder: curated card-template library; idempotent, preserves
+  #   admin-edited rows (CardTemplateSeeder::SEED_VERSION + CardTemplate::wasCustomized).
+  # - The "Who are you?" persona picker reads from page_templates, which starts
+  #   empty in a freshly provisioned environment; the three template seeders
+  #   ensure every PersonaCatalog persona ends up with >= 10 recommended
+  #   templates so the picker is never empty. These are NOT a full `db:seed`
+  #   (DatabaseSeeder also creates non-idempotent roles/permissions/admin).
+  echo "seeding card templates + plan/addon catalog + onboarding page templates in background..."
   mkdir -p storage/logs
   nohup bash -c "
+    php artisan db:seed --class=Database\\\\Seeders\\\\CardTemplateSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\PlansAndAddonsSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\StarterPageTemplatesSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\PageTemplatePersonaSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\ExpandedPageTemplateLibrarySeeder --force
-    echo \"[\$(date)] plan/addon + onboarding page-template seed finished\"
+    echo \"[\$(date)] card-template + plan/addon + onboarding page-template seed finished\"
   " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
   disown $! 2>/dev/null || true
 

@@ -80,3 +80,4 @@
 - [Stateless account-merge token](api-stateless-merge-token.md) — API merge mirrors web /user/merge but carries secondary id in an APP_KEY-encrypted token (no session); re-check token.p==auth id every step, reuse AccountMergeService for the move.
 - [Verify 1inme code w/o HTTP](api-stateless-merge-token.md) — distant-RDS dev `php -S` crashes on DB-heavy authed routes (even /api/v1/profile); verify controller logic via a standalone bootstrap PHP script, NOT tinker REPL (mangles multi-statement input).
 - [Per-plan stats retention](stats-retention-pruning.md) — `stats_retention_days` (-1=forever, 30 floor); view-clamp defaults missing→30 (safe), prune defaults missing/any-(-1)→no-op (never mass-delete unconfigured); prune is global-max, chunked.
+- [post-merge river CANCEL](post-merge-river-cancel.md) — external orchestrator cancel (not a script bug), self-heals via idempotent retry; only lever is keeping all best-effort seeders OFF the foreground critical path.
