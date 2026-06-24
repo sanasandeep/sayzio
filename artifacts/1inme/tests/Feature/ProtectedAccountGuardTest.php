@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Controllers\ActivityLogController;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\AdminActionAudit;
 use App\Modules\Admin\Models\Permission;
@@ -522,5 +523,98 @@ class ProtectedAccountGuardTest extends TestCase
         $this->assertStaffPersistedIntact($staff);
 
         $this->assertSame('active', $staff->fresh()->status);
+    }
+
+    // ---------------------------------------------------------------
+    // Activity log renders blocked actions with a human-readable label
+    // ---------------------------------------------------------------
+
+    /**
+     * The two blocked-action constants written by the guard.
+     *
+     * @return array<string, array{0:string}>
+     */
+    public static function blockedActions(): array
+    {
+        return [
+            'delete blocked'  => [AdminActionLogger::DELETE_BLOCKED],
+            'suspend blocked' => [AdminActionLogger::SUSPEND_BLOCKED],
+        ];
+    }
+
+    /**
+     * A blocked-action constant must be registered in BOTH label sources,
+     * or it renders raw/blank/un-curated in the Activity Log. Per the
+     * known gotcha, every action needs an entry in
+     * {@see ActivityLogController::ACTIONS} (the filter map / dropdown)
+     * AND a curated arm in {@see AdminActionAudit::actionLabel()} (the
+     * per-row label). If `actionLabel()` lacks the arm it falls back to
+     * the generic ucfirst() form, which won't equal the curated ACTIONS
+     * label — so asserting the two agree catches a future constant added
+     * to only one of the two places.
+     */
+    #[DataProvider('blockedActions')]
+    public function test_blocked_action_is_registered_in_both_label_sources(string $action): void
+    {
+        // 1. Present in the controller's filter map (drives the dropdown
+        //    and the action filter whitelist).
+        $this->assertArrayHasKey(
+            $action,
+            ActivityLogController::ACTIONS,
+            "Action {$action} is missing from ActivityLogController::ACTIONS."
+        );
+
+        $curated = ActivityLogController::ACTIONS[$action];
+
+        // 2. A real human label, not the raw dotted constant.
+        $this->assertNotSame('', trim($curated), "Action {$action} has a blank label.");
+        $this->assertNotSame($action, $curated, "Action {$action} renders as its raw constant.");
+
+        // 3. The per-row label must match the curated map. A missing arm
+        //    in actionLabel() would yield the ucfirst() fallback instead.
+        $audit = new AdminActionAudit(['action' => $action]);
+        $this->assertSame(
+            $curated,
+            $audit->actionLabel(),
+            "actionLabel() for {$action} doesn't match its ActivityLogController::ACTIONS label — one of the two registrations is missing or out of sync."
+        );
+    }
+
+    /**
+     * End-to-end: drive a real blocked delete + blocked suspend at the
+     * same protected user, then load the admin Activity Log page and
+     * confirm both rows surface their human label (and never the raw
+     * `account.delete_blocked` / `account.suspend_blocked` constant).
+     */
+    public function test_activity_log_page_renders_blocked_actions_readably(): void
+    {
+        $operator = $this->makeSuperAdmin();
+        $user = $this->makeUser(['email' => 'log-render@ex.com']);
+        $this->protect($user->email);
+
+        // Blocked hard-delete, then blocked suspend (the account survives
+        // the delete, so the suspend attempt still has a target to log).
+        $this->actingAs($operator, 'admin')
+            ->delete('/admin/users/' . $user->id)
+            ->assertRedirect();
+        $this->actingAs($operator, 'admin')
+            ->post('/admin/users/' . $user->id . '/suspend', ['reason' => 'spam'])
+            ->assertRedirect();
+
+        $this->assertActionLogged(AdminActionLogger::DELETE_BLOCKED, $user->email);
+        $this->assertActionLogged(AdminActionLogger::SUSPEND_BLOCKED, $user->email);
+
+        $response = $this->actingAs($operator, 'admin')
+            ->get(route('admin.users.activity-log.index'))
+            ->assertOk();
+
+        foreach ([AdminActionLogger::DELETE_BLOCKED, AdminActionLogger::SUSPEND_BLOCKED] as $action) {
+            $curated = ActivityLogController::ACTIONS[$action];
+
+            // The curated human label is on the page...
+            $response->assertSee($curated);
+            // ...and the raw dotted constant is never shown as visible text.
+            $response->assertDontSee('>' . $action . '<', false);
+        }
     }
 }
