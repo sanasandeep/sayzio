@@ -129,6 +129,29 @@
     }
     html.light-mode .feat-mark-no { color: #94a3b8; }
 
+    /* Linktree-style plan card: a tinted header band sits flush at the
+       top, with the body (price, CTA, grouped feature list) below. The
+       card uses overflow-hidden so the band's rounded top is clean, which
+       is why badges live inline in the band rather than as floating
+       ribbons. */
+    .plan-card { overflow: hidden; }
+    .plan-band { background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(255,255,255,.06); }
+    .plan-band.is-accent  { background: rgba(124,58,237,.16); border-bottom-color: rgba(167,139,250,.30); }
+    .plan-band.is-current { background: rgba(16,185,129,.14); border-bottom-color: rgba(52,211,153,.30); }
+    .plan-card.is-accent  { background: rgba(124,58,237,.07); }
+
+    /* Light-mode counterparts (dark is the default; the global
+       marketing-anim.css doesn't know these custom classes). */
+    html.light-mode .plan-band { background: rgba(15,23,42,.035); border-bottom-color: rgba(15,23,42,.08); }
+    html.light-mode .plan-band.is-accent  { background: rgba(124,58,237,.12); border-bottom-color: rgba(124,58,237,.25); }
+    html.light-mode .plan-band.is-current { background: rgba(16,185,129,.12); border-bottom-color: rgba(16,185,129,.25); }
+    html.light-mode .plan-card.is-accent  { background: rgba(124,58,237,.05); }
+
+    /* Keep the violet gradient CTA legible in light mode — the global
+       override would otherwise darken `.text-white` sitting on it. */
+    html.light-mode .grad-bar.text-white,
+    html.light-mode .grad-bar .text-white { color: #fff !important; }
+
     @media (prefers-reduced-motion: reduce) {
         .pulse-dot, .float-coin, .pop-ribbon, .grad-glow { animation: none !important; }
         .grad-glow:hover { transform: none !important; }
@@ -160,6 +183,21 @@
             if (!a) return '';
             return (Number(a.amount_minor) / 12 / 100)
                 .toLocaleString(undefined, { style: 'currency', currency: a.currency || this.currency });
+        },
+        billingNote(plan){
+            // Linktree-style fineprint under the big price. When viewing
+            // annual we surface the equivalent monthly rack rate; when
+            // viewing monthly we tease the annual per-month equivalent.
+            const monthly = this.money(plan, 'monthly');
+            if (this.cycle === 'annual' && this.hasAnnual(plan)) {
+                return monthly && monthly !== '—'
+                    ? 'Billed annually, or ' + monthly + ' monthly'
+                    : 'Billed annually';
+            }
+            if (this.hasAnnual(plan)) {
+                return 'Billed monthly, or ' + this.perMonth(plan) + '/mo billed annually';
+            }
+            return 'Billed monthly';
         },
         coinPrice(prices){
             const p = prices[this.currency] || prices.USD || {};
@@ -249,10 +287,10 @@
                 Pricing &amp; coins
             </div>
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-                Pick a plan. <span class="grad-text">Top up coins.</span>
+                Pick your plan. <span class="grad-text">Make it yours.</span>
             </h1>
             <p class="text-lg text-gray-400">
-                Plans for steady use, coins for one-off boosts — all in one place.
+                Simple pricing with powerful features — cancel anytime.
             </p>
             {{-- Currency switch — flips USD/INR instantly client-side (prices for
                  both currencies are embedded in each card's Alpine payload), with a
@@ -414,209 +452,301 @@
             $hasRec = isset($recommendation['recommendedPlan']) && $recommendation['recommendedPlan'];
             $recPlanId = $hasRec ? $recommendation['recommendedPlan']->id : null;
             $currentPlanId = $recommendation['currentPlan']->id ?? null;
+            // True only when a *distinct* recommended card will be shown
+            // (a recommendation exists and it isn't the user's current plan).
+            // Drives single-highlight: when a recommended card carries the
+            // accent, "Most popular" stays a badge-only secondary treatment.
+            $showsRecommended = $hasRec && $recPlanId !== $currentPlanId;
+
+            // Re-index so each card can reach the plan before it for the
+            // Linktree-style "Everything in {previous}, plus:" delta list.
+            $plansArr = $plans->values();
+
+            // ── Feature display catalogue ──────────────────────────────
+            // Maps the plan `features` blob into Linktree-style grouped,
+            // icon-led entries (bold name + one-line description). This is
+            // presentation only — *which* features each plan has is still
+            // driven entirely by the seeded features blob; we just choose
+            // how to label and group what's already there.
+            $featureCatalog = [
+                ['key' => 'max_links',          'group' => 'Link in bio',      'icon' => 'fa-link',                       'type' => 'number',    'noun' => 'short links',        'desc' => 'Trackable short links with click analytics'],
+                ['key' => 'max_biolinks',       'group' => 'Link in bio',      'icon' => 'fa-id-badge',                   'type' => 'number',    'noun' => 'Link in Bio pages',  'desc' => 'Mini-site bio pages for your audience'],
+                ['key' => 'storage_limit_mb',   'group' => 'Link in bio',      'icon' => 'fa-database',                   'type' => 'storage',   'noun' => 'storage',            'desc' => 'Space for files, images & media'],
+                ['key' => 'max_files',          'group' => 'Link in bio',      'icon' => 'fa-folder-open',                'type' => 'number',    'noun' => 'hosted files',       'desc' => 'Upload & share downloadable files'],
+                ['key' => 'block_types_allowed','group' => 'Link in bio',      'icon' => 'fa-table-cells',                'type' => 'blocks',                                    'desc' => 'Content block types for your pages'],
+                ['key' => 'custom_domains',     'group' => 'Link in bio',      'icon' => 'fa-globe',                      'type' => 'bool',      'name' => 'Custom domains',     'desc' => 'Use your own branded domain'],
+                ['key' => 'white_label',        'group' => 'Link in bio',      'icon' => 'fa-tag',                        'type' => 'bool',      'name' => 'Remove 1INME branding','desc' => 'White-label your public pages'],
+
+                ['key' => 'analytics',          'group' => 'Analytics & SEO',  'icon' => 'fa-chart-line',                 'type' => 'analytics'],
+                ['key' => 'pixels',             'group' => 'Analytics & SEO',  'icon' => 'fa-bullseye',                   'type' => 'bool',      'name' => 'Marketing pixels',   'desc' => 'FB, GA, TikTok, LinkedIn & more'],
+                ['key' => 'utm_params',         'group' => 'Analytics & SEO',  'icon' => 'fa-compass',                    'type' => 'bool',      'name' => 'UTM campaign tracking','desc' => 'Tag links for clean attribution'],
+                ['key' => 'seo_settings',       'group' => 'Analytics & SEO',  'icon' => 'fa-magnifying-glass',           'type' => 'bool',      'name' => 'SEO & social previews','desc' => 'Control titles, meta & OG cards'],
+
+                ['key' => 'ecommerce',          'group' => 'Make money',       'icon' => 'fa-bag-shopping',               'type' => 'bool',      'name' => 'Sell from your bio', 'desc' => 'Native product checkout'],
+                ['key' => 'leads',              'group' => 'Make money',       'icon' => 'fa-magnet',                     'type' => 'bool',      'name' => 'Lead capture & CRM', 'desc' => 'Collect and manage leads'],
+                ['key' => 'custom_forms',       'group' => 'Make money',       'icon' => 'fa-clipboard-list',             'type' => 'bool',      'name' => 'Custom forms',       'desc' => '21 field types with notifications'],
+
+                ['key' => 'contacts_max',       'group' => 'Growth tools',     'icon' => 'fa-address-book',               'type' => 'number',    'noun' => 'contacts',           'desc' => 'Address-book contacts & dialer'],
+                ['key' => 'max_forms',          'group' => 'Growth tools',     'icon' => 'fa-rectangle-list',             'type' => 'number',    'noun' => 'forms',              'desc' => 'Publishable forms'],
+                ['key' => 'max_projects',       'group' => 'Growth tools',     'icon' => 'fa-folder',                     'type' => 'number',    'noun' => 'projects',           'desc' => 'Separate project workspaces'],
+                ['key' => 'teams',              'group' => 'Growth tools',     'icon' => 'fa-people-group',               'type' => 'bool',      'name' => 'Team workspaces',    'desc' => 'Invite teammates & seats'],
+                ['key' => 'creator_profile_public','group' => 'Growth tools',  'icon' => 'fa-star',                       'type' => 'bool',      'name' => 'Public creator profile','desc' => 'A discoverable creator page'],
+                ['key' => 'verification_eligible','group' => 'Growth tools',   'icon' => 'fa-circle-check',               'type' => 'bool',      'name' => 'Verified-creator eligible','desc' => 'Apply for a verified badge'],
+                ['key' => 'calendar_sync',      'group' => 'Growth tools',     'icon' => 'fa-calendar-days',              'type' => 'bool',      'name' => 'Calendar sync',      'desc' => 'Sync events to your calendar'],
+
+                ['key' => 'link_password',      'group' => 'Pro controls',     'icon' => 'fa-lock',                       'type' => 'bool',      'name' => 'Password-protected links','desc' => 'Lock links behind a password'],
+                ['key' => 'link_expiry',        'group' => 'Pro controls',     'icon' => 'fa-hourglass-half',             'type' => 'bool',      'name' => 'Link expiry',        'desc' => 'Auto-expire links on a date'],
+                ['key' => 'link_geo_targeting', 'group' => 'Pro controls',     'icon' => 'fa-map-location-dot',           'type' => 'bool',      'name' => 'Geo targeting',      'desc' => 'Redirect by visitor location'],
+                ['key' => 'link_device_targeting','group' => 'Pro controls',   'icon' => 'fa-mobile-screen',              'type' => 'bool',      'name' => 'Device targeting',   'desc' => 'Redirect by device or OS'],
+                ['key' => 'link_deep_link',     'group' => 'Pro controls',     'icon' => 'fa-arrow-up-right-from-square', 'type' => 'bool',      'name' => 'Deep links',         'desc' => 'Open links inside native apps'],
+                ['key' => 'link_smart_rules',   'group' => 'Pro controls',     'icon' => 'fa-brain',                      'type' => 'bool',      'name' => 'Smart redirect rules','desc' => 'Rule-based link routing'],
+                ['key' => 'link_active_window', 'group' => 'Pro controls',     'icon' => 'fa-clock',                      'type' => 'bool',      'name' => 'Active-window scheduling','desc' => 'Schedule when links are live'],
+                ['key' => 'vaults',             'group' => 'Pro controls',     'icon' => 'fa-key',                        'type' => 'bool',      'name' => 'Credential vault',   'desc' => 'Store secrets securely'],
+
+                ['key' => 'api_access',         'group' => 'Developer',        'icon' => 'fa-code',                       'type' => 'api'],
+            ];
+
+            // Evaluate a single catalogue entry against a features blob.
+            // Returns null when the feature isn't present/enabled, or an
+            // array with a numeric weight (for delta comparison), a bold
+            // name, and a description line.
+            $evalFeature = function (array $features, array $e) {
+                $type = $e['type'];
+                $key  = $e['key'];
+
+                if ($type === 'number') {
+                    if (!isset($features[$key])) return null;
+                    $v = (int) $features[$key];
+                    if ($v === 0) return null;
+                    $name = $v === -1 ? 'Unlimited ' . $e['noun'] : number_format($v) . ' ' . $e['noun'];
+                    return ['num' => $v === -1 ? PHP_INT_MAX : $v, 'name' => $name, 'desc' => $e['desc']];
+                }
+                if ($type === 'storage') {
+                    if (!isset($features[$key])) return null;
+                    $v = (int) $features[$key];
+                    if ($v === 0) return null;
+                    if ($v === -1) { $num = PHP_INT_MAX; $name = 'Unlimited storage'; }
+                    elseif ($v >= 1024) { $num = $v; $name = rtrim(rtrim(number_format($v / 1024, 1), '0'), '.') . ' GB storage'; }
+                    else { $num = $v; $name = number_format($v) . ' MB storage'; }
+                    return ['num' => $num, 'name' => $name, 'desc' => $e['desc']];
+                }
+                if ($type === 'blocks') {
+                    $val = $features[$key] ?? null;
+                    if ($val === '*') return ['num' => PHP_INT_MAX, 'name' => 'All biolink blocks', 'desc' => $e['desc']];
+                    if (is_array($val) && count($val) > 0) return ['num' => count($val), 'name' => count($val) . ' biolink blocks', 'desc' => $e['desc']];
+                    return null;
+                }
+                if ($type === 'analytics') {
+                    $val = $features[$key] ?? null;
+                    if (!$val) return null;
+                    $adv = strtolower((string) $val) === 'advanced';
+                    return [
+                        'num'  => $adv ? 2 : 1,
+                        'name' => $adv ? 'Advanced analytics' : 'Click & view analytics',
+                        'desc' => $adv ? 'Geo, device & referrer breakdowns' : 'Clicks and views over time',
+                    ];
+                }
+                if ($type === 'api') {
+                    if (empty($features[$key])) return null;
+                    $calls = (int) ($features['api_calls_monthly'] ?? 0);
+                    $callLabel = $calls === -1 ? 'Unlimited API calls / month' : number_format($calls) . ' API calls / month (coin top-up beyond)';
+                    return ['num' => 1, 'name' => 'Developer API access', 'desc' => $callLabel];
+                }
+                // bool
+                return !empty($features[$key])
+                    ? ['num' => 1, 'name' => $e['name'], 'desc' => $e['desc']]
+                    : null;
+            };
+
+            // Build the grouped feature list for a plan. When $prev is
+            // supplied we only keep the *delta* (newly enabled, or a
+            // numeric cap that went up) so each card reads as
+            // "Everything in {previous}, plus:".
+            $buildGroups = function ($plan, $prev) use ($featureCatalog, $evalFeature) {
+                if (!$plan) return [];
+                $cf = $plan->features ?? [];
+                $pf = $prev->features ?? [];
+                $groups = [];
+                foreach ($featureCatalog as $e) {
+                    $cur = $evalFeature($cf, $e);
+                    if (!$cur) continue;
+                    if ($prev) {
+                        $old = $evalFeature($pf, $e);
+                        if ($old && $cur['num'] <= $old['num']) continue;
+                    }
+                    $groups[$e['group']][] = $cur + ['icon' => $e['icon']];
+                }
+                return $groups;
+            };
         @endphp
         <div data-anim="fade-up"
              class="grid grid-cols-1 md:grid-cols-2 {{ $lgGrid }} gap-5 mt-8 items-stretch">
-            @foreach($plans as $row)
+            @foreach($plansArr as $i => $row)
                 @php
                     $plan = $row['model'];
                     $features = $plan->features ?? [];
                     $isPopular = $plan->is_popular;
                     $isCurrent = $currentPlanId === $plan->id;
                     $isRecommended = $recPlanId === $plan->id && !$isCurrent;
+                    // Single-highlight: the recommended card takes the accent
+                    // when one is shown; otherwise the "Most popular" card does.
+                    // (Popular still keeps its badge either way.)
+                    $isAccent = $isRecommended || ($isPopular && !$showsRecommended);
                     $cmpKind = auth()->check()
                         ? \App\Services\PlanRecommender::compare($recommendation['currentPlan'] ?? null, $plan)
                         : 'guest';
                     $planJs = $row['prices']; // { USD: {monthly, annual}, INR: {monthly, annual} }
+                    $prevPlan = $i > 0 ? $plansArr[$i - 1]['model'] : null;
+                    $groups = $buildGroups($plan, $prevPlan);
+                    $ctaFilled = $isAccent;
                     $borderClasses = $isCurrent
-                        ? 'border-emerald-400/50 bg-emerald-500/[0.08]'
+                        ? 'border-emerald-400/50'
                         : ($isRecommended
-                            ? 'border-pink-400/50 bg-pink-500/[0.08]'
+                            ? 'border-pink-400/50'
                             : ($isPopular
-                                ? 'border-violet-500/50 bg-violet-500/[0.08]'
-                                : 'border-white/10 bg-white/[0.02]'));
+                                ? 'border-violet-500/50'
+                                : 'border-white/10'));
+                    // Header-band tint mirrors the card emphasis.
+                    $bandClass = $isCurrent ? 'is-current' : ($isAccent ? 'is-accent' : '');
                 @endphp
                 <div
                     x-data='{ plan: @json($planJs) }'
-                    class="grad-glow {{ $isPopular || $isRecommended ? 'is-popular' : '' }} {{ $isCurrent ? 'is-current' : '' }} group relative rounded-2xl border {{ $borderClasses }} p-6 flex flex-col">
-                    @if($isCurrent)
-                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-emerald-500/20">
-                            <i class="fas fa-circle-check mr-1"></i> Your plan
+                    class="plan-card grad-glow {{ $isAccent ? 'is-accent' : '' }} {{ $isPopular || $isRecommended ? 'is-popular' : '' }} {{ $isCurrent ? 'is-current' : '' }} group relative rounded-2xl border {{ $borderClasses }} flex flex-col">
+
+                    {{-- ── Tinted header band: name + short description + badge ── --}}
+                    <div class="plan-band {{ $bandClass }} px-5 sm:px-6 pt-5 pb-4">
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="text-xl font-bold text-white leading-tight">{{ $plan->name }}</h3>
+                            @if($isCurrent)
+                                <span class="shrink-0 inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                    <i class="fas fa-circle-check"></i> Your plan
+                                </span>
+                            @elseif($isRecommended)
+                                <span class="shrink-0 inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                    <i class="fas fa-wand-magic-sparkles"></i> Recommended
+                                </span>
+                            @elseif($isPopular)
+                                <span class="shrink-0 inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                    <i class="fas fa-star"></i> Most popular
+                                </span>
+                            @endif
                         </div>
-                    @elseif($isRecommended)
-                        <div class="pop-ribbon absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
-                            <i class="fas fa-wand-magic-sparkles mr-1"></i> Recommended
-                        </div>
-                    @elseif($isPopular)
-                        <div class="pop-ribbon absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
-                            <i class="fas fa-star mr-1"></i> Most popular
-                        </div>
-                    @endif
-                    <div class="text-xs uppercase tracking-wider text-gray-400">{{ $plan->name }}</div>
-                    <div class="flex items-baseline gap-1 mt-2">
-                        <span class="price-num text-4xl font-semibold text-white"
-                              :class="'price-pop'"
-                              :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
-                              x-text="money(plan, cycle)">{{ $row['prices'][$currency][$cycle]['formatted'] ?? '—' }}</span>
-                        <span class="text-sm text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
+                        <p class="text-sm text-gray-400 mt-1.5 leading-snug min-h-[2.5rem]">{{ $plan->description }}</p>
                     </div>
-                    <div class="text-[11px] text-emerald-300/80 mt-1 h-4"
-                         x-show="cycle==='annual' && hasAnnual(plan)"
-                         x-text="'≈ ' + perMonth(plan) + '/mo billed annually'"></div>
 
-                    {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
-                         Both currencies are pre-rendered so the instant switcher stays
-                         accurate for signed-in buyers with a billing address. --}}
-                    @foreach(['USD','INR'] as $cur)
-                        @foreach(['monthly','annual'] as $c)
-                            @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
-                            @if(($row['prices'][$cur][$c]['amount_minor'] ?? 0) > 0)
-                                <div x-show="currency==='{{ $cur }}' && cycle==='{{ $c }}'" x-cloak>
-                                    @if(!empty($taxBlock) && !empty($taxBlock['tax_breakdown']))
-                                        <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
-                                            @foreach($taxBlock['tax_breakdown'] as $line)
-                                                <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
+                    {{-- ── Body: price → billing note → CTA → feature list ── --}}
+                    <div class="px-5 sm:px-6 pt-5 pb-6 flex flex-col flex-grow">
+                        <div class="flex items-baseline gap-1">
+                            <span class="price-num text-4xl font-bold text-white"
+                                  :class="'price-pop'"
+                                  :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
+                                  x-text="money(plan, cycle)">{{ $row['prices'][$currency][$cycle]['formatted'] ?? '—' }}</span>
+                            @unless(!empty($row['is_free']))
+                                <span class="text-sm text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
+                            @endunless
+                        </div>
+
+                        {{-- Billing note (Linktree fineprint under the price) --}}
+                        @if(!empty($row['is_free']))
+                            <div class="text-xs text-gray-400 mt-1.5">Free forever — no card required</div>
+                        @else
+                            <div class="text-xs text-gray-400 mt-1.5 min-h-[1rem]" x-text="billingNote(plan)"></div>
+                        @endif
+
+                        {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
+                             Both currencies are pre-rendered so the instant switcher stays
+                             accurate for signed-in buyers with a billing address. --}}
+                        @foreach(['USD','INR'] as $cur)
+                            @foreach(['monthly','annual'] as $c)
+                                @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
+                                @if(($row['prices'][$cur][$c]['amount_minor'] ?? 0) > 0)
+                                    <div x-show="currency==='{{ $cur }}' && cycle==='{{ $c }}'" x-cloak>
+                                        @if(!empty($taxBlock) && !empty($taxBlock['tax_breakdown']))
+                                            <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
+                                                @foreach($taxBlock['tax_breakdown'] as $line)
+                                                    <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
+                                                @endforeach
+                                                <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $taxBlock['grand_total_minor'], $cur) }}</span></div>
+                                            </div>
+                                        @else
+                                            <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
+                                        @endif
+                                    </div>
+                                @endif
+                            @endforeach
+                        @endforeach
+
+                        {{-- Full-width CTA --}}
+                        <div class="mt-5">
+                            @switch($cmpKind)
+                                @case('current')
+                                    <span class="block text-center w-full px-4 py-2.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-200 border border-emerald-400/30">
+                                        <i class="fas fa-check mr-1"></i> Current plan
+                                    </span>
+                                    @break
+                                @case('upgrade')
+                                    <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
+                                       href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
+                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold grad-bar text-white hover:opacity-95 transition">
+                                        Upgrade to {{ $plan->name }} <i class="fas fa-arrow-up ml-1 text-xs"></i>
+                                    </a>
+                                    @break
+                                @case('downgrade')
+                                    <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
+                                       href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
+                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.10] transition">
+                                        Downgrade to {{ $plan->name }}
+                                    </a>
+                                    @break
+                                @case('choose')
+                                    <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
+                                       href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
+                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold {{ $ctaFilled ? 'grad-bar text-white hover:opacity-95' : 'border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.10]' }} transition">
+                                        Choose {{ $plan->name }}
+                                    </a>
+                                    @break
+                                @default
+                                    <a href="{{ route('user.register') }}"
+                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold {{ $ctaFilled ? 'grad-bar text-white hover:opacity-95' : 'border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.10]' }} transition">
+                                        {{ !empty($row['is_free']) ? 'Get started free' : 'Start free trial' }}
+                                    </a>
+                            @endswitch
+                        </div>
+
+                        {{-- Grouped, icon-led feature list (delta vs previous tier) --}}
+                        <div class="mt-6 flex-grow">
+                            <div class="text-sm font-semibold text-white mb-3">
+                                @if($prevPlan)
+                                    Everything in {{ $prevPlan->name }}, plus:
+                                @else
+                                    Key features
+                                @endif
+                            </div>
+                            <div class="space-y-4">
+                                @forelse($groups as $groupName => $items)
+                                    <div>
+                                        <div class="text-[11px] font-bold uppercase tracking-wider text-violet-300 mb-2">{{ $groupName }}</div>
+                                        <ul class="space-y-2.5">
+                                            @foreach($items as $f)
+                                                <li class="flex items-start gap-2.5">
+                                                    <span class="mt-0.5 w-5 h-5 shrink-0 rounded-md bg-violet-500/15 ring-1 ring-violet-400/25 flex items-center justify-center">
+                                                        <i class="fas {{ $f['icon'] }} text-violet-300 text-[10px]"></i>
+                                                    </span>
+                                                    <span class="min-w-0">
+                                                        <span class="block text-sm font-semibold text-white leading-tight">{{ $f['name'] }}</span>
+                                                        @if(!empty($f['desc']))
+                                                            <span class="block text-xs text-gray-400 leading-snug">{{ $f['desc'] }}</span>
+                                                        @endif
+                                                    </span>
+                                                </li>
                                             @endforeach
-                                            <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $taxBlock['grand_total_minor'], $cur) }}</span></div>
-                                        </div>
-                                    @else
-                                        <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
-                                    @endif
-                                </div>
-                            @endif
-                        @endforeach
-                    @endforeach
-                    <p class="text-sm text-gray-400 mt-3 min-h-[2.5rem]">{{ $plan->description }}</p>
-
-                    @if(!empty($features))
-                    <ul class="mt-4 space-y-1.5 text-sm text-gray-200 flex-grow">
-                        @foreach([
-                            'max_links' => 'links',
-                            'max_biolinks' => 'bio pages',
-                            'max_projects' => 'projects',
-                            'storage_limit_mb' => 'MB storage',
-                            'contacts_max' => 'contacts',
-                            'max_forms' => 'forms',
-                            'max_files' => 'files',
-                            'max_vault_items' => 'vault items',
-                            'max_task_boards' => 'task boards',
-                            'max_leads' => 'leads',
-                            'max_events' => 'events',
-                            'max_buzz_items' => 'buzz popups',
-                            'max_splash_pages' => 'splash pages',
-                        ] as $key => $label)
-                            @if(isset($features[$key]))
-                                <li class="flex items-start gap-2">
-                                    <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
-                                    <span>{{ (int) $features[$key] === -1 ? 'Unlimited' : number_format((int) $features[$key]) }} {{ $label }}</span>
-                                </li>
-                            @endif
-                        @endforeach
-                        @if(!empty($features['api_access']))
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
-                                <span>
-                                    @php $apiCalls = (int) ($features['api_calls_monthly'] ?? 0); @endphp
-                                    {{ $apiCalls === -1 ? 'Unlimited' : number_format($apiCalls) }} API calls / month
-                                    @if($apiCalls !== -1)<span class="text-gray-500">(coin top-up beyond)</span>@endif
-                                </span>
-                            </li>
-                        @endif
-                        @php $analyticsDepth = $features['analytics'] ?? null; @endphp
-                        @if($analyticsDepth)
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
-                                <span>{{ strtolower((string) $analyticsDepth) === 'advanced' ? 'Advanced analytics (geo, device, referrers)' : 'Click & view analytics' }}</span>
-                            </li>
-                        @endif
-                        {{-- High-value capabilities — surface the headline features (not
-                             just raw limits) so each tier's value is obvious at a glance. --}}
-                        @foreach([
-                            'custom_domains' => 'Custom domains',
-                            'pixels' => 'Marketing pixels (FB, GA, TikTok…)',
-                            'utm_params' => 'UTM campaign tracking',
-                            'seo_settings' => 'SEO & social previews',
-                            'ecommerce' => 'Sell from your bio',
-                            'custom_forms' => 'Custom forms',
-                            'teams' => 'Team workspaces & seats',
-                            'leads' => 'Lead capture & CRM',
-                            'vaults' => 'Credential vault',
-                            'white_label' => 'White-label / remove branding',
-                        ] as $key => $label)
-                            @if(!empty($features[$key]))
-                                <li class="flex items-start gap-2">
-                                    <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
-                                    <span>{{ $label }}</span>
-                                </li>
-                            @endif
-                        @endforeach
-                        @foreach([
-                            'creator_profile_public' => 'Public creator profile',
-                            'calendar_sync' => 'Calendar sync',
-                            'verification_eligible' => 'Verified-creator eligible',
-                            'link_password' => 'Password-protected links',
-                            'link_expiry' => 'Link expiry',
-                            'link_geo_targeting' => 'Geo targeting',
-                            'link_device_targeting' => 'Device targeting',
-                            'link_deep_link' => 'Deep links',
-                            'link_smart_rules' => 'Smart redirect rules',
-                            'link_active_window' => 'Active-window scheduling',
-                        ] as $key => $label)
-                            @if(!empty($features[$key]))
-                                <li class="flex items-start gap-2">
-                                    <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
-                                    <span>{{ $label }}</span>
-                                </li>
-                            @endif
-                        @endforeach
-                        @if(!empty($features['block_types_allowed']) && $features['block_types_allowed'] !== '*' && is_array($features['block_types_allowed']))
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
-                                <span>{{ count($features['block_types_allowed']) }} biolink block types</span>
-                            </li>
-                        @elseif(($features['block_types_allowed'] ?? null) === '*')
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
-                                <span>All biolink block types</span>
-                            </li>
-                        @endif
-                    </ul>
-                    @endif
-
-                    <div class="mt-6">
-                        @switch($cmpKind)
-                            @case('current')
-                                <span class="block text-center w-full px-4 py-2.5 rounded-xl font-semibold bg-emerald-500/15 text-emerald-200 border border-emerald-400/30">
-                                    <i class="fas fa-check mr-1"></i> Current plan
-                                </span>
-                                @break
-                            @case('upgrade')
-                                <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
-                                   href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
-                                   class="block text-center w-full px-4 py-2.5 rounded-xl font-semibold grad-bar text-white hover:opacity-95 transition">
-                                    Upgrade to {{ $plan->name }} <i class="fas fa-arrow-up ml-1 text-xs"></i>
-                                </a>
-                                @break
-                            @case('downgrade')
-                                <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
-                                   href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
-                                   class="block text-center w-full px-4 py-2.5 rounded-xl font-semibold bg-white/10 text-white hover:bg-white/20 transition">
-                                    Downgrade to {{ $plan->name }}
-                                </a>
-                                @break
-                            @case('choose')
-                                <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
-                                   href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
-                                   class="block text-center w-full px-4 py-2.5 rounded-xl font-semibold {{ $isPopular ? 'grad-bar text-white hover:opacity-95' : 'bg-white/10 text-white hover:bg-white/20' }} transition">
-                                    Choose {{ $plan->name }}
-                                </a>
-                                @break
-                            @default
-                                <a href="{{ route('user.register') }}"
-                                   class="block text-center w-full px-4 py-2.5 rounded-xl font-semibold {{ $isPopular ? 'grad-bar text-white hover:opacity-95' : 'bg-white/10 text-white hover:bg-white/20' }} transition">
-                                    {{ !empty($row['is_free']) ? 'Get started free' : 'Start free trial' }}
-                                </a>
-                        @endswitch
+                                        </ul>
+                                    </div>
+                                @empty
+                                    <div class="text-sm text-gray-400">Everything you need to get started.</div>
+                                @endforelse
+                            </div>
+                        </div>
                     </div>
                 </div>
             @endforeach
