@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
@@ -31,6 +32,16 @@ export default function StatsScreen() {
   const colors = useColors();
   const q = useQuery({ queryKey: ["creator-stats"], queryFn: fetchStats });
   const profileQ = useQuery({ queryKey: ["profile"], queryFn: getProfile });
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([q.refetch(), profileQ.refetch()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   // Mirror the web `analytics_export` ("Stats CSV export") paid gate.
   // Default-true matches the server helper's fallback, so the control
   // only hides once we know the plan lacks the feature.
@@ -55,7 +66,17 @@ export default function StatsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: "Stats", headerBackTitle: "Back" }} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
         {q.isLoading ? (
           <View style={{ paddingVertical: 60, alignItems: "center" }}>
             <ActivityIndicator color={colors.primary} />
