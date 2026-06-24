@@ -12,6 +12,46 @@
         This page is informational only; it never triggers or edits any schedule.
     </p>
 
+    {{-- Scheduler health banner --}}
+    @if($status['state'] === 'stale')
+        <div class="rounded-2xl p-4 border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-rose-300 mt-0.5"></i>
+            <div class="text-sm">
+                <p class="text-rose-100 font-semibold">The scheduler appears to have stopped.</p>
+                <p class="text-rose-200/70 mt-0.5">
+                    No scheduled job has run since
+                    <span class="font-medium text-rose-100">{{ $status['last_tick']->format('M j, H:i') }}</span>
+                    ({{ $status['last_tick']->diffForHumans() }}). Jobs are no longer firing &mdash; check that the master
+                    cron entry below is still present on the server.
+                </p>
+            </div>
+        </div>
+    @elseif($status['state'] === 'unknown')
+        <div class="rounded-2xl p-4 border border-amber-500/30 bg-amber-500/10 flex items-start gap-3">
+            <i class="fas fa-circle-exclamation text-amber-300 mt-0.5"></i>
+            <div class="text-sm">
+                <p class="text-amber-100 font-semibold">No scheduled job has run yet.</p>
+                <p class="text-amber-200/70 mt-0.5">
+                    If you just added the master cron line below it can take up to a minute to record the first run.
+                    If this persists, the server crontab is most likely not configured &mdash; add the line below.
+                </p>
+            </div>
+        </div>
+    @else
+        <div class="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/[0.07] flex items-start gap-3">
+            <i class="fas fa-circle-check text-emerald-300 mt-0.5"></i>
+            <div class="text-sm">
+                <p class="text-emerald-100 font-semibold">Scheduler is active.</p>
+                <p class="text-emerald-200/70 mt-0.5">
+                    Last activity {{ $status['last_tick']->diffForHumans() }} ({{ $status['last_tick']->format('M j, H:i') }}).
+                    @if($status['overdue_count'] > 0)
+                        <span class="text-amber-200">{{ $status['overdue_count'] }} job{{ $status['overdue_count'] === 1 ? '' : 's' }} below {{ $status['overdue_count'] === 1 ? 'is' : 'are' }} overdue &mdash; see the highlighted rows.</span>
+                    @endif
+                </p>
+            </div>
+        </div>
+    @endif
+
     {{-- Master cron line --}}
     <div class="glass rounded-2xl p-6 space-y-3 border border-violet-500/20">
         <div class="flex items-start gap-3">
@@ -56,13 +96,14 @@
                         <th class="px-6 py-3 font-semibold">Command &amp; purpose</th>
                         <th class="px-4 py-3 font-semibold whitespace-nowrap">Frequency</th>
                         <th class="px-4 py-3 font-semibold whitespace-nowrap">Cron</th>
+                        <th class="px-4 py-3 font-semibold whitespace-nowrap">Last ran</th>
                         <th class="px-4 py-3 font-semibold whitespace-nowrap">Next run</th>
                         <th class="px-6 py-3 font-semibold whitespace-nowrap">Run manually</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5">
                     @foreach($jobs as $job)
-                        <tr class="hover:bg-white/[0.02] transition align-top">
+                        <tr class="transition align-top {{ $job['overdue'] ? 'bg-rose-500/[0.06] hover:bg-rose-500/[0.1]' : 'hover:bg-white/[0.02]' }}">
                             <td class="px-6 py-4 max-w-md">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <code class="text-violet-200 font-mono text-[13px] break-all">{{ $job['command'] }}</code>
@@ -86,6 +127,32 @@
                             <td class="px-4 py-4 whitespace-nowrap text-white/70">{{ $job['frequency'] }}</td>
                             <td class="px-4 py-4 whitespace-nowrap">
                                 <code class="text-[12px] text-white/50 font-mono">{{ $job['expression'] }}</code>
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                @if($job['last_run'])
+                                    <div class="flex items-center gap-1.5">
+                                        @if($job['last_run_ok'] === false)
+                                            <i class="fas fa-circle-xmark text-rose-400 text-[11px]" title="Last run failed"></i>
+                                        @else
+                                            <i class="fas fa-circle-check text-emerald-400 text-[11px]" title="Last run succeeded"></i>
+                                        @endif
+                                        <span class="text-white/80">{{ $job['last_run']->format('M j, H:i') }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-white/40 mt-0.5">
+                                        {{ $job['last_run']->diffForHumans() }}
+                                        @if($job['last_runtime'] !== null)
+                                            &middot; {{ rtrim(rtrim(number_format($job['last_runtime'], 2), '0'), '.') }}s
+                                        @endif
+                                    </div>
+                                    @if($job['overdue'])
+                                        <span class="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300">Overdue</span>
+                                    @endif
+                                    @if($job['last_run_ok'] === false && $job['last_run_error'])
+                                        <div class="text-[11px] text-rose-300/70 mt-1 max-w-[16rem] truncate" title="{{ $job['last_run_error'] }}">{{ $job['last_run_error'] }}</div>
+                                    @endif
+                                @else
+                                    <span class="text-white/30 text-[12px]">Never</span>
+                                @endif
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-white/60">
                                 @if($job['next_run'])

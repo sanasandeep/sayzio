@@ -24,6 +24,10 @@ use Illuminate\Support\Facades\Artisan;
  */
 class CronJobsInspector
 {
+    public function __construct(protected CronRunLog $runLog)
+    {
+    }
+
     /**
      * Plain-English purpose overrides keyed by artisan command name. Only used
      * when the event/command does not already carry a clearer description.
@@ -80,9 +84,18 @@ class CronJobsInspector
 
         $descriptions = $this->commandDescriptions();
 
+        $events = $schedule->events();
+
+        // Pull every recorded last-run state in a single cache round-trip,
+        // keyed by the same mutex name the runtime listener writes under.
+        $runs = $this->runLog->many(array_map(
+            fn ($event) => $this->runLog->key($event),
+            $events
+        ));
+
         $jobs = [];
 
-        foreach ($schedule->events() as $event) {
+        foreach ($events as $event) {
             $isCallback = $event instanceof CallbackEvent;
 
             $artisanName = $isCallback ? null : $this->artisanName($event);
@@ -103,6 +116,30 @@ class CronJobsInspector
 
             $expression = $event->expression;
 
+            $nextRun = $this->nextRun($event);
+            $prevRun = $this->prevRun($event);
+
+            // The cron cadence in seconds (gap between two scheduled fires),
+            // used to decide whether a recorded run is stale.
+            $interval = ($nextRun !== null && $prevRun !== null)
+                ? max(0, $nextRun->getTimestamp() - $prevRun->getTimestamp())
+                : null;
+
+            $run = $runs[$this->runLog->key($event)] ?? null;
+
+            $lastRun = ($run !== null && isset($run['ran_at']))
+                ? Carbon::createFromTimestamp((int) $run['ran_at'])->setTimezone(config('app.timezone', 'UTC'))
+                : null;
+
+            $lastOk = (is_array($run) && array_key_exists('ok', $run) && is_bool($run['ok'])) ? $run['ok'] : null;
+
+            // Overdue = we have evidence the job ran before, but its most recent
+            // recorded run is more than one whole interval older than the most
+            // recent scheduled fire time — i.e. the scheduler missed at least one
+            // cycle. A previously-working-then-dead scheduler is exactly this.
+            $overdue = $lastRun !== null && $prevRun !== null && $interval !== null && $interval > 0
+                && ($prevRun->getTimestamp() - $lastRun->getTimestamp()) > $interval;
+
             $jobs[] = [
                 'is_callback'         => $isCallback,
                 'command'             => $commandWithArgs,
@@ -110,7 +147,14 @@ class CronJobsInspector
                 'expression'          => $expression,
                 'frequency'           => $this->humanFrequency($expression),
                 'purpose'             => $this->purposeFor($event, $artisanName, $descriptions),
-                'next_run'            => $this->nextRun($event),
+                'next_run'            => $nextRun,
+                'interval_seconds'    => $interval,
+                'last_run'            => $lastRun,
+                'last_run_ok'         => $lastOk,
+                'last_run_error'      => (is_array($run) && is_string($run['error'] ?? null)) ? $run['error'] : null,
+                'last_runtime'        => (is_array($run) && is_numeric($run['runtime'] ?? null)) ? (float) $run['runtime'] : null,
+                'never_run'           => $lastRun === null,
+                'overdue'             => $overdue,
                 'without_overlapping' => (bool) $event->withoutOverlapping,
                 'on_one_server'       => (bool) $event->onOneServer,
                 'running_now'         => $this->isRunning($event),
@@ -118,6 +162,46 @@ class CronJobsInspector
         }
 
         return $jobs;
+    }
+
+    /**
+     * Overall scheduler health, derived from the global heartbeat that every
+     * scheduled run bumps (see CronRunLog). Because at least one every-minute job
+     * always fires, a fresh heartbeat is the most reliable signal that
+     * `schedule:run` is actually wired into the server crontab.
+     *
+     * @param  array<int, array<string, mixed>>  $jobs  the output of jobs()
+     * @return array{state:string, last_tick:?Carbon, overdue_count:int}
+     */
+    public function schedulerStatus(array $jobs): array
+    {
+        $tick = $this->runLog->lastTick();
+
+        $overdueCount = count(array_filter($jobs, fn ($j) => ! empty($j['overdue'])));
+
+        if ($tick === null) {
+            // Nothing has ever run: either the crontab isn't configured, or the
+            // app was only just deployed and the first minute hasn't elapsed.
+            return ['state' => 'unknown', 'last_tick' => null, 'overdue_count' => $overdueCount];
+        }
+
+        // Healthy threshold scales off the shortest registered cadence (an
+        // every-minute job ⇒ ~60s), with generous grace so a slightly delayed
+        // tick doesn't flap the warning.
+        $intervals = array_filter(
+            array_map(fn ($j) => $j['interval_seconds'] ?? null, $jobs),
+            fn ($v) => is_int($v) && $v > 0
+        );
+        $minInterval = $intervals === [] ? 60 : min($intervals);
+        $threshold = ($minInterval * 2) + 60;
+
+        $age = Carbon::now()->getTimestamp() - $tick->getTimestamp();
+
+        return [
+            'state'         => $age <= $threshold ? 'healthy' : 'stale',
+            'last_tick'     => $tick->setTimezone(config('app.timezone', 'UTC')),
+            'overdue_count' => $overdueCount,
+        ];
     }
 
     /**
@@ -210,6 +294,25 @@ class CronJobsInspector
             return Carbon::instance(
                 (new CronExpression($event->expression))
                     ->getNextRunDate(Carbon::now()->setTimezone($tz))
+            )->setTimezone(config('app.timezone', 'UTC'));
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Compute the most recent *past* scheduled fire time for an event in the app
+     * timezone. Used to judge whether a recorded run is stale (the scheduler is
+     * expected to have run the job at, or just after, this time).
+     */
+    protected function prevRun(Event $event): ?Carbon
+    {
+        try {
+            $tz = $event->timezone ?: config('app.timezone', 'UTC');
+
+            return Carbon::instance(
+                (new CronExpression($event->expression))
+                    ->getPreviousRunDate(Carbon::now()->setTimezone($tz))
             )->setTimezone(config('app.timezone', 'UTC'));
         } catch (\Throwable $e) {
             return null;

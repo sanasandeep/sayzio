@@ -129,6 +129,53 @@ class AppServiceProvider extends ServiceProvider
         $this->bustPlanRecommenderCacheOnUsageChange();
         $this->alertOnFailedBackgroundJobs();
         $this->guardDestructiveSchemaCommands();
+        $this->recordScheduledTaskRuns();
+    }
+
+    /**
+     * Persist a "last actually ran" timestamp (and success/failure) for every
+     * scheduled job as the scheduler runs it. Laravel keeps no built-in record
+     * of when a scheduled event last *finished*, so the admin Cron Jobs page
+     * could only ever show each job's *next* due time — which can't tell an
+     * operator whether the server crontab is actually firing. Recording this
+     * lets the page surface a "Last ran" column and flag a silently-dead
+     * scheduler.
+     *
+     * One central pair of listeners covers every event keyed by its mutex name,
+     * so jobs added to routes/console.php are picked up automatically with no
+     * per-job wiring. Wholly best-effort (CronRunLog swallows write errors) so it
+     * can never break a scheduled run.
+     */
+    protected function recordScheduledTaskRuns(): void
+    {
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Console\Events\ScheduledTaskFinished::class,
+            function (\Illuminate\Console\Events\ScheduledTaskFinished $event): void {
+                $exit = $event->task->exitCode ?? null;
+                // A command can report failure via a non-zero exit code without
+                // throwing (Command::FAILURE); treat that as a failed run.
+                $ok = $exit === null || (int) $exit === 0;
+
+                app(\App\Modules\Admin\Support\CronRunLog::class)->record(
+                    $event->task,
+                    $ok,
+                    $event->runtime ?? null,
+                    $ok ? null : 'Exited with code ' . $exit,
+                );
+            }
+        );
+
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Console\Events\ScheduledTaskFailed::class,
+            function (\Illuminate\Console\Events\ScheduledTaskFailed $event): void {
+                app(\App\Modules\Admin\Support\CronRunLog::class)->record(
+                    $event->task,
+                    false,
+                    null,
+                    \Illuminate\Support\Str::limit($event->exception->getMessage(), 300),
+                );
+            }
+        );
     }
 
     /**

@@ -16,9 +16,12 @@ class CronJobsController extends Controller
 {
     public function index(CronJobsInspector $inspector)
     {
+        $jobs = $inspector->jobs();
+
         return view('admin.cron-jobs.index', [
             'masterCronLine' => $inspector->masterCronLine(),
-            'jobs'           => $inspector->jobs(),
+            'jobs'           => $jobs,
+            'status'         => $inspector->schedulerStatus($jobs),
             'appPath'        => base_path(),
         ]);
     }
