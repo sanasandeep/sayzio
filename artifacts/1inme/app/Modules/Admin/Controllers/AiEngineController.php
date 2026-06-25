@@ -4,7 +4,9 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\ElevenLabsService;
 use App\Services\AI\OpenAiService;
+use App\Services\AI\WhisperService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -224,6 +226,39 @@ class AiEngineController extends Controller
 
         return response()->json(
             $openai->testKey($typed !== '' ? $typed : null, $model)
+        );
+    }
+
+    /**
+     * Unmetered "Test connection" action for the Whisper (STT) key. Lists
+     * OpenAI models using the key just typed into the form (preferred) or
+     * the stored Whisper key (which itself falls back to the main OpenAI
+     * key, like the transcribe runtime), and reports the result as JSON
+     * for inline rendering. No coins are charged and the AI Engine does
+     * not need to be enabled.
+     */
+    public function testWhisperConnection(Request $request, WhisperService $whisper)
+    {
+        $typed = trim((string) $request->input('whisper_api_key', ''));
+
+        return response()->json(
+            $whisper->testKey($typed !== '' ? $typed : null)
+        );
+    }
+
+    /**
+     * Unmetered "Test connection" action for the ElevenLabs (TTS) key.
+     * Hits the cheap GET /v1/voices endpoint using the key just typed into
+     * the form (preferred) or the stored key, and reports the result as
+     * JSON for inline rendering. No coins are charged and the AI Engine
+     * does not need to be enabled.
+     */
+    public function testElevenLabsConnection(Request $request, ElevenLabsService $eleven)
+    {
+        $typed = trim((string) $request->input('elevenlabs_api_key', ''));
+
+        return response()->json(
+            $eleven->testKey($typed !== '' ? $typed : null)
         );
     }
 }

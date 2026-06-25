@@ -95,6 +95,49 @@ class WhisperService
         ];
     }
 
+    /**
+     * Lightweight, UNMETERED connectivity check for the admin AI Engine
+     * page. Lists OpenAI models with the supplied Whisper key (or the
+     * stored Whisper key when null — which itself falls back to the main
+     * OpenAI key, exactly like the transcribe runtime). It never touches
+     * the coin wallet and never requires the AI Engine to be enabled, so
+     * an admin can validate the key before relying on the Voice Assistant.
+     *
+     * @return array{ok:bool,message:string,status?:int}
+     */
+    public function testKey(?string $key = null): array
+    {
+        $key = ($key !== null && trim($key) !== '') ? trim($key) : AiEngineSettings::whisperKey();
+        if (!$key) {
+            return ['ok' => false, 'message' => 'No Whisper key is configured, and no main OpenAI key to fall back on. Paste a key above (or save one) and try again.'];
+        }
+
+        try {
+            $res = Http::withToken($key)
+                ->acceptJson()
+                ->timeout(20)
+                ->get(self::BASE_URL . '/models');
+        } catch (\Throwable $e) {
+            Log::warning('Whisper test connection threw: ' . $e->getMessage());
+            return ['ok' => false, 'message' => 'Network error reaching OpenAI: ' . Str::limit($e->getMessage(), 160)];
+        }
+
+        if ($res->successful()) {
+            return ['ok' => true, 'message' => 'Success — OpenAI accepted the Whisper key.'];
+        }
+
+        $status = $res->status();
+        $apiMsg = (string) ($res->json('error.message') ?? '');
+        $message = match (true) {
+            $status === 401 => 'Invalid Whisper key — OpenAI rejected it (401 Unauthorized).',
+            $status === 403 => 'Key lacks access (403). Check the project/org permissions.',
+            $status === 429 => 'Rate limited or quota exhausted (429). The key works but is out of credit/limit.',
+            default => "OpenAI returned HTTP {$status}" . ($apiMsg !== '' ? ': ' . Str::limit($apiMsg, 160) : '.'),
+        };
+
+        return ['ok' => false, 'status' => $status, 'message' => $message];
+    }
+
     protected function guard(): void
     {
         if (!AiEngineSettings::isEnabled()) {

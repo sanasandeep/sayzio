@@ -81,6 +81,54 @@ class ElevenLabsService
         ];
     }
 
+    /**
+     * Lightweight, UNMETERED connectivity check for the admin AI Engine
+     * page. Hits the cheap GET /v1/voices endpoint with the supplied key
+     * (or the stored key when null) purely to confirm the credential is
+     * accepted. It never touches the coin wallet and never requires the
+     * AI Engine to be enabled, so an admin can validate the key before
+     * relying on the Voice Assistant's text-to-speech.
+     *
+     * @return array{ok:bool,message:string,status?:int}
+     */
+    public function testKey(?string $key = null): array
+    {
+        $key = ($key !== null && trim($key) !== '') ? trim($key) : AiEngineSettings::elevenLabsKey();
+        if (!$key) {
+            return ['ok' => false, 'message' => 'No ElevenLabs API key is configured. Paste a key above (or save one) and try again.'];
+        }
+
+        try {
+            $res = Http::withHeaders([
+                    'xi-api-key' => $key,
+                    'Accept'     => 'application/json',
+                ])
+                ->timeout(20)
+                ->get(self::BASE_URL . '/voices');
+        } catch (\Throwable $e) {
+            Log::warning('ElevenLabs test connection threw: ' . $e->getMessage());
+            return ['ok' => false, 'message' => 'Network error reaching ElevenLabs: ' . Str::limit($e->getMessage(), 160)];
+        }
+
+        if ($res->successful()) {
+            $count = is_array($res->json('voices')) ? count($res->json('voices')) : null;
+            $suffix = $count !== null ? " ({$count} voices available)" : '';
+            return ['ok' => true, 'message' => "Success — ElevenLabs accepted the key{$suffix}."];
+        }
+
+        $status = $res->status();
+        $detail = $res->json('detail');
+        $apiMsg = is_array($detail) ? (string) ($detail['message'] ?? '') : (string) ($detail ?: '');
+        $message = match (true) {
+            $status === 401 => 'Invalid API key — ElevenLabs rejected it (401 Unauthorized).',
+            $status === 403 => 'Key lacks access (403). Check the ElevenLabs subscription/permissions.',
+            $status === 429 => 'Rate limited or quota exhausted (429). The key works but is out of limit.',
+            default => "ElevenLabs returned HTTP {$status}" . ($apiMsg !== '' ? ': ' . Str::limit($apiMsg, 160) : '.'),
+        };
+
+        return ['ok' => false, 'status' => $status, 'message' => $message];
+    }
+
     protected function guard(): void
     {
         if (!AiEngineSettings::isEnabled()) {

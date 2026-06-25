@@ -248,7 +248,14 @@
                 @endif
                 <input type="password" name="whisper_api_key" placeholder="{{ $hasWhisperKey ? 'Replace key…' : 'sk-…' }}" autocomplete="new-password"
                        class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
-                <p class="text-white/40 text-[11px] mt-1">Falls back to the main OpenAI key when blank.</p>
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                    <button type="button" onclick="testVoiceKey(this, 'whisper')"
+                            class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-lg text-xs font-medium">
+                        <i class="fas fa-plug mr-1"></i> Test
+                    </button>
+                    <span id="whisper-test-result" class="text-xs text-white/50"></span>
+                </div>
+                <p class="text-white/40 text-[11px] mt-1">Falls back to the main OpenAI key when blank. Test lists OpenAI models to validate the key — no coins charged.</p>
             </div>
             <div>
                 <label class="text-white/70 text-xs">Whisper model</label>
@@ -271,6 +278,14 @@
                 @endif
                 <input type="password" name="elevenlabs_api_key" placeholder="{{ $hasElevenKey ? 'Replace key…' : 'xi-…' }}" autocomplete="new-password"
                        class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                    <button type="button" onclick="testVoiceKey(this, 'elevenlabs')"
+                            class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-lg text-xs font-medium">
+                        <i class="fas fa-plug mr-1"></i> Test
+                    </button>
+                    <span id="elevenlabs-test-result" class="text-xs text-white/50"></span>
+                </div>
+                <p class="text-white/40 text-[11px] mt-1">Checks the ElevenLabs voices endpoint to validate the key — no coins charged.</p>
             </div>
             <div>
                 <label class="text-white/70 text-xs">ElevenLabs voice id</label>
@@ -348,6 +363,55 @@ async function testOpenAiConnection(btn) {
                 'X-CSRF-TOKEN': tokenField ? tokenField.value : '',
             },
             body: JSON.stringify({ openai_api_key: keyField ? keyField.value : '' }),
+        });
+        const data = await res.json().catch(function () {
+            return { ok: false, message: 'Unexpected response from server.' };
+        });
+        result.className = 'text-xs ' + (data.ok ? 'text-emerald-300' : 'text-red-300');
+        result.innerHTML = '<i class="fas ' + (data.ok ? 'fa-circle-check' : 'fa-circle-xmark') + ' mr-1"></i>';
+        result.appendChild(document.createTextNode(data.message || (data.ok ? 'Connection OK.' : 'Connection failed.')));
+    } catch (e) {
+        result.className = 'text-xs text-red-300';
+        result.textContent = 'Request failed: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+const VOICE_KEY_TESTS = {
+    whisper: {
+        url: @json(route('admin.ai-engine.test-whisper')),
+        field: 'whisper_api_key',
+        result: 'whisper-test-result',
+    },
+    elevenlabs: {
+        url: @json(route('admin.ai-engine.test-elevenlabs')),
+        field: 'elevenlabs_api_key',
+        result: 'elevenlabs-test-result',
+    },
+};
+
+async function testVoiceKey(btn, which) {
+    const cfg = VOICE_KEY_TESTS[which];
+    if (!cfg) return;
+    const result = document.getElementById(cfg.result);
+    if (!result) return;
+    const keyField = document.querySelector('input[name="' + cfg.field + '"]');
+    const tokenField = document.querySelector('input[name="_token"]');
+    result.className = 'text-xs text-white/50';
+    result.textContent = 'Testing…';
+    btn.disabled = true;
+    try {
+        const body = {};
+        body[cfg.field] = keyField ? keyField.value : '';
+        const res = await fetch(cfg.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': tokenField ? tokenField.value : '',
+            },
+            body: JSON.stringify(body),
         });
         const data = await res.json().catch(function () {
             return { ok: false, message: 'Unexpected response from server.' };
