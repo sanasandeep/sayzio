@@ -24,6 +24,7 @@ class GatewaySettingsController extends Controller
             'stripe'   => ['publishable_key', 'secret_key', 'webhook_secret'],
             'paypal'   => ['client_id', 'client_secret', 'webhook_id'],
             'cashfree' => ['app_id', 'secret_key', 'webhook_secret'],
+            'payumoney'=> ['merchant_key', 'salt'],
             'offline'  => ['payee_name', 'bank_details', 'upi_id', 'instructions'],
             default    => [],
         };

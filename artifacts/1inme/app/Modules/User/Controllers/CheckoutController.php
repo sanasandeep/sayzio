@@ -99,7 +99,7 @@ class CheckoutController extends Controller
     public function handoff(Request $request, GatewayManager $gm)
     {
         $data = $request->validate([
-            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,offline',
+            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,payumoney,offline',
             'plan_id' => 'required|integer|exists:plans,id',
             'cycle'   => 'required|in:monthly,annual',
             'addons'  => 'array',

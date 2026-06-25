@@ -27,6 +27,14 @@ Route::post('/webhooks/carbon/{provider}', [\App\Modules\Common\Controllers\Carb
     ->where('provider', '[a-z0-9_-]+')
     ->name('webhooks.carbon');
 
+// PayU posts the buyer's browser back to this success/failure URL
+// (surl/furl) with the signed transaction result. We run the canonical
+// webhook pipeline (signature verify + activation, idempotent) and then
+// redirect the buyer to their billing page. Declared BEFORE the generic
+// catch-all so the two-segment path is not swallowed by `{gateway}`.
+Route::post('/webhooks/payumoney/return', [WebhookController::class, 'payumoneyReturn'])
+    ->name('webhooks.payumoney.return');
+
 Route::post('/webhooks/{gateway}', [WebhookController::class, 'handle'])
     ->where('gateway', '[a-z0-9_-]+')
     ->name('webhooks.handle');

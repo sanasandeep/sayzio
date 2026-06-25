@@ -92,7 +92,7 @@ class WalletController extends Controller
         if (!WalletService::isEnabled()) return $this->err('Wallet is disabled.', 404);
         $data = $request->validate([
             'coin_package_id' => 'required|integer|exists:coin_packages,id',
-            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,offline',
+            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,payumoney,offline',
         ]);
         $user = $request->user();
         $package = CoinPackage::active()->findOrFail($data['coin_package_id']);

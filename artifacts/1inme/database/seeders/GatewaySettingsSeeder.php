@@ -15,6 +15,7 @@ class GatewaySettingsSeeder extends Seeder
             'stripe'   => 'Stripe',
             'paypal'   => 'PayPal',
             'cashfree' => 'Cashfree',
+            'payumoney'=> 'PayUMoney',
             'offline'  => 'Pay manually (bank transfer / UPI)',
         ];
         $i = 0;

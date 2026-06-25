@@ -120,7 +120,7 @@ class BillingController extends Controller
     {
         $data = $request->validate([
             'plan_id' => 'required|integer|exists:plans,id',
-            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,offline',
+            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,payumoney,offline',
         ]);
         $user = $request->user();
         $current = $this->activeSubscription($user);

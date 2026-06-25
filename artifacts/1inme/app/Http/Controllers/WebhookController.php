@@ -111,6 +111,60 @@ class WebhookController extends Controller
     }
 
     /**
+     * PayU success/failure return (surl/furl). PayU POSTs the buyer's
+     * browser here with the signed transaction result. We process it
+     * through the same idempotent pipeline as the server-to-server
+     * webhook, then redirect the buyer to their billing page so they
+     * never see a raw JSON response.
+     *
+     * The buyer-facing outcome is derived from what the pipeline
+     * actually accepted, NOT from the raw posted `status`: we only show
+     * a "paid" state when handle() returns HTTP 200 for a success event
+     * (verified signature + activated). A forged/unverified POST, a
+     * verified failure, or a post-charge activation error never shows
+     * the buyer a false paid state.
+     *
+     * Note: this browser return only fires if PayU can redirect the
+     * buyer back. If the buyer abandons the browser, the merchant's
+     * server-to-server webhook (`/webhooks/payumoney`) is the resilient
+     * fulfilment path — both share this same pipeline.
+     */
+    public function payumoneyReturn(Request $request, GatewayManager $gm, ActivateSubscription $activator)
+    {
+        $outcome = 'failed';
+        try {
+            $response = $this->handle('payumoney', $request, $gm, $activator);
+            $status   = strtolower((string) $request->input('status', ''));
+            // handle() returns 200 for both payment.succeeded and
+            // payment.failed; pair it with the posted status to tell them
+            // apart. Any non-200 (bad signature, unknown invoice, review)
+            // is not a paid state.
+            $outcome = ($response->getStatusCode() === 200 && $status === 'success')
+                ? 'paid'
+                : 'failed';
+        } catch (\Throwable $e) {
+            // The charge may have succeeded but post-payment activation
+            // threw — handle() already fired a critical ops alert before
+            // re-throwing. Don't claim paid OR failed; land the buyer on
+            // a neutral billing page while the team reconciles.
+            Log::warning('PayU return processing failed', [
+                'txnid' => (string) $request->input('txnid', ''),
+                'error' => $e->getMessage(),
+            ]);
+            return redirect('/user/billing');
+        }
+
+        $txnid  = (string) $request->input('txnid', '');
+        $number = '';
+        if (preg_match('/^inv(\d+)x/', $txnid, $m)) {
+            $number = (string) (Invoice::find((int) $m[1])?->number ?? '');
+        }
+
+        $query = $number !== '' ? ('=' . urlencode($number)) : '';
+        return redirect('/user/billing?' . $outcome . $query);
+    }
+
+    /**
      * Best-effort team alert when a confirmed payment fails to activate.
      * Wrapped so a dead webhook can never mask the underlying error we're
      * about to re-throw.

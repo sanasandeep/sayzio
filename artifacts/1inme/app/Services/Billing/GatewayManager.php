@@ -6,6 +6,7 @@ use App\Modules\Admin\Models\GatewaySetting;
 use App\Services\Billing\Adapters\CashfreeAdapter;
 use App\Services\Billing\Adapters\OfflineAdapter;
 use App\Services\Billing\Adapters\PaypalAdapter;
+use App\Services\Billing\Adapters\PayuAdapter;
 use App\Services\Billing\Adapters\RazorpayAdapter;
 use App\Services\Billing\Adapters\StripeAdapter;
 use App\Services\Billing\Contracts\GatewayAdapter;
@@ -22,11 +23,12 @@ class GatewayManager
 {
     /** @var array<string,class-string<GatewayAdapter>> */
     public const MAP = [
-        'razorpay' => RazorpayAdapter::class,
-        'stripe'   => StripeAdapter::class,
-        'paypal'   => PaypalAdapter::class,
-        'cashfree' => CashfreeAdapter::class,
-        'offline'  => OfflineAdapter::class,
+        'razorpay'  => RazorpayAdapter::class,
+        'stripe'    => StripeAdapter::class,
+        'paypal'    => PaypalAdapter::class,
+        'cashfree'  => CashfreeAdapter::class,
+        'payumoney' => PayuAdapter::class,
+        'offline'   => OfflineAdapter::class,
     ];
 
     public function for(string $slug): GatewayAdapter
