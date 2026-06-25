@@ -19,6 +19,15 @@ type Geometry = {
   paddingBottom: number;
   footerBottomAbs: number;
   docHeight: number;
+  /**
+   * The reserve the production code actually writes is capped at half the
+   * viewport: `min(ceil(promptHeight), reserveCap)` (see updateFooterReserve in
+   * cookie-consent.blade.php). Capturing the cap here lets the expansion test
+   * assert against the *real* target instead of the raw prompt height — when
+   * the expanded prompt sits near the cap, the reserve never reaches
+   * `ceil(promptHeight)` and an uncapped wait/assert flakes.
+   */
+  reserveCap: number;
 };
 
 async function readGeometry(page: Page): Promise<Geometry> {
@@ -34,8 +43,14 @@ async function readGeometry(page: Page): Promise<Geometry> {
       ),
       footerBottomAbs: footerRect ? footerRect.bottom + window.scrollY : 0,
       docHeight: document.documentElement.scrollHeight,
+      reserveCap: Math.max(0, Math.round(window.innerHeight * 0.5)),
     };
   });
+}
+
+/** The reserve the page writes for a given prompt height (capped, ceil'd). */
+function reserveTarget(g: Geometry): number {
+  return Math.min(Math.ceil(g.promptHeight), g.reserveCap);
 }
 
 /** Wait until the bottom-pinned banner is mounted and its reserve has settled. */
@@ -47,8 +62,10 @@ async function waitForReserveSettled(page: Page): Promise<void> {
     const host = document.querySelector(".cc-host");
     if (!host) return false;
     const h = host.getBoundingClientRect().height;
+    const cap = Math.max(0, Math.round(window.innerHeight * 0.5));
+    const target = Math.min(Math.ceil(h), cap);
     const pad = parseFloat(getComputedStyle(document.body).paddingBottom || "0");
-    return h > 0 && Math.abs(pad - Math.ceil(h)) <= 2;
+    return h > 0 && Math.abs(pad - target) <= 2;
   });
 }
 
@@ -90,28 +107,35 @@ test.describe("cookie consent — footer reserve invariant", () => {
     await page.locator('.cc-host [data-act="customize"]').click();
     await expect(page.locator(".cc-host .cc-cats")).toBeVisible();
 
-    // Reserve re-measures after the prompt grows; wait for it to catch up.
+    // Reserve re-measures after the prompt grows; wait for it to catch up. The
+    // page writes `min(ceil(h), innerHeight*0.5)`, so wait for the padding to
+    // reach that capped *target* — not raw `ceil(h)`, which the reserve never
+    // reaches once the expanded prompt approaches the cap (the old flake).
     await page.waitForFunction((prev) => {
       const host = document.querySelector(".cc-host");
       if (!host) return false;
       const h = host.getBoundingClientRect().height;
+      const cap = Math.max(0, Math.round(window.innerHeight * 0.5));
+      const target = Math.min(Math.ceil(h), cap);
       const pad = parseFloat(
         getComputedStyle(document.body).paddingBottom || "0",
       );
-      return h > prev && Math.abs(pad - Math.ceil(h)) <= 2;
+      return h > prev && Math.abs(pad - target) <= 2;
     }, collapsed.promptHeight);
 
     const expanded = await readGeometry(page);
+    const expandedTarget = reserveTarget(expanded);
 
     // Prompt genuinely grew once the categories are visible…
     expect(expanded.promptHeight).toBeGreaterThan(collapsed.promptHeight);
-    // …and the reserve grew in lockstep to match the new visible height.
+    // …and the reserve grew in lockstep to match the new visible height
+    // (capped at half the viewport, matching the production formula).
     expect(
-      Math.abs(expanded.paddingBottom - expanded.promptHeight),
+      Math.abs(expanded.paddingBottom - expandedTarget),
     ).toBeLessThanOrEqual(2);
-    // Footer still sits clear of the (now taller) card.
+    // Footer still sits clear of the (now taller) card by the actual reserve.
     expect(expanded.docHeight - expanded.footerBottomAbs).toBeGreaterThanOrEqual(
-      expanded.promptHeight - 2,
+      expandedTarget - 2,
     );
   });
 

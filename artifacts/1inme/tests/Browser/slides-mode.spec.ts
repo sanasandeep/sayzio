@@ -21,6 +21,11 @@ const ARTIFACT_ROOT = path.resolve(
  * alias exists (the helper exits early with EXISTS).
  */
 function seedSlidesBiolink(): void {
+  // NOTE: this string is passed straight to `tinker --execute=`. In a JS
+  // template literal, `\\` becomes the single backslash PHP namespaces need
+  // (e.g. App\Modules\...), while `$var` stays literal (only `${...}` would
+  // interpolate). Do NOT write `\\$` — that yields invalid `\$var` PHP, which
+  // is what intermittently tripped the psysh / PHP 8.4 ParseErrorException.
   const php = `
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\Link;
@@ -32,45 +37,45 @@ use App\\Modules\\User\\Services\\WorkspaceContext;
 use Illuminate\\Support\\Str;
 use Illuminate\\Support\\Facades\\Hash;
 
-\\$alias = '${ALIAS}';
-\\$bio = Link::withoutGlobalScope('workspace')->where('alias', \\$alias)->first();
-if (\\$bio) {
-  \\$deckExists = LinkSlideDeck::withoutGlobalScope('workspace')
-    ->where('link_id', \\$bio->id)->where('is_published', true)->exists();
-  if (\\$deckExists) { echo 'OK_EXISTS'; return; }
+$alias = '${ALIAS}';
+$bio = Link::withoutGlobalScope('workspace')->where('alias', $alias)->first();
+if ($bio) {
+  $deckExists = LinkSlideDeck::withoutGlobalScope('workspace')
+    ->where('link_id', $bio->id)->where('is_published', true)->exists();
+  if ($deckExists) { echo 'OK_EXISTS'; return; }
 }
 
-if (!\\$bio) {
-  \\$u = User::create([
+if (!$bio) {
+  $u = User::create([
     'name' => 'Slides E2E', 'email' => 'slides-e2e+'.Str::random(4).'@ex.com',
     'password' => Hash::make('x'), 'status' => 'active',
   ]);
-  \\$ws = app(WorkspaceContext::class)->resolve(\\$u);
-  \\$bio = Link::create([
-    'user_id' => \\$u->id, 'workspace_id' => \\$ws?->id, 'type' => 'biolink',
-    'alias' => \\$alias, 'title' => 'E2E Slides Demo', 'is_active' => true,
+  $ws = app(WorkspaceContext::class)->resolve($u);
+  $bio = Link::create([
+    'user_id' => $u->id, 'workspace_id' => $ws?->id, 'type' => 'biolink',
+    'alias' => $alias, 'title' => 'E2E Slides Demo', 'is_active' => true,
     'settings' => ['biolink' => ['mode' => 'slides']],
   ]);
 }
 
-\\$blocks = BiolinkBlock::where('link_id', \\$bio->id)->orderBy('sort_order')->get();
-if (\\$blocks->count() < 2) {
-  BiolinkBlock::create(['link_id'=>\\$bio->id,'workspace_id'=>\\$bio->workspace_id,'type'=>'paragraph','sort_order'=>0,'is_active'=>true,'settings'=>['text'=>'AAA-first-slide-body']]);
-  BiolinkBlock::create(['link_id'=>\\$bio->id,'workspace_id'=>\\$bio->workspace_id,'type'=>'paragraph','sort_order'=>1,'is_active'=>true,'settings'=>['text'=>'BBB-second-slide-body']]);
-  \\$blocks = BiolinkBlock::where('link_id', \\$bio->id)->orderBy('sort_order')->get();
+$blocks = BiolinkBlock::where('link_id', $bio->id)->orderBy('sort_order')->get();
+if ($blocks->count() < 2) {
+  BiolinkBlock::create(['link_id'=>$bio->id,'workspace_id'=>$bio->workspace_id,'type'=>'paragraph','sort_order'=>0,'is_active'=>true,'settings'=>['text'=>'AAA-first-slide-body']]);
+  BiolinkBlock::create(['link_id'=>$bio->id,'workspace_id'=>$bio->workspace_id,'type'=>'paragraph','sort_order'=>1,'is_active'=>true,'settings'=>['text'=>'BBB-second-slide-body']]);
+  $blocks = BiolinkBlock::where('link_id', $bio->id)->orderBy('sort_order')->get();
 }
-\\$b1 = \\$blocks[0]; \\$b2 = \\$blocks[1];
+$b1 = $blocks[0]; $b2 = $blocks[1];
 
-\\$deck = LinkSlideDeck::create([
-  'link_id' => \\$bio->id, 'workspace_id' => \\$bio->workspace_id,
+$deck = LinkSlideDeck::create([
+  'link_id' => $bio->id, 'workspace_id' => $bio->workspace_id,
   'version' => 1, 'is_published' => true,
   'settings' => ['theme' => ['background' => '#0f172a', 'accent' => '#8b5cf6', 'text' => '#f8fafc'], 'transition' => 'slide', 'auto_advance' => 0, 'loop' => false],
 ]);
-LinkSlide::create(['deck_id'=>\\$deck->id,'sort_order'=>0,'title'=>'AAA-First-Slide','block_ids'=>[\\$b1->id],'background'=>['type'=>'color','color'=>'#0f172a'],'animation'=>['enter'=>'fade','duration_ms'=>400],'transition'=>'slide','settings'=>[]]);
-LinkSlide::create(['deck_id'=>\\$deck->id,'sort_order'=>1,'title'=>'BBB-Second-Slide','block_ids'=>[\\$b2->id],'background'=>['type'=>'color','color'=>'#0f172a'],'animation'=>['enter'=>'fade','duration_ms'=>400],'transition'=>'slide','settings'=>[]]);
-\\$deck->load('slides');
-\\$deck->published_snapshot = SlideDeckController::buildSnapshot(\\$deck, \\$bio);
-\\$deck->save();
+LinkSlide::create(['deck_id'=>$deck->id,'sort_order'=>0,'title'=>'AAA-First-Slide','block_ids'=>[$b1->id],'background'=>['type'=>'color','color'=>'#0f172a'],'animation'=>['enter'=>'fade','duration_ms'=>400],'transition'=>'slide','settings'=>[]]);
+LinkSlide::create(['deck_id'=>$deck->id,'sort_order'=>1,'title'=>'BBB-Second-Slide','block_ids'=>[$b2->id],'background'=>['type'=>'color','color'=>'#0f172a'],'animation'=>['enter'=>'fade','duration_ms'=>400],'transition'=>'slide','settings'=>[]]);
+$deck->load('slides');
+$deck->published_snapshot = SlideDeckController::buildSnapshot($deck, $bio);
+$deck->save();
 echo 'OK_CREATED';
 `.trim();
 

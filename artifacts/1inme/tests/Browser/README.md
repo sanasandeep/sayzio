@@ -45,7 +45,9 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   cookie-consent-footer-gap.spec.ts \
   cookie-consent-layout-styles.spec.ts \
   cookie-consent-theme-match.spec.ts \
-  voice-assistant-bridge.spec.ts
+  voice-assistant-bridge.spec.ts \
+  slides-mode.spec.ts \
+  cookie-consent-footer-reserve.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -97,7 +99,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these seven specs are gated (and not the whole suite)
+### Why these nine specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -139,23 +141,27 @@ The gate covers the specs that run reliably as an unattended check here:
   reaching its surface (the header search box fills with the spoken query and
   navigates to the results). All tests share one logged-in context (the
   `demo-login` route is rate-limited).
-
-The remaining specs are still NOT gated because, in this environment, they
-fail or flake for reasons unrelated to the code under test:
-
-- `slides-mode.spec.ts` — its `php artisan tinker` seed intermittently
-  trips a psysh / PHP 8.4 `ParseErrorException` parse error, so the seed
-  (not the assertion) fails. Runs fine when tinker behaves.
-- `cookie-consent-footer-reserve.spec.ts` — two of its three tests pass,
-  but the "Customize" expansion test's reserve-settle wait does not
-  reliably converge here.
+- `slides-mode.spec.ts` — self-bootstrapping: it seeds a published 2-slide
+  biolink via `php artisan tinker` and asserts both slides render, advance on
+  keyboard + swipe, and ping the inline tracker. Its seed used to trip a
+  psysh / PHP 8.4 `ParseErrorException` because the tinker payload was written
+  with `\\$var` (which yields invalid `\$var` PHP); it now uses the same plain
+  `$var` convention as the other tinker-seeded specs, so the parse error is
+  gone and it runs reliably.
+- `cookie-consent-footer-reserve.spec.ts` — pins the footer-reserve invariant
+  on `/contact` for a first-time visitor, after the in-place "Customize"
+  expansion, and for a returning visitor (no banner, no reserve). The
+  "Customize" test's reserve-settle wait now compares the body padding against
+  the *capped* target the page actually writes (`min(ceil(h), innerHeight*0.5)`)
+  instead of raw `ceil(h)`, so it converges reliably when the expanded prompt
+  sits near the half-viewport cap. No login/seeding.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the six gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the nine gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
