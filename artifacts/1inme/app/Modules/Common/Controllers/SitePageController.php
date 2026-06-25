@@ -27,7 +27,7 @@ class SitePageController extends Controller
                 ['slug' => 'features'],
                 [
                     'title' => 'Features',
-                    'meta_description' => 'A complete tour of every capability inside 1INME — all 10 link types (short links, biolinks, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), plus QR codes, analytics, inboxes, teams, billing, and more.',
+                    'meta_description' => 'A complete tour of every capability inside 1INME — all 10 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), plus QR codes, analytics, inboxes, teams, billing, and more.',
                     'sections' => SitePagesContent::featuresCategoriesDefault(),
                 ]
             );
@@ -242,7 +242,7 @@ class SitePageController extends Controller
             'seoKey'           => 'demos',
             'cards'            => $cards,
             'shareTitle'       => 'See what you can build with 1INME',
-            'shareDescription' => 'A live gallery of every kind of link 1INME can create — short links, biolinks, conversational pages, slides, AI chatbots, restaurant menus, file shares, events, contact cards and reviews pages.',
+            'shareDescription' => 'A live gallery of every kind of link 1INME can create — short links, Link in Bio pages, conversational pages, slides, AI chatbots, restaurant menus, file shares, events, contact cards and reviews pages.',
         ]);
     }
 
@@ -261,7 +261,7 @@ class SitePageController extends Controller
             'shareTitle'       => 'Compare 1INME vs Linktree, Beacons, Bitly & more',
             'shareDescription' => 'See how 1INME stacks up against the tools you already use across '
                 . ComparisonContent::totalFeatures()
-                . ' features — biolinks, short links, QR codes, analytics, monetisation and more.',
+                . ' features — Link in Bio pages, short links, QR codes, analytics, monetisation and more.',
         ]);
     }
 

@@ -177,7 +177,7 @@
     @endif
 
     <a href="{{ $biolinkUrl }}?source=ar" class="ar-cta" style="background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);">
-        Open full biolink
+        Open full Link in Bio
     </a>
 
     @if($blocks->isNotEmpty())
@@ -206,7 +206,7 @@
     <div id="toast" class="toast" hidden></div>
 
     <div class="footer">
-        Powered by <a href="{{ url('/') }}">1INME</a> · AR experiences for biolinks
+        Powered by <a href="{{ url('/') }}">1INME</a> · AR experiences for Link in Bio pages
     </div>
 </div>
 
@@ -249,7 +249,7 @@
     function fallbackToBiolink(reason) {
         if (previewMode) {
             badge.textContent = '3D preview';
-            showToast("Preview mode — this browser can't open AR. Visitors would be sent to the biolink.");
+            showToast("Preview mode — this browser can't open AR. Visitors would be sent to the Link in Bio.");
             return;
         }
         // Server-rendered <noscript> link is a parallel safety net; this is

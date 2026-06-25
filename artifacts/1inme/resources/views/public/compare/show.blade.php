@@ -137,7 +137,7 @@
                         $steps = [
                             ['icon' => 'fa-user-plus', 'title' => 'Create your free 1INME', 'body' => 'Sign up with an email or phone number — no credit card, no trial clock.'],
                             ['icon' => 'fa-arrows-rotate', 'title' => 'Rebuild or import your links', 'body' => 'Recreate your page with drag-and-drop blocks, or bulk-import your existing links.'],
-                            ['icon' => 'fa-share-nodes', 'title' => 'Point your link & go live', 'body' => 'Aim your custom domain or bio link at 1INME — your audience never notices the move.'],
+                            ['icon' => 'fa-share-nodes', 'title' => 'Point your link & go live', 'body' => 'Aim your custom domain or Link in Bio at 1INME — your audience never notices the move.'],
                         ];
                     @endphp
                     @foreach($steps as $i => $s)

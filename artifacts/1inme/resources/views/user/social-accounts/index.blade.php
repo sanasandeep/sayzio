@@ -25,7 +25,7 @@
 <div class="max-w-5xl mx-auto" x-data="{ tab: '{{ array_key_first($platforms) }}' }">
     @include('user.partials.page-hero', [
         'title'    => 'Connected Accounts',
-        'subtitle' => 'Link your social profiles so biolink Follow buttons can show live follower counts. Counts refresh every few hours in the background.',
+        'subtitle' => 'Link your social profiles so Link in Bio Follow buttons can show live follower counts. Counts refresh every few hours in the background.',
         'icon'     => 'fa-share-nodes',
         'chips'    => $hero_chips,
     ])

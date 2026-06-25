@@ -132,7 +132,7 @@ export default function FollowersScreen() {
               title={tab === "followers" ? "No followers yet" : "Not following anyone"}
               body={
                 tab === "followers"
-                  ? "Share your biolink to grow your audience."
+                  ? "Share your Link in Bio to grow your audience."
                   : "Find creators to follow on 1INME."
               }
             />

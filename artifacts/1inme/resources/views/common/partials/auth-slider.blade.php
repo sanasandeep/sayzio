@@ -18,7 +18,7 @@
             'icon'     => 'fas fa-camera',
             'accent'   => '#a78bfa',
             'bullets'  => [
-                'One bio link for TikTok, Reels and YouTube',
+                'One Link in Bio for TikTok, Reels and YouTube',
                 'Drop merch, presets and digital products',
                 'Collect tips and paid DMs',
                 'See which posts drive the most clicks',
@@ -84,7 +84,7 @@
             'accent'   => '#818cf8',
             'bullets'  => [
                 'Workspaces with owner, admin, editor, viewer roles',
-                'White-label biolinks on your own domain',
+                'White-label Link in Bio pages on your own domain',
                 'Bulk-create short links from CSV',
                 'Audit logs and exportable analytics',
             ],

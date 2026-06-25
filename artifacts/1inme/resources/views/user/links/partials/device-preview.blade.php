@@ -547,7 +547,7 @@
     <div id="previewPopoutStage" class="preview-popout-stage">
         <div id="previewPopoutFrame" class="preview-popout-frame">
             <div id="previewPopoutScreen" class="device-screen" style="background:#000; overflow:hidden; position:relative;">
-                <iframe id="previewPopoutIframe" title="Full-screen biolink preview"></iframe>
+                <iframe id="previewPopoutIframe" title="Full-screen Link in Bio preview"></iframe>
                 <div class="preview-expired-banner">
                     <div class="preview-expired-title">Preview session expired</div>
                     <div class="preview-expired-msg">Your editor has been open for a while. Reload to refresh the preview.</div>

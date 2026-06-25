@@ -19,7 +19,7 @@
     <div class="card">
         <div class="icon">🚫</div>
         <h1>This page is currently unavailable</h1>
-        <p>Our team has temporarily removed this biolink while we review reports about its content.</p>
+        <p>Our team has temporarily removed this Link in Bio while we review reports about its content.</p>
     </div>
 </body>
 </html>

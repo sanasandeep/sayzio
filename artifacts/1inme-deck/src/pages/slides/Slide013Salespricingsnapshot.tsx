@@ -16,7 +16,7 @@ export default function Slide013Salespricingsnapshot() {
             <div className="flex items-center justify-between"><div className="font-display text-[1.5vw] font-semibold ">Free</div></div>
             <div className="mt-[0.5vh] font-display text-[2.8vw] font-bold leading-none">$0</div>
             <div className="text-[0.95vw] text-slate-400">forever</div>
-            <div className="mt-[2vh] flex flex-col gap-[0.5vh] text-[0.95vw] text-slate-200"><div>&middot; 1 biolink</div><div>&middot; 5 short links</div><div>&middot; Basic AI Coach</div><div>&middot; Vault: 25 secrets</div></div>
+            <div className="mt-[2vh] flex flex-col gap-[0.5vh] text-[0.95vw] text-slate-200"><div>&middot; 1 Link in Bio</div><div>&middot; 5 short links</div><div>&middot; Basic AI Coach</div><div>&middot; Vault: 25 secrets</div></div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">
             <div className="flex items-center justify-between"><div className="font-display text-[1.5vw] font-semibold ">Pro</div></div>

@@ -608,7 +608,7 @@
         <section id="sec-blocks" class="glass rounded-2xl border border-white/10 p-6"
                  x-bind:class="modules['module_biolinks'] ? '' : 'opacity-50'">
             <header class="mb-4">
-                <h2 class="text-base font-semibold text-white">Biolink block allowlist</h2>
+                <h2 class="text-base font-semibold text-white">Link in Bio block allowlist</h2>
                 <p class="text-xs text-white/40">Which block types users on this plan can drop into their Link in Bio pages.</p>
             </header>
             <div class="flex items-center gap-6 mb-4">

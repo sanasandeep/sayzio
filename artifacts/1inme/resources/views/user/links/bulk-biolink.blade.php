@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'Bulk Create Biolink Pages')
+@section('title', 'Bulk Create Link in Bio Pages')
 
 @section('content')
 <div class="max-w-4xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.create') }}" class="text-white/30 hover:text-white transition-colors" title="Back"><i class="fas fa-arrow-left"></i></a>
         <div>
-            <h1 class="text-2xl font-bold text-white">Bulk Create Biolink Pages</h1>
+            <h1 class="text-2xl font-bold text-white">Bulk Create Link in Bio Pages</h1>
             <p class="text-xs text-white/40 mt-0.5">Mail-merge a master page with a sheet of data — one personalized biolink per row.</p>
         </div>
     </div>

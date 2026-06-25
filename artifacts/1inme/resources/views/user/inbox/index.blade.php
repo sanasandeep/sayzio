@@ -79,7 +79,7 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style="color: var(--text-faint);">Specific biolink</label>
+                    <label class="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style="color: var(--text-faint);">Specific Link in Bio</label>
                     <select name="link_id" class="w-full px-2 py-1.5 rounded-lg text-xs"
                             style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                         <option value="">Any link</option>

@@ -202,7 +202,7 @@
                 @if(!empty($approvalEnabled) && empty($userIsApprover))
                     A reviewer will need to approve before this goes live. They'll see your title, body, image and schedule.
                 @else
-                    Leave the schedule field empty to publish immediately. Pinned posts appear at the top of your followers' feeds and on your biolink.
+                    Leave the schedule field empty to publish immediately. Pinned posts appear at the top of your followers' feeds and on your Link in Bio.
                 @endif
             </p>
         </form>

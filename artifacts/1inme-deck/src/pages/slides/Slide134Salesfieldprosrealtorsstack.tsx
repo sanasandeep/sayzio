@@ -20,7 +20,7 @@ export default function Slide134Salesfieldprosrealtorsstack() {
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">
             <div className="text-[0.85vw] uppercase tracking-[0.25em] text-fuchsia-200">Module</div>
-            <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">Bio Links (listings)</div>
+            <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">Link in Bio (listings)</div>
             
             
           </div>

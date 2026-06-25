@@ -42,7 +42,7 @@
         @csrf
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">Workspace defaults</h2>
-            <span class="text-xs" style="color: var(--text-muted);">Applied to new biolinks unless overridden.</span>
+            <span class="text-xs" style="color: var(--text-muted);">Applied to new Link in Bio pages unless overridden.</span>
         </div>
         <div class="grid sm:grid-cols-4 gap-4">
             <label class="flex items-center gap-2 text-sm">
@@ -62,7 +62,7 @@
             </label>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="badge_visible" value="1" @checked($workspaceDefaults['badge_visible'])>
-                Show badge on biolinks
+                Show badge on Link in Bio pages
             </label>
         </div>
         <button class="px-4 py-2 rounded bg-emerald-600 text-white text-sm">Save defaults</button>
@@ -70,13 +70,13 @@
 
     <div class="rounded-xl border overflow-hidden" style="background: var(--bg-card); border-color: var(--border-glass);">
         <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color: var(--border-glass);">
-            <h2 class="text-lg font-semibold">Per-biolink footprint</h2>
+            <h2 class="text-lg font-semibold">Footprint per Link in Bio</h2>
             <span class="text-xs" style="color: var(--text-muted);">Last 12 monthly snapshots</span>
         </div>
         <table class="w-full text-sm">
             <thead class="text-xs uppercase" style="background: var(--bg-glass); color: var(--text-muted);">
                 <tr>
-                    <th class="px-5 py-2 text-left">Biolink</th>
+                    <th class="px-5 py-2 text-left">Link in Bio</th>
                     <th class="px-5 py-2 text-right">Page views</th>
                     <th class="px-5 py-2 text-right">CO₂ (g)</th>
                     <th class="px-5 py-2 text-right">Offset (g)</th>

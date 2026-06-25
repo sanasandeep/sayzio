@@ -18,7 +18,7 @@ class AiMindFeatureAdapter
 {
     /** Whitelist of selectable features + human labels. */
     public const FEATURES = [
-        'biolinks'    => 'Biolinks',
+        'biolinks'    => 'Link in Bio',
         'links'       => 'Short Links',
         'analytics'   => 'Analytics',
         'payments'    => 'Payments & Wallet',
@@ -70,8 +70,8 @@ class AiMindFeatureAdapter
             ->latest('updated_at')
             ->limit(20)
             ->get(['id','title','alias','clicks','active','updated_at']);
-        if ($links->isEmpty()) return 'You have no biolinks.';
-        $lines = ["Biolinks ({$links->count()} most-recent):"];
+        if ($links->isEmpty()) return 'You have no Link in Bio pages.';
+        $lines = ["Link in Bio ({$links->count()} most-recent):"];
         foreach ($links as $l) {
             $lines[] = sprintf('- %s (alias %s) — %d clicks, %s',
                 $l->title ?? 'Untitled', $l->alias, (int) $l->clicks,

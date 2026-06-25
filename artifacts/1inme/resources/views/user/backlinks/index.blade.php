@@ -5,7 +5,7 @@
 @php
     $propertyLabels = [
         'short_link'        => 'Short link',
-        'biolink_username'  => 'Bio-link',
+        'biolink_username'  => 'Link in Bio',
         'custom_domain'     => 'Custom domain',
     ];
     $propertyIcons = [

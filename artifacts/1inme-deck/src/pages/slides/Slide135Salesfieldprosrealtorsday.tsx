@@ -19,7 +19,7 @@ export default function Slide135Salesfieldprosrealtorsday() {
           </div>
           <div className="grid grid-cols-12 gap-[1.5vw] items-start">
             <div className="col-span-2 font-display text-[1.6vw] font-bold text-fuchsia-200">11:00</div>
-            <div className="col-span-3 text-[1.05vw] text-slate-400">Bio Links</div>
+            <div className="col-span-3 text-[1.05vw] text-slate-400">Link in Bio</div>
             <div className="col-span-7 text-[1.1vw] text-slate-200 leading-snug">Showcases the listing as the pinned block.</div>
           </div>
           <div className="grid grid-cols-12 gap-[1.5vw] items-start">

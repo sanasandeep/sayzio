@@ -85,7 +85,7 @@ const productGroup: MegaGroup = {
   featured: {
     eyebrow: "What you can create",
     title: `${LINK_TYPE_COUNT}+ link types`,
-    desc: "Short links, biolinks, menus, resumes, QR codes and AI pages — all from one place.",
+    desc: "Short links, Link in Bio pages, menus, resumes, QR codes and AI pages — all from one place.",
     ctaLabel: "Explore features",
     ctaHref: "/features",
   },

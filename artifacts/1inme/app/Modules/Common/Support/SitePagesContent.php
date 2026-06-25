@@ -20,9 +20,9 @@ class SitePagesContent
         return [
             'features' => [
                 'title' => 'Features',
-                'meta_description' => 'Everything you get with 1INME — all 10 link types (short links, biolinks, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
+                'meta_description' => 'Everything you get with 1INME — all 10 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
                 'sections' => [
-                    ['heading' => 'A drag & drop biolink page', 'body' => "Stack blocks for text, images, video, audio, embeds, products, donations and forms. Reorder by dragging, swap themes in a click, and publish a polished page in minutes — no design skills needed."],
+                    ['heading' => 'A drag & drop Link in Bio page', 'body' => "Stack blocks for text, images, video, audio, embeds, products, donations and forms. Reorder by dragging, swap themes in a click, and publish a polished page in minutes — no design skills needed."],
                     ['heading' => 'Branded short links', 'body' => "Turn long URLs into clean, on-brand short links you can repoint at any time. Add UTMs automatically, password-protect sensitive links, expire them on a date or after N clicks, and route visitors by country, device or language."],
                     ['heading' => 'Dynamic QR codes', 'body' => "Every link gets a high-resolution QR code you can style with your logo and colours. Because the destination is editable, the same printed code can be repurposed forever — change the target without reprinting."],
                     ['heading' => 'Live, actionable analytics', 'body' => "See visitors arrive in real time, with country, city, device, referrer and conversion breakdowns. The Performance Coach watches your numbers and surfaces concrete fixes — slow pages, dead blocks, broken links, missing CTAs."],
@@ -36,10 +36,10 @@ class SitePagesContent
                 'title' => 'How it works',
                 'meta_description' => 'Get up and running in minutes — sign up, build your page, share one link everywhere, and let analytics guide your growth.',
                 'sections' => [
-                    ['heading' => '1. Sign up free in under a minute', 'body' => "Create an account with just an email or phone number. No credit card, no trial countdown — the Free plan gives you biolinks, short links and QR codes forever."],
-                    ['heading' => '2. Pick a starting template', 'body' => "Choose from dozens of ready-made biolink templates designed for creators, coaches, freelancers, restaurants, agencies and small businesses. Tweak it or start from a blank canvas."],
+                    ['heading' => '1. Sign up free in under a minute', 'body' => "Create an account with just an email or phone number. No credit card, no trial countdown — the Free plan gives you Link in Bio pages, short links and QR codes forever."],
+                    ['heading' => '2. Pick a starting template', 'body' => "Choose from dozens of ready-made Link in Bio templates designed for creators, coaches, freelancers, restaurants, agencies and small businesses. Tweak it or start from a blank canvas."],
                     ['heading' => '3. Build with drag & drop blocks', 'body' => "Add text, images, video, audio, products, donation buttons, social icons and embeds by dragging them in. Reorder, hide on mobile, schedule when blocks appear, and preview as you build."],
-                    ['heading' => '4. Get one link to share everywhere', 'body' => "Your biolink lives at a friendly URL you can drop into Instagram, TikTok, YouTube, your email signature and printed QR codes. Connect a custom domain on paid plans."],
+                    ['heading' => '4. Get one link to share everywhere', 'body' => "Your Link in Bio lives at a friendly URL you can drop into Instagram, TikTok, YouTube, your email signature and printed QR codes. Connect a custom domain on paid plans."],
                     ['heading' => '5. Capture leads and conversations', 'body' => "Forms, follow buttons and built-in messaging turn visitors into contacts. Everyone you capture lands in your contacts panel ready for tagging, broadcasts or a quick reply."],
                     ['heading' => '6. Watch live analytics roll in', 'body' => "Visitors, clicks, geographies, devices and referrers update in real time. Spot what's working in seconds — and double down on it."],
                     ['heading' => '7. Let the Performance Coach guide you', 'body' => "Your dashboard surfaces a small, prioritised list of fixes — slow images, dead blocks, weak CTAs, broken links — with one-click jumps straight to the field that needs attention."],
@@ -49,7 +49,7 @@ class SitePagesContent
                 'title' => 'About 1INME',
                 'meta_description' => 'We help creators, freelancers, agencies and small businesses turn one link into a complete online presence.',
                 'sections' => [
-                    ['heading' => 'Our mission', 'body' => "One link should do everything: show your work, capture leads, sell, message and tell your story. We started 1INME because juggling ten different tools to do that felt absurd, and the existing biolink tools stopped at a list of buttons."],
+                    ['heading' => 'Our mission', 'body' => "One link should do everything: show your work, capture leads, sell, message and tell your story. We started 1INME because juggling ten different tools to do that felt absurd, and the existing Link in Bio tools stopped at a list of buttons."],
                     ['heading' => 'Built for the people doing the work', 'body' => "We build for creators, coaches, freelancers, agencies and small businesses — the people who don't have a marketing team and need every minute back. Every feature is judged by whether it helps you ship faster and earn more."],
                     ['heading' => 'Opinionated, not bloated', 'body' => "We say no to feature creep. Each addition has to earn its place by making the core loop — capture attention, convert it, follow up — measurably better. If it doesn't, it doesn't ship."],
                     ['heading' => 'Privacy by default', 'body' => "We don't sell your data, we don't run third-party ad trackers on your pages, and we keep analytics aggregated and respectful. Your audience is yours."],
@@ -71,7 +71,7 @@ class SitePagesContent
                 'title' => 'Frequently asked questions',
                 'meta_description' => 'Answers to the most common questions about 1INME, plans, billing, custom domains and getting started.',
                 'sections' => [
-                    ['heading' => 'Quick answers, in one place', 'body' => "We've gathered the questions people ask most often about plans, billing, custom domains, team access and the day-to-day of running your biolink. Browse the list below — and if your question isn't here, our support team is one message away."],
+                    ['heading' => 'Quick answers, in one place', 'body' => "We've gathered the questions people ask most often about plans, billing, custom domains, team access and the day-to-day of running your Link in Bio. Browse the list below — and if your question isn't here, our support team is one message away."],
                 ],
             ],
             'terms' => [
@@ -138,12 +138,12 @@ class SitePagesContent
                 ],
             ],
             'discovery' => [
-                'title' => 'Discover biolinks',
-                'meta_description' => 'Browse public 1INME biolink pages — find creators, brands and businesses sharing their work.',
+                'title' => 'Discover Link in Bio pages',
+                'meta_description' => 'Browse public 1INME Link in Bio pages — find creators, brands and businesses sharing their work.',
                 'sections' => [
-                    ['heading' => 'Find your next favourite link', 'body' => "Browse the latest public biolink pages on 1INME. Search by name, handle or topic, tap any card to open the page, and follow the creators whose work you love so you never miss a new post or drop."],
+                    ['heading' => 'Find your next favourite link', 'body' => "Browse the latest public Link in Bio pages on 1INME. Search by name, handle or topic, tap any card to open the page, and follow the creators whose work you love so you never miss a new post or drop."],
                     ['heading' => 'Curated, not crowded', 'body' => "Only pages whose creators have opted in to be discoverable show up here. That keeps the directory genuine — the people listed actually want new visitors and are actively keeping their pages fresh."],
-                    ['heading' => 'Want to be listed?', 'body' => "Toggle \"Show me in Discover\" from your profile settings and your public biolink will appear here within a few minutes. You stay in control: turn it off any time and you disappear from the directory."],
+                    ['heading' => 'Want to be listed?', 'body' => "Toggle \"Show me in Discover\" from your profile settings and your public Link in Bio will appear here within a few minutes. You stay in control: turn it off any time and you disappear from the directory."],
                 ],
             ],
             'creators-feed' => [
@@ -151,8 +151,8 @@ class SitePagesContent
                 'meta_description' => 'The latest posts from creators on 1INME — updates, drops, news and behind-the-scenes from people building in public.',
                 'sections' => [
                     ['heading' => 'Fresh from the community', 'body' => "See what creators on 1INME are posting right now — product drops, behind-the-scenes notes, announcements and updates from people building their audience here. Scroll, discover and follow your favourites in one tap."],
-                    ['heading' => 'How posts get here', 'body' => "Any creator with a public biolink can publish posts and have them surface in this feed. Pinned posts from staff or partners may appear at the top; everything else is ordered newest-first so you always see what just dropped."],
-                    ['heading' => 'Build your following', 'body' => "Posting from your biolink is the easiest way to keep your audience warm between launches. Visitors can follow you straight from the post and they'll see your next one in their feed."],
+                    ['heading' => 'How posts get here', 'body' => "Any creator with a public Link in Bio can publish posts and have them surface in this feed. Pinned posts from staff or partners may appear at the top; everything else is ordered newest-first so you always see what just dropped."],
+                    ['heading' => 'Build your following', 'body' => "Posting from your Link in Bio is the easiest way to keep your audience warm between launches. Visitors can follow you straight from the post and they'll see your next one in their feed."],
                 ],
             ],
         ];
@@ -169,14 +169,14 @@ class SitePagesContent
     {
         return [
             'features' => [
-                ['heading' => 'Drag & drop biolinks', 'body' => 'Stack blocks for text, images, video, audio and embeds. Reorder by dragging. Pick a theme. Go live.'],
+                ['heading' => 'Drag & drop Link in Bio pages', 'body' => 'Stack blocks for text, images, video, audio and embeds. Reorder by dragging. Pick a theme. Go live.'],
                 ['heading' => 'Short links & QR codes', 'body' => 'Branded short links and dynamic QR codes you can repoint at any time without reprinting.'],
                 ['heading' => 'Live analytics', 'body' => 'See live visitors, geographic heatmaps, click trends and a Performance Coach that suggests fixes.'],
                 ['heading' => 'Forms & contacts', 'body' => 'Embed forms anywhere, capture submissions, and sync contacts to power your dialer and broadcasts.'],
             ],
             'how-it-works' => [
                 ['heading' => '1. Sign up free', 'body' => 'Create an account in under a minute. No credit card needed.'],
-                ['heading' => '2. Build your page', 'body' => 'Drag and drop blocks to design your biolink. Add short links, QR codes, forms and more.'],
+                ['heading' => '2. Build your page', 'body' => 'Drag and drop blocks to design your Link in Bio. Add short links, QR codes, forms and more.'],
                 ['heading' => '3. Share & grow', 'body' => 'Share one URL everywhere. Watch live analytics roll in and let the Performance Coach guide your next move.'],
             ],
             'about' => [
@@ -212,10 +212,10 @@ class SitePagesContent
                 ['heading' => 'Managing cookies', 'body' => 'You can disable non-essential cookies from your browser settings at any time.'],
             ],
             'discovery' => [
-                ['heading' => 'Find your next favourite link', 'body' => 'Browse the latest public biolink pages on 1INME. Search by name, handle or topic and tap any card to open the page.'],
+                ['heading' => 'Find your next favourite link', 'body' => 'Browse the latest public Link in Bio pages on 1INME. Search by name, handle or topic and tap any card to open the page.'],
             ],
             'creators-feed' => [
-                ['heading' => 'Fresh from the community', 'body' => 'See what creators on 1INME are posting right now. Follow your favourites from their biolink page to never miss an update.'],
+                ['heading' => 'Fresh from the community', 'body' => 'See what creators on 1INME are posting right now. Follow your favourites from their Link in Bio page to never miss an update.'],
             ],
         ];
     }
@@ -501,12 +501,12 @@ class SitePagesContent
         return [
             'ai-chatbot' => [
                 'title' => 'AI Chatbot',
-                'meta_description' => 'Drop a 24/7 AI chatbot onto your biolink that answers visitor questions in your voice, captures leads and books calls — no scripts to write.',
+                'meta_description' => 'Drop a 24/7 AI chatbot onto your Link in Bio that answers visitor questions in your voice, captures leads and books calls — no scripts to write.',
                 'cta_label' => 'Add an AI chatbot to my page',
                 'cta_url' => '/register',
                 'sections' => [
                     ['heading' => 'Always on, always on-brand', 'body' => 'A trained AI chatbot greets every visitor, answers in your tone, and never logs off. Train it on your bio, your FAQs, your products and your past replies — and it stays in character on every conversation.'],
-                    ['heading' => 'Train it on what you already have', 'body' => 'Point it at your biolink content, paste in your product copy, upload PDFs and link your FAQ page. The chatbot learns from the same source material your audience already trusts, so the answers stay accurate and on-brand.'],
+                    ['heading' => 'Train it on what you already have', 'body' => 'Point it at your Link in Bio content, paste in your product copy, upload PDFs and link your FAQ page. The chatbot learns from the same source material your audience already trusts, so the answers stay accurate and on-brand.'],
                     ['heading' => 'Captures leads while you sleep', 'body' => 'When a visitor shows buying intent, the chatbot asks for the right details — name, email, what they want — and drops them straight into your contacts list, tagged and ready for follow-up.'],
                     ['heading' => 'Books calls without back-and-forth', 'body' => 'Connect a calendar and the chatbot can offer real availability, hand off to your booking link, and confirm by email so visitors leave with a slot, not a maybe.'],
                     ['heading' => 'Hand-off to a human', 'body' => 'When a question is out of scope, the chatbot quietly escalates the thread to your unified inbox so you can take over from where it left off — visitor never has to repeat themselves.'],
@@ -567,14 +567,14 @@ class SitePagesContent
     public static function aiProductFaqs(string $slug): array
     {
         $common = [
-            ['q' => 'Do I need to write any prompts or code?', 'a' => 'No. You point it at your biolink, your site or your inbox, set a tone, and it learns from your existing content. You can refine answers from the dashboard at any time.'],
+            ['q' => 'Do I need to write any prompts or code?', 'a' => 'No. You point it at your Link in Bio, your site or your inbox, set a tone, and it learns from your existing content. You can refine answers from the dashboard at any time.'],
             ['q' => 'What languages does it support?', 'a' => 'Out of the box it understands and replies in 30+ languages and auto-detects what each visitor uses, so you can serve a global audience without setting up separate flows.'],
             ['q' => 'Can I hand off to a human?', 'a' => 'Yes. Every conversation can escalate to your unified inbox the moment a visitor asks for a person, books a call, or hits a topic you mark as human-only.'],
             ['q' => 'How is my plan billed for usage?', 'a' => 'Each plan includes a monthly conversation allowance. If you grow past it, you can top up with credits or upgrade — no surprise charges.'],
         ];
         $extra = [
             'ai-chatbot' => [
-                ['q' => 'Where does the chatbot show up?', 'a' => 'It lives directly on your 1INME biolink as a chat bubble visitors can open from any device — no separate page or login required.'],
+                ['q' => 'Where does the chatbot show up?', 'a' => 'It lives directly on your 1INME Link in Bio as a chat bubble visitors can open from any device — no separate page or login required.'],
             ],
             'ai-agent' => [
                 ['q' => 'What kind of tasks can the agent run?', 'a' => 'Multi-step playbooks like qualifying inbound leads, drafting follow-up sequences, updating contact fields, and scheduling calls — chained together without you in the loop.'],
@@ -618,7 +618,7 @@ class SitePagesContent
                 'accent'   => '#7c3aed',
                 'nav_desc' => 'Monetise your audience from one link',
                 'features' => [
-                    ['label' => 'Drag & drop biolink builder', 'icon' => 'fa-square-share-nodes', 'anchor' => 'cat-biolink'],
+                    ['label' => 'Drag & drop Link in Bio builder', 'icon' => 'fa-square-share-nodes', 'anchor' => 'cat-biolink'],
                     ['label' => 'Live audience analytics',      'icon' => 'fa-chart-line',        'anchor' => 'cat-analytics'],
                     ['label' => 'Followers & creators feed',    'icon' => 'fa-stream',            'anchor' => 'cat-feed'],
                     ['label' => 'Sell products & take tips',     'icon' => 'fa-bag-shopping',      'anchor' => 'cat-biolink'],
@@ -709,7 +709,7 @@ class SitePagesContent
                 'cta_label' => 'Set up my agency workspace',
                 'cta_url' => '/register',
                 'sections' => [
-                    ['heading' => 'A clean workspace for every client', 'body' => "Spin up an isolated workspace per brand or client — its own biolinks, short links, analytics, contacts and billing, fully separated from the rest. Switch between them in a click without logging in and out."],
+                    ['heading' => 'A clean workspace for every client', 'body' => "Spin up an isolated workspace per brand or client — its own Link in Bio pages, short links, analytics, contacts and billing, fully separated from the rest. Switch between them in a click without logging in and out."],
                     ['heading' => 'Invite the team, lock down access', 'body' => "Bring in teammates, freelancers and clients with the right role — Owner, Admin, Editor or Viewer. Decide who can publish pages, repoint links, see contacts or touch billing, and every change is attributed to the person who made it."],
                     ['heading' => 'Reporting clients actually read', 'body' => "Per-link and per-workspace analytics make monthly reporting trivial. Export clean CSVs, show a live map of clicks, and prove the value of every campaign without stitching together five tools."],
                     ['heading' => 'Onboard a client in minutes', 'body' => "One-click social integrations, ready-made templates and bulk link tools get a new client live the same afternoon. Expired tokens reconnect themselves, so you spend time on strategy, not plumbing."],
@@ -771,7 +771,7 @@ class SitePagesContent
     public static function useCaseFaqs(string $slug): array
     {
         $common = [
-            ['q' => 'Is there really a free plan?', 'a' => 'Yes — the Free plan gives you a biolink page, short links and QR codes forever, with no credit card and no trial countdown. Upgrade only when you want custom domains, deeper analytics or the AI suite.'],
+            ['q' => 'Is there really a free plan?', 'a' => 'Yes — the Free plan gives you a Link in Bio page, short links and QR codes forever, with no credit card and no trial countdown. Upgrade only when you want custom domains, deeper analytics or the AI suite.'],
             ['q' => 'Can I use my own domain?', 'a' => 'Yes. On paid plans you can connect a custom domain so your page lives at your own web address instead of a 1inme.com link.'],
             ['q' => 'How long does it take to set up?', 'a' => 'Most people publish a polished page in well under ten minutes. Pick a template, drag in your blocks, and share one link everywhere — no design or coding skills needed.'],
             ['q' => 'Will it work on every device?', 'a' => 'Yes. Every page is mobile-first and renders cleanly in both light and dark mode, on phones, tablets and desktops.'],
@@ -908,9 +908,9 @@ class SitePagesContent
             'id' => 'ai-suite',
             'icon' => 'fa-robot',
             'heading' => 'AI suite',
-            'intro' => 'A set of AI products that plug into your 1INME — a chatbot for your biolink, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.',
+            'intro' => 'A set of AI products that plug into your 1INME — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.',
             'features' => [
-                ['name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your biolink that answers in your voice, captures leads and hands off to a human when needed.', 'link' => '/ai-chatbot'],
+                ['name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your Link in Bio that answers in your voice, captures leads and hands off to a human when needed.', 'link' => '/ai-chatbot'],
                 ['name' => 'AI Agent', 'description' => 'A multi-step agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own.', 'link' => '/ai-agent'],
                 ['name' => 'AI Widget', 'description' => 'Embeddable AI assistant for any website — answers questions, captures leads and routes the hot ones to your unified inbox.', 'link' => '/ai-widget'],
                 ['name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls to your number, qualifies callers and books or routes them — never a missed lead.', 'link' => '/ai-voice-assistant'],
@@ -1038,19 +1038,19 @@ class SitePagesContent
             [
                 'id' => 'biolink',
                 'icon' => 'fa-square-share-nodes',
-                'heading' => 'Biolink & landing page builder',
+                'heading' => 'Link in Bio & landing page builder',
                 'intro' => 'Build a fully-customizable one-link landing page with a guided wizard and a deep block library, organised by sub-type so you only see what you need.',
                 'features' => [
-                    ['name' => 'Guided biolink wizard', 'description' => 'Step-by-step creation flow that helps you pick a layout, profile style, and starting blocks without any design experience.'],
+                    ['name' => 'Guided Link in Bio wizard', 'description' => 'Step-by-step creation flow that helps you pick a layout, profile style, and starting blocks without any design experience.'],
                     ['name' => 'Essentials blocks', 'description' => 'Quick-add blocks for the basics: links, headings, paragraphs, dividers, and spacers to structure your page.'],
                     ['name' => 'Layout & profile blocks', 'description' => 'Profile cards, avatars, cover images, and section layouts to anchor your identity at the top of the page.'],
                     ['name' => 'Media blocks', 'description' => 'Embed images, image galleries, audio, video, and file downloads directly into the page.'],
                     ['name' => 'Engagement blocks', 'description' => 'Add countdowns, FAQs, testimonials, ratings, and call-to-action buttons to keep visitors interacting.'],
-                    ['name' => 'Commerce blocks', 'description' => 'Sell products, accept payments, take tips, and showcase services right inside the biolink.'],
+                    ['name' => 'Commerce blocks', 'description' => 'Sell products, accept payments, take tips, and showcase services right inside the Link in Bio.'],
                     ['name' => 'Contact & lead blocks', 'description' => 'Drop in contact forms, booking requests, and lead capture fields without leaving the builder.'],
                     ['name' => 'Social & embed blocks', 'description' => 'Pull in social handles, feeds, maps, and third-party embeds in a single click.'],
                     ['name' => 'Visual customization', 'description' => 'Fine-tune colors, fonts, backgrounds, button styles, and spacing for a fully on-brand look.'],
-                    ['name' => 'Splash pages', 'description' => 'Show a branded interstitial before visitors land on the main biolink to set the mood or run announcements.'],
+                    ['name' => 'Splash pages', 'description' => 'Show a branded interstitial before visitors land on the main Link in Bio to set the mood or run announcements.'],
                 ],
             ],
             [
@@ -1076,7 +1076,7 @@ class SitePagesContent
                 'heading' => 'QR code studio',
                 'intro' => 'Turn any link or piece of content into a scannable, brand-styled QR code, ready for print or screen.',
                 'features' => [
-                    ['name' => 'Per-link QR codes', 'description' => 'Every short link and biolink gets an instant downloadable QR code you can drop on flyers, packaging, or slides.'],
+                    ['name' => 'Per-link QR codes', 'description' => 'Every short link and Link in Bio gets an instant downloadable QR code you can drop on flyers, packaging, or slides.'],
                     ['name' => 'Standalone QR generator', 'description' => "Generate one-off QR codes that aren't tied to a tracked link when you just need a quick code."],
                     ['name' => 'Text QR codes', 'description' => "Encode plain text messages so a scan reveals the words on the visitor's device."],
                     ['name' => 'Email QR codes', 'description' => "Open the visitor's email app pre-filled with your address, subject, and body."],
@@ -1093,11 +1093,11 @@ class SitePagesContent
                 'intro' => 'Understand exactly how your links and pages perform, then feed that data into your existing marketing stack.',
                 'features' => [
                     ['name' => 'Visitor analytics', 'description' => 'See visit counts, geography, devices, browsers, referrers, and trends across all your links and pages.'],
-                    ['name' => 'Heatmaps', 'description' => 'Visualise which blocks on your biolink visitors actually click and where they drop off.'],
+                    ['name' => 'Heatmaps', 'description' => 'Visualise which blocks on your Link in Bio visitors actually click and where they drop off.'],
                     ['name' => 'CSV export', 'description' => 'Download raw analytics as CSV so you can crunch the numbers in your own spreadsheet or BI tool.'],
                     ['name' => 'Facebook tracking pixel', 'description' => 'Drop in your Facebook Pixel ID to retarget visitors and measure ad performance.'],
                     ['name' => 'Google Analytics tracking', 'description' => 'Connect a Google Analytics property and feed visits straight into your existing reporting.'],
-                    ['name' => 'LinkedIn Insight tag', 'description' => 'Track LinkedIn ad audiences and conversions from your biolink visitors.'],
+                    ['name' => 'LinkedIn Insight tag', 'description' => 'Track LinkedIn ad audiences and conversions from your Link in Bio visitors.'],
                     ['name' => 'Pinterest tag', 'description' => 'Attribute Pinterest-driven traffic to the right campaigns with the Pinterest tracking tag.'],
                     ['name' => 'TikTok Pixel', 'description' => 'Send visit and conversion events to TikTok Ads Manager for retargeting and measurement.'],
                 ],
@@ -1109,7 +1109,7 @@ class SitePagesContent
                 'intro' => 'Every conversation that reaches you through 1INME lands in one place so nothing slips through the cracks.',
                 'features' => [
                     ['name' => 'Unified inbox', 'description' => 'A single inbox that pulls together every visitor message, form reply, and follow-up across all your links.'],
-                    ['name' => 'Direct messages from visitors', 'description' => 'Visitors can message you straight from your biolink and you reply right inside the inbox.'],
+                    ['name' => 'Direct messages from visitors', 'description' => 'Visitors can message you straight from your Link in Bio and you reply right inside the inbox.'],
                     ['name' => 'Form submissions', 'description' => 'Every contact form, lead form, and booking form submission lands in the same inbox thread.'],
                 ],
             ],
@@ -1119,7 +1119,7 @@ class SitePagesContent
                 'heading' => 'Subscribers & broadcasts',
                 'intro' => 'Grow your own audience list, then talk to it directly without depending on social platforms.',
                 'features' => [
-                    ['name' => 'Email list building', 'description' => 'Capture email subscribers through dedicated blocks and forms on your biolink.'],
+                    ['name' => 'Email list building', 'description' => 'Capture email subscribers through dedicated blocks and forms on your Link in Bio.'],
                     ['name' => 'SMS list building', 'description' => 'Collect mobile numbers with consent so you can send time-sensitive updates by text.'],
                     ['name' => 'Broadcast sends', 'description' => 'Compose a message once and blast it to your full email or SMS list, or to a filtered segment.'],
                 ],
@@ -1140,7 +1140,7 @@ class SitePagesContent
                 'id' => 'buzz',
                 'icon' => 'fa-bell',
                 'heading' => 'Social proof / Buzz widgets',
-                'intro' => 'Build trust on your biolink by showing real activity from real visitors as it happens.',
+                'intro' => 'Build trust on your Link in Bio by showing real activity from real visitors as it happens.',
                 'features' => [
                     ['name' => 'Floating recent-activity notifications', 'description' => 'Small pop-up cards that surface recent visitors, signups, or purchases to nudge new visitors to take action.'],
                 ],
@@ -1153,7 +1153,7 @@ class SitePagesContent
                 'features' => [
                     ['name' => 'Multi-workspace switching', 'description' => 'Keep separate workspaces for different brands or clients and switch between them with one click.'],
                     ['name' => 'Admin role', 'description' => 'Full control over the workspace, including billing, members, and every link or page.'],
-                    ['name' => 'Editor role', 'description' => 'Create and edit links, biolinks, and posts without touching billing or member management.'],
+                    ['name' => 'Editor role', 'description' => 'Create and edit links, Link in Bio pages, and posts without touching billing or member management.'],
                     ['name' => 'Replier role', 'description' => 'Read and reply to inbox messages without being able to change content or settings.'],
                     ['name' => 'Viewer role', 'description' => 'Read-only access to analytics and content for stakeholders who only need to look in.'],
                     ['name' => 'Invite landing pages', 'description' => 'Send a clean, branded invite page so new members can accept and onboard in seconds.'],
@@ -1264,7 +1264,7 @@ class SitePagesContent
                 'features' => [
                     ['name' => 'Schedule blocks to appear', 'description' => 'Pick a date and time for any block to publish — it stays hidden until then and goes live automatically.'],
                     ['name' => 'Schedule blocks to expire', 'description' => 'Set an end date and time so seasonal or campaign blocks disappear on their own without you remembering to remove them.'],
-                    ['name' => 'Page-level publish scheduling', 'description' => 'Schedule a whole biolink to flip from draft to live at a given moment — perfect for launches.'],
+                    ['name' => 'Page-level publish scheduling', 'description' => 'Schedule a whole Link in Bio to flip from draft to live at a given moment — perfect for launches.'],
                     ['name' => 'Test send for digest emails', 'description' => 'Send the daily digest to yourself first to check the layout and content before it goes out to your followers.'],
                     ['name' => 'Visitor timezone awareness', 'description' => 'Schedules use the visitor’s timezone where it matters, so a launch goes live everywhere at the right local moment.'],
                 ],
@@ -1273,7 +1273,7 @@ class SitePagesContent
                 'id' => 'events',
                 'icon' => 'fa-calendar-day',
                 'heading' => 'Events & RSVPs',
-                'intro' => 'Run launches, drops, lives and meetups directly from your biolink — with countdowns, RSVPs and reminder emails handled for you.',
+                'intro' => 'Run launches, drops, lives and meetups directly from your Link in Bio — with countdowns, RSVPs and reminder emails handled for you.',
                 'features' => [
                     ['name' => 'Event blocks with countdown', 'description' => 'Drop in an event block and it shows a live countdown to the start time so visitors know exactly when it kicks off.'],
                     ['name' => 'RSVP collection', 'description' => 'Collect RSVPs from visitors with optional email or phone capture, and see the attendee list in your dashboard.'],
@@ -1288,10 +1288,10 @@ class SitePagesContent
                 'heading' => 'Templates & quick start',
                 'intro' => 'Skip the blank canvas. Pick a professionally designed template, fill in your details, and you’re live in two minutes.',
                 'features' => [
-                    ['name' => 'Curated biolink templates', 'description' => 'A growing library of mobile-first templates for creators, brands, agencies, restaurants, coaches, freelancers and more.'],
+                    ['name' => 'Curated Link in Bio templates', 'description' => 'A growing library of mobile-first templates for creators, brands, agencies, restaurants, coaches, freelancers and more.'],
                     ['name' => 'One-click template apply', 'description' => 'Tap a template and your page rebuilds in seconds — keep your existing content, swap just the look, or both.'],
                     ['name' => 'Industry starter packs', 'description' => 'Pre-configured block sets for music, fitness, hospitality and other industries so you don’t have to think about what to add first.'],
-                    ['name' => 'Linktree / Beacons importer', 'description' => 'Paste your existing biolink URL and we’ll pull the blocks, icons and links into a ready-to-edit starter page.'],
+                    ['name' => 'Linktree / Beacons importer', 'description' => 'Paste your existing Link in Bio URL and we’ll pull the blocks, icons and links into a ready-to-edit starter page.'],
                     ['name' => 'Save your own templates', 'description' => 'Turn any page into a reusable template so your agency or team can spin up new client pages in seconds.'],
                 ],
             ],
@@ -1301,12 +1301,12 @@ class SitePagesContent
                 'heading' => 'Social integrations',
                 'intro' => 'One-click connections to every network you live on, with auto-retry, live status and notifications when something needs your attention.',
                 'features' => [
-                    ['name' => 'Instagram connection', 'description' => 'Connect your Instagram account in one tap to pull profile, posts and follower counts into your biolink.'],
+                    ['name' => 'Instagram connection', 'description' => 'Connect your Instagram account in one tap to pull profile, posts and follower counts into your Link in Bio.'],
                     ['name' => 'TikTok connection', 'description' => 'Plug in TikTok with one tap to surface your latest videos and follower count.'],
                     ['name' => 'Facebook page connection', 'description' => 'Hook up a Facebook page so visitors can follow and you can pull recent posts.'],
-                    ['name' => 'X (Twitter) connection', 'description' => 'Connect X so your latest posts and follower count stay live on your biolink.'],
-                    ['name' => 'LinkedIn connection', 'description' => 'Plug in your LinkedIn profile or company page for a one-tap follow surface on your biolink.'],
-                    ['name' => 'Pinterest connection', 'description' => 'Connect Pinterest to surface your boards and pins on your biolink.'],
+                    ['name' => 'X (Twitter) connection', 'description' => 'Connect X so your latest posts and follower count stay live on your Link in Bio.'],
+                    ['name' => 'LinkedIn connection', 'description' => 'Plug in your LinkedIn profile or company page for a one-tap follow surface on your Link in Bio.'],
+                    ['name' => 'Pinterest connection', 'description' => 'Connect Pinterest to surface your boards and pins on your Link in Bio.'],
                     ['name' => 'Auto-retry on broken connections', 'description' => 'When a token expires we keep retrying with smart back-off and only ping you when we actually need you to reconnect.'],
                     ['name' => 'Connection health dashboard', 'description' => 'See "healthy / needs reconnect / paused" for every network at a glance, with last-synced timestamps.'],
                 ],
@@ -1375,8 +1375,8 @@ class SitePagesContent
     public static function aboutSectionsDefault(): array
     {
         return [
-            ['heading' => 'About 1INME', 'body' => "We're building the simplest way for creators, freelancers and small businesses to turn one link into a complete online presence — biolinks, short links, QR codes, analytics, and more, all in one tidy place."],
-            ['heading' => 'Our story', 'body' => "1INME started in 2023 in a tiny workspace in Hyderabad. Our founder kept watching small businesses and creators juggle five different tools to do one simple thing: share their work and capture leads. We thought there was a better way.\n\nWe shipped the first version of 1INME — just biolinks and short links — to a handful of friends. They loved it, broke it, told us what was missing, and we kept iterating. Today, thousands of creators across the world use 1INME to run their online presence from one URL."],
+            ['heading' => 'About 1INME', 'body' => "We're building the simplest way for creators, freelancers and small businesses to turn one link into a complete online presence — Link in Bio pages, short links, QR codes, analytics, and more, all in one tidy place."],
+            ['heading' => 'Our story', 'body' => "1INME started in 2023 in a tiny workspace in Hyderabad. Our founder kept watching small businesses and creators juggle five different tools to do one simple thing: share their work and capture leads. We thought there was a better way.\n\nWe shipped the first version of 1INME — just Link in Bio pages and short links — to a handful of friends. They loved it, broke it, told us what was missing, and we kept iterating. Today, thousands of creators across the world use 1INME to run their online presence from one URL."],
             ['heading' => 'What we believe', 'body' => "Software should respect your time and your audience. We don't sell your data, we don't bolt on features that don't earn their keep, and we ship every week. If something's broken or unclear, our team is one message away."],
         ];
     }
@@ -1481,7 +1481,7 @@ class SitePagesContent
             'eefind' => self::aboutEefindDefault(),
             'milestones' => [
                 ['date' => '2023-04', 'title' => 'Idea on a whiteboard', 'description' => "An offhand conversation about how messy social bios are turns into the first sketch of 1INME."],
-                ['date' => '2023-09', 'title' => 'First public beta',    'description' => "We open the doors to a handful of friends and creators. Biolinks and short links only — but it works."],
+                ['date' => '2023-09', 'title' => 'First public beta',    'description' => "We open the doors to a handful of friends and creators. Link in Bio pages and short links only — but it works."],
                 ['date' => '2024-03', 'title' => 'Crossed 10,000 users', 'description' => "Word spreads. Creators across India and South-East Asia start moving their link-in-bio to 1INME."],
                 ['date' => '2024-11', 'title' => 'Analytics & QR codes', 'description' => "Live analytics, the Performance Coach and dynamic QR codes ship — turning 1INME into a real growth tool."],
                 ['date' => '2025-06', 'title' => 'Workspaces for teams', 'description' => "Agencies and small teams get proper workspaces, roles and per-workspace billing."],
@@ -1964,7 +1964,7 @@ class SitePagesContent
     {
         return [
             [
-                'quote' => '1INME replaced three different tools for me. The drag-and-drop biolink and the live analytics map are honestly addictive.',
+                'quote' => '1INME replaced three different tools for me. The drag-and-drop Link in Bio and the live analytics map are honestly addictive.',
                 'name'  => 'Maya R.',
                 'role'  => 'Content creator · 240k followers',
                 'photo' => '',
@@ -1976,7 +1976,7 @@ class SitePagesContent
                 'photo' => '',
             ],
             [
-                'quote' => 'The Performance Coach actually finds the weak links. Conversions on my biolink went up 32% in two weeks.',
+                'quote' => 'The Performance Coach actually finds the weak links. Conversions on my Link in Bio went up 32% in two weeks.',
                 'name'  => 'Priya S.',
                 'role'  => 'Coach & podcaster',
                 'photo' => '',
@@ -2015,7 +2015,7 @@ class SitePagesContent
     public static function whyComparisonDefault(): array
     {
         return [
-            ['feature' => 'Drag-and-drop biolink page',                'ours' => 'Yes', 'theirs' => 'Limited'],
+            ['feature' => 'Drag-and-drop Link in Bio page',                'ours' => 'Yes', 'theirs' => 'Limited'],
             ['feature' => 'Branded short links + dynamic QR',          'ours' => 'Yes', 'theirs' => 'Add-on / no'],
             ['feature' => 'Live analytics with map of clicks',         'ours' => 'Yes', 'theirs' => 'Basic charts'],
             ['feature' => 'Built-in Performance Coach (AI-style tips)','ours' => 'Yes', 'theirs' => 'No'],
@@ -2057,27 +2057,27 @@ class SitePagesContent
         return [
             'Getting started' => [
                 ['Is there really a free plan?', 'Yes — the Free plan is free forever. No trial countdown, no surprise paywall, no credit card required to use it.'],
-                ['Do I need a credit card to sign up?', 'No. You can sign up with just an email or phone number and start building a biolink right away.'],
+                ['Do I need a credit card to sign up?', 'No. You can sign up with just an email or phone number and start building a Link in Bio right away.'],
                 ['How long does it take to get my first link live?', 'Most people are live in under two minutes — pick a template, drop your socials in, and share the URL.'],
                 ['Can I import my existing Linktree or Beacons page?', 'Yes — paste your existing page URL into the importer and we will pull the blocks, icons and links into a starter page you can edit.'],
                 ['Do I need any design skills?', 'No. Every block is drag-and-drop with sensible defaults; the templates are professionally designed and fully editable.'],
-                ['What is a "biolink" exactly?', 'A biolink is a single mobile-first page that holds all your links, content and contact options — perfect for the link slot in your social bios.'],
-                ['Can I have more than one biolink page?', 'Yes — make as many as your plan allows. Use one per brand, project or campaign and switch between them in a click.'],
+                ['What is a "Link in Bio" exactly?', 'A Link in Bio is a single mobile-first page that holds all your links, content and contact options — perfect for the link slot in your social bios.'],
+                ['Can I have more than one Link in Bio page?', 'Yes — make as many as your plan allows. Use one per brand, project or campaign and switch between them in a click.'],
                 ['Will my page work on mobile?', 'Yes. Every page is mobile-first, with optional desktop-tuned layouts and per-block visibility for either device.'],
                 ['Can I preview my page before publishing?', 'Yes — the live preview updates as you edit, and an unpublished page is only visible to you and your team.'],
                 ['Is 1INME suitable for non-creators (small business, freelancers)?', 'Absolutely — it is designed for creators, freelancers, agencies, restaurants, coaches, networking pros and small businesses alike.'],
             ],
-            'Biolinks' => [
-                ['What blocks can I add to a biolink?', 'Text, images, video, audio, products, donation buttons, social icons, embeds, forms, NFTs, calendars, maps, lead magnets and more.'],
+            'Link in Bio' => [
+                ['What blocks can I add to a Link in Bio?', 'Text, images, video, audio, products, donation buttons, social icons, embeds, forms, NFTs, calendars, maps, lead magnets and more.'],
                 ['Can I reorder or hide blocks?', 'Yes — drag to reorder, click to hide, or schedule blocks to appear and disappear on specific dates.'],
-                ['Can I sell products from my biolink?', 'Yes — add product blocks with images, pricing, variants, stock and Stripe-powered checkout.'],
+                ['Can I sell products from my Link in Bio?', 'Yes — add product blocks with images, pricing, variants, stock and Stripe-powered checkout.'],
                 ['Can I collect tips or donations?', 'Yes — add a tip jar block with custom amounts, suggested tiers and an optional thank-you message.'],
                 ['Can I embed a video or playlist?', 'Yes — paste a YouTube, Vimeo, Spotify, SoundCloud or Apple Music link and the embed renders inline.'],
-                ['Can I add a contact form to my biolink?', 'Yes — drop in a form block; submissions land in your contacts and can fire emails or webhooks.'],
+                ['Can I add a contact form to my Link in Bio?', 'Yes — drop in a form block; submissions land in your contacts and can fire emails or webhooks.'],
                 ['Can I add multiple languages?', 'Yes — set a default language and add per-block translations; visitors see the version that matches their browser.'],
-                ['Can I theme my biolink to match my brand?', 'Yes — pick from premium themes or override colours, fonts, backgrounds, button shapes and animations.'],
-                ['Can I schedule a biolink to launch later?', 'Yes — schedule a publish date and time, and the page swaps from "draft" to "live" automatically.'],
-                ['Can I password-protect a biolink?', 'Yes — toggle on a password; visitors must enter it before the page renders.'],
+                ['Can I theme my Link in Bio to match my brand?', 'Yes — pick from premium themes or override colours, fonts, backgrounds, button shapes and animations.'],
+                ['Can I schedule a Link in Bio to launch later?', 'Yes — schedule a publish date and time, and the page swaps from "draft" to "live" automatically.'],
+                ['Can I password-protect a Link in Bio?', 'Yes — toggle on a password; visitors must enter it before the page renders.'],
             ],
             'Short links' => [
                 ['What is a branded short link?', 'A clean URL on your domain (or our default) that redirects to a long destination — repointable any time, no reprinting needed.'],
@@ -2097,7 +2097,7 @@ class SitePagesContent
                 ['What size should I download for print?', 'Use the SVG or 1024×1024 PNG for posters; the 512×512 PNG is plenty for stickers and packaging.'],
                 ['Can I change the QR destination after printing?', 'Yes — that is the whole point of dynamic QR codes. Re-point the link any time and the printed code keeps working.'],
                 ['Do QR scans count as clicks?', 'Yes — scans are tracked separately from web clicks, so you can compare offline vs online performance.'],
-                ['Can a QR open my biolink directly?', 'Yes — generate the QR for your biolink URL and any phone camera will open it instantly.'],
+                ['Can a QR open my Link in Bio directly?', 'Yes — generate the QR for your Link in Bio URL and any phone camera will open it instantly.'],
                 ['Do QR codes work without internet?', 'The scan does — but the destination needs internet, like any URL.'],
                 ['Can I batch-generate QR codes?', 'Yes — bulk-create dozens of links and export the QR codes as a zip in your preferred size.'],
             ],
@@ -2140,20 +2140,20 @@ class SitePagesContent
                 ['Will my links keep working if I downgrade?', 'Yes — your existing links keep working forever, even if you downgrade past the limits, but new links are blocked above the cap.'],
             ],
             'Domains & aliases' => [
-                ['Which domains can I use for free?', 'Every account can build on our shared, branded domains — 1in.me, bizs.club, getbio.one and Sayzio.app — for free, with no DNS setup. Pick one when you create a link or biolink and you are live instantly with a clean, memorable URL.'],
-                ['How do I connect my own custom domain?', 'On a paid plan, point a single CNAME record from your domain (like links.yourbrand.com) at us. We verify it automatically, provision a free SSL certificate, and once it is healthy you can attach it to any link or biolink — no token juggling.'],
+                ['Which domains can I use for free?', 'Every account can build on our shared, branded domains — 1in.me, bizs.club, getbio.one and Sayzio.app — for free, with no DNS setup. Pick one when you create a link or Link in Bio and you are live instantly with a clean, memorable URL.'],
+                ['How do I connect my own custom domain?', 'On a paid plan, point a single CNAME record from your domain (like links.yourbrand.com) at us. We verify it automatically, provision a free SSL certificate, and once it is healthy you can attach it to any link or Link in Bio — no token juggling.'],
                 ['Can one link have more than one URL?', 'Yes — every link gets a memorable primary slug, and you can add multiple extra aliases that all open the same page with no redirect hop. Great for campaign variants, channel-specific URLs, and catching the typos people make.'],
                 ['What is the difference between a branded domain and a custom domain?', 'Branded domains are our shared, ready-to-use domains — free, with no setup. A custom domain is your own domain or subdomain that you connect via CNAME on a paid plan, so every URL reads 100% you.'],
                 ['Do custom URL aliases work on the Free plan?', 'Yes — custom URL aliases are available on every plan, including Free. Connecting your own custom domain with CNAME verification is the paid feature.'],
                 ['Is connection health visible for my domains?', 'Yes — each custom domain shows its verification status so you always know which domains are verified and ready to serve your links.'],
             ],
             'Custom domains' => [
-                ['Can I use my own domain for my biolink?', 'Yes, on paid plans. Connect a domain or subdomain via a CNAME record and your biolink lives at your URL.'],
+                ['Can I use my own domain for my Link in Bio?', 'Yes, on paid plans. Connect a domain or subdomain via a CNAME record and your Link in Bio lives at your URL.'],
                 ['Can I use my own domain for short links?', 'Yes — bring a custom domain and use it for branded short links across all your campaigns.'],
                 ['Do you provide an SSL certificate?', 'Yes — we provision and renew a free SSL certificate for every connected domain automatically.'],
-                ['Can I use the same domain for biolink and short links?', 'Yes — point the apex to your biolink and use a path or subdomain for short links.'],
+                ['Can I use the same domain for Link in Bio and short links?', 'Yes — point the apex to your Link in Bio and use a path or subdomain for short links.'],
                 ['How long does DNS propagation take?', 'Usually 5–30 minutes. We retry validation for up to 48 hours and email you when the certificate is live.'],
-                ['Can I use multiple custom domains?', 'Yes — add as many as your plan allows; each can be assigned to a different workspace or biolink.'],
+                ['Can I use multiple custom domains?', 'Yes — add as many as your plan allows; each can be assigned to a different workspace or Link in Bio.'],
                 ['Do I need to host anything?', 'No — we host the domain end to end. You only configure DNS at your registrar.'],
                 ['Can I set redirects from old URLs?', 'Yes — add 301 or 302 redirects from any path on your custom domain to any destination.'],
             ],
@@ -2192,17 +2192,17 @@ class SitePagesContent
                 ['Can I customise my referral code?', 'Yes — pick any short, memorable code instead of a long URL so it’s easy to share by voice, in a story, or on stage.'],
                 ['How many social networks can I connect?', 'On Free, one of each network. Paid plans unlock multiple accounts per network and agency client switching.'],
                 ['What happens when a social token expires?', 'We auto-retry with smart back-off, surface a "needs reconnect" status, and only ping you with an in-app + email notification when we actually need you to reconnect.'],
-                ['Can I save a biolink as a template?', 'Yes — turn any page into a reusable template so your agency or team can spin up new client pages in seconds.'],
+                ['Can I save a Link in Bio as a template?', 'Yes — turn any page into a reusable template so your agency or team can spin up new client pages in seconds.'],
                 ['Do referral rewards stack with discounts?', 'Yes — referral credits apply on top of any discount code or annual savings already on the order.'],
             ],
             'Account & data' => [
-                ['How do I export my data?', 'From account settings, request an export — we package biolinks, links, contacts, analytics and files into a downloadable archive within minutes.'],
+                ['How do I export my data?', 'From account settings, request an export — we package Link in Bio pages, links, contacts, analytics and files into a downloadable archive within minutes.'],
                 ['Can I delete my account?', 'Yes — request deletion from account settings; data is removed from active systems within 30 days and from backups within 90.'],
                 ['Can I deactivate without deleting?', 'Yes — deactivation hides your pages and pauses billing without deleting any data; reactivate any time.'],
                 ['Do you back up my data?', 'Yes — daily encrypted backups in multiple regions, with point-in-time restore for paid plans.'],
                 ['How do I change my email or password?', 'Update either from security settings; an email confirmation is required to change either.'],
                 ['What happens to my links if I close my account?', 'They stop resolving immediately. Visitors land on a "page not found" until you re-activate or migrate them.'],
-                ['Can I transfer ownership of a biolink to another account?', 'Yes — transfer ownership from page settings; the new owner accepts the transfer in their dashboard.'],
+                ['Can I transfer ownership of a Link in Bio to another account?', 'Yes — transfer ownership from page settings; the new owner accepts the transfer in their dashboard.'],
                 ['Are my pages discoverable on search engines?', 'They can be — pages set to public are indexed; private or password-protected pages are not.'],
                 ['Can I hide my page from the Discover directory?', 'Yes — toggle "Show me in Discover" off in profile settings and your page disappears from the directory within minutes.'],
                 ['How do I get human support?', 'Email support@1inme.app or use in-app chat — paid plans get priority response targets, with the Pro tier guaranteeing same-business-day replies.'],
@@ -2221,7 +2221,7 @@ class SitePagesContent
         // full 100+ catalogue live on the dedicated /faqs page.
         $picks = [
             'Getting started'        => ['Is there really a free plan?'],
-            'Biolinks'               => ['What blocks can I add to a biolink?'],
+            'Link in Bio'               => ['What blocks can I add to a Link in Bio?'],
             'QR codes'               => ['Can I change the QR destination after printing?'],
             'Analytics & AI Coach'   => ['How does the AI Performance Coach work?'],
             'Billing & plans'        => ['Can I cancel or downgrade any time?'],

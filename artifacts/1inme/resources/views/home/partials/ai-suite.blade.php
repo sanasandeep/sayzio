@@ -3,7 +3,7 @@
     $__aiProducts = [
         [
             'eyebrow' => 'AI Chatbot',
-            'title'   => 'A 24/7 chatbot trained on your biolink.',
+            'title'   => 'A 24/7 chatbot trained on your Link in Bio.',
             'desc'    => 'Greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.',
             'icon'    => 'fa-comments',
             'color'   => '#7c3aed',
@@ -331,7 +331,7 @@
                 Built-in AI that <span class="ai-shimmer">works the room</span> for you.
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                A chatbot for your biolink, an agent that runs playbooks, an embeddable widget for any site, and a voice assistant that picks up your calls — all under one login.
+                A chatbot for your Link in Bio, an agent that runs playbooks, an embeddable widget for any site, and a voice assistant that picks up your calls — all under one login.
             </p>
         </div>
 

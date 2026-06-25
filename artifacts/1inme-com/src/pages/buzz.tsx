@@ -22,13 +22,13 @@ export default function Buzz() {
   return (
     <PageLayout
       title="Buzz — social proof widgets"
-      description="Build trust on your biolink by showing real activity from real visitors as it happens — recent signups, purchases, live counts and reviews."
+      description="Build trust on your Link in Bio by showing real activity from real visitors as it happens — recent signups, purchases, live counts and reviews."
     >
       <MarketingHero
         eyebrow="Social proof"
         title="People are"
         highlight="talking."
-        subtitle="Build trust on your biolink by showing real activity from real visitors as it happens — recent signups, purchases, live visitor counts and reviews."
+        subtitle="Build trust on your Link in Bio by showing real activity from real visitors as it happens — recent signups, purchases, live visitor counts and reviews."
         primary={{ label: "Get started free", href: SIGNUP_URL }}
         secondary={{ label: "See pricing", href: PRICING_URL }}
       >

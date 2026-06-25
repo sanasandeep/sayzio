@@ -98,7 +98,7 @@
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4 max-h-[60vh] overflow-y-auto">
                     @if(empty($history))
                         <p class="text-sm text-white/40 text-center py-8">
-                            Ask Coach anything about your account. Try: <em>"Which biolink got the most clicks?"</em> or <em>"How many sales last month?"</em>
+                            Ask Coach anything about your account. Try: <em>"Which Link in Bio got the most clicks?"</em> or <em>"How many sales last month?"</em>
                         </p>
                     @else
                         @foreach($history as $turn)

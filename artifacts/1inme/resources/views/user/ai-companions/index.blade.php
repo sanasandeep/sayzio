@@ -9,7 +9,7 @@
     <div class="flex items-end justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white">AI Companions</h1>
-            <p class="text-sm text-white/50 mt-1">Drop one of your Personas into a biolink chatbot, an external website embed, or your inbox as an auto-reply bot.</p>
+            <p class="text-sm text-white/50 mt-1">Drop one of your Personas into a Link in Bio chatbot, an external website embed, or your inbox as an auto-reply bot.</p>
             <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_companions_per_user'] == -1 ? '∞' : $caps['max_companions_per_user'] }} used</p>
         </div>
         @if($caps['max_companions_per_user'] == -1 || $used < $caps['max_companions_per_user'])

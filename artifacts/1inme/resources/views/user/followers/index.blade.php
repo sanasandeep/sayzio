@@ -11,7 +11,7 @@
     @if($followers->count() === 0)
         <div class="text-center py-16 rounded-2xl border" style="background: var(--bg-card); border-color: var(--border-soft);">
             <i class="fas fa-user-group text-4xl mb-3" style="color: var(--text-faint);"></i>
-            <p style="color: var(--text-muted);">You don't have any followers yet. Share your biolink and creators directory profile to get started.</p>
+            <p style="color: var(--text-muted);">You don't have any followers yet. Share your Link in Bio and creators directory profile to get started.</p>
         </div>
     @else
         <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">

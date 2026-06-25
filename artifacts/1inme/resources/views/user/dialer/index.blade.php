@@ -10,7 +10,7 @@
      data-profile-url="{{ route('user.dialer.profile') }}">
     @include('user.partials.page-hero', [
         'title' => 'Dialer',
-        'subtitle' => 'Speed-dial favorites, smart recents and T9 search — call, text, email or share your biolink in one tap.',
+        'subtitle' => 'Speed-dial favorites, smart recents and T9 search — call, text, email or share your Link in Bio in one tap.',
         'icon' => 'fa-phone',
         'chips' => [],
     ])

@@ -9,12 +9,12 @@ export default function Slide048Biolinkssmartlinkscapabiliti() {
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400"></span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
-        <h2 className="font-display text-[3.4vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Bio Links &amp; Smart Links — key capabilities.</h2>
+        <h2 className="font-display text-[3.4vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Link in Bio &amp; Smart Links — key capabilities.</h2>
         
         <div className="mt-[4vh] grid grid-cols-4 gap-[1.4vw] flex-1 content-start">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">
             <div className="text-[0.85vw] uppercase tracking-[0.25em] text-fuchsia-200">Capability</div>
-            <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">Bio link pages</div>
+            <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">Link in Bio pages</div>
             <div className="mt-[1vh] text-[1.05vw] text-slate-300 leading-snug">Drag-and-drop blocks, themes, custom domains.</div>
             
           </div>

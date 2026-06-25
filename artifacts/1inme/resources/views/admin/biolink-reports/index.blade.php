@@ -1,11 +1,11 @@
 @extends('admin.layouts.app')
-@section('title', 'Biolink Reports')
+@section('title', 'Link in Bio Reports')
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
     <div class="glass rounded-2xl p-6">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
-                <h2 class="text-lg font-semibold text-white">Biolink Moderation Queue</h2>
+                <h2 class="text-lg font-semibold text-white">Link in Bio Moderation Queue</h2>
                 <p class="text-xs text-white/50 mt-1">Reports filed by visitors on public biolinks. Repeat reports from the same IP within 24h are coalesced.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">

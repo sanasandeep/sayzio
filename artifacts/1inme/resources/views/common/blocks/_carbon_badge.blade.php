@@ -17,7 +17,7 @@
             <span>Carbon Neutral</span>
         </button>
         <div class="cb-popover hidden absolute bottom-12 right-0 w-72 rounded-xl bg-white text-gray-800 shadow-2xl border p-4 text-xs">
-            <div class="font-bold text-emerald-700 mb-1">Carbon Neutral biolink</div>
+            <div class="font-bold text-emerald-700 mb-1">Carbon Neutral Link in Bio</div>
             <div class="cb-body text-gray-600">Loading methodology…</div>
             <div class="mt-3 pt-3 border-t flex items-center justify-between">
                 <a class="cb-method text-emerald-700 underline" href="#" target="_blank" rel="noopener">How we estimate</a>

@@ -24,7 +24,7 @@ class IntegrationConfigRegistry
             'email'   => ['label' => 'Email',    'icon' => 'fa-envelope',      'color' => '#6366f1',
                           'subtitle' => 'Outbound mailers used for form notifications, autoresponders & broadcasts.'],
             'carbon'  => ['label' => 'Carbon offsets', 'icon' => 'fa-leaf',     'color' => '#10b981',
-                          'subtitle' => 'Auto-purchase verified carbon offsets for opted-in biolinks each month.'],
+                          'subtitle' => 'Auto-purchase verified carbon offsets for opted-in Link in Bio pages each month.'],
         ];
     }
 

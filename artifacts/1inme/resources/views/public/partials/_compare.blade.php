@@ -157,7 +157,7 @@
                      x-transition:enter-start="opacity-0"
                      x-transition:enter-end="opacity-100">
                     <div class="cmp-vs-name text-gray-200" x-text="rivalName()">Linktree</div>
-                    <div class="cmp-vs-tagline" x-text="rivalTagline()">Bio link page</div>
+                    <div class="cmp-vs-tagline" x-text="rivalTagline()">Link in Bio page</div>
                     <div class="cmp-vs-meta">
                         <span class="cmp-vs-score text-gray-200"><span x-text="rivalAnim">{{ $__cmpScores['linktree'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>
                         <span class="cmp-vs-bar"><span class="cmp-vs-bar-fill cmp-vs-bar-rival" :style="`width:${(rivalAnim/{{ $__cmpTotal }})*100}%`"></span></span>

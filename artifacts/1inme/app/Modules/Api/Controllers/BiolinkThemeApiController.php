@@ -34,7 +34,7 @@ class BiolinkThemeApiController extends Controller
     public function index(Request $request, int $id)
     {
         $link = $this->ownedLink($request, $id);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $themes = BiolinkTheme::where('link_id', $link->id)->orderByDesc('id')->get();
         $schedules = BiolinkThemeSchedule::where('link_id', $link->id)
@@ -64,7 +64,7 @@ class BiolinkThemeApiController extends Controller
     public function storeTheme(Request $request, int $id)
     {
         $link = $this->ownedLink($request, $id);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $data = $request->validate(['name' => 'required|string|max:120']);
         $theme = BiolinkTheme::create([
@@ -78,7 +78,7 @@ class BiolinkThemeApiController extends Controller
     public function destroyTheme(Request $request, int $id, int $themeId)
     {
         $link = $this->ownedLink($request, $id);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $theme = BiolinkTheme::where('link_id', $link->id)->where('id', $themeId)->first();
         if (!$theme) return $this->notFound('Theme not found');
@@ -119,7 +119,7 @@ class BiolinkThemeApiController extends Controller
     public function updateSchedule(Request $request, int $id, int $scheduleId)
     {
         $link = $this->ownedLink($request, $id);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $schedule = BiolinkThemeSchedule::where('link_id', $link->id)->where('id', $scheduleId)->first();
         if (!$schedule) return $this->notFound('Schedule not found');
@@ -152,7 +152,7 @@ class BiolinkThemeApiController extends Controller
     public function storeSchedule(Request $request, int $id)
     {
         $link = $this->ownedLink($request, $id);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $data = $request->validate([
             'theme_id'  => 'required|integer|exists:biolink_themes,id',
@@ -189,7 +189,7 @@ class BiolinkThemeApiController extends Controller
     public function cancelSchedule(Request $request, int $id, int $scheduleId)
     {
         $link = $this->ownedLink($request, $id);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $schedule = BiolinkThemeSchedule::where('link_id', $link->id)->where('id', $scheduleId)->first();
         if (!$schedule) return $this->notFound('Schedule not found');

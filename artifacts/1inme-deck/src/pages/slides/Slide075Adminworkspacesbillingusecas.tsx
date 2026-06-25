@@ -14,7 +14,7 @@ export default function Slide075Adminworkspacesbillingusecas() {
         <div className="mt-[4vh] flex-1 ">
           <ul className="space-y-[1.6vh]">            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Each client lives in its own workspace under one bill.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">White label keeps every dashboard on-brand for the client.</div></div></li>
-            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Audit log answers &ldquo;who changed the bio link?&ldquo; in seconds.</div></div></li>
+            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Audit log answers &ldquo;who changed the Link in Bio?&ldquo; in seconds.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Seats and credits move between teams without friction.</div></div></li></ul>
           
         </div>

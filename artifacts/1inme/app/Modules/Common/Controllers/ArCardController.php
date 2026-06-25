@@ -30,7 +30,7 @@ class ArCardController extends Controller
         $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link) abort(404, 'Short link not found.');
         if ($requireEnabled && !$link->ar_enabled) {
-            abort(404, 'AR is not enabled for this biolink.');
+            abort(404, 'AR is not enabled for this Link in Bio.');
         }
         return $link;
     }

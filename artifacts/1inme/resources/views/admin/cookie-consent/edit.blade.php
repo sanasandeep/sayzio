@@ -419,7 +419,7 @@
                 <div class="text-xs uppercase tracking-wider text-white/40 font-semibold">Live preview</div>
                 <div class="flex items-center gap-1 text-[11px]">
                     <button type="button" data-cc-surface="site"    class="cc-surface-tab px-2 py-1 rounded-md bg-violet-600/30 text-violet-200">Site</button>
-                    <button type="button" data-cc-surface="biolink" class="cc-surface-tab px-2 py-1 rounded-md bg-white/5 text-white/60">Biolink</button>
+                    <button type="button" data-cc-surface="biolink" class="cc-surface-tab px-2 py-1 rounded-md bg-white/5 text-white/60">Link in Bio</button>
                 </div>
             </div>
             <div id="cc_preview_wrap" class="rounded-2xl p-4 min-h-[480px] relative overflow-hidden" style="background:#0d1322; border:1px solid var(--border-glass);">

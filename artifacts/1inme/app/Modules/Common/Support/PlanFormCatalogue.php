@@ -27,7 +27,7 @@ class PlanFormCatalogue
     {
         return [
             'module_short_links'  => ['label' => 'Short Links',          'desc' => 'Shortening, custom aliases, link-level protection and tracking.'],
-            'module_biolinks'     => ['label' => 'Link in Bio',          'desc' => 'Biolink pages and the block library used to build them.'],
+            'module_biolinks'     => ['label' => 'Link in Bio',          'desc' => 'Link in Bio pages and the block library used to build them.'],
             'module_conversational' => ['label' => 'Conversational Pages', 'desc' => 'Chat-style conversational link pages.'],
             'module_slides'       => ['label' => 'Slides Pages',         'desc' => 'Slide-deck link pages.'],
             'module_ai_chat'      => ['label' => 'AI Chatbot Pages',     'desc' => 'AI chatbot link pages with a configurable persona.'],
@@ -35,13 +35,13 @@ class PlanFormCatalogue
             'module_reviews'      => ['label' => 'Reviews Pages',        'desc' => 'Review-collection and display link pages.'],
             'module_resume'       => ['label' => 'Resume / Portfolio',   'desc' => 'Standalone resume / portfolio link pages with PDF export.'],
             'module_projects'     => ['label' => 'Projects',             'desc' => 'Group links into separate brands or campaigns.'],
-            'module_forms'        => ['label' => 'Custom Forms',         'desc' => 'Branded lead-capture forms inside biolink pages.'],
+            'module_forms'        => ['label' => 'Custom Forms',         'desc' => 'Branded lead-capture forms inside Link in Bio pages.'],
             'module_contacts'     => ['label' => 'Contacts / CRM',       'desc' => 'CRM entries, follower opt-ins and Google Contacts sync.'],
             'module_teams'        => ['label' => 'Teams & Workspaces',   'desc' => 'Multi-seat collaboration with role-based permissions.'],
-            'module_ecommerce'    => ['label' => 'E-Commerce / Selling', 'desc' => 'Product blocks, prices and checkout on biolink pages.'],
+            'module_ecommerce'    => ['label' => 'E-Commerce / Selling', 'desc' => 'Product blocks, prices and checkout on Link in Bio pages.'],
             'module_ai_suite'     => ['label' => 'AI Suite',             'desc' => 'AI chatbot, agent, embeddable widget and voice assistant.'],
             'module_branding'     => ['label' => 'Custom Branding',      'desc' => 'White-label colors, favicon and custom HTML / JS.'],
-            'module_domains'      => ['label' => 'Custom Domains',       'desc' => 'Connect your own domain for short links and biolinks.'],
+            'module_domains'      => ['label' => 'Custom Domains',       'desc' => 'Connect your own domain for short links and Link in Bio pages.'],
             'module_integrations' => ['label' => 'Integrations',         'desc' => 'Connected payment, SMS and email provider accounts.'],
         ];
     }
@@ -54,7 +54,7 @@ class PlanFormCatalogue
     {
         return [
             ['key' => 'max_links',            'label' => 'Max short links',         'default' => 10,  'module' => 'module_short_links', 'hint' => 'Total short links a user can create.'],
-            ['key' => 'max_biolinks',         'label' => 'Max Link in Bio pages',   'default' => 1,   'module' => 'module_biolinks',    'hint' => 'How many separate biolink pages a user can publish.'],
+            ['key' => 'max_biolinks',         'label' => 'Max Link in Bio pages',   'default' => 1,   'module' => 'module_biolinks',    'hint' => 'How many separate Link in Bio pages a user can publish.'],
             ['key' => 'max_conversational',   'label' => 'Max conversational pages','default' => 1,   'module' => 'module_conversational', 'hint' => 'How many conversational link pages a user can publish.'],
             ['key' => 'max_slides',           'label' => 'Max slides pages',        'default' => 1,   'module' => 'module_slides',      'hint' => 'How many slide-deck link pages a user can publish.'],
             ['key' => 'max_ai_chat',          'label' => 'Max AI chatbot pages',    'default' => 1,   'module' => 'module_ai_chat',     'hint' => 'How many AI chatbot link pages a user can publish.'],
@@ -229,9 +229,9 @@ class PlanFormCatalogue
             'creator_profile_public'=> ['name' => 'Public creator profile','description' => 'Exposes a public-facing creator profile page for the user.'],
             'verification_eligible' => ['name' => 'Verification eligible', 'description' => 'Marks accounts on this plan as eligible for the verified-creator badge.'],
             'priority_support'      => ['name' => 'Priority support',      'description' => 'Routes the user to the priority support queue.'],
-            'scheduled_posts'       => ['name' => 'Scheduled posts',       'description' => 'Lets the user schedule biolink / social posts in advance.'],
-            'social_proof_popup'    => ['name' => 'Social proof pop-ups',  'description' => 'Live "X people just signed up" style notifications on biolinks.'],
-            'templates_premium'     => ['name' => 'Premium templates',     'description' => 'Unlocks the premium template library for biolinks and pages.'],
+            'scheduled_posts'       => ['name' => 'Scheduled posts',       'description' => 'Lets the user schedule Link in Bio / social posts in advance.'],
+            'social_proof_popup'    => ['name' => 'Social proof pop-ups',  'description' => 'Live "X people just signed up" style notifications on Link in Bio pages.'],
+            'templates_premium'     => ['name' => 'Premium templates',     'description' => 'Unlocks the premium template library for Link in Bio and pages.'],
             'api_access'            => ['name' => 'Public API access',     'description' => 'Allows the user to generate API tokens and call the public API.'],
             'link_password'         => ['name' => 'Password-protected links', 'description' => 'Require a visitor-supplied password before redirecting.'],
             'link_expiry'           => ['name' => 'Link expiry',           'description' => 'Schedule a link to stop redirecting after a date / click count.'],
@@ -240,11 +240,11 @@ class PlanFormCatalogue
             'link_deep_link'        => ['name' => 'Deep links',            'description' => 'Open native mobile apps directly when the link is tapped.'],
             'link_smart_rules'      => ['name' => 'Smart rules',           'description' => 'Compose multiple targeting rules with priority / fallback.'],
             'link_active_window'    => ['name' => 'Active windows',        'description' => 'Only let the link redirect during specific time windows.'],
-            'ai_chatbot'            => ['name' => 'AI chatbot',            'description' => 'Embeddable AI chat widget for the user\'s biolink.'],
+            'ai_chatbot'            => ['name' => 'AI chatbot',            'description' => 'Embeddable AI chat widget for the user\'s Link in Bio.'],
             'ai_agent'              => ['name' => 'AI agent',              'description' => 'Autonomous AI agent that can take actions on the user\'s behalf.'],
-            'ai_widget'             => ['name' => 'AI widget',             'description' => 'AI-powered content widget (FAQ, summary, etc.) on biolinks.'],
+            'ai_widget'             => ['name' => 'AI widget',             'description' => 'AI-powered content widget (FAQ, summary, etc.) on Link in Bio pages.'],
             'ai_voice_assistant'    => ['name' => 'AI voice assistant',    'description' => 'Voice-driven AI assistant for the user\'s public profile.'],
-            'custom_favicon'        => ['name' => 'Custom favicon',        'description' => 'Per-account favicon shown on biolink / short-link pages.'],
+            'custom_favicon'        => ['name' => 'Custom favicon',        'description' => 'Per-account favicon shown on Link in Bio / short-link pages.'],
             'custom_code'           => ['name' => 'Custom code injection', 'description' => 'Inject custom HTML / JS / CSS into the user\'s public pages.'],
         ];
     }
@@ -352,7 +352,7 @@ class PlanFormCatalogue
             'sec-quantities'    => 'Quantity limits',
             'sec-team'          => 'Team management',
             'sec-storage'       => 'Storage',
-            'sec-blocks'        => 'Biolink blocks',
+            'sec-blocks'        => 'Link in Bio blocks',
             'sec-features'      => 'Features & analytics',
             'sec-ai'            => 'AI suite',
             'sec-integrations'  => 'Integration accounts',

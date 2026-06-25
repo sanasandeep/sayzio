@@ -107,7 +107,7 @@ class WorkspacePermissions
     {
         return [
             'links'           => 'links',
-            'biolinks'        => 'bio links',
+            'biolinks'        => 'Link in Bio pages',
             'posts'           => 'posts',
             'forms'           => 'forms',
             'subscribers'     => 'subscribers',

@@ -287,7 +287,7 @@ export default function DialerProfileScreen() {
 
   const shareBio = useCallback(async () => {
     if (!bioUrl) {
-      Alert.alert("No biolink", "No 1INME biolink found for this number.");
+      Alert.alert("No Link in Bio", "No 1INME Link in Bio found for this number.");
       return;
     }
     try {
@@ -630,7 +630,7 @@ export default function DialerProfileScreen() {
             ]}
           >
             <Text style={[styles.cardKicker, { color: "#ec4899" }]}>
-              1INME BIOLINK
+              1INME LINK IN BIO
             </Text>
             <Text style={[styles.cardTitle, { color: colors.foreground }]}>
               {bioName}
@@ -644,7 +644,7 @@ export default function DialerProfileScreen() {
               onPress={() => openUrl(bioUrl)}
               style={[styles.bioBtn, { backgroundColor: colors.primary }]}
             >
-              <Text style={styles.bioBtnText}>Open biolink</Text>
+              <Text style={styles.bioBtnText}>Open Link in Bio</Text>
             </Pressable>
           </View>
         )}
@@ -1140,7 +1140,7 @@ export default function DialerProfileScreen() {
                 }}
               >
                 Add your own channels, socials, or a location for this contact.
-                These stay separate from anything pulled from their biolink.
+                These stay separate from anything pulled from their Link in Bio.
               </Text>
             ) : (
               <View style={{ marginTop: 12 }}>

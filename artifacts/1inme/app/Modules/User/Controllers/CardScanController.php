@@ -187,7 +187,7 @@ class CardScanController extends Controller
         $wantBiolink = (bool) ($data['create_biolink'] ?? false);
 
         if (!$wantContact && !$wantBiolink) {
-            return back()->with('error', 'Pick at least one: save as contact, or create a biolink draft.');
+            return back()->with('error', 'Pick at least one: save as contact, or create a Link in Bio draft.');
         }
 
         $owner = workspace_owner();
@@ -202,7 +202,7 @@ class CardScanController extends Controller
             $maxContacts = $features['contacts_max'] ?? -1;
             if ($maxContacts !== -1 && $owner->contacts()->count() >= $maxContacts) {
                 return back()->with('error',
-                    "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan, or save just the biolink draft instead.");
+                    "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan, or save just the Link in Bio draft instead.");
             }
         }
 
@@ -223,7 +223,7 @@ class CardScanController extends Controller
 
         if ($wantBiolink) {
             return redirect()->route('user.links.wizard')
-                ->with('success', 'Biolink draft seeded from the scan — pick up where you left off.');
+                ->with('success', 'Link in Bio draft seeded from the scan — pick up where you left off.');
         }
 
         return redirect()->route('user.contacts.show', $contact)

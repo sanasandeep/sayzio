@@ -39,7 +39,7 @@ class AskCoachToolRegistry
     public function tools(): array
     {
         return [
-            'biolinks'    => ['label' => 'Biolinks',    'description' => 'Recent biolink pages, click counts, active state.'],
+            'biolinks'    => ['label' => 'Link in Bio',    'description' => 'Recent biolink pages, click counts, active state.'],
             'links'       => ['label' => 'Short Links', 'description' => 'Per-link clicks, top performers, dead links.'],
             'analytics'   => ['label' => 'Analytics',   'description' => 'Clicks over time, device split, drop-off funnel.'],
             'payments'    => ['label' => 'Payments',    'description' => 'Wallet coin balance, billing plan.'],
@@ -155,10 +155,10 @@ class AskCoachToolRegistry
             ->get(['id', 'title', 'alias', 'is_active', 'total_clicks']);
 
         if ($rows->isEmpty()) {
-            return ['summary' => 'You have no biolink pages yet.'];
+            return ['summary' => 'You have no Link in Bio pages yet.'];
         }
 
-        $lines = ["You have {$rows->count()} recent biolink page(s):"];
+        $lines = ["You have {$rows->count()} recent Link in Bio page(s):"];
         $tableRows = [];
         foreach ($rows as $r) {
             $lines[] = sprintf('- "%s" (alias %s) — %d clicks · %s',
@@ -175,7 +175,7 @@ class AskCoachToolRegistry
         return [
             'summary' => implode("\n", $lines),
             'data'    => ['kind' => 'table', 'columns' => ['Title', 'Alias', 'Clicks', 'Status'], 'rows' => $tableRows],
-            'citation'=> ['label' => 'Your biolink pages', 'source' => 'biolinks'],
+            'citation'=> ['label' => 'Your Link in Bio pages', 'source' => 'biolinks'],
         ];
     }
 

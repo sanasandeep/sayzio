@@ -247,7 +247,7 @@ export default function InboxTab() {
               title={tab === "open" ? "No messages yet" : "No archived chats"}
               body={
                 tab === "open"
-                  ? "When viewers DM you on a biolink it'll appear here."
+                  ? "When viewers DM you on a Link in Bio it'll appear here."
                   : "Archived conversations will appear here."
               }
             />

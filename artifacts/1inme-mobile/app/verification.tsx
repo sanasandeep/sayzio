@@ -68,7 +68,7 @@ export default function VerificationScreen() {
 
   const submit = useMutation({
     mutationFn: () => {
-      if (!linkId) throw new Error("Pick a biolink first");
+      if (!linkId) throw new Error("Pick a Link in Bio first");
       return submitVerification({
         link_id: linkId,
         category,
@@ -111,7 +111,7 @@ export default function VerificationScreen() {
           contentContainerStyle={{ padding: 20, gap: 10 }}
           ListHeaderComponent={
             <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-              Apply for the verified badge on a specific biolink. We review each request manually.
+              Apply for the verified badge on a specific Link in Bio. We review each request manually.
             </Text>
           }
           renderItem={({ item }) => (
@@ -149,7 +149,7 @@ export default function VerificationScreen() {
             <EmptyState
               icon="award"
               title="No verification requests"
-              body="Submit a request to get the verified badge on one of your biolinks."
+              body="Submit a request to get the verified badge on one of your Link in Bio pages."
               action={<Button label="Apply" onPress={() => setShowNew(true)} />}
             />
           }
@@ -172,7 +172,7 @@ export default function VerificationScreen() {
           >
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>Apply for verification</Text>
 
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Biolink to verify</Text>
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Link in Bio to verify</Text>
             {linksQ.isLoading ? (
               <ActivityIndicator color={colors.primary} />
             ) : links.length === 0 ? (

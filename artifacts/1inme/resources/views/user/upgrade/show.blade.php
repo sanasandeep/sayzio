@@ -194,7 +194,7 @@
                 <ul class="mt-4 space-y-1.5 text-sm text-white/70 flex-grow">
                     @foreach([
                         'max_links' => 'links',
-                        'max_biolinks' => 'bio pages',
+                        'max_biolinks' => 'Link in Bio pages',
                         'max_projects' => 'projects',
                         'storage_limit_mb' => 'MB storage',
                         'contacts_max' => 'contacts',
@@ -241,7 +241,7 @@
                     @endforeach
                     @php $blockVal = $features['block_types_allowed'] ?? null; @endphp
                     @if(\App\Modules\Common\Support\PlanBlockLabels::isAll($blockVal))
-                        <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>All biolink block types</span></li>
+                        <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>All Link in Bio block types</span></li>
                     @else
                         @php $blockNames = \App\Modules\Common\Support\PlanBlockLabels::labelsFor($blockVal); @endphp
                         @if($blockNames)
@@ -249,7 +249,7 @@
                             <li class="flex items-start gap-2">
                                 <span class="text-violet-400">•</span>
                                 <span class="min-w-0">
-                                    <span class="block">{{ count($blockNames) }} biolink block types</span>
+                                    <span class="block">{{ count($blockNames) }} Link in Bio block types</span>
                                     <span x-data="{ open: false }" class="block mt-1">
                                         <span class="block text-xs text-white/45 leading-snug" x-show="!open">{{ implode(', ', $blockPreview) }}@if($blockExtra > 0)<span class="text-white/60"> &amp; {{ $blockExtra }} more</span>@endif</span>
                                         <span class="block text-xs text-white/45 leading-snug" x-show="open" x-cloak>{{ implode(', ', $blockNames) }}</span>

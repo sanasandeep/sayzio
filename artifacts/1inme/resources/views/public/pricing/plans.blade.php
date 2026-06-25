@@ -822,11 +822,11 @@
                 if ($type === 'blocks') {
                     $val = $features[$key] ?? null;
                     if (\App\Modules\Common\Support\PlanBlockLabels::isAll($val)) {
-                        return ['num' => PHP_INT_MAX, 'name' => 'All biolink blocks', 'desc' => $e['desc'], 'blocks' => null];
+                        return ['num' => PHP_INT_MAX, 'name' => 'All Link in Bio blocks', 'desc' => $e['desc'], 'blocks' => null];
                     }
                     $labels = \App\Modules\Common\Support\PlanBlockLabels::labelsFor($val);
                     if (!$labels) return null;
-                    return ['num' => count($labels), 'name' => count($labels) . ' biolink blocks', 'desc' => $e['desc'], 'blocks' => $labels];
+                    return ['num' => count($labels), 'name' => count($labels) . ' Link in Bio blocks', 'desc' => $e['desc'], 'blocks' => $labels];
                 }
                 if ($type === 'analytics') {
                     $val = $features[$key] ?? null;
@@ -1146,7 +1146,7 @@
                     ['max_forms',         'Forms',                'number'],
                 ],
                 'Content blocks' => [
-                    ['block_types_allowed', 'Biolink block types',  'blocks'],
+                    ['block_types_allowed', 'Link in Bio block types',  'blocks'],
                 ],
                 'Link types' => [
                     ['max_conversational',   'Conversational pages',  'number'],
@@ -1199,6 +1199,7 @@
             // uniformly; the matrix scroll box handles overflow when the
             // combined width exceeds the container.
             $colTpl = '220px repeat(' . count($plans) . ', 160px)';
+            $blockLabel = fn (string $slug): string => \App\Modules\Common\Support\PlanBlockLabels::label($slug);
             $renderCell = function ($plan, $key, $kind) use ($blockLabel) {
                 $features = $plan->features ?? [];
                 if (!array_key_exists($key, $features) && $kind !== 'analytics') {

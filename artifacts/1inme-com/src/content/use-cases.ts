@@ -27,7 +27,7 @@ export const useCases: UseCase[] = [
     description:
       "The link-in-bio built for creators — sell products, take tips, grow followers you own, and see what actually lands.",
     features: [
-      "Drag & drop biolink builder",
+      "Drag & drop Link in Bio builder",
       "Live audience analytics",
       "Followers & creators feed",
       "Sell products & take tips",

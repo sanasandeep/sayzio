@@ -218,7 +218,7 @@ class ResumeImportService
             'summary' => trim((string) $user->bio),
             'items'   => $items,
             'source'  => 'biolink',
-            'notes'   => $items ? null : 'No bio-link content found yet. Add posts, social accounts, or biolink blocks first.',
+            'notes'   => $items ? null : 'No Link in Bio content found yet. Add posts, social accounts, or Link in Bio blocks first.',
         ];
     }
 

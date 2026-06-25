@@ -123,7 +123,7 @@ class CarbonController extends Controller
             unset($settings['carbon']);
             $link->settings = $settings;
             $link->save();
-            return back()->with('success', 'This biolink now follows workspace sustainability defaults.');
+            return back()->with('success', 'This Link in Bio now follows workspace sustainability defaults.');
         }
 
         $data = $this->validateSettings($request);
@@ -131,7 +131,7 @@ class CarbonController extends Controller
         $link->settings = $settings;
         $link->save();
 
-        return back()->with('success', 'Carbon settings updated for this biolink.');
+        return back()->with('success', 'Carbon settings updated for this Link in Bio.');
     }
 
     private function validateSettings(Request $request): array

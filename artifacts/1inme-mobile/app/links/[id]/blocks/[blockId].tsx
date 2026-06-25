@@ -2307,7 +2307,7 @@ export default function EditBlockScreen() {
           ]}
         >
           <Text style={[styles.rowLabel, { color: colors.foreground }]}>
-            Visible on biolink
+            Visible on Link in Bio
           </Text>
           <Switch
             value={active}

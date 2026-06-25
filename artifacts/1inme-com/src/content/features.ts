@@ -28,9 +28,9 @@ export const featuresCategories: FeatureCategory[] = [
     id: "ai-suite",
     name: "AI suite",
     intro:
-      "A set of AI products that plug into your 1INME — a chatbot for your biolink, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.",
+      "A set of AI products that plug into your 1INME — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.",
     items: [
-      { title: "AI Chatbot", description: "Trained 24/7 chatbot on your biolink that answers in your voice, captures leads and hands off to a human when needed." },
+      { title: "AI Chatbot", description: "Trained 24/7 chatbot on your Link in Bio that answers in your voice, captures leads and hands off to a human when needed." },
       { title: "AI Agent", description: "A multi-step agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own." },
       { title: "AI Widget", description: "Embeddable AI assistant for any website — answers questions, captures leads and routes the hot ones to your unified inbox." },
       { title: "AI Voice Assistant", description: "AI receptionist that picks up calls to your number, qualifies callers and books or routes them — never a missed lead." },
@@ -38,20 +38,20 @@ export const featuresCategories: FeatureCategory[] = [
   },
   {
     id: "biolink",
-    name: "Biolink & landing page builder",
+    name: "Link in Bio & landing page builder",
     intro:
       "Build a fully-customizable one-link landing page with a guided wizard and a deep block library, organised by sub-type so you only see what you need.",
     items: [
-      { title: "Guided biolink wizard", description: "Step-by-step creation flow that helps you pick a layout, profile style, and starting blocks without any design experience." },
+      { title: "Guided Link in Bio wizard", description: "Step-by-step creation flow that helps you pick a layout, profile style, and starting blocks without any design experience." },
       { title: "Essentials blocks", description: "Quick-add blocks for the basics: links, headings, paragraphs, dividers, and spacers to structure your page." },
       { title: "Layout & profile blocks", description: "Profile cards, avatars, cover images, and section layouts to anchor your identity at the top of the page." },
       { title: "Media blocks", description: "Embed images, image galleries, audio, video, and file downloads directly into the page." },
       { title: "Engagement blocks", description: "Add countdowns, FAQs, testimonials, ratings, and call-to-action buttons to keep visitors interacting." },
-      { title: "Commerce blocks", description: "Sell products, accept payments, take tips, and showcase services right inside the biolink." },
+      { title: "Commerce blocks", description: "Sell products, accept payments, take tips, and showcase services right inside the Link in Bio." },
       { title: "Contact & lead blocks", description: "Drop in contact forms, booking requests, and lead capture fields without leaving the builder." },
       { title: "Social & embed blocks", description: "Pull in social handles, feeds, maps, and third-party embeds in a single click." },
       { title: "Visual customization", description: "Fine-tune colors, fonts, backgrounds, button styles, and spacing for a fully on-brand look." },
-      { title: "Splash pages", description: "Show a branded interstitial before visitors land on the main biolink to set the mood or run announcements." },
+      { title: "Splash pages", description: "Show a branded interstitial before visitors land on the main Link in Bio to set the mood or run announcements." },
     ],
   },
   {
@@ -77,7 +77,7 @@ export const featuresCategories: FeatureCategory[] = [
     intro:
       "Turn any link or piece of content into a scannable, brand-styled QR code, ready for print or screen.",
     items: [
-      { title: "Per-link QR codes", description: "Every short link and biolink gets an instant downloadable QR code you can drop on flyers, packaging, or slides." },
+      { title: "Per-link QR codes", description: "Every short link and Link in Bio gets an instant downloadable QR code you can drop on flyers, packaging, or slides." },
       { title: "Standalone QR generator", description: "Generate one-off QR codes that aren't tied to a tracked link when you just need a quick code." },
       { title: "Text QR codes", description: "Encode plain text messages so a scan reveals the words on the visitor's device." },
       { title: "Email QR codes", description: "Open the visitor's email app pre-filled with your address, subject, and body." },
@@ -94,11 +94,11 @@ export const featuresCategories: FeatureCategory[] = [
       "Understand exactly how your links and pages perform, then feed that data into your existing marketing stack.",
     items: [
       { title: "Visitor analytics", description: "See visit counts, geography, devices, browsers, referrers, and trends across all your links and pages." },
-      { title: "Heatmaps", description: "Visualise which blocks on your biolink visitors actually click and where they drop off." },
+      { title: "Heatmaps", description: "Visualise which blocks on your Link in Bio visitors actually click and where they drop off." },
       { title: "CSV export", description: "Download raw analytics as CSV so you can crunch the numbers in your own spreadsheet or BI tool." },
       { title: "Facebook tracking pixel", description: "Drop in your Facebook Pixel ID to retarget visitors and measure ad performance." },
       { title: "Google Analytics tracking", description: "Connect a Google Analytics property and feed visits straight into your existing reporting." },
-      { title: "LinkedIn Insight tag", description: "Track LinkedIn ad audiences and conversions from your biolink visitors." },
+      { title: "LinkedIn Insight tag", description: "Track LinkedIn ad audiences and conversions from your Link in Bio visitors." },
       { title: "Pinterest tag", description: "Attribute Pinterest-driven traffic to the right campaigns with the Pinterest tracking tag." },
       { title: "TikTok Pixel", description: "Send visit and conversion events to TikTok Ads Manager for retargeting and measurement." },
     ],
@@ -110,7 +110,7 @@ export const featuresCategories: FeatureCategory[] = [
       "Every conversation that reaches you through 1INME lands in one place so nothing slips through the cracks.",
     items: [
       { title: "Unified inbox", description: "A single inbox that pulls together every visitor message, form reply, and follow-up across all your links." },
-      { title: "Direct messages from visitors", description: "Visitors can message you straight from your biolink and you reply right inside the inbox." },
+      { title: "Direct messages from visitors", description: "Visitors can message you straight from your Link in Bio and you reply right inside the inbox." },
       { title: "Form submissions", description: "Every contact form, lead form, and booking form submission lands in the same inbox thread." },
     ],
   },
@@ -120,7 +120,7 @@ export const featuresCategories: FeatureCategory[] = [
     intro:
       "Grow your own audience list, then talk to it directly without depending on social platforms.",
     items: [
-      { title: "Email list building", description: "Capture email subscribers through dedicated blocks and forms on your biolink." },
+      { title: "Email list building", description: "Capture email subscribers through dedicated blocks and forms on your Link in Bio." },
       { title: "SMS list building", description: "Collect mobile numbers with consent so you can send time-sensitive updates by text." },
       { title: "Broadcast sends", description: "Compose a message once and blast it to your full email or SMS list, or to a filtered segment." },
     ],
@@ -140,7 +140,7 @@ export const featuresCategories: FeatureCategory[] = [
   {
     id: "buzz",
     name: "Social proof / Buzz widgets",
-    intro: "Build trust on your biolink by showing real activity from real visitors as it happens.",
+    intro: "Build trust on your Link in Bio by showing real activity from real visitors as it happens.",
     items: [
       { title: "Floating recent-activity notifications", description: "Small pop-up cards that surface recent visitors, signups, or purchases to nudge new visitors to take action." },
     ],
@@ -153,7 +153,7 @@ export const featuresCategories: FeatureCategory[] = [
     items: [
       { title: "Multi-workspace switching", description: "Keep separate workspaces for different brands or clients and switch between them with one click." },
       { title: "Admin role", description: "Full control over the workspace, including billing, members, and every link or page." },
-      { title: "Editor role", description: "Create and edit links, biolinks, and posts without touching billing or member management." },
+      { title: "Editor role", description: "Create and edit links, Link in Bio pages, and posts without touching billing or member management." },
       { title: "Replier role", description: "Read and reply to inbox messages without being able to change content or settings." },
       { title: "Viewer role", description: "Read-only access to analytics and content for stakeholders who only need to look in." },
       { title: "Invite landing pages", description: "Send a clean, branded invite page so new members can accept and onboard in seconds." },
@@ -257,7 +257,7 @@ export const featuresCategories: FeatureCategory[] = [
     items: [
       { title: "Schedule blocks to appear", description: "Pick a date and time for any block to publish — it stays hidden until then and goes live automatically." },
       { title: "Schedule blocks to expire", description: "Set an end date and time so seasonal or campaign blocks disappear on their own without you remembering to remove them." },
-      { title: "Page-level publish scheduling", description: "Schedule a whole biolink to flip from draft to live at a given moment — perfect for launches." },
+      { title: "Page-level publish scheduling", description: "Schedule a whole Link in Bio to flip from draft to live at a given moment — perfect for launches." },
       { title: "Test send for digest emails", description: "Send the daily digest to yourself first to check the layout and content before it goes out to your followers." },
       { title: "Visitor timezone awareness", description: "Schedules use the visitor's timezone where it matters, so a launch goes live everywhere at the right local moment." },
     ],
@@ -266,7 +266,7 @@ export const featuresCategories: FeatureCategory[] = [
     id: "events",
     name: "Events & RSVPs",
     intro:
-      "Run launches, drops, lives and meetups directly from your biolink — with countdowns, RSVPs and reminder emails handled for you.",
+      "Run launches, drops, lives and meetups directly from your Link in Bio — with countdowns, RSVPs and reminder emails handled for you.",
     items: [
       { title: "Event blocks with countdown", description: "Drop in an event block and it shows a live countdown to the start time so visitors know exactly when it kicks off." },
       { title: "RSVP collection", description: "Collect RSVPs from visitors with optional email or phone capture, and see the attendee list in your dashboard." },
@@ -281,10 +281,10 @@ export const featuresCategories: FeatureCategory[] = [
     intro:
       "Skip the blank canvas. Pick a professionally designed template, fill in your details, and you're live in two minutes.",
     items: [
-      { title: "Curated biolink templates", description: "A growing library of mobile-first templates for creators, brands, agencies, restaurants, coaches, freelancers and more." },
+      { title: "Curated Link in Bio templates", description: "A growing library of mobile-first templates for creators, brands, agencies, restaurants, coaches, freelancers and more." },
       { title: "One-click template apply", description: "Tap a template and your page rebuilds in seconds — keep your existing content, swap just the look, or both." },
       { title: "Industry starter packs", description: "Pre-configured block sets for music, fitness, hospitality and other industries so you don't have to think about what to add first." },
-      { title: "Linktree / Beacons importer", description: "Paste your existing biolink URL and we'll pull the blocks, icons and links into a ready-to-edit starter page." },
+      { title: "Linktree / Beacons importer", description: "Paste your existing Link in Bio URL and we'll pull the blocks, icons and links into a ready-to-edit starter page." },
       { title: "Save your own templates", description: "Turn any page into a reusable template so your agency or team can spin up new client pages in seconds." },
     ],
   },
@@ -294,12 +294,12 @@ export const featuresCategories: FeatureCategory[] = [
     intro:
       "One-click connections to every network you live on, with auto-retry, live status and notifications when something needs your attention.",
     items: [
-      { title: "Instagram connection", description: "Connect your Instagram account in one tap to pull profile, posts and follower counts into your biolink." },
+      { title: "Instagram connection", description: "Connect your Instagram account in one tap to pull profile, posts and follower counts into your Link in Bio." },
       { title: "TikTok connection", description: "Plug in TikTok with one tap to surface your latest videos and follower count." },
       { title: "Facebook page connection", description: "Hook up a Facebook page so visitors can follow and you can pull recent posts." },
-      { title: "X (Twitter) connection", description: "Connect X so your latest posts and follower count stay live on your biolink." },
-      { title: "LinkedIn connection", description: "Plug in your LinkedIn profile or company page for a one-tap follow surface on your biolink." },
-      { title: "Pinterest connection", description: "Connect Pinterest to surface your boards and pins on your biolink." },
+      { title: "X (Twitter) connection", description: "Connect X so your latest posts and follower count stay live on your Link in Bio." },
+      { title: "LinkedIn connection", description: "Plug in your LinkedIn profile or company page for a one-tap follow surface on your Link in Bio." },
+      { title: "Pinterest connection", description: "Connect Pinterest to surface your boards and pins on your Link in Bio." },
       { title: "Auto-retry on broken connections", description: "When a token expires we keep retrying with smart back-off and only ping you when we actually need you to reconnect." },
       { title: "Connection health dashboard", description: "See \"healthy / needs reconnect / paused\" for every network at a glance, with last-synced timestamps." },
     ],

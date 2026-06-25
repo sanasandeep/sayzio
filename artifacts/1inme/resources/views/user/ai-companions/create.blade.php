@@ -27,7 +27,7 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-white/70 mb-1">Name</label>
-                <input name="name" required maxlength="120" value="{{ old('name') }}" placeholder="My biolink chatbot"
+                <input name="name" required maxlength="120" value="{{ old('name') }}" placeholder="My Link in Bio chatbot"
                        class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
             </div>
             <div>

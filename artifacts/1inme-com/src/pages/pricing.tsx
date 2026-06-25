@@ -12,7 +12,7 @@ export default function Pricing() {
       period: "/mo",
       description: "Everything you need to get started.",
       features: [
-        "Basic biolink",
+        "Basic Link in Bio",
         "10 short links",
         "Standard QR codes",
         "Basic analytics"

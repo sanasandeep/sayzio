@@ -40,7 +40,7 @@ export default function About() {
       date: "Sep 2023",
       title: "First public beta",
       description:
-        "We open the doors to a handful of friends and creators. Biolinks and short links only — but it works.",
+        "We open the doors to a handful of friends and creators. Link in Bio pages and short links only — but it works.",
     },
     {
       date: "Mar 2024",
@@ -88,7 +88,7 @@ export default function About() {
             <p className="text-xl text-muted-foreground leading-relaxed">
               One link should do everything: show your work, capture leads, sell,
               message and tell your story. We started 1INME because juggling ten
-              different tools to do that felt absurd, and the existing biolink
+              different tools to do that felt absurd, and the existing Link in Bio
               tools stopped at a list of buttons.
             </p>
           </div>
@@ -151,7 +151,7 @@ export default function About() {
                 capture leads. We thought there was a better way.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                We shipped the first version of 1INME — just biolinks and short
+                We shipped the first version of 1INME — just Link in Bio pages and short
                 links — to a handful of friends. They loved it, broke it, told us
                 what was missing, and we kept iterating. Today, thousands of
                 creators across the world use 1INME to run their online presence

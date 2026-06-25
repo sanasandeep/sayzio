@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Carbon-Neutral Biolinks · Methodology · {{ config('app.name') }}</title>
+    <title>Carbon-Neutral Link in Bio pages · Methodology · {{ config('app.name') }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

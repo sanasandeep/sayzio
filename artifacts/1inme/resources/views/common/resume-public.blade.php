@@ -183,7 +183,7 @@
                 <button type="button" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
                 @php $primaryBio = $user->primaryBiolink(); @endphp
                 @if ($primaryBio)
-                    <a href="{{ url('/' . $primaryBio->alias) }}"><i class="fas fa-link"></i> Bio link</a>
+                    <a href="{{ url('/' . $primaryBio->alias) }}"><i class="fas fa-link"></i> Link in Bio</a>
                 @endif
             </span>
         </div>

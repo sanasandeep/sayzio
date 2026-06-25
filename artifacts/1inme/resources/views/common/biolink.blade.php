@@ -2123,7 +2123,7 @@
             try {
                 var qs = new URLSearchParams(location.search);
                 if (qs.get('ar') !== 'unsupported') return;
-                var msg = "AR isn't supported on this device or browser — here's the standard biolink instead.";
+                var msg = "AR isn't supported on this device or browser — here's the standard Link in Bio instead.";
                 var t = document.createElement('div');
                 t.setAttribute('role', 'status');
                 t.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);'

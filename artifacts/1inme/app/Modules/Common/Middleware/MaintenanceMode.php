@@ -27,7 +27,7 @@ class MaintenanceMode
         'marketing' => 'Marketing site (landing, pricing, blog, policies)',
         'user_app'  => 'User dashboard (/user/*)',
         'api'       => 'API (mobile + JSON clients)',
-        'biolinks'  => 'Public biolink profile pages',
+        'biolinks'  => 'Public Link in Bio profile pages',
         'all'       => 'Entire site (admin-only lockdown)',
     ];
 

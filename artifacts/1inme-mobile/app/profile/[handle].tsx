@@ -368,9 +368,9 @@ export default function CreatorProfileScreen() {
 
             {/* Biolink */}
             {sections.biolink && profile.biolink_url ? (
-              <SectionCard title="Biolink" colors={colors}>
+              <SectionCard title="Link in Bio" colors={colors}>
                 <Button
-                  label="Open my biolink"
+                  label="Open my Link in Bio"
                   variant="secondary"
                   onPress={() =>
                     profile.biolink_url && Linking.openURL(profile.biolink_url)

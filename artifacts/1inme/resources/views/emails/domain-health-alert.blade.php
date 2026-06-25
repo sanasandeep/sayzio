@@ -16,7 +16,7 @@
                     {{ $domain->domain }} has been unverified
                 </h1>
                 <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                    DNS for <strong>{{ $domain->domain }}</strong> has stopped pointing at 1INME for more than {{ $payload['grace_hours'] ?? 168 }} hours, so we've automatically unverified the domain. Short links and biolinks bound to it will stop being served on this host until you fix DNS and re-verify.
+                    DNS for <strong>{{ $domain->domain }}</strong> has stopped pointing at 1INME for more than {{ $payload['grace_hours'] ?? 168 }} hours, so we've automatically unverified the domain. Short links and Link in Bio pages bound to it will stop being served on this host until you fix DNS and re-verify.
                 </p>
                 <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
                     The domain is still locked to your account on 1INME, so no one else can claim it while you sort out DNS.

@@ -99,7 +99,7 @@
         <li>Print QR codes at the recommended size or larger for reliable scanning.</li>
         <li>Test each code with a real phone before mass-printing.</li>
         <li>Each medium carries a unique <em>utm_medium</em> tag — your analytics will split scans by surface.</li>
-        <li>Devices that can't run AR will be redirected to the standard biolink with a friendly notice.</li>
+        <li>Devices that can't run AR will be redirected to the standard Link in Bio with a friendly notice.</li>
     </ul>
 </div>
 </body>

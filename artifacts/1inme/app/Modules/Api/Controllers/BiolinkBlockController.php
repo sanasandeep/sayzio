@@ -21,7 +21,7 @@ class BiolinkBlockController extends Controller
     public function index(Request $request, int $linkId)
     {
         $link = $this->ownedLink($request, $linkId);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $items = BiolinkBlock::where('link_id', $link->id)
             ->orderBy('sort_order')
@@ -78,7 +78,7 @@ class BiolinkBlockController extends Controller
     public function store(Request $request, int $linkId)
     {
         $link = $this->ownedLink($request, $linkId);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $data = $request->validate([
             'type'       => ['required', 'string', 'max:60'],
@@ -102,7 +102,7 @@ class BiolinkBlockController extends Controller
     public function update(Request $request, int $linkId, int $id)
     {
         $link = $this->ownedLink($request, $linkId);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $b = BiolinkBlock::where('link_id', $link->id)->find($id);
         if (!$b) return $this->notFound('Block not found');
@@ -143,8 +143,8 @@ class BiolinkBlockController extends Controller
         // Mirror BiolinkController@show: missing or disabled links are
         // 404 (don't leak existence), and accessibility (paywall, expiry,
         // password-protected, etc.) is enforced before we touch blocks.
-        if (!$link || !$link->is_active) return $this->notFound('Biolink not found');
-        if (!$link->isAccessible())     return $this->notFound('Biolink not available');
+        if (!$link || !$link->is_active) return $this->notFound('Link in Bio not found');
+        if (!$link->isAccessible())     return $this->notFound('Link in Bio not available');
 
         // Visibility gate — public/registered/followers/subscribers. We
         // re-implement the same logic BiolinkController::checkVisibility
@@ -170,7 +170,7 @@ class BiolinkBlockController extends Controller
                 ->where('email', $viewer->email)
                 ->where('status', 'active')->exists();
         }
-        if (!$allowed) return $this->notFound('Biolink not found');
+        if (!$allowed) return $this->notFound('Link in Bio not found');
 
         // Only surface blocks that are themselves eligible to be shown:
         // active, schedule-window has begun. We deliberately KEEP expired
@@ -197,7 +197,7 @@ class BiolinkBlockController extends Controller
     public function destroy(Request $request, int $linkId, int $id)
     {
         $link = $this->ownedLink($request, $linkId);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $b = BiolinkBlock::where('link_id', $link->id)->find($id);
         if (!$b) return $this->notFound('Block not found');
@@ -208,7 +208,7 @@ class BiolinkBlockController extends Controller
     public function reorder(Request $request, int $linkId)
     {
         $link = $this->ownedLink($request, $linkId);
-        if (!$link) return $this->notFound('Biolink not found');
+        if (!$link) return $this->notFound('Link in Bio not found');
 
         $data = $request->validate([
             'order'        => ['required', 'array', 'min:1'],

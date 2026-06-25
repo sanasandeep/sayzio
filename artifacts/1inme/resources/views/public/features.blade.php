@@ -17,7 +17,7 @@
         return $icon !== '' ? $icon : 'fa-circle-check';
     };
     $showcase = [
-        ['img' => asset('images/marketing/features/biolink.png'),  'label' => 'Biolink builder', 'desc' => 'Drag, drop, ship.'],
+        ['img' => asset('images/marketing/features/biolink.png'),  'label' => 'Link in Bio builder', 'desc' => 'Drag, drop, ship.'],
         ['img' => asset('images/marketing/features/qr-code.png'),  'label' => 'Dynamic QR',     'desc' => 'Scannable. Trackable.'],
         ['img' => asset('images/marketing/features/analytics.png'),'label' => 'Live analytics', 'desc' => 'Numbers that move.'],
     ];
@@ -56,7 +56,7 @@
                     Your link, <span class="grad-text">supercharged</span>.
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    {{ $page->meta_description ?? 'A complete tour of every capability inside 1INME — from your biolink and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
+                    {{ $page->meta_description ?? 'A complete tour of every capability inside 1INME — from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Start free</a>
@@ -70,7 +70,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[5/4]">
-                    <img src="{{ asset('images/marketing/features/hero.png') }}" alt="Phone showing a 1INME biolink page">
+                    <img src="{{ asset('images/marketing/features/hero.png') }}" alt="Phone showing a 1INME Link in Bio page">
                 </div>
                 <div class="absolute -top-4 -left-4 bg-[#11101c] border border-white/10 rounded-2xl p-3 flex items-center gap-2 shadow-2xl float-y">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
@@ -239,7 +239,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Ready to put it all to work?</h3>
-                <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Spin up your biolink, drop in your first link, and explore every feature on this page from your dashboard.</p>
+                <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Spin up your Link in Bio, drop in your first link, and explore every feature on this page from your dashboard.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     @auth
                         <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Open dashboard</a>

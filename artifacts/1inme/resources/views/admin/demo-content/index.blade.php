@@ -6,7 +6,7 @@
     <div class="mb-6">
         <h1 class="text-2xl font-bold mb-1" style="color: var(--text-primary);">Demo Content</h1>
         <p class="text-sm" style="color: var(--text-dimmed);">
-            Seed sample creators, biolinks, and feed posts across every visibility tier
+            Seed sample creators, Link in Bio pages, and feed posts across every visibility tier
             (public / registered / followers / subscribers), or wipe them all in one click.
         </p>
     </div>
@@ -71,7 +71,7 @@
             <p class="text-xs mb-4" style="color: var(--text-dimmed);">
                 Wipes any existing demo data, then re-creates the full demo footprint: 50+ links of every
                 type, 5 workspaces (1 personal + 4 team) with members, invites and populated task boards,
-                10 demo creators with biolinks, and 50+ feed events per creator across all four visibility
+                10 demo creators with Link in Bio pages, and 50+ feed events per creator across all four visibility
                 tiers. Existing real users are never touched.
             </p>
             <ul class="text-xs mb-4 space-y-1.5" style="color: var(--text-dimmed);">
@@ -98,7 +98,7 @@
                 <h2 class="text-base font-semibold" style="color: var(--text-primary);">Remove all demo content</h2>
             </div>
             <p class="text-xs mb-4" style="color: var(--text-dimmed);">
-                Deletes every row marked as demo (creators, biolinks, short links, file/event/vCard links,
+                Deletes every row marked as demo (creators, Link in Bio pages, short links, file/event/vCard links,
                 feed posts, demo follows and demo subscribers). The original demo super-admin
                 (<code>demo@1inme.com</code>) is preserved so you keep dashboard access.
             </p>

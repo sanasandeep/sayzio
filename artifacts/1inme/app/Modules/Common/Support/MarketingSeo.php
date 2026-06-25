@@ -46,8 +46,8 @@ class MarketingSeo
                 'label' => 'Home',
                 'group' => 'Core',
                 'url' => '/',
-                'title' => 'One Link for Everything — Biolink, Short Links & QR Codes',
-                'description' => '1INME is the all-in-one link platform: build a drag-and-drop biolink page, shorten and brand links, generate dynamic QR codes, and grow with live analytics.',
+                'title' => 'One Link for Everything — Link in Bio, Short Links & QR Codes',
+                'description' => '1INME is the all-in-one link platform: build a drag-and-drop Link in Bio page, shorten and brand links, generate dynamic QR codes, and grow with live analytics.',
                 'keywords' => 'link in bio, biolink, link management, short links, url shortener, qr code generator, link analytics, 1inme',
             ],
             'pricing' => [
@@ -71,7 +71,7 @@ class MarketingSeo
                 'group' => 'Discover',
                 'url' => '/creators',
                 'title' => 'Discover Creators — Browse 1INME Profiles',
-                'description' => 'Explore and follow creators on 1INME. Browse public biolink profiles, find new people to follow and discover what they share.',
+                'description' => 'Explore and follow creators on 1INME. Browse public Link in Bio profiles, find new people to follow and discover what they share.',
                 'keywords' => 'creators directory, discover creators, find creators, public profiles, follow creators, 1inme creators',
             ],
             'analytics' => [
@@ -79,7 +79,7 @@ class MarketingSeo
                 'group' => 'Capabilities',
                 'url' => '/analytics',
                 'title' => 'Link Analytics & Insights — Track Every Click',
-                'description' => 'Understand your audience with 1INME analytics: real-time clicks, geographic heatmaps, devices, referrers and conversion tracking for every link and biolink.',
+                'description' => 'Understand your audience with 1INME analytics: real-time clicks, geographic heatmaps, devices, referrers and conversion tracking for every link and Link in Bio.',
                 'keywords' => 'link analytics, click tracking, geographic heatmap, audience insights, conversion tracking, utm analytics',
             ],
             'audience' => [
@@ -127,7 +127,7 @@ class MarketingSeo
                 'group' => 'Compare',
                 'url' => '/compare',
                 'title' => 'Compare 1INME vs Linktree, Beacons, Bitly & More',
-                'description' => 'See how 1INME stacks up against the link-in-bio and short-link tools you already use across ' . ComparisonContent::totalFeatures() . ' features — biolinks, short links, QR codes, analytics, monetisation and more.',
+                'description' => 'See how 1INME stacks up against the link-in-bio and short-link tools you already use across ' . ComparisonContent::totalFeatures() . ' features — Link in Bio pages, short links, QR codes, analytics, monetisation and more.',
                 'keywords' => 'link in bio comparison, linktree alternative, beacons alternative, bitly alternative, biolink comparison, 1inme vs',
             ],
         ];

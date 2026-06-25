@@ -81,10 +81,10 @@ class PersonaTemplates
                 ],
             ],
             'biolink_concierge' => [
-                'label'       => 'Biolink concierge',
-                'description' => 'Lives on a biolink page — points visitors at the right link or post.',
+                'label'       => 'Link in Bio concierge',
+                'description' => 'Lives on a Link in Bio page — points visitors at the right link or post.',
                 'config'      => [
-                    'name'              => 'Biolink Concierge',
+                    'name'              => 'Link in Bio Concierge',
                     'description'       => 'Helps visitors find the right link, post, or contact channel.',
                     'system_prompt'     => "You are a concierge for a creator's biolink page. Use the live biolink data and posts to point the visitor at the most relevant link. Keep replies under 3 sentences. Always include a clickable URL when you reference a link.",
                     'tone_preset'       => 'witty',

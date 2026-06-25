@@ -194,7 +194,7 @@ class ContactController extends Controller
         if ($contact->biolink_user_id) {
             $this->resolver->detach($contact, $contact->biolink_user_id);
         }
-        return back()->with('success', 'Biolink removed from this contact.');
+        return back()->with('success', 'Link in Bio removed from this contact.');
     }
 
     public function attachBiolink(Request $request, Contact $contact)
@@ -211,7 +211,7 @@ class ContactController extends Controller
             $contact->forceFill(['detached_biolink_user_ids' => $list])->save();
         }
         $this->resolver->resolveFor($contact->fresh('phones'));
-        return back()->with('success', 'Biolink reattached if a matching 1INME user was found.');
+        return back()->with('success', 'Link in Bio reattached if a matching 1INME user was found.');
     }
 
     // ---- bulk import ------------------------------------------------------
@@ -601,7 +601,7 @@ class ContactController extends Controller
 
         $preview = $this->biolinkPreview($contact);
         if (!$preview || empty($preview['url'])) {
-            return back()->with('error', 'No biolink available to text.');
+            return back()->with('error', 'No Link in Bio available to text.');
         }
 
         $to = trim((string) $request->input('to', ''));
@@ -624,7 +624,7 @@ class ContactController extends Controller
             ]))
             ->filter()->unique()->values()->all();
         if (!in_array($toClean, $allowed, true)) {
-            return back()->with('error', 'You can only text this biolink to a phone number saved on the contact.');
+            return back()->with('error', 'You can only text this Link in Bio to a phone number saved on the contact.');
         }
 
         $userId = workspace_owner_id();
@@ -635,7 +635,7 @@ class ContactController extends Controller
                 ->orderByDesc('is_default')->orderBy('id')->first();
 
         if (!$config) {
-            return back()->with('error', 'No active SMS gateway configured. Add Twilio or Plivo under Integrations, or use the Text biolink button on a mobile device.');
+            return back()->with('error', 'No active SMS gateway configured. Add Twilio or Plivo under Integrations, or use the Text Link in Bio button on a mobile device.');
         }
 
         $name    = $contact->nameForDisplay();
@@ -648,7 +648,7 @@ class ContactController extends Controller
             return back()->with('error', 'SMS gateway rejected the send: ' . $e->getMessage());
         }
 
-        return back()->with('success', 'Biolink texted to ' . $toClean . ' via ' . $config->providerLabel() . '.');
+        return back()->with('success', 'Link in Bio texted to ' . $toClean . ' via ' . $config->providerLabel() . '.');
     }
 
     /**
@@ -696,7 +696,7 @@ class ContactController extends Controller
                 // doesn't see a green "sent" toast for a message that never
                 // actually left the building.
                 throw new \RuntimeException(
-                    'SMS provider "' . $config->provider . '" is not yet supported for biolink texting. '
+                    'SMS provider "' . $config->provider . '" is not yet supported for Link in Bio texting. '
                     . 'Use Twilio or Plivo, or text from a mobile device.'
                 );
         }

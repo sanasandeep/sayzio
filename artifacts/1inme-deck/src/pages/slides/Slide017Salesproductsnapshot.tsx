@@ -13,7 +13,7 @@ export default function Slide017Salesproductsnapshot() {
           <div className="col-span-5 flex flex-col justify-center">
             <h2 className="font-display text-[3.2vw] font-bold leading-[1.04] tracking-tight">What buyers see on day one.</h2>
             <p className="mt-[2vh] text-[1.25vw] text-slate-300 max-w-[26vw]">A single dashboard that proves the value within the first hour.</p>
-            <ul className="mt-[3vh] space-y-[1vh] text-[1.05vw] text-slate-300"><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Live bio link page with traffic flowing</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>AI Companion already trained on uploaded files</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Funnel populated from imported clicks</span></li></ul>
+            <ul className="mt-[3vh] space-y-[1vh] text-[1.05vw] text-slate-300"><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Live Link in Bio page with traffic flowing</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>AI Companion already trained on uploaded files</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Funnel populated from imported clicks</span></li></ul>
           </div>
           <div className="col-span-7 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-[1.6vw] flex flex-col">
             <div className="flex items-center gap-[0.5vw] pb-[1vh] border-b border-white/10">

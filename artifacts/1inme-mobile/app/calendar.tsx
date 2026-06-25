@@ -85,7 +85,7 @@ export default function CalendarScreen() {
             <EmptyState
               icon="calendar"
               title="No calendars connected"
-              body="Connect Google Calendar from the web app to mirror events into your biolinks."
+              body="Connect Google Calendar from the web app to mirror events into your Link in Bio pages."
             />
           }
           ListFooterComponent={

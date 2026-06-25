@@ -93,7 +93,7 @@ class BiolinkReportController extends Controller
             'moderation_appeal_message' => null,
         ])->save();
         $this->notifyCreator($link, 'biolink_hidden', $reason, $note);
-        return back()->with('success', 'Biolink hidden.');
+        return back()->with('success', 'Link in Bio hidden.');
     }
 
     public function escalate(Request $request, Link $link)
@@ -124,7 +124,7 @@ class BiolinkReportController extends Controller
             ->update(['status' => 'dismissed', 'actioned_at' => now()]);
 
         $this->notifyCreator($link, 'biolink_restored', null, null);
-        return back()->with('success', 'Biolink restored.');
+        return back()->with('success', 'Link in Bio restored.');
     }
 
     /**
@@ -164,16 +164,16 @@ class BiolinkReportController extends Controller
         $reasonLabel = $reason ? (BiolinkReport::REASONS[$reason] ?? $reason) : null;
 
         $messages = [
-            'biolink_warned'  => "Your biolink \"{$link->title}\" was reported and reviewed by our team. Please update any content that violates our policies.",
-            'biolink_hidden'  => "Your biolink \"{$link->title}\" has been hidden after review of visitor reports.",
-            'biolink_restored'=> "Good news — your biolink \"{$link->title}\" has been restored.",
+            'biolink_warned'  => "Your Link in Bio \"{$link->title}\" was reported and reviewed by our team. Please update any content that violates our policies.",
+            'biolink_hidden'  => "Your Link in Bio \"{$link->title}\" has been hidden after review of visitor reports.",
+            'biolink_restored'=> "Good news — your Link in Bio \"{$link->title}\" has been restored.",
         ];
 
         UserNotification::create([
             'user_id' => $link->user_id,
             'type'    => $type,
             'data'    => [
-                'message'        => $messages[$type] ?? 'Your biolink was actioned by moderation.',
+                'message'        => $messages[$type] ?? 'Your Link in Bio was actioned by moderation.',
                 'link_id'        => $link->id,
                 'link_title'     => $link->title,
                 'link_alias'     => $link->alias,

@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Bulk Biolink — Preview')
+@section('title', 'Bulk Link in Bio — Preview')
 
 @section('content')
 @php

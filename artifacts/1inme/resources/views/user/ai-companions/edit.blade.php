@@ -117,7 +117,7 @@
             </div>
             <div class="flex flex-wrap gap-4 pt-2 text-xs text-white/70">
                 <label><input type="hidden" name="config[show_branding]" value="0"><input type="checkbox" name="config[show_branding]" value="1" @checked(!empty($config['show_branding']))> Show "Powered by 1INME"</label>
-                <label><input type="hidden" name="config[inline]" value="0"><input type="checkbox" name="config[inline]" value="1" @checked(!empty($config['inline']))> Inline mode (biolink only)</label>
+                <label><input type="hidden" name="config[inline]" value="0"><input type="checkbox" name="config[inline]" value="1" @checked(!empty($config['inline']))> Inline mode (Link in Bio only)</label>
                 <label><input type="hidden" name="config[auto_send_inbox]" value="0"><input type="checkbox" name="config[auto_send_inbox]" value="1" @checked(!empty($config['auto_send_inbox']))> Auto-send inbox replies</label>
             </div>
         </fieldset>
@@ -157,8 +157,8 @@
 
         @if($companion->placement === 'biolink')
             <fieldset class="space-y-2">
-                <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Biolinks to render on</legend>
-                <p class="text-[11px] text-white/50">Add an "AI Companion" block to one of these biolinks to actually show the chatbot. This list just scopes which links it's allowed on.</p>
+                <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Link in Bio pages to render on</legend>
+                <p class="text-[11px] text-white/50">Add an "AI Companion" block to one of these Link in Bio pages to actually show the chatbot. This list just scopes which links it's allowed on.</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 overflow-auto pr-2">
                     @forelse($links as $l)
                         <label class="flex items-center gap-2 text-xs text-white/70">
@@ -167,7 +167,7 @@
                             <span class="text-white/30">/{{ $l->alias }}</span>
                         </label>
                     @empty
-                        <p class="text-xs text-white/40">No biolinks yet.</p>
+                        <p class="text-xs text-white/40">No Link in Bio pages yet.</p>
                     @endforelse
                 </div>
             </fieldset>
@@ -194,8 +194,8 @@
         </div>
     @else
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2 text-sm text-white/80">
-            <h2 class="font-bold">How to add it to a biolink</h2>
-            <p>Open the biolink builder, add an <strong>AI Companion</strong> block, and pick this Companion from the dropdown. It renders as a floating launcher (or inline if you toggled Inline mode above).</p>
+            <h2 class="font-bold">How to add it to a Link in Bio</h2>
+            <p>Open the Link in Bio builder, add an <strong>AI Companion</strong> block, and pick this Companion from the dropdown. It renders as a floating launcher (or inline if you toggled Inline mode above).</p>
         </div>
     @endif
 </div>

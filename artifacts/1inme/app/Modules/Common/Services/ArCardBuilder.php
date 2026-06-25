@@ -86,7 +86,7 @@ class ArCardBuilder
 
         // Use built-in font (no TTF dependency for portability)
         $name = $this->sanitize($cfg['display_name']) ?: 'Your Name';
-        $headline = $this->sanitize($cfg['headline']) ?: '1INME · biolink in AR';
+        $headline = $this->sanitize($cfg['headline']) ?: '1INME · Link in Bio in AR';
         $subtitle = $this->sanitize($cfg['subtitle']);
 
         imagestring($img, 5, $textX, 100, substr($name, 0, 38), $white);

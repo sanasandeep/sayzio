@@ -15,7 +15,7 @@ export default function Slide156Investorgtm() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">
             <div className="text-[0.85vw] uppercase tracking-[0.25em] text-fuchsia-200">PLG</div>
             <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">Self-serve top of funnel</div>
-            <div className="mt-[1vh] text-[1.05vw] text-slate-300 leading-snug">Free plan + viral bio links + creator referrals.</div>
+            <div className="mt-[1vh] text-[1.05vw] text-slate-300 leading-snug">Free plan + viral Link in Bio pages + creator referrals.</div>
             
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">

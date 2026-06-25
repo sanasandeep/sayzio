@@ -452,11 +452,11 @@
     @if($page->slug === 'discovery')
         <div class="glass rounded-2xl p-6">
             <h3 class="text-sm font-semibold text-white mb-1">Discovery settings</h3>
-            <p class="text-xs text-white/50 mb-4">Controls how the public /discovery page renders biolinks.</p>
+            <p class="text-xs text-white/50 mb-4">Controls how the public /discovery page renders Link in Bio pages.</p>
             <form method="POST" action="{{ route('admin.site-pages.discovery-settings') }}" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Biolinks per page</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Link in Bio pages per page</label>
                     <input type="number" min="4" max="60" name="discovery_per_page" value="{{ old('discovery_per_page', $settings['discovery_per_page']) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 </div>
                 <label class="inline-flex items-center gap-2 text-sm text-white">

@@ -71,7 +71,7 @@
                     <i class="fas fa-table text-lg"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-white font-medium">Bulk create biolink pages from a sheet</div>
+                    <div class="text-white font-medium">Bulk create Link in Bio pages from a sheet</div>
                     <div class="text-xs text-white/50 mt-0.5">Mail-merge a master page with a CSV/Excel or pasted table — one personalized page per row.</div>
                 </div>
                 <i class="fas fa-arrow-right text-white/30 group-hover:text-sky-300 transition-colors"></i>

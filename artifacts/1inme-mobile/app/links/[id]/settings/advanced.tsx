@@ -117,7 +117,7 @@ function BiolinkAutoUtmCard({ linkId }: { linkId: number }) {
             flex: 1,
           }}
         >
-          Enable Auto-UTM for this biolink
+          Enable Auto-UTM for this Link in Bio
         </Text>
         <Switch
           value={enabled}

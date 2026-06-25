@@ -14,7 +14,7 @@
         [
             'icon'  => 'fa-layer-group',
             'title' => 'Multiple branded global domains',
-            'desc'  => 'Skip the DNS setup entirely. Pick one of our shared, branded domains when you create a link or biolink — ' . $globalDomainsPhrase . ' — and you’re live instantly with a clean, memorable URL.',
+            'desc'  => 'Skip the DNS setup entirely. Pick one of our shared, branded domains when you create a link or Link in Bio — ' . $globalDomainsPhrase . ' — and you’re live instantly with a clean, memorable URL.',
         ],
         [
             'icon'  => 'fa-globe',

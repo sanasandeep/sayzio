@@ -16,9 +16,9 @@
                 box-shadow:0 14px 40px rgba(0,0,0,.45);">
         <div style="font-weight:600;color:#fff;margin-bottom:4px;">
             @if($link->moderation_state === 'hidden')
-                Your biolink is hidden from visitors
+                Your Link in Bio is hidden from visitors
             @else
-                Your biolink received a moderation warning
+                Your Link in Bio received a moderation warning
             @endif
         </div>
         <div style="opacity:.85;">
@@ -68,7 +68,7 @@
         <div style="background:#1a0533;color:#fff;max-width:420px;width:100%;border-radius:16px;
              padding:22px;border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 60px rgba(0,0,0,.6);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                <strong style="font-size:15px;">Report this biolink</strong>
+                <strong style="font-size:15px;">Report this Link in Bio</strong>
                 <button type="button" id="bio-report-close" aria-label="Close"
                         style="background:transparent;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;">×</button>
             </div>

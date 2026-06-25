@@ -205,7 +205,7 @@
                     <div class="grid grid-cols-12 px-4 py-3 bg-white/[.04] text-[11px] font-bold uppercase tracking-wider text-gray-400">
                         <div class="col-span-6">Feature</div>
                         <div class="col-span-3 text-center text-white">1INME</div>
-                        <div class="col-span-3 text-center">Typical bio-link tool</div>
+                        <div class="col-span-3 text-center">Typical Link in Bio tool</div>
                     </div>
                     <template x-for="(r,i) in why" :key="'wp'+i">
                         <div class="grid grid-cols-12 items-center px-4 py-3 border-t border-white/5 text-sm">

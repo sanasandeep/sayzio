@@ -173,7 +173,7 @@ export default function ScanCardScreen() {
         </Text>
         <Text style={[styles.sub, { color: colors.mutedForeground }]}>
           Snap a photo or pick files and we&apos;ll read the details with AI — then
-          you can save a contact or start a biolink. Up to {CARD_SCAN_MAX_FILES}{" "}
+          you can save a contact or start a Link in Bio. Up to {CARD_SCAN_MAX_FILES}{" "}
           files, {CARD_SCAN_MAX_MB}MB each (PDFs up to {CARD_SCAN_MAX_PDF_PAGES}{" "}
           pages).
         </Text>

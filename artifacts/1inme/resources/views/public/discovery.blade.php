@@ -52,9 +52,9 @@
         @if($biolinks->isEmpty())
             <div class="text-center text-gray-500 text-sm py-16" data-anim="fade-up">
                 @if($q !== '')
-                    No biolinks match "<span class="text-white">{{ $q }}</span>" yet.
+                    No Link in Bio pages match "<span class="text-white">{{ $q }}</span>" yet.
                 @else
-                    No public biolinks yet — check back soon.
+                    No public Link in Bio pages yet — check back soon.
                 @endif
             </div>
         @else

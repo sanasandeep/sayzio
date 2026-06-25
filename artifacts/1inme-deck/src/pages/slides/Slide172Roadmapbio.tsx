@@ -9,7 +9,7 @@ export default function Slide172Roadmapbio() {
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400">Roadmap</span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
-        <h2 className="font-display text-[3.4vw] font-bold leading-[1.04] tracking-tight">Roadmap · Bio Links &amp; Smart Links.</h2>
+        <h2 className="font-display text-[3.4vw] font-bold leading-[1.04] tracking-tight">Roadmap · Link in Bio &amp; Smart Links.</h2>
         
         <div className="mt-[4vh] grid grid-cols-3 gap-[1.5vw] flex-1">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">

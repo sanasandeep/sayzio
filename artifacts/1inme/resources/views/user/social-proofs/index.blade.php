@@ -6,7 +6,7 @@
 <div class="flex items-center justify-between mb-6">
     <div>
         <h1 class="text-2xl font-bold text-white">Buzz</h1>
-        <p class="text-white/40 text-sm mt-1">Build trust with notification widgets you can embed anywhere — including your biolinks.</p>
+        <p class="text-white/40 text-sm mt-1">Build trust with notification widgets you can embed anywhere — including your Link in Bio pages.</p>
     </div>
     <a href="{{ route('user.social-proofs.create') }}" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
         <i class="fas fa-plus"></i> New Notification

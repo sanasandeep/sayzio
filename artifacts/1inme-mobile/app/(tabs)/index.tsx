@@ -146,7 +146,7 @@ export default function Home() {
                 <EmptyState
                   icon="link"
                   title="No links yet"
-                  body="Tap Create to make your first short link or biolink."
+                  body="Tap Create to make your first short link or Link in Bio."
                 />
               )}
             </View>

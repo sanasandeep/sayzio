@@ -226,7 +226,7 @@
             <p class="text-xs mt-1" style="color: var(--text-muted,#9ca3af);">Build a polished resume with a live preview. Switch templates and color themes any time.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" class="resume-add-btn" @click="openImport()" title="Import from PDF, LinkedIn, your bio link, or AI">
+            <button type="button" class="resume-add-btn" @click="openImport()" title="Import from PDF, LinkedIn, your Link in Bio, or AI">
                 <i class="fas fa-file-import"></i> Import
             </button>
             <button type="button" class="resume-add-btn" @click="openTailor()" title="Paste a job description and let AI tailor your resume">
@@ -483,7 +483,7 @@
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div>
                             <p class="text-sm font-semibold" style="color: var(--text-primary,#fff);">Public résumé page</p>
-                            <p class="text-xs" style="color: var(--text-muted,#9ca3af);">When on, your résumé is reachable at the link below and can be embedded in your bio link.</p>
+                            <p class="text-xs" style="color: var(--text-muted,#9ca3af);">When on, your résumé is reachable at the link below and can be embedded in your Link in Bio.</p>
                         </div>
                         <label class="inline-flex items-center cursor-pointer shrink-0">
                             <input type="checkbox" class="sr-only peer"
@@ -1153,7 +1153,7 @@ function resumeEditor() {
         importTabs: [
             { key: 'file',     label: 'PDF / DOCX',  icon: 'fa-file-arrow-up' },
             { key: 'linkedin', label: 'LinkedIn',    icon: 'fa-brands fa-linkedin-in' },
-            { key: 'biolink',  label: 'My bio link', icon: 'fa-link' },
+            { key: 'biolink',  label: 'My Link in Bio', icon: 'fa-link' },
             { key: 'ai',       label: 'AI assist',   icon: 'fa-wand-magic-sparkles' },
         ],
         importBusy: false,

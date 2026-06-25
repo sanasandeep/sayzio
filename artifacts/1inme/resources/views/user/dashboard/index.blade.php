@@ -85,7 +85,7 @@
         ['icon' => 'fa-link', 'text' => ($stats['total_links'] ?? 0) . ' links'],
     ],
     'actions'  => [
-        ['label' => 'Create Bio Link',  'url' => route('user.links.wizard'),     'icon' => 'fa-magic',       'class' => 'btn-primary'],
+        ['label' => 'Create Link in Bio',  'url' => route('user.links.wizard'),     'icon' => 'fa-magic',       'class' => 'btn-primary'],
         ['label' => 'Quick Link',       'url' => route('user.links.create'),     'icon' => 'fa-plus',        'class' => 'btn-secondary'],
         ['label' => 'Switch Template',  'url' => route('user.onboarding.template'), 'icon' => 'fa-layer-group', 'class' => 'btn-secondary'],
     ],
@@ -365,8 +365,8 @@
                     </div>
                     <h2 class="text-sm font-bold" style="color: var(--text-primary);">Recent Links</h2>
                 </div>
-                <a href="{{ route('user.links.wizard') }}" class="text-[11px] text-violet-400 hover:text-violet-300 font-semibold transition-all flex items-center gap-1 hover:gap-2" title="Guided bio link wizard (or use Quick Link for short URLs)">
-                    <i class="fas fa-magic text-[9px]"></i> New Bio Link
+                <a href="{{ route('user.links.wizard') }}" class="text-[11px] text-violet-400 hover:text-violet-300 font-semibold transition-all flex items-center gap-1 hover:gap-2" title="Guided Link in Bio wizard (or use Quick Link for short URLs)">
+                    <i class="fas fa-magic text-[9px]"></i> New Link in Bio
                 </a>
             </div>
 
@@ -428,7 +428,7 @@
                 <p class="text-xs mb-5" style="color: var(--text-dimmed);">Launch the guided wizard or build a quick short link.</p>
                 <div class="flex items-center justify-center gap-2">
                     <a href="{{ route('user.links.wizard') }}" class="btn-primary text-xs py-2.5">
-                        <i class="fas fa-magic text-[10px]"></i> Bio Link Wizard
+                        <i class="fas fa-magic text-[10px]"></i> Link in Bio Wizard
                     </a>
                     <a href="{{ route('user.links.create') }}" class="btn-secondary text-xs py-2.5">
                         <i class="fas fa-plus text-[10px]"></i> Quick Link
@@ -480,7 +480,7 @@
                     <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.12);">
                         <i class="fas fa-magic text-violet-400 text-[10px]"></i>
                     </div>
-                    <span class="text-xs font-medium" style="color: var(--text-muted);">Bio Link Wizard</span>
+                    <span class="text-xs font-medium" style="color: var(--text-muted);">Link in Bio Wizard</span>
                     <i class="fas fa-chevron-right text-[8px] ml-auto transition-transform group-hover:translate-x-1" style="color: var(--text-faint);"></i>
                 </a>
                 <a href="{{ route('user.links.create') }}" class="flex items-center gap-3 p-2.5 rounded-xl transition-all group hover:translate-x-1" style="background: transparent;" onmouseover="this.style.background='var(--bg-glass-input)'" onmouseout="this.style.background='transparent'">

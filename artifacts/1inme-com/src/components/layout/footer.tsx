@@ -124,7 +124,7 @@ export function Footer() {
             </Link>
             <p className="text-muted-foreground mb-6 max-w-sm">
               One link to everything. The all-in-one link, monetization &amp; growth stack —
-              biolinks, short links, QR codes, analytics and AI, free forever.
+              Link in Bio pages, short links, QR codes, analytics and AI, free forever.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild>

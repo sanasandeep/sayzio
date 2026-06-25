@@ -368,8 +368,8 @@
            class="sidebar-link {{ request()->routeIs('admin.biolink-reports.*') ? 'active' : '' }}"
            style="--nav-tint:#dc2626; --nav-tint-soft:rgba(220,38,38,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-flag"></i></div>
-            <span class="nav-label">Biolink Reports</span>
-            <span class="sidebar-tooltip">Biolink Reports</span>
+            <span class="nav-label">Link in Bio Reports</span>
+            <span class="sidebar-tooltip">Link in Bio Reports</span>
         </a>
 
         <a href="{{ route('admin.banned-names.index') }}"

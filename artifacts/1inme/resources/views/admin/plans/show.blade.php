@@ -108,7 +108,7 @@
     </div>
 
     <div class="glass rounded-2xl border border-white/10 p-6">
-        <h2 class="text-base font-semibold text-white mb-4">Biolink block allowlist</h2>
+        <h2 class="text-base font-semibold text-white mb-4">Link in Bio block allowlist</h2>
         @if($blockAllowed === '*' || $blockAllowed === null)
             <p class="text-sm text-emerald-300">All blocks allowed (<code>*</code>)</p>
         @elseif(is_array($blockAllowed))

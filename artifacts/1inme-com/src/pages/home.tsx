@@ -63,7 +63,7 @@ export default function Home() {
 
               <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-xl">
                 Whoever you are, 1INME is the all-in-one link, monetization &amp;
-                growth stack: drag-and-drop biolink pages, branded short links,
+                growth stack: drag-and-drop Link in Bio pages, branded short links,
                 dynamic QR codes, NFC tags, built-in DMs, an AI Performance Coach
                 and a native mobile app — free forever, no card required.
               </p>
@@ -98,7 +98,7 @@ export default function Home() {
               <div className="relative w-full max-w-[340px] mx-auto">
                 <img 
                   src={`${import.meta.env.BASE_URL}hero-mockup.png`} 
-                  alt="1INME Biolink Profile" 
+                  alt="1INME Link in Bio Profile" 
                   className="w-full h-auto drop-shadow-2xl rounded-[3rem]"
                 />
                 

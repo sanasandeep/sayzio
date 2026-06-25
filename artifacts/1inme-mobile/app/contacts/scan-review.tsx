@@ -295,7 +295,7 @@ export default function ScanReviewScreen() {
           />
           <Toggle
             colors={colors}
-            label="Start a biolink from this"
+            label="Start a Link in Bio from this"
             value={createBiolink}
             onToggle={() => setCreateBiolink((v) => !v)}
           />

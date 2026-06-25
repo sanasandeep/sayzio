@@ -11,7 +11,7 @@ export default function Slide036Productbiomodule() {
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
         <div className="grid grid-cols-12 gap-[2.5vw] flex-1">
           <div className="col-span-5 flex flex-col justify-center">
-            <h2 className="font-display text-[3.2vw] font-bold leading-[1.04] tracking-tight">Bio link pages.</h2>
+            <h2 className="font-display text-[3.2vw] font-bold leading-[1.04] tracking-tight">Link in Bio pages.</h2>
             <p className="mt-[2vh] text-[1.25vw] text-slate-300 max-w-[26vw]">The doorway to everything else.</p>
             <ul className="mt-[3vh] space-y-[1vh] text-[1.05vw] text-slate-300"><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Drag-and-drop blocks</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Themes + custom domains</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>AB tests built in</span></li></ul>
           </div>

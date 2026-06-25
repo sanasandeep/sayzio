@@ -11,7 +11,7 @@ import { Map, Flame, Brain, Download, Eye, ShieldCheck } from "lucide-react";
 
 const items = [
   { icon: Map, name: "Live visitor map", description: "Watch visitors arrive in real time, with pins on a world map showing exactly where your audience is right now." },
-  { icon: Flame, name: "Click heatmaps", description: "See which blocks on your biolink visitors actually click — and where they drop off — so you can prune dead weight." },
+  { icon: Flame, name: "Click heatmaps", description: "See which blocks on your Link in Bio visitors actually click — and where they drop off — so you can prune dead weight." },
   { icon: Brain, name: "AI Performance Coach", description: "It watches your live numbers, compares against best practice, and surfaces a small prioritised list of one-click fixes." },
   { icon: Download, name: "CSV & JSON export", description: "Export clicks, sessions and conversions, plus a webhook stream that feeds your real-time pipelines." },
   { icon: Eye, name: "Per-block CTR", description: "Every block reports its own clicks, view rate and click-through so you know what's working at a glance." },

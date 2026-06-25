@@ -7,7 +7,7 @@
         [
             'icon'  => 'fa-globe',
             'title' => 'Live geo heatmap & visitor pins',
-            'desc'  => 'Watch visitors land on your biolink in real time on a world map, with city-level heat density so you instantly see where your audience is right now — perfect for timing posts, drops and AMAs.',
+            'desc'  => 'Watch visitors land on your Link in Bio in real time on a world map, with city-level heat density so you instantly see where your audience is right now — perfect for timing posts, drops and AMAs.',
         ],
         [
             'icon'  => 'fa-camera',

@@ -152,7 +152,7 @@
                                     <i class="fas fa-sparkles"></i> What you can create
                                 </span>
                                 <span class="relative mt-2 block text-base font-bold leading-tight text-white">Everything in one link</span>
-                                <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Links, biolinks, QR codes, résumés and AI pages — all fully branded.</span>
+                                <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Links, Link in Bio pages, QR codes, résumés and AI pages — all fully branded.</span>
                                 <a href="{{ route('site.features') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#7c3aed] px-4 py-2 text-xs font-bold text-white hover:bg-[#6d28d9] transition-colors">
                                     Explore features <i class="fas fa-arrow-right text-[10px]"></i>
                                 </a>

@@ -13,9 +13,9 @@ export const competitors: Competitor[] = [
   {
     slug: "linktree",
     name: "Linktree",
-    tagline: "Bio link page",
+    tagline: "Link in Bio page",
     badge: "Half the cost",
-    headline: "A bio link is the start, not the finish.",
+    headline: "A Link in Bio is the start, not the finish.",
     intro:
       "Linktree nails the simple link-in-bio. But once you want analytics that act, your own audience list, short links, QR codes and AI — you're stitching on extra tools. 1INME puts the whole growth stack behind one link.",
     ourWins: [
@@ -38,7 +38,7 @@ export const competitors: Competitor[] = [
     intro:
       "Bitly is a great URL shortener. But a link in a bio needs more than a redirect — it needs a page, an audience, content blocks and analytics that tell you what to do next. 1INME does the short links and everything around them.",
     ourWins: [
-      "A full drag-and-drop biolink page, not just a redirect",
+      "A full drag-and-drop Link in Bio page, not just a redirect",
       "Embed video, music, products and forms right on the page",
       "Followers, creators feed and built-in messaging",
       "Free forever plan with no credit card required",
@@ -133,9 +133,9 @@ export interface CompareGroup {
 
 export const compareGroups: CompareGroup[] = [
   {
-    category: "Bio link page",
+    category: "Link in Bio page",
     features: [
-      "Drag-and-drop biolink builder",
+      "Drag-and-drop Link in Bio builder",
       "Multiple bio pages per account",
       "Embed video, music & forms",
       "Custom themes & fonts",
@@ -182,7 +182,7 @@ export const compareGroups: CompareGroup[] = [
  * everything; rivals support a subset. Keyed by the feature label.
  */
 export const featureSupport: Record<string, Record<string, boolean>> = {
-  "Drag-and-drop biolink builder": { ours: true, linktree: true, bitly: false, beacons: true, carrd: true, taplink: true, stan: true },
+  "Drag-and-drop Link in Bio builder": { ours: true, linktree: true, bitly: false, beacons: true, carrd: true, taplink: true, stan: true },
   "Multiple bio pages per account": { ours: true, linktree: false, bitly: false, beacons: false, carrd: true, taplink: false, stan: false },
   "Embed video, music & forms": { ours: true, linktree: true, bitly: false, beacons: true, carrd: true, taplink: true, stan: true },
   "Custom themes & fonts": { ours: true, linktree: true, bitly: false, beacons: true, carrd: true, taplink: true, stan: true },
@@ -222,5 +222,5 @@ export function getCompetitor(slug: string): Competitor | undefined {
 export const migrationSteps = [
   { title: "Create your free 1INME", body: "Sign up with an email or phone number — no credit card, no trial clock." },
   { title: "Rebuild or import your links", body: "Recreate your page with drag-and-drop blocks, or bulk-import your existing links." },
-  { title: "Point your link & go live", body: "Aim your custom domain or bio link at 1INME — your audience never notices the move." },
+  { title: "Point your link & go live", body: "Aim your custom domain or Link in Bio at 1INME — your audience never notices the move." },
 ];

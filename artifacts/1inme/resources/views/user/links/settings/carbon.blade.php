@@ -34,7 +34,7 @@
                             <h4 class="text-[12px] font-bold mb-1" style="color: var(--text-primary);">This biolink overrides workspace defaults</h4>
                             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Workspace owners can change the workspace-wide policy on the sustainability dashboard, but those changes won't reach this biolink while an override is set.</p>
                             <button type="submit" name="inherit" value="1"
-                                    onclick="return confirm('Clear this biolink\'s sustainability override and follow workspace defaults?');"
+                                    onclick="return confirm('Clear this Link in Bio\'s sustainability override and follow workspace defaults?');"
                                     class="text-[11px] font-semibold px-3 py-1.5 rounded-lg"
                                     style="background: rgba(167,139,250,0.15); color:#a78bfa;">
                                 Inherit workspace defaults instead
@@ -149,7 +149,7 @@
             @else
             <div class="card-premium p-5">
                 <p class="text-[12px]" style="color: var(--text-dimmed);">
-                    No CO₂ snapshot yet — they're written on the 1st of each month for biolinks that are opted in.
+                    No CO₂ snapshot yet — they're written on the 1st of each month for Link in Bio pages that are opted in.
                 </p>
             </div>
             @endif
@@ -158,7 +158,7 @@
             <div class="card-premium p-5">
                 <p class="text-[11px]" style="color: var(--text-dimmed);">
                     <i class="fas fa-info-circle mr-1"></i>
-                    This biolink stores its own carbon settings. Use the "Inherit workspace defaults" button at the top of the form to drop the override and follow workspace policy again.
+                    This Link in Bio stores its own carbon settings. Use the "Inherit workspace defaults" button at the top of the form to drop the override and follow workspace policy again.
                 </p>
             </div>
             @endif

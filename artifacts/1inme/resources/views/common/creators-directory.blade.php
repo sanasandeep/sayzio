@@ -153,7 +153,7 @@
                         <div class="flex-1 min-w-0 mt-7">
                             <a href="{{ $href }}" class="block font-bold text-slate-900 truncate hover:text-violet-700">{{ $creator->name }}</a>
                             @if($creator->handle)
-                                <p class="text-xs text-slate-500 truncate">&#64;{{ $creator->handle }}{{ $hasProfile ? '' : ' · biolink' }}</p>
+                                <p class="text-xs text-slate-500 truncate">&#64;{{ $creator->handle }}{{ $hasProfile ? '' : ' · Link in Bio' }}</p>
                             @endif
                         </div>
                     </div>

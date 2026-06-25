@@ -82,7 +82,7 @@
                              label is plain text (nested elements inside
                              <option> are invalid HTML and don't render
                              reliably across browsers). --}}
-                        <option value="inherit">Inherit from biolink ({{ !empty($bsAutoUtm['enabled']) ? 'on' : 'off' }})</option>
+                        <option value="inherit">Inherit from Link in Bio ({{ !empty($bsAutoUtm['enabled']) ? 'on' : 'off' }})</option>
                         <option value="on">Always on</option>
                         <option value="off">Off</option>
                     </select>

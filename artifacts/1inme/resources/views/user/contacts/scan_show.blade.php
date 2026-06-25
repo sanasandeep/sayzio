@@ -18,7 +18,7 @@
 <div class="max-w-5xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Review the scan',
-        'subtitle' => 'Edit anything that looks off, then save it as a contact, seed a biolink draft, or both.',
+        'subtitle' => 'Edit anything that looks off, then save it as a contact, seed a Link in Bio draft, or both.',
         'icon' => 'fa-magnifying-glass',
         'chips' => [
             ['icon' => 'fa-bolt text-pink-400', 'text' => $scan->credits_spent . ' credits used'],
@@ -77,7 +77,7 @@
                 <div class="flex items-center justify-center p-4 rounded-lg" style="background: rgba(255,255,255,.04);">
                     <img src="{{ $extracted['logo_url'] }}" alt="Detected logo" style="max-height: 140px; max-width: 100%; object-fit: contain;">
                 </div>
-                <p class="mt-2 text-[11px]" style="color: var(--text-faint);">Saved to your vault — used as the avatar when seeding a biolink page.</p>
+                <p class="mt-2 text-[11px]" style="color: var(--text-faint);">Saved to your vault — used as the avatar when seeding a Link in Bio page.</p>
             </div>
             @endif
 
@@ -202,7 +202,7 @@
                     </h3>
                     <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-muted);">
                         <input type="checkbox" name="use_brand_colors" value="1" {{ $hasColors ? 'checked' : '' }}>
-                        Theme the biolink with these
+                        Theme the Link in Bio with these
                     </label>
                 </div>
                 @if(!$hasColors)
@@ -233,7 +233,7 @@
                     {!! $colorField('brand_color_primary', 'Primary', $primaryHex) !!}
                     {!! $colorField('brand_color_secondary', 'Secondary', $secondaryHex) !!}
                 </div>
-                <p class="mt-3 text-[11px]" style="color: var(--text-faint);">The primary color becomes the biolink theme color when you seed a page draft.</p>
+                <p class="mt-3 text-[11px]" style="color: var(--text-faint);">The primary color becomes the Link in Bio theme color when you seed a page draft.</p>
             </div>
 
             <div class="card-premium p-5">
@@ -241,7 +241,7 @@
                     <i class="fas fa-box-open text-fuchsia-400 mr-1"></i> Products
                 </h3>
                 @if(count($products))
-                    <p class="text-xs mb-3" style="color: var(--text-muted);">Kept products seed a Product block each in the biolink draft. Clear a name to drop one.</p>
+                    <p class="text-xs mb-3" style="color: var(--text-muted);">Kept products seed a Product block each in the Link in Bio draft. Clear a name to drop one.</p>
                     <div class="space-y-3">
                         @foreach($products as $i => $p)
                         <div class="rounded-lg p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);">
@@ -270,8 +270,8 @@
                 <label class="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" name="create_biolink" value="1" {{ $from === 'wizard' ? 'checked' : '' }} class="mt-1">
                     <span class="text-sm">
-                        <span class="block font-semibold" style="color: var(--text-primary);">Seed a biolink page draft</span>
-                        <span class="block text-xs" style="color: var(--text-muted);">Pre-fills the biolink wizard so you can publish a page from this card.</span>
+                        <span class="block font-semibold" style="color: var(--text-primary);">Seed a Link in Bio page draft</span>
+                        <span class="block text-xs" style="color: var(--text-muted);">Pre-fills the Link in Bio wizard so you can publish a page from this card.</span>
                     </span>
                 </label>
 

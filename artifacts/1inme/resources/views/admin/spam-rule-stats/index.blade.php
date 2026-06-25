@@ -54,7 +54,7 @@
         @else
             <div class="mt-3 text-xs text-white/40">
                 {{ number_format($totalRuleHits) }} total {{ \Illuminate\Support\Str::plural('hit', $totalRuleHits) }}
-                across form submissions and biolink subscribers in the last {{ $days }} days.
+                across form submissions and Link in Bio subscribers in the last {{ $days }} days.
             </div>
         @endif
     </div>

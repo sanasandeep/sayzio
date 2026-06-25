@@ -112,7 +112,7 @@
             <div class="p-12 text-center">
                 <span class="w-14 h-14 mx-auto rounded-full flex items-center justify-center" style="background: rgba(245,158,11,0.12); color: #f59e0b;"><i class="fas fa-bag-shopping text-2xl"></i></span>
                 <p class="mt-3 text-sm font-medium" style="color: var(--text-primary);">No product orders yet</p>
-                <p class="mt-1 text-xs" style="color: var(--text-faint);">Add a Product block to your biolink with native checkout enabled to start selling.</p>
+                <p class="mt-1 text-xs" style="color: var(--text-faint);">Add a Product block to your Link in Bio with native checkout enabled to start selling.</p>
             </div>
         @endif
     </div>

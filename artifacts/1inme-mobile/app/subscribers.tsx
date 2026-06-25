@@ -127,7 +127,7 @@ export default function SubscribersScreen() {
               body={
                 search
                   ? "Try a different search term."
-                  : "When people subscribe to your biolinks, they appear here."
+                  : "When people subscribe to your Link in Bio pages, they appear here."
               }
             />
           }

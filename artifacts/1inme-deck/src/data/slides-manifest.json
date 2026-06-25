@@ -31,7 +31,7 @@
     "position": 4,
     "filepath": "src/pages/slides/Slide004Salesproblem.tsx",
     "title": "The modern professional drowns in tools.",
-    "description": "Bio links, scheduler, CRM, vault, analytics — none of them talking to each other.",
+    "description": "Link in Bio, scheduler, CRM, vault, analytics — none of them talking to each other.",
     "speakerNotes": "Open with the numbers behind the pain. Read the nine-tools stat first, let it sit, then move through cost, usage, and lost hours. The point: this is real money and real time bleeding out today, not a future risk.",
     "section": "sales"
   },
@@ -327,7 +327,7 @@
     "id": "826bfe92-acfa-4218-b49f-69f82cda67a2",
     "position": 37,
     "filepath": "src/pages/slides/Slide036Productbiomodule.tsx",
-    "title": "Bio link pages.",
+    "title": "Link in Bio pages.",
     "description": "The doorway to everything else.",
     "speakerNotes": "Open the module deep-dives with bio — the doorway to everything. Drag-and-drop blocks, themes, custom domains, AB tests built in. This is the module most prospects already know.",
     "section": "product"
@@ -417,36 +417,36 @@
     "id": "1a477fc9-23af-4687-af80-114a63f6b083",
     "position": 47,
     "filepath": "src/pages/slides/Slide046Biolinkssmartlinksdivider.tsx",
-    "title": "Feature deep-dive · Bio Links & Smart Links.",
+    "title": "Feature deep-dive · Link in Bio & Smart Links.",
     "description": "Bio Pages, Short Links, QR Studio, Splash Screens.",
-    "speakerNotes": "Open the Bio Links & Smart Links deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "speakerNotes": "Open the Link in Bio & Smart Links deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
     "section": "features"
   },
   {
     "id": "f688c18d-3d0b-4f50-be3b-91a9f2552050",
     "position": 48,
     "filepath": "src/pages/slides/Slide047Biolinkssmartlinksoverview.tsx",
-    "title": "Bio Links & Smart Links — overview.",
+    "title": "Link in Bio & Smart Links — overview.",
     "description": "Bio Pages, Short Links, QR Studio, Splash Screens.",
-    "speakerNotes": "Walk the Bio Links & Smart Links capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "speakerNotes": "Walk the Link in Bio & Smart Links capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
     "section": "features"
   },
   {
     "id": "2a31329b-dc9c-4b96-a09f-5fe9b8009def",
     "position": 49,
     "filepath": "src/pages/slides/Slide048Biolinkssmartlinkscapabiliti.tsx",
-    "title": "Bio Links & Smart Links — key capabilities.",
-    "description": "Bio Links & Smart Links — key capabilities.",
-    "speakerNotes": "Four capability cards for Bio Links & Smart Links. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "title": "Link in Bio & Smart Links — key capabilities.",
+    "description": "Link in Bio & Smart Links — key capabilities.",
+    "speakerNotes": "Four capability cards for Link in Bio & Smart Links. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
     "section": "features"
   },
   {
     "id": "b927edcd-5a73-498d-af15-3f3f3b4d434d",
     "position": 50,
     "filepath": "src/pages/slides/Slide049Biolinkssmartlinksmockup.tsx",
-    "title": "Bio Links & Smart Links — in product.",
+    "title": "Link in Bio & Smart Links — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Bio Links & Smart Links in product. Point at the rows in \"Top performing links — last 7 days\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "speakerNotes": "Show Link in Bio & Smart Links in product. Point at the rows in \"Top performing links — last 7 days\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
     "section": "features"
   },
   {
@@ -455,7 +455,7 @@
     "filepath": "src/pages/slides/Slide050Biolinkssmartlinksusecase.tsx",
     "title": "Use case · Album launch",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Album launch\" scenario end-to-end. Stay inside Bio Links & Smart Links — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "speakerNotes": "Walk the \"Use case · Album launch\" scenario end-to-end. Stay inside Link in Bio & Smart Links — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
     "section": "features"
   },
   {
@@ -1409,7 +1409,7 @@
     "filepath": "src/pages/slides/Slide156Investorgtm.tsx",
     "title": "Go-to-market.",
     "description": "Go-to-market.",
-    "speakerNotes": "PLG + community + sales + affiliates. A distribution flywheel, not a single channel. Each one feeds the next: bio links go viral, creators refer creators, agencies bring teams.",
+    "speakerNotes": "PLG + community + sales + affiliates. A distribution flywheel, not a single channel. Each one feeds the next: Link in Bio pages go viral, creators refer creators, agencies bring teams.",
     "section": "investor"
   },
   {
@@ -1551,8 +1551,8 @@
     "id": "a19e7e6c-a083-4c4c-ab40-4810570b1dd8",
     "position": 173,
     "filepath": "src/pages/slides/Slide172Roadmapbio.tsx",
-    "title": "Roadmap · Bio Links & Smart Links.",
-    "description": "Roadmap · Bio Links & Smart Links.",
+    "title": "Roadmap · Link in Bio & Smart Links.",
+    "description": "Roadmap · Link in Bio & Smart Links.",
     "speakerNotes": "Bio + Smart Links roadmap. Editor v3 now, visual routing v3 next, programmable bios later. The marketplace for blocks is the long-tail bet here.",
     "section": "roadmap"
   },

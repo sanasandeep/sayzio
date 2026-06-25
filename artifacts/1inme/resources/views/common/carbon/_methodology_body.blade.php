@@ -1,5 +1,5 @@
 @php use App\Modules\Common\Services\Carbon\CarbonEmissionsModel; @endphp
-<h1>How we estimate (and offset) the carbon footprint of a biolink</h1>
+<h1>How we estimate (and offset) the carbon footprint of a Link in Bio</h1>
 <p class="text-gray-500">Model version: <code>{{ CarbonEmissionsModel::MODEL_VERSION }}</code></p>
 
 <h2>The model in one line</h2>
@@ -8,7 +8,7 @@
 <h2>Inputs</h2>
 <ul>
     <li><strong>page_views</strong> — distinct PageSession rows for the link in the period. Bots/crawlers are already excluded upstream.</li>
-    <li><strong>bytes_per_view</strong> — tier table keyed by active biolink-block count
+    <li><strong>bytes_per_view</strong> — tier table keyed by active Link in Bio block count
         ({{ count(CarbonEmissionsModel::COMPLEXITY_TIERS) }} tiers; sparse landing → media-rich).
         We don't fetch the live page during snapshotting to keep the job network-free and reproducible.</li>
     <li><strong>kWh/byte</strong> — Sustainable Web Design v4 published transmission constant
@@ -22,7 +22,7 @@
 
 <h2>What's in scope</h2>
 <ul>
-    <li>Network transfer + end-user device energy for visits to opted-in biolink pages.</li>
+    <li>Network transfer + end-user device energy for visits to opted-in Link in Bio pages.</li>
 </ul>
 
 <h2>What's NOT in scope</h2>
@@ -33,7 +33,7 @@
 </ul>
 
 <h2>Auto-offset</h2>
-<p>Once a month we estimate the prior month's footprint, then (for opted-in biolinks)
+<p>Once a month we estimate the prior month's footprint, then (for opted-in Link in Bio pages)
 purchase offsets via your connected provider (Cloverly / Patch / sandbox). Purchases
 are billed to the workspace via a draft invoice line item.</p>
 
@@ -45,7 +45,7 @@ are billed to the workspace via a draft invoice line item.</p>
 
 <h2>QA &amp; recalibration</h2>
 <p>The bytes-per-view tier table should be recalibrated quarterly against
-real measured page weights from a sample of representative biolinks. The
+real measured page weights from a sample of representative Link in Bio pages. The
 recalibration script lives in <code>scripts/</code> (out of scope for v1
 of this feature) and writes its findings into a new model version
 without rewriting historical snapshots.</p>

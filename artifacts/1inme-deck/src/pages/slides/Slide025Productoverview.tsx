@@ -21,7 +21,7 @@ export default function Slide025Productoverview() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">
             <div className="text-[0.85vw] uppercase tracking-[0.25em] text-fuchsia-200">Modules</div>
             <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">11 connected tools</div>
-            <div className="mt-[1vh] text-[1.05vw] text-slate-300 leading-snug">From bio link to billing to CRM.</div>
+            <div className="mt-[1vh] text-[1.05vw] text-slate-300 leading-snug">From Link in Bio to billing to CRM.</div>
             
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">

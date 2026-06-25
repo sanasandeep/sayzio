@@ -12,7 +12,7 @@ export default function Slide046Biolinkssmartlinksdivider() {
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
         <div className="flex-1 flex flex-col justify-center">
           <span className="font-display text-[1.1vw] uppercase tracking-[0.5em] text-fuchsia-200">Feature appendix</span>
-          <h2 className="mt-[2vh] font-display text-[7vw] font-bold leading-[0.94] tracking-tight max-w-[80vw]">Feature deep-dive · Bio Links &amp; Smart Links.</h2>
+          <h2 className="mt-[2vh] font-display text-[7vw] font-bold leading-[0.94] tracking-tight max-w-[80vw]">Feature deep-dive · Link in Bio &amp; Smart Links.</h2>
           <p className="mt-[3vh] text-[1.7vw] text-slate-200 max-w-[60vw] leading-snug">Bio Pages, Short Links, QR Studio, Splash Screens.</p>
           <div className="mt-[5vh] inline-flex items-center gap-[1.5vw]">
             <div className="h-[0.4vh] w-[6vw] bg-gradient-to-r from-violet-400 to-fuchsia-400 rounded-full" />

@@ -32,7 +32,7 @@
                     @foreach($suggestions as $s)
                         @php
                             $kindLabel = match($s['kind'] ?? '') {
-                                'biolink'    => 'Bio link',
+                                'biolink'    => 'Link in Bio',
                                 'short_link' => 'Short link',
                                 'page'       => 'Site page',
                                 default      => 'Page',

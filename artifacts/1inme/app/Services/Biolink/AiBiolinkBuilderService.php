@@ -271,7 +271,7 @@ class AiBiolinkBuilderService
             'response_format' => ['type' => 'json_object'],
             'feature'         => self::FEATURE,
             'related_id'      => $link->id,
-            'reason'          => 'AI biolink page builder',
+            'reason'          => 'AI Link in Bio page builder',
             'meta'            => [
                 'desc_excerpt' => mb_substr($description, 0, 160),
                 'links'        => count($links),
@@ -303,7 +303,7 @@ class AiBiolinkBuilderService
                 $this->credits->refund($user, $creditsSpent, [
                     'feature'    => self::FEATURE,
                     'related_id' => $link->id,
-                    'reason'     => 'AI biolink builder failed — auto refund',
+                    'reason'     => 'AI Link in Bio builder failed — auto refund',
                 ]);
             }
             throw $e;

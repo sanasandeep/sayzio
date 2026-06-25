@@ -21,22 +21,22 @@ export const aiProducts: AiProduct[] = [
   {
     slug: "ai-chatbot",
     eyebrow: "AI Chatbot",
-    tagline: "A 24/7 chatbot for your biolink — trained on you, on-brand, never asleep.",
-    navDesc: "24/7 chatbot trained on your biolink",
+    tagline: "A 24/7 chatbot for your Link in Bio — trained on you, on-brand, never asleep.",
+    navDesc: "24/7 chatbot trained on your Link in Bio",
     accent: "#7c3aed",
     title: "AI Chatbot",
     description:
-      "Drop a 24/7 AI chatbot onto your biolink that greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.",
+      "Drop a 24/7 AI chatbot onto your Link in Bio that greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.",
     sections: [
       { heading: "Always on, always on-brand", body: "Greets every visitor in your tone of voice, day or night, so no question goes unanswered." },
-      { heading: "Train it on what you already have", body: "It learns from your biolink content, links and pages automatically — no prompts or setup docs needed." },
+      { heading: "Train it on what you already have", body: "It learns from your Link in Bio content, links and pages automatically — no prompts or setup docs needed." },
       { heading: "Captures leads while you sleep", body: "Collects names, emails and intent in conversation and drops them straight into your contacts." },
       { heading: "Books calls without back-and-forth", body: "Surfaces your calendar and books real meetings inside the chat." },
       { heading: "Hand-off to a human", body: "When it matters, it routes the conversation to you with the full transcript attached." },
       { heading: "You stay in control", body: "Review transcripts, tune its tone and set guardrails on what it can and can't say." },
     ],
     faqs: [
-      { question: "Where does the chatbot show up?", answer: "It lives on your biolink page, greeting visitors the moment they land — with an optional launcher bubble." },
+      { question: "Where does the chatbot show up?", answer: "It lives on your Link in Bio page, greeting visitors the moment they land — with an optional launcher bubble." },
       ...commonAiFaqs,
     ],
   },

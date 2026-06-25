@@ -11,7 +11,7 @@ export default function Slide049Biolinkssmartlinksmockup() {
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
         <div className="grid grid-cols-12 gap-[2.5vw] flex-1">
           <div className="col-span-5 flex flex-col justify-center">
-            <h2 className="font-display text-[3.2vw] font-bold leading-[1.04] tracking-tight">Bio Links &amp; Smart Links — in product.</h2>
+            <h2 className="font-display text-[3.2vw] font-bold leading-[1.04] tracking-tight">Link in Bio &amp; Smart Links — in product.</h2>
             <p className="mt-[2vh] text-[1.25vw] text-slate-300 max-w-[26vw]">Editable mockup. Update copy and numbers in this slide file.</p>
             <ul className="mt-[3vh] space-y-[1vh] text-[1.05vw] text-slate-300"><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Replace these bullets with talking points</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Numbers below are placeholders</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Swap mock title for screenshot caption</span></li></ul>
           </div>

@@ -18,8 +18,8 @@
         $__rawGroups = [
             ['Workspace', [
                 ['Dashboard',          $__r('user.dashboard'),         'fa-solid fa-gauge-high'],
-                ['My biolinks',        $__r('user.biolinks.index'),    'fa-solid fa-link'],
-                ['Create new biolink', $__r('user.biolinks.create'),   'fa-solid fa-plus'],
+                ['My Link in Bio pages',        $__r('user.biolinks.index'),    'fa-solid fa-link'],
+                ['Create new Link in Bio', $__r('user.biolinks.create'),   'fa-solid fa-plus'],
                 ['Short links',        $__r('user.links.index'),       'fa-solid fa-bolt'],
                 ['QR codes',           $__r('user.qr.index'),          'fa-solid fa-qrcode'],
                 ['Forms',              $__r('user.forms.index'),       'fa-solid fa-square-poll-vertical'],

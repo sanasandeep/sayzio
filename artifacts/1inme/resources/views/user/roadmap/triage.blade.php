@@ -23,7 +23,7 @@
 
     @if($blocks->isEmpty())
         <div class="p-6 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-900">
-            No Roadmap block found on this biolink yet. Add one from the block editor and submissions will appear here.
+            No Roadmap block found on this Link in Bio yet. Add one from the block editor and submissions will appear here.
         </div>
     @else
         <div class="flex flex-wrap items-center gap-2 mb-4 text-sm">

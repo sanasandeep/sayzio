@@ -66,7 +66,7 @@ export default function WorkspacesScreen() {
             <EmptyState
               icon="users"
               title="No workspaces yet"
-              body="Workspaces let you collaborate with teammates on the same biolinks, posts and contacts."
+              body="Workspaces let you collaborate with teammates on the same Link in Bio pages, posts and contacts."
             />
           }
           ListFooterComponent={

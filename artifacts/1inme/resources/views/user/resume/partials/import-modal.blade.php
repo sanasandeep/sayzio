@@ -71,13 +71,13 @@
                     {{-- Bio link --}}
                     <div x-show="importTab === 'biolink'" class="resume-import-pane">
                         <p class="resume-import-help">
-                            Pull your name, social links, posts (as portfolio projects) and biolink blocks from your
+                            Pull your name, social links, posts (as portfolio projects) and Link in Bio blocks from your
                             existing 1INME profile.
                         </p>
                         <div class="resume-import-actions">
                             <button type="button" class="resume-add-btn" :disabled="importBusy" @click="runImportBiolink()">
                                 <i class="fas" :class="importBusy ? 'fa-spinner fa-spin' : 'fa-link'"></i>
-                                <span x-text="importBusy ? 'Loading…' : 'Pull from my bio link'"></span>
+                                <span x-text="importBusy ? 'Loading…' : 'Pull from my Link in Bio'"></span>
                             </button>
                         </div>
                     </div>

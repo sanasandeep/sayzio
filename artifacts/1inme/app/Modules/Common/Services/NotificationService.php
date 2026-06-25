@@ -58,7 +58,7 @@ class NotificationService
             ],
             'follower_update' => [
                 'label'          => 'Updates from creators you follow',
-                'description'    => 'New posts, links or biolink changes from creators in your following list.',
+                'description'    => 'New posts, links or Link in Bio changes from creators in your following list.',
                 'default_in_app' => true,
                 'default_email'  => false,
                 'default_push'   => false,
@@ -163,7 +163,7 @@ class NotificationService
             ],
             'backlink_digest' => [
                 'label'          => 'Weekly backlink digest',
-                'description'    => 'Weekly email summarising new backlinks the browser-extension radar has found pointing at your short links, biolink and custom domains.',
+                'description'    => 'Weekly email summarising new backlinks the browser-extension radar has found pointing at your short links, Link in Bio and custom domains.',
                 'default_in_app' => false,
                 'default_email'  => true,
                 'default_push'   => false,
@@ -198,7 +198,7 @@ class NotificationService
             // Paid DMs (Task #1210).
             'dm.new' => [
                 'label'          => 'New direct messages',
-                'description'    => 'When a fan sends you a DM from your profile or biolink.',
+                'description'    => 'When a fan sends you a DM from your profile or Link in Bio.',
                 'default_in_app' => true,
                 'default_email'  => true,
                 'default_push'   => true,

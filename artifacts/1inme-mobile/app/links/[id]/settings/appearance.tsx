@@ -10,7 +10,7 @@ export default function AppearanceSettings() {
       <SettingsForm
         linkId={Number(id)}
         group="appearance"
-        blurb="Visual theme of your biolink page."
+        blurb="Visual theme of your Link in Bio page."
         fields={[
           {
             key: "theme",

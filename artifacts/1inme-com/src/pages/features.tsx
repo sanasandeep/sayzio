@@ -8,7 +8,7 @@ export default function Features() {
   return (
     <PageLayout
       title="Features"
-      description="Every tool you need to create, share, track and grow — biolinks, short links, QR codes, analytics, AI, forms, inbox, teams and more, in one platform."
+      description="Every tool you need to create, share, track and grow — Link in Bio pages, short links, QR codes, analytics, AI, forms, inbox, teams and more, in one platform."
     >
       <MarketingHero
         eyebrow="Features"

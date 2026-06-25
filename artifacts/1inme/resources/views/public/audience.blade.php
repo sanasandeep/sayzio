@@ -12,7 +12,7 @@
         [
             'icon'  => 'fa-bolt',
             'title' => 'Live follower counts everywhere',
-            'desc'  => 'Your follower count updates live across your biolink, creator profile, and every social block — visitors see real momentum without you lifting a finger.',
+            'desc'  => 'Your follower count updates live across your Link in Bio, creator profile, and every social block — visitors see real momentum without you lifting a finger.',
         ],
         [
             'icon'  => 'fa-compass',

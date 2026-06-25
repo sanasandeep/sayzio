@@ -14,7 +14,7 @@ export default function Slide104Creatorspodcastersstack() {
         <div className="mt-[4vh] grid grid-cols-5 gap-[1.4vw] flex-1 content-start">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.6vw] flex flex-col">
             <div className="text-[0.85vw] uppercase tracking-[0.25em] text-fuchsia-200">Module</div>
-            <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">Bio Links</div>
+            <div className="font-display text-[1.5vw] font-semibold mt-[0.5vh]">Link in Bio</div>
             
             
           </div>

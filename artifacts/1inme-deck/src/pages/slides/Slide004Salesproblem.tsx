@@ -10,7 +10,7 @@ export default function Slide004Salesproblem() {
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">The modern professional drowns in tools.</h2>
-        <p className="mt-[2vh] text-[1.4vw] text-slate-300 max-w-[65vw]">Bio links, scheduler, CRM, vault, analytics — none of them talking to each other.</p>
+        <p className="mt-[2vh] text-[1.4vw] text-slate-300 max-w-[65vw]">Link in Bio, scheduler, CRM, vault, analytics — none of them talking to each other.</p>
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">9</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">SaaS tools per active creator</div></div>
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">$214</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">Average monthly stack cost</div></div>

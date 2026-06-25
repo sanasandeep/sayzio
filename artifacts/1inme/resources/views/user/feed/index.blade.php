@@ -101,7 +101,7 @@
                                 </p>
                                 @if(!empty($d['alias']))<a href="{{ url('/' . $d['alias']) }}" target="_blank" class="text-xs text-violet-600 font-semibold">Open link →</a>@endif
                             @elseif($event->type === 'block_added')
-                                <p class="text-sm mt-1" style="color: var(--text-muted);">Added a new block to their biolink: <span class="font-semibold">{{ $d['block_label'] ?? $d['block_type'] ?? '' }}</span></p>
+                                <p class="text-sm mt-1" style="color: var(--text-muted);">Added a new block to their Link in Bio: <span class="font-semibold">{{ $d['block_label'] ?? $d['block_type'] ?? '' }}</span></p>
                             @else
                                 <p class="text-sm mt-1" style="color: var(--text-muted);">{{ $d['message'] ?? 'New activity' }}</p>
                             @endif

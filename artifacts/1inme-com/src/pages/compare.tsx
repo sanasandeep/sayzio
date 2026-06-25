@@ -23,7 +23,7 @@ export default function Compare() {
         eyebrow="Compare"
         title="The whole growth stack, in one"
         highlight="link."
-        subtitle="A bio link is the start, not the finish. See how 1INME compares to the tools you already know — across every feature that matters."
+        subtitle="A Link in Bio is the start, not the finish. See how 1INME compares to the tools you already know — across every feature that matters."
         primary={{ label: "Get started free", href: SIGNUP_URL }}
         secondary={{ label: "See pricing", href: PRICING_URL }}
       />

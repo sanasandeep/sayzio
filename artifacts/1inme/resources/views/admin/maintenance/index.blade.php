@@ -81,7 +81,7 @@
                                         Returns a 503 JSON envelope to the mobile app and any other API clients.
                                         @break
                                     @case('biolinks')
-                                        Public biolink profile pages and short-link redirects.
+                                        Public Link in Bio profile pages and short-link redirects.
                                         @break
                                 @endswitch
                             </p>

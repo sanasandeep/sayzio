@@ -383,7 +383,7 @@ export default function BlocksScreen() {
           <EmptyState
             icon="grid"
             title="No blocks yet"
-            body="Add a header, a link button, an image, or any other block to start building your biolink."
+            body="Add a header, a link button, an image, or any other block to start building your Link in Bio."
             action={
               <View style={{ gap: 8 }}>
                 <Button
@@ -1819,7 +1819,7 @@ function SpecialPanel(props: SpecialPanelProps) {
           ) : mode === "ai" ? (
             <SpecialList
               query={aiQ}
-              empty="You don't have any AI companions for biolink placement yet. Create your first one to drop it in here."
+              empty="You don't have any AI companions for Link in Bio placement yet. Create your first one to drop it in here."
               filteredCount={aiItems.length}
               inserting={insert.isPending}
               createLabel="Create new companion"
@@ -2234,7 +2234,7 @@ function SpecialPanel(props: SpecialPanelProps) {
                   </View>
                 ) : (
                   <Button
-                    label={apply.isPending ? "Adding…" : "Add to my biolink"}
+                    label={apply.isPending ? "Adding…" : "Add to my Link in Bio"}
                     onPress={() => apply.mutate(previewTpl.id)}
                     disabled={apply.isPending}
                   />
@@ -2652,7 +2652,7 @@ function SpecialCreateModal(props: {
                     <TextInput
                       value={personaPrompt}
                       onChangeText={setPersonaPrompt}
-                      placeholder="e.g. You are a helpful assistant for my biolink visitors. Keep replies short and friendly."
+                      placeholder="e.g. You are a helpful assistant for my Link in Bio visitors. Keep replies short and friendly."
                       placeholderTextColor={colors.mutedForeground}
                       multiline
                       numberOfLines={4}

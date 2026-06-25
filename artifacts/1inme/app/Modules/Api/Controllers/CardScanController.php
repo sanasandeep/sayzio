@@ -180,7 +180,7 @@ class CardScanController extends Controller
 
         if (!$wantContact && !$wantBiolink) {
             return $this->fail(
-                'Pick at least one: save as contact, or create a biolink draft.',
+                'Pick at least one: save as contact, or create a Link in Bio draft.',
                 422,
                 'nothing_selected',
             );
@@ -195,7 +195,7 @@ class CardScanController extends Controller
                 $usedContacts = $user->contacts()->count();
                 if ($usedContacts >= $maxContacts) {
                     return $this->planGate(
-                        "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan, or save just the biolink draft instead.",
+                        "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan, or save just the Link in Bio draft instead.",
                         'contacts_max',
                         $user,
                         403,

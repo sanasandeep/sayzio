@@ -5,10 +5,10 @@
 const FEATURE_CATEGORIES = [
   {
     key: "biolinks",
-    name: "Bio Links & Smart Links",
+    name: "Link in Bio & Smart Links",
     subtitle: "Bio Pages, Short Links, QR Studio, Splash Screens.",
     capabilities: [
-      { title: "Bio link pages", body: "Drag-and-drop blocks, themes, custom domains." },
+      { title: "Link in Bio pages", body: "Drag-and-drop blocks, themes, custom domains." },
       { title: "Smart short links", body: "Branded URLs with routing rules and pixels." },
       { title: "QR Studio", body: "Logo-aware codes that update without reprint." },
       { title: "Splash screens", body: "Branded interstitials between click and destination." },
@@ -117,7 +117,7 @@ const FEATURE_CATEGORIES = [
       title: "Use case · Podcaster",
       bullets: [
         "Episode drops to the feed, then auto-clips for Reels and Shorts.",
-        "Bio link updates with the latest episode block.",
+        "Link in Bio updates with the latest episode block.",
         "Listeners join a member-only AMA next day.",
         "Analytics roll up listens, clicks, and replies in one report.",
       ],
@@ -178,7 +178,7 @@ const FEATURE_CATEGORIES = [
       bullets: [
         "Each client lives in its own workspace under one bill.",
         "White label keeps every dashboard on-brand for the client.",
-        "Audit log answers \"who changed the bio link?\" in seconds.",
+        "Audit log answers \"who changed the Link in Bio?\" in seconds.",
         "Seats and credits move between teams without friction.",
       ],
     },
@@ -280,10 +280,10 @@ const PERSONAS = [
     group: "Creators",
     name: "Artists",
     pains: ["Fans scattered across DSPs", "Merch and tour info living in 5 places", "No clean way to capture super-fans"],
-    modules: ["Bio Links", "Smart Links + Pixels", "Creator Feed", "AI Companion (tone of voice)", "Forms (mailing list)"],
+    modules: ["Link in Bio", "Smart Links + Pixels", "Creator Feed", "AI Companion (tone of voice)", "Forms (mailing list)"],
     day: [
       { time: "8:00", module: "Companion", action: "Drafts a caption for tonight's drop in the artist's voice." },
-      { time: "11:00", module: "Bio Links", action: "Updates the pinned block with the new single." },
+      { time: "11:00", module: "Link in Bio", action: "Updates the pinned block with the new single." },
       { time: "14:00", module: "Smart Dialer", action: "Quick call with the manager — notes saved to CRM." },
       { time: "18:00", module: "Creator Feed", action: "Premieres the music video to super-fans first." },
       { time: "22:00", module: "Analytics", action: "Reviews where streams are spiking." },
@@ -298,7 +298,7 @@ const PERSONAS = [
     group: "Creators",
     name: "Musicians",
     pains: ["Multiple DSP links in every post", "Tour dates scattered across socials", "No single home for press"],
-    modules: ["Bio Links", "Smart Links (DSP routing)", "Calendar (tour)", "Vault (press kit)", "AI Companion"],
+    modules: ["Link in Bio", "Smart Links (DSP routing)", "Calendar (tour)", "Vault (press kit)", "AI Companion"],
     day: [
       { time: "9:00", module: "Vault", action: "Shares the EPK with a new venue." },
       { time: "12:00", module: "Calendar", action: "Confirms a tour date and updates the bio block." },
@@ -316,7 +316,7 @@ const PERSONAS = [
     group: "Creators",
     name: "Podcasters",
     pains: ["Episodes posted everywhere, attribution nowhere", "Sponsor links untracked", "Listener data trapped in apps"],
-    modules: ["Bio Links", "Smart Links (sponsor codes)", "Creator Feed (members)", "Forms (listener Q&A)", "Analytics"],
+    modules: ["Link in Bio", "Smart Links (sponsor codes)", "Creator Feed (members)", "Forms (listener Q&A)", "Analytics"],
     day: [
       { time: "7:30", module: "Companion", action: "Generates show notes from the episode transcript." },
       { time: "10:00", module: "Smart Links", action: "Sets up trackable sponsor URLs for the new episode." },
@@ -334,9 +334,9 @@ const PERSONAS = [
     group: "Creators",
     name: "Streamers",
     pains: ["Multi-platform schedule chaos", "Donations, subs, and merch in different tools", "Hard to convert viewers to followers"],
-    modules: ["Bio Links", "Smart Links", "QR Studio", "Creator Feed", "AI Voice"],
+    modules: ["Link in Bio", "Smart Links", "QR Studio", "Creator Feed", "AI Voice"],
     day: [
-      { time: "12:00", module: "Bio Links", action: "Shows today's stream schedule across platforms." },
+      { time: "12:00", module: "Link in Bio", action: "Shows today's stream schedule across platforms." },
       { time: "15:00", module: "QR Studio", action: "Branded QR overlay on the stream." },
       { time: "18:00", module: "Voice", action: "Triggers commands during the live show." },
       { time: "22:00", module: "Smart Links", action: "Reviews donation link conversions." },
@@ -352,7 +352,7 @@ const PERSONAS = [
     group: "Creators",
     name: "Influencers",
     pains: ["Brand deal links a mess", "Reporting brands ask for is painful", "Audience trapped on platforms"],
-    modules: ["Bio Links", "Smart Links + Pixels", "Forms (rate card)", "Analytics (brand reports)", "CRM (brands)"],
+    modules: ["Link in Bio", "Smart Links + Pixels", "Forms (rate card)", "Analytics (brand reports)", "CRM (brands)"],
     day: [
       { time: "8:00", module: "Forms", action: "New brand inquiry hits the inbox + CRM." },
       { time: "11:00", module: "Smart Links", action: "Builds a campaign URL with deep tracking." },
@@ -388,10 +388,10 @@ const PERSONAS = [
     group: "Coaches & Experts",
     name: "Educators",
     pains: ["Course content fragmented", "Student questions repeat", "Hard to track engagement"],
-    modules: ["Bio Links (course hub)", "Forms (quizzes)", "AI Mind (course content)", "Creator Feed", "Analytics"],
+    modules: ["Link in Bio (course hub)", "Forms (quizzes)", "AI Mind (course content)", "Creator Feed", "Analytics"],
     day: [
       { time: "8:00", module: "AI Mind", action: "Loads new course materials so AskCoach can answer." },
-      { time: "11:00", module: "Bio Links", action: "Updates the course hub with this week's module." },
+      { time: "11:00", module: "Link in Bio", action: "Updates the course hub with this week's module." },
       { time: "14:00", module: "Creator Feed", action: "Hosts a student Q&A in the community." },
       { time: "17:00", module: "Forms", action: "Pushes a quick quiz; results sync to CRM." },
       { time: "20:00", module: "Analytics", action: "Sees where students stall and tweaks the next lesson." },
@@ -424,10 +424,10 @@ const PERSONAS = [
     group: "Sales & Field Pros",
     name: "Realtors",
     pains: ["Listing links a mess on signs and socials", "Lead capture inconsistent", "Follow-up loses to the next agent"],
-    modules: ["QR Studio (signs)", "Bio Links (listings)", "Forms (leads)", "Smart Dialer", "CRM"],
+    modules: ["QR Studio (signs)", "Link in Bio (listings)", "Forms (leads)", "Smart Dialer", "CRM"],
     day: [
       { time: "8:00", module: "QR Studio", action: "Refreshes QR on yard signs for the new listing." },
-      { time: "11:00", module: "Bio Links", action: "Showcases the listing as the pinned block." },
+      { time: "11:00", module: "Link in Bio", action: "Showcases the listing as the pinned block." },
       { time: "14:00", module: "Forms", action: "Open-house attendees check in via QR + form." },
       { time: "17:00", module: "Smart Dialer", action: "Calls today's leads with deal context onscreen." },
       { time: "20:00", module: "CRM", action: "Schedules tomorrow's follow-ups automatically." },
@@ -526,7 +526,7 @@ const sales = [
     layout: "metrics",
     slug: "SalesProblem",
     title: "The modern professional drowns in tools.",
-    subtitle: "Bio links, scheduler, CRM, vault, analytics — none of them talking to each other.",
+    subtitle: "Link in Bio, scheduler, CRM, vault, analytics — none of them talking to each other.",
     metrics: [
       { value: "9", label: "SaaS tools per active creator" },
       { value: "$214", label: "Average monthly stack cost" },
@@ -553,7 +553,7 @@ const sales = [
     subtitle: "Identity, links, AI, productivity, and analytics in one place.",
     cards: [
       { tag: "Identity", title: "One handle, one home", body: "1inme.com/you replaces every link in bio." },
-      { tag: "Tools", title: "11 modules in one app", body: "From bio link to billing, no integrations to wire." },
+      { tag: "Tools", title: "11 modules in one app", body: "From Link in Bio to billing, no integrations to wire." },
       { tag: "AI", title: "Always-on assistants", body: "Companions that know your data and tone." },
       { tag: "Insight", title: "Cross-module analytics", body: "Funnel from impression to outcome in one view." },
     ],
@@ -639,7 +639,7 @@ const sales = [
     title: "Pricing, at a glance.",
     subtitle: "Pick the plan that matches the team you have today.",
     tiers: [
-      { name: "Free", price: "$0", cadence: "forever", features: ["1 biolink", "5 short links", "Basic AI Coach", "Vault: 25 secrets"] },
+      { name: "Free", price: "$0", cadence: "forever", features: ["1 Link in Bio", "5 short links", "Basic AI Coach", "Vault: 25 secrets"] },
       { name: "Pro", price: "$12", cadence: "per month", features: ["Unlimited links", "5,000 AI credits", "1 custom domain", "No 1INME branding"] },
       { name: "Studio", price: "$29", cadence: "per month", popular: true, features: ["3 workspaces · 5 seats", "20,000 AI credits", "3 domains", "Bookings + payments"] },
       { name: "Business", price: "$99", cadence: "per month", features: ["Unlimited workspaces", "White label, SSO", "SCIM + SOC 2 evidence", "Priority SLA"] },
@@ -687,7 +687,7 @@ const sales = [
     title: "What buyers see on day one.",
     subtitle: "A single dashboard that proves the value within the first hour.",
     bullets: [
-      "Live bio link page with traffic flowing",
+      "Live Link in Bio page with traffic flowing",
       "AI Companion already trained on uploaded files",
       "Funnel populated from imported clicks",
     ],
@@ -787,7 +787,7 @@ const product = [
     subtitle: "One identity, three surfaces, eleven modules — wired together by AI and analytics.",
     cards: [
       { tag: "Surfaces", title: "Web, mobile, API", body: "Same data, same identity, same brand." },
-      { tag: "Modules", title: "11 connected tools", body: "From bio link to billing to CRM." },
+      { tag: "Modules", title: "11 connected tools", body: "From Link in Bio to billing to CRM." },
       { tag: "Spine", title: "Identity + Vault + AI", body: "Every module shares the same brain." },
     ],
   },
@@ -928,7 +928,7 @@ const product = [
   {
     layout: "mockup",
     slug: "ProductBioModule",
-    title: "Bio link pages.",
+    title: "Link in Bio pages.",
     subtitle: "The doorway to everything else.",
     bullets: ["Drag-and-drop blocks", "Themes + custom domains", "AB tests built in"],
     mockTitle: "yourhandle · bio editor",
@@ -1238,7 +1238,7 @@ const investor = [
     cards: [
       { tag: "Surface", title: "Web · Mobile · API", body: "One identity, three interfaces." },
       { tag: "Spine", title: "Identity + Vault + AI", body: "Shared by every module." },
-      { tag: "Modules", title: "11 connected tools", body: "From bio link to billing." },
+      { tag: "Modules", title: "11 connected tools", body: "From Link in Bio to billing." },
     ],
   },
   {
@@ -1282,7 +1282,7 @@ const investor = [
     slug: "InvestorGtm",
     title: "Go-to-market.",
     cards: [
-      { tag: "PLG", title: "Self-serve top of funnel", body: "Free plan + viral bio links + creator referrals." },
+      { tag: "PLG", title: "Self-serve top of funnel", body: "Free plan + viral Link in Bio pages + creator referrals." },
       { tag: "Community", title: "Creator partnerships", body: "Distribution through trusted creator networks." },
       { tag: "Sales", title: "Mid-market sales motion", body: "Inbound from PLG, expansion via white label." },
       { tag: "Affiliates", title: "Revenue-share network", body: "Recurring incentives for distribution." },
@@ -1467,7 +1467,7 @@ const roadmap = [
   {
     layout: "timeline",
     slug: "RoadmapBio",
-    title: "Roadmap · Bio Links & Smart Links.",
+    title: "Roadmap · Link in Bio & Smart Links.",
     columns: [
       { label: "Now", title: "Editor v3", items: ["AB testing on blocks", "Block library refresh", "Faster live preview"] },
       { label: "Next", title: "Smart routing v3", items: ["Visual rule editor", "Per-rule analytics", "ML-suggested rules"] },
@@ -1786,7 +1786,7 @@ const NOTES = {
   InvestorPricing:
     "Pricing tiers framed by investor narrative: acquisition (Free), highest LTV/CAC (Pro), modal price point (Studio), highest ARPA (Business). Studio is where most teams land.",
   InvestorGtm:
-    "PLG + community + sales + affiliates. A distribution flywheel, not a single channel. Each one feeds the next: bio links go viral, creators refer creators, agencies bring teams.",
+    "PLG + community + sales + affiliates. A distribution flywheel, not a single channel. Each one feeds the next: Link in Bio pages go viral, creators refer creators, agencies bring teams.",
   InvestorTraction:
     "Replace placeholders with the latest numbers before sending. Mark the slide as confidential when you do. Lead with MoM growth — investors care about velocity more than absolutes early.",
   InvestorCompetitive:

@@ -59,7 +59,7 @@
                                     login_required: 'Please log in to send a message.',
                                     blocked:        'The creator has blocked this conversation.',
                                     throttled:      `You've used your ${this.limit} intro messages. Wait for a reply.`,
-                                    self:           "You can't message your own biolink.",
+                                    self:           "You can't message your own Link in Bio.",
                                     not_found:      'This creator can no longer be messaged.',
                                     dm_disabled:    'This creator has turned off direct messages.',
                                     empty:          'Message cannot be empty.',

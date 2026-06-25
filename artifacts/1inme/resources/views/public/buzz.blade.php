@@ -7,7 +7,7 @@
         ['outlet' => 'TechCrunch', 'date' => 'Mar 2026', 'headline' => '1INME wants to be the calm in the link-in-bio storm.', 'href' => '#'],
         ['outlet' => 'The Verge',  'date' => 'Feb 2026', 'headline' => 'Every creator’s second favourite app.',                'href' => '#'],
         ['outlet' => 'YourStory',  'date' => 'Jan 2026', 'headline' => 'How a Hyderabad team built a tool that scales.',       'href' => '#'],
-        ['outlet' => 'Forbes',     'date' => 'Dec 2025', 'headline' => 'The next-gen biolink is built for serious creators.',  'href' => '#'],
+        ['outlet' => 'Forbes',     'date' => 'Dec 2025', 'headline' => 'The next-gen Link in Bio is built for serious creators.',  'href' => '#'],
     ];
     $awards = [
         ['title' => 'Product Hunt — #1 of the day', 'date' => 'Sep 2025', 'icon' => 'fa-trophy'],

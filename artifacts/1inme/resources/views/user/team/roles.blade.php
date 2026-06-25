@@ -26,7 +26,7 @@
 
     <div class="mb-4 p-3 rounded border border-blue-200 bg-blue-50 text-blue-800 text-sm">
         <i class="fas fa-info-circle mr-1"></i>
-        These permissions apply to <strong>everything in this workspace</strong> — links, biolinks,
+        These permissions apply to <strong>everything in this workspace</strong> — links, Link in Bio pages,
         forms, posts, subscribers, QR codes and more. Workspace-level admin actions
         (delete workspace, manage billing, transfer ownership) stay <strong>owner-only</strong>
         and are not part of this matrix.

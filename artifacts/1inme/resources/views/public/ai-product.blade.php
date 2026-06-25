@@ -8,7 +8,7 @@
     $aiMeta = [
         'ai-chatbot' => [
             'eyebrow' => 'AI Chatbot',
-            'tagline' => 'A 24/7 chatbot for your biolink — trained on you, on-brand, never asleep.',
+            'tagline' => 'A 24/7 chatbot for your Link in Bio — trained on you, on-brand, never asleep.',
             'icon'    => 'fa-comments',
             'accent'  => '#7c3aed',
         ],

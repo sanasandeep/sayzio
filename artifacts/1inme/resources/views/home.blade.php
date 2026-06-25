@@ -2717,7 +2717,7 @@
             <div class="reveal rd-1 lg:col-span-7 glass rounded-3xl p-7 tilt">
                 <div class="flex items-center justify-between mb-5">
                     <div>
-                        <div class="text-xs font-bold uppercase tracking-wider mb-1" style="color:var(--c2)">Drag-and-drop biolink editor</div>
+                        <div class="text-xs font-bold uppercase tracking-wider mb-1" style="color:var(--c2)">Drag-and-drop Link in Bio editor</div>
                         <h3 class="text-xl font-bold">Reorder blocks. Build columns. Ship.</h3>
                     </div>
                     <span class="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white" style="background:rgba(124,58,237,.25);color:#c4b5fd"><i class="fas fa-grip-vertical"></i> Drag</span>
@@ -3281,7 +3281,7 @@
                             <div>👤 <em>Sara</em> · Tokyo · clicked <em>/spring-drop</em></div>
                             <div>👤 <em>Liam</em> · London · scanned <em>QR · merch</em></div>
                             <div>👤 <em>Amara</em> · Lagos · followed <em>@jamie</em></div>
-                            <div>👤 <em>Diego</em> · Mexico City · viewed <em>biolink</em></div>
+                            <div>👤 <em>Diego</em> · Mexico City · viewed <em>Link in Bio</em></div>
                         </div>
                     </div>
 
@@ -3463,7 +3463,7 @@
 @php
     $__pillars = [
         [
-            'eyebrow' => 'Bio-link & branding',
+            'eyebrow' => 'Link in Bio & branding',
             'title'   => 'A whole site behind one link',
             'icon'    => 'fa-grip-vertical',
             'color'   => '#1bd4d9',
@@ -3495,7 +3495,7 @@
             'items'   => [
                 ['fa-store',    'Sell digital products'],
                 ['fa-hand-holding-dollar', 'Tips &amp; donations'],
-                ['fa-message',  'Built-in DMs from biolink visitors'],
+                ['fa-message',  'Built-in DMs from Link in Bio visitors'],
                 ['fa-stream',   'Creator feed &amp; followers'],
                 ['fa-clipboard-list', 'Forms &amp; RSVPs'],
             ],
@@ -3919,7 +3919,7 @@
                 Show visitors <span class="grad-text">real momentum.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Buzz is the social-proof widget already wired into every 1INME biolink. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
+                Buzz is the social-proof widget already wired into every 1INME Link in Bio. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
             </p>
         </div>
 
@@ -3929,7 +3929,7 @@
                     <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:var(--c2);"></div>
                     <div class="relative">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your biolink</div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your Link in Bio</div>
                             <span class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full" style="background:rgba(74,222,128,.15);color:#4ade80">
                                 <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:#4ade80"></span>7 events · last min
                             </span>
@@ -4042,7 +4042,7 @@
                 <div class="grid sm:grid-cols-2 gap-4">
                     @foreach([
                         ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
-                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your biolink — flip it on.'],
+                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your Link in Bio — flip it on.'],
                         ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
                         ['fa-user-secret','#7c3aed','Privacy-first','Names masked, locations coarse, dismissible.'],
                     ] as $i => $f)
@@ -4284,7 +4284,7 @@
     ];
     // 10 features. Order chosen to front-load 1INME-only wins.
     $__cmpFeatures = [
-        ['Biolink pages',             ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
+        ['Link in Bio pages',             ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
         ['Branded short links',       ['ours' => true, 'linktree' => false, 'bitly' => true,  'beacons' => false]],
         ['Dynamic QR codes',          ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
         ['Built-in analytics',        ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
@@ -4465,7 +4465,7 @@
                 <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="1INME home">
                     @include('common.partials.brand-logo', ['height' => 'h-9'])
                 </a>
-                <p class="text-sm text-gray-500 mt-3 leading-relaxed max-w-sm">The all-in-one link platform: build a drag-and-drop biolink, share it everywhere, and grow with live analytics and a built-in Performance Coach.</p>
+                <p class="text-sm text-gray-500 mt-3 leading-relaxed max-w-sm">The all-in-one link platform: build a drag-and-drop Link in Bio, share it everywhere, and grow with live analytics and a built-in Performance Coach.</p>
             </div>
             <div>
                 <h4 class="text-xs font-bold text-gray-300 uppercase tracking-wider mb-4">Product</h4>

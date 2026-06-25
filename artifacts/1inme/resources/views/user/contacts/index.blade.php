@@ -7,11 +7,11 @@
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Contacts',
-        'subtitle' => 'Your address book — synced two-way with Google Contacts and silently linked to 1INME biolinks.',
+        'subtitle' => 'Your address book — synced two-way with Google Contacts and silently linked to 1INME Link in Bio pages.',
         'icon' => 'fa-address-book',
         'chips' => [
             ['icon' => 'fa-database text-cyan-400', 'text' => $stats['total'] . ' contacts'],
-            ['icon' => 'fa-link text-pink-400',     'text' => $stats['biolink'] . ' linked to a biolink'],
+            ['icon' => 'fa-link text-pink-400',     'text' => $stats['biolink'] . ' linked to a Link in Bio'],
         ],
     ])
 
@@ -156,7 +156,7 @@
                         <a href="{{ route('user.contacts.index', ['tab' => 'biolink', 'q' => $search]) }}"
                            class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ $tab === 'biolink' ? 'text-white' : '' }}"
                            style="{{ $tab === 'biolink' ? 'background:linear-gradient(135deg,#7c3aed,#ec4899);' : 'color:var(--text-muted);' }}">
-                            With biolink <span class="ml-1 opacity-70">({{ $stats['biolink'] }})</span>
+                            With Link in Bio <span class="ml-1 opacity-70">({{ $stats['biolink'] }})</span>
                         </a>
                     </div>
 
@@ -218,7 +218,7 @@
                                                         {{ url('/' . $bioLink->alias) }} <i class="fas fa-external-link-alt ml-1 text-[9px]"></i>
                                                     </a>
                                                 @else
-                                                    <span style="color:var(--text-faint);">no published biolink</span>
+                                                    <span style="color:var(--text-faint);">no published Link in Bio</span>
                                                 @endif
                                             </div>
                                         </div>

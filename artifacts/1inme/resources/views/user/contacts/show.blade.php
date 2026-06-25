@@ -52,7 +52,7 @@
                         {{ mb_strtoupper(mb_substr($biolinkPreview['user']->name ?? '?', 0, 2)) }}
                     </div>
                     <div class="min-w-0">
-                        <div class="text-xs font-bold uppercase tracking-wider" style="color:#f472b6;">1INME biolink</div>
+                        <div class="text-xs font-bold uppercase tracking-wider" style="color:#f472b6;">1INME Link in Bio</div>
                         <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">{{ $biolinkPreview['user']->name }}</div>
                         @if($biolinkPreview['url'])
                             <a href="{{ $biolinkPreview['url'] }}" target="_blank" class="text-xs truncate" style="color:#a78bfa;">{{ $biolinkPreview['url'] }}</a>
@@ -74,7 +74,7 @@
                     <a href="sms:{{ $_smsTo }}?body={{ rawurlencode($_smsBody) }}"
                        class="px-3 py-1.5 rounded-lg text-xs font-semibold"
                        style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)">
-                        <i class="fas fa-comment-sms mr-1"></i> Text biolink to {{ $_smsTo }}
+                        <i class="fas fa-comment-sms mr-1"></i> Text Link in Bio to {{ $_smsTo }}
                     </a>
                     <form method="POST" action="{{ route('user.contacts.biolink.sms', $contact) }}" class="inline">
                         @csrf
@@ -92,7 +92,7 @@
             <form method="POST" action="{{ route('user.contacts.biolink.attach', $contact) }}" class="mb-5">
                 @csrf
                 <button class="text-xs font-medium" style="color:#a78bfa;">
-                    <i class="fas fa-link mr-1"></i> Re-check for a 1INME biolink
+                    <i class="fas fa-link mr-1"></i> Re-check for a 1INME Link in Bio
                 </button>
             </form>
         @endif

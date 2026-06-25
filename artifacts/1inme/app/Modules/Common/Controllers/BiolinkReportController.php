@@ -98,7 +98,7 @@ class BiolinkReportController extends Controller
             abort(403);
         }
         if (!in_array($link->moderation_state, ['warned', 'hidden'], true)) {
-            return back()->with('error', 'This biolink is not under moderation.');
+            return back()->with('error', 'This Link in Bio is not under moderation.');
         }
         $request->validate(['message' => 'required|string|max:2000']);
 

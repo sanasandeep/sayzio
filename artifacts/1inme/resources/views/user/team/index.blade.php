@@ -405,7 +405,7 @@
                     </select>
                     <p class="mt-2 text-xs opacity-70">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Roles apply to <strong>everything in this workspace</strong> — links, biolinks, forms,
+                        Roles apply to <strong>everything in this workspace</strong> — links, Link in Bio pages, forms,
                         subscribers, posts, QR codes and more. Workspace-level destructive actions
                         (delete workspace, billing, transfer ownership) stay owner-only.
                     </p>

@@ -137,7 +137,7 @@
             @if(empty($userCompanions) || !is_countable($userCompanions) || count($userCompanions) === 0)
                 <div class="text-center py-10">
                     <i class="fas fa-robot text-2xl mb-2" style="color: var(--text-faint);"></i>
-                    <p class="text-sm mb-3" style="color: var(--text-muted);">No biolink AI Companions yet.</p>
+                    <p class="text-sm mb-3" style="color: var(--text-muted);">No Link in Bio AI Companions yet.</p>
                     <a href="{{ route('user.ai-companions.create') }}?placement=biolink" class="inline-block text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold"><i class="fas fa-plus mr-1"></i>Create your first Companion</a>
                 </div>
             @else

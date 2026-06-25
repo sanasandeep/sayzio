@@ -33,7 +33,7 @@
                     <i class="fas fa-sign-in-alt mr-2"></i>Log in to continue
                 </a>
             @elseif($reason === 'followers')
-                <p class="text-xs text-white/50 mb-3">Open <strong>{{ '@' . ($link->user->handle ?? $link->user->name ?? 'creator') }}</strong>'s biolink and tap <em>Follow</em> to unlock.</p>
+                <p class="text-xs text-white/50 mb-3">Open <strong>{{ '@' . ($link->user->handle ?? $link->user->name ?? 'creator') }}</strong>'s Link in Bio and tap <em>Follow</em> to unlock.</p>
                 @if($link->user)
                     <a href="{{ route('creators.index') }}" class="inline-block w-full px-5 py-3 rounded-2xl bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-semibold text-sm">
                         <i class="fas fa-user-plus mr-2"></i>Find the creator

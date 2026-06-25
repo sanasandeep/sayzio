@@ -9,7 +9,7 @@ import { SIGNUP_URL, PRICING_URL } from "@/config";
 import { Users, FolderKanban, ShieldCheck, History, Palette, KeyRound } from "lucide-react";
 
 const items = [
-  { icon: FolderKanban, name: "Projects & workspaces", description: "Group links, biolinks and assets into projects, then switch context in one click — keep client and personal work cleanly separated." },
+  { icon: FolderKanban, name: "Projects & workspaces", description: "Group links, Link in Bio pages and assets into projects, then switch context in one click — keep client and personal work cleanly separated." },
   { icon: Users, name: "Invite your team", description: "Bring teammates into a workspace with the right access, so everyone works from the same source of truth." },
   { icon: ShieldCheck, name: "Roles & permissions", description: "Owner, admin and member roles control who can publish, edit and view — no more accidental edits." },
   { icon: History, name: "Activity & audit log", description: "See who changed what and when across every workspace, with a clear trail for accountability." },

@@ -1308,7 +1308,7 @@ if (typeof window.resetPollVotes !== 'function') {
     @endphp
     <label class="{{ $labelClass }}">Pick an AI Companion</label>
     @if($userCmps->isEmpty())
-        <p class="text-xs text-white/40 mb-2">You haven't created any biolink AI Companions yet.</p>
+        <p class="text-xs text-white/40 mb-2">You haven't created any Link in Bio AI Companions yet.</p>
         <a href="{{ route('user.ai-companions.create') }}?placement=biolink" target="_blank" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Create one</a>
     @else
         <select name="settings[companion_id]" class="{{ $inputClass }}">
@@ -1319,7 +1319,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 </option>
             @endforeach
         </select>
-        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> Renders as a floating chat launcher (or inline chat) on this biolink page.</p>
+        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> Renders as a floating chat launcher (or inline chat) on this Link in Bio page.</p>
     @endif
 
 @elseif($block->type === 'social_proof')
@@ -1337,7 +1337,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 </option>
             @endforeach
         </select>
-        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> The notification will appear as a floating widget on the biolink page.</p>
+        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> The notification will appear as a floating widget on the Link in Bio page.</p>
     @endif
 
 @elseif(in_array($block->type, ['buy_me_coffee', 'patreon', 'ko_fi'], true))

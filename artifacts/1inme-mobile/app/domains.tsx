@@ -192,7 +192,7 @@ export default function DomainsScreen() {
             <EmptyState
               icon="globe"
               title="No custom domains yet"
-              body="Point a domain you own at 1INME to host your biolinks on your own URL."
+              body="Point a domain you own at 1INME to host your Link in Bio pages on your own URL."
               action={<Button label="Add domain" onPress={() => setShowNew(true)} />}
             />
           }

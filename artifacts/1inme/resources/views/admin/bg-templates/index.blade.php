@@ -7,9 +7,9 @@
     <div class="glass rounded-2xl border border-white/10 p-6">
         <div class="flex items-start justify-between gap-4 flex-wrap">
             <div>
-                <h2 class="text-lg font-semibold text-white/90">Biolink background templates</h2>
+                <h2 class="text-lg font-semibold text-white/90">Link in Bio background templates</h2>
                 <p class="text-xs text-white/50 mt-1 max-w-2xl">
-                    Animated, gradient and pattern backgrounds that users can apply to their biolink pages.
+                    Animated, gradient and pattern backgrounds that users can apply to their Link in Bio pages.
                     Each template renders as <code class="text-white/60">.bg-template-&lt;slug&gt;</code>. Toggle
                     visibility to hide a template from the user picker without deleting it.
                 </p>

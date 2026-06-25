@@ -9,12 +9,12 @@ import { SIGNUP_URL, PRICING_URL } from "@/config";
 import { Instagram, Music2, Facebook, Twitter, Linkedin, Repeat, Activity, Webhook } from "lucide-react";
 
 const networks = [
-  { icon: Instagram, name: "Instagram", description: "Connect in one tap to pull profile, posts and follower counts into your biolink." },
+  { icon: Instagram, name: "Instagram", description: "Connect in one tap to pull profile, posts and follower counts into your Link in Bio." },
   { icon: Music2, name: "TikTok", description: "Plug in TikTok to surface your latest videos and follower count." },
   { icon: Facebook, name: "Facebook page", description: "Hook up a Facebook page so visitors can follow and you can pull recent posts." },
-  { icon: Twitter, name: "X (Twitter)", description: "Keep your latest posts and follower count live on your biolink." },
+  { icon: Twitter, name: "X (Twitter)", description: "Keep your latest posts and follower count live on your Link in Bio." },
   { icon: Linkedin, name: "LinkedIn", description: "Plug in your profile or company page for a one-tap follow surface." },
-  { icon: Music2, name: "Pinterest", description: "Connect Pinterest to surface your boards and pins on your biolink." },
+  { icon: Music2, name: "Pinterest", description: "Connect Pinterest to surface your boards and pins on your Link in Bio." },
 ];
 
 const reliability = [

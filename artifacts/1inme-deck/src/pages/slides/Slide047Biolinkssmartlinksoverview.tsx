@@ -9,10 +9,10 @@ export default function Slide047Biolinkssmartlinksoverview() {
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400"></span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
-        <h2 className="font-display text-[3.4vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Bio Links &amp; Smart Links — overview.</h2>
+        <h2 className="font-display text-[3.4vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Link in Bio &amp; Smart Links — overview.</h2>
         <p className="mt-[2vh] text-[1.3vw] text-slate-300 max-w-[65vw]">Bio Pages, Short Links, QR Studio, Splash Screens.</p>
         <div className="mt-[4vh] flex-1 ">
-          <ul className="space-y-[1.6vh]">            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Bio link pages</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">Drag-and-drop blocks, themes, custom domains.</div></div></li>
+          <ul className="space-y-[1.6vh]">            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Link in Bio pages</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">Drag-and-drop blocks, themes, custom domains.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Smart short links</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">Branded URLs with routing rules and pixels.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">QR Studio</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">Logo-aware codes that update without reprint.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Splash screens</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">Branded interstitials between click and destination.</div></div></li></ul>

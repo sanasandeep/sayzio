@@ -13,7 +13,7 @@ export default function Slide065Socialcommunityusecase() {
         <p className="mt-[2vh] text-[1.3vw] text-slate-300 max-w-[65vw]">A concrete walk-through using only this category&rsquo;s modules.</p>
         <div className="mt-[4vh] flex-1 ">
           <ul className="space-y-[1.6vh]">            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Episode drops to the feed, then auto-clips for Reels and Shorts.</div></div></li>
-            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Bio link updates with the latest episode block.</div></div></li>
+            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Link in Bio updates with the latest episode block.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Listeners join a member-only AMA next day.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Analytics roll up listens, clicks, and replies in one report.</div></div></li></ul>
           

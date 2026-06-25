@@ -151,7 +151,7 @@
     <div class="rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border-soft);">
         <h2 class="font-bold mb-4" style="color: var(--text-primary);">Identified visitors ({{ $identified->count() }})</h2>
         @if($identified->isEmpty())
-            <p class="text-sm" style="color: var(--text-muted);">No visitors have signed in on this biolink yet. When viewers opt in via the sign-in card on your biolink, they'll appear here.</p>
+            <p class="text-sm" style="color: var(--text-muted);">No visitors have signed in on this Link in Bio yet. When viewers opt in via the sign-in card on your Link in Bio, they'll appear here.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">

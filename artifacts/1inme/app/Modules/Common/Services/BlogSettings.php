@@ -44,7 +44,7 @@ class BlogSettings
             'default_og_image'             => $raw['default_og_image'] ?? null,
             'hero_eyebrow'                 => (string) ($raw['hero_eyebrow'] ?? 'The 1INME Blog'),
             'hero_heading'                 => (string) ($raw['hero_heading'] ?? 'Stories, tips & product news.'),
-            'hero_subheading'              => (string) ($raw['hero_subheading'] ?? 'Practical playbooks for creators, marketers and small teams who live in their bio link.'),
+            'hero_subheading'              => (string) ($raw['hero_subheading'] ?? 'Practical playbooks for creators, marketers and small teams who live in their Link in Bio.'),
             'hero_cta_label'               => $raw['hero_cta_label'] ?? null,
             'hero_cta_url'                 => $raw['hero_cta_url'] ?? null,
             'reply_role_slugs'             => array_values(array_filter((array) ($raw['reply_role_slugs'] ?? ['super-admin', 'staff']))),

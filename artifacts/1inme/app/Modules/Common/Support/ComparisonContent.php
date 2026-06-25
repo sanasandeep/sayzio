@@ -26,7 +26,7 @@ class ComparisonContent
     {
         return [
             ['key' => 'ours',     'name' => '1INME',    'tagline' => 'The whole growth stack', 'badge' => 'All-in-one',        'isOurs' => true],
-            ['key' => 'linktree', 'name' => 'Linktree', 'tagline' => 'Bio link page',          'badge' => 'Half the cost',     'isOurs' => false],
+            ['key' => 'linktree', 'name' => 'Linktree', 'tagline' => 'Link in Bio page',          'badge' => 'Half the cost',     'isOurs' => false],
             ['key' => 'bitly',    'name' => 'Bitly',    'tagline' => 'Short links & QR',       'badge' => 'More features',     'isOurs' => false],
             ['key' => 'beacons',  'name' => 'Beacons',  'tagline' => 'Creator bio',            'badge' => 'Lower price',       'isOurs' => false],
             ['key' => 'carrd',    'name' => 'Carrd',    'tagline' => 'One-page sites',         'badge' => 'Way more inside',   'isOurs' => false],
@@ -44,8 +44,8 @@ class ComparisonContent
     public static function groups(): array
     {
         return [
-            'Bio link page' => [
-                ['Drag-and-drop biolink builder',     ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
+            'Link in Bio page' => [
+                ['Drag-and-drop Link in Bio builder',     ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
                 ['Multiple bio pages per account',    ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>false,'carrd'=>true, 'taplink'=>false,'stan'=>true ]],
                 ['Embed video, music & forms',        ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
                 ['Custom themes & fonts',             ['ours'=>true,'linktree'=>true,  'bitly'=>false,'beacons'=>true, 'carrd'=>true, 'taplink'=>true, 'stan'=>true ]],
@@ -162,7 +162,7 @@ class ComparisonContent
             'linktree' => [
                 'accent'   => '#39e09b',
                 'icon'     => 'fa-tree',
-                'headline' => 'A bio link is the start, not the finish.',
+                'headline' => 'A Link in Bio is the start, not the finish.',
                 'intro'    => "Linktree popularised the link-in-bio and does that one job cleanly. But once you need branded short links, deep analytics, a built-in CRM, broadcasts and AI growth tools, you end up bolting on three or four more subscriptions. 1INME folds the whole stack into one link — for less.",
                 'they_win' => [
                     'The most recognised name in link-in-bio, with a huge template gallery.',
@@ -177,7 +177,7 @@ class ComparisonContent
                 ],
                 'faqs'     => [
                     ['q' => 'Can I move my Linktree to 1INME?', 'a' => 'Yes. Recreate your page in minutes with the drag-and-drop builder, or bulk-import your existing links. Your audience just sees a better page at the same link.'],
-                    ['q' => 'Will my QR codes still work after switching?', 'a' => 'Point your custom domain or biolink at 1INME and the destination updates everywhere — including any printed QR codes you generate here, which stay editable forever.'],
+                    ['q' => 'Will my QR codes still work after switching?', 'a' => 'Point your custom domain or Link in Bio at 1INME and the destination updates everywhere — including any printed QR codes you generate here, which stay editable forever.'],
                     ['q' => 'Is 1INME cheaper than Linktree?', 'a' => 'Our paid tiers are designed to undercut a stack of single-purpose tools while bundling far more. Compare the free plans first — 1INME gives you short links, QR codes and analytics with no credit card.'],
                 ],
             ],
@@ -185,22 +185,22 @@ class ComparisonContent
                 'accent'   => '#ee6123',
                 'icon'     => 'fa-link',
                 'headline' => 'Short links plus everything that happens after the click.',
-                'intro'    => "Bitly is a serious link-management tool, but it stops at the link. 1INME gives you the same branded short links, QR codes and UTM tooling, then adds a full biolink page, audience CRM, monetisation and growth AI — so the click actually turns into a follower or a sale.",
+                'intro'    => "Bitly is a serious link-management tool, but it stops at the link. 1INME gives you the same branded short links, QR codes and UTM tooling, then adds a full Link in Bio page, audience CRM, monetisation and growth AI — so the click actually turns into a follower or a sale.",
                 'they_win' => [
                     'Enterprise-grade link management built to operate at massive scale.',
                     'A long-established API and integration ecosystem.',
                     'Deep, link-first reporting for large marketing teams.',
                 ],
                 'we_win'   => [
-                    'A real drag-and-drop biolink page, not just a link redirect.',
+                    'A real drag-and-drop Link in Bio page, not just a link redirect.',
                     'Live visitor map and click heatmaps on top of click analytics.',
                     'Contacts, forms, broadcasts and monetisation built in.',
                     'AI Performance Coach that tells you what to fix next.',
                 ],
                 'faqs'     => [
                     ['q' => 'Does 1INME do branded short links like Bitly?', 'a' => 'Yes — branded short links, custom domains, bulk import, UTM builder and dynamic QR codes are all included, alongside the rest of the growth stack.'],
-                    ['q' => 'Can I keep my existing short links?', 'a' => 'Point your custom domain at 1INME and rebuild your key links here. New links get the full analytics and biolink toolkit automatically.'],
-                    ['q' => 'What does 1INME add that Bitly does not?', 'a' => 'A complete biolink builder, audience CRM, forms, broadcasts, monetisation, team roles and an AI coach — the things you do after someone clicks.'],
+                    ['q' => 'Can I keep my existing short links?', 'a' => 'Point your custom domain at 1INME and rebuild your key links here. New links get the full analytics and Link in Bio toolkit automatically.'],
+                    ['q' => 'What does 1INME add that Bitly does not?', 'a' => 'A complete Link in Bio builder, audience CRM, forms, broadcasts, monetisation, team roles and an AI coach — the things you do after someone clicks.'],
                 ],
             ],
             'beacons' => [
@@ -220,7 +220,7 @@ class ComparisonContent
                     'Coin/wallet rewards plus tips and digital products.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Can I sell products on 1INME like on Beacons?', 'a' => 'Yes — sell digital products, take tips and donations, and reward fans with coins, all from your biolink.'],
+                    ['q' => 'Can I sell products on 1INME like on Beacons?', 'a' => 'Yes — sell digital products, take tips and donations, and reward fans with coins, all from your Link in Bio.'],
                     ['q' => 'Does 1INME schedule posts?', 'a' => 'Scheduled posts are built in, alongside an AI Performance Coach that flags what to improve before you publish.'],
                     ['q' => 'I run more than just a creator page — is 1INME overkill?', 'a' => 'No. The same account scales from a single creator page to multi-brand team workspaces with roles and permissions.'],
                 ],
@@ -251,7 +251,7 @@ class ComparisonContent
                 'accent'   => '#19c3a6',
                 'icon'     => 'fa-mobile-screen',
                 'headline' => 'More than an Instagram micro-landing.',
-                'intro'    => "Taplink does a tidy Instagram landing page. 1INME covers the same micro-landing use case and then keeps going — branded short links, a QR Studio, live geo analytics, a CRM and team workspaces — so your bio link grows with you instead of capping out.",
+                'intro'    => "Taplink does a tidy Instagram landing page. 1INME covers the same micro-landing use case and then keeps going — branded short links, a QR Studio, live geo analytics, a CRM and team workspaces — so your Link in Bio grows with you instead of capping out.",
                 'they_win' => [
                     'Purpose-built, fast Instagram micro-landing pages.',
                     'Simple, low-cost entry point for a single social profile.',
@@ -264,7 +264,7 @@ class ComparisonContent
                     'Coin/wallet rewards and an AI Performance Coach.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Is 1INME good for an Instagram bio link?', 'a' => 'Yes — build a fast, mobile-first micro-landing in minutes, then add short links, QR codes and analytics as you grow.'],
+                    ['q' => 'Is 1INME good for an Instagram Link in Bio?', 'a' => 'Yes — build a fast, mobile-first micro-landing in minutes, then add short links, QR codes and analytics as you grow.'],
                     ['q' => 'Can I capture leads from my page?', 'a' => 'Embed forms, collect contacts into a built-in CRM, and follow up with broadcasts — all without extra tools.'],
                     ['q' => 'Will it stay simple?', 'a' => 'Start minimal with a template; the heavier tools only appear when you choose to switch them on.'],
                 ],
@@ -286,8 +286,8 @@ class ComparisonContent
                     'Team workspaces, roles, direct messaging and coin rewards.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Can I sell digital products on 1INME?', 'a' => 'Yes — sell digital products, take tips and donations, and reward buyers with coins, straight from your biolink.'],
-                    ['q' => 'Does 1INME have a free plan?', 'a' => 'Yes, a genuinely free-forever plan including biolinks, short links and QR codes — no credit card needed.'],
+                    ['q' => 'Can I sell digital products on 1INME?', 'a' => 'Yes — sell digital products, take tips and donations, and reward buyers with coins, straight from your Link in Bio.'],
+                    ['q' => 'Does 1INME have a free plan?', 'a' => 'Yes, a genuinely free-forever plan including Link in Bio pages, short links and QR codes — no credit card needed.'],
                     ['q' => 'What does 1INME add over a pure creator store?', 'a' => 'Branded short links, QR analytics, a CRM, broadcasts, team workspaces and an AI coach — the marketing layer that drives traffic to the store.'],
                 ],
             ],
