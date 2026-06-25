@@ -16,7 +16,7 @@ use App\Modules\User\Models\User;
  */
 class AiMindFeatureAdapter
 {
-    /** Whitelist of selectable features + human labels. */
+    /** Whitelist of selectable per-USER features + human labels. */
     public const FEATURES = [
         'biolinks'    => 'Link in Bio',
         'links'       => 'Short Links',
@@ -31,14 +31,41 @@ class AiMindFeatureAdapter
         'profile'     => 'Profile',
     ];
 
+    /**
+     * PUBLIC, account-independent snapshots. These read ONLY the public
+     * pricing/feature catalogue (the exact same active + public-scoped
+     * sources that power the marketing /pricing and /features pages), so
+     * they carry no user data and are identical for everyone — anonymous
+     * visitors and signed-in users alike. They're produced without an
+     * owner (see publicSnapshot()) and are intended to be attached to the
+     * platform default Mind so the Site Assistant always reflects current
+     * public offerings. They are deliberately NOT offered in the per-user
+     * feature picker (which iterates FEATURES only).
+     */
+    public const PUBLIC_FEATURES = [
+        'pricing'  => 'Live Pricing & Coins',
+        'features' => 'Feature Catalog',
+    ];
+
     public static function isFeature(string $key): bool
     {
-        return array_key_exists($key, self::FEATURES);
+        return array_key_exists($key, self::FEATURES)
+            || array_key_exists($key, self::PUBLIC_FEATURES);
+    }
+
+    /**
+     * True for snapshots that read only public/active catalogue data and
+     * never touch a user account — so they can be served to anyone,
+     * including anonymous visitors, with no leakage risk.
+     */
+    public static function isPublicFeature(string $key): bool
+    {
+        return array_key_exists($key, self::PUBLIC_FEATURES);
     }
 
     public static function label(string $key): string
     {
-        return self::FEATURES[$key] ?? $key;
+        return self::FEATURES[$key] ?? self::PUBLIC_FEATURES[$key] ?? $key;
     }
 
     /**
@@ -61,6 +88,112 @@ class AiMindFeatureAdapter
             'profile'   => $this->profile($user),
             default     => '',
         };
+    }
+
+    /**
+     * Account-independent snapshot for the PUBLIC_FEATURES keys. Takes no
+     * user — every byte it returns comes from the public, active pricing /
+     * feature catalogue, so the result is identical regardless of who is
+     * asking. This is what lets the Site Assistant answer pricing/feature
+     * questions for anonymous visitors without any data-leakage risk.
+     */
+    public function publicSnapshot(string $key): string
+    {
+        return match ($key) {
+            'pricing'  => $this->pricing(),
+            'features' => $this->featureCatalogue(),
+            default    => '',
+        };
+    }
+
+    /**
+     * Live pricing snapshot — active, public (non-internal) plans with
+     * their per-currency monthly/annual prices, plus active coin packages
+     * with coin amount + bonus. Mirrors PricingPagesController::plans()
+     * exactly (same `Plan::active()->public()` / `CoinPackage::active()`
+     * scopes and the same PricingResolver price resolution) so it can
+     * never surface an internal, archived, or inactive offering.
+     */
+    protected function pricing(): string
+    {
+        $currencies = ['USD', 'INR'];
+
+        $plans = \App\Modules\Admin\Models\Plan::active()->public()->with('prices')->ordered()->get();
+        $lines = ['Live 1INME plans (current public pricing, matches the /pricing page):'];
+        foreach ($plans as $plan) {
+            $priceBits = [];
+            foreach ($currencies as $cur) {
+                $monthly = \App\Services\PricingResolver::priceForCurrency($plan, $cur, 'monthly');
+                $annual  = \App\Services\PricingResolver::priceForCurrency($plan, $cur, 'annual');
+                $priceBits[] = sprintf('%s/mo or %s/yr', $monthly['formatted'], $annual['formatted']);
+            }
+            $tags = [];
+            if ($plan->is_default) $tags[] = 'free/default';
+            if ($plan->is_popular) $tags[] = 'most popular';
+            $suffix = $tags ? ' (' . implode(', ', $tags) . ')' : '';
+            $lines[] = sprintf('- %s%s: %s', $plan->name, $suffix, implode(' | ', $priceBits));
+        }
+        if ($plans->isEmpty()) {
+            $lines[] = '- (No public plans are currently available.)';
+        }
+
+        $packages = \App\Modules\Admin\Models\CoinPackage::active()->with('prices')->ordered()->get();
+        $lines[] = '';
+        $lines[] = 'Coin packages (current public packs):';
+        foreach ($packages as $pkg) {
+            $priceBits = [];
+            foreach ($currencies as $cur) {
+                $pc = \App\Services\PricingResolver::priceForCurrency($pkg, $cur, 'monthly');
+                $priceBits[] = $pc['formatted'];
+            }
+            $bonus = (int) $pkg->bonus_coins;
+            $coins = $bonus > 0
+                ? sprintf('%d coins + %d bonus = %d total', (int) $pkg->coin_amount, $bonus, $pkg->totalCoins())
+                : sprintf('%d coins', (int) $pkg->coin_amount);
+            $lines[] = sprintf('- %s: %s — %s', $pkg->name, $coins, implode(' / ', $priceBits));
+        }
+        if ($packages->isEmpty()) {
+            $lines[] = '- (No coin packages are currently available.)';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Live feature-catalogue snapshot — the public premium-feature list
+     * (name, plain-English description, group) plus which public plans
+     * unlock each feature. Reuses PremiumFeatures (the same catalogue the
+     * /features page renders) and the `Plan::active()->public()` scope for
+     * the unlock map, so internal/inactive plans never appear.
+     */
+    protected function featureCatalogue(): string
+    {
+        $plans   = \App\Modules\Admin\Models\Plan::active()->public()->ordered()->get();
+        $unlocks = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($plans);
+        $planNames = $plans->pluck('name', 'slug');
+
+        $byGroup = [];
+        foreach (\App\Modules\Common\Support\PremiumFeatures::catalogue() as $entry) {
+            $byGroup[$entry['group']][] = $entry;
+        }
+
+        $lines = ['Live 1INME feature catalog (matches the /features page):'];
+        foreach ($byGroup as $group => $entries) {
+            $lines[] = '';
+            $lines[] = $group . ':';
+            foreach ($entries as $entry) {
+                $slugs = $unlocks[$entry['key']] ?? [];
+                $names = array_values(array_filter(array_map(
+                    fn ($s) => $planNames[$s] ?? null,
+                    $slugs
+                )));
+                $unlock = $names ? ' [plans: ' . implode(', ', $names) . ']' : '';
+                $desc = \Illuminate\Support\Str::limit((string) ($entry['description'] ?? ''), 180);
+                $lines[] = sprintf('- %s — %s%s', $entry['name'], $desc, $unlock);
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     protected function biolinks(User $user): string

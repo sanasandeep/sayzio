@@ -142,24 +142,38 @@ class AiMindQueryService
 
         $snapshots = [];
         foreach ($minds as $mind) {
-            // For user-owned Minds, the snapshot owner is the Mind's
-            // creator. For platform Minds we MUST use $contextUser (the
-            // authenticated visitor); if there is none, we skip feature
-            // snapshots entirely to avoid leaking billing-user data to
-            // anonymous visitors.
+            $featureSources = $mind->sources()
+                ->where('type', AiMindSource::TYPE_FEATURE)
+                ->get(['id','feature_key']);
+            if ($featureSources->isEmpty()) continue;
+
+            // Owner used ONLY for user-scoped snapshots. For user-owned
+            // Minds it's the Mind's creator; for platform Minds we MUST
+            // use $contextUser (the authenticated visitor) and never the
+            // billing user. Public snapshots (pricing/features) ignore
+            // this entirely — they read only public catalogue data.
             if ($mind->user_id) {
                 $owner = $mind->user;
             } else {
                 $owner = $contextUser;
             }
-            if (!$owner) continue;
-            $featureSources = $mind->sources()
-                ->where('type', AiMindSource::TYPE_FEATURE)
-                ->get(['id','feature_key']);
+
             foreach ($featureSources as $fs) {
                 $key = (string) $fs->feature_key;
                 if (!AiMindFeatureAdapter::isFeature($key)) continue;
-                $text = $this->features->snapshot($owner, $key);
+
+                if (AiMindFeatureAdapter::isPublicFeature($key)) {
+                    // Account-independent, public/active-only data — the
+                    // same for everyone, so it's produced unconditionally
+                    // (anonymous visitors included) with no owner.
+                    $text = $this->features->publicSnapshot($key);
+                } else {
+                    // User-scoped data — needs a resolved owner. Skip when
+                    // there's none (anonymous visitor on a platform Mind)
+                    // to avoid leaking another account's private data.
+                    if (!$owner) continue;
+                    $text = $this->features->snapshot($owner, $key);
+                }
                 if ($text === '') continue;
                 $snapshots[] = [
                     'key'   => $key,

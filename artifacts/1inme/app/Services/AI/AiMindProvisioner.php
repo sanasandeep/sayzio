@@ -24,40 +24,82 @@ class AiMindProvisioner
 {
     public const PLATFORM_NAME = '1INME Default Mind';
 
+    /**
+     * Live public snapshots auto-attached to the platform default Mind so
+     * the Site Assistant always reflects current public pricing + the
+     * feature catalogue. Read live at query time (see AiMindFeatureAdapter
+     * ::publicSnapshot) — no re-crawl needed when prices/features change.
+     *
+     * @var array<int,string>
+     */
+    protected const PLATFORM_FEATURE_KEYS = ['pricing', 'features'];
+
     /** @return AiMind The platform-managed mind. */
     public static function ensurePlatformDefault(): AiMind
     {
         $mind = AiMind::whereNull('user_id')
             ->where('is_default', true)
             ->first();
-        if ($mind) return $mind;
 
-        $mind = AiMind::create([
-            'user_id'     => null,
-            'name'        => self::PLATFORM_NAME,
-            'description' => 'Built-in knowledge about 1INME — features, how-to, FAQs. Auto-attached to every account.',
-            'is_default'  => true,
-        ]);
+        if (!$mind) {
+            $mind = AiMind::create([
+                'user_id'     => null,
+                'name'        => self::PLATFORM_NAME,
+                'description' => 'Built-in knowledge about 1INME — features, how-to, FAQs. Auto-attached to every account.',
+                'is_default'  => true,
+            ]);
 
-        // Seed the platform mind with a baseline FAQ + product-overview
-        // text. Admin can edit/refresh from the admin Minds page later.
-        AiMindSource::create([
-            'mind_id' => $mind->id,
-            'type'    => AiMindSource::TYPE_TEXT,
-            'title'   => 'About 1INME',
-            'body'    => self::aboutText(),
-            'status'  => AiMindSource::STATUS_QUEUED,
-        ]);
-        AiMindSource::create([
-            'mind_id' => $mind->id,
-            'type'    => AiMindSource::TYPE_FAQ,
-            'title'   => 'Common questions',
-            'body'    => json_encode(self::seedFaqs(), JSON_UNESCAPED_UNICODE),
-            'status'  => AiMindSource::STATUS_QUEUED,
-        ]);
+            // Seed the platform mind with a baseline FAQ + product-overview
+            // text. Admin can edit/refresh from the admin Minds page later.
+            AiMindSource::create([
+                'mind_id' => $mind->id,
+                'type'    => AiMindSource::TYPE_TEXT,
+                'title'   => 'About 1INME',
+                'body'    => self::aboutText(),
+                'status'  => AiMindSource::STATUS_QUEUED,
+            ]);
+            AiMindSource::create([
+                'mind_id' => $mind->id,
+                'type'    => AiMindSource::TYPE_FAQ,
+                'title'   => 'Common questions',
+                'body'    => json_encode(self::seedFaqs(), JSON_UNESCAPED_UNICODE),
+                'status'  => AiMindSource::STATUS_QUEUED,
+            ]);
+        }
+
+        // Idempotently attach the live public pricing + feature snapshots.
+        // Done unconditionally (not just on first creation) so existing
+        // installs pick them up on the next provision/reseed.
+        self::ensurePublicFeatureSources($mind);
 
         $mind->recountStats();
         return $mind;
+    }
+
+    /**
+     * Attach the public pricing + feature-catalogue snapshots to the given
+     * Mind if not already present. Idempotent and safe to call repeatedly
+     * (provisioning, admin reseed, migrations). Feature sources are
+     * answered live at query time, so ingestion just marks them ready.
+     */
+    protected static function ensurePublicFeatureSources(AiMind $mind): void
+    {
+        foreach (self::PLATFORM_FEATURE_KEYS as $key) {
+            $exists = AiMindSource::where('mind_id', $mind->id)
+                ->where('type', AiMindSource::TYPE_FEATURE)
+                ->where('feature_key', $key)
+                ->exists();
+            if ($exists) continue;
+
+            $source = AiMindSource::create([
+                'mind_id'     => $mind->id,
+                'type'        => AiMindSource::TYPE_FEATURE,
+                'title'       => '1INME — ' . \App\Services\AI\AiMindFeatureAdapter::label($key),
+                'feature_key' => $key,
+                'status'      => AiMindSource::STATUS_QUEUED,
+            ]);
+            \App\Jobs\IngestAiMindSourceJob::dispatch($source->id);
+        }
     }
 
     public static function ensureForUser(User $user): void
