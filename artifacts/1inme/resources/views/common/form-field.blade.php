@@ -40,7 +40,7 @@
             @break
 
         @case('select')
-            <select id="f_{{ $id }}" name="{{ $id }}" class="form-select" @if($required) required @endif @if($showPrices) data-priced @endif>
+            <select id="f_{{ $id }}" name="{{ $id }}" class="form-select" @if($required) required @endif @if($showPrices) data-priced data-price-label="{{ $label }}" @endif>
                 <option value="">— Choose —</option>
                 @foreach(($field['options'] ?? []) as $opt)
                     @php $oc = (int) ($optPrices[$opt] ?? 0); @endphp
@@ -53,7 +53,7 @@
             <div class="form-radio-group">
                 @foreach(($field['options'] ?? []) as $opt)
                     @php $oc = (int) ($optPrices[$opt] ?? 0); @endphp
-                    <label><input type="radio" name="{{ $id }}" value="{{ $opt }}" @checked($oldVal === $opt) @if($required) required @endif @if($showPrices && $oc > 0) data-price="{{ $oc }}" @endif> {{ $opt }}@if($showPrices && $oc > 0)<span class="form-price-tag">{{ $fmtPrice($oc) }}</span>@endif</label>
+                    <label><input type="radio" name="{{ $id }}" value="{{ $opt }}" @checked($oldVal === $opt) @if($required) required @endif @if($showPrices && $oc > 0) data-price="{{ $oc }}" data-price-label="{{ $label }}" @endif> {{ $opt }}@if($showPrices && $oc > 0)<span class="form-price-tag">{{ $fmtPrice($oc) }}</span>@endif</label>
                 @endforeach
             </div>
             @break
@@ -63,7 +63,7 @@
             <div class="form-check-group">
                 @foreach(($field['options'] ?? []) as $opt)
                     @php $oc = (int) ($optPrices[$opt] ?? 0); @endphp
-                    <label><input type="checkbox" name="{{ $id }}[]" value="{{ $opt }}" @checked(is_array($oldVal) && in_array($opt, $oldVal)) @if($showPrices && $oc > 0) data-price="{{ $oc }}" @endif> {{ $opt }}@if($showPrices && $oc > 0)<span class="form-price-tag">{{ $fmtPrice($oc) }}</span>@endif</label>
+                    <label><input type="checkbox" name="{{ $id }}[]" value="{{ $opt }}" @checked(is_array($oldVal) && in_array($opt, $oldVal)) @if($showPrices && $oc > 0) data-price="{{ $oc }}" data-price-label="{{ $label }}" @endif> {{ $opt }}@if($showPrices && $oc > 0)<span class="form-price-tag">{{ $fmtPrice($oc) }}</span>@endif</label>
                 @endforeach
             </div>
             @break
@@ -192,7 +192,7 @@
 
         @case('consent')
             <label style="display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; line-height: 1.4;">
-                <input type="checkbox" name="{{ $id }}" value="1" @checked($oldVal) @if($required) required @endif @if($showPrices && $unitPrice > 0) data-price-addon="{{ $unitPrice }}" @endif style="margin-top: 0.2rem;">
+                <input type="checkbox" name="{{ $id }}" value="1" @checked($oldVal) @if($required) required @endif @if($showPrices && $unitPrice > 0) data-price-addon="{{ $unitPrice }}" data-price-label="{{ $label }}" @endif style="margin-top: 0.2rem;">
                 <span class="form-label" style="margin: 0;">{{ $label }}@if($required)<span class="form-required">*</span>@endif @if($showPrices && $unitPrice > 0)<span class="form-price-tag">{{ $fmtPrice($unitPrice) }}</span>@endif</span>
             </label>
             @break
@@ -214,12 +214,25 @@
             @break
 
         @case('number')
-            <input type="number" id="f_{{ $id }}" name="{{ $id }}" class="form-input" placeholder="{{ $placeholder }}" value="{{ $oldVal }}"
-                   @if(isset($field['min']) && $field['min'] !== '') min="{{ $field['min'] }}" @endif
-                   @if(isset($field['max']) && $field['max'] !== '') max="{{ $field['max'] }}" @endif
-                   @if($showPrices && $unitPrice > 0) data-price-unit="{{ $unitPrice }}" @endif
-                   @if($required) required @endif>
-            @if($showPrices && $unitPrice > 0)<div class="form-help">{{ number_format($unitPrice / 100, 2) }} {{ $priceCur }} per unit</div>@endif
+            @if($showPrices && $unitPrice > 0)
+                {{-- Priced number = unit-priced quantity → render a +/- stepper (Task #2337). --}}
+                <div class="form-stepper" x-data="formStepper()">
+                    <button type="button" class="form-stepper-btn" @click="step(-1)" aria-label="Decrease quantity" tabindex="-1">&minus;</button>
+                    <input type="number" id="f_{{ $id }}" name="{{ $id }}" class="form-input form-stepper-input" x-ref="input"
+                           inputmode="numeric" value="{{ $oldVal }}" placeholder="{{ $placeholder ?: '0' }}"
+                           @if(isset($field['min']) && $field['min'] !== '') min="{{ $field['min'] }}" @endif
+                           @if(isset($field['max']) && $field['max'] !== '') max="{{ $field['max'] }}" @endif
+                           data-price-unit="{{ $unitPrice }}" data-price-label="{{ $label }}"
+                           @if($required) required @endif>
+                    <button type="button" class="form-stepper-btn" @click="step(1)" aria-label="Increase quantity" tabindex="-1">+</button>
+                </div>
+                <div class="form-help">{{ number_format($unitPrice / 100, 2) }} {{ $priceCur }} per unit</div>
+            @else
+                <input type="number" id="f_{{ $id }}" name="{{ $id }}" class="form-input" placeholder="{{ $placeholder }}" value="{{ $oldVal }}"
+                       @if(isset($field['min']) && $field['min'] !== '') min="{{ $field['min'] }}" @endif
+                       @if(isset($field['max']) && $field['max'] !== '') max="{{ $field['max'] }}" @endif
+                       @if($required) required @endif>
+            @endif
             @break
 
         @case('url')

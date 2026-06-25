@@ -37,6 +37,9 @@
         $payCurrency     = strtoupper($settings['payment']['currency'] ?? 'USD') ?: 'USD';
         $showFieldPrices = $form->isPaid() && (($settings['payment']['mode'] ?? 'fixed') === 'per_field');
         $baseFeeCents    = (int) ($settings['payment']['amount_cents'] ?? 0);
+        // Label for the base-fee line item in the mini-cart, mirroring
+        // Form::priceLineItems()'s per_field base row (Task #2337).
+        $baseFeeLabel    = ((string) ($settings['payment']['label'] ?? '')) ?: 'Base fee';
     @endphp
     <title>{{ $form->title }}</title>
     @if($form->description)<meta name="description" content="{{ $form->description }}">@endif
@@ -135,12 +138,53 @@
         /* Variable pricing (Task #2321) */
         .form-price-tag { margin-left: auto; padding-left: 0.6rem; font-size: 0.78rem; font-weight: 700; color: var(--form-accent); white-space: nowrap; }
         .form-radio-group label, .form-check-group label { justify-content: space-between; }
-        .form-order-total {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-top: 1.5rem; padding: 0.85rem 1rem;
+
+        /* Quantity stepper for priced number fields (Task #2337) */
+        .form-stepper { display: inline-flex; align-items: stretch; max-width: 11rem; }
+        .form-stepper-btn {
+            flex: 0 0 auto; width: 2.6rem; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1.15rem; font-weight: 700; line-height: 1; font-family: inherit;
+            color: var(--form-accent);
+            background: {{ $theme === 'light' ? '#f8fafc' : 'rgba(255,255,255,0.04)' }};
+            border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.10)' }};
+            transition: all 0.15s;
+        }
+        .form-stepper-btn:first-child { border-radius: var(--form-radius-sm) 0 0 var(--form-radius-sm); }
+        .form-stepper-btn:last-child { border-radius: 0 var(--form-radius-sm) var(--form-radius-sm) 0; }
+        .form-stepper-btn:hover { background: {{ $accent }}1a; border-color: var(--form-accent); }
+        .form-stepper-btn:active { transform: scale(0.94); }
+        .form-stepper .form-stepper-input {
+            width: 4.5rem; text-align: center; border-radius: 0;
+            border-left: 0; border-right: 0;
+            -moz-appearance: textfield; appearance: textfield;
+        }
+        .form-stepper .form-stepper-input::-webkit-outer-spin-button,
+        .form-stepper .form-stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Itemised order summary / mini-cart (Task #2337) */
+        .form-order-cart {
+            margin-top: 1.5rem; padding: 1rem 1.15rem;
             background: {{ $theme === 'light' ? '#f1f5f9' : 'rgba(255,255,255,0.05)' }};
             border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.10)' }};
             border-radius: var(--form-radius-sm);
+        }
+        .form-cart-title {
+            display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+            opacity: 0.6; margin-bottom: 0.8rem;
+        }
+        .form-cart-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+        .form-cart-item { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; font-size: 0.86rem; }
+        .form-cart-item-main { min-width: 0; }
+        .form-cart-item-label { font-weight: 600; }
+        .form-cart-item-detail { font-size: 0.72rem; opacity: 0.6; margin-top: 0.1rem; }
+        .form-cart-item-amount { font-weight: 600; white-space: nowrap; }
+        .form-cart-empty { font-size: 0.82rem; opacity: 0.5; }
+        .form-order-total {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 0.9rem; padding-top: 0.9rem;
+            border-top: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.12)' }};
             font-size: 0.92rem; font-weight: 600;
         }
         .form-order-total strong { font-size: 1.05rem; color: var(--form-accent); }
@@ -480,9 +524,14 @@
                         </div>
 
                         @if($showFieldPrices)
-                            <div class="form-order-total" data-base-cents="{{ $baseFeeCents }}" data-currency="{{ $payCurrency }}">
-                                <span>Order total</span>
-                                <strong id="orderTotal">{{ number_format($baseFeeCents / 100, 2) }} {{ $payCurrency }}</strong>
+                            <div class="form-order-cart" data-base-cents="{{ $baseFeeCents }}" data-currency="{{ $payCurrency }}" @if($baseFeeCents > 0) data-base-label="{{ $baseFeeLabel }}" @endif>
+                                <div class="form-cart-title"><i class="fas fa-receipt"></i> Order summary</div>
+                                <ul class="form-cart-items" id="cartItems"></ul>
+                                <div class="form-cart-empty" id="cartEmpty">Choose options above to build your order.</div>
+                                <div class="form-order-total">
+                                    <span>Order total</span>
+                                    <strong id="orderTotal">{{ number_format($baseFeeCents / 100, 2) }} {{ $payCurrency }}</strong>
+                                </div>
                             </div>
                         @endif
 
@@ -587,9 +636,14 @@
                     @endforeach
 
                     @if($showFieldPrices)
-                        <div class="form-order-total" data-base-cents="{{ $baseFeeCents }}" data-currency="{{ $payCurrency }}">
-                            <span>Order total</span>
-                            <strong id="orderTotal">{{ number_format($baseFeeCents / 100, 2) }} {{ $payCurrency }}</strong>
+                        <div class="form-order-cart" data-base-cents="{{ $baseFeeCents }}" data-currency="{{ $payCurrency }}" @if($baseFeeCents > 0) data-base-label="{{ $baseFeeLabel }}" @endif>
+                            <div class="form-cart-title"><i class="fas fa-receipt"></i> Order summary</div>
+                            <ul class="form-cart-items" id="cartItems"></ul>
+                            <div class="form-cart-empty" id="cartEmpty">Choose options above to build your order.</div>
+                            <div class="form-order-total">
+                                <span>Order total</span>
+                                <strong id="orderTotal">{{ number_format($baseFeeCents / 100, 2) }} {{ $payCurrency }}</strong>
+                            </div>
                         </div>
                     @endif
                     @if($form->hasPricingFields())
@@ -783,6 +837,31 @@
             };
         }
 
+        // Quantity stepper for priced number fields (Task #2337). Adjusts the
+        // wrapped number input within its min/max, never below zero, and fires
+        // input/change so the live mini-cart recompute picks it up.
+        function formStepper() {
+            return {
+                step(delta) {
+                    const el = this.$refs.input;
+                    if (!el) return;
+                    const stepAttr = parseFloat(el.getAttribute('step')) || 1;
+                    let v = parseFloat(el.value);
+                    if (isNaN(v)) v = 0;
+                    v += delta * stepAttr;
+                    const minAttr = el.getAttribute('min');
+                    const maxAttr = el.getAttribute('max');
+                    if (minAttr !== null && minAttr !== '' && v < parseFloat(minAttr)) v = parseFloat(minAttr);
+                    if (maxAttr !== null && maxAttr !== '' && v > parseFloat(maxAttr)) v = parseFloat(maxAttr);
+                    if (v < 0) v = 0;
+                    // Trim float noise from fractional steps.
+                    el.value = Math.round(v * 1e6) / 1e6;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                },
+            };
+        }
+
         function signaturePad(id, required) {
             return {
                 ctx: null, drawing: false, hasInk: false, dataUrl: '',
@@ -835,33 +914,97 @@
             const form = document.querySelector('form.form-paid-pricing');
             const totalEl = document.getElementById('orderTotal');
             if (!form || !totalEl) return;
-            const bar = form.querySelector('.form-order-total');
-            const baseCents = bar ? (parseInt(bar.getAttribute('data-base-cents'), 10) || 0) : 0;
-            const currency = bar ? (bar.getAttribute('data-currency') || 'USD') : 'USD';
+            const cart = form.querySelector('.form-order-cart');
+            const baseCents = cart ? (parseInt(cart.getAttribute('data-base-cents'), 10) || 0) : 0;
+            const currency = cart ? (cart.getAttribute('data-currency') || 'USD') : 'USD';
+            const baseLabel = cart ? cart.getAttribute('data-base-label') : null;
+            const itemsEl = document.getElementById('cartItems');
+            const emptyEl = document.getElementById('cartEmpty');
 
-            function recompute() {
-                let cents = baseCents;
-                // number fields priced per unit
+            const fmt = (cents) => (cents / 100).toFixed(2) + ' ' + currency;
+
+            // Build the itemised line items, mirroring the shape produced by
+            // Form::priceLineItems() so visitors see the same breakdown the
+            // server will store. Display only — the server recomputes on submit.
+            function lineItems() {
+                const items = [];
+                if (baseCents > 0) items.push({ label: baseLabel || 'Base fee', detail: null, cents: baseCents });
+                // number fields priced per unit. Mirror Form::priceLineItems():
+                // the quantity is rounded to a whole unit before pricing, so the
+                // displayed line item matches the stored/charged amount exactly.
                 form.querySelectorAll('input[data-price-unit]').forEach(el => {
                     const unit = parseInt(el.getAttribute('data-price-unit'), 10) || 0;
-                    const qty = parseFloat(el.value);
-                    if (!isNaN(qty) && qty > 0) cents += Math.round(unit * qty);
+                    const raw = parseFloat(el.value);
+                    const qty = isNaN(raw) ? 0 : Math.round(raw);
+                    if (unit > 0 && qty > 0) {
+                        items.push({
+                            label: el.getAttribute('data-price-label') || '',
+                            detail: qty + ' \u00d7 ' + (unit / 100).toFixed(2),
+                            cents: unit * qty,
+                        });
+                    }
                 });
                 // consent add-ons (checked)
                 form.querySelectorAll('input[data-price-addon]').forEach(el => {
-                    if (el.checked) cents += parseInt(el.getAttribute('data-price-addon'), 10) || 0;
+                    if (!el.checked) return;
+                    const c = parseInt(el.getAttribute('data-price-addon'), 10) || 0;
+                    if (c > 0) items.push({ label: el.getAttribute('data-price-label') || '', detail: null, cents: c });
                 });
                 // radio / checkbox option prices (checked)
                 form.querySelectorAll('input[type="radio"][data-price], input[type="checkbox"][data-price]').forEach(el => {
-                    if (el.checked) cents += parseInt(el.getAttribute('data-price'), 10) || 0;
+                    if (!el.checked) return;
+                    const c = parseInt(el.getAttribute('data-price'), 10) || 0;
+                    if (c > 0) items.push({ label: el.getAttribute('data-price-label') || '', detail: el.value, cents: c });
                 });
                 // select option prices (selected)
                 form.querySelectorAll('select[data-priced]').forEach(sel => {
                     const opt = sel.options[sel.selectedIndex];
-                    if (opt) cents += parseInt(opt.getAttribute('data-price'), 10) || 0;
+                    if (!opt) return;
+                    const c = parseInt(opt.getAttribute('data-price'), 10) || 0;
+                    if (c > 0) items.push({ label: sel.getAttribute('data-price-label') || '', detail: opt.value, cents: c });
                 });
+                return items;
+            }
+
+            function render(items, total) {
+                if (itemsEl) {
+                    itemsEl.innerHTML = '';
+                    items.forEach(it => {
+                        const li = document.createElement('li');
+                        li.className = 'form-cart-item';
+
+                        const main = document.createElement('div');
+                        main.className = 'form-cart-item-main';
+                        const lbl = document.createElement('div');
+                        lbl.className = 'form-cart-item-label';
+                        lbl.textContent = it.label || 'Item';
+                        main.appendChild(lbl);
+                        if (it.detail) {
+                            const det = document.createElement('div');
+                            det.className = 'form-cart-item-detail';
+                            det.textContent = it.detail;
+                            main.appendChild(det);
+                        }
+
+                        const amt = document.createElement('div');
+                        amt.className = 'form-cart-item-amount';
+                        amt.textContent = fmt(it.cents);
+
+                        li.appendChild(main);
+                        li.appendChild(amt);
+                        itemsEl.appendChild(li);
+                    });
+                }
+                if (emptyEl) emptyEl.style.display = items.length ? 'none' : '';
+                totalEl.textContent = fmt(total);
+            }
+
+            function recompute() {
+                const items = lineItems();
+                let cents = 0;
+                items.forEach(it => { cents += it.cents; });
                 if (cents < 0) cents = 0;
-                totalEl.textContent = (cents / 100).toFixed(2) + ' ' + currency;
+                render(items, cents);
             }
 
             form.addEventListener('input', recompute);
