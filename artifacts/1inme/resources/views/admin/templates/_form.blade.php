@@ -41,7 +41,7 @@
                            @change="name = $el.files[0]?.name || ''; if($el.files[0]) $el.form.submit();">
                     <button type="button"
                             @click="document.getElementById(id).click()"
-                            class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-medium">
+                            class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium">
                         <i class="fas {{ $tpl->thumbnail_url ? 'fa-rotate' : 'fa-upload' }} mr-1.5 text-[10px]"></i>
                         {{ $tpl->thumbnail_url ? 'Replace image' : 'Upload image' }}
                     </button>
@@ -114,7 +114,7 @@
             <div class="flex items-end gap-3">
                 <label class="inline-flex items-center gap-2 cursor-pointer">
                     <input type="hidden" name="is_active" value="0">
-                    <input type="checkbox" name="is_active" value="1" {{ $isActive ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-violet-600">
+                    <input type="checkbox" name="is_active" value="1" {{ $isActive ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-blue-600">
                     <span class="text-sm text-white/70">Active (visible to users)</span>
                 </label>
             </div>
@@ -129,8 +129,8 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1 rounded-xl">
                         @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
                             <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:border-white/30">
-                                <input type="checkbox" name="recommended_personas[]" value="{{ $p['slug'] }}" {{ in_array($p['slug'], $selectedPersonas, true) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-violet-600">
-                                <i class="fas {{ $p['icon'] }} text-violet-300 text-xs"></i>
+                                <input type="checkbox" name="recommended_personas[]" value="{{ $p['slug'] }}" {{ in_array($p['slug'], $selectedPersonas, true) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-blue-600">
+                                <i class="fas {{ $p['icon'] }} text-blue-300 text-xs"></i>
                                 <span class="text-xs text-white/70">{{ $p['label'] }}</span>
                             </label>
                         @endforeach
@@ -152,7 +152,7 @@
 
         @if($isEdit)
             <label class="inline-flex items-center gap-2 mb-4 cursor-pointer">
-                <input type="checkbox" name="recapture" value="1" x-model="recapture" class="rounded bg-white/5 border-white/20 text-violet-600">
+                <input type="checkbox" name="recapture" value="1" x-model="recapture" class="rounded bg-white/5 border-white/20 text-blue-600">
                 <span class="text-sm text-white/70">Replace stored snapshot with a new capture</span>
             </label>
         @endif
@@ -164,7 +164,7 @@
                     <input type="text" x-model="search" @input.debounce.300ms="searchLinks()" placeholder="Type to search…" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
                     <div x-show="results.length" x-cloak class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#0d0818] shadow-2xl">
                         <template x-for="r in results" :key="r.id">
-                            <button type="button" @click="pickLink(r)" class="w-full text-left px-3 py-2 text-xs text-white/80 hover:bg-violet-600/20 border-b border-white/5">
+                            <button type="button" @click="pickLink(r)" class="w-full text-left px-3 py-2 text-xs text-white/80 hover:bg-blue-600/20 border-b border-white/5">
                                 <span x-text="r.label"></span>
                                 <span class="text-white/30 text-[10px]" x-text="'#' + r.id"></span>
                             </button>
@@ -194,7 +194,7 @@
 
         <div class="mt-5 pt-5 border-t border-white/5">
             <label class="inline-flex items-center gap-2 mb-3 cursor-pointer">
-                <input type="checkbox" x-model="showJson" class="rounded bg-white/5 border-white/20 text-violet-600">
+                <input type="checkbox" x-model="showJson" class="rounded bg-white/5 border-white/20 text-blue-600">
                 <span class="text-sm text-white/70 font-medium">Advanced: edit snapshot JSON directly</span>
             </label>
             <div x-show="showJson" x-cloak>
@@ -232,7 +232,7 @@
 
     <div class="flex items-center justify-end gap-3">
         <a href="{{ route('admin.templates.index', ['tab' => $kind]) }}" class="px-5 py-2 text-sm text-white/40 hover:text-white">Cancel</a>
-        <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2 rounded-xl text-sm font-medium">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-sm font-medium">
             {{ $isEdit ? 'Save Changes' : 'Create Template' }}
         </button>
     </div>

@@ -31,8 +31,8 @@
         <div class="card-premium p-6">
             <div class="flex items-center justify-between gap-4 mb-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.12);">
-                        <i class="fas fa-envelope text-violet-400"></i>
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(92,131,255,0.12);">
+                        <i class="fas fa-envelope text-blue-400"></i>
                     </div>
                     <div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Email me on every submission</h3>
@@ -42,7 +42,7 @@
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="hidden" name="email_enabled" value="0">
                     <input type="checkbox" name="email_enabled" value="1" class="sr-only peer" x-model="emailEnabled">
-                    <div class="w-11 h-6 rounded-full peer-checked:bg-violet-500" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"></div>
+                    <div class="w-11 h-6 rounded-full peer-checked:bg-blue-500" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"></div>
                     <div class="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>
                 </label>
             </div>
@@ -191,7 +191,7 @@
                             <input type="url" :name="`webhook_url[${i}]`" x-model="h.url" placeholder="https://hook.example.com/..." class="theme-input flex-1 text-xs">
                             <label class="text-[10px] flex items-center gap-1.5 cursor-pointer" style="color: var(--text-secondary);">
                                 <input type="hidden" :name="`webhook_enabled[${i}]`" value="0">
-                                <input type="checkbox" :name="`webhook_enabled[${i}]`" value="1" x-model="h.enabled" class="rounded text-violet-500"> Enabled
+                                <input type="checkbox" :name="`webhook_enabled[${i}]`" value="1" x-model="h.enabled" class="rounded text-blue-500"> Enabled
                             </label>
                             <button type="button" @click="webhooks.splice(i,1)" class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash"></i></button>
                         </div>

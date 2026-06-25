@@ -19,7 +19,7 @@
             @include('user.contacts._form', ['contact' => $contact, 'phoneLabels' => $phoneLabels, 'emailLabels' => $emailLabels])
             <div class="mt-6 flex justify-between">
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                         <i class="fas fa-check mr-1"></i> Save changes
                     </button>
                     <a href="{{ route('user.contacts.show', $contact) }}" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background:rgba(255,255,255,.05);color:var(--text-muted);border:1px solid rgba(255,255,255,.10)">Cancel</a>

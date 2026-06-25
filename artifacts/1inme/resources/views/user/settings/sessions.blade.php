@@ -9,7 +9,7 @@
         'subtitle' => 'Every browser and app currently signed into your account. Revoke anything you don\'t recognise.',
         'icon' => 'fa-shield-halved',
         'chips' => [
-            ['icon' => 'fa-mobile-screen text-violet-400', 'text' => count($items) . ' active'],
+            ['icon' => 'fa-mobile-screen text-blue-400', 'text' => count($items) . ' active'],
         ],
     ])
 
@@ -43,7 +43,7 @@
         @forelse($items as $item)
             <div class="card-premium p-4 flex items-start gap-4">
                 <div class="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
-                     style="background: rgba(124,58,237,0.12); color: #a78bfa;">
+                     style="background: rgba(61,107,255,0.12); color: #90acff;">
                     @if(($item['platform'] ?? null) === 'ios')
                         <i class="fab fa-apple text-lg"></i>
                     @elseif(($item['platform'] ?? null) === 'android')

@@ -65,7 +65,7 @@
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-violet-300 uppercase tracking-wider">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-blue-300 uppercase tracking-wider">
                 <i class="fas fa-sparkles text-[10px]"></i> Use cases
             </span>
             <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
@@ -75,7 +75,7 @@
                 {{ $heroSubtitle }}
             </p>
             <div class="mt-7 flex flex-wrap items-center gap-3">
-                <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
                 <a href="{{ route('site.features') }}" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
             </div>
         </div>
@@ -94,7 +94,7 @@
 <section class="pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
-            <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-300 mb-3">Sayzio for…</div>
+            <div class="text-xs font-bold uppercase tracking-[.2em] text-blue-300 mb-3">Sayzio for…</div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Pick the page built for <span class="grad-text">how you work</span>.</h2>
             <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Tailored walk-throughs for the people who get the most out of Sayzio — each with the exact features that matter to them.</p>
         </div>
@@ -126,17 +126,17 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" data-anim="fade-up" data-stagger>
             @foreach($useCases as $i => $uc)
-                <article class="relative group bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden flex flex-col hover:border-violet-400/40 hover:-translate-y-1 transition-all duration-300">
+                <article class="relative group bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden flex flex-col hover:border-blue-400/40 hover:-translate-y-1 transition-all duration-300">
                     <div class="img-frame rounded-none border-0 aspect-[16/10]">
                         <img src="{{ $images[$i % count($images)] }}" alt="{{ $uc['title'] ?? 'Sayzio use case' }}">
                     </div>
                     <div class="relative flex-1 flex flex-col p-6 sm:p-7">
-                        <div class="absolute -top-7 left-6 w-12 h-12 rounded-xl bg-[#7c3aed] border border-white/15 flex items-center justify-center text-white text-lg shadow-2xl">
+                        <div class="absolute -top-7 left-6 w-12 h-12 rounded-xl bg-[#3d6bff] border border-white/15 flex items-center justify-center text-white text-lg shadow-2xl">
                             <i class="fas {{ $uc['icon'] }}"></i>
                         </div>
                         <h2 class="mt-4 text-xl font-bold text-white">{{ $uc['title'] }}</h2>
                         @if(!empty($uc['tagline']))
-                            <p class="mt-1 text-sm font-medium text-violet-300">{{ $uc['tagline'] }}</p>
+                            <p class="mt-1 text-sm font-medium text-blue-300">{{ $uc['tagline'] }}</p>
                         @endif
                         @if(!empty($uc['desc']))
                             <p class="mt-3 text-sm text-gray-400 leading-relaxed">{{ $uc['desc'] }}</p>
@@ -145,14 +145,14 @@
                             <ul class="mt-4 space-y-2 text-sm text-gray-300">
                                 @foreach($uc['bullets'] as $b)
                                     <li class="flex items-start gap-2">
-                                        <i class="fas fa-check text-violet-400 mt-1 text-xs"></i>
+                                        <i class="fas fa-check text-blue-400 mt-1 text-xs"></i>
                                         <span>{{ $b }}</span>
                                     </li>
                                 @endforeach
                             </ul>
                         @endif
                         <div class="mt-6 pt-5 border-t border-white/10">
-                            <a href="{{ $uc['cta_url'] }}" class="inline-flex items-center gap-2 text-sm font-semibold text-violet-300 hover:text-white">
+                            <a href="{{ $uc['cta_url'] }}" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-white">
                                 {{ $uc['cta_label'] }} <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
                             </a>
                         </div>
@@ -169,7 +169,7 @@
                     Start free and switch your setup any time — most people end up using Sayzio for two or three of these at once.
                 </p>
                 <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ $bottomCtaUrl }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $bottomCtaLabel }}</a>
+                    <a href="{{ $bottomCtaUrl }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">{{ $bottomCtaLabel }}</a>
                     <a href="{{ route('site.contact') }}" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Talk to us</a>
                 </div>
             </div>

@@ -21,16 +21,16 @@
     .ics-section-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.125rem; }
     .day-chip { width: 2.75rem; height: 2.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; }
     .day-chip-off { background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-muted); }
-    .day-chip-on { background-color: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+    .day-chip-on { background-color: #5c83ff; border-color: #5c83ff; color: #fff; }
     .ics-freq-off { background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-muted); }
-    .ics-freq-on { background-color: rgba(139,92,246,0.15); border-color: #8b5cf6; color: #fff; }
+    .ics-freq-on { background-color: rgba(92,131,255,0.15); border-color: #5c83ff; color: #fff; }
     .ics-tile { background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 0.75rem; }
     .ics-tile-strong { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 0.75rem; }
     .ics-pill { display: flex; align-items: stretch; background-color: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 0.75rem; overflow: hidden; }
     .ics-pill > input { background: transparent; color: var(--text-primary); outline: none; }
     .ics-pill > .ics-pill-suffix { display: flex; align-items: center; padding: 0 1rem; font-size: 0.875rem; color: var(--text-muted); border-left: 1px solid var(--border-glass); background-color: var(--bg-glass); }
     .sync-tile { border:1px solid var(--border-glass); border-radius:0.75rem; padding:0.85rem; cursor:pointer; transition:all .15s; }
-    .sync-tile.is-on { border-color:#8b5cf6; background:rgba(139,92,246,0.1); }
+    .sync-tile.is-on { border-color:#5c83ff; background:rgba(92,131,255,0.1); }
 </style>
 
 <div class="max-w-3xl mx-auto pb-12">
@@ -38,7 +38,7 @@
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Create Event</h1>
-            <p class="text-xs mt-0.5" style="color: var(--text-muted);">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
+            <p class="text-xs mt-0.5" style="color: var(--text-muted);">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
         </div>
     </div>
 
@@ -139,7 +139,7 @@
             </div>
             <label class="ics-tile flex items-center gap-3 mb-4 p-3 cursor-pointer">
                 <input type="hidden" name="all_day" value="0">
-                <input type="checkbox" name="all_day" value="1" x-model="allDay" class="w-4 h-4 rounded text-violet-500">
+                <input type="checkbox" name="all_day" value="1" x-model="allDay" class="w-4 h-4 rounded text-blue-500">
                 <div class="flex-1">
                     <div class="text-sm font-medium" style="color: var(--text-primary);">All-day event</div>
                     <div class="text-xs" style="color: var(--text-muted);">Use for full-day events like conferences or holidays.</div>
@@ -264,9 +264,9 @@
                 </div>
             </div>
 
-            <div x-show="freq" x-cloak class="mt-5 flex items-center gap-3 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20">
-                <i class="fas fa-info-circle text-violet-300"></i>
-                <span class="text-sm text-violet-100" x-text="summary()"></span>
+            <div x-show="freq" x-cloak class="mt-5 flex items-center gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <i class="fas fa-info-circle text-blue-300"></i>
+                <span class="text-sm text-blue-100" x-text="summary()"></span>
             </div>
         </div>
 
@@ -278,7 +278,7 @@
                     <h2 class="ics-section-title">Time slots</h2>
                     <p class="ics-section-sub">Each slot becomes its own VEVENT in the .ics file. The first slot drives the recurrence rule.</p>
                 </div>
-                <button type="button" @click="addSlot" class="text-xs px-3 py-2 rounded-lg bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 font-medium">
+                <button type="button" @click="addSlot" class="text-xs px-3 py-2 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 font-medium">
                     <i class="fas fa-plus mr-1.5"></i>Add slot
                 </button>
             </div>
@@ -346,7 +346,7 @@
 
             <label class="ics-tile flex items-start gap-3 p-4 cursor-pointer mb-4">
                 <input type="hidden" name="show_preview_page" value="0">
-                <input type="checkbox" name="show_preview_page" value="1" {{ old('show_preview_page') ? 'checked' : '' }} class="mt-0.5 w-4 h-4 rounded text-violet-500">
+                <input type="checkbox" name="show_preview_page" value="1" {{ old('show_preview_page') ? 'checked' : '' }} class="mt-0.5 w-4 h-4 rounded text-blue-500">
                 <div>
                     <div class="text-sm font-medium" style="color: var(--text-primary);">Show a preview page first</div>
                     <p class="text-xs mt-0.5" style="color: var(--text-muted);">Visitors see your event on a landing page before downloading.</p>
@@ -362,7 +362,7 @@
                     <label class="inline-flex items-center cursor-pointer">
                         <input type="hidden" name="rsvp_enabled" value="0">
                         <input type="checkbox" name="rsvp_enabled" value="1" class="sr-only peer" x-model="rsvpEnabled">
-                        <div class="w-10 h-6 rounded-full relative peer-checked:bg-violet-500" style="background: var(--bg-glass-input-focus);">
+                        <div class="w-10 h-6 rounded-full relative peer-checked:bg-blue-500" style="background: var(--bg-glass-input-focus);">
                             <span class="absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full peer-checked:translate-x-4 transition"></span>
                         </div>
                     </label>
@@ -394,7 +394,7 @@
                     @if($calAccounts->isEmpty())
                         <p class="text-xs" style="color: #f59e0b">
                             <i class="fas fa-triangle-exclamation mr-1"></i>
-                            No calendars connected. <a href="{{ route('user.calendar.index') }}" class="text-violet-400 hover:text-violet-300">Connect one</a> to use sync.
+                            No calendars connected. <a href="{{ route('user.calendar.index') }}" class="text-blue-400 hover:text-blue-300">Connect one</a> to use sync.
                         </p>
                     @else
                         <label class="ics-label">Push to which calendar?</label>
@@ -413,7 +413,7 @@
 
         <div class="flex items-center justify-end gap-3 mt-6">
             <a href="{{ route('user.links.index') }}" class="px-5 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-xl">Cancel</a>
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-violet-500/20">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20">
                 <i class="fas fa-check mr-1.5"></i>Create event
             </button>
         </div>

@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold text-white">Categories</h1>
             <p class="text-sm text-white/50 mt-1">Group articles for filtering and category landing pages.</p>
         </div>
-        <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-violet-400 hover:underline">← Posts</a>
+        <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline">← Posts</a>
     </div>
 
     @if(session('success'))<div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>@endif
@@ -18,9 +18,9 @@
         @csrf
         <input type="text" name="name" required placeholder="Name" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
         <input type="text" name="slug" placeholder="slug (auto)" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm font-mono">
-        <input type="text" name="color" placeholder="#7c3aed" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+        <input type="text" name="color" placeholder="#3d6bff" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
         <input type="number" name="sort_order" value="0" placeholder="Sort" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
-        <button class="px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm text-white">Add</button>
+        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white">Add</button>
         <input type="text" name="description" placeholder="Description (shown on category page)" class="sm:col-span-5 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
     </form>
     @endif
@@ -31,7 +31,7 @@
                 @csrf @method('PUT')
                 <input type="text" name="name" value="{{ $c->name }}" class="sm:col-span-3 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm">
                 <input type="text" name="slug" value="{{ $c->slug }}" class="sm:col-span-3 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm font-mono">
-                <input type="text" name="color" value="{{ $c->color }}" placeholder="#7c3aed" class="sm:col-span-2 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm">
+                <input type="text" name="color" value="{{ $c->color }}" placeholder="#3d6bff" class="sm:col-span-2 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm">
                 <input type="number" name="sort_order" value="{{ $c->sort_order }}" class="sm:col-span-1 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm">
                 <span class="sm:col-span-1 text-center text-xs text-white/50">{{ $c->posts_count }} posts</span>
                 <div class="sm:col-span-2 flex justify-end gap-2">

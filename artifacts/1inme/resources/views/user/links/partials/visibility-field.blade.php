@@ -12,7 +12,7 @@
 @php
     $__visValue = old('visibility', ($link ?? null)?->visibility ?? 'public');
     $__visInputClass = $visInputClass
-        ?? 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none';
+        ?? 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none';
 @endphp
 <div class="{{ $visWrapClass ?? '' }}">
     <label class="block text-sm font-medium text-white/60 mb-1.5">

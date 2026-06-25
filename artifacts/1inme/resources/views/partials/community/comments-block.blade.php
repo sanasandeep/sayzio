@@ -19,7 +19,7 @@
         <textarea name="body" required rows="2" placeholder="Add a comment…" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 text-sm"></textarea>
         <div class="flex items-center gap-2 mt-2">
             <input type="text" name="author_name" placeholder="Name (optional)" class="flex-1 px-3 py-1.5 rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 text-sm">
-            <button class="px-3 py-1.5 rounded-lg text-sm" style="background: var(--accent, #7c3aed); color:#fff;">Post</button>
+            <button class="px-3 py-1.5 rounded-lg text-sm" style="background: var(--accent, #3d6bff); color:#fff;">Post</button>
         </div>
     </form>
 </div>

@@ -91,7 +91,7 @@
                             <input type="url" name="extra[hero][side_image]" x-model="url" placeholder="https://… or /storage/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             @error('extra.hero.side_image')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                             <div class="flex items-center gap-2 flex-wrap">
-                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
@@ -215,7 +215,7 @@
             <div x-data="{ rows: {{ json_encode($contactFeatureCards) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-[10px] uppercase tracking-wider text-white/40">Cards <span class="normal-case tracking-normal text-white/40">(max 6)</span></label>
-                    <button type="button" @click="if(rows.length<6) rows.push({icon:'fa-circle-dot',title:'',desc:''})" :disabled="rows.length>=6" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add card</button>
+                    <button type="button" @click="if(rows.length<6) rows.push({icon:'fa-circle-dot',title:'',desc:''})" :disabled="rows.length>=6" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add card</button>
                 </div>
                 <template x-for="(c, i) in rows" :key="i">
                     <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2">
@@ -261,7 +261,7 @@
                             <input type="url" name="extra[office_image][url]" x-model="url" placeholder="https://… or /storage/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             @error('extra.office_image.url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                             <div class="flex items-center gap-2 flex-wrap">
-                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
@@ -386,11 +386,11 @@
     #contact-map-preview { background:#1e2330; }
     #contact-map-preview .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
     #contact-map-preview .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
-    #contact-map-preview .leaflet-control-attribution a { color:#a78bfa !important; }
+    #contact-map-preview .leaflet-control-attribution a { color:#90acff !important; }
     #contact-map-preview .leaflet-control-zoom a {
         background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important;
     }
-    #contact-map-preview .leaflet-control-zoom a:hover { background:#7c3aed !important; }
+    #contact-map-preview .leaflet-control-zoom a:hover { background:#3d6bff !important; }
     .admin-brand-marker {
         width:34px; height:44px; position:relative;
         filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45));
@@ -399,7 +399,7 @@
     .admin-brand-marker .pulse {
         position:absolute; left:50%; bottom:-4px; width:14px; height:14px;
         margin-left:-7px; border-radius:9999px;
-        background:rgba(124,58,237,0.55);
+        background:rgba(61,107,255,0.55);
         animation: admin-brand-marker-pulse 1.8s ease-out infinite;
     }
     @keyframes admin-brand-marker-pulse {
@@ -442,11 +442,11 @@
 
         var pinSvg = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
             '<defs><linearGradient id="bm-admin-g" x1="0" y1="0" x2="0" y2="1">' +
-            '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+            '<stop offset="0%" stop-color="#90acff"/><stop offset="100%" stop-color="#3d6bff"/>' +
             '</linearGradient></defs>' +
             '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#bm-admin-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
             '<circle cx="17" cy="16" r="6" fill="#fff"/>' +
-            '<text x="17" y="19.5" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" fill="#7c3aed">1</text>' +
+            '<text x="17" y="19.5" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" fill="#3d6bff">1</text>' +
             '</svg>';
 
         var icon = L.divIcon({

@@ -27,7 +27,7 @@
         @else
             <script src="{{ url('/embed/companion.js') }}"
                     data-companion="{{ $cmp->public_id }}"
-                    data-accent="{{ $cfg['accent'] ?? '#7c3aed' }}"
+                    data-accent="{{ $cfg['accent'] ?? '#3d6bff' }}"
                     data-position="{{ $cfg['position'] ?? 'bottom-right' }}"
                     data-label="{{ $cfg['launcher_label'] ?? 'Chat' }}"
                     data-greeting="{{ $cfg['greeting_bubble'] ?? '' }}"

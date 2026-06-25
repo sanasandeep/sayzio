@@ -136,7 +136,7 @@
                             <div class="font-medium">{{ $workspace->owner->name ?? 'Owner' }} <span class="text-xs opacity-60">(you)</span></div>
                             <div class="text-xs opacity-60">{{ $workspace->owner->email ?? '' }}</div>
                         </td>
-                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">Owner</span></td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-indigo-100 text-indigo-700">Owner</span></td>
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">Active</span></td>
                         <td class="px-4 py-3 text-xs opacity-70">
                             @if($workspace->owner?->last_login_at)
@@ -424,7 +424,7 @@
                         <tbody>
                             @foreach($effectiveMatrix as $roleSlug => $row)
                                 <tr class="border-t" style="border-color: var(--border-strong);"
-                                    :class="form.role === '{{ $roleSlug }}' ? 'bg-purple-50/40' : ''">
+                                    :class="form.role === '{{ $roleSlug }}' ? 'bg-indigo-50/40' : ''">
                                     <td class="py-1.5 capitalize font-medium">{{ $roleSlug }}</td>
                                     @foreach(\App\Modules\User\Services\WorkspacePermissions::ACTIONS as $a)
                                         <td class="px-2 text-center">

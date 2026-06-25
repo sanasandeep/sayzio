@@ -48,7 +48,7 @@
             <p class="text-xs text-white/40 mt-0.5">
                 Answer a few questions and we'll generate a ready-to-use page —
                 tweak any block afterwards.
-                <a href="{{ route('user.links.biolink.create') }}" class="text-violet-400 hover:underline ml-1">Skip wizard, start blank</a>
+                <a href="{{ route('user.links.biolink.create') }}" class="text-blue-400 hover:underline ml-1">Skip wizard, start blank</a>
             </p>
         </div>
     </div>
@@ -64,7 +64,7 @@
             </span>
         </div>
         <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all" style="width: {{ $progressPct }}%"></div>
+            <div class="h-full bg-gradient-to-r from-blue-500 to-fuchsia-500 rounded-full transition-all" style="width: {{ $progressPct }}%"></div>
         </div>
     </div>
 
@@ -83,10 +83,10 @@
              seeds a draft and redirects back to this wizard. --}}
         <a href="{{ route('user.contacts.scan.create', ['from' => 'wizard']) }}"
            class="block mb-6 p-4 rounded-2xl border transition-all hover:bg-white/[0.06]"
-           style="background:linear-gradient(135deg,rgba(124,58,237,.10),rgba(236,72,153,.08));border-color:rgba(124,58,237,.30);">
+           style="background:linear-gradient(135deg,rgba(61,107,255,.10),rgba(236,72,153,.08));border-color:rgba(61,107,255,.30);">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                     style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:white;">
+                     style="background:linear-gradient(135deg,#3d6bff,#ec4899);color:white;">
                     <i class="fas fa-camera"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -112,17 +112,17 @@
                     <button type="submit" name="persona_group" value="{{ $grp['key'] }}"
                         class="lt-card-reveal group text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:hover:-translate-y-1
                                {{ ($personaGroup ?? $draft?->persona_group) === $grp['key']
-                                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                    ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
                                     : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20' }}"
                         style="animation-delay: {{ min($catIndex++ * 45, 540) }}ms">
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/15 text-violet-300 flex items-center justify-center flex-shrink-0 text-lg">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/25 to-fuchsia-500/15 text-blue-300 flex items-center justify-center flex-shrink-0 text-lg">
                                     <i class="fas {{ $grp['icon'] }}"></i>
                                 </div>
                                 <div class="text-sm font-semibold text-white truncate">{{ $grp['label'] }}</div>
                             </div>
-                            <i class="fas fa-arrow-right text-white/20 group-hover:text-violet-400 transition-colors flex-shrink-0"></i>
+                            <i class="fas fa-arrow-right text-white/20 group-hover:text-blue-400 transition-colors flex-shrink-0"></i>
                         </div>
                         <div class="text-xs text-white/50 leading-relaxed">{{ $grp['blurb'] }}</div>
                     </button>
@@ -154,16 +154,16 @@
                     <button type="button" @click="persona = @js($p['slug']); ind = ''"
                         class="lt-card-reveal group relative overflow-hidden rounded-2xl p-5 text-left border transition-all duration-200 motion-safe:hover:-translate-y-1"
                         :class="persona === @js($p['slug'])
-                                    ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
-                                    : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20'"
+                                    ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
+                                    : 'border-white/10 bg-white/[0.03] hover:border-blue-500/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/20'"
                         style="animation-delay: {{ min($ptIndex++ * 45, 540) }}ms">
                         {{-- accent glow corner --}}
-                        <div class="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full bg-gradient-to-br from-blue-500/20 to-fuchsia-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div class="relative flex items-start gap-4">
                             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-lg transition-all duration-200"
                                  :class="persona === @js($p['slug'])
-                                            ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
-                                            : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105'">
+                                            ? 'bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white shadow-lg shadow-blue-500/30'
+                                            : 'bg-blue-500/15 text-blue-300 group-hover:bg-blue-500/25 motion-safe:group-hover:scale-105'">
                                 <i class="fas {{ $p['icon'] ?? 'fa-user' }}"></i>
                             </div>
                             <div class="flex-1 min-w-0">
@@ -172,7 +172,7 @@
                                     <div class="text-xs text-white/50 mt-1 leading-relaxed">{{ $p['blurb'] }}</div>
                                 @endif
                             </div>
-                            <i class="fas fa-check text-violet-400 flex-shrink-0 mt-1" x-show="persona === @js($p['slug'])" x-cloak></i>
+                            <i class="fas fa-check text-blue-400 flex-shrink-0 mt-1" x-show="persona === @js($p['slug'])" x-cloak></i>
                         </div>
                     </button>
                 @endforeach
@@ -193,12 +193,12 @@
                             <button type="button" @click="ind = (ind === @js($ind['slug']) ? '' : @js($ind['slug']))"
                                 class="group relative overflow-hidden rounded-2xl px-4 py-4 border text-center transition-all duration-200 motion-safe:hover:-translate-y-0.5 flex flex-col items-center gap-2"
                                 :class="ind === @js($ind['slug'])
-                                            ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
-                                            : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06]'">
+                                            ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
+                                            : 'border-white/10 bg-white/[0.03] hover:border-blue-500/40 hover:bg-white/[0.06]'">
                                 <span class="w-10 h-10 rounded-xl flex items-center justify-center text-base transition-all duration-200"
                                       :class="ind === @js($ind['slug'])
-                                                ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30'
-                                                : 'bg-violet-500/15 text-violet-300 group-hover:bg-violet-500/25 motion-safe:group-hover:scale-105'">
+                                                ? 'bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white shadow-lg shadow-blue-500/30'
+                                                : 'bg-blue-500/15 text-blue-300 group-hover:bg-blue-500/25 motion-safe:group-hover:scale-105'">
                                     <i class="fas {{ $ind['icon'] }}"></i>
                                 </span>
                                 <span class="text-xs font-medium leading-tight"
@@ -214,7 +214,7 @@
                     <i class="fas fa-arrow-left mr-1.5 text-xs"></i> Back
                 </button>
                 <button type="submit" name="_action" value="pick_persona" x-bind:disabled="!persona"
-                        class="bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                        class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                     Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
                 </button>
             </div>
@@ -245,14 +245,14 @@
                 <button type="button" @click="tpl = ''"
                     class="lt-card-reveal group text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:hover:-translate-y-1"
                     :class="tpl === ''
-                                ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
-                                : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06]'">
+                                ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
+                                : 'border-white/10 bg-white/[0.03] hover:border-blue-500/40 hover:bg-white/[0.06]'">
                     <div class="relative rounded-xl overflow-hidden border border-dashed border-white/15 bg-white/[0.02] aspect-[5/3] flex items-center justify-center">
-                        <i class="fas fa-wand-magic-sparkles text-3xl text-violet-300/70"></i>
+                        <i class="fas fa-wand-magic-sparkles text-3xl text-blue-300/70"></i>
                     </div>
                     <div class="flex items-center justify-between gap-2">
                         <div class="text-sm font-semibold text-white">Start from scratch</div>
-                        <i class="fas fa-check text-violet-400 flex-shrink-0" x-show="tpl === ''" x-cloak></i>
+                        <i class="fas fa-check text-blue-400 flex-shrink-0" x-show="tpl === ''" x-cloak></i>
                     </div>
                     <div class="text-xs text-white/50 leading-relaxed">Build a fresh page from your answers — no template.</div>
                 </button>
@@ -261,10 +261,10 @@
                 @foreach($startingDesigns as $td)
                     @php $val = (string) $td['id']; $locked = !empty($td['locked']); @endphp
                     <button type="button" @if($locked) disabled @else @click="tpl = @js($val)" @endif
-                        class="lt-card-reveal group relative text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 {{ $locked ? 'border-white/10 bg-white/[0.02] opacity-60 cursor-not-allowed' : 'border-white/10 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.06] motion-safe:hover:-translate-y-1' }}"
+                        class="lt-card-reveal group relative text-left h-full rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-200 {{ $locked ? 'border-white/10 bg-white/[0.02] opacity-60 cursor-not-allowed' : 'border-white/10 bg-white/[0.03] hover:border-blue-500/40 hover:bg-white/[0.06] motion-safe:hover:-translate-y-1' }}"
                         @unless($locked)
                             :class="tpl === @js($val)
-                                        ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                        ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
                                         : ''"
                         @endunless
                         style="animation-delay: {{ min($tdIndex++ * 45, 540) }}ms">
@@ -274,7 +274,7 @@
                                 <img src="{{ $td['thumbnail_url'] }}" alt="{{ $td['name'] }} preview" loading="lazy"
                                      class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.06]"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                <div class="absolute inset-0 hidden items-center justify-center bg-violet-500/10 text-violet-300">
+                                <div class="absolute inset-0 hidden items-center justify-center bg-blue-500/10 text-blue-300">
                                     <i class="fas fa-layer-group text-2xl"></i>
                                 </div>
                             @elseif(!empty($previewRows))
@@ -285,12 +285,12 @@
                                     @include('user.links.partials.template-preview-blueprint', ['previewRows' => $previewRows])
                                 </div>
                             @else
-                                <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-violet-500/12 to-fuchsia-500/8 text-violet-300">
+                                <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-500/12 to-fuchsia-500/8 text-blue-300">
                                     <i class="fas fa-layer-group text-2xl"></i>
                                 </div>
                             @endif
                             @if($td['recommended'])
-                                <div class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/90 text-white"><i class="fas fa-wand-magic-sparkles mr-1"></i>Recommended</div>
+                                <div class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/90 text-white"><i class="fas fa-wand-magic-sparkles mr-1"></i>Recommended</div>
                             @endif
                             @if($locked)
                                 <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i>{{ $td['plan_tier'] }}</div>
@@ -299,7 +299,7 @@
                         <div class="flex items-center justify-between gap-2">
                             <div class="text-sm font-semibold text-white truncate">{{ $td['name'] }}</div>
                             @unless($locked)
-                                <i class="fas fa-check text-violet-400 flex-shrink-0" x-show="tpl === @js($val)" x-cloak></i>
+                                <i class="fas fa-check text-blue-400 flex-shrink-0" x-show="tpl === @js($val)" x-cloak></i>
                             @endunless
                         </div>
                         <div class="flex items-center gap-2 text-[11px] text-white/40">
@@ -315,7 +315,7 @@
                 <button type="submit" name="_action" value="back" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                     <i class="fas fa-arrow-left mr-1.5 text-xs"></i> Back
                 </button>
-                <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                     Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
                 </button>
             </div>
@@ -338,7 +338,7 @@
             <div class="space-y-5">
                 <section class="lt-card-reveal glass rounded-2xl overflow-hidden">
                     <header class="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/15 text-violet-300 flex items-center justify-center flex-shrink-0">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/25 to-fuchsia-500/15 text-blue-300 flex items-center justify-center flex-shrink-0">
                             <i class="fas fa-id-card-clip"></i>
                         </div>
                         <div class="min-w-0">
@@ -375,7 +375,7 @@
                         Save &amp; exit
                     </button>
                     <button type="submit" name="_action" value="save_basics"
-                            class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                         Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
                     </button>
                 </div>
@@ -440,7 +440,7 @@
                 @foreach($groups as $gi => $group)
                     <section class="lt-card-reveal glass rounded-2xl overflow-hidden" style="animation-delay: {{ min($gi * 80, 240) }}ms">
                         <header class="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-                            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/15 text-violet-300 flex items-center justify-center flex-shrink-0">
+                            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/25 to-fuchsia-500/15 text-blue-300 flex items-center justify-center flex-shrink-0">
                                 <i class="fas {{ $group['icon'] }}"></i>
                             </div>
                             <div class="min-w-0">
@@ -466,19 +466,19 @@
 
                                 <div class="{{ $wide ? 'sm:col-span-2' : '' }}">
                                     <label for="{{ $id }}" class="flex items-center gap-2 text-sm font-medium text-white/80 mb-1.5">
-                                        <i class="fas {{ $icon }} text-violet-300/70 text-xs w-4 text-center"></i>
+                                        <i class="fas {{ $icon }} text-blue-300/70 text-xs w-4 text-center"></i>
                                         <span>{{ $label }}</span>
-                                        @if($req) <span class="text-violet-400">*</span> @endif
+                                        @if($req) <span class="text-blue-400">*</span> @endif
                                     </label>
 
                                     @if($type === 'textarea')
                                         <textarea id="{{ $id }}" name="{{ $name }}" rows="3"
                                             placeholder="{{ $q['placeholder'] ?? '' }}"
-                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">{{ $val }}</textarea>
+                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">{{ $val }}</textarea>
 
                                     @elseif($type === 'select')
                                         <select id="{{ $id }}" name="{{ $name }}"
-                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                                             <option value="" class="bg-[#0d0818]">— pick one —</option>
                                             @foreach(($q['options'] ?? []) as $opt)
                                                 <option value="{{ $opt['v'] }}" class="bg-[#0d0818]" @selected($val === $opt['v'])>{{ $opt['l'] }}</option>
@@ -498,10 +498,10 @@
                                             @if(!empty($val) && is_string($val))
                                                 <img src="{{ $val }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 flex-shrink-0" alt="">
                                             @else
-                                                <span class="w-10 h-10 rounded-lg bg-violet-500/15 text-violet-300 flex items-center justify-center flex-shrink-0"><i class="fas fa-image"></i></span>
+                                                <span class="w-10 h-10 rounded-lg bg-blue-500/15 text-blue-300 flex items-center justify-center flex-shrink-0"><i class="fas fa-image"></i></span>
                                             @endif
                                             <input id="{{ $id }}" name="a_files[{{ $key }}]" type="file" accept="image/*"
-                                                class="block text-xs text-white/60 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-violet-600 file:text-white file:cursor-pointer hover:file:bg-violet-700">
+                                                class="block text-xs text-white/60 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer hover:file:bg-blue-700">
                                         </div>
 
                                     @elseif(in_array($type, ['url','email','phone'], true))
@@ -509,13 +509,13 @@
                                             <i class="fas {{ $icon }} absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-xs pointer-events-none"></i>
                                             <input id="{{ $id }}" name="{{ $name }}" type="{{ $type === 'phone' ? 'tel' : $type }}"
                                                 value="{{ $val }}" placeholder="{{ $q['placeholder'] ?? '' }}"
-                                                class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                                                class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                                         </div>
 
                                     @else
                                         <input id="{{ $id }}" name="{{ $name }}" type="text" value="{{ $val }}"
                                             placeholder="{{ $q['placeholder'] ?? '' }}"
-                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                                            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                                     @endif
 
                                     @if(!empty($q['help']))
@@ -555,7 +555,7 @@
                             <i class="fas fa-wand-magic-sparkles text-xs"></i> Auto-draft with AI
                         </button>
                     @endif
-                    <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                         Generate my page <i class="fas fa-magic ml-1.5 text-xs"></i>
                     </button>
                 </div>

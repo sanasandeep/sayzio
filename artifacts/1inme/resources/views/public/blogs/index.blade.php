@@ -13,15 +13,15 @@
 
 @section('content')
 <section class="relative pt-20 pb-12 overflow-hidden">
-    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(124,58,237,.06);"></div>
+    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(61,107,255,.06);"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 text-center">
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-violet-400">{{ $settings['hero_eyebrow'] }}</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">{{ $settings['hero_eyebrow'] }}</p>
         <h1 class="mt-3 text-4xl sm:text-5xl font-bold tracking-tight">{{ $settings['hero_heading'] }}</h1>
         <p class="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">{{ $settings['hero_subheading'] }}</p>
 
         <form method="GET" action="{{ route('site.blogs.index') }}" class="mt-8 max-w-xl mx-auto flex">
-            <input type="text" name="q" value="{{ $q }}" placeholder="Search articles…" class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-l-xl text-sm text-white placeholder-white/40 focus:border-violet-500 outline-none">
-            <button class="px-5 py-3 bg-violet-600 hover:bg-violet-700 rounded-r-xl text-sm font-medium"><i class="fas fa-search"></i></button>
+            <input type="text" name="q" value="{{ $q }}" placeholder="Search articles…" class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-l-xl text-sm text-white placeholder-white/40 focus:border-blue-500 outline-none">
+            <button class="px-5 py-3 bg-blue-600 hover:bg-blue-700 rounded-r-xl text-sm font-medium"><i class="fas fa-search"></i></button>
         </form>
 
         @if($categories->count())
@@ -39,7 +39,7 @@
                 @foreach($popularTags as $t)
                     @php $isActive = $activeTag && $activeTag->id === $t->id; @endphp
                     <a href="{{ route('site.blogs.index', array_filter(['q' => $q ?: null, 'tag' => $isActive ? null : $t->slug])) }}"
-                       class="px-2.5 py-1 rounded-full text-[11px] {{ $isActive ? 'bg-violet-600 text-white' : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/10' }}">
+                       class="px-2.5 py-1 rounded-full text-[11px] {{ $isActive ? 'bg-blue-600 text-white' : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/10' }}">
                         #{{ $t->name }}<span class="ml-1 text-white/40">{{ $t->posts_count }}</span>
                     </a>
                 @endforeach

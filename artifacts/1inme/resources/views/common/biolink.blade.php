@@ -83,7 +83,7 @@
 
     @if(!empty($manifestSettings['enabled']))
         <link rel="manifest" href="{{ url('/' . $link->alias . '/manifest.json') }}">
-        <meta name="theme-color" content="{{ $manifestSettings['theme_color'] ?? '#7c3aed' }}">
+        <meta name="theme-color" content="{{ $manifestSettings['theme_color'] ?? '#3d6bff' }}">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -113,7 +113,7 @@
         $videoFileSrc = $bs['video_file'] ?? '';
         $bgTemplateId = $bs['bg_template_id'] ?? null;
         $bgTemplate = $bgTemplateId ? \App\Modules\Admin\Models\BgTemplate::find($bgTemplateId) : null;
-        $btnColor = $bs['button_color'] ?? '#7c3aed';
+        $btnColor = $bs['button_color'] ?? '#3d6bff';
         $btnTextColor = $bs['button_text_color'] ?? '#ffffff';
         $btnStyle = $bs['button_style'] ?? 'rounded';
         $btnRadius = match($btnStyle) {
@@ -137,8 +137,8 @@
             'pinterest' => ['fab fa-pinterest', '#BD081C'],
             'twitch' => ['fab fa-twitch', '#9146FF'],
             'dribbble' => ['fab fa-dribbble', '#EA4C89'],
-            'website' => ['fas fa-globe', '#7c3aed'],
-            'email' => ['fas fa-envelope', '#7c3aed'],
+            'website' => ['fas fa-globe', '#3d6bff'],
+            'email' => ['fas fa-envelope', '#3d6bff'],
             'spotify' => ['fab fa-spotify', '#1DB954'],
             'soundcloud' => ['fab fa-soundcloud', '#FF5500'],
             'apple' => ['fab fa-apple', '#ffffff'],
@@ -328,12 +328,12 @@
             $mbIsFloating = str_starts_with($mbPos, 'floating');
             $mbBg = $menuBarSettings['bg_color'] ?? '#0a0612';
             $mbText = $menuBarSettings['text_color'] ?? '#ffffff';
-            $mbActive = $menuBarSettings['active_color'] ?? '#7c3aed';
+            $mbActive = $menuBarSettings['active_color'] ?? '#3d6bff';
             $mbStyle = $menuBarSettings['style'] ?? 'pills';
             $mbIconColor = $menuBarSettings['icon_color'] ?? '#ffffff';
             $mbOverlayBg = $menuBarSettings['overlay_bg'] ?? '#0a0612';
             $sbEnabled = !empty($shareBtnSettings['enabled']);
-            $sbColor = $shareBtnSettings['color'] ?? '#7c3aed';
+            $sbColor = $shareBtnSettings['color'] ?? '#3d6bff';
             $sbTextColor = $shareBtnSettings['text_color'] ?? '#ffffff';
             $sbPos = $shareBtnSettings['position'] ?? 'bottom-right';
             $sbSize = $shareBtnSettings['size'] ?? 'md';
@@ -653,7 +653,7 @@
         .translate-dropdown::-webkit-scrollbar { width: 3px; }
         .translate-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
         .translate-dropdown::-webkit-scrollbar-track { background: transparent; }
-        .translate-dropdown a.active { background: rgba(124,58,237,0.2); font-weight: 600; }
+        .translate-dropdown a.active { background: rgba(61,107,255,0.2); font-weight: 600; }
         @endif
         .ticker-scroll { animation: ticker 20s linear infinite; }
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
@@ -700,13 +700,13 @@
            out of the moving variants and just get the static look. */
         [data-anim] h2, [data-anim] h1, [data-anim] h3 { display: inline-block; }
         [data-anim="gradient_swipe"] h1, [data-anim="gradient_swipe"] h2, [data-anim="gradient_swipe"] h3 {
-            background: linear-gradient(110deg, #8b5cf6, #ec4899, #f59e0b, #8b5cf6);
+            background: linear-gradient(110deg, #5c83ff, #ec4899, #f59e0b, #5c83ff);
             background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
             animation: anim-gradient-swipe 6s linear infinite;
         }
         @keyframes anim-gradient-swipe { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
         [data-anim="neon_glitch"] h1, [data-anim="neon_glitch"] h2, [data-anim="neon_glitch"] h3 {
-            color: #fff; text-shadow: 0 0 6px #a855f7, 0 0 14px #a855f7, 0 0 28px #ec4899;
+            color: #fff; text-shadow: 0 0 6px #6e61ff, 0 0 14px #6e61ff, 0 0 28px #ec4899;
             animation: anim-neon-glitch 2.4s steps(20, end) infinite;
         }
         @keyframes anim-neon-glitch { 0%,90%,100% { transform: translateX(0); } 92% { transform: translateX(-2px) skewX(-3deg); } 94% { transform: translateX(2px) skewX(2deg); } 96% { transform: translateX(-1px); } }
@@ -1541,7 +1541,7 @@
             font-weight: 600; font-size: 13px; padding: 8px 14px;
             border-radius: 9999px;
         }
-        .link-consent-accept { background: #7c3aed; color: #fff; }
+        .link-consent-accept { background: #3d6bff; color: #fff; }
         .link-consent-decline { background: rgba(255,255,255,0.12); color: #f9fafb; }
         @media (min-width: 720px) {
             .link-consent-host { left: auto; right: 18px; bottom: 18px; max-width: 520px; }
@@ -1612,11 +1612,11 @@
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     el.style.transition = 'outline 0.3s ease, outline-offset 0.3s ease';
-                    el.style.outline = '2px solid rgba(139,92,246,0.6)';
+                    el.style.outline = '2px solid rgba(92,131,255,0.6)';
                     el.style.outlineOffset = '4px';
                     el.style.borderRadius = '12px';
                     setTimeout(function() {
-                        el.style.outline = '2px solid rgba(139,92,246,0.25)';
+                        el.style.outline = '2px solid rgba(92,131,255,0.25)';
                     }, 1500);
                 }
             }, 500);
@@ -1666,7 +1666,7 @@
                         } else {
                             bWrap.style.display = '';
                             bWrap.innerHTML = labels.map(function (lbl) {
-                                return '<span class="px-3 py-1 rounded-full text-xs" style="background:rgba(124,58,237,0.18);color:' +
+                                return '<span class="px-3 py-1 rounded-full text-xs" style="background:rgba(61,107,255,0.18);color:' +
                                     bAccent + '">' + esc(lbl) + '</span>';
                             }).join('');
                         }

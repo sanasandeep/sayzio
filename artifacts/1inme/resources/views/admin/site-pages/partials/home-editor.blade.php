@@ -16,7 +16,7 @@
             'name'  => (string) ($lt['name'] ?? ''),
             'desc'  => (string) ($lt['desc'] ?? ''),
             'icon'  => (string) ($lt['icon'] ?? 'fa-link'),
-            'color' => (string) ($lt['color'] ?? '#7c3aed'),
+            'color' => (string) ($lt['color'] ?? '#3d6bff'),
             'new'   => (bool) ($lt['new'] ?? false),
         ];
     }, array_values($homeLinkTypes), array_keys(array_values($homeLinkTypes)));
@@ -38,7 +38,7 @@
         featuresSource: {{ json_encode($featuresLinkTypesForJs) }},
         nextKey: {{ count($homeLinkTypesForJs) }},
         dragFrom: null,
-        add(){ this.rows.push({ _key: this.nextKey++, name: '', desc: '', icon: 'fa-link', color: '#7c3aed', new: false }); },
+        add(){ this.rows.push({ _key: this.nextKey++, name: '', desc: '', icon: 'fa-link', color: '#3d6bff', new: false }); },
         remove(i){ this.rows.splice(i, 1); },
         moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } },
         moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } },
@@ -67,7 +67,7 @@
                             name: f.name || '',
                             desc: f.desc || '',
                             icon: f.icon || (prev ? prev.icon : 'fa-link') || 'fa-link',
-                            color: prev ? prev.color : '#7c3aed',
+                            color: prev ? prev.color : '#3d6bff',
                             new: prev ? !!prev.new : false,
                         };
                     });
@@ -86,7 +86,7 @@
                     title="Replace these cards with the current Features link-types list">
                 <i class="fas fa-rotate mr-1"></i> Pull from Features
             </button>
-            <button type="button" @click="add()" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+            <button type="button" @click="add()" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                 <i class="fas fa-plus mr-1"></i> Add link type
             </button>
         </div>
@@ -118,7 +118,7 @@
                     {{-- Preview swatch --}}
                     <div class="sm:col-span-1 flex sm:block items-center gap-2">
                         <div class="w-11 h-11 rounded-xl flex items-center justify-center"
-                             :style="'background:' + (lt.color || '#7c3aed') + '; box-shadow:0 12px 28px -12px ' + (lt.color || '#7c3aed') + ';'">
+                             :style="'background:' + (lt.color || '#3d6bff') + '; box-shadow:0 12px 28px -12px ' + (lt.color || '#3d6bff') + ';'">
                             <i :class="'fas ' + (lt.icon || 'fa-link') + ' text-white'"></i>
                         </div>
                     </div>
@@ -150,7 +150,7 @@
                         <label class="text-[10px] uppercase tracking-wider text-white/40">Accent colour</label>
                         <input type="color" :name="'extra[link_types]['+i+'][color]'" x-model="lt.color"
                                class="h-8 w-12 bg-transparent border border-white/10 rounded cursor-pointer p-0">
-                        <input type="text" x-model="lt.color" maxlength="9" placeholder="#7c3aed"
+                        <input type="text" x-model="lt.color" maxlength="9" placeholder="#3d6bff"
                                class="w-24 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white font-mono">
                     </div>
                     <label class="flex items-center gap-2 text-sm text-white/80">

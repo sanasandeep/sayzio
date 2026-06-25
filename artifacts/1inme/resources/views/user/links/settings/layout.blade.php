@@ -29,7 +29,7 @@
                             <p class="text-xs font-semibold mb-3" style="color: var(--text-muted);">Content Max Width (px)</p>
                             <div class="grid grid-cols-3 gap-3">
                                 <div>
-                                    <label class="flex items-center gap-2 text-[11px] font-medium mb-1" style="color: var(--text-faint);"><i class="fas fa-mobile-alt text-[9px] text-violet-400"></i> Phone</label>
+                                    <label class="flex items-center gap-2 text-[11px] font-medium mb-1" style="color: var(--text-faint);"><i class="fas fa-mobile-alt text-[9px] text-blue-400"></i> Phone</label>
                                     <input type="number" name="layout[max_width_phone]" value="{{ $layout['max_width_phone'] ?? 448 }}" min="280" max="600" class="theme-input w-full">
                                 </div>
                                 <div>

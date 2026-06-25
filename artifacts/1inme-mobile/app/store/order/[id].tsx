@@ -90,7 +90,7 @@ export default function OrderScreen() {
                   borderRadius: 999,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: paid ? "rgba(34,197,94,0.15)" : "rgba(124,58,237,0.15)",
+                  backgroundColor: paid ? "rgba(34,197,94,0.15)" : "rgba(61,107,255,0.15)",
                 }}
               >
                 <Feather

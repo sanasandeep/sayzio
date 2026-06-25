@@ -42,7 +42,7 @@
     }
 @endphp
 <div class="poll-results-panel {{ $compact ? 'px-2 pb-1.5' : 'px-3 pb-3' }}">
-    <div class="rounded-lg" style="border: 1px solid var(--border-glass); background: rgba(124,58,237,0.04);">
+    <div class="rounded-lg" style="border: 1px solid var(--border-glass); background: rgba(61,107,255,0.04);">
         <div class="flex items-center justify-between px-2.5 {{ $compact ? 'py-1' : 'py-1.5' }}" style="border-bottom: 1px solid var(--border-glass);">
             <span class="font-semibold {{ $compact ? 'text-[9px]' : 'text-[10px]' }}" style="color: var(--text-faint);">
                 <i class="fas fa-chart-bar mr-1"></i>Poll results
@@ -71,7 +71,7 @@
                             </span>
                         </div>
                         <div class="rounded-full overflow-hidden" style="height: {{ $compact ? '4px' : '6px' }}; background: rgba(255,255,255,0.04);">
-                            <div class="h-full rounded-full transition-all" style="width: {{ $width }}%; background: linear-gradient(90deg, #8b5cf6, #7c3aed);"></div>
+                            <div class="h-full rounded-full transition-all" style="width: {{ $width }}%; background: linear-gradient(90deg, #5c83ff, #3d6bff);"></div>
                         </div>
                     </div>
                 @endforeach

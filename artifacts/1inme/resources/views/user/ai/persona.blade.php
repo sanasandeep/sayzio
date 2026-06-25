@@ -54,14 +54,14 @@
         ])
 
         <div class="flex justify-end">
-            <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+            <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                 Generate persona
             </button>
         </div>
     </form>
 
     @if($result)
-        <div class="mt-6 rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-5">
+        <div class="mt-6 rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-5">
             <div class="flex items-center justify-between mb-2">
                 <p class="text-xs text-white/40 uppercase tracking-wider">Persona</p>
                 <p class="text-xs text-white/40">
@@ -109,7 +109,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('user.ai.persona.show', ['from' => $persona->id]) }}"
-                                   class="px-3 py-1.5 rounded-lg bg-violet-600/80 text-white text-xs font-semibold hover:bg-violet-600">
+                                   class="px-3 py-1.5 rounded-lg bg-blue-600/80 text-white text-xs font-semibold hover:bg-blue-600">
                                     Use in form
                                 </a>
                                 <button type="button"

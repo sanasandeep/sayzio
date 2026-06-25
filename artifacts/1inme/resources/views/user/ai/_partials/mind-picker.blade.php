@@ -18,7 +18,7 @@
             <p class="text-xs uppercase tracking-wider text-white/40">Minds it can use</p>
             <p class="text-xs text-white/40 mt-0.5">
                 Pick which knowledge bases to ground the answer in.
-                <a href="{{ route('user.minds.index') }}" class="text-violet-300 hover:underline">Manage Minds →</a>
+                <a href="{{ route('user.minds.index') }}" class="text-blue-300 hover:underline">Manage Minds →</a>
             </p>
         </div>
     </div>
@@ -30,10 +30,10 @@
     @else
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             @foreach($mineMinds as $m)
-                <label class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-violet-400/40 cursor-pointer">
+                <label class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-blue-400/40 cursor-pointer">
                     <input type="checkbox" name="mind_ids[]" value="{{ $m->id }}"
                            {{ in_array((int) $m->id, $selectedIds, true) ? 'checked' : '' }}
-                           class="rounded border-white/20 bg-white/10 text-violet-500 focus:ring-violet-500">
+                           class="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500">
                     <span class="text-sm text-white/90 truncate">{{ $m->name }}</span>
                 </label>
             @endforeach
@@ -45,7 +45,7 @@
             <input type="hidden" name="include_platform" value="0">
             <input type="checkbox" name="include_platform" value="1"
                    {{ $platformOptIn ? 'checked' : '' }}
-                   class="rounded border-white/20 bg-white/10 text-violet-500 focus:ring-violet-500">
+                   class="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500">
             <span class="text-sm text-white/80">
                 Also use the platform default Mind
                 <span class="text-xs text-white/40">({{ $platformMind->name }})</span>

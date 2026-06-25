@@ -91,7 +91,7 @@
                             <button type="button" @click="addField(type)"
                                     class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-left transition-all hover:translate-x-1"
                                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
-                                <i :class="`fas ${meta.icon}`" class="text-violet-400 text-xs w-4 text-center"></i>
+                                <i :class="`fas ${meta.icon}`" class="text-blue-400 text-xs w-4 text-center"></i>
                                 <span class="flex-1 truncate" x-text="meta.label"></span>
                                 <i class="fas fa-plus text-[9px] opacity-40"></i>
                             </button>
@@ -116,17 +116,17 @@
                             {{-- ============ SECTION (group) card ============ --}}
                             <template x-if="f.type === 'section'">
                                 <div class="card-premium p-5 field-card"
-                                     :class="selectedIndex === i ? 'ring-2 ring-violet-500' : ''"
+                                     :class="selectedIndex === i ? 'ring-2 ring-blue-500' : ''"
                                      style="border-style: dashed; border-width: 2px;"
                                      @click="selectedIndex = i">
                                     <div class="flex items-center gap-3 mb-3">
                                         <i class="fas fa-grip-vertical text-xs handle" style="color: var(--text-faint); cursor: grab;"></i>
-                                        <i class="fas fa-layer-group text-violet-400 text-xs"></i>
+                                        <i class="fas fa-layer-group text-blue-400 text-xs"></i>
                                         <div class="flex-1 min-w-0">
                                             <div class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Section</div>
                                             <div class="text-sm font-bold" style="color: var(--text-primary);" x-text="f.label || '(untitled section)'"></div>
                                         </div>
-                                        <button type="button" @click.stop="addFieldToSection(f.id)" class="text-[10px] px-2.5 py-1.5 rounded-lg font-semibold" style="background: rgba(139,92,246,0.12); color: #7c3aed;">
+                                        <button type="button" @click.stop="addFieldToSection(f.id)" class="text-[10px] px-2.5 py-1.5 rounded-lg font-semibold" style="background: rgba(92,131,255,0.12); color: #3d6bff;">
                                             <i class="fas fa-plus text-[9px] mr-1"></i> Add field here
                                         </button>
                                         <button type="button" @click.stop="duplicateField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Duplicate"><i class="fas fa-clone"></i></button>
@@ -137,13 +137,13 @@
                                         <template x-for="(cf, ci) in fields" :key="'child-'+cf.id">
                                             <template x-if="cf.parent === f.id">
                                                 <div class="card-premium p-3 field-card cursor-pointer"
-                                                     :class="selectedIndex === ci ? 'ring-2 ring-violet-500' : ''"
+                                                     :class="selectedIndex === ci ? 'ring-2 ring-blue-500' : ''"
                                                      :style="`grid-column: span ${cf.width || 12} / span ${cf.width || 12};`"
                                                      @click.stop="selectedIndex = ci">
                                                     <div class="flex items-start gap-2">
                                                         <div class="flex-1 min-w-0">
                                                             <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                                                                <i :class="`fas ${types[cf.type]?.icon || 'fa-question'} text-violet-400 text-[10px]`"></i>
+                                                                <i :class="`fas ${types[cf.type]?.icon || 'fa-question'} text-blue-400 text-[10px]`"></i>
                                                                 <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);" x-text="types[cf.type]?.label || cf.type"></span>
                                                                 <template x-if="cf.required"><span class="text-[8px] px-1 py-0.5 rounded font-bold" style="background: rgba(239,68,68,0.12); color: #f87171;">REQ</span></template>
                                                             </div>
@@ -167,19 +167,19 @@
                             {{-- ============ NORMAL field card (top-level only) ============ --}}
                             <template x-if="f.type !== 'section'">
                                 <div class="card-premium p-4 field-card"
-                                     :class="selectedIndex === i ? 'ring-2 ring-violet-500' : ''"
+                                     :class="selectedIndex === i ? 'ring-2 ring-blue-500' : ''"
                                      @click="selectedIndex = i">
                                     <div class="flex items-start gap-3">
                                         <i class="fas fa-grip-vertical text-xs mt-1.5 handle" style="color: var(--text-faint); cursor: grab;"></i>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                                                <i :class="`fas ${types[f.type]?.icon || 'fa-question'} text-violet-400 text-[10px]`"></i>
+                                                <i :class="`fas ${types[f.type]?.icon || 'fa-question'} text-blue-400 text-[10px]`"></i>
                                                 <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);" x-text="types[f.type]?.label || f.type"></span>
                                                 <template x-if="f.required">
                                                     <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(239,68,68,0.12); color: #f87171;">REQUIRED</span>
                                                 </template>
                                                 <template x-if="(f.width || 12) !== 12">
-                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(139,92,246,0.14); color: #a78bfa;"
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(92,131,255,0.14); color: #90acff;"
                                                           x-text="f.width === 6 ? '½ row' : (f.width === 4 ? '⅓ row' : '⅔ row')"></span>
                                                 </template>
                                             </div>
@@ -197,7 +197,7 @@
                                                 </template>
                                             </div>
                                             <div x-show="f.type === 'signature'" class="px-3 py-3 rounded-lg text-center" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
-                                                <i class="fas fa-signature text-base mb-1" style="color: #a78bfa;"></i>
+                                                <i class="fas fa-signature text-base mb-1" style="color: #90acff;"></i>
                                                 <div class="text-[11px]">Signature pad — drawn by user</div>
                                             </div>
                                             <div x-show="f.type === 'file'" class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
@@ -313,7 +313,7 @@
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
                                         <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Pricing options <span class="text-[10px]" style="color: var(--text-faint);">— pick one (radio)</span></label>
-                                        <button type="button" @click="addPriceOption()" class="text-[11px] font-semibold text-violet-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
+                                        <button type="button" @click="addPriceOption()" class="text-[11px] font-semibold text-blue-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
                                     </div>
                                     <div class="space-y-1.5">
                                         <template x-for="(po, j) in (fields[selectedIndex].price_options || [])" :key="`po-${j}`">
@@ -328,7 +328,7 @@
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
                                         <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Add-on services <span class="text-[10px]" style="color: var(--text-faint);">— optional (checkboxes)</span></label>
-                                        <button type="button" @click="addAddon()" class="text-[11px] font-semibold text-violet-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
+                                        <button type="button" @click="addAddon()" class="text-[11px] font-semibold text-blue-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
                                     </div>
                                     <div class="space-y-1.5">
                                         <template x-for="(ad, j) in (fields[selectedIndex].addons || [])" :key="`ad-${j}`">
@@ -350,7 +350,7 @@
                                 </p>
                             </div>
                             <label class="flex items-center gap-2 text-xs cursor-pointer mt-2" style="color: var(--text-secondary);" x-show="!['heading','paragraph','divider','page_break','section'].includes(fields[selectedIndex].type)">
-                                <input type="checkbox" x-model="fields[selectedIndex].required" class="rounded text-violet-500">
+                                <input type="checkbox" x-model="fields[selectedIndex].required" class="rounded text-blue-500">
                                 Required field
                             </label>
 
@@ -399,7 +399,7 @@
                             {{-- Section assignment (group fields into one card) --}}
                             <div x-show="fields[selectedIndex].type !== 'section' && sectionOptions.length > 0" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
                                 <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">
-                                    <i class="fas fa-layer-group text-violet-400 mr-1"></i> Place in section
+                                    <i class="fas fa-layer-group text-blue-400 mr-1"></i> Place in section
                                     <span class="text-[10px]" style="color: var(--text-faint);">— groups multiple fields into one card</span>
                                 </label>
                                 <select x-model="fields[selectedIndex].parent" class="theme-input w-full text-xs">
@@ -416,7 +416,7 @@
                                 <div class="grid grid-cols-4 gap-1">
                                     <template x-for="opt in [{v:12,l:'Full'},{v:8,l:'⅔'},{v:6,l:'½'},{v:4,l:'⅓'}]" :key="opt.v">
                                         <button type="button" @click="fields[selectedIndex].width = opt.v"
-                                                :class="(fields[selectedIndex].width || 12) === opt.v ? 'ring-2 ring-violet-500' : ''"
+                                                :class="(fields[selectedIndex].width || 12) === opt.v ? 'ring-2 ring-blue-500' : ''"
                                                 class="px-2 py-2 rounded-lg text-[11px] font-semibold"
                                                 style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"
                                                 x-text="opt.l"></button>
@@ -430,7 +430,7 @@
                                  x-data="{ open: false }" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
                                 <button type="button" @click="open = !open" class="flex items-center justify-between w-full text-[11px] font-bold uppercase tracking-wider"
                                         style="color: var(--text-faint);">
-                                    <span><i class="fas fa-shield-halved mr-1.5 text-violet-400"></i> Validation</span>
+                                    <span><i class="fas fa-shield-halved mr-1.5 text-blue-400"></i> Validation</span>
                                     <i class="fas fa-chevron-down text-[10px] transition-transform" :class="open ? 'rotate-180' : ''"></i>
                                 </button>
                                 <div x-show="open" class="space-y-3 mt-3">

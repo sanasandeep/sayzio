@@ -53,7 +53,7 @@
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
-        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-300">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
             <i class="fas fa-robot text-2xl"></i>
         </div>
 
@@ -63,8 +63,8 @@
                 {{ $message ?? 'The AI engine isn’t enabled on this account right now. Once an administrator switches it on, this feature will be ready to use here.' }}
             </p>
             @if($__featureBlurb)
-                <p class="mx-auto mt-3 max-w-md text-sm text-violet-200/80">
-                    <i class="fas fa-info-circle mr-1 text-xs text-violet-300/80"></i>
+                <p class="mx-auto mt-3 max-w-md text-sm text-blue-200/80">
+                    <i class="fas fa-info-circle mr-1 text-xs text-blue-300/80"></i>
                     {{ $__featureBlurb }}
                 </p>
             @endif
@@ -79,7 +79,7 @@
                         @csrf
                         <input type="hidden" name="return_to" value="{{ $__returnTo }}">
                         <button type="submit"
-                                class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">
+                                class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                             <i class="fas fa-bolt text-xs"></i>
                             Enable AI now
                         </button>
@@ -110,7 +110,7 @@
                         @csrf
                         <input type="hidden" name="intent" value="ai-engine">
                         <button type="submit"
-                                class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">
+                                class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                             <i class="fas fa-sliders-h text-xs"></i>
                             Turn on AI in settings
                         </button>
@@ -130,8 +130,8 @@
                 {{ $message ?? 'The AI engine isn’t enabled on this account right now. AI is controlled by a master switch that only an administrator can turn on. Once it’s switched on, this feature will be ready to use here.' }}
             </p>
             @if($__featureBlurb)
-                <p class="mx-auto mt-3 max-w-md text-sm text-violet-200/80">
-                    <i class="fas fa-info-circle mr-1 text-xs text-violet-300/80"></i>
+                <p class="mx-auto mt-3 max-w-md text-sm text-blue-200/80">
+                    <i class="fas fa-info-circle mr-1 text-xs text-blue-300/80"></i>
                     {{ $__featureBlurb }}
                 </p>
             @endif
@@ -150,7 +150,7 @@
             <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
                 @if($__supportEmail)
                     <a href="mailto:{{ $__supportEmail }}?subject={{ rawurlencode('Please enable AI features on my '.$__appName.' account') }}"
-                       class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">
+                       class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                         <i class="fas fa-envelope text-xs"></i>
                         Request access
                     </a>
@@ -169,8 +169,8 @@
                 {{ $message ?? $__featureLabel.' is available on '.$__appName.', but '.$__planName.' doesn’t unlock it yet. Upgrade to switch it on for your account.' }}
             </p>
             @if($__featureBlurb)
-                <p class="mx-auto mt-3 max-w-md text-sm text-violet-200/80">
-                    <i class="fas fa-info-circle mr-1 text-xs text-violet-300/80"></i>
+                <p class="mx-auto mt-3 max-w-md text-sm text-blue-200/80">
+                    <i class="fas fa-info-circle mr-1 text-xs text-blue-300/80"></i>
                     {{ $__featureBlurb }}
                 </p>
             @endif
@@ -187,7 +187,7 @@
 
             <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <a href="{{ route('user.upgrade') }}"
-                   class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">
+                   class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                     <i class="fas fa-arrow-up text-xs"></i>
                     @if($__upgradePlan)
                         Upgrade to {{ $__upgradePlan->name }}
@@ -211,7 +211,7 @@
                 <p class="mx-auto mt-4 max-w-md text-xs text-white/40">
                     Not sure which plan you need?
                     <a href="mailto:{{ $__supportEmail }}?subject={{ rawurlencode('Question about AI features on my '.$__appName.' account') }}"
-                       class="text-violet-300 hover:text-violet-200 underline underline-offset-2">Ask support</a>.
+                       class="text-blue-300 hover:text-blue-200 underline underline-offset-2">Ask support</a>.
                 </p>
             @endif
         @endif

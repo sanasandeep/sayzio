@@ -36,11 +36,11 @@ export type MapPickerModalProps = {
 const PIN_SVG =
   '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
   '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+  '<stop offset="0%" stop-color="#7d9bff"/><stop offset="100%" stop-color="#3d6bff"/>' +
   "</linearGradient></defs>" +
   '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
   '<circle cx="17" cy="16" r="6" fill="#fff"/>' +
-  '<text x="17" y="19.5" text-anchor="middle" font-family="sans-serif" font-size="8" font-weight="700" fill="#7c3aed">1</text>' +
+  '<text x="17" y="19.5" text-anchor="middle" font-family="sans-serif" font-size="8" font-weight="700" fill="#3d6bff">1</text>' +
   "</svg>";
 
 function buildHtml(lat: number | null, lng: number | null): string {

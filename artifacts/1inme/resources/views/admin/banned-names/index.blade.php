@@ -46,7 +46,7 @@
                     </div>
                 </div>
                 <a href="{{ route('admin.banned-names.create') }}"
-                   class="px-4 py-2 rounded-xl text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white inline-flex items-center gap-2">
+                   class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-2">
                     <i class="fas fa-plus text-xs"></i> Add name
                 </a>
             </div>
@@ -139,9 +139,9 @@
                                 <ul class="space-y-1.5">
                                     @foreach($row['users'] as $u)
                                         <li class="text-xs text-white/70 flex items-center gap-2 flex-wrap">
-                                            <span class="px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 text-violet-200 text-[10px] uppercase tracking-wide">user</span>
+                                            <span class="px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30 text-blue-200 text-[10px] uppercase tracking-wide">user</span>
                                             <a href="{{ route('admin.users.show', $u) }}"
-                                               class="font-mono text-white/90 hover:text-violet-200 underline-offset-2 hover:underline">
+                                               class="font-mono text-white/90 hover:text-blue-200 underline-offset-2 hover:underline">
                                                 {{ '@' . $u->handle }}
                                             </a>
                                             <span class="text-white/40">·</span>

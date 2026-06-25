@@ -14,7 +14,7 @@
 <div class="flex flex-wrap items-center gap-2 mb-5">
     @if($canVault)
     <a href="{{ route('user.files.index') }}"
-       class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {{ $vaultActive ? 'bg-violet-500/20 text-violet-200 ring-1 ring-violet-500/30' : 'text-gray-300 hover:bg-white/5' }}"
+       class="px-4 py-2 rounded-xl text-sm font-semibold transition-all {{ $vaultActive ? 'bg-blue-500/20 text-blue-200 ring-1 ring-blue-500/30' : 'text-gray-300 hover:bg-white/5' }}"
        style="{{ $vaultActive ? '' : 'background: var(--bg-glass);' }}">
         <i class="fas fa-hard-drive mr-1.5"></i> My Vault
     </a>

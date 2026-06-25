@@ -14,7 +14,7 @@
         @php $active = request()->routeIs($t['route']); @endphp
         <a href="{{ route($t['route'], $form) }}"
            class="flex-shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
-           style="{{ $active ? 'background: linear-gradient(135deg,#8b5cf6,#6d28d9); color:white; box-shadow:0 4px 14px -4px rgba(139,92,246,0.5);' : 'color: var(--text-muted);' }}">
+           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white; box-shadow:0 4px 14px -4px rgba(92,131,255,0.5);' : 'color: var(--text-muted);' }}">
             <i class="fas {{ $t['icon'] }} text-[10px]"></i> {{ $t['label'] }}
         </a>
     @endforeach

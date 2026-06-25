@@ -71,7 +71,7 @@
     <div class="flex items-center gap-2 mb-5 flex-wrap">
         @foreach(['' => 'All', 'unread' => 'Unread', 'starred' => 'Starred', 'spam' => 'Spam'] as $val => $label)
             @php $active = (request('filter') ?? '') === $val; @endphp
-            <a href="?filter={{ $val }}" class="text-xs px-3 py-1.5 rounded-full font-semibold" style="{{ $active ? 'background: linear-gradient(135deg,#8b5cf6,#6d28d9); color:white;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);' }}">{{ $label }}</a>
+            <a href="?filter={{ $val }}" class="text-xs px-3 py-1.5 rounded-full font-semibold" style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);' }}">{{ $label }}</a>
         @endforeach
     </div>
 
@@ -85,7 +85,7 @@
             <div class="divide-y" style="border-color: var(--border-glass);">
                 @foreach($submissions as $s)
                     @php $name = $s->data['name'] ?? $s->data['email'] ?? '#' . $s->id; @endphp
-                    <div class="flex items-center gap-3 p-4 hover:bg-violet-500/5 transition-colors {{ !$s->is_read ? 'bg-violet-500/5' : '' }}">
+                    <div class="flex items-center gap-3 p-4 hover:bg-blue-500/5 transition-colors {{ !$s->is_read ? 'bg-blue-500/5' : '' }}">
                         @if($__can('inbox.edit'))
                         <form method="POST" action="{{ route('user.forms.submissions.star', [$form, $s]) }}">@csrf
                             <button class="text-base {{ $s->is_starred ? 'text-amber-400' : '' }}" style="color: {{ $s->is_starred ? '' : 'var(--text-faint)' }};" title="Star">
@@ -98,13 +98,13 @@
                         </span>
                         @endif
                         <a href="{{ route('user.forms.submissions.show', [$form, $s]) }}" class="flex items-center gap-3 flex-1 min-w-0">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white;">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: linear-gradient(135deg, #5c83ff, #ec4899); color: white;">
                                 {{ strtoupper(substr($name, 0, 1)) }}
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-{{ $s->is_read ? 'medium' : 'bold' }} truncate" style="color: var(--text-primary);">{{ $name }}</span>
-                                    @unless($s->is_read)<span class="w-2 h-2 rounded-full bg-violet-500 flex-shrink-0"></span>@endunless
+                                    @unless($s->is_read)<span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>@endunless
                                 </div>
                                 <div class="text-[11px] truncate" style="color: var(--text-faint);">
                                     @php $preview = collect($s->data)->reject(fn($v,$k) => in_array($k, ['name','email']) || is_array($v))->take(3)->map(fn($v,$k) => "$k: $v")->implode(' · '); @endphp

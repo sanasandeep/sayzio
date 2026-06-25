@@ -39,7 +39,7 @@
     }">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-3xl mx-auto">
-            <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(124,58,237,0.10);">
+            <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(61,107,255,0.10);">
                 <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
                 Pricing
             </div>
@@ -59,12 +59,12 @@
             {{-- Monthly / Annual billing toggle --}}
             <div class="inline-flex items-center gap-1 p-1 rounded-full glass border border-white/10" role="tablist" aria-label="Billing cadence">
                 <button type="button" role="tab" :aria-selected="billing === 'monthly'" @click="billing = 'monthly'"
-                        :class="billing === 'monthly' ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'text-gray-300 hover:text-white'"
+                        :class="billing === 'monthly' ? 'grad-bar text-white shadow-lg shadow-[#3d6bff]/30' : 'text-gray-300 hover:text-white'"
                         class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all">
                     Monthly
                 </button>
                 <button type="button" role="tab" :aria-selected="billing === 'annual'" @click="billing = 'annual'"
-                        :class="billing === 'annual' ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'text-gray-300 hover:text-white'"
+                        :class="billing === 'annual' ? 'grad-bar text-white shadow-lg shadow-[#3d6bff]/30' : 'text-gray-300 hover:text-white'"
                         class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5">
                     Annual
                     <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-400/20 text-emerald-300 border border-emerald-400/40">Save 2 months</span>
@@ -88,10 +88,10 @@
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             @foreach($freePlans as $i => $plan)
                 @php $featured = false; $f = $plan['features']; @endphp
-                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#7c3aed]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
+                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#3d6bff]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
                     {{-- Animated background blobs --}}
-                    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: #7c3aed; animation: floatA 9s ease-in-out infinite;"></div>
-                    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: #a855f7; animation: floatB 11s ease-in-out infinite;"></div>
+                    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: #3d6bff; animation: floatA 9s ease-in-out infinite;"></div>
+                    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: #6e61ff; animation: floatB 11s ease-in-out infinite;"></div>
                     {{-- Sparkles --}}
                     <span class="free-spark" style="top:14%;left:82%; animation-delay:0s"></span>
                     <span class="free-spark" style="top:46%;left:6%;  animation-delay:1.4s"></span>
@@ -107,9 +107,9 @@
                         <div class="mb-4 flex items-center gap-4 flex-wrap">
                             <div class="free-pill-wrap relative inline-flex">
                                 {{-- Pulsing glow halo --}}
-                                <span class="absolute -inset-2 rounded-3xl opacity-40 blur-xl pointer-events-none" style="background: #7c3aed; animation: pulseDot 2.4s ease-in-out infinite;"></span>
+                                <span class="absolute -inset-2 rounded-3xl opacity-40 blur-xl pointer-events-none" style="background: #3d6bff; animation: pulseDot 2.4s ease-in-out infinite;"></span>
                                 {{-- The actual pill --}}
-                                <span class="relative inline-flex items-center px-5 py-2 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: #7c3aed; letter-spacing: 0.05em;">
+                                <span class="relative inline-flex items-center px-5 py-2 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: #3d6bff; letter-spacing: 0.05em;">
                                     FREE
                                     <i class="fas fa-sparkles ml-1.5 text-xs" style="animation: wiggle 2s ease-in-out infinite;"></i>
                                 </span>
@@ -169,7 +169,7 @@
                         @foreach(['max_links' => ['fa-link', 'links'], 'max_biolinks' => ['fa-id-card', 'bio pages'], 'storage_limit_mb' => ['fa-database', 'MB storage'], 'contacts_max' => ['fa-address-book', 'contacts']] as $key => $meta)
                             @if(isset($f[$key]))
                                 <div class="free-row flex items-center gap-3 p-2.5 rounded-xl bg-white/[.04] border border-white/5 hover:border-white/15 hover:bg-white/[.06] transition group/row">
-                                    <span class="w-9 h-9 rounded-lg flex items-center justify-center grad-bar shrink-0 group-hover/row:scale-110 transition" style="box-shadow: 0 8px 20px -8px rgba(124,58,237,.6);">
+                                    <span class="w-9 h-9 rounded-lg flex items-center justify-center grad-bar shrink-0 group-hover/row:scale-110 transition" style="box-shadow: 0 8px 20px -8px rgba(61,107,255,.6);">
                                         <i class="fas {{ $meta[0] }} text-white text-[12px]"></i>
                                     </span>
                                     <div class="min-w-0 flex-1">
@@ -204,7 +204,7 @@
             <div class="relative reveal rd-2 md:scale-[1.03]">
                 {{-- Floating badge --}}
                 <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                    <div class="px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5" style="box-shadow: 0 8px 24px -8px rgba(124,58,237,.6), 0 0 0 4px rgba(255,255,255,.08);">
+                    <div class="px-4 py-1.5 bg-white text-[#3d6bff] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5" style="box-shadow: 0 8px 24px -8px rgba(61,107,255,.6), 0 0 0 4px rgba(255,255,255,.08);">
                         <i class="fas fa-crown text-[10px]" style="animation: wiggle 2.4s ease-in-out infinite; transform-origin: 50% 80%;"></i>
                         Premium
                     </div>
@@ -212,8 +212,8 @@
 
                 <a href="{{ route('site.pricing') }}"
                    @click="trackMarketingEvent('plan_paid')"
-                   class="lift group relative block rounded-3xl p-8 pt-9 text-white shadow-2xl shadow-[#7c3aed]/40 hover:shadow-[#7c3aed]/60 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                   style="background: #7c3aed;">
+                   class="lift group relative block rounded-3xl p-8 pt-9 text-white shadow-2xl shadow-[#3d6bff]/40 hover:shadow-[#3d6bff]/60 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                   style="background: #3d6bff;">
                     {{-- Ambient blobs --}}
                     <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none" style="animation: floatA 10s ease-in-out infinite;"></div>
                     <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" style="animation: floatB 12s ease-in-out infinite;"></div>
@@ -261,7 +261,7 @@
                             </div>
                         @endif
 
-                        <span class="btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#7c3aed] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
+                        <span class="btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#3d6bff] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
                             Explore premium plans <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
                         </span>
                     </div>
@@ -282,15 +282,15 @@
         {{-- Slim "more pricing details" link row — replaces the previous oversized drill-down card. --}}
         <div class="reveal mt-6 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400">
             <span class="text-gray-500">More pricing details:</span>
-            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
                 <i class="fas fa-tags text-[11px]"></i> Compare all plans
             </a>
             <span class="text-gray-700">·</span>
-            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
                 <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
             </a>
             <span class="text-gray-700">·</span>
-            <a href="{{ route('site.premium-features') }}" @click="trackMarketingEvent('premium_features')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+            <a href="{{ route('site.premium-features') }}" @click="trackMarketingEvent('premium_features')" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
                 <i class="fas fa-star text-[11px] text-amber-300"></i> Premium features
             </a>
         </div>

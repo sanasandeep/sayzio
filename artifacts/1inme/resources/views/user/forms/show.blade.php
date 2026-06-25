@@ -23,7 +23,7 @@
         'chips' => [
             ['icon' => 'fa-circle ' . ($form->is_active ? 'text-emerald-400' : 'text-gray-400'), 'text' => $form->is_active ? 'Active' : 'Disabled'],
             ['icon' => 'fa-database text-pink-400', 'text' => number_format($form->total_submissions) . ' submissions'],
-            ['icon' => 'fa-eye text-violet-400', 'text' => number_format($form->total_views) . ' views'],
+            ['icon' => 'fa-eye text-blue-400', 'text' => number_format($form->total_views) . ' views'],
         ],
         'actions' => $__showActions,
     ])
@@ -47,7 +47,7 @@
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         @foreach([
             ['Today',  $stats['today'],  'fa-bolt',         '#f59e0b'],
-            ['7 days', $stats['week'],   'fa-calendar-day', '#8b5cf6'],
+            ['7 days', $stats['week'],   'fa-calendar-day', '#5c83ff'],
             ['30 days',$stats['month'],  'fa-calendar',     '#6366f1'],
             ['Unread', $stats['unread'], 'fa-envelope',     '#ec4899'],
             ['Conv. %',$stats['conversion'] . '%', 'fa-percentage', '#10b981'],
@@ -76,7 +76,7 @@
                 ['Revenue', number_format(($rev['gross_cents'] ?? 0) / 100, 2) . ' ' . ($rev['currency'] ?? 'USD'), 'fa-sack-dollar', '#10b981'],
                 ['Paid', number_format($rev['paid_count'] ?? 0), 'fa-circle-check', '#22c55e'],
                 ['Awaiting', number_format($rev['pending'] ?? 0), 'fa-hourglass-half', '#f59e0b'],
-                ['Avg / order', ($rev['paid_count'] ?? 0) > 0 ? number_format((($rev['gross_cents'] ?? 0) / 100) / $rev['paid_count'], 2) . ' ' . ($rev['currency'] ?? 'USD') : '—', 'fa-chart-pie', '#8b5cf6'],
+                ['Avg / order', ($rev['paid_count'] ?? 0) > 0 ? number_format((($rev['gross_cents'] ?? 0) / 100) / $rev['paid_count'], 2) . ' ' . ($rev['currency'] ?? 'USD') : '—', 'fa-chart-pie', '#5c83ff'],
             ] as [$label, $val, $icon, $color])
                 <div class="card-premium p-4">
                     <div class="flex items-center gap-2.5">
@@ -102,7 +102,7 @@
                 <div class="flex items-end gap-1 h-32">
                     @foreach($a['trend'] as $pt)
                         <div class="flex-1 flex flex-col justify-end items-center group" title="{{ $pt['label'] }}: {{ $pt['count'] }}">
-                            <div class="w-full rounded-t" style="height: {{ max(2, round($pt['count'] / $max * 100)) }}%; background: linear-gradient(180deg, #8b5cf6, #ec4899); min-height: 2px;"></div>
+                            <div class="w-full rounded-t" style="height: {{ max(2, round($pt['count'] / $max * 100)) }}%; background: linear-gradient(180deg, #5c83ff, #ec4899); min-height: 2px;"></div>
                         </div>
                     @endforeach
                 </div>
@@ -184,10 +184,10 @@
             </div>
         </div>
     @elseif(!$advancedAnalytics)
-        <div class="card-premium p-5 mb-6 flex items-center justify-between gap-4" style="background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.2);">
+        <div class="card-premium p-5 mb-6 flex items-center justify-between gap-4" style="background: rgba(92,131,255,0.06); border: 1px solid rgba(92,131,255,0.2);">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(139,92,246,0.15);">
-                    <i class="fas fa-chart-line text-violet-400"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(92,131,255,0.15);">
+                    <i class="fas fa-chart-line text-blue-400"></i>
                 </div>
                 <div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Unlock advanced form analytics</h3>
@@ -221,7 +221,7 @@
                             <a href="{{ route('user.forms.submissions.show', [$form, $s]) }}"
                                class="flex items-center gap-3 p-3 rounded-lg hover:translate-x-1 transition-all"
                                style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white;">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: linear-gradient(135deg, #5c83ff, #ec4899); color: white;">
                                     {{ strtoupper(substr($s->data['name'] ?? $s->data['email'] ?? '#', 0, 1)) }}
                                 </div>
                                 <div class="min-w-0 flex-1">
@@ -233,7 +233,7 @@
                                     </div>
                                 </div>
                                 @unless($s->is_read)
-                                    <span class="w-2 h-2 rounded-full bg-violet-500"></span>
+                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>
                                 @endunless
                             </a>
                         @endforeach

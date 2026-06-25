@@ -30,11 +30,11 @@
         transition: all .2s ease;
     }
     .dash-tab:hover { color: var(--text-primary); background: var(--bg-glass-hover); }
-    .dash-tab:focus-visible { outline: 2px solid rgba(124,58,237,0.5); outline-offset: 2px; }
+    .dash-tab:focus-visible { outline: 2px solid rgba(61,107,255,0.5); outline-offset: 2px; }
     .dash-tab-active {
         color: #fff;
-        background: linear-gradient(135deg, #7c3aed, #a78bfa);
-        box-shadow: 0 4px 14px rgba(124,58,237,0.28);
+        background: linear-gradient(135deg, #3d6bff, #90acff);
+        box-shadow: 0 4px 14px rgba(61,107,255,0.28);
     }
     .dash-tab-active:hover { color: #fff; }
     @media (prefers-reduced-motion: reduce) {
@@ -93,15 +93,15 @@
 
 @if(!empty($channelFilter))
     <div class="mb-5 flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl"
-         style="background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25);">
+         style="background: rgba(110,97,255,0.08); border: 1px solid rgba(110,97,255,0.25);">
         <span class="text-[11px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Filtered by channel</span>
         <span class="badge inline-flex items-center gap-1.5"
-              style="background: rgba(168,85,247,0.15); color: #f0abfc; border: 1px solid rgba(168,85,247,0.3);">
+              style="background: rgba(110,97,255,0.15); color: #f0abfc; border: 1px solid rgba(110,97,255,0.3);">
             <i class="fas {{ $channelIcon($channelFilter) }} text-[10px]"></i>
             {{ $channelLabelMap[$channelFilter] ?? $channelFilter }}
         </span>
         <span class="text-[11px]" style="color: var(--text-faint);">Click totals below reflect this bucket only.</span>
-        <a href="{{ $channelBuildUrl(null) }}" class="ml-auto text-[11px] text-violet-400 hover:text-violet-300 font-semibold inline-flex items-center gap-1">
+        <a href="{{ $channelBuildUrl(null) }}" class="ml-auto text-[11px] text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
             <i class="fas fa-times text-[9px]"></i> Clear filter
         </a>
     </div>
@@ -156,7 +156,7 @@
             ? \App\Services\PricingResolver::priceFor($user->plan, $user, 'monthly')
             : null;
     @endphp
-    <a href="{{ route('user.upgrade') }}" class="stat-card group shimmer block" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(124,58,237,0.12); --stat-border-color: rgba(124,58,237,0.2);">
+    <a href="{{ route('user.upgrade') }}" class="stat-card group shimmer block" style="--stat-accent: linear-gradient(90deg, #5c83ff, #90acff); --stat-glow: rgba(61,107,255,0.12); --stat-border-color: rgba(61,107,255,0.2);">
         <div class="flex items-center justify-between relative z-10">
             <div>
                 <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Plan</p>
@@ -165,8 +165,8 @@
                     <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">{{ $planPrice['formatted'] }}<span class="opacity-60">/mo</span></p>
                 @endif
             </div>
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                <i class="fas fa-crown text-violet-400 text-sm"></i>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                <i class="fas fa-crown text-blue-400 text-sm"></i>
             </div>
         </div>
     </a>
@@ -183,14 +183,14 @@
         </div>
     </div>
 
-    <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #3b82f6, #a78bfa); --stat-glow: rgba(59,130,246,0.12); --stat-border-color: rgba(59,130,246,0.2);">
+    <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #3b82f6, #90acff); --stat-glow: rgba(59,130,246,0.12); --stat-border-color: rgba(59,130,246,0.2);">
         <div class="flex items-center justify-between relative z-10">
             <div>
                 <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Total Clicks</p>
                 <p class="text-xl font-bold" style="color: var(--text-primary);">{{ number_format($totalClicks) }}</p>
             </div>
             <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);">
-                <i class="fas fa-mouse-pointer text-violet-400 text-sm"></i>
+                <i class="fas fa-mouse-pointer text-blue-400 text-sm"></i>
             </div>
         </div>
     </div>
@@ -257,16 +257,16 @@
         $aiCoins = app(\App\Services\Billing\WalletService::class)->getBalance($user);
     @endphp
     <a href="{{ route('user.wallet.show') }}" class="block mb-8">
-        <div class="card-premium px-5 py-4 flex items-center justify-between hover:border-violet-500/40 transition-colors">
+        <div class="card-premium px-5 py-4 flex items-center justify-between hover:border-blue-500/40 transition-colors">
             <div class="flex items-center gap-4">
                 <div class="w-11 h-11 rounded-xl flex items-center justify-center"
-                     style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.25);">
-                    <i class="fas fa-brain text-violet-300"></i>
+                     style="background: rgba(110,97,255,0.12); border: 1px solid rgba(110,97,255,0.25);">
+                    <i class="fas fa-brain text-blue-300"></i>
                 </div>
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Coin balance</p>
                     <p class="text-2xl font-bold" style="color: var(--text-primary);">
-                        {{ number_format($aiCoins) }} <span class="text-violet-300">coins</span>
+                        {{ number_format($aiCoins) }} <span class="text-blue-300">coins</span>
                     </p>
                 </div>
             </div>
@@ -274,7 +274,7 @@
                 <p class="text-xs" style="color: var(--text-faint);">
                     AI usage is paid from your wallet
                 </p>
-                <p class="text-xs text-violet-300 mt-1">Manage &amp; top up <i class="fas fa-arrow-right ml-1"></i></p>
+                <p class="text-xs text-blue-300 mt-1">Manage &amp; top up <i class="fas fa-arrow-right ml-1"></i></p>
             </div>
         </div>
     </a>
@@ -293,7 +293,7 @@
 <div class="card-premium overflow-hidden mb-6">
     <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--border-subtle);">
         <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.18);">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(110,97,255,0.1); border: 1px solid rgba(110,97,255,0.18);">
                 <i class="fas fa-window-restore text-fuchsia-400 text-xs"></i>
             </div>
             <div>
@@ -325,7 +325,7 @@
                             <span><strong style="color: var(--text-primary);">{{ number_format($row->count) }}</strong> &middot; {{ $pct }}%</span>
                         </div>
                         <div class="w-full h-1.5 rounded-full overflow-hidden" style="background: var(--bg-glass-input);">
-                            <div class="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500" style="width: {{ $pct }}%;"></div>
+                            <div class="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-blue-500" style="width: {{ $pct }}%;"></div>
                         </div>
                     </div>
                 @endforeach
@@ -333,14 +333,14 @@
             <div class="flex flex-wrap items-center gap-2 pt-2" style="border-top: 1px solid var(--border-subtle);">
                 <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">Filter:</span>
                 <a href="{{ $channelBuildUrl(null) }}" class="badge {{ empty($channelFilter) ? 'badge-active' : '' }}"
-                   style="{{ empty($channelFilter) ? 'background: rgba(168,85,247,0.18); color: #f0abfc; border: 1px solid rgba(168,85,247,0.35);' : 'background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-subtle);' }}">All</a>
+                   style="{{ empty($channelFilter) ? 'background: rgba(110,97,255,0.18); color: #f0abfc; border: 1px solid rgba(110,97,255,0.35);' : 'background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-subtle);' }}">All</a>
                 @foreach($channelStats as $row)
                     @php $key = $row->channel ?: 'unknown'; @endphp
                     @continue($key === \App\Modules\Common\Services\ChannelClassifier::KEY_UNKNOWN)
                     @php $isActive = ($channelFilter ?? '') === $key; @endphp
                     <a href="{{ $channelBuildUrl($key) }}"
                        class="badge inline-flex items-center gap-1.5"
-                       style="{{ $isActive ? 'background: rgba(168,85,247,0.18); color: #f0abfc; border: 1px solid rgba(168,85,247,0.35);' : 'background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-subtle);' }}">
+                       style="{{ $isActive ? 'background: rgba(110,97,255,0.18); color: #f0abfc; border: 1px solid rgba(110,97,255,0.35);' : 'background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-subtle);' }}">
                         <i class="fas {{ $channelIcon($key) }} text-[9px] opacity-80"></i>
                         {{ $channelLabelMap[$key] ?? $key }}
                         <span class="opacity-60">({{ number_format($row->count) }})</span>
@@ -360,12 +360,12 @@
         <div class="card-premium overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--border-subtle);">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                        <i class="fas fa-clock text-violet-400 text-xs"></i>
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                        <i class="fas fa-clock text-blue-400 text-xs"></i>
                     </div>
                     <h2 class="text-sm font-bold" style="color: var(--text-primary);">Recent Links</h2>
                 </div>
-                <a href="{{ route('user.links.wizard') }}" class="text-[11px] text-violet-400 hover:text-violet-300 font-semibold transition-all flex items-center gap-1 hover:gap-2" title="Guided Link in Bio wizard (or use Quick Link for short URLs)">
+                <a href="{{ route('user.links.wizard') }}" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold transition-all flex items-center gap-1 hover:gap-2" title="Guided Link in Bio wizard (or use Quick Link for short URLs)">
                     <i class="fas fa-magic text-[9px]"></i> New Link in Bio
                 </a>
             </div>
@@ -376,7 +376,7 @@
             @endphp
             @if($user->onboarded_at)
             <div class="mx-4 mt-4 flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5">
-                <span class="text-[11px] text-white/40 truncate"><i class="fas fa-compass text-[10px] mr-1.5 text-violet-400/70"></i>Re-run onboarding</span>
+                <span class="text-[11px] text-white/40 truncate"><i class="fas fa-compass text-[10px] mr-1.5 text-blue-400/70"></i>Re-run onboarding</span>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
                     <a href="{{ route('user.onboarding.persona') }}" class="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-semibold transition">
                         <i class="fas fa-user-tag text-[9px] mr-1"></i>Choose persona
@@ -404,15 +404,15 @@
             </div>
             @endif
             @if($showPersonaBanner)
-            <div class="m-4 mb-0 rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-600/10 to-fuchsia-500/5 p-4 flex items-start gap-3">
-                <div class="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-sparkles text-violet-300"></i>
+            <div class="m-4 mb-0 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-600/10 to-fuchsia-500/5 p-4 flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-sparkles text-blue-300"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-white">Want personalised template suggestions?</p>
                     <p class="text-xs text-white/50 mt-0.5">Tell us what you do in 10 seconds and we'll recommend the templates that fit.</p>
                 </div>
-                <a href="{{ route('user.onboarding.persona') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition flex-shrink-0">Personalise</a>
+                <a href="{{ route('user.onboarding.persona') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition flex-shrink-0">Personalise</a>
                 <form method="POST" action="{{ route('user.onboarding.dismiss-banner') }}">
                     @csrf
                     <button type="submit" class="text-white/30 hover:text-white/70 px-2 py-1.5" title="Dismiss"><i class="fas fa-times text-xs"></i></button>
@@ -421,8 +421,8 @@
             @endif
             @if($recentLinks->isEmpty())
             <div class="p-12 text-center">
-                <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.12);">
-                    <i class="fas fa-link text-xl text-violet-400"></i>
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.12);">
+                    <i class="fas fa-link text-xl text-blue-400"></i>
                 </div>
                 <p class="text-sm mb-1 font-bold" style="color: var(--text-muted);">No links yet</p>
                 <p class="text-xs mb-5" style="color: var(--text-dimmed);">Launch the guided wizard or build a quick short link.</p>
@@ -442,13 +442,13 @@
                     <div class="flex items-center justify-between">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2 mb-0.5">
-                                <span class="text-sm font-semibold truncate group-hover:text-violet-400 transition-colors" style="color: var(--text-primary);">{{ $link->title ?: $link->alias }}</span>
-                                <span class="badge" style="background: rgba(124,58,237,0.08); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.12);">{{ $link->type }}</span>
+                                <span class="text-sm font-semibold truncate group-hover:text-blue-400 transition-colors" style="color: var(--text-primary);">{{ $link->title ?: $link->alias }}</span>
+                                <span class="badge" style="background: rgba(61,107,255,0.08); color: var(--accent-light); border: 1px solid rgba(61,107,255,0.12);">{{ $link->type }}</span>
                                 @if(!$link->is_active)
                                 <span class="badge" style="background: rgba(239,68,68,0.08); color: #f87171; border: 1px solid rgba(239,68,68,0.12);">off</span>
                                 @endif
                             </div>
-                            <div class="text-xs text-violet-400/60 truncate">{{ $link->getShortUrl() }}</div>
+                            <div class="text-xs text-blue-400/60 truncate">{{ $link->getShortUrl() }}</div>
                         </div>
                         <div class="text-right ml-4 flex-shrink-0">
                             <div class="text-base font-bold" style="color: var(--text-primary);">{{ number_format($link->total_clicks) }}</div>
@@ -459,7 +459,7 @@
                 @endforeach
             </div>
             <div class="px-5 py-3 text-center">
-                <a href="{{ route('user.links.index') }}" class="text-xs text-violet-400 hover:text-violet-300 font-semibold transition-all inline-flex items-center gap-1 hover:gap-2">
+                <a href="{{ route('user.links.index') }}" class="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-all inline-flex items-center gap-1 hover:gap-2">
                     View all links <i class="fas fa-arrow-right text-[10px]"></i>
                 </a>
             </div>
@@ -470,22 +470,22 @@
     <div class="space-y-5">
         <div class="card-premium p-5">
             <div class="flex items-center gap-2.5 mb-4">
-                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                    <i class="fas fa-bolt text-violet-400 text-xs"></i>
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                    <i class="fas fa-bolt text-blue-400 text-xs"></i>
                 </div>
                 <h2 class="text-sm font-bold" style="color: var(--text-primary);">Quick Actions</h2>
             </div>
             <div class="space-y-1">
                 <a href="{{ route('user.links.wizard') }}" class="flex items-center gap-3 p-2.5 rounded-xl transition-all group hover:translate-x-1" style="background: transparent;" onmouseover="this.style.background='var(--bg-glass-input)'" onmouseout="this.style.background='transparent'">
-                    <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.12);">
-                        <i class="fas fa-magic text-violet-400 text-[10px]"></i>
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.12);">
+                        <i class="fas fa-magic text-blue-400 text-[10px]"></i>
                     </div>
                     <span class="text-xs font-medium" style="color: var(--text-muted);">Link in Bio Wizard</span>
                     <i class="fas fa-chevron-right text-[8px] ml-auto transition-transform group-hover:translate-x-1" style="color: var(--text-faint);"></i>
                 </a>
                 <a href="{{ route('user.links.create') }}" class="flex items-center gap-3 p-2.5 rounded-xl transition-all group hover:translate-x-1" style="background: transparent;" onmouseover="this.style.background='var(--bg-glass-input)'" onmouseout="this.style.background='transparent'">
-                    <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.12);">
-                        <i class="fas fa-link text-violet-400 text-[10px]"></i>
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.12);">
+                        <i class="fas fa-link text-blue-400 text-[10px]"></i>
                     </div>
                     <span class="text-xs font-medium" style="color: var(--text-muted);">Shorten a URL</span>
                     <i class="fas fa-chevron-right text-[8px] ml-auto transition-transform group-hover:translate-x-1" style="color: var(--text-faint);"></i>
@@ -516,13 +516,13 @@
 
         <div class="card-premium p-5 shimmer">
             <div class="flex items-center gap-2.5 mb-4">
-                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                    <i class="fas fa-gem text-violet-400 text-xs"></i>
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                    <i class="fas fa-gem text-blue-400 text-xs"></i>
                 </div>
                 <h2 class="text-sm font-bold" style="color: var(--text-primary);">Your Plan</h2>
             </div>
             <div class="flex items-center gap-3 mb-3">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 via-violet-500 to-violet-700 flex items-center justify-center shadow-lg" style="box-shadow: 0 4px 16px rgba(124,58,237,0.3);">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 via-blue-500 to-blue-700 flex items-center justify-center shadow-lg" style="box-shadow: 0 4px 16px rgba(61,107,255,0.3);">
                     <i class="fas fa-gem text-white text-sm"></i>
                 </div>
                 <div>
@@ -538,7 +538,7 @@
                         $limit = $user->plan->settings['links_limit'] ?? 100;
                         $pct = min(100, ($totalLinks / max(1, $limit)) * 100);
                     @endphp
-                    <div class="h-full rounded-full bg-gradient-to-r from-violet-500 via-violet-500 to-violet-400 transition-all duration-1000" style="width: {{ $pct }}%; box-shadow: 0 0 8px rgba(124,58,237,0.4);"></div>
+                    <div class="h-full rounded-full bg-gradient-to-r from-blue-500 via-blue-500 to-blue-400 transition-all duration-1000" style="width: {{ $pct }}%; box-shadow: 0 0 8px rgba(61,107,255,0.4);"></div>
                 </div>
             </div>
         </div>

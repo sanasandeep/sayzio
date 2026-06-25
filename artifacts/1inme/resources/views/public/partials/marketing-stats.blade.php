@@ -7,7 +7,7 @@
 @endphp
 @if($__stats->count())
 <section class="py-14 lg:py-20 relative overflow-hidden">
-    <div class="absolute inset-0 -z-10 opacity-60" style="background: rgba(124,58,237,.06);"></div>
+    <div class="absolute inset-0 -z-10 opacity-60" style="background: rgba(61,107,255,.06);"></div>
 
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">

@@ -36,7 +36,7 @@
             <ol class="space-y-2 text-sm text-white/90">
                 @foreach($topQuestions as $q)
                     <li class="flex items-start gap-3">
-                        <span class="inline-flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-violet-500/15 text-violet-300 text-[11px] font-semibold">{{ $q->n }}</span>
+                        <span class="inline-flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-blue-500/15 text-blue-300 text-[11px] font-semibold">{{ $q->n }}</span>
                         <span class="truncate">{{ $q->q }}</span>
                     </li>
                 @endforeach

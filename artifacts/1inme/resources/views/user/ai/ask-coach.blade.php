@@ -15,7 +15,7 @@
         <aside class="rounded-2xl border border-white/10 bg-white/[0.03] p-3 space-y-2 md:max-h-[75vh] md:overflow-y-auto">
             <form method="POST" action="{{ route('user.ai.ask-coach.store') }}">
                 @csrf
-                <button class="w-full px-3 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                <button class="w-full px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                     + New chat
                 </button>
             </form>
@@ -104,7 +104,7 @@
                         @foreach($history as $turn)
                             <div class="flex {{ $turn['role'] === 'user' ? 'justify-end' : 'justify-start' }}">
                                 <div class="max-w-[85%] rounded-2xl px-4 py-3 text-sm space-y-2
-                                    {{ $turn['role'] === 'user' ? 'bg-violet-600 text-white' : 'bg-white/10 text-white/90' }}">
+                                    {{ $turn['role'] === 'user' ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/90' }}">
                                     <pre class="whitespace-pre-wrap font-sans">{{ $turn['content'] }}</pre>
 
                                     @if($turn['role'] === 'assistant')
@@ -150,7 +150,7 @@
                                                             <div class="flex items-center gap-2">
                                                                 <span class="w-24 truncate text-white/50">{{ $s['label'] ?? '' }}</span>
                                                                 <span class="flex-1 h-2 bg-white/5 rounded overflow-hidden">
-                                                                    <span class="block h-full bg-violet-500/70" style="width: {{ max(2, round(((int)$s['value'] / $maxV) * 100)) }}%"></span>
+                                                                    <span class="block h-full bg-blue-500/70" style="width: {{ max(2, round(((int)$s['value'] / $maxV) * 100)) }}%"></span>
                                                                 </span>
                                                                 <span class="w-10 text-right text-white">{{ $s['value'] ?? 0 }}</span>
                                                             </div>
@@ -166,7 +166,7 @@
                                                 @foreach($meta['actions'] as $a)
                                                     <a href="{{ $a['url'] ?? '#' }}"
                                                        title="{{ $a['reason'] ?? '' }}"
-                                                       class="text-[11px] px-2 py-1 rounded-lg bg-violet-500/20 text-violet-200 hover:bg-violet-500/30">
+                                                       class="text-[11px] px-2 py-1 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30">
                                                         → {{ $a['label'] ?? 'Open' }}
                                                     </a>
                                                 @endforeach
@@ -232,7 +232,7 @@
                            data-coach-input
                            placeholder="Ask Coach about your Sayzio data…"
                            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
-                    <button data-coach-send class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                    <button data-coach-send class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                         Send
                     </button>
                 </form>
@@ -255,7 +255,7 @@
                         wrap.className = 'flex ' + (role === 'user' ? 'justify-end' : 'justify-start');
                         const inner = document.createElement('div');
                         inner.className = 'max-w-[85%] rounded-2xl px-4 py-3 text-sm space-y-2 ' +
-                            (role === 'user' ? 'bg-violet-600 text-white' : 'bg-white/10 text-white/90');
+                            (role === 'user' ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/90');
                         const pre = document.createElement('pre');
                         pre.className = 'whitespace-pre-wrap font-sans';
                         pre.textContent = text;
@@ -363,7 +363,7 @@
                     <p class="text-white/60 text-sm">Start a chat to ask Coach about your Sayzio.</p>
                     <form method="POST" action="{{ route('user.ai.ask-coach.store') }}" class="mt-4">
                         @csrf
-                        <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                        <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                             + New chat
                         </button>
                     </form>

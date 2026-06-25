@@ -10,15 +10,15 @@
     <style>
         body { background:#f5f3ff; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
         .rsvp-card { max-width:520px; width:100%; border-radius:18px; border:none; box-shadow:0 12px 40px rgba(91,33,182,0.12); overflow:hidden; }
-        .rsvp-header { background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%); color:#fff; padding:28px; }
+        .rsvp-header { background:linear-gradient(135deg,#3d6bff 0%,#6e61ff 100%); color:#fff; padding:28px; }
         .rsvp-body { padding:28px; background:#fff; }
         .response-pill { cursor:pointer; border:2px solid #e5e7eb; border-radius:14px; padding:14px; text-align:center; font-weight:600; transition:all .15s; background:#fff; }
         .response-pill input { display:none; }
         .response-pill.is-yes:has(input:checked) { border-color:#10b981; background:#ecfdf5; color:#047857; }
         .response-pill.is-maybe:has(input:checked) { border-color:#f59e0b; background:#fffbeb; color:#b45309; }
         .response-pill.is-no:has(input:checked) { border-color:#9ca3af; background:#f3f4f6; color:#374151; }
-        .btn-purple { background:#7c3aed; color:#fff; border:none; }
-        .btn-purple:hover { background:#6d28d9; color:#fff; }
+        .btn-purple { background:#3d6bff; color:#fff; border:none; }
+        .btn-purple:hover { background:#2342c7; color:#fff; }
     </style>
 </head>
 <body>

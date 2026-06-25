@@ -9,7 +9,7 @@
         'subtitle' => 'Generate keys to call the Sayzio REST API programmatically. Each call counts against your monthly allowance — overage is paid with coins.',
         'icon' => 'fa-key',
         'chips' => [
-            ['icon' => 'fa-plug text-violet-400', 'text' => count($keys) . ' active'],
+            ['icon' => 'fa-plug text-blue-400', 'text' => count($keys) . ' active'],
         ],
     ])
 
@@ -26,10 +26,10 @@
 
     {{-- Newly-created key — shown exactly once. --}}
     @if($newToken)
-        <div class="mb-6 rounded-2xl p-5" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.3);"
+        <div class="mb-6 rounded-2xl p-5" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.3);"
              x-data="{ copied: false }">
             <div class="flex items-center gap-2 text-sm font-semibold mb-2" style="color: var(--text);">
-                <i class="fas fa-circle-check text-violet-400"></i>
+                <i class="fas fa-circle-check text-blue-400"></i>
                 Your new key &ldquo;{{ $newTokenName }}&rdquo; is ready
             </div>
             <p class="text-xs mb-3" style="color: var(--text-muted);">
@@ -41,7 +41,7 @@
                       x-ref="tok">{{ $newToken }}</code>
                 <button type="button"
                         class="px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition"
-                        style="background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.35); color: #a78bfa;"
+                        style="background: rgba(61,107,255,0.15); border: 1px solid rgba(61,107,255,0.35); color: #90acff;"
                         @click="navigator.clipboard.writeText($refs.tok.innerText); copied = true; setTimeout(() => copied = false, 2000)">
                     <i class="fas" :class="copied ? 'fa-check' : 'fa-copy'"></i>
                     <span x-text="copied ? 'Copied' : 'Copy'"></span>
@@ -54,7 +54,7 @@
     <div class="rounded-2xl p-5 mb-4" style="background: var(--surface, rgba(255,255,255,0.03)); border: 1px solid var(--border, rgba(255,255,255,0.08));">
         <div class="flex items-center justify-between gap-3 mb-2">
             <div class="text-sm font-semibold" style="color: var(--text);">
-                <i class="fas fa-gauge-high text-violet-400 mr-1.5"></i>API usage this period
+                <i class="fas fa-gauge-high text-blue-400 mr-1.5"></i>API usage this period
             </div>
             <div class="text-[11px]" style="color: var(--text-muted);">
                 Resets {{ $periodReset->format('M j, Y') }} · {{ $daysLeft }} {{ \Illuminate\Support\Str::plural('day', $daysLeft) }} left
@@ -64,11 +64,11 @@
         @if($unlimited)
             <div class="flex items-baseline gap-2">
                 <span class="text-2xl font-bold" style="color: var(--text);">{{ number_format($callsUsed) }}</span>
-                <span class="text-sm" style="color: var(--text-muted);">calls · <span class="font-semibold text-violet-400">Unlimited</span> allowance</span>
+                <span class="text-sm" style="color: var(--text-muted);">calls · <span class="font-semibold text-blue-400">Unlimited</span> allowance</span>
             </div>
         @else
             @php
-                $barColor = $percentUsed >= 100 ? '#ef4444' : ($percentUsed >= 80 ? '#f59e0b' : '#7c3aed');
+                $barColor = $percentUsed >= 100 ? '#ef4444' : ($percentUsed >= 80 ? '#f59e0b' : '#3d6bff');
             @endphp
             <div class="flex items-baseline justify-between gap-2 mb-2">
                 <div class="flex items-baseline gap-2">
@@ -124,14 +124,14 @@
 
     @if(!$unlimited)
         <p class="text-xs mb-6" style="color: var(--text-muted);">
-            <i class="fas fa-circle-info mr-1 text-violet-400"></i>
+            <i class="fas fa-circle-info mr-1 text-blue-400"></i>
             Your plan includes <strong>{{ number_format($allowance) }}</strong> API calls per month
             @if($rate > 0)(rate-limited to {{ number_format($rate) }}/min)@endif.
             Calls beyond that are charged at <strong>1 coin per {{ number_format($callsPerCoin) }} calls</strong>.
             @if(!$walletEnabled)
                 Coin top-ups are currently disabled, so calls beyond the allowance will be rejected.
             @endif
-            <a href="{{ route('user.upgrade') }}" class="text-violet-400 hover:underline ml-1">Need more? Upgrade your plan.</a>
+            <a href="{{ route('user.upgrade') }}" class="text-blue-400 hover:underline ml-1">Need more? Upgrade your plan.</a>
         </p>
     @endif
 
@@ -146,7 +146,7 @@
                    style="background: var(--surface-2, rgba(255,255,255,0.04)); border: 1px solid var(--border, rgba(255,255,255,0.1)); color: var(--text);">
             <button type="submit"
                     class="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition"
-                    style="background: #7c3aed; color: #fff;">
+                    style="background: #3d6bff; color: #fff;">
                 <i class="fas fa-plus mr-1.5"></i> Generate key
             </button>
         </form>
@@ -168,7 +168,7 @@
                      style="background: var(--surface, rgba(255,255,255,0.03)); border: 1px solid var(--border, rgba(255,255,255,0.08));">
                     <div class="min-w-0">
                         <div class="text-sm font-semibold truncate" style="color: var(--text);">
-                            <i class="fas fa-key text-violet-400 mr-1.5"></i>{{ $key->device_label ?: $key->name }}
+                            <i class="fas fa-key text-blue-400 mr-1.5"></i>{{ $key->device_label ?: $key->name }}
                         </div>
                         <div class="text-[11px] mt-0.5" style="color: var(--text-muted);">
                             Created {{ $key->created_at?->diffForHumans() }}

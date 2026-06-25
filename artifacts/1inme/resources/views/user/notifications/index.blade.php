@@ -11,7 +11,7 @@
                 <i class="fas fa-sliders-h mr-1"></i> Preferences
             </a>
             <form action="{{ route('user.notifications.read') }}" method="POST">@csrf
-                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 text-white">Mark all read</button>
+                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">Mark all read</button>
             </form>
         </div>
     </div>
@@ -36,7 +36,7 @@
         <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
             @foreach($notifications as $n)
                 @php $d = $n->data ?? []; $target = $n->targetUrl(); @endphp
-                <div class="relative p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'bg-violet-50/30' }} {{ $target ? 'hover:bg-violet-500/5 transition-colors' : '' }}">
+                <div class="relative p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'bg-blue-50/30' }} {{ $target ? 'hover:bg-blue-500/5 transition-colors' : '' }}">
                     @if($target)
                         {{-- Stretched link: clicking anywhere on the row opens the
                              target and marks this notification read in one step.
@@ -51,7 +51,7 @@
                         </div>
                     @elseif($n->type === 'workspace_access_request')
                         <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(139,92,246,0.12); color:#7c3aed;">
+                             style="background: rgba(92,131,255,0.12); color:#3d6bff;">
                             <i class="fas fa-user-shield"></i>
                         </div>
                     @elseif($n->type === 'task_assigned')
@@ -77,7 +77,7 @@
                     @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
                         <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">
                             {{ strtoupper(substr($d['follower_name'] ?? $d['creator_name'] ?? '?', 0, 1)) }}
                         </div>
                     @endif
@@ -89,7 +89,7 @@
                         @elseif($n->type === 'social_connection_broken')
                             <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? 'A social connection needs your attention.' }}</p>
                             @if(!empty($d['fix_url']))
-                                <a href="{{ $d['fix_url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-violet-600 hover:underline">
+                                <a href="{{ $d['fix_url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                     <i class="fas fa-rotate-right"></i> Fix it on Connected Accounts
                                 </a>
                             @endif
@@ -101,11 +101,11 @@
                             </p>
                             @if(!empty($d['note']))
                                 <blockquote class="mt-2 text-sm italic border-l-2 pl-3 py-1"
-                                            style="border-color:#7c3aed; color: var(--text-primary); background: rgba(139,92,246,0.06);">
+                                            style="border-color:#3d6bff; color: var(--text-primary); background: rgba(92,131,255,0.06);">
                                     &ldquo;{{ $d['note'] }}&rdquo;
                                 </blockquote>
                             @endif
-                            <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-violet-600 hover:underline">
+                            <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                 <i class="fas fa-users-gear"></i> Manage team access
                             </a>
                         @elseif($n->type === 'task_assigned')
@@ -168,7 +168,7 @@
                         @if(!$n->read_at)
                             <form action="{{ route('user.notifications.read-one', $n->id) }}" method="POST">@csrf
                                 <button type="submit" title="Mark as read"
-                                        class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-violet-500/10 transition-colors"
+                                        class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-blue-500/10 transition-colors"
                                         style="color: var(--text-faint);">
                                     <i class="fas fa-check text-xs"></i>
                                 </button>
@@ -210,7 +210,7 @@
                         </div>
                         <form action="{{ route('user.notifications.restore', $n->id) }}" method="POST" class="flex-shrink-0">@csrf
                             <button type="submit"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border hover:bg-violet-500/10 transition-colors"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border hover:bg-blue-500/10 transition-colors"
                                     style="border-color: var(--border-soft); color: var(--text-primary);">
                                 <i class="fas fa-rotate-left"></i> Restore
                             </button>

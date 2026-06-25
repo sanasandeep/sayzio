@@ -13,7 +13,7 @@
     <input type="hidden" name="show_preview_page" value="0">
     <label class="relative inline-flex items-center cursor-pointer mt-0.5">
         <input type="checkbox" name="show_preview_page" value="1" {{ $previewChecked ? 'checked' : '' }} class="sr-only peer">
-        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-violet-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
     </label>
     <div class="text-sm">
         <div class="text-white/80 font-medium">{{ $previewTitle ?? 'Show preview page before redirect' }}</div>

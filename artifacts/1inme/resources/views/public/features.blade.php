@@ -30,13 +30,13 @@
     html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
     @media (max-width: 1023px) { html { scroll-padding-top: 8.5rem; } }
     .feature-cat-card { transition: border-color .2s ease, transform .25s ease; }
-    .feature-cat-card:hover { border-color: rgba(167,139,250,.35); transform: translateY(-2px); }
+    .feature-cat-card:hover { border-color: rgba(144,172,255,.35); transform: translateY(-2px); }
     .feature-row { border-top: 1px solid rgba(255,255,255,.06); }
     .feature-row:first-child { border-top: 0; }
     .feat-spy-link { transition: color .15s ease, background .15s ease, border-color .15s ease; }
     /* Thin scrollbar for the desktop sticky nav so it doesn't clash with the dark theme. */
     .feat-spy-list::-webkit-scrollbar { width: 6px; }
-    .feat-spy-list::-webkit-scrollbar-thumb { background: rgba(167,139,250,.25); border-radius: 999px; }
+    .feat-spy-list::-webkit-scrollbar-thumb { background: rgba(144,172,255,.25); border-radius: 999px; }
     .feat-spy-list::-webkit-scrollbar-track { background: transparent; }
 </style>
 @endpush
@@ -49,7 +49,7 @@
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-14 items-center">
             <div data-anim="fade-right">
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
                     <i class="fas fa-sparkles text-[10px]"></i> Everything Sayzio can do
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
@@ -59,7 +59,7 @@
                     {{ $page->meta_description ?? 'A complete tour of every capability inside Sayzio — from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Start free</a>
+                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start free</a>
                     <a href="#categories" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Browse all features</a>
                 </div>
                 <div class="mt-10 grid grid-cols-3 gap-6 max-w-md" data-anim="fade-up" data-stagger>
@@ -120,8 +120,8 @@
                 :aria-expanded="mobileOpen"
                 aria-controls="features-mobile-toc"
                 class="w-full flex items-center gap-3 px-4 py-3 text-left">
-            <span class="shrink-0 w-9 h-9 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center">
-                <i class="fas fa-list-ul text-violet-300 text-sm"></i>
+            <span class="shrink-0 w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-400/30 flex items-center justify-center">
+                <i class="fas fa-list-ul text-blue-300 text-sm"></i>
             </span>
             <div class="min-w-0 flex-1">
                 <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Jump to category</div>
@@ -138,8 +138,8 @@
                 <a href="#cat-{{ $cat['id'] }}"
                    @click="mobileOpen = false; current = 'cat-{{ $cat['id'] }}'"
                    class="feat-spy-link flex items-center gap-3 px-4 py-2.5 text-sm border-t border-white/5 first:border-t-0"
-                   :class="current === 'cat-{{ $cat['id'] }}' ? 'text-violet-200 bg-violet-500/10' : 'text-gray-300 hover:bg-white/5'">
-                    <i class="fas {{ $cat['icon'] }} text-violet-400 w-4 text-center text-xs"></i>
+                   :class="current === 'cat-{{ $cat['id'] }}' ? 'text-blue-200 bg-blue-500/10' : 'text-gray-300 hover:bg-white/5'">
+                    <i class="fas {{ $cat['icon'] }} text-blue-400 w-4 text-center text-xs"></i>
                     <span class="truncate">{{ $cat['heading'] }}</span>
                     <span class="ml-auto text-[10px] text-gray-500">{{ $i + 1 }}</span>
                 </a>
@@ -161,10 +161,10 @@
                                        @click="current = 'cat-{{ $cat['id'] }}'"
                                        class="feat-spy-link flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm border-l-2"
                                        :class="current === 'cat-{{ $cat['id'] }}'
-                                                 ? 'bg-violet-500/10 text-violet-200 border-violet-400 font-semibold'
-                                                 : 'text-gray-400 hover:text-violet-300 hover:bg-white/5 border-transparent'">
+                                                 ? 'bg-blue-500/10 text-blue-200 border-blue-400 font-semibold'
+                                                 : 'text-gray-400 hover:text-blue-300 hover:bg-white/5 border-transparent'">
                                         <i class="fas {{ $cat['icon'] }} w-4 text-center text-xs"
-                                           :class="current === 'cat-{{ $cat['id'] }}' ? 'text-violet-300' : 'text-violet-400/70'"></i>
+                                           :class="current === 'cat-{{ $cat['id'] }}' ? 'text-blue-300' : 'text-blue-400/70'"></i>
                                         <span class="truncate">{{ $cat['heading'] }}</span>
                                     </a>
                                 </li>
@@ -179,11 +179,11 @@
                 @foreach($categories as $i => $cat)
                     <section id="cat-{{ $cat['id'] }}" data-spy-target class="feature-cat-card bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-10 scroll-mt-24" data-anim="fade-up">
                         <div class="flex items-start gap-4 mb-6">
-                            <div class="shrink-0 w-12 h-12 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
-                                <i class="fas {{ $cat['icon'] }} text-violet-300 text-lg"></i>
+                            <div class="shrink-0 w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
+                                <i class="fas {{ $cat['icon'] }} text-blue-300 text-lg"></i>
                             </div>
                             <div class="min-w-0">
-                                <div class="text-xs font-semibold uppercase tracking-wider text-violet-300/80 mb-1">Category {{ $i + 1 }}</div>
+                                <div class="text-xs font-semibold uppercase tracking-wider text-blue-300/80 mb-1">Category {{ $i + 1 }}</div>
                                 <h2 class="text-2xl sm:text-3xl font-bold text-white">{{ $cat['heading'] }}</h2>
                                 <p class="mt-2 text-gray-400 leading-relaxed max-w-3xl">{{ $cat['intro'] }}</p>
                             </div>
@@ -194,10 +194,10 @@
                                 <div class="feature-row grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6 px-5 py-4">
                                     <div class="md:col-span-1">
                                         <div class="flex items-start gap-2">
-                                            <i class="fas {{ $featureIcon($feat) }} text-violet-400 mt-1 text-sm w-4 text-center"></i>
+                                            <i class="fas {{ $featureIcon($feat) }} text-blue-400 mt-1 text-sm w-4 text-center"></i>
                                             <div class="font-semibold text-white">
                                                 @if($featLink !== '')
-                                                    <a href="{{ $featLink }}" class="hover:text-violet-300 underline-offset-4 hover:underline">{{ $featureName($feat) }}</a>
+                                                    <a href="{{ $featLink }}" class="hover:text-blue-300 underline-offset-4 hover:underline">{{ $featureName($feat) }}</a>
                                                 @else
                                                     {{ $featureName($feat) }}
                                                 @endif
@@ -207,7 +207,7 @@
                                     <div class="md:col-span-2 text-gray-400 text-sm leading-relaxed md:pt-0.5">
                                         {{ $featureDescription($feat) }}
                                         @if($featLink !== '')
-                                            <a href="{{ $featLink }}" class="ml-1 text-violet-300 hover:text-violet-200 font-semibold">Learn more <i class="fas fa-arrow-right text-[10px]"></i></a>
+                                            <a href="{{ $featLink }}" class="ml-1 text-blue-300 hover:text-blue-200 font-semibold">Learn more <i class="fas fa-arrow-right text-[10px]"></i></a>
                                         @endif
                                     </div>
                                 </div>
@@ -242,9 +242,9 @@
                 <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Spin up your Link in Bio, drop in your first link, and explore every feature on this page from your dashboard.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     @auth
-                        <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Open dashboard</a>
+                        <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Open dashboard</a>
                     @else
-                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
                         <a href="{{ route('site.how-it-works') }}" class="px-6 py-3 border border-white/15 text-gray-200 rounded-full text-sm font-semibold hover:bg-white/5">See how it works</a>
                     @endauth
                 </div>

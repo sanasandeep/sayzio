@@ -36,7 +36,7 @@
             @foreach($frequent as $fr)
                 <a href="{{ route('user.dialer.profile', ['number' => $fr['number'], 'contact' => $fr['contact_id']]) }}"
                    class="flex flex-col items-center flex-shrink-0 w-20 text-center">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold text-white mb-1" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">{{ $fr['initials'] }}</div>
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold text-white mb-1" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">{{ $fr['initials'] }}</div>
                     <div class="text-[11px] font-semibold truncate w-full" style="color:var(--text-primary);">{{ $fr['name'] }}</div>
                     <div class="text-[10px]" style="color:var(--text-faint);">{{ $fr['calls'] }} calls @if($fr['is_spam'])· <span style="color:#ef4444;">spam</span>@endif</div>
                 </a>
@@ -58,7 +58,7 @@
             <div class="grid grid-cols-3 gap-2 mb-4">
                 @php $sub = ['1'=>'','2'=>'ABC','3'=>'DEF','4'=>'GHI','5'=>'JKL','6'=>'MNO','7'=>'PQRS','8'=>'TUV','9'=>'WXYZ','*'=>'','0'=>'+','#'=>'']; @endphp
                 @foreach(['1','2','3','4','5','6','7','8','9','*','0','#'] as $key)
-                    <button type="button" onclick="dialerPress('{{ $key }}')" class="py-3 rounded-xl transition flex flex-col items-center" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);" onmouseover="this.style.background='rgba(124,58,237,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
+                    <button type="button" onclick="dialerPress('{{ $key }}')" class="py-3 rounded-xl transition flex flex-col items-center" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);" onmouseover="this.style.background='rgba(61,107,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
                         <span class="text-lg font-semibold">{{ $key }}</span>
                         @if($sub[$key])<span class="text-[9px] tracking-wider" style="color:var(--text-faint);">{{ $sub[$key] }}</span>@endif
                     </button>
@@ -71,7 +71,7 @@
                 <button type="button" onclick="dialerCall()" class="py-3 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#22c55e,#10b981);">
                     <i class="fas fa-phone mr-1"></i> Call
                 </button>
-                <button type="button" onclick="dialerProfile()" class="py-3 rounded-xl text-sm font-medium text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                <button type="button" onclick="dialerProfile()" class="py-3 rounded-xl text-sm font-medium text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                     <i class="fas fa-id-card mr-1"></i> Profile
                 </button>
             </div>
@@ -97,7 +97,7 @@
                             @php $first = $c->phones->first(); @endphp
                             <a href="{{ $first ? route('user.dialer.profile', ['number' => $first->value_e164 ?: $first->value, 'contact' => $c->id]) : route('user.contacts.show', $c) }}"
                                class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">{{ $c->initials() }}</div>
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">{{ $c->initials() }}</div>
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">
                                         {{ $c->nameForDisplay() }}
@@ -122,7 +122,7 @@
                             <div class="min-w-0 flex-1">
                                 <div class="text-sm font-semibold truncate flex items-center gap-1.5" style="color:var(--text-primary);">
                                     {{ $r['name'] }}
-                                    @if($r['calls'] > 1)<span class="text-[10px] px-1.5 rounded-full" style="background:rgba(124,58,237,.15);color:#a78bfa;">×{{ $r['calls'] }}</span>@endif
+                                    @if($r['calls'] > 1)<span class="text-[10px] px-1.5 rounded-full" style="background:rgba(61,107,255,.15);color:#90acff;">×{{ $r['calls'] }}</span>@endif
                                     @if($r['biolink'])<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(236,72,153,.15);color:#f472b6;">Sayzio</span>@endif
                                     @if($r['is_spam'])<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(239,68,68,.15);color:#ef4444;">SPAM</span>@endif
                                     @if($r['is_blocked'])<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(107,114,128,.2);color:#9ca3af;">BLOCKED</span>@endif
@@ -186,7 +186,7 @@ async function fetchMatches(q) {
         liveBox.classList.remove('hidden');
         liveBox.innerHTML = data.matches.map(m => `
             <a href="${m.profile_url}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">${m.initials}</div>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">${m.initials}</div>
                 <div class="flex-1 min-w-0">
                     <div class="text-xs font-semibold truncate" style="color:var(--text-primary);">${escapeHtml(m.name)}${m.biolink ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(236,72,153,.15);color:#f472b6\">Sayzio</span>' : ''}${m.is_spam ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(239,68,68,.15);color:#ef4444\">SPAM</span>' : ''}</div>
                     <div class="text-[11px] truncate" style="color:var(--text-muted);">${m.phone || ''}</div>

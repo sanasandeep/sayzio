@@ -18,8 +18,8 @@
                 <a href="{{ route('home') }}" class="inline-flex items-center justify-center">@include('common.partials.brand-logo', ['height' => 'h-12'])</a>
             </div>
 
-            <div class="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                <i class="fas fa-shield-halved text-violet-400 text-xl"></i>
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                <i class="fas fa-shield-halved text-blue-400 text-xl"></i>
             </div>
             <h2 class="text-lg font-bold mb-1" style="color: var(--text-primary);">Two-factor verification</h2>
             <p class="text-xs mb-6" style="color: var(--text-dimmed);">Enter the 6-digit code from your authenticator app, or use a recovery code.</p>
@@ -43,7 +43,7 @@
             </form>
 
             <p class="mt-4 text-xs">
-                <a href="{{ route('user.login') }}" class="text-violet-400 hover:text-violet-300 font-semibold">
+                <a href="{{ route('user.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold">
                     <i class="fas fa-arrow-left text-[10px] mr-1"></i> Cancel
                 </a>
             </p>

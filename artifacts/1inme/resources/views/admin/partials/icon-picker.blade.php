@@ -26,7 +26,7 @@
                     <button type="button" @click="$store.iconPicker.tapIcon(ic)"
                             @mouseenter="$store.iconPicker.hover = ic" @mouseleave="if ($store.iconPicker.hover === ic) $store.iconPicker.hover = null"
                             @focus="$store.iconPicker.hover = ic" @blur="if ($store.iconPicker.hover === ic) $store.iconPicker.hover = null"
-                            :class="'group flex items-center justify-center aspect-square rounded-lg border text-white/80 hover:text-white hover:bg-violet-500/20 transition ' + ($store.iconPicker.hover === ic ? 'ring-2 ring-violet-400/60 ' : '') + ($store.iconPicker.current === ic ? 'bg-violet-500/30 border-violet-400/50' : 'bg-white/5 border-white/10')"
+                            :class="'group flex items-center justify-center aspect-square rounded-lg border text-white/80 hover:text-white hover:bg-blue-500/20 transition ' + ($store.iconPicker.hover === ic ? 'ring-2 ring-blue-400/60 ' : '') + ($store.iconPicker.current === ic ? 'bg-blue-500/30 border-blue-400/50' : 'bg-white/5 border-white/10')"
                             :title="ic" :aria-label="ic">
                         <i :class="'fas ' + ic + ' text-base'"></i>
                     </button>
@@ -37,7 +37,7 @@
         <div class="px-4 py-2 border-t border-white/10 bg-black/30 flex items-center justify-center gap-2 min-h-[36px]">
             <template x-if="$store.iconPicker.hover">
                 <span class="flex items-center gap-2 text-xs text-white">
-                    <i :class="'fas ' + $store.iconPicker.hover + ' text-violet-300'"></i>
+                    <i :class="'fas ' + $store.iconPicker.hover + ' text-blue-300'"></i>
                     <code class="text-white/90" x-text="$store.iconPicker.hover"></code>
                     <span class="text-white/40 hidden sm:inline">— tap again to select</span>
                 </span>

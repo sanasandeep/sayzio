@@ -1,7 +1,7 @@
 @php
     use App\Modules\User\Support\QrCodeDesignSanitizer;
     /** @var \App\Modules\User\Models\Link $link */
-    $accent = $menu->accent_color ?: '#7c3aed';
+    $accent = $menu->accent_color ?: '#3d6bff';
     $place = $link->title ?: $link->alias;
 
     // Reuse the shared QR Studio design vocabulary, tinted with the menu accent.

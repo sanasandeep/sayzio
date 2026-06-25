@@ -61,7 +61,7 @@
                                name="areas[{{ $key }}]"
                                value="1"
                                @checked($area['enabled'])
-                               class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                               class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white">{{ $area['label'] }}</span>
@@ -102,21 +102,21 @@
                 <label class="flex items-start gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
                     <input type="radio" name="style" value="standard"
                            @checked($currentStyle !== 'upgrade')
-                           class="mt-1 w-4 h-4 accent-violet-500 cursor-pointer">
+                           class="mt-1 w-4 h-4 accent-blue-500 cursor-pointer">
                     <div class="flex-1 min-w-0">
                         <span class="text-sm font-semibold text-white">Standard</span>
                         <p class="text-xs text-white/50 mt-0.5">The default &ldquo;We&rsquo;ll be right back&rdquo; maintenance page.</p>
                     </div>
                 </label>
 
-                <label class="flex items-start gap-3 p-4 rounded-xl border border-violet-400/30 bg-violet-500/[0.06] hover:bg-violet-500/[0.09] transition cursor-pointer">
+                <label class="flex items-start gap-3 p-4 rounded-xl border border-blue-400/30 bg-blue-500/[0.06] hover:bg-blue-500/[0.09] transition cursor-pointer">
                     <input type="radio" name="style" value="upgrade"
                            @checked($currentStyle === 'upgrade')
-                           class="mt-1 w-4 h-4 accent-violet-500 cursor-pointer">
+                           class="mt-1 w-4 h-4 accent-blue-500 cursor-pointer">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white">Upgrade &mdash; Sayzio 2.0</span>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-violet-500/15 border border-violet-400/30 text-violet-300">On-brand</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/15 border border-blue-400/30 text-blue-300">On-brand</span>
                         </div>
                         <p class="text-xs text-white/50 mt-0.5">A polished &ldquo;Sayzio 2.0 is coming&rdquo; announcement teasing the new AI &ldquo;digital aging&rdquo; feature. Your message &amp; ETA below still show.</p>
                     </div>
@@ -148,7 +148,7 @@
 
         <div class="flex justify-end">
             <button type="submit"
-                    class="px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition">
+                    class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">
                 <i class="fas fa-save mr-1.5"></i> Save settings
             </button>
         </div>

@@ -6,9 +6,9 @@
     {{-- Header --}}
     <div class="text-center mb-8">
         @if($creator->avatar)
-            <img src="{{ $creator->avatar }}" alt="" class="w-16 h-16 rounded-full mx-auto mb-3 object-cover ring-2 ring-violet-500/30">
+            <img src="{{ $creator->avatar }}" alt="" class="w-16 h-16 rounded-full mx-auto mb-3 object-cover ring-2 ring-blue-500/30">
         @endif
-        <a href="{{ route('creator-profile.show', ['handle' => $creator->handle]) }}" class="text-sm" style="color: #8b5cf6;">← Back to profile</a>
+        <a href="{{ route('creator-profile.show', ['handle' => $creator->handle]) }}" class="text-sm" style="color: #5c83ff;">← Back to profile</a>
         <h1 class="text-3xl font-bold mt-2" style="color: var(--text-primary);">Support {{ $creator->name }}</h1>
         @if($creator->tagline)
             <p class="mt-1 text-sm max-w-md mx-auto" style="color: var(--text-faint);">{{ $creator->tagline }}</p>
@@ -26,7 +26,7 @@
                 You're a {{ $existing->tier->name ?? 'subscriber' }} ✓
             </div>
             <a href="{{ route('creator-profile.subscription.manage', ['handle' => $creator->handle]) }}"
-               class="text-xs" style="color: #8b5cf6;">Manage subscription →</a>
+               class="text-xs" style="color: #5c83ff;">Manage subscription →</a>
         </div>
     @endif
 
@@ -40,7 +40,7 @@
     {{-- Cycle toggle --}}
     <div class="flex items-center justify-center gap-2 mb-6" id="cycleToggle">
         <button type="button" data-cycle="monthly" class="cycle-btn px-4 py-2 text-sm font-semibold rounded-full border" data-active="true"
-                style="background: #8b5cf6; color: white; border-color: #8b5cf6;">Monthly</button>
+                style="background: #5c83ff; color: white; border-color: #5c83ff;">Monthly</button>
         <button type="button" data-cycle="yearly" class="cycle-btn px-4 py-2 text-sm font-semibold rounded-full border"
                 style="background: transparent; color: var(--text-secondary); border-color: var(--border-color);">Yearly</button>
     </div>
@@ -52,7 +52,7 @@
                 $color = match($tier->color) {
                     'sky' => '#0ea5e9', 'emerald' => '#10b981', 'amber' => '#f59e0b',
                     'rose' => '#f43f5e', 'fuchsia' => '#d946ef', 'slate' => '#64748b',
-                    default => '#8b5cf6',
+                    default => '#5c83ff',
                 };
                 $monthly = '$' . number_format($tier->price_monthly_cents / 100, 2);
                 $yearly = $tier->price_yearly_cents ? '$' . number_format($tier->price_yearly_cents / 100, 2) : null;
@@ -146,9 +146,9 @@ document.addEventListener('click', (e) => {
     const cycle = btn.dataset.cycle;
     document.querySelectorAll('.cycle-btn').forEach((b) => {
         const active = b.dataset.cycle === cycle;
-        b.style.background = active ? '#8b5cf6' : 'transparent';
+        b.style.background = active ? '#5c83ff' : 'transparent';
         b.style.color = active ? 'white' : 'var(--text-secondary)';
-        b.style.borderColor = active ? '#8b5cf6' : 'var(--border-color)';
+        b.style.borderColor = active ? '#5c83ff' : 'var(--border-color)';
     });
     document.querySelectorAll('.cycle-input').forEach((i) => i.value = cycle);
     document.querySelectorAll('.cycle-label').forEach((l) => l.textContent = cycle === 'yearly' ? 'year' : 'month');

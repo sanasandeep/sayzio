@@ -15,7 +15,7 @@
             <a href="{{ route('admin.blogs.comments.index') }}" class="px-3 py-2 text-sm bg-white/5 hover:bg-white/10 rounded-lg text-white/80"><i class="fas fa-comments mr-1"></i>Comments</a>
             <a href="{{ route('admin.blogs.settings.edit') }}" class="px-3 py-2 text-sm bg-white/5 hover:bg-white/10 rounded-lg text-white/80"><i class="fas fa-cog mr-1"></i>Settings</a>
             @if(auth('admin')->user()->hasPermission('blogs.manage'))
-                <a href="{{ route('admin.blogs.posts.create') }}" class="px-4 py-2 text-sm bg-violet-600 hover:bg-violet-700 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>New post</a>
+                <a href="{{ route('admin.blogs.posts.create') }}" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>New post</a>
             @endif
         </div>
     </div>
@@ -25,7 +25,7 @@
     <div class="flex flex-wrap gap-2 text-xs">
         @foreach(['all'=>'All','draft'=>'Drafts','scheduled'=>'Scheduled','published'=>'Published','archived'=>'Archived'] as $key=>$label)
             @php $active = ($key==='all' && !request('status')) || request('status')===$key; @endphp
-            <a href="{{ route('admin.blogs.posts.index', $key==='all' ? [] : ['status'=>$key]) }}" class="px-3 py-1.5 rounded-full {{ $active ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }} <span class="opacity-60">({{ $counts[$key] ?? 0 }})</span></a>
+            <a href="{{ route('admin.blogs.posts.index', $key==='all' ? [] : ['status'=>$key]) }}" class="px-3 py-1.5 rounded-full {{ $active ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }} <span class="opacity-60">({{ $counts[$key] ?? 0 }})</span></a>
         @endforeach
     </div>
 
@@ -41,7 +41,7 @@
             @foreach($authors as $a) <option value="{{ $a->id }}" @selected(request('author')==$a->id)>{{ $a->name }}</option>@endforeach
         </select>
         <input type="date" name="from" value="{{ request('from') }}" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-        <button class="px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm text-white">Filter</button>
+        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white">Filter</button>
     </form>
 
     <form method="POST" action="{{ route('admin.blogs.posts.bulk') }}" class="glass rounded-xl overflow-hidden">
@@ -64,7 +64,7 @@
                     <tr class="border-b border-white/5 hover:bg-white/[0.02]">
                         <td class="p-3"><input type="checkbox" name="ids[]" value="{{ $p->id }}"></td>
                         <td class="p-3">
-                            <a href="{{ route('admin.blogs.posts.edit', $p) }}" class="text-white hover:text-violet-300 font-medium">{{ $p->title }}</a>
+                            <a href="{{ route('admin.blogs.posts.edit', $p) }}" class="text-white hover:text-blue-300 font-medium">{{ $p->title }}</a>
                             <div class="text-[11px] text-white/40">/{{ $p->slug }}</div>
                         </td>
                         <td class="p-3 text-white/70">{{ optional($p->category)->name ?: '—' }}</td>

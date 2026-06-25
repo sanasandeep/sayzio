@@ -53,9 +53,9 @@
     @endif
 
     {{-- Master cron line --}}
-    <div class="glass rounded-2xl p-6 space-y-3 border border-violet-500/20">
+    <div class="glass rounded-2xl p-6 space-y-3 border border-blue-500/20">
         <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-violet-300 bg-violet-500/10 border border-violet-500/20 shrink-0">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-blue-300 bg-blue-500/10 border border-blue-500/20 shrink-0">
                 <i class="fas fa-clock"></i>
             </div>
             <div class="min-w-0">
@@ -72,7 +72,7 @@
             <code class="flex-1 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-sm text-emerald-200 font-mono break-all">{{ $masterCronLine }}</code>
             <button type="button"
                     @click="copy($refs.master.textContent, 'master')"
-                    class="shrink-0 px-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition flex items-center gap-1.5">
+                    class="shrink-0 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition flex items-center gap-1.5">
                 <i class="fas" :class="copied === 'master' ? 'fa-check' : 'fa-copy'"></i>
                 <span x-text="copied === 'master' ? 'Copied' : 'Copy'"></span>
             </button>
@@ -106,7 +106,7 @@
                         <tr class="transition align-top {{ $job['overdue'] ? 'bg-rose-500/[0.06] hover:bg-rose-500/[0.1]' : 'hover:bg-white/[0.02]' }}">
                             <td class="px-6 py-4 max-w-md">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <code class="text-violet-200 font-mono text-[13px] break-all">{{ $job['command'] }}</code>
+                                    <code class="text-blue-200 font-mono text-[13px] break-all">{{ $job['command'] }}</code>
                                     @if($job['is_callback'])
                                         <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40">Closure</span>
                                     @endif

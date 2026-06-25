@@ -9,7 +9,7 @@
             <h1 class="text-2xl font-semibold text-white">Buy coins</h1>
             <p class="text-sm text-white/40">Top up your wallet. Prices are in {{ $currency }}.</p>
         </div>
-        <a href="{{ route('user.wallet.show') }}" class="text-sm text-violet-300 hover:underline">← Wallet</a>
+        <a href="{{ route('user.wallet.show') }}" class="text-sm text-blue-300 hover:underline">← Wallet</a>
     </div>
 
     @if($packages->isEmpty())
@@ -43,7 +43,7 @@
                             <option value="{{ $g->slug() }}">{{ $g->displayName() }}</option>
                         @endforeach
                     </select>
-                    <button class="w-full px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Buy now</button>
+                    <button class="w-full px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Buy now</button>
                 </form>
             </div>
         @endforeach

@@ -6,7 +6,7 @@
     <title>Connecting Sayzio extension…</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-               background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+               background: linear-gradient(135deg, #6366f1 0%, #5c83ff 100%);
                color: white; min-height: 100vh; margin: 0;
                display: flex; align-items: center; justify-content: center; padding: 24px; }
         .card { background: rgba(255,255,255,0.12); backdrop-filter: blur(8px);

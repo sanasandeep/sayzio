@@ -30,7 +30,7 @@
             </div>
             <div>
                 <label class="block text-sm font-semibold mb-1">Brand color</label>
-                <input name="brand_color" type="color" value="#7c3aed"
+                <input name="brand_color" type="color" value="#3d6bff"
                        class="h-10 w-20 rounded border" style="border-color: var(--border-strong); background: var(--bg-input);">
             </div>
         </div>

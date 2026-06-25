@@ -46,7 +46,7 @@
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <div data-anim="fade-right">
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-violet-500/10 border border-violet-400/20 text-violet-300">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-blue-500/10 border border-blue-400/20 text-blue-300">
                     <i class="fas fa-route text-[10px]"></i> {{ $page->title ?? 'How it works' }}
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
@@ -56,7 +56,7 @@
                     {{ $page->meta_description ?? 'You do not need a designer, a developer or a weekend. Sign up, build your one link, share it everywhere, then watch the data come in.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                         <i class="fas fa-rocket text-xs"></i> Start free
                     </a>
                     <a href="#step-01" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -111,15 +111,15 @@
                 <div class="{{ $reverse ? 'lg:order-2' : '' }}" data-anim="{{ $reverse ? 'fade-left' : 'fade-right' }}">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="text-5xl font-bold grad-text leading-none">{{ $step['n'] }}</span>
-                        <div class="h-px flex-1 bg-violet-500/30"></div>
-                        <i class="fas {{ $step['icon'] }} text-violet-300"></i>
+                        <div class="h-px flex-1 bg-blue-500/30"></div>
+                        <i class="fas {{ $step['icon'] }} text-blue-300"></i>
                     </div>
                     <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{{ $step['title'] }}</h2>
                     <p class="mt-4 text-gray-400 leading-relaxed text-base">{{ $step['desc'] }}</p>
                     <div class="mt-5 flex flex-wrap gap-2" data-anim="fade-up" data-stagger>
                         @foreach($step['tags'] as $tag)
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
-                                <i class="fas fa-circle-check text-violet-400 text-[10px]"></i>{{ $tag }}
+                                <i class="fas fa-circle-check text-blue-400 text-[10px]"></i>{{ $tag }}
                             </span>
                         @endforeach
                     </div>
@@ -140,7 +140,7 @@
         <div class="grad-border rounded-3xl p-7 sm:p-8 relative overflow-hidden">
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
-                <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-300 mb-2">
+                <div class="text-xs font-bold uppercase tracking-[.2em] text-blue-300 mb-2">
                     <i class="fas fa-rectangle-list"></i> Templates
                 </div>
                 <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Skip the blank canvas.</h3>
@@ -148,7 +148,7 @@
                     Pick a professionally designed template, swap in your details, and you’re live in two minutes. Built for creators, brands, agencies, restaurants, coaches and more — and you can save your own as a reusable template for clients or your team.
                 </p>
                 <div class="mt-5">
-                    <a href="{{ route('site.features') }}#cat-templates" class="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-300 hover:text-white">
+                    <a href="{{ route('site.features') }}#cat-templates" class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-300 hover:text-white">
                         Browse templates <i class="fas fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
@@ -194,7 +194,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your link in <span class="grad-text">two minutes</span>.</h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">No card, no commitment. Spin up your Sayzio, drop in a few links, and start tracking what works.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Create my Sayzio</a>
+                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create my Sayzio</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

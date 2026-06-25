@@ -13,7 +13,7 @@ export default function Slide010Salesproofquote() {
           <span className="text-[1vw] uppercase tracking-[0.3em] text-fuchsia-200">Persona quote</span>
           <blockquote className="mt-[3vh] font-display text-[4vw] font-semibold leading-[1.1] tracking-tight">&ldquo;We replaced six tools and shaved a workday off every week. The team finally has one place to live.&rdquo;</blockquote>
           <div className="mt-[4vh] flex items-center gap-[1.5vw]">
-            <div className="h-[5vw] w-[5vw] rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 grid place-items-center font-display text-[2vw] font-bold">A</div>
+            <div className="h-[5vw] w-[5vw] rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 grid place-items-center font-display text-[2vw] font-bold">A</div>
             <div><div className="font-display text-[1.4vw] font-semibold">Avery K.</div><div className="text-[1vw] text-slate-400">Founder, indie record label · early-access customer</div></div>
           </div>
         </div>

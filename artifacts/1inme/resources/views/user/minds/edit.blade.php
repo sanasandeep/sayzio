@@ -48,7 +48,7 @@
             </div>
             <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                 <p class="text-[10px] uppercase tracking-wider text-white/40">Questions</p>
-                <p class="text-xl font-bold text-violet-300 mt-1">{{ number_format($creditUsage['query']) }}</p>
+                <p class="text-xl font-bold text-blue-300 mt-1">{{ number_format($creditUsage['query']) }}</p>
                 <p class="text-[11px] text-white/40 mt-1">Live test queries</p>
             </div>
             <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
@@ -205,11 +205,11 @@
 
     {{-- Test chat --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-comment-dots text-violet-300"></i> Test this Mind</h3>
+        <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-comment-dots text-blue-300"></i> Test this Mind</h3>
         <p class="text-xs text-white/40 mt-1">Ask a question to verify the Mind answers from your sources. Costs AI credits.</p>
         <form @submit.prevent="ask" class="mt-3 flex gap-2">
             <input x-model="question" required maxlength="1500" placeholder="What do you want to know?" class="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
-            <button :disabled="loading" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium">
+            <button :disabled="loading" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium">
                 <span x-show="!loading">Ask</span><span x-show="loading">…</span>
             </button>
         </form>

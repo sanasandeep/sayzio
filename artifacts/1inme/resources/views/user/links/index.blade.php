@@ -84,8 +84,8 @@
 
 @if($links->isEmpty())
 <div class="card-premium p-14 text-center">
-    <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.12);">
-        <i class="fas fa-link text-violet-400 text-xl"></i>
+    <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.12);">
+        <i class="fas fa-link text-blue-400 text-xl"></i>
     </div>
     <h3 class="text-base font-bold mb-1.5" style="color: var(--text-primary);">No links yet</h3>
     <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks — or let our wizard build a Link in Bio for you in under a minute.</p>
@@ -154,7 +154,7 @@
     // but still get their real label/icon. Resolved once, outside the loop.
     $linkTypes  = \App\Modules\User\Support\LinkTypeCategories::types();
     $typeColors = [
-        'url'     => ['bg' => 'rgba(124,58,237,0.08)', 'border' => 'rgba(124,58,237,0.12)', 'color' => '#a78bfa'],
+        'url'     => ['bg' => 'rgba(61,107,255,0.08)', 'border' => 'rgba(61,107,255,0.12)', 'color' => '#90acff'],
         'biolink' => ['bg' => 'rgba(236,72,153,0.08)', 'border' => 'rgba(236,72,153,0.12)', 'color' => '#f472b6'],
         'file'    => ['bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399'],
         'ics'     => ['bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24'],
@@ -197,11 +197,11 @@
                 'excel' => ['fa-file-excel',       '#10b981', 'rgba(16,185,129,0.08)', 'rgba(16,185,129,0.12)'],
                 'ppt'   => ['fa-file-powerpoint',  '#f97316', 'rgba(249,115,22,0.08)', 'rgba(249,115,22,0.12)'],
                 'img'   => ['fa-file-image',       '#ec4899', 'rgba(236,72,153,0.08)', 'rgba(236,72,153,0.12)'],
-                'video' => ['fa-file-video',       '#8b5cf6', 'rgba(139,92,246,0.08)', 'rgba(139,92,246,0.12)'],
+                'video' => ['fa-file-video',       '#5c83ff', 'rgba(92,131,255,0.08)', 'rgba(92,131,255,0.12)'],
                 'audio' => ['fa-file-audio',       '#06b6d4', 'rgba(6,182,212,0.08)',  'rgba(6,182,212,0.12)'],
                 'zip'   => ['fa-file-zipper',      '#eab308', 'rgba(234,179,8,0.08)',  'rgba(234,179,8,0.12)'],
                 'text'  => ['fa-file-lines',       '#94a3b8', 'rgba(148,163,184,0.08)','rgba(148,163,184,0.12)'],
-                'code'  => ['fa-file-code',        '#a855f7', 'rgba(168,85,247,0.08)', 'rgba(168,85,247,0.12)'],
+                'code'  => ['fa-file-code',        '#6e61ff', 'rgba(110,97,255,0.08)', 'rgba(110,97,255,0.12)'],
             ];
             $hit = $fileIconMap[$ext] ?? null;
             if (is_array($hit)) {
@@ -222,7 +222,7 @@
                 @if($__canMove)
                 <label class="flex-shrink-0 pt-1.5 cursor-pointer" title="Select to move">
                     <input type="checkbox" :value="{{ $link->id }}" x-model.number="selected"
-                           class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/40">
+                           class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
                 </label>
                 @endif
                 <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
@@ -230,7 +230,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-0.5">
-                        <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-violet-400" style="color: var(--text-primary);">
+                        <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-blue-400" style="color: var(--text-primary);">
                             {{ $link->title ?: $link->alias }}
                         </a>
                         <span class="badge" style="background: {{ $ts['bg'] }}; color: {{ $ts['color'] }}; border: 1px solid {{ $ts['border'] }};">{{ $ts['label'] }}</span>
@@ -244,10 +244,10 @@
                             <i class="fas fa-clock text-[9px]" style="color: var(--text-faint);" title="Expires {{ $link->expires_at->format('M d, Y') }}"></i>
                         @endif
                     </div>
-                    <div class="flex items-center gap-1.5 text-xs text-violet-400/60 mb-0.5" x-data="{ copied: false }">
+                    <div class="flex items-center gap-1.5 text-xs text-blue-400/60 mb-0.5" x-data="{ copied: false }">
                         <span class="truncate">{{ $link->getShortUrl() }}</span>
                         <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                class="flex-shrink-0 transition-colors hover:text-violet-400" style="color: var(--text-faint);">
+                                class="flex-shrink-0 transition-colors hover:text-blue-400" style="color: var(--text-faint);">
                             <i x-show="!copied" class="fas fa-copy text-[10px]"></i>
                             <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-[10px]"></i>
                         </button>
@@ -273,8 +273,8 @@
                     <div class="text-[10px]" style="color: var(--text-faint);">clicks</div>
                 </div>
                 <div class="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                    <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-violet-500/10" style="color: var(--text-faint);" title="View">
-                        <i class="fas fa-chart-bar text-xs hover:text-violet-400"></i>
+                    <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-blue-500/10" style="color: var(--text-faint);" title="View">
+                        <i class="fas fa-chart-bar text-xs hover:text-blue-400"></i>
                     </a>
                     @canInWorkspace('links.edit')
                         @if($link->type === 'biolink')
@@ -282,8 +282,8 @@
                             <i class="fas fa-th-large text-xs hover:text-pink-400"></i>
                         </a>
                         @endif
-                        <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-violet-500/10" style="color: var(--text-faint);" title="Edit">
-                            <i class="fas fa-edit text-xs hover:text-violet-400"></i>
+                        <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-blue-500/10" style="color: var(--text-faint);" title="Edit">
+                            <i class="fas fa-edit text-xs hover:text-blue-400"></i>
                         </a>
                     @else
                         <span class="p-1.5 rounded-md opacity-50 cursor-not-allowed" style="color: var(--text-faint);" title="Your role doesn't allow editing links">

@@ -34,7 +34,7 @@
         </div>
 
         <label class="flex items-center gap-2 text-sm text-white/80">
-            <input type="checkbox" name="is_enabled" value="1" @checked($row->is_enabled) class="accent-violet-500">
+            <input type="checkbox" name="is_enabled" value="1" @checked($row->is_enabled) class="accent-blue-500">
             Enable this gateway on the checkout page
         </label>
 
@@ -59,7 +59,7 @@
         </div>
 
         <div class="flex gap-3 pt-2">
-            <button type="submit" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Save</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save</button>
             <a href="{{ route('admin.payment-gateways.index') }}" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl">Cancel</a>
         </div>
     </form>

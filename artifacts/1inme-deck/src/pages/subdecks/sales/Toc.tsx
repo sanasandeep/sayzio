@@ -13,7 +13,7 @@ export default function SubdeckToc() {
         <p className="mt-[2vh] text-[1.3vw] text-slate-300 max-w-[60vw]">Sub-deck of 1 section, exported from the master deck.</p>
         <div className="mt-[4vh] grid grid-cols-1 gap-[1.5vw]">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.5vw] flex items-start gap-[1.2vw]">
-            <div className="font-display text-[1.6vw] font-bold text-violet-300 w-[3vw]">01</div>
+            <div className="font-display text-[1.6vw] font-bold text-blue-300 w-[3vw]">01</div>
             <div className="flex-1"><div className="font-display text-[1.5vw] font-semibold">Sales Presentation</div><div className="mt-[0.4vh] text-[1vw] text-slate-400">Problem, pitch, ROI, pricing, next steps.</div></div>
             <div className="text-[1vw] text-fuchsia-200 font-mono whitespace-nowrap">3 – 23</div>
           </div>

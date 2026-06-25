@@ -171,7 +171,7 @@
                                         </div>
 
                                         <div class="mt-3 flex items-center gap-2">
-                                            <button type="submit" class="px-3 py-1.5 rounded-md text-xs font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                                            <button type="submit" class="px-3 py-1.5 rounded-md text-xs font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                                                 <i class="fas fa-check mr-1"></i>Save row
                                             </button>
                                             <a href="{{ route('user.contacts.import.preview', ['token' => $token, 'page' => $rows->currentPage()]) }}" class="px-3 py-1.5 rounded-md text-xs" style="background:rgba(255,255,255,.06); color:var(--text-muted); border:1px solid rgba(255,255,255,.08);">Cancel</a>
@@ -193,7 +193,7 @@
     <div class="flex items-center gap-3">
         <form method="POST" action="{{ route('user.contacts.import.confirm', ['token' => $token]) }}">
             @csrf
-            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                 <i class="fas fa-check mr-1"></i> Confirm import
             </button>
         </form>

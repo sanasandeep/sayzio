@@ -25,12 +25,12 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Name</label>
                     <input type="text" name="name" value="{{ old('name') }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Email</label>
                     <input type="email" name="email" value="{{ old('email') }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
             </div>
 
@@ -38,12 +38,12 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Handle <span class="text-white/40">(optional)</span></label>
                     <input type="text" name="handle" value="{{ old('handle') }}" placeholder="letters, numbers, . _ -"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
                     <select name="plan_id"
-                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <option value="">Default plan</option>
                         @foreach($plans as $plan)
                             <option value="{{ $plan->id }}" {{ old('plan_id') == $plan->id ? 'selected' : '' }}>
@@ -58,12 +58,12 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Starting coins <span class="text-white/40">(optional)</span></label>
                     <input type="number" name="starting_coins" value="{{ old('starting_coins') }}" min="1" max="1000000" placeholder="0"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Password <span class="text-white/40">(blank = auto-generate)</span></label>
                     <input type="text" name="password" autocomplete="off" placeholder="Min 8 chars, or leave blank"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
             </div>
 
@@ -83,7 +83,7 @@
                 <div x-show="createStaff" x-cloak>
                     <label class="block text-sm font-medium text-white/80 mb-1">Staff role</label>
                     <select name="role_id"
-                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <option value="">Select a role…</option>
                         @foreach($roles as $role)
                             <option value="{{ $role->id }}" {{ old('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
@@ -94,7 +94,7 @@
             @endif
 
             <div class="flex items-center gap-3 pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                     <i class="fas fa-user-plus mr-1"></i> Create account
                 </button>
                 <a href="{{ route('admin.users.index') }}" class="px-4 py-2.5 text-white/60 hover:text-white/90 text-sm">Cancel</a>

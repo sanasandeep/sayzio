@@ -25,7 +25,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">URL <span class="text-red-500">*</span></label>
-                    <input type="url" x-model="url" placeholder="https://example.com" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <input type="url" x-model="url" placeholder="https://example.com" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
                     <p class="text-xs text-white/30 mt-1">Enter any URL to generate a QR code</p>
                 </div>
 
@@ -54,7 +54,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">Error Correction</label>
-                    <select x-model="errorCorrection" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <select x-model="errorCorrection" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         <option value="L">Low (7%)</option>
                         <option value="M">Medium (15%)</option>
                         <option value="Q">Quartile (25%)</option>
@@ -75,7 +75,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">Download Format</label>
-                    <select x-model="format" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <select x-model="format" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         <option value="png">PNG (Raster)</option>
                         <option value="svg">SVG (Vector)</option>
                     </select>
@@ -99,7 +99,7 @@
                 <input type="hidden" name="bg_color" :value="bgColor">
                 <input type="hidden" name="error_correction" :value="errorCorrection">
 
-                <button type="submit" :disabled="!url" class="w-full bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button type="submit" :disabled="!url" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="fas fa-download"></i>
                     <span x-text="'Download ' + format.toUpperCase()"></span>
                 </button>

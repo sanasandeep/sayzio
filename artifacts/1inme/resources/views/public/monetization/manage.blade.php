@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-md mx-auto px-4 py-8">
-    <a href="{{ route('creator-profile.show', ['handle' => $creator->handle]) }}" class="text-sm" style="color: #8b5cf6;">← Back to profile</a>
+    <a href="{{ route('creator-profile.show', ['handle' => $creator->handle]) }}" class="text-sm" style="color: #5c83ff;">← Back to profile</a>
     <h1 class="text-2xl font-bold mt-2 mb-1" style="color: var(--text-primary);">Manage subscription</h1>
     <p class="text-sm mb-6" style="color: var(--text-faint);">Your support of {{ $creator->name }}.</p>
 
@@ -49,7 +49,7 @@
         </div>
         <form method="POST" action="{{ route('creator-profile.subscription.resume', ['handle' => $creator->handle]) }}">
             @csrf
-            <button type="submit" class="w-full py-2.5 rounded-lg font-semibold text-sm" style="background: #8b5cf6; color: white;">
+            <button type="submit" class="w-full py-2.5 rounded-lg font-semibold text-sm" style="background: #5c83ff; color: white;">
                 Resume subscription
             </button>
         </form>
@@ -64,7 +64,7 @@
     @endif
 
     <div class="mt-4 text-center">
-        <a href="{{ route('creator-profile.subscribe.show', ['handle' => $creator->handle]) }}" class="text-sm" style="color: #8b5cf6;">
+        <a href="{{ route('creator-profile.subscribe.show', ['handle' => $creator->handle]) }}" class="text-sm" style="color: #5c83ff;">
             Switch tier →
         </a>
     </div>

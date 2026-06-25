@@ -29,8 +29,8 @@
     .aic-toggle input { width: 18px; height: 18px; }
     .aic-banner { display:flex; gap:12px; align-items:center; padding: 14px 16px; border-radius: .85rem; margin-bottom: 16px; font-size: 13px; }
     .aic-banner.warn { background: rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); color: var(--text-primary); }
-    .aic-banner.info { background: rgba(124,58,237,.10); border:1px solid rgba(124,58,237,.30); color: var(--text-primary); }
-    .aic-btn { display:inline-flex; align-items:center; gap:8px; padding: 10px 18px; border:0; border-radius: 999px; font-weight:600; font-size:14px; color:#fff; cursor:pointer; background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+    .aic-banner.info { background: rgba(61,107,255,.10); border:1px solid rgba(61,107,255,.30); color: var(--text-primary); }
+    .aic-btn { display:inline-flex; align-items:center; gap:8px; padding: 10px 18px; border:0; border-radius: 999px; font-weight:600; font-size:14px; color:#fff; cursor:pointer; background: linear-gradient(135deg, #5c83ff, #6366f1); }
     .aic-stat { display:flex; justify-content:space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px dashed var(--border-glass); }
     .aic-stat:last-child { border-bottom: 0; }
     .aic-starter-rows { display:flex; flex-direction:column; gap: 8px; }
@@ -55,7 +55,7 @@
         <div class="aic-grid">
             <div>
                 <div class="aic-card">
-                    <h5><i class="fas fa-robot text-[13px]" style="color:#a78bfa"></i> Chat identity</h5>
+                    <h5><i class="fas fa-robot text-[13px]" style="color:#90acff"></i> Chat identity</h5>
                     <div class="aic-row">
                         <label class="aic-label" for="aic-name">Display name</label>
                         <input id="aic-name" class="aic-input" type="text" name="name" maxlength="120"
@@ -71,14 +71,14 @@
                         </select>
                         <div class="aic-hint">
                             The persona supplies the system prompt, model, tone and knowledge (Minds).
-                            <a href="{{ route('user.ai-personas.index') }}" class="text-purple-400 no-underline">Manage personas &amp; knowledge →</a>
+                            <a href="{{ route('user.ai-personas.index') }}" class="text-indigo-400 no-underline">Manage personas &amp; knowledge →</a>
                         </div>
                     </div>
                 </div>
 
                 <div class="aic-card">
                     <input type="hidden" name="persona[apply]" :value="switched ? '0' : '1'">
-                    <h5><i class="fas fa-brain text-[13px]" style="color:#a78bfa"></i> Personality &amp; knowledge</h5>
+                    <h5><i class="fas fa-brain text-[13px]" style="color:#90acff"></i> Personality &amp; knowledge</h5>
 
                     <div class="aic-banner info" x-show="switched" x-cloak style="margin-bottom:16px">
                         <i class="fas fa-circle-info"></i>
@@ -136,20 +136,20 @@
                             @empty
                                 <div class="aic-hint">
                                     You don't have any custom knowledge bases yet.
-                                    <a href="{{ route('user.minds.index') }}" class="text-purple-400 no-underline">Create one →</a>
+                                    <a href="{{ route('user.minds.index') }}" class="text-indigo-400 no-underline">Create one →</a>
                                 </div>
                             @endforelse
                             <div class="aic-hint" style="margin-top:6px">Attach knowledge so the assistant can answer from your own content. Up to {{ $caps['max_minds_per_persona'] }} per persona.</div>
                         </div>
                         <div class="aic-hint">
                             Need model, temperature or version history?
-                            <a href="{{ route('user.ai-personas.edit', $persona) }}" class="text-purple-400 no-underline">Open the full persona manager →</a>
+                            <a href="{{ route('user.ai-personas.edit', $persona) }}" class="text-indigo-400 no-underline">Open the full persona manager →</a>
                         </div>
                     </div>
                 </div>
 
                 <div class="aic-card">
-                    <h5><i class="fas fa-comment-dots text-[13px]" style="color:#a78bfa"></i> Conversation</h5>
+                    <h5><i class="fas fa-comment-dots text-[13px]" style="color:#90acff"></i> Conversation</h5>
                     <div class="aic-row">
                         <label class="aic-label" for="aic-greeting">Opening message</label>
                         <textarea id="aic-greeting" class="aic-textarea" name="config[greeting]" maxlength="1000"
@@ -185,7 +185,7 @@
                 </div>
 
                 <div class="aic-card">
-                    <h5><i class="fas fa-palette text-[13px]" style="color:#a78bfa"></i> Appearance</h5>
+                    <h5><i class="fas fa-palette text-[13px]" style="color:#90acff"></i> Appearance</h5>
                     <div class="aic-row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                         <div>
                             <label class="aic-label" for="aic-theme">Theme</label>
@@ -198,7 +198,7 @@
                         <div>
                             <label class="aic-label" for="aic-accent">Accent colour</label>
                             <input id="aic-accent" class="aic-input" type="color" name="config[accent]"
-                                   value="{{ old('config.accent', $config['accent'] ?? '#7c3aed') }}" style="height:42px;padding:4px">
+                                   value="{{ old('config.accent', $config['accent'] ?? '#3d6bff') }}" style="height:42px;padding:4px">
                         </div>
                     </div>
                     <div class="aic-row">
@@ -215,9 +215,9 @@
 
             <div>
                 <div class="aic-card">
-                    <h5><i class="fas fa-link text-[13px]" style="color:#a78bfa"></i> Public page</h5>
+                    <h5><i class="fas fa-link text-[13px]" style="color:#90acff"></i> Public page</h5>
                     <p class="aic-hint" style="margin-top:0">Visitors chat at:</p>
-                    <a href="{{ $publicUrl }}" target="_blank" class="text-purple-400 no-underline" style="font-size:13px;word-break:break-all">{{ $publicUrl }}</a>
+                    <a href="{{ $publicUrl }}" target="_blank" class="text-indigo-400 no-underline" style="font-size:13px;word-break:break-all">{{ $publicUrl }}</a>
                     <div style="margin-top:14px">
                         <a href="{{ $publicUrl }}" target="_blank" class="aic-btn" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass)">
                             <i class="fas fa-external-link-alt"></i> Open chat
@@ -226,7 +226,7 @@
                 </div>
 
                 <div class="aic-card">
-                    <h5><i class="fas fa-chart-simple text-[13px]" style="color:#a78bfa"></i> This month</h5>
+                    <h5><i class="fas fa-chart-simple text-[13px]" style="color:#90acff"></i> This month</h5>
                     <div class="aic-stat"><span class="text-faint">Turns used</span><strong>{{ $usage['turns'] ?? 0 }}</strong></div>
                     <div class="aic-stat"><span class="text-faint">Free turns</span><strong>{{ $companion->free_turns_per_month }}</strong></div>
                     <div class="aic-stat"><span class="text-faint">Monthly cap</span><strong>{{ $companion->hard_cap_per_month }}</strong></div>

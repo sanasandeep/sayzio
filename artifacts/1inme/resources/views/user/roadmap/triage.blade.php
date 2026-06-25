@@ -7,12 +7,12 @@
     <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
             <h1 class="text-2xl font-bold flex items-center gap-2">
-                <i class="fas fa-route text-purple-500"></i>
+                <i class="fas fa-route text-indigo-500"></i>
                 Roadmap — {{ $link->title ?? $link->alias }}
             </h1>
             <p class="text-sm mt-1" style="color: var(--text-muted);">Triage public submissions, push them to your kanban, ship and notify upvoters.</p>
         </div>
-        <a href="{{ route('user.links.show', $link) }}" class="text-sm text-purple-600 hover:underline">
+        <a href="{{ route('user.links.show', $link) }}" class="text-sm text-indigo-600 hover:underline">
             <i class="fas fa-arrow-left mr-1"></i> Back to link
         </a>
     </div>
@@ -33,7 +33,7 @@
             @foreach($tabs as $key => $label)
                 @php $n = (int) ($counts[$key] ?? 0); @endphp
                 <a href="{{ route('user.roadmap.triage', ['link' => $link, 'status' => $key, 'block_id' => $blockId]) }}"
-                   class="px-3 py-1.5 rounded-full border {{ $status === $key ? 'bg-purple-600 text-white border-purple-600' : 'hover:border-purple-300' }}"
+                   class="px-3 py-1.5 rounded-full border {{ $status === $key ? 'bg-indigo-600 text-white border-indigo-600' : 'hover:border-indigo-300' }}"
                    @if($status !== $key) style="background: var(--bg-card); color: var(--text-secondary); border-color: var(--border-glass);" @endif>
                     {{ $label }} <span class="ml-1 text-xs opacity-75">{{ $n }}</span>
                 </a>
@@ -57,7 +57,7 @@
                 <div class="border rounded-xl p-4 shadow-sm" style="background: var(--bg-card); border-color: var(--border-glass);">
                     <div class="flex items-start gap-3">
                         <div class="text-center px-2 py-1 rounded-lg min-w-[52px]" style="background: var(--bg-glass);">
-                            <div class="text-xl font-bold text-purple-600 tabular-nums">{{ $item->votes_count }}</div>
+                            <div class="text-xl font-bold text-indigo-600 tabular-nums">{{ $item->votes_count }}</div>
                             <div class="text-[10px] uppercase tracking-wider" style="color: var(--text-muted);">votes</div>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -91,12 +91,12 @@
                             @endforeach
                         </select>
                         <label class="text-xs flex items-center gap-1" style="color: var(--text-secondary);">
-                            <input type="checkbox" name="sync_to_kanban" value="1" checked class="rounded text-purple-600"> Sync to kanban
+                            <input type="checkbox" name="sync_to_kanban" value="1" checked class="rounded text-indigo-600"> Sync to kanban
                         </label>
                         <label class="text-xs flex items-center gap-1" style="color: var(--text-secondary);">
                             <input type="checkbox" name="is_blocked" value="1" {{ $item->is_blocked ? 'checked' : '' }} class="rounded text-red-500"> Hide from public
                         </label>
-                        <button type="submit" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700">
+                        <button type="submit" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
                             <i class="fas fa-save mr-1"></i> Save
                         </button>
                     </form>

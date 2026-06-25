@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Buyable coin bundles. Customers top up coins and spend them on coin-priced add-ons.</p>
-    <a href="{{ route('admin.coin-packages.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700"><i class="fas fa-plus mr-2"></i>Add Package</a>
+    <a href="{{ route('admin.coin-packages.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Add Package</a>
 </div>
 
 @if(session('success'))
@@ -41,7 +41,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
-            <a href="{{ route('admin.coin-packages.edit', $pkg) }}" class="text-white/30 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
+            <a href="{{ route('admin.coin-packages.edit', $pkg) }}" class="text-white/30 hover:text-blue-400" title="Edit"><i class="fas fa-edit"></i></a>
             <form action="{{ route('admin.coin-packages.archive', $pkg) }}" method="POST" class="inline">@csrf
                 <button class="text-white/30 hover:text-amber-400" title="{{ $pkg->is_archived ? 'Restore' : 'Archive' }}">
                     <i class="fas {{ $pkg->is_archived ? 'fa-box-open' : 'fa-box-archive' }}"></i>
@@ -54,7 +54,7 @@
     </div>
     @empty
     <div class="col-span-full text-center text-white/40 py-12">
-        No coin packages yet. <a href="{{ route('admin.coin-packages.create') }}" class="text-violet-400 hover:underline">Create your first one</a>.
+        No coin packages yet. <a href="{{ route('admin.coin-packages.create') }}" class="text-blue-400 hover:underline">Create your first one</a>.
     </div>
     @endforelse
 </div>

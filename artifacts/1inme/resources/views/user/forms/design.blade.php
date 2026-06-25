@@ -47,7 +47,7 @@
                     @foreach(['light' => 'Light', 'dark' => 'Dark', 'glass' => 'Glass'] as $val => $label)
                         <label class="cursor-pointer">
                             <input type="radio" name="theme" value="{{ $val }}" x-model="theme" class="sr-only">
-                            <div class="p-3 rounded-xl text-center text-xs font-semibold" :class="theme === '{{ $val }}' ? 'ring-2 ring-violet-500' : ''" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
+                            <div class="p-3 rounded-xl text-center text-xs font-semibold" :class="theme === '{{ $val }}' ? 'ring-2 ring-blue-500' : ''" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
                                 {{ $label }}
                             </div>
                         </label>
@@ -117,7 +117,7 @@
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Image opacity (<span x-text="cardImageOpacity"></span>%) <span class="text-[10px]" style="color: var(--text-faint);">— lower = more card color showing through</span></label>
-                        <input type="range" name="card_image_opacity" min="0" max="100" x-model.number="cardImageOpacity" class="w-full accent-violet-500">
+                        <input type="range" name="card_image_opacity" min="0" max="100" x-model.number="cardImageOpacity" class="w-full accent-blue-500">
                     </div>
                 </div>
             </div>
@@ -145,7 +145,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Corner radius (<span x-text="radius"></span>px)</label>
-                        <input type="range" name="border_radius" x-model.number="radius" min="0" max="32" class="w-full accent-violet-500">
+                        <input type="range" name="border_radius" x-model.number="radius" min="0" max="32" class="w-full accent-blue-500">
                     </div>
                 </div>
             </div>
@@ -205,7 +205,7 @@
 
                 <label class="flex items-center gap-2 text-xs mt-5 cursor-pointer" style="color: var(--text-secondary);">
                     <input type="hidden" name="show_branding" value="0">
-                    <input type="checkbox" name="show_branding" value="1" x-model="showBranding" class="rounded text-violet-500">
+                    <input type="checkbox" name="show_branding" value="1" x-model="showBranding" class="rounded text-blue-500">
                     Show "Powered by Sayzio" branding
                 </label>
             </div>

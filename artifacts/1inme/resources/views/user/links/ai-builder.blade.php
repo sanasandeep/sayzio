@@ -7,7 +7,7 @@
         <a href="{{ route('user.links.blocks.editor', $link) }}" class="text-white/30 hover:text-white transition-colors" title="Skip and open the editor"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fas fa-wand-magic-sparkles text-violet-400"></i> Build with AI
+                <i class="fas fa-wand-magic-sparkles text-blue-400"></i> Build with AI
             </h1>
             <p class="text-xs text-white/40 mt-0.5">Describe your page and let AI assemble it. You can refine everything in the editor afterwards.</p>
         </div>
@@ -17,7 +17,7 @@
         <div class="glass rounded-2xl p-6 text-center">
             <i class="fas fa-robot text-3xl text-white/20 mb-3"></i>
             <p class="text-white/60 text-sm">The AI Engine is currently disabled. You can still build your page manually.</p>
-            <a href="{{ route('user.links.blocks.editor', $link) }}" class="inline-block mt-4 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all">Open the editor</a>
+            <a href="{{ route('user.links.blocks.editor', $link) }}" class="inline-block mt-4 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all">Open the editor</a>
         </div>
     @else
     <form @submit.prevent="generate">
@@ -27,7 +27,7 @@
                 <label class="block text-sm font-medium text-white/70 mb-1.5">What's this page about? <span class="text-red-400">*</span></label>
                 <textarea x-model="description" rows="5" maxlength="4000"
                           placeholder="e.g. I'm a freelance photographer. I want a hero with my name and bio, buttons to my portfolio and Instagram, a gallery of my best shots, and a contact form."
-                          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all resize-y"></textarea>
+                          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all resize-y"></textarea>
                 <div class="flex items-center justify-between mt-1">
                     <p class="text-xs text-white/30">The more detail you give, the better the result.</p>
                     <p class="text-[11px] text-white/25" x-text="description.length + ' / 4000'"></p>
@@ -42,7 +42,7 @@
                     <template x-for="(link, i) in links" :key="i">
                         <div class="flex items-center gap-2">
                             <input type="url" x-model="links[i]" placeholder="https://…" maxlength="2048"
-                                   class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                             <button type="button" @click="links.splice(i, 1)" class="text-white/30 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center" title="Remove">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -50,7 +50,7 @@
                     </template>
                 </div>
                 <button type="button" @click="if (links.length < {{ $maxLinks }}) links.push('')"
-                        class="mt-2 text-xs text-violet-300 hover:text-violet-200 transition-colors">
+                        class="mt-2 text-xs text-blue-300 hover:text-blue-200 transition-colors">
                     <i class="fas fa-plus mr-1"></i> Add a link
                 </button>
             </div>
@@ -61,7 +61,7 @@
                 <p class="text-xs text-white/30 mb-2">Upload images for your avatar, gallery, or featured links. Only uploaded photos will be used.</p>
 
                 <div class="relative rounded-xl overflow-hidden transition-all"
-                     :class="{ 'ring-2 ring-violet-500/60 bg-violet-500/5': dragging, 'bg-white/5': !dragging }"
+                     :class="{ 'ring-2 ring-blue-500/60 bg-blue-500/5': dragging, 'bg-white/5': !dragging }"
                      style="border: 1.5px dashed rgba(255,255,255,0.18);"
                      @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false"
                      @drop.prevent="dragging = false; handleFiles($event.dataTransfer.files)">
@@ -70,7 +70,7 @@
                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" :disabled="uploading">
                     <div class="px-4 py-5 text-center pointer-events-none">
                         <i class="fas fa-cloud-upload-alt text-2xl text-white/30 mb-1.5" x-show="!uploading"></i>
-                        <i class="fas fa-spinner fa-spin text-2xl text-violet-300 mb-1.5" x-show="uploading"></i>
+                        <i class="fas fa-spinner fa-spin text-2xl text-blue-300 mb-1.5" x-show="uploading"></i>
                         <p class="text-xs text-white/50" x-text="uploading ? 'Uploading…' : 'Drag & drop or click to upload images'"></p>
                     </div>
                 </div>
@@ -95,7 +95,7 @@
                 <p class="text-xs text-white/30 mb-2">Upload PDFs or documents to offer as downloads (menus, resumes, brochures, etc).</p>
 
                 <div class="relative rounded-xl overflow-hidden transition-all"
-                     :class="{ 'ring-2 ring-violet-500/60 bg-violet-500/5': draggingDocs, 'bg-white/5': !draggingDocs }"
+                     :class="{ 'ring-2 ring-blue-500/60 bg-blue-500/5': draggingDocs, 'bg-white/5': !draggingDocs }"
                      style="border: 1.5px dashed rgba(255,255,255,0.18);"
                      @dragover.prevent="draggingDocs = true" @dragleave.prevent="draggingDocs = false"
                      @drop.prevent="draggingDocs = false; handleDocs($event.dataTransfer.files)">
@@ -104,7 +104,7 @@
                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" :disabled="uploadingDocs">
                     <div class="px-4 py-5 text-center pointer-events-none">
                         <i class="fas fa-file-arrow-up text-2xl text-white/30 mb-1.5" x-show="!uploadingDocs"></i>
-                        <i class="fas fa-spinner fa-spin text-2xl text-violet-300 mb-1.5" x-show="uploadingDocs"></i>
+                        <i class="fas fa-spinner fa-spin text-2xl text-blue-300 mb-1.5" x-show="uploadingDocs"></i>
                         <p class="text-xs text-white/50" x-text="uploadingDocs ? 'Uploading…' : 'Drag & drop or click to upload files'"></p>
                     </div>
                 </div>
@@ -135,7 +135,7 @@
                 </template>
             </div>
             <button type="button" @click="runEstimate" :disabled="!canSubmit || estimating"
-                    class="text-xs text-violet-300 hover:text-violet-200 disabled:opacity-40 transition-colors">
+                    class="text-xs text-blue-300 hover:text-blue-200 disabled:opacity-40 transition-colors">
                 <i class="fas fa-calculator mr-1"></i> <span x-text="estimating ? 'Estimating…' : 'Estimate cost'"></span>
             </button>
         </div>
@@ -145,7 +145,7 @@
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.blocks.editor', $link) }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Skip — build manually</a>
             <button type="submit" :disabled="!canSubmit || generating || uploading"
-                    class="bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                 <i class="fas fa-spinner fa-spin mr-1.5" x-show="generating"></i>
                 <i class="fas fa-wand-magic-sparkles mr-1.5 text-xs" x-show="!generating"></i>
                 <span x-text="generating ? 'Building your page…' : 'Generate my page'"></span>

@@ -12,14 +12,14 @@
     /* Primary palette — folded in from the inline `tailwind.config` blocks that
        used to ship via the Tailwind CDN in the user/admin layouts. Powers the
        `*-primary-{50..900}` utilities used across the user app. */
-    --color-primary-50: #eff6ff;
-    --color-primary-100: #dbeafe;
-    --color-primary-200: #bfdbfe;
-    --color-primary-300: #c4b5fd;
-    --color-primary-400: #a78bfa;
-    --color-primary-500: #8b5cf6;
-    --color-primary-600: #7c3aed;
-    --color-primary-700: #6d28d9;
-    --color-primary-800: #5b21b6;
-    --color-primary-900: #4c1d95;
+    --color-primary-50: #eef3ff;
+    --color-primary-100: #dbe4ff;
+    --color-primary-200: #bccfff;
+    --color-primary-300: #90acff;
+    --color-primary-400: #5c83ff;
+    --color-primary-500: #3d6bff;
+    --color-primary-600: #2b54eb;
+    --color-primary-700: #2342c7;
+    --color-primary-800: #2139a1;
+    --color-primary-900: #20367f;
 }

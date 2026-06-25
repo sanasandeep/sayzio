@@ -9,7 +9,7 @@
                 @if(!empty($s['thumbnail']))
                     <img src="{{ $s['thumbnail'] }}" alt="" class="w-full object-cover" style="aspect-ratio:1/1;">
                 @else
-                    <div class="flex items-center justify-center text-white/40 bg-gradient-to-br from-pink-500/20 to-purple-500/20" style="aspect-ratio:1/1;">
+                    <div class="flex items-center justify-center text-white/40 bg-gradient-to-br from-pink-500/20 to-indigo-500/20" style="aspect-ratio:1/1;">
                         <i class="fab fa-instagram text-5xl"></i>
                     </div>
                 @endif

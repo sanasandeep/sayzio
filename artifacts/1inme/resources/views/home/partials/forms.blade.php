@@ -3,7 +3,7 @@
     .fb-wrap { position: relative; }
     .fb-mesh::before {
         content:""; position:absolute; inset:-20%;
-        background: rgba(124,58,237,.06);
+        background: rgba(61,107,255,.06);
         filter: blur(40px); pointer-events:none; z-index:0;
         animation: fbMesh 14s ease-in-out infinite alternate;
     }
@@ -15,11 +15,11 @@
         border-radius: 22px; overflow: hidden;
         background: linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
         color: #0f172a;
-        box-shadow: 0 30px 80px -30px rgba(124,58,237,.5), 0 12px 30px -10px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.6);
+        box-shadow: 0 30px 80px -30px rgba(61,107,255,.5), 0 12px 30px -10px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.6);
     }
     .fb-card-head {
         padding: 20px 22px 16px; color:#fff; position:relative; overflow:hidden;
-        background: linear-gradient(135deg, #7c3aed 0%, #1bd4d9 130%);
+        background: linear-gradient(135deg, #3d6bff 0%, #1bd4d9 130%);
     }
     .fb-card-head::before {
         content:""; position:absolute; inset:0;
@@ -31,17 +31,17 @@
         height: 38px; border-radius: 10px; border: 1.5px solid #e2e8f0; background:#fff;
         display:flex; align-items:center; padding: 0 12px; font-size: 12px; color:#94a3b8;
     }
-    .fb-input.is-focus { border-color:#7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.14); color:#0f172a; }
-    .fb-caret { width:1.5px; height:16px; background:#7c3aed; margin-left:1px; animation: fbCaret 1.1s steps(1) infinite; }
+    .fb-input.is-focus { border-color:#3d6bff; box-shadow: 0 0 0 3px rgba(61,107,255,.14); color:#0f172a; }
+    .fb-caret { width:1.5px; height:16px; background:#3d6bff; margin-left:1px; animation: fbCaret 1.1s steps(1) infinite; }
     @keyframes fbCaret { 50% { opacity:0; } }
     .fb-opt { display:flex; align-items:center; gap:8px; font-size:12px; color:#475569; }
     .fb-radio { width:16px; height:16px; border-radius:50%; border:2px solid #cbd5e1; flex-shrink:0; }
-    .fb-radio.on { border-color:#7c3aed; background: radial-gradient(circle, #7c3aed 0 45%, transparent 50%); }
+    .fb-radio.on { border-color:#3d6bff; background: radial-gradient(circle, #3d6bff 0 45%, transparent 50%); }
     .fb-submit {
         margin: 4px 22px 20px; height: 40px; border-radius: 10px; color:#fff; font-weight:700; font-size:13px;
         display:flex; align-items:center; justify-content:center; gap:8px;
-        background: linear-gradient(135deg,#7c3aed,#6d28d9);
-        box-shadow: 0 12px 26px -10px rgba(124,58,237,.7);
+        background: linear-gradient(135deg,#3d6bff,#2342c7);
+        box-shadow: 0 12px 26px -10px rgba(61,107,255,.7);
     }
 
     /* floating field-type chips */
@@ -65,7 +65,7 @@
     <div class="fb-mesh absolute inset-0 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2,#a855f7)">Form Builder</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2,#6e61ff)">Form Builder</div>
             <h2 id="fb-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Collect anything.<br><span class="grad-text">Right from your page.</span>
             </h2>
@@ -110,7 +110,7 @@
             {{-- RIGHT: features --}}
             <div class="space-y-4">
                 @foreach([
-                    ['fa-shapes',          '#7c3aed', '21 field types',              'Text, email, phone, dropdowns, checkboxes, ratings, dates, file uploads, hidden fields and more &mdash; drag, drop, reorder.'],
+                    ['fa-shapes',          '#3d6bff', '21 field types',              'Text, email, phone, dropdowns, checkboxes, ratings, dates, file uploads, hidden fields and more &mdash; drag, drop, reorder.'],
                     ['fa-palette',         '#1bd4d9', 'Designed to match',           'Colors, fonts, spacing, buttons and backgrounds &mdash; style every form to fit your brand, no code required.'],
                     ['fa-bell-concierge',  '#e94e8c', 'Instant notifications',       'Get every submission by <span class="text-white font-semibold">email</span>, <span class="text-white font-semibold">SMS</span> or <span class="text-white font-semibold">webhook</span> &mdash; pipe leads straight into your tools.'],
                     ['fa-link',            '#ff8a3c', 'Embed in any biolink',        'Drop a form block onto your Link in Bio page and start collecting responses the moment you publish.'],

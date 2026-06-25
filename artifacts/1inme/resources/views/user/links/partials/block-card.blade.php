@@ -4,7 +4,7 @@
     $pollTallies = $pollTallies ?? [];
     $s = $block->settings ?? [];
     $typeInfo = $blockTypes[$block->type] ?? ['label' => ucfirst($block->type), 'icon' => 'fa-cube'];
-    $catColor = $catColors[$typeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
+    $catColor = $catColors[$typeInfo['category'] ?? 'basic'] ?? '#5c83ff';
     $curSpan = intval($s['_style']['grid_span'] ?? 12) ?: 12;
 @endphp
 <div class="block-card-wrapper" data-block-id="{{ $block->id }}" style="grid-column: span {{ $curSpan }}">
@@ -81,8 +81,8 @@
 
         @if($block->isContainer())
         <div class="card-children-area px-3 pb-3" x-data="{ cardExpanded: true }">
-            <div class="rounded-xl overflow-hidden" style="border: 1px dashed var(--border-glass); background: rgba(124,58,237,0.02);">
-                <button type="button" @click="cardExpanded = !cardExpanded" class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold transition-colors hover:bg-white/[0.02]" style="color: var(--text-faint); background: rgba(124,58,237,0.04);">
+            <div class="rounded-xl overflow-hidden" style="border: 1px dashed var(--border-glass); background: rgba(61,107,255,0.02);">
+                <button type="button" @click="cardExpanded = !cardExpanded" class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold transition-colors hover:bg-white/[0.02]" style="color: var(--text-faint); background: rgba(61,107,255,0.04);">
                     <span><i class="fas fa-cubes mr-1"></i> Child Blocks (<span data-card-child-count="{{ $block->id }}">{{ $block->children->count() }}</span>)</span>
                     <i class="fas fa-chevron-down transition-transform text-[8px]" :class="cardExpanded ? 'rotate-180' : ''"></i>
                 </button>
@@ -97,7 +97,7 @@
                         @endforelse
                     </div>
                     <div class="px-2 pb-2">
-                        <button type="button" class="w-full py-1.5 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all hover:bg-violet-500/10" style="border: 1px dashed rgba(124,58,237,0.3); color: #a78bfa;" onclick="openCardGallery({{ $block->id }})">
+                        <button type="button" class="w-full py-1.5 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all hover:bg-blue-500/10" style="border: 1px dashed rgba(61,107,255,0.3); color: #90acff;" onclick="openCardGallery({{ $block->id }})">
                             <i class="fas fa-plus text-[8px]"></i> Add block to card
                         </button>
                     </div>

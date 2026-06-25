@@ -12,10 +12,10 @@ export default function Slide021Salesguarantee() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Our buyer-side guarantees.</h2>
         
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">30 days</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">money-back guarantee</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">&lt;24h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">P1 response</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">99.9%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">uptime SLA (Business)</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">Free</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">white-glove migration</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">30 days</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">money-back guarantee</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">&lt;24h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">P1 response</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">99.9%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">uptime SLA (Business)</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">Free</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">white-glove migration</div></div>
         </div>
         
       </div>

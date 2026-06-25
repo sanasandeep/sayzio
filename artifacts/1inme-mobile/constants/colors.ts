@@ -1,57 +1,57 @@
-// Brand palette mirrored from the 1inme.com web app.
+// Brand palette mirrored from the Sayzio web app.
 //
-// Web uses a violet-500 / violet-600 primary (Tailwind primary scale,
-// pinned in resources/views/admin/layouts/app.blade.php), pink-500 /
-// pink-400 accent, and a gradient endpoint in orange (#fb923c) used in
-// the marketing/auth slider artwork. We surface these as theme tokens so
-// the mobile app stays visually consistent with the website in both
-// light and dark mode.
+// Web uses a blue-led primary (#3d6bff) with two contrast accents — indigo
+// (#6e61ff) and magenta (#d76dff) — applied across light and dark modes. Dark
+// mode keeps lighter tints of the same hues for legibility. We surface these
+// as theme tokens so the mobile app stays visually consistent with the website
+// in both light and dark mode.
 
 const brand = {
-  violet600: "#7c3aed",
-  violet400: "#a78bfa",
-  violet50: "#f5f3ff",
-  pink500: "#ec4899",
-  pink400: "#f472b6",
-  orange400: "#fb923c",
+  blue600: "#3d6bff",
+  blue400: "#7d9bff",
+  blue50: "#eef3ff",
+  indigo: "#6e61ff",
+  indigoLight: "#9c92ff",
+  magenta500: "#d76dff",
+  magenta400: "#e29bff",
 };
 
 const colors = {
   light: {
     text: "#0f172a",
-    tint: brand.violet600,
+    tint: brand.blue600,
 
     background: "#ffffff",
     foreground: "#0f172a",
 
-    card: "#f7f7fb",
+    card: "#f7f8fc",
     cardForeground: "#0f172a",
 
-    primary: brand.violet600,
+    primary: brand.blue600,
     primaryForeground: "#ffffff",
 
-    accent: brand.pink500,
+    accent: brand.magenta500,
     accentForeground: "#ffffff",
 
-    secondary: "#f0eefa",
+    secondary: "#eef2ff",
     secondaryForeground: "#1a1a1a",
 
-    muted: "#f0eefa",
+    muted: "#eef2ff",
     mutedForeground: "#475569",
 
     destructive: "#ef4444",
     destructiveForeground: "#ffffff",
 
-    border: "#e7e5ee",
-    input: "#e7e5ee",
+    border: "#e6e8f2",
+    input: "#e6e8f2",
 
     // Extra brand stops the wordmark / gradient buttons can use without
     // pulling in a separate theme module.
-    brandGradient: [brand.violet600, brand.pink500, brand.orange400] as const,
+    brandGradient: [brand.blue600, brand.indigo, brand.magenta500] as const,
   },
   dark: {
     text: "#fafafa",
-    tint: brand.violet400,
+    tint: brand.blue400,
 
     background: "#0a0a0f",
     foreground: "#fafafa",
@@ -59,10 +59,10 @@ const colors = {
     card: "#13131c",
     cardForeground: "#fafafa",
 
-    primary: brand.violet400,
+    primary: brand.blue400,
     primaryForeground: "#0a0a0f",
 
-    accent: brand.pink400,
+    accent: brand.magenta400,
     accentForeground: "#0a0a0f",
 
     secondary: "#1c1c28",
@@ -77,7 +77,7 @@ const colors = {
     border: "#23232f",
     input: "#23232f",
 
-    brandGradient: [brand.violet400, brand.pink400, brand.orange400] as const,
+    brandGradient: [brand.blue400, brand.indigoLight, brand.magenta400] as const,
   },
   radius: 14,
 };

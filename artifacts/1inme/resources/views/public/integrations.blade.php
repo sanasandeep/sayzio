@@ -2,7 +2,7 @@
 @section('title', 'Social Integrations')
 
 @php
-    $accent = '#7c3aed';
+    $accent = '#3d6bff';
     $networks = [
         ['icon' => 'fa-instagram',  'name' => 'Instagram',  'color' => '#e1306c'],
         ['icon' => 'fa-tiktok',     'name' => 'TikTok',     'color' => '#69c9d0'],
@@ -48,7 +48,7 @@
         <div class="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <div data-anim="fade-right">
                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border"
-                      style="background: {{ $accent }}1a; border-color: {{ $accent }}33; color: #c4b5fd;">
+                      style="background: {{ $accent }}1a; border-color: {{ $accent }}33; color: #bccfff;">
                     <i class="fas fa-plug text-[10px]"></i> Social Integrations
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
@@ -59,7 +59,7 @@
                     Plug in Instagram, TikTok, Facebook, X, LinkedIn and Pinterest with a single tap. Connections auto-retry when tokens expire, status is always visible, and you get a notification the moment something needs your attention.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                         <i class="fas fa-rocket text-xs"></i> Connect your accounts
                     </a>
                     <a href="{{ route('site.features') }}#cat-integrations" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -78,7 +78,7 @@
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10] flex items-center justify-center"
                      style="background:{{ $accent }}1f;">
-                    <i class="fas fa-plug text-[120px] opacity-80" style="color: #c4b5fd;"></i>
+                    <i class="fas fa-plug text-[120px] opacity-80" style="color: #bccfff;"></i>
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white"
@@ -91,7 +91,7 @@
                     </div>
                 </div>
                 <div class="absolute -top-5 -right-4 bg-[#11101c] border border-white/10 rounded-2xl p-3 flex items-center gap-2 shadow-2xl float-y" style="animation-delay:-3s">
-                    <span class="w-2.5 h-2.5 rounded-full pulse-dot" style="background: #c4b5fd;"></span>
+                    <span class="w-2.5 h-2.5 rounded-full pulse-dot" style="background: #bccfff;"></span>
                     <span class="text-xs font-semibold text-gray-200">Auto-retry · on</span>
                 </div>
             </div>
@@ -123,12 +123,12 @@
         <div class="grad-border rounded-3xl p-8 sm:p-10 relative overflow-hidden grid md:grid-cols-[1fr_auto] gap-6 items-center" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
-                <div class="text-xs font-bold uppercase tracking-[.2em] mb-2" style="color: #c4b5fd;">Works with your plan</div>
+                <div class="text-xs font-bold uppercase tracking-[.2em] mb-2" style="color: #bccfff;">Works with your plan</div>
                 <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Connect socials free. Multi-account &amp; agency tooling on paid plans.</h3>
                 <p class="mt-3 text-gray-400 max-w-2xl">Every plan can connect at least one of each network. Multiple accounts per network, agency client switching, and bulk reconnect tools unlock on a paid plan.</p>
             </div>
             <div class="relative flex flex-wrap gap-3">
-                <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold whitespace-nowrap">See plans</a>
+                <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold whitespace-nowrap">See plans</a>
                 <a href="{{ route('site.premium-features') }}" class="px-5 py-3 rounded-full border border-white/15 text-gray-200 hover:bg-white/5 text-sm font-semibold whitespace-nowrap">Premium features</a>
             </div>
         </div>
@@ -138,7 +138,7 @@
 <section class="pb-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8" data-anim="fade-up">
-            <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: #c4b5fd;">FAQ</div>
+            <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: #bccfff;">FAQ</div>
             <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Common questions about <span class="grad-text">integrations</span>.</h3>
         </div>
         <div class="space-y-3" data-anim="fade-up" data-stagger>
@@ -151,7 +151,7 @@
                 </a>
             @endforeach
             <div class="text-center pt-4">
-                <a href="{{ route('site.faqs') }}" class="text-sm font-semibold" style="color: #c4b5fd;">See all FAQs <i class="fas fa-arrow-right text-[10px]"></i></a>
+                <a href="{{ route('site.faqs') }}" class="text-sm font-semibold" style="color: #bccfff;">See all FAQs <i class="fas fa-arrow-right text-[10px]"></i></a>
             </div>
         </div>
     </div>
@@ -165,7 +165,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Plug it in. <span class="grad-text">Forget about it.</span></h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, connect every network you live on, and let auto-retry keep things running while you ship.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Connect now — free</a>
+                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Connect now — free</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

@@ -48,7 +48,7 @@
         </div>
         <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft);">
             <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Returning</p>
-            <p class="text-2xl font-extrabold mt-1 text-violet-600">{{ number_format($returningCount) }}</p>
+            <p class="text-2xl font-extrabold mt-1 text-blue-600">{{ number_format($returningCount) }}</p>
         </div>
     </div>
 
@@ -61,7 +61,7 @@
         <div class="flex items-center justify-between mb-3">
             <div>
                 <h2 class="font-bold" style="color: var(--text-primary);">
-                    <i class="fas fa-vr-cardboard mr-1.5" style="color:#a78bfa;"></i> AR Business Card
+                    <i class="fas fa-vr-cardboard mr-1.5" style="color:#90acff;"></i> AR Business Card
                 </h2>
                 <p class="text-xs mt-0.5" style="color: var(--text-faint);">
                     Scans, block taps and source share over the last {{ $period }} days.
@@ -81,7 +81,7 @@
             </div>
             <div class="rounded-xl p-3 border" style="background: var(--bg-glass-input); border-color: var(--border-soft);">
                 <p class="text-[11px] uppercase tracking-wide" style="color: var(--text-faint);">Block taps in AR</p>
-                <p class="text-2xl font-extrabold mt-1 text-violet-600">{{ number_format($arClicks ?? 0) }}</p>
+                <p class="text-2xl font-extrabold mt-1 text-blue-600">{{ number_format($arClicks ?? 0) }}</p>
                 <p class="text-[11px] mt-0.5" style="color: var(--text-muted);">Hotspot or list taps attributed to the AR surface.</p>
             </div>
             <div class="rounded-xl p-3 border md:col-span-1 col-span-2" style="background: var(--bg-glass-input); border-color: var(--border-soft);">
@@ -100,9 +100,9 @@
                     @php $srcMax = max(1, collect($sourceBreakdown)->max('n')); @endphp
                     @foreach($sourceBreakdown as $row)
                         <li class="flex items-center gap-3 text-xs">
-                            <span class="w-16 font-semibold uppercase tracking-wide" style="color: {{ $row->src === 'ar' ? '#a78bfa' : 'var(--text-muted)' }};">{{ $row->src }}</span>
+                            <span class="w-16 font-semibold uppercase tracking-wide" style="color: {{ $row->src === 'ar' ? '#90acff' : 'var(--text-muted)' }};">{{ $row->src }}</span>
                             <span class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--border-soft);">
-                                <span class="block h-full" style="width: {{ round(($row->n / $srcMax) * 100) }}%; background: {{ $row->src === 'ar' ? 'linear-gradient(90deg,#a78bfa,#67e8f9)' : 'var(--text-muted)' }};"></span>
+                                <span class="block h-full" style="width: {{ round(($row->n / $srcMax) * 100) }}%; background: {{ $row->src === 'ar' ? 'linear-gradient(90deg,#90acff,#67e8f9)' : 'var(--text-muted)' }};"></span>
                             </span>
                             <span class="w-16 text-right tabular-nums" style="color: var(--text-primary);">{{ number_format($row->n) }}</span>
                         </li>
@@ -131,19 +131,19 @@
             <svg viewBox="0 0 {{ $w }} {{ $h }}" class="w-full" preserveAspectRatio="none">
                 @foreach($bars as $i => $r)
                     @php $bh = ($r->visitors / $maxV) * ($h - 30); $bx = 12 + $i*$stepX - 4; @endphp
-                    <rect x="{{ $bx }}" y="{{ $h - 10 - $bh }}" width="8" height="{{ max(1,$bh) }}" fill="#c4b5fd" opacity="0.55" rx="2"/>
+                    <rect x="{{ $bx }}" y="{{ $h - 10 - $bh }}" width="8" height="{{ max(1,$bh) }}" fill="#bccfff" opacity="0.55" rx="2"/>
                 @endforeach
-                <polyline fill="none" stroke="#7c3aed" stroke-width="2"
+                <polyline fill="none" stroke="#3d6bff" stroke-width="2"
                     points="{{ $pts->map(fn($p)=>$p[0].','.$p[1])->join(' ') }}" />
                 @foreach($pts as $i => $p)
-                    <circle cx="{{ $p[0] }}" cy="{{ $p[1] }}" r="3" fill="#7c3aed">
+                    <circle cx="{{ $p[0] }}" cy="{{ $p[1] }}" r="3" fill="#3d6bff">
                         <title>{{ $bars[$i]->d }}: {{ $bars[$i]->returning_pct }}% returning ({{ $bars[$i]->returning }}/{{ $bars[$i]->visitors }})</title>
                     </circle>
                 @endforeach
             </svg>
             <div class="flex items-center gap-4 mt-2 text-xs" style="color: var(--text-faint);">
-                <span><span class="inline-block w-3 h-3 rounded bg-violet-200 mr-1"></span>Daily uniques</span>
-                <span><span class="inline-block w-3 h-3 rounded-full bg-violet-600 mr-1"></span>Returning %</span>
+                <span><span class="inline-block w-3 h-3 rounded bg-blue-200 mr-1"></span>Daily uniques</span>
+                <span><span class="inline-block w-3 h-3 rounded-full bg-blue-600 mr-1"></span>Returning %</span>
             </div>
         </div>
     @endif
@@ -167,7 +167,7 @@
                                     @if($row->avatar)
                                         <img src="{{ $row->avatar }}" class="w-7 h-7 rounded-full object-cover"/>
                                     @else
-                                        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold">{{ strtoupper(substr($row->name ?? '?', 0, 1)) }}</div>
+                                        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold">{{ strtoupper(substr($row->name ?? '?', 0, 1)) }}</div>
                                     @endif
                                     <span style="color: var(--text-primary);">{{ $row->name }}</span>
                                 </td>
@@ -177,7 +177,7 @@
                                 <td class="py-2 pr-4 text-xs" style="color: var(--text-faint);">{{ \Carbon\Carbon::parse($row->last_seen)->diffForHumans() }}</td>
                                 <td class="py-2">
                                     @if($followerSet->has($row->id))
-                                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">Follower</span>
+                                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Follower</span>
                                     @else
                                         <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background: var(--bg-glass-light); color: var(--text-muted);">Visitor</span>
                                     @endif

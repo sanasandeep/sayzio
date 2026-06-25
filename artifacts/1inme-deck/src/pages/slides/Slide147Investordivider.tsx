@@ -15,7 +15,7 @@ export default function Slide147Investordivider() {
           <h2 className="mt-[2vh] font-display text-[7vw] font-bold leading-[0.94] tracking-tight max-w-[80vw]">Appendix · Investor pitch.</h2>
           <p className="mt-[3vh] text-[1.7vw] text-slate-200 max-w-[60vw] leading-snug">Twenty slides for investor conversations. Numbers are placeholders unless tagged otherwise.</p>
           <div className="mt-[5vh] inline-flex items-center gap-[1.5vw]">
-            <div className="h-[0.4vh] w-[6vw] bg-gradient-to-r from-violet-400 to-fuchsia-400 rounded-full" />
+            <div className="h-[0.4vh] w-[6vw] bg-gradient-to-r from-blue-400 to-fuchsia-400 rounded-full" />
             <span className="text-[1vw] uppercase tracking-[0.3em] text-slate-300">Slides 147 – 167</span>
           </div>
         </div>

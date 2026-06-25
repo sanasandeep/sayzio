@@ -8,7 +8,7 @@
             <div class="flex items-center gap-2">
                 @foreach(['all'=>'All','new'=>'New','read'=>'Read','archived'=>'Archived'] as $key=>$label)
                     <a href="{{ route('admin.contact-inbox.index', ['status'=>$key]) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }}</a>
+                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }}</a>
                 @endforeach
                 <a href="{{ route('admin.contact-inbox.index', ['status'=>$status,'sort'=>$sort==='asc'?'desc':'asc']) }}"
                    class="px-3 py-1.5 rounded-lg text-xs bg-white/5 text-white/70 hover:bg-white/10">
@@ -29,7 +29,7 @@
                                     <span class="text-sm font-semibold text-white">{{ $m->name }}</span>
                                     <span class="text-xs text-white/40">&lt;{{ $m->email }}&gt;</span>
                                     <span class="text-[10px] px-2 py-0.5 rounded-full
-                                        {{ $m->status==='new' ? 'bg-violet-500/20 text-violet-300' : ($m->status==='read' ? 'bg-white/10 text-white/60' : 'bg-gray-500/20 text-gray-400') }}">
+                                        {{ $m->status==='new' ? 'bg-blue-500/20 text-blue-300' : ($m->status==='read' ? 'bg-white/10 text-white/60' : 'bg-gray-500/20 text-gray-400') }}">
                                         {{ ucfirst($m->status) }}
                                     </span>
                                 </div>
@@ -41,7 +41,7 @@
                                 <button type="button" @click="open=!open" class="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs text-white"><span x-text="open?'Hide':'View'"></span></button>
                                 @if($m->status !== 'read')
                                     <form method="POST" action="{{ route('admin.contact-inbox.read', $m) }}">@csrf
-                                        <button type="submit" class="w-full px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-xs text-white">Mark read</button>
+                                        <button type="submit" class="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs text-white">Mark read</button>
                                     </form>
                                 @endif
                                 @if($m->status !== 'archived')

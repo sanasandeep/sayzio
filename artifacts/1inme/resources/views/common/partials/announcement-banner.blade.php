@@ -37,8 +37,8 @@
     .inme-anno {
         display: flex; align-items: center; gap: 12px;
         padding: 9px 16px; font-size: 13px; line-height: 1.4; font-weight: 500;
-        color: #ede9fe;
-        background: linear-gradient(90deg, rgba(124,58,237,0.97), rgba(168,85,247,0.97));
+        color: #eef3ff;
+        background: linear-gradient(90deg, rgba(61,107,255,0.97), rgba(110,97,255,0.97));
         border-bottom: 1px solid rgba(255,255,255,0.12);
         font-family: 'Space Grotesk', system-ui, sans-serif;
     }
@@ -47,7 +47,7 @@
     .inme-anno-cta {
         flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
         padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 600;
-        color: #5b21b6; background: #fff; text-decoration: none; white-space: nowrap;
+        color: #2139a1; background: #fff; text-decoration: none; white-space: nowrap;
         transition: transform .12s ease, box-shadow .12s ease;
     }
     .inme-anno-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }

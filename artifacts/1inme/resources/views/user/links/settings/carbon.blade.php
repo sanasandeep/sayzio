@@ -27,16 +27,16 @@
                 @csrf
 
                 @if($hasOverride)
-                <div class="card-premium p-5" style="border: 1px solid rgba(167,139,250,0.35);">
+                <div class="card-premium p-5" style="border: 1px solid rgba(144,172,255,0.35);">
                     <div class="flex items-start gap-3">
-                        <i class="fas fa-link mt-1" style="color:#a78bfa;"></i>
+                        <i class="fas fa-link mt-1" style="color:#90acff;"></i>
                         <div class="flex-1">
                             <h4 class="text-[12px] font-bold mb-1" style="color: var(--text-primary);">This biolink overrides workspace defaults</h4>
                             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Workspace owners can change the workspace-wide policy on the sustainability dashboard, but those changes won't reach this biolink while an override is set.</p>
                             <button type="submit" name="inherit" value="1"
                                     onclick="return confirm('Clear this Link in Bio\'s sustainability override and follow workspace defaults?');"
                                     class="text-[11px] font-semibold px-3 py-1.5 rounded-lg"
-                                    style="background: rgba(167,139,250,0.15); color:#a78bfa;">
+                                    style="background: rgba(144,172,255,0.15); color:#90acff;">
                                 Inherit workspace defaults instead
                             </button>
                         </div>
@@ -127,7 +127,7 @@
             @if($recentSnapshot)
             <div class="card-premium p-5">
                 <h4 class="text-[12px] font-bold mb-2" style="color: var(--text-primary);">
-                    <i class="fas fa-chart-line mr-1" style="color:#a78bfa;"></i> Most recent snapshot
+                    <i class="fas fa-chart-line mr-1" style="color:#90acff;"></i> Most recent snapshot
                 </h4>
                 <dl class="text-[12px] grid grid-cols-2 gap-y-1.5" style="color: var(--text-primary);">
                     <dt style="color: var(--text-dimmed);">Period</dt>

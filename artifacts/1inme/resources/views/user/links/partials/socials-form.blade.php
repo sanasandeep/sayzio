@@ -1,5 +1,5 @@
 @php
-    $inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none';
+    $inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none';
     $labelClass = 'block text-xs text-white/40 mb-1';
     $socialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin','github','discord','telegram','whatsapp','snapchat','pinterest','twitch','dribbble','spotify','soundcloud','apple','reddit','medium','behance','website','email'];
 
@@ -69,7 +69,7 @@
 <div x-data="{ groups: {{ json_encode(array_values($initialGroups)) }}, connCounts: {{ json_encode($connCounts) }}, oauthHints: {{ json_encode($oauthHints) }}, platformLabels: {{ json_encode($platformLabels) }} }">
     <div class="flex items-center justify-between mb-2">
         <label class="{{ $labelClass }} mb-0">Social Groups</label>
-        <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-violet-400 hover:text-violet-300">
+        <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-blue-400 hover:text-blue-300">
             <i class="fas fa-share-nodes mr-1"></i>Manage connected accounts
         </a>
     </div>
@@ -179,7 +179,7 @@
 
             <button type="button"
                     @click="groups[gi].platforms.push({name:'',url:'',display:'icon',connection_id:''})"
-                    class="text-xs text-violet-400 hover:text-violet-300">
+                    class="text-xs text-blue-400 hover:text-blue-300">
                 <i class="fas fa-plus mr-1"></i>Add entry
             </button>
         </div>
@@ -187,12 +187,12 @@
 
     <button type="button"
             @click="groups.push({name:'',platforms:[{name:'',url:'',display:'icon',connection_id:''}]})"
-            class="text-xs text-violet-400 hover:text-violet-300">
+            class="text-xs text-blue-400 hover:text-blue-300">
         <i class="fas fa-plus mr-1"></i>Add Group
     </button>
 
     <p class="text-[10px] text-white/30 mt-2">
-        Follower counts come from <a href="{{ $connectedRoute }}" target="_blank" class="text-violet-400 hover:underline">your connected accounts</a> and refresh every few hours.
+        Follower counts come from <a href="{{ $connectedRoute }}" target="_blank" class="text-blue-400 hover:underline">your connected accounts</a> and refresh every few hours.
     </p>
 </div>
 @else
@@ -200,7 +200,7 @@
 <div x-data="{ platforms: {{ json_encode($s['platforms'] ?? []) }}, connCounts: {{ json_encode($connCounts) }}, oauthHints: {{ json_encode($oauthHints) }}, platformLabels: {{ json_encode($platformLabels) }} }">
     <div class="flex items-center justify-between mb-2">
         <label class="{{ $labelClass }} mb-0">Social Platforms</label>
-        <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-violet-400 hover:text-violet-300">
+        <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-blue-400 hover:text-blue-300">
             <i class="fas fa-share-nodes mr-1"></i>Manage connected accounts
         </a>
     </div>
@@ -286,7 +286,7 @@
 
             <div class="flex items-center justify-between">
                 <p class="text-[10px] text-white/30">
-                    Follower counts come from <a href="{{ $connectedRoute }}" target="_blank" class="text-violet-400 hover:underline">your connected accounts</a> and refresh every few hours.
+                    Follower counts come from <a href="{{ $connectedRoute }}" target="_blank" class="text-blue-400 hover:underline">your connected accounts</a> and refresh every few hours.
                 </p>
                 <button type="button" @click="platforms.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400">
                     <i class="fas fa-times mr-1"></i>Remove
@@ -295,7 +295,7 @@
         </div>
     </template>
 
-    <button type="button" @click="platforms.push({name:'',url:'',display:'icon',connection_id:''})" class="text-xs text-violet-400 hover:text-violet-300">
+    <button type="button" @click="platforms.push({name:'',url:'',display:'icon',connection_id:''})" class="text-xs text-blue-400 hover:text-blue-300">
         <i class="fas fa-plus mr-1"></i>Add Platform
     </button>
 </div>

@@ -13,7 +13,7 @@
             @php $active = $status === $key; @endphp
             <a href="{{ route('user.monetization.subscribers', ['status' => $key]) }}"
                class="px-3 py-1.5 text-xs font-semibold rounded-full border"
-               style="background: {{ $active ? '#8b5cf6' : 'transparent' }}; color: {{ $active ? 'white' : 'var(--text-secondary)' }}; border-color: {{ $active ? '#8b5cf6' : 'var(--border-color)' }};">
+               style="background: {{ $active ? '#5c83ff' : 'transparent' }}; color: {{ $active ? 'white' : 'var(--text-secondary)' }}; border-color: {{ $active ? '#5c83ff' : 'var(--border-color)' }};">
                 {{ $label }}
             </a>
         @endforeach
@@ -45,7 +45,7 @@
                                             <img src="{{ $sub->fan->avatar }}" class="w-8 h-8 rounded-full object-cover" alt="">
                                         @else
                                             <div class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs"
-                                                 style="background: rgba(139,92,246,0.15); color: #8b5cf6;">
+                                                 style="background: rgba(92,131,255,0.15); color: #5c83ff;">
                                                 {{ strtoupper(mb_substr($sub->fan?->name ?? '?', 0, 1)) }}
                                             </div>
                                         @endif
@@ -60,7 +60,7 @@
                                 <td class="px-4 py-3">
                                     @if($sub->tier)
                                         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold"
-                                              style="background: rgba(139,92,246,0.12); color: #8b5cf6;">
+                                              style="background: rgba(92,131,255,0.12); color: #5c83ff;">
                                             {{ $sub->tier->badge ? $sub->tier->badge . ' ' : '' }}{{ $sub->tier->name }}
                                         </span>
                                     @else

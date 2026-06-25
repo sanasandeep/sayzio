@@ -33,19 +33,19 @@
 
 <div class="{{ $wide ? 'sm:col-span-2' : '' }}">
     <label for="{{ $id }}" class="flex items-center gap-2 text-sm font-medium text-white/80 mb-1.5">
-        <i class="fas {{ $icon }} text-violet-300/70 text-xs w-4 text-center"></i>
+        <i class="fas {{ $icon }} text-blue-300/70 text-xs w-4 text-center"></i>
         <span>{{ $label }}</span>
-        @if($req) <span class="text-violet-400">*</span> @endif
+        @if($req) <span class="text-blue-400">*</span> @endif
     </label>
 
     @if($type === 'textarea')
         <textarea id="{{ $id }}" name="{{ $name }}" rows="3"
             placeholder="{{ $q['placeholder'] ?? '' }}"
-            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">{{ $val }}</textarea>
+            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">{{ $val }}</textarea>
 
     @elseif($type === 'select')
         <select id="{{ $id }}" name="{{ $name }}"
-            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
             <option value="" class="bg-[#0d0818]">— pick one —</option>
             @foreach(($q['options'] ?? []) as $opt)
                 <option value="{{ $opt['v'] }}" class="bg-[#0d0818]" @selected($val === $opt['v'])>{{ $opt['l'] }}</option>
@@ -65,10 +65,10 @@
             @if(!empty($val) && is_string($val))
                 <img src="{{ $val }}" class="w-10 h-10 rounded-lg object-cover border border-white/10 flex-shrink-0" alt="">
             @else
-                <span class="w-10 h-10 rounded-lg bg-violet-500/15 text-violet-300 flex items-center justify-center flex-shrink-0"><i class="fas fa-image"></i></span>
+                <span class="w-10 h-10 rounded-lg bg-blue-500/15 text-blue-300 flex items-center justify-center flex-shrink-0"><i class="fas fa-image"></i></span>
             @endif
             <input id="{{ $id }}" name="a_files[{{ $key }}]" type="file" accept="image/*"
-                class="block text-xs text-white/60 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-violet-600 file:text-white file:cursor-pointer hover:file:bg-violet-700">
+                class="block text-xs text-white/60 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer hover:file:bg-blue-700">
         </div>
 
     @elseif(in_array($type, ['url','email','phone'], true))
@@ -76,13 +76,13 @@
             <i class="fas {{ $icon }} absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-xs pointer-events-none"></i>
             <input id="{{ $id }}" name="{{ $name }}" type="{{ $type === 'phone' ? 'tel' : $type }}"
                 value="{{ $val }}" placeholder="{{ $q['placeholder'] ?? '' }}"
-                class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
         </div>
 
     @else
         <input id="{{ $id }}" name="{{ $name }}" type="text" value="{{ $val }}"
             placeholder="{{ $q['placeholder'] ?? '' }}"
-            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
     @endif
 
     @error($key, 'wizard')

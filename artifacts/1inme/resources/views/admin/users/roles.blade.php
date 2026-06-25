@@ -46,7 +46,7 @@
                         @if($role->permissions->isNotEmpty())
                             <div class="mt-2 flex flex-wrap gap-1">
                                 @foreach($role->permissions as $perm)
-                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] bg-violet-500/10 text-violet-200 border border-violet-500/15"
+                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] bg-blue-500/10 text-blue-200 border border-blue-500/15"
                                           title="{{ $perm->slug }}">{{ $perm->name ?: $perm->slug }}</span>
                                 @endforeach
                             </div>
@@ -60,7 +60,7 @@
             @endforelse
 
             <div class="pt-3 flex justify-end">
-                <button type="submit" class="px-4 py-2 rounded-xl bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 text-sm font-medium">
+                <button type="submit" class="px-4 py-2 rounded-xl bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 text-sm font-medium">
                     Save roles
                 </button>
             </div>
@@ -70,14 +70,14 @@
     {{-- Admin access panel (Part 1: promote a user to admin / change the
          back-office role / revoke). Creating an admin record by matching
          email is what powers the seamless dashboard switch. --}}
-    <div id="admin-access" class="glass rounded-2xl border border-violet-500/30 ring-1 ring-violet-500/20 p-6 mt-6 scroll-mt-24">
+    <div id="admin-access" class="glass rounded-2xl border border-blue-500/30 ring-1 ring-blue-500/20 p-6 mt-6 scroll-mt-24">
         @if(session('error'))
             <div class="mb-4 p-3 rounded-xl bg-rose-500/10 text-rose-300 text-sm">{{ session('error') }}</div>
         @endif
 
         <div class="flex items-start justify-between gap-3 mb-1">
             <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                <i class="fas fa-user-shield text-violet-300"></i> Back-office admin access
+                <i class="fas fa-user-shield text-blue-300"></i> Back-office admin access
             </h3>
             @if($adminAccount)
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-medium {{ $adminAccount->status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20' }}">
@@ -97,7 +97,7 @@
                 Current role:
                 <span class="text-white font-medium">{{ $adminAccount->role->name ?? '—' }}</span>
                 @if($adminAccount->role && $adminAccount->role->slug === 'super-admin')
-                    <span class="ml-1 px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 text-[10px]">full access</span>
+                    <span class="ml-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-200 text-[10px]">full access</span>
                 @endif
             </div>
         @endif
@@ -111,7 +111,7 @@
                     <label class="block">
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Admin role</span>
                         <select name="role_id"
-                                class="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                                class="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                             @foreach($adminRoles as $r)
                                 <option value="{{ $r->id }}"
                                     @selected($adminAccount && (int) $adminAccount->role_id === (int) $r->id)>
@@ -120,7 +120,7 @@
                             @endforeach
                         </select>
                     </label>
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 text-xs font-medium">
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 text-xs font-medium">
                         <i class="fas fa-user-shield mr-1"></i>{{ $adminAccount ? 'Update admin role' : 'Promote to admin' }}
                     </button>
                 </form>
@@ -131,7 +131,7 @@
                         <div class="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                             <div class="text-xs font-medium text-white">{{ $r->name }} <span class="text-white/30">· {{ $r->slug }}</span></div>
                             @if($r->slug === 'super-admin')
-                                <div class="mt-1 text-[10px] text-violet-200">Unrestricted — every permission.</div>
+                                <div class="mt-1 text-[10px] text-blue-200">Unrestricted — every permission.</div>
                             @elseif($r->permissions->isNotEmpty())
                                 <div class="mt-1.5 flex flex-wrap gap-1">
                                     @foreach($r->permissions as $perm)
@@ -193,12 +193,12 @@
                     <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Actor</span>
                     <input type="text" name="actor" value="{{ $auditFilters['actor'] ?? '' }}"
                            placeholder="Name, email, or id"
-                           class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                           class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                 </label>
                 <label class="block">
                     <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Role</span>
                     <select name="role"
-                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                         <option value="">Any role</option>
                         @foreach(($auditRoleSlugs ?? []) as $slug)
                             <option value="{{ $slug }}" @selected(($auditFilters['role'] ?? '') === $slug)>{{ $slug }}</option>
@@ -208,7 +208,7 @@
                 <label class="block">
                     <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</span>
                     <select name="action"
-                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                         <option value="">Any action</option>
                         @foreach(($auditActions ?? []) as $value => $label)
                             <option value="{{ $value }}" @selected(($auditFilters['action'] ?? '') === $value)>{{ $label }}</option>
@@ -218,7 +218,7 @@
                 <label class="block">
                     <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Source</span>
                     <select name="audit_source"
-                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                         <option value="">Any source</option>
                         @foreach(($auditSources ?? []) as $value => $label)
                             <option value="{{ $value }}" @selected(($auditFilters['audit_source'] ?? '') === $value)>{{ $label }}</option>
@@ -228,7 +228,7 @@
                 <label class="block">
                     <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Range</span>
                     <select name="audit_range" data-testid="audit-range-filter"
-                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                            class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                         <option value="">All time</option>
                         @foreach(($auditRanges ?? []) as $value => $label)
                             @continue($value === \App\Modules\User\Models\UserRoleAudit::RANGE_ALL)
@@ -239,17 +239,17 @@
                 <label class="block">
                     <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">From</span>
                     <input type="date" name="audit_from" value="{{ $auditFilters['audit_from'] ?? '' }}"
-                           class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                           class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                 </label>
                 <label class="block">
                     <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">To</span>
                     <input type="date" name="audit_to" value="{{ $auditFilters['audit_to'] ?? '' }}"
-                           class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                           class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                 </label>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <button type="submit"
-                        class="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 text-xs font-medium">
+                        class="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 text-xs font-medium">
                     <i class="fas fa-filter mr-1"></i> Apply filters
                 </button>
                 @if($hasAuditFilter)

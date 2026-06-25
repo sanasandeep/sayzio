@@ -18,11 +18,11 @@
         </div>
         <div class="flex items-center gap-2">
             @if($__canCreate)
-            <a href="{{ route('user.subscribers.compose') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+            <a href="{{ route('user.subscribers.compose') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
                 <i class="fas fa-paper-plane mr-1.5"></i>Compose
             </a>
             @else
-            <span class="px-4 py-2 rounded-xl text-sm font-medium text-white cursor-not-allowed opacity-60" style="background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(139,92,246,0.4));" title="Your role doesn't allow composing campaigns — ask a workspace admin">
+            <span class="px-4 py-2 rounded-xl text-sm font-medium text-white cursor-not-allowed opacity-60" style="background: linear-gradient(135deg, rgba(61,107,255,0.4), rgba(92,131,255,0.4));" title="Your role doesn't allow composing campaigns — ask a workspace admin">
                 <i class="fas fa-lock mr-1.5"></i>Compose
             </span>
             @endif
@@ -51,7 +51,7 @@
             <div class="text-xs mt-1" style="color: var(--text-muted);">Active</div>
         </div>
         <div class="glass rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold text-violet-400">{{ number_format($stats['email']) }}</div>
+            <div class="text-2xl font-bold text-blue-400">{{ number_format($stats['email']) }}</div>
             <div class="text-xs mt-1" style="color: var(--text-muted);">Email</div>
         </div>
         <div class="glass rounded-2xl p-4 text-center">
@@ -96,7 +96,7 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium text-white" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">Filter</button>
+            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium text-white" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">Filter</button>
             @if(request()->hasAny(['search','type','status','link_id']))
             <a href="{{ route('user.subscribers.index') }}" class="px-3 py-2 rounded-xl text-sm" style="color: var(--text-muted);">Clear</a>
             @endif
@@ -129,7 +129,7 @@
                         </td>
                         <td class="px-4 py-3">
                             @if($sub->type === 'email')
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium" style="background: rgba(124,58,237,0.15); color: #a78bfa;">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium" style="background: rgba(61,107,255,0.15); color: #90acff;">
                                 <i class="fas fa-envelope text-[10px]"></i>Email
                             </span>
                             @elseif($sub->type === 'whatsapp_channel')
@@ -202,12 +202,12 @@
     @include('common.partials.enhanced-table')
     @else
     <div class="glass rounded-2xl p-12 text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(139,92,246,0.1));">
-            <i class="fas fa-users text-2xl text-violet-400"></i>
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background: linear-gradient(135deg, rgba(61,107,255,0.2), rgba(92,131,255,0.1));">
+            <i class="fas fa-users text-2xl text-blue-400"></i>
         </div>
         <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">No leads yet</h3>
         <p class="text-sm mb-4" style="color: var(--text-muted);">Add Email Subscribe, WhatsApp Channel, or WhatsApp Number blocks to your link in bio pages to start collecting leads.</p>
-        <a href="{{ route('user.links.index') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+        <a href="{{ route('user.links.index') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
             <i class="fas fa-link"></i>Go to Links
         </a>
     </div>

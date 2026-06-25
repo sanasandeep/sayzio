@@ -17,7 +17,7 @@
     </div>
 
     <button id="rzp-pay"
-        class="w-full px-4 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">
+        class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">
         Pay with Razorpay
     </button>
 
@@ -41,7 +41,7 @@
             name: @json($merchant_name),
             description: @json($description),
             prefill: @json($prefill),
-            theme: { color: '#7c3aed' },
+            theme: { color: '#3d6bff' },
             handler: function (response) {
                 // Razorpay captured the payment. Our source of truth is
                 // the webhook — redirect to the billing page; the

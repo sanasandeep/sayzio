@@ -61,13 +61,13 @@
         'founder'                  => '#d4af37',
         'social_profile'           => '#3b82f6',
         'gradient'                 => '#ffffff',
-        'glass'                    => '#c4b5fd',
-        'minimal_dark', 'cover_hero' => '#a78bfa',
+        'glass'                    => '#bccfff',
+        'minimal_dark', 'cover_hero' => '#90acff',
         'business_card', 'id_badge' => '#2563eb',
         'ticket_stub'              => '#b45309',
         'terminal'                 => '#4ade80',
-        'polaroid', 'sidebar_accent' => '#7c3aed',
-        default                    => '#7c3aed',
+        'polaroid', 'sidebar_accent' => '#3d6bff',
+        default                    => '#3d6bff',
     };
 
     // Surface style. When the design sets no background we keep the page's
@@ -81,7 +81,7 @@
 
 @php
     // Reusable avatar fallback colours.
-    $avatarBg = 'rgba(124,58,237,0.20)';
+    $avatarBg = 'rgba(61,107,255,0.20)';
 @endphp
 
 {{-- ───────────────────────────── CLASSIC CREATOR ───────────────────── --}}
@@ -104,7 +104,7 @@
     <div class="mb-4 overflow-hidden rounded-2xl relative {{ $baseClass }}" style="{{ $cardStyle }}">
         @if($cover)
             <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ $cover }}');opacity:.30"></div>
-            <div class="absolute inset-0" style="background:linear-gradient(160deg,rgba(124,58,237,0.40),rgba(236,72,153,0.28))"></div>
+            <div class="absolute inset-0" style="background:linear-gradient(160deg,rgba(61,107,255,0.40),rgba(236,72,153,0.28))"></div>
         @endif
         <div class="relative px-5 py-7 text-center text-white">
             <div class="flex justify-center">
@@ -159,7 +159,7 @@
         @if($cover)
             <div class="h-24 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>
         @else
-            <div class="h-24" style="background:linear-gradient(135deg,#7c3aed,#d946ef)"></div>
+            <div class="h-24" style="background:linear-gradient(135deg,#3d6bff,#d946ef)"></div>
         @endif
         <div class="px-5 pb-6 -mt-12 text-center">
             <div class="flex justify-center">
@@ -471,7 +471,7 @@
             <div class="flex flex-wrap justify-center gap-2 mt-4" data-pc-badges data-pc-accent="{{ $accent }}" @if(empty($badges))style="display:none"@endif>
                 @foreach($badges as $badge)
                     @php $bLabel = is_array($badge) ? ($badge['label'] ?? '') : $badge; @endphp
-                    @if($bLabel !== '')<span class="px-3 py-1 rounded-full text-xs" style="background:rgba(124,58,237,0.18);color:{{ $accent }}">{{ $bLabel }}</span>@endif
+                    @if($bLabel !== '')<span class="px-3 py-1 rounded-full text-xs" style="background:rgba(61,107,255,0.18);color:{{ $accent }}">{{ $bLabel }}</span>@endif
                 @endforeach
             </div>
         </div>

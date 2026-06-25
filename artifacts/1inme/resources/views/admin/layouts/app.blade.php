@@ -61,7 +61,7 @@
             font-size: 11px; z-index: 60;
             transition: all .2s ease;
         }
-        .sidebar-edge-toggle:hover { background: #7c3aed; color: #fff; border-color: #7c3aed; transform: scale(1.08); }
+        .sidebar-edge-toggle:hover { background: #3d6bff; color: #fff; border-color: #3d6bff; transform: scale(1.08); }
         html.light-mode .sidebar-edge-toggle { background: #fff; border: 1px solid #cbd5e1; color: #0f172a; box-shadow: 0 4px 12px rgba(15,23,42,.10); }
 
         .logout-btn {
@@ -125,7 +125,7 @@
                         <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center" aria-label="{{ config('app.name', 'Sayzio') }} admin">
                             @include('common.partials.brand-logo', ['height' => 'h-7'])
                         </a>
-                        <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(124,58,237,0.1); color: var(--accent-light);">Admin</span>
+                        <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(61,107,255,0.1); color: var(--accent-light);">Admin</span>
                     </div>
                     <button @click="mobileMenu = false" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                 </div>
@@ -220,7 +220,7 @@
                         @csrf
                         <button type="submit"
                                 class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                                style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);">
+                                style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);">
                             <i class="fas fa-arrow-right-arrow-left" style="font-size: 11px;"></i>
                             <span>Switch back to user</span>
                         </button>
@@ -246,7 +246,7 @@
                     </div>
                 @endif
                 @if(session('info'))
-                    <div class="mb-4 p-3.5 rounded-xl text-violet-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(124,58,237,0.15); background: rgba(124,58,237,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);">
                         <i class="fas fa-info-circle"></i> {{ session('info') }}
                     </div>
                 @endif

@@ -1,7 +1,7 @@
 @php
     $slots  = is_array($s['slots'] ?? null) ? $s['slots'] : (is_array($s['items'] ?? null) ? $s['items'] : []);
     $layout = $s['layout'] ?? ($s['_registry']['layout'] ?? 'list');
-    $accent = $s['accent_color'] ?? '#7c3aed';
+    $accent = $s['accent_color'] ?? '#3d6bff';
     $title  = trim($s['title'] ?? 'Book a slot');
     $cta    = $s['cta_text'] ?? 'Book';
 

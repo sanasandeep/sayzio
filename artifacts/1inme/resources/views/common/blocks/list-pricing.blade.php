@@ -10,7 +10,7 @@
             'thumbnail'   => (string)($i['thumbnail'] ?? ''),
             'icon'        => (string)($i['icon'] ?? ''),
         ] : ['name' => (string)$i, 'description' => '', 'price' => '', 'period' => '', 'included' => true, 'featured' => false, 'thumbnail' => '', 'icon' => ''], (array)($s['items'] ?? []));
-        $_pAccent = $btnColor ?? '#7c3aed';
+        $_pAccent = $btnColor ?? '#3d6bff';
     @endphp
 
     @switch($_pStyle)

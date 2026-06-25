@@ -8,7 +8,7 @@
         <h1 class="text-2xl font-bold text-white">Buzz</h1>
         <p class="text-white/40 text-sm mt-1">Build trust with notification widgets you can embed anywhere — including your Link in Bio pages.</p>
     </div>
-    <a href="{{ route('user.social-proofs.create') }}" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+    <a href="{{ route('user.social-proofs.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
         <i class="fas fa-plus"></i> New Notification
     </a>
 </div>
@@ -17,7 +17,7 @@
 <div class="glass rounded-2xl p-4 mb-5">
     <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="text-sm">
-            <span class="text-white/70"><i class="fas fa-eye text-violet-400 mr-1.5"></i> Buzz views this month</span>
+            <span class="text-white/70"><i class="fas fa-eye text-blue-400 mr-1.5"></i> Buzz views this month</span>
             <span class="text-white font-semibold ml-2">{{ number_format($buzzUsage['used']) }}</span>
             <span class="text-white/40">/ {{ $buzzUsage['unlimited'] ? 'Unlimited' : number_format($buzzUsage['allowance']) }}</span>
         </div>
@@ -32,7 +32,7 @@
     </div>
     @unless($buzzUsage['unlimited'])
     <div class="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
-        <div class="h-full rounded-full {{ $buzzUsage['percent_used'] >= 100 ? 'bg-rose-500' : ($buzzUsage['percent_used'] >= 80 ? 'bg-amber-400' : 'bg-violet-500') }}" style="width: {{ $buzzUsage['percent_used'] }}%"></div>
+        <div class="h-full rounded-full {{ $buzzUsage['percent_used'] >= 100 ? 'bg-rose-500' : ($buzzUsage['percent_used'] >= 80 ? 'bg-amber-400' : 'bg-blue-500') }}" style="width: {{ $buzzUsage['percent_used'] }}%"></div>
     </div>
     @endunless
 </div>
@@ -44,12 +44,12 @@
 
 @if($proofs->isEmpty())
 <div class="glass rounded-2xl p-12 text-center">
-    <div class="w-16 h-16 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-        <i class="fas fa-bell text-violet-400 text-2xl"></i>
+    <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-bell text-blue-400 text-2xl"></i>
     </div>
     <h3 class="text-lg font-semibold text-white mb-2">No notifications yet</h3>
     <p class="text-white/40 mb-4">Create a notification to display recent activity, visitor counts, countdowns, reviews and more.</p>
-    <a href="{{ route('user.social-proofs.create') }}" class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
+    <a href="{{ route('user.social-proofs.create') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
         <i class="fas fa-plus"></i> Create your first
     </a>
 </div>
@@ -71,10 +71,10 @@
             @foreach($proofs as $p)
             <tr class="border-b border-white/5 hover:bg-white/5">
                 <td class="px-4 py-3 text-white">
-                    <a href="{{ route('user.social-proofs.edit', $p) }}" class="font-medium hover:text-violet-300">{{ $p->name }}</a>
+                    <a href="{{ route('user.social-proofs.edit', $p) }}" class="font-medium hover:text-blue-300">{{ $p->name }}</a>
                 </td>
                 <td class="px-4 py-3 text-white/70">
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs bg-blue-500/10 text-blue-300 border border-blue-500/20">
                         <i class="fas fa-bell"></i> {{ $p->notificationCount() }}
                     </span>
                 </td>
@@ -94,7 +94,7 @@
                             <i class="fas fa-{{ $p->is_active ? 'pause' : 'play' }}"></i>
                         </button>
                     </form>
-                    <a href="{{ route('user.social-proofs.edit', $p) }}" class="text-violet-300 hover:text-violet-200 px-2"><i class="fas fa-edit"></i></a>
+                    <a href="{{ route('user.social-proofs.edit', $p) }}" class="text-blue-300 hover:text-blue-200 px-2"><i class="fas fa-edit"></i></a>
                     <form action="{{ route('user.social-proofs.destroy', $p) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this notification campaign?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button class="text-rose-400 hover:text-rose-300 px-2"><i class="fas fa-trash"></i></button>

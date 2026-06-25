@@ -45,7 +45,7 @@ async function listInvoices(): Promise<Invoice[]> {
 const STATUS_TINT: Record<string, string> = {
   paid: "#10b981",
   sent: "#0ea5e9",
-  draft: "#a78bfa",
+  draft: "#7d9bff",
   overdue: "#ef4444",
   void: "#9ca3af",
 };

@@ -26,7 +26,7 @@
             <textarea name="suggested_actions_text" rows="3" maxlength="2000" placeholder="Suggested actions (one per line)" class="md:col-span-2 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"></textarea>
             <label class="flex items-center gap-2 text-sm text-white"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" checked> Active</label>
             <label class="flex items-center gap-2 text-sm text-white"><input type="hidden" name="disable_widget" value="0"><input type="checkbox" name="disable_widget" value="1"> Hide widget on these routes</label>
-            <div><button class="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white text-sm font-semibold">Add hint</button></div>
+            <div><button class="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold">Add hint</button></div>
         </form>
     </div>
 
@@ -45,7 +45,7 @@
                     <td class="p-3">{!! $h->is_active ? '<span class="text-emerald-300 text-xs">●</span>' : '<span class="text-white/30 text-xs">○</span>' !!}</td>
                     <td class="p-3 text-right space-x-1">
                         <details class="inline-block text-left">
-                            <summary class="cursor-pointer text-purple-300 text-xs">Edit</summary>
+                            <summary class="cursor-pointer text-indigo-300 text-xs">Edit</summary>
                             <form method="POST" action="{{ route('admin.site-assistant.hints.update', $h) }}" class="mt-2 space-y-2 p-3 bg-black/40 rounded-lg w-80">
                                 @csrf @method('PUT')
                                 <input name="label" value="{{ $h->label }}" class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white">
@@ -60,7 +60,7 @@
                                 <textarea name="suggested_actions_text" rows="3" class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white" placeholder="One action per line">{{ collect((array) $h->suggested_actions)->map(fn($a)=>is_array($a)?($a['label']??''):$a)->filter()->implode("\n") }}</textarea>
                                 <label class="flex items-center gap-2 text-xs text-white"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" {{ $h->is_active?'checked':'' }}> Active</label>
                                 <label class="flex items-center gap-2 text-xs text-white"><input type="hidden" name="disable_widget" value="0"><input type="checkbox" name="disable_widget" value="1" {{ $h->disable_widget?'checked':'' }}> Hide widget</label>
-                                <button class="px-3 py-1 rounded bg-purple-500 text-white text-xs">Save</button>
+                                <button class="px-3 py-1 rounded bg-indigo-500 text-white text-xs">Save</button>
                             </form>
                         </details>
                         <form method="POST" action="{{ route('admin.site-assistant.hints.destroy', $h) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this hint?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">

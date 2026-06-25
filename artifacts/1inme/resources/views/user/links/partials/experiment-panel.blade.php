@@ -35,10 +35,10 @@
 </style>
 <div id="ab-test-panel"
      class="rounded-2xl border p-4 mb-4"
-     style="background:linear-gradient(135deg, rgba(124,58,237,0.06), rgba(6,182,212,0.04)); border-color:var(--border-glass);">
+     style="background:linear-gradient(135deg, rgba(61,107,255,0.06), rgba(6,182,212,0.04)); border-color:var(--border-glass);">
     <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <div class="flex items-center gap-2">
-            <i class="fas fa-flask text-purple-400"></i>
+            <i class="fas fa-flask text-indigo-400"></i>
             <h3 class="font-semibold text-sm">Layout A/B test</h3>
             @if($__activeExp)
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
@@ -47,7 +47,7 @@
                 </span>
             @elseif($__lastExp && $__lastExp->status === 'completed')
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                      style="background:rgba(124,58,237,0.18); color:#a78bfa;">
+                      style="background:rgba(61,107,255,0.18); color:#90acff;">
                     Last winner: {{ strtoupper($__lastExp->winner ?? '—') }}
                 </span>
             @endif
@@ -105,7 +105,7 @@
                        class="ab-input rounded px-2 py-1.5 text-xs">
             </label>
             <button type="submit"
-                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-500 text-white">
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white">
                 <i class="fas fa-play text-[10px] mr-1"></i> Start A/B test
             </button>
         </form>

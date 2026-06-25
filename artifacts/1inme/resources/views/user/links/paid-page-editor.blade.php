@@ -28,7 +28,7 @@
         <div class="min-w-0">
             <h1 class="text-2xl font-bold text-white truncate">{{ $link->title ?: 'Bizs Profile' }}</h1>
             <p class="text-xs text-white/40 mt-0.5">
-                <a href="{{ $publicUrl }}" target="_blank" class="text-violet-400 hover:underline">{{ $publicUrl }} <i class="fas fa-arrow-up-right-from-square ml-0.5 text-[10px]"></i></a>
+                <a href="{{ $publicUrl }}" target="_blank" class="text-blue-400 hover:underline">{{ $publicUrl }} <i class="fas fa-arrow-up-right-from-square ml-0.5 text-[10px]"></i></a>
             </p>
         </div>
     </div>
@@ -57,15 +57,15 @@
                         @foreach($categories as $group)
                             <div>
                                 <div class="flex items-center gap-2 mb-2">
-                                    @if(!empty($group['icon']))<i class="fas {{ $group['icon'] }} text-[10px] text-violet-300/90"></i>@endif
-                                    <span class="text-[11px] font-bold uppercase tracking-wide text-violet-300/90">{{ $group['label'] }}</span>
+                                    @if(!empty($group['icon']))<i class="fas {{ $group['icon'] }} text-[10px] text-blue-300/90"></i>@endif
+                                    <span class="text-[11px] font-bold uppercase tracking-wide text-blue-300/90">{{ $group['label'] }}</span>
                                     <span class="text-[10px] text-white/30">{{ count($group['templates']) }}</span>
                                     <span class="flex-1 h-px bg-white/10"></span>
                                 </div>
                                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     @foreach($group['templates'] as $t)
                                         <button type="button" @click="tpl = '{{ $t['id'] }}'"
-                                                :class="tpl === '{{ $t['id'] }}' ? 'ring-2 ring-violet-400 border-violet-400' : 'border-white/10 hover:border-white/30'"
+                                                :class="tpl === '{{ $t['id'] }}' ? 'ring-2 ring-blue-400 border-blue-400' : 'border-white/10 hover:border-white/30'"
                                                 class="text-left rounded-xl border overflow-hidden transition focus:outline-none">
                                             <div class="h-16 relative" style="background: {{ $t['hero_bg'] }};">
                                                 @if(!empty($t['bg_image']))
@@ -75,7 +75,7 @@
                                                     <span class="absolute top-1 left-1 text-[8px] font-bold text-white/90 bg-black/40 rounded px-1"><i class="fas fa-film"></i></span>
                                                 @endif
                                                 <span class="absolute bottom-1 left-2 right-2 truncate text-[10px] font-bold text-white drop-shadow">{{ $t['name'] }}</span>
-                                                <span x-show="tpl === '{{ $t['id'] }}'" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-violet-500 text-white text-[9px] flex items-center justify-center"><i class="fas fa-check"></i></span>
+                                                <span x-show="tpl === '{{ $t['id'] }}'" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] flex items-center justify-center"><i class="fas fa-check"></i></span>
                                             </div>
                                         </button>
                                     @endforeach
@@ -91,19 +91,19 @@
                     <p class="text-xs text-white/40 mb-4">Paste a full image or video URL to override the theme's background. Leave blank to use the theme's built-in look.</p>
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-semibold text-white/70 mb-1"><i class="fas fa-image mr-1 text-violet-300"></i> Background image URL</label>
+                            <label class="block text-xs font-semibold text-white/70 mb-1"><i class="fas fa-image mr-1 text-blue-300"></i> Background image URL</label>
                             <div class="flex gap-2">
                                 <input type="url" x-model="customImage" maxlength="2048"
-                                       class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                       class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
                                        placeholder="https://example.com/background.jpg">
                                 <button type="button" x-show="customImage" @click="customImage = ''" class="px-3 rounded-xl text-white/40 hover:text-white border border-white/10" title="Clear"><i class="fas fa-xmark"></i></button>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-white/70 mb-1"><i class="fas fa-film mr-1 text-violet-300"></i> Background video URL (mp4)</label>
+                            <label class="block text-xs font-semibold text-white/70 mb-1"><i class="fas fa-film mr-1 text-blue-300"></i> Background video URL (mp4)</label>
                             <div class="flex gap-2">
                                 <input type="url" x-model="customVideo" maxlength="2048"
-                                       class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                       class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
                                        placeholder="https://example.com/loop.mp4">
                                 <button type="button" x-show="customVideo" @click="customVideo = ''" class="px-3 rounded-xl text-white/40 hover:text-white border border-white/10" title="Clear"><i class="fas fa-xmark"></i></button>
                             </div>
@@ -116,18 +116,18 @@
                     <h2 class="text-sm font-semibold text-white mb-3">Who can view this page?</h2>
                     <div class="space-y-2">
                         <button type="button" @click="isPublic = true"
-                                :class="isPublic ? 'border-violet-400 bg-violet-500/10 ring-1 ring-violet-500/30' : 'border-white/10 hover:border-white/30'"
+                                :class="isPublic ? 'border-blue-400 bg-blue-500/10 ring-1 ring-blue-500/30' : 'border-white/10 hover:border-white/30'"
                                 class="w-full text-left rounded-xl border px-4 py-3 transition flex items-start gap-3">
-                            <i class="fas fa-globe mt-0.5 text-violet-300"></i>
+                            <i class="fas fa-globe mt-0.5 text-blue-300"></i>
                             <div>
                                 <div class="text-sm font-semibold text-white">Public</div>
                                 <div class="text-xs text-white/50">Anyone with the link can view the page. Individual posts still respect their own paywall &amp; visibility.</div>
                             </div>
                         </button>
                         <button type="button" @click="isPublic = false"
-                                :class="!isPublic ? 'border-violet-400 bg-violet-500/10 ring-1 ring-violet-500/30' : 'border-white/10 hover:border-white/30'"
+                                :class="!isPublic ? 'border-blue-400 bg-blue-500/10 ring-1 ring-blue-500/30' : 'border-white/10 hover:border-white/30'"
                                 class="w-full text-left rounded-xl border px-4 py-3 transition flex items-start gap-3">
-                            <i class="fas fa-lock mt-0.5 text-violet-300"></i>
+                            <i class="fas fa-lock mt-0.5 text-blue-300"></i>
                             <div>
                                 <div class="text-sm font-semibold text-white">Gated</div>
                                 <div class="text-xs text-white/50">Visitors must sign in before they can see the page at all.</div>
@@ -149,8 +149,8 @@
 
                     {{-- Empty-state banner (refreshes in place via Alpine) --}}
                     <div x-show="postCount === 0 || tierCount === 0" x-cloak
-                         class="mb-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-xs text-white/70 leading-relaxed">
-                        <i class="fas fa-wand-magic-sparkles mr-1 text-violet-300"></i>
+                         class="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-xs text-white/70 leading-relaxed">
+                        <i class="fas fa-wand-magic-sparkles mr-1 text-blue-300"></i>
                         This page fills itself in. The moment you publish a post or add a paid tier, it appears here for fans —
                         <span x-show="postCount === 0 && tierCount === 0">you don't have any posts or tiers yet.</span>
                         <span x-show="postCount === 0 && tierCount > 0">you don't have any posts yet.</span>
@@ -167,19 +167,19 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="rounded-xl border border-white/10 px-4 py-3">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm text-white"><i class="fas fa-feather mr-2 text-violet-300"></i> Posts</span>
+                                <span class="text-sm text-white"><i class="fas fa-feather mr-2 text-blue-300"></i> Posts</span>
                                 <span class="text-xs text-white/40" x-text="postCount.toLocaleString()">{{ number_format($postCount) }}</span>
                             </div>
-                            <button type="button" @click="openPost()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
+                            <button type="button" @click="openPost()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-300 hover:text-blue-200">
                                 <i class="fas fa-plus text-[10px]"></i> Create a post
                             </button>
                         </div>
                         <div class="rounded-xl border border-white/10 px-4 py-3">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm text-white"><i class="fas fa-gem mr-2 text-violet-300"></i> Tiers</span>
+                                <span class="text-sm text-white"><i class="fas fa-gem mr-2 text-blue-300"></i> Tiers</span>
                                 <span class="text-xs text-white/40" x-text="tierCount.toLocaleString()">{{ number_format($tierCount) }}</span>
                             </div>
-                            <button type="button" @click="openTier()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
+                            <button type="button" @click="openTier()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-300 hover:text-blue-200">
                                 <i class="fas fa-plus text-[10px]"></i> Create a tier
                             </button>
                         </div>
@@ -193,7 +193,7 @@
                              x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0">
                             <form @submit.prevent="submitPost()" class="p-6 space-y-4">
                                 <div class="flex items-center justify-between">
-                                    <h3 class="text-base font-bold text-white"><i class="fas fa-feather mr-2 text-violet-300"></i> Write a post</h3>
+                                    <h3 class="text-base font-bold text-white"><i class="fas fa-feather mr-2 text-blue-300"></i> Write a post</h3>
                                     <button type="button" @click="postOpen = false" class="text-white/40 hover:text-white"><i class="fas fa-xmark"></i></button>
                                 </div>
                                 <p class="text-xs text-white/40">It appears on this page automatically once published.</p>
@@ -203,19 +203,19 @@
                                 <div>
                                     <label class="block text-xs font-semibold text-white/70 mb-1">Title <span class="text-white/30">(optional)</span></label>
                                     <input type="text" x-model="post.title" maxlength="200"
-                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
                                            placeholder="What's this post about?">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-white/70 mb-1">Body</label>
                                     <textarea x-model="post.body" rows="6" maxlength="5000" required
-                                              class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                              class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
                                               placeholder="Share an update with your fans…"></textarea>
                                 </div>
                                 <div class="flex justify-end gap-2 pt-2">
                                     <button type="button" @click="postOpen = false" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white">Cancel</button>
                                     <button type="submit" :disabled="post.submitting"
-                                            class="px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50">
+                                            class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50">
                                         <span x-show="!post.submitting">Publish post</span>
                                         <span x-show="post.submitting" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i> Publishing…</span>
                                     </button>
@@ -233,7 +233,7 @@
                              x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0">
                             <form @submit.prevent="submitTier()" class="p-6 space-y-4">
                                 <div class="flex items-center justify-between">
-                                    <h3 class="text-base font-bold text-white"><i class="fas fa-gem mr-2 text-violet-300"></i> Add a tier</h3>
+                                    <h3 class="text-base font-bold text-white"><i class="fas fa-gem mr-2 text-blue-300"></i> Add a tier</h3>
                                     <button type="button" @click="tierOpen = false" class="text-white/40 hover:text-white"><i class="fas fa-xmark"></i></button>
                                 </div>
                                 <p class="text-xs text-white/40">A paid membership level fans can subscribe to.</p>
@@ -243,25 +243,25 @@
                                 <div>
                                     <label class="block text-xs font-semibold text-white/70 mb-1">Tier name</label>
                                     <input type="text" x-model="tier.name" maxlength="80" required
-                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
                                            placeholder="e.g. Supporter">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-white/70 mb-1">Monthly price</label>
                                     <input type="number" x-model="tier.price_monthly" min="1" max="1000" step="0.01" required
-                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
                                            placeholder="5.00">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold text-white/70 mb-1">Perks <span class="text-white/30">(one per line, optional)</span></label>
                                     <textarea x-model="tier.perks" rows="4" maxlength="2000"
-                                              class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400"
+                                              class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
                                               placeholder="Exclusive posts&#10;Early access&#10;Discord role"></textarea>
                                 </div>
                                 <div class="flex justify-end gap-2 pt-2">
                                     <button type="button" @click="tierOpen = false" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white">Cancel</button>
                                     <button type="submit" :disabled="tier.submitting"
-                                            class="px-4 py-2 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50">
+                                            class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50">
                                         <span x-show="!tier.submitting">Add tier</span>
                                         <span x-show="tier.submitting" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i> Adding…</span>
                                     </button>
@@ -327,7 +327,7 @@
 
         <div class="flex justify-end gap-3 mt-6">
             <a href="{{ $publicUrl }}" target="_blank" class="px-5 py-2.5 rounded-xl text-sm text-white/60 hover:text-white">Open public page</a>
-            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white">Save design</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">Save design</button>
         </div>
     </form>
 </div>

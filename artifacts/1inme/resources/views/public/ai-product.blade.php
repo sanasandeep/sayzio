@@ -10,7 +10,7 @@
             'eyebrow' => 'AI Chatbot',
             'tagline' => 'A 24/7 chatbot for your Link in Bio — trained on you, on-brand, never asleep.',
             'icon'    => 'fa-comments',
-            'accent'  => '#7c3aed',
+            'accent'  => '#3d6bff',
         ],
         'ai-agent' => [
             'eyebrow' => 'AI Agent',
@@ -66,7 +66,7 @@
                     {{ $page->meta_description }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ $ctaUrl }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                    <a href="{{ $ctaUrl }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                         <i class="fas fa-rocket text-xs"></i> {{ $ctaLabel }}
                     </a>
                     <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -201,7 +201,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Ready to put <span class="grad-text">{{ $meta['eyebrow'] }}</span> to work?</h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, turn on the AI suite, and let it answer, qualify and follow up while you build.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ $ctaUrl }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $ctaLabel }}</a>
+                    <a href="{{ $ctaUrl }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">{{ $ctaLabel }}</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

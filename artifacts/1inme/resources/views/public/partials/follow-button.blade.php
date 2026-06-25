@@ -34,7 +34,7 @@
         :disabled="busy"
         :class="following
             ? 'px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200'
-            : 'px-3.5 py-2 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700'">
+            : 'px-3.5 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700'">
     <template x-if="following"><span><i class="fas fa-check mr-1"></i> Following</span></template>
     <template x-if="!following"><span><i class="fas fa-user-plus mr-1"></i> Follow</span></template>
 </button>

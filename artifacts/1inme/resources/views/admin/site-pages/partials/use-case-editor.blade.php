@@ -36,12 +36,12 @@
                 <div>
                     <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Accent colour</label>
                     <div class="flex items-center gap-2">
-                        <input type="color" value="{{ \Illuminate\Support\Str::startsWith((string)($uc['accent'] ?? ''), '#') ? $uc['accent'] : '#7c3aed' }}"
+                        <input type="color" value="{{ \Illuminate\Support\Str::startsWith((string)($uc['accent'] ?? ''), '#') ? $uc['accent'] : '#3d6bff' }}"
                                oninput="this.nextElementSibling.value = this.value"
                                class="h-9 w-12 rounded-lg border border-white/10 bg-white/5 cursor-pointer">
-                        <input type="text" name="extra[use_case][accent]" value="{{ $uc['accent'] ?? '#7c3aed' }}" maxlength="7" placeholder="#7c3aed" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                        <input type="text" name="extra[use_case][accent]" value="{{ $uc['accent'] ?? '#3d6bff' }}" maxlength="7" placeholder="#3d6bff" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
                     </div>
-                    <p class="mt-1 text-[11px] text-white/40">6-digit hex, e.g. <code>#7c3aed</code>.</p>
+                    <p class="mt-1 text-[11px] text-white/40">6-digit hex, e.g. <code>#3d6bff</code>.</p>
                 </div>
                 <div>
                     <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Nav / cross-sell description</label>
@@ -58,7 +58,7 @@
                     <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Featured features</label>
                     <p class="text-[11px] text-white/40">Cards that deep-link into the Features page via an anchor (e.g. <code>cat-analytics</code>).</p>
                 </div>
-                <button type="button" @click="items.push({label:'',icon:'fa-circle-dot',anchor:''})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white shrink-0">Add feature</button>
+                <button type="button" @click="items.push({label:'',icon:'fa-circle-dot',anchor:''})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white shrink-0">Add feature</button>
             </div>
             <template x-for="(it, i) in items" :key="i">
                 <div class="mb-3 p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">
@@ -83,7 +83,7 @@
                     <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Persona FAQ</label>
                     <p class="text-[11px] text-white/40">Questions and answers shown in the FAQ section of this page.</p>
                 </div>
-                <button type="button" @click="faqs.push({q:'',a:''})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white shrink-0">Add question</button>
+                <button type="button" @click="faqs.push({q:'',a:''})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white shrink-0">Add question</button>
             </div>
             <template x-for="(f, i) in faqs" :key="i">
                 <div class="mb-3 p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">

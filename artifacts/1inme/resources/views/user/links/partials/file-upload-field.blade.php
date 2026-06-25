@@ -20,15 +20,15 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
 
     <div class="flex items-center gap-1.5 mb-2">
         <button type="button" @click="mode = 'url'" class="text-[10px] px-2.5 py-1 rounded-lg transition-all font-medium"
-                :class="mode === 'url' ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' : 'text-white/30 hover:text-white/50'" style="background: var(--bg-glass);">
+                :class="mode === 'url' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/30 hover:text-white/50'" style="background: var(--bg-glass);">
             <i class="fas fa-link mr-1"></i>URL
         </button>
         <button type="button" @click="mode = 'upload'" class="text-[10px] px-2.5 py-1 rounded-lg transition-all font-medium"
-                :class="mode === 'upload' ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' : 'text-white/30 hover:text-white/50'" style="background: var(--bg-glass);">
+                :class="mode === 'upload' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/30 hover:text-white/50'" style="background: var(--bg-glass);">
             <i class="fas fa-cloud-upload-alt mr-1"></i>Upload
         </button>
         <button type="button" @click="mode = 'browse'" class="text-[10px] px-2.5 py-1 rounded-lg transition-all font-medium"
-                :class="mode === 'browse' ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' : 'text-white/30 hover:text-white/50'" style="background: var(--bg-glass);">
+                :class="mode === 'browse' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/30 hover:text-white/50'" style="background: var(--bg-glass);">
             <i class="fas fa-folder-open mr-1"></i>My Files
         </button>
     </div>
@@ -41,7 +41,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
 
     <div x-show="mode === 'upload'" x-cloak>
         <div class="upload-dropzone relative rounded-xl p-4 text-center transition-all cursor-pointer"
-             :class="dragging ? 'ring-2 ring-violet-500/50' : ''"
+             :class="dragging ? 'ring-2 ring-blue-500/50' : ''"
              style="background: var(--bg-glass); border: 2px dashed var(--border-glass);"
              @dragover.prevent="dragging = true"
              @dragleave.prevent="dragging = false"
@@ -50,7 +50,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
 
             <template x-if="!uploading && !uploadError">
                 <div>
-                    <i class="fas fa-cloud-upload-alt text-2xl text-violet-400/60 mb-2"></i>
+                    <i class="fas fa-cloud-upload-alt text-2xl text-blue-400/60 mb-2"></i>
                     <p class="text-xs text-white/40">Drag & drop or click to choose</p>
                     <p class="text-[10px] text-white/20 mt-1">Max: <span x-text="maxFileSizeMb"></span>MB</p>
                 </div>
@@ -59,9 +59,9 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
             <template x-if="uploading">
                 <div>
                     <div class="w-full rounded-full h-1.5 mb-2" style="background: var(--bg-glass-input);">
-                        <div class="h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 transition-all duration-300" :style="'width:' + uploadProgress + '%'"></div>
+                        <div class="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 transition-all duration-300" :style="'width:' + uploadProgress + '%'"></div>
                     </div>
-                    <p class="text-xs text-violet-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading... <span x-text="uploadProgress"></span>%</p>
+                    <p class="text-xs text-blue-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading... <span x-text="uploadProgress"></span>%</p>
                 </div>
             </template>
 
@@ -69,7 +69,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
                 <div>
                     <i class="fas fa-exclamation-triangle text-red-400 text-lg mb-1"></i>
                     <p class="text-xs text-red-400" x-text="uploadError"></p>
-                    <button type="button" @click.stop="uploadError = null" class="text-[10px] text-violet-400 mt-1 hover:underline">Try again</button>
+                    <button type="button" @click.stop="uploadError = null" class="text-[10px] text-blue-400 mt-1 hover:underline">Try again</button>
                 </div>
             </template>
         </div>
@@ -80,11 +80,11 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
         <div class="rounded-xl overflow-hidden" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
             <div class="p-2 flex items-center gap-2" style="border-bottom: 1px solid var(--border-subtle);">
                 <input type="text" x-model="browseSearch" placeholder="Search files..." class="flex-1 text-xs px-2.5 py-1.5 rounded-lg outline-none" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">
-                <button type="button" @click="loadFiles()" class="text-[10px] text-violet-400 hover:text-violet-300 px-2"><i class="fas fa-sync-alt"></i></button>
+                <button type="button" @click="loadFiles()" class="text-[10px] text-blue-400 hover:text-blue-300 px-2"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div class="max-h-48 overflow-y-auto p-2">
                 <template x-if="browseLoading">
-                    <div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-violet-400/60"></i></div>
+                    <div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-blue-400/60"></i></div>
                 </template>
                 <template x-if="!browseLoading && browseFiles.length === 0">
                     <div class="py-6 text-center text-xs text-white/30">No files uploaded yet</div>
@@ -92,8 +92,8 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
                 <div class="grid grid-cols-3 gap-1.5">
                     <template x-for="f in filteredFiles" :key="f.id">
                         <button type="button" @click="selectFile(f)"
-                                class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-violet-500/50 group relative"
-                                :class="value === f.url ? 'ring-2 ring-violet-500' : ''"
+                                class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-blue-500/50 group relative"
+                                :class="value === f.url ? 'ring-2 ring-blue-500' : ''"
                                 style="background: var(--bg-glass-input);">
                             <template x-if="f.type === 'image'">
                                 <img :src="f.url" class="w-full aspect-square object-cover" :alt="f.original_name">
@@ -112,7 +112,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
                     </template>
                 </div>
                 <template x-if="!browseLoading && browseHasMore">
-                    <button type="button" @click="loadMoreFiles()" class="w-full text-[10px] text-violet-400 hover:text-violet-300 py-2 text-center">Load more...</button>
+                    <button type="button" @click="loadMoreFiles()" class="w-full text-[10px] text-blue-400 hover:text-blue-300 py-2 text-center">Load more...</button>
                 </template>
             </div>
         </div>
@@ -132,14 +132,14 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
                  files (PDF/doc/etc.) still clearly show what's attached. --}}
             <div class="flex items-center gap-2.5 p-2.5" @if($previewable) style="border-top: 1px solid var(--border-subtle);" @endif>
                 <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: var(--bg-glass-input);">
-                    <i class="text-base text-violet-300" :class="currentIcon()"></i>
+                    <i class="text-base text-blue-300" :class="currentIcon()"></i>
                 </div>
                 <div class="min-w-0 flex-1">
                     <div class="text-xs font-medium truncate" style="color: var(--text-primary);" x-text="currentName()" :title="currentName()"></div>
                     <div class="text-[10px]" style="color: var(--text-faint);" x-text="currentMeta() || 'Attached'"></div>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
-                    <button type="button" @click="replaceFile()" class="text-[10px] px-2.5 py-1.5 rounded-lg font-medium text-violet-300 hover:bg-violet-500/10 transition-colors" title="Replace this file">
+                    <button type="button" @click="replaceFile()" class="text-[10px] px-2.5 py-1.5 rounded-lg font-medium text-blue-300 hover:bg-blue-500/10 transition-colors" title="Replace this file">
                         <i class="fas fa-arrows-rotate mr-1"></i>Replace
                     </button>
                     <button type="button" @click="removeFile()" class="w-7 h-7 rounded-lg text-white/40 hover:text-rose-300 hover:bg-rose-500/10 flex items-center justify-center transition-colors" title="Remove file">

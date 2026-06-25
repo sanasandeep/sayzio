@@ -3,23 +3,23 @@
 
 @section('content')
 @php
-    $accent = '#7c3aed';
+    $accent = '#3d6bff';
     $templates = [
-        ['name' => 'Minimalist',   'tag' => 'ATS-safe',    'colors' => ['#0f172a', '#7c3aed']],
-        ['name' => 'Design Lead',  'tag' => 'Creative',    'colors' => ['#7c3aed', '#e94e8c']],
-        ['name' => 'Engineer',     'tag' => 'Tech',        'colors' => ['#1bd4d9', '#7c3aed']],
+        ['name' => 'Minimalist',   'tag' => 'ATS-safe',    'colors' => ['#0f172a', '#3d6bff']],
+        ['name' => 'Design Lead',  'tag' => 'Creative',    'colors' => ['#3d6bff', '#e94e8c']],
+        ['name' => 'Engineer',     'tag' => 'Tech',        'colors' => ['#1bd4d9', '#3d6bff']],
         ['name' => 'Classic',      'tag' => 'Corporate',   'colors' => ['#0f172a', '#1bd4d9']],
         ['name' => 'Bold',         'tag' => 'Marketing',   'colors' => ['#ff8a3c', '#e94e8c']],
         ['name' => 'Academic',     'tag' => 'Research',    'colors' => ['#16a34a', '#22d3ee']],
         ['name' => 'Photographer', 'tag' => 'Portfolio',   'colors' => ['#e94e8c', '#ff8a3c']],
-        ['name' => 'Architect',    'tag' => 'Visual',      'colors' => ['#22d3ee', '#7c3aed']],
+        ['name' => 'Architect',    'tag' => 'Visual',      'colors' => ['#22d3ee', '#3d6bff']],
     ];
 @endphp
 
 <style>
     .rbp-mesh::before {
         content:""; position:absolute; inset:-15%;
-        background: rgba(124,58,237,.06);
+        background: rgba(61,107,255,.06);
         filter: blur(40px); pointer-events:none;
         animation: rbpMesh 14s ease-in-out infinite alternate;
     }
@@ -30,16 +30,16 @@
         position: relative; aspect-ratio: 1 / 1.32; max-width: 360px;
         border-radius: 22px; overflow: hidden;
         background: linear-gradient(180deg,#fff,#f5f7fb); color:#0f172a;
-        box-shadow: 0 30px 80px -30px rgba(124,58,237,.55), 0 12px 30px -10px rgba(0,0,0,.55);
+        box-shadow: 0 30px 80px -30px rgba(61,107,255,.55), 0 12px 30px -10px rgba(0,0,0,.55);
         animation: rbpFloat 6s ease-in-out infinite;
     }
     @keyframes rbpFloat { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(-3deg); } }
     .rbp-paper-head {
         padding: 22px; color:#fff;
-        background: linear-gradient(135deg,#7c3aed,#a855f7);
+        background: linear-gradient(135deg,#3d6bff,#6e61ff);
     }
     .rbp-bar { height: 7px; border-radius: 999px; background: #e5e7eb; overflow:hidden; position: relative; }
-    .rbp-bar > span { position:absolute; inset:0; border-radius:inherit; background: #7c3aed; width: var(--w,70%); transform-origin:left; transform: scaleX(0); animation: rbpFill 2.4s ease-out forwards; }
+    .rbp-bar > span { position:absolute; inset:0; border-radius:inherit; background: #3d6bff; width: var(--w,70%); transform-origin:left; transform: scaleX(0); animation: rbpFill 2.4s ease-out forwards; }
     @keyframes rbpFill { to { transform: scaleX(1); } }
 
     /* Step cards */
@@ -47,17 +47,17 @@
     .rbp-step:hover { transform: translateY(-6px); }
     .rbp-step-num {
         position:absolute; top:14px; right:18px; font-size: 3rem; font-weight:800; line-height:1; opacity:.14;
-        color: var(--rbp-c,#7c3aed);
+        color: var(--rbp-c,#3d6bff);
     }
     .rbp-step-icon {
         width:56px; height:56px; border-radius:18px;
-        background: var(--rbp-c,#7c3aed);
+        background: var(--rbp-c,#3d6bff);
         color:#fff; display:flex; align-items:center; justify-content:center;
-        box-shadow: 0 12px 28px -10px var(--rbp-c,#7c3aed); position:relative;
+        box-shadow: 0 12px 28px -10px var(--rbp-c,#3d6bff); position:relative;
     }
     .rbp-step-icon::after {
         content:""; position:absolute; inset:-5px; border-radius:22px;
-        border: 2px solid color-mix(in srgb, var(--rbp-c,#7c3aed) 50%, transparent);
+        border: 2px solid color-mix(in srgb, var(--rbp-c,#3d6bff) 50%, transparent);
         animation: rbpPulse 2.4s ease-in-out infinite; opacity:.3;
     }
     @keyframes rbpPulse { 0%,100% { transform:scale(1); opacity:.25; } 50% { transform:scale(1.08); opacity:.65; } }
@@ -69,7 +69,7 @@
         box-shadow: 0 20px 40px -20px rgba(0,0,0,.55);
         transition: transform .35s ease, box-shadow .35s ease;
     }
-    .rbp-tpl:hover { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 30px 60px -22px rgba(124,58,237,.5); }
+    .rbp-tpl:hover { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 30px 60px -22px rgba(61,107,255,.5); }
     .rbp-tpl-head { height: 38%; padding: 14px; color:#fff; }
     .rbp-tpl-body { padding: 12px 14px; display:flex; flex-direction:column; gap:6px; }
     .rbp-tpl-body span { height: 5px; border-radius: 3px; background: rgba(15,23,42,.10); }
@@ -90,7 +90,7 @@
 
     /* Stat counter */
     .rbp-stat { text-align:center; padding: 22px 14px; }
-    .rbp-stat .num { font-size: 2.5rem; font-weight: 800; color:#7c3aed; }
+    .rbp-stat .num { font-size: 2.5rem; font-weight: 800; color:#3d6bff; }
     .rbp-stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: #9ca3af; margin-top: 4px; }
 
     /* Light-mode legibility: stat label hardcodes a light gray that drops
@@ -119,7 +119,7 @@
                 Drag-and-drop sections. AI-polished bullet points. 20+ recruiter-tested templates. A public portfolio link at <span class="font-semibold text-white">1inme.com/you/cv</span> &mdash; and a pixel-perfect PDF export when you need to email it.
             </p>
             <div class="mt-7 flex flex-wrap items-center gap-3">
-                <a href="/register" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                <a href="/register" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                     <i class="fas fa-rocket text-xs"></i> Start free &mdash; no card
                 </a>
                 <a href="#templates" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -135,7 +135,7 @@
             <div class="rbp-paper">
                 <div class="rbp-paper-head">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white" style="background: #7c3aed;">JS</div>
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white" style="background: #3d6bff;">JS</div>
                         <div>
                             <div class="text-base font-bold leading-tight">Jordan Silva</div>
                             <div class="text-[11px] opacity-90">Full-stack Engineer · Lisbon</div>
@@ -150,13 +150,13 @@
                 </div>
                 <div class="px-5 py-4 space-y-4">
                     <div>
-                        <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-1">Experience</div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1">Experience</div>
                         <div class="text-[12px] font-bold text-slate-900">Senior Engineer · Remote</div>
                         <div class="text-[10px] text-slate-500">Acme Inc. &middot; 2022 — Now</div>
                         <div class="text-[10px] text-slate-600 mt-1">Cut p95 latency by 38% by replacing N+1 queries with cursor pagination.</div>
                     </div>
                     <div>
-                        <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-2">Skills</div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-2">Skills</div>
                         <div class="space-y-2">
                             <div>
                                 <div class="flex justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Backend</span><span class="text-slate-500">92%</span></div>
@@ -208,7 +208,7 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @foreach([
                 ['01','fa-user-plus',         '#1bd4d9', 'Tell us about you',     'Paste a LinkedIn URL or fill in 5 quick fields. We pre-fill everything we can.'],
-                ['02','fa-wand-magic-sparkles','#7c3aed', 'Let AI polish it',     'AI rewrites bullet points with metrics, action verbs and ATS keywords for your role.'],
+                ['02','fa-wand-magic-sparkles','#3d6bff', 'Let AI polish it',     'AI rewrites bullet points with metrics, action verbs and ATS keywords for your role.'],
                 ['03','fa-palette',           '#e94e8c', 'Pick a template',       '20+ recruiter-tested designs. Recolor, reorder, swap fonts &mdash; all live preview.'],
                 ['04','fa-share-nodes',       '#ff8a3c', 'Share &amp; export',    'Public link at 1inme.com/you/cv, private link, or pixel-perfect PDF download.'],
             ] as $i => $s)
@@ -293,7 +293,7 @@
 <section class="py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#7c3aed">FAQs</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#3d6bff">FAQs</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight">Quick answers.</h2>
         </div>
         <div class="space-y-3" x-data="{ open: 0 }">
@@ -319,8 +319,8 @@
 {{-- ============== FINAL CTA ============== --}}
 <section class="py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="relative rounded-3xl p-10 text-center overflow-hidden" style="background: rgba(124,58,237,.16); border: 1px solid rgba(255,255,255,.08);">
-            <div class="absolute inset-[-1px] rounded-[inherit] pointer-events-none" style="background: rgba(124,58,237,.45); opacity:.18; filter: blur(28px);"></div>
+        <div class="relative rounded-3xl p-10 text-center overflow-hidden" style="background: rgba(61,107,255,.16); border: 1px solid rgba(255,255,255,.08);">
+            <div class="absolute inset-[-1px] rounded-[inherit] pointer-events-none" style="background: rgba(61,107,255,.45); opacity:.18; filter: blur(28px);"></div>
             <div class="relative">
                 <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
                     Your next role is one <span class="grad-text">résumé away.</span>

@@ -28,14 +28,14 @@
             <div class="text-xs uppercase tracking-wider text-white/40 mb-2">Your referral code</div>
             <div class="flex gap-2 items-center">
                 <code class="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white font-mono text-sm" id="ref-code-display">{{ $user->referral_code }}</code>
-                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('ref-code-display').innerText); this.innerText='Copied'" class="px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-medium hover:bg-violet-700">Copy</button>
+                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('ref-code-display').innerText); this.innerText='Copied'" class="px-3 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-medium hover:bg-blue-700">Copy</button>
             </div>
         </div>
         <div class="glass rounded-2xl p-5">
             <div class="text-xs uppercase tracking-wider text-white/40 mb-2">Your referral link</div>
             <div class="flex gap-2 items-center">
                 <input type="text" readonly value="{{ $referralUrl }}" class="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm" id="ref-url-display">
-                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('ref-url-display').value); this.innerText='Copied'" class="px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-medium hover:bg-violet-700">Copy</button>
+                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('ref-url-display').value); this.innerText='Copied'" class="px-3 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-medium hover:bg-blue-700">Copy</button>
             </div>
         </div>
     </div>
@@ -48,11 +48,11 @@
             @csrf @method('PUT')
             <div class="flex-1 w-full">
                 <input type="text" name="code" id="ref-code-input" value="{{ old('code', $user->referral_code) }}" minlength="3" maxlength="32" required
-                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white font-mono text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white font-mono text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                 <p class="mt-1 text-xs" id="ref-code-feedback" style="color: var(--text-faint);">3–32 characters · letters, numbers, dashes or underscores</p>
                 @error('code')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
             </div>
-            <button type="submit" class="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Save code</button>
+            <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Save code</button>
         </form>
     </div>
     @else

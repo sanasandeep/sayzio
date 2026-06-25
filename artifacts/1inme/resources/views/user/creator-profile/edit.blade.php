@@ -34,15 +34,15 @@
             <p class="text-xs uppercase tracking-wider font-semibold" style="color: var(--text-dimmed);">Profile completeness</p>
             <p class="text-sm font-bold" style="color: var(--text-primary);">{{ $completeness }}%</p>
         </div>
-        <div class="h-2 w-full rounded-full overflow-hidden" style="background: rgba(124,58,237,0.1);">
-            <div class="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all" style="width: {{ $completeness }}%;"></div>
+        <div class="h-2 w-full rounded-full overflow-hidden" style="background: rgba(61,107,255,0.1);">
+            <div class="h-full bg-gradient-to-r from-blue-500 to-fuchsia-500 transition-all" style="width: {{ $completeness }}%;"></div>
         </div>
         <p class="text-[11px] mt-2" style="color: var(--text-dimmed);">Add a cover, tagline, niche tags, socials, and your first post to reach 100%.</p>
     </div>
 
     {{-- ── Handle claim ─────────────────────────────────── --}}
     @if(empty($user->handle))
-        <div class="rounded-2xl p-5 mb-6 border-l-4 border-violet-500" style="background: rgba(124,58,237,0.04);">
+        <div class="rounded-2xl p-5 mb-6 border-l-4 border-blue-500" style="background: rgba(61,107,255,0.04);">
             <p class="text-sm font-bold mb-2" style="color: var(--text-primary);">Claim your handle</p>
             <p class="text-xs mb-3" style="color: var(--text-dimmed);">Your profile lives at <code>/@yourname</code>. Pick a 3–30 character handle (letters, numbers, underscore).</p>
             <form action="{{ route('user.creator-profile.handle.claim') }}" method="POST" class="flex gap-2 items-center">
@@ -51,7 +51,7 @@
                 <input type="text" name="handle" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+"
                        placeholder="yourname"
                        class="flex-1 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
-                <button class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">Claim</button>
+                <button class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">Claim</button>
             </form>
         </div>
     @endif
@@ -115,9 +115,9 @@
                                    },
                                    remove(t) { this.tags = this.tags.filter(x => x !== t); } }">
                         <template x-for="t in tags" :key="t">
-                            <span class="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-violet-50 text-violet-700 font-semibold">
+                            <span class="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
                                 #<span x-text="t"></span>
-                                <button type="button" @click="remove(t)" class="text-violet-500 hover:text-rose-600">&times;</button>
+                                <button type="button" @click="remove(t)" class="text-blue-500 hover:text-rose-600">&times;</button>
                                 <input type="hidden" name="niche_tags[]" :value="t">
                             </span>
                         </template>
@@ -157,7 +157,7 @@
                         <input type="hidden" name="sections[{{ $key }}]" value="0">
                         <input type="checkbox" name="sections[{{ $key }}]" value="1"
                                {{ ($sections[$key] ?? $default) ? 'checked' : '' }}
-                               class="rounded text-violet-600 focus:ring-violet-500" style="border-color: var(--border-glass);">
+                               class="rounded text-blue-600 focus:ring-blue-500" style="border-color: var(--border-glass);">
                         <span class="text-xs font-semibold capitalize" style="color: var(--text-primary);">{{ $key }}</span>
                     </label>
                 @endforeach
@@ -193,7 +193,7 @@
                     <label class="flex items-start gap-2">
                         <input type="hidden" name="watermark_enabled" value="0">
                         <input type="checkbox" name="watermark_enabled" value="1" {{ old('watermark_enabled', $wmEnabled) ? 'checked' : '' }}
-                               class="mt-0.5 rounded text-violet-600" style="border-color: var(--border-glass);">
+                               class="mt-0.5 rounded text-blue-600" style="border-color: var(--border-glass);">
                         <span>
                             <span class="text-sm font-semibold" style="color: var(--text-primary);">Watermark images with viewer's name</span>
                             <span class="block text-[11px]" style="color: var(--text-dimmed);">Adds "@your-handle • @their-handle" to every image so screenshots are traceable.</span>
@@ -266,7 +266,7 @@
                 <input type="hidden" name="profile_published" value="0">
                 <input type="checkbox" name="profile_published" value="1"
                        {{ $user->profile_published ? 'checked' : '' }}
-                       class="mt-0.5 rounded text-violet-600 focus:ring-violet-500" style="border-color: var(--border-glass);">
+                       class="mt-0.5 rounded text-blue-600 focus:ring-blue-500" style="border-color: var(--border-glass);">
                 <div>
                     <p class="text-sm font-semibold" style="color: var(--text-primary);">My profile is live at /@{{ $user->handle ?: 'handle' }}</p>
                     <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">When off, only you can see it. (You'll need a handle first.)</p>
@@ -278,7 +278,7 @@
             <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
             </a>
-            <button type="submit" class="px-5 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-700">
+            <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
                 <i class="fas fa-save mr-1"></i> Save profile
             </button>
         </div>

@@ -4,7 +4,7 @@
 @php
     $statusStyles = [
         'pending_verification' => 'bg-amber-500/20 text-amber-300',
-        'verified'             => 'bg-violet-500/20 text-violet-300',
+        'verified'             => 'bg-blue-500/20 text-blue-300',
         'approved'             => 'bg-sky-500/20 text-sky-300',
         'processing'           => 'bg-sky-500/20 text-sky-300',
         'completed'            => 'bg-emerald-500/20 text-emerald-300',
@@ -20,7 +20,7 @@
     ], true);
 @endphp
 <div class="max-w-3xl mx-auto space-y-6">
-    <a href="{{ route('admin.privacy-requests.index') }}" class="text-sm text-violet-300 hover:text-violet-200">
+    <a href="{{ route('admin.privacy-requests.index') }}" class="text-sm text-blue-300 hover:text-blue-200">
         <i class="fas fa-arrow-left mr-1"></i> Back to queue
     </a>
 
@@ -37,7 +37,7 @@
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-                    <i class="fas {{ $pr->isDeletion() ? 'fa-user-slash text-red-300' : 'fa-download text-violet-300' }}"></i>
+                    <i class="fas {{ $pr->isDeletion() ? 'fa-user-slash text-red-300' : 'fa-download text-blue-300' }}"></i>
                     {{ $pr->typeLabel() }} request
                 </h2>
                 <p class="text-xs text-white/50 mt-1">Request #{{ $pr->id }}</p>
@@ -52,7 +52,7 @@
             <div><dt class="text-white/40 text-xs uppercase tracking-wider">Linked account</dt>
                 <dd class="text-white/90 mt-0.5">
                     @if($pr->user_id)
-                        <a href="{{ route('admin.users.show', $pr->user_id) }}" class="text-violet-300 hover:text-violet-200">#{{ $pr->user_id }}</a>
+                        <a href="{{ route('admin.users.show', $pr->user_id) }}" class="text-blue-300 hover:text-blue-200">#{{ $pr->user_id }}</a>
                     @else
                         <span class="text-amber-300">No matching account</span>
                     @endif
@@ -136,7 +136,7 @@
             <ol class="space-y-3">
                 @foreach(array_reverse($audit) as $entry)
                     <li class="flex gap-3 text-sm">
-                        <div class="w-2 h-2 rounded-full bg-violet-400 mt-1.5 shrink-0"></div>
+                        <div class="w-2 h-2 rounded-full bg-blue-400 mt-1.5 shrink-0"></div>
                         <div>
                             <div class="text-white/90 font-medium">{{ ucwords(str_replace('_', ' ', $entry['event'] ?? 'event')) }}</div>
                             @if(!empty($entry['note']))<div class="text-white/60 text-xs mt-0.5">{{ $entry['note'] }}</div>@endif

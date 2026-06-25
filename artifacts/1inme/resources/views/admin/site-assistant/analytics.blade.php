@@ -15,7 +15,7 @@
         <label class="text-xs text-white/50">Window:</label>
         @foreach([7, 14, 30, 60, 90] as $d)
             <a href="?days={{ $d }}"
-               class="px-3 py-1.5 rounded-lg text-xs border {{ $days === $d ? 'bg-purple-500 text-white border-purple-400' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10' }}">
+               class="px-3 py-1.5 rounded-lg text-xs border {{ $days === $d ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10' }}">
                 {{ $d }}d
             </a>
         @endforeach
@@ -162,7 +162,7 @@
                 @foreach($messagesPerDay as $d)
                     @php $h = max(2, (int) round(($d['count'] / $maxDay) * 100)); @endphp
                     <div class="flex-1 flex flex-col items-center justify-end" title="{{ $d['day'] }} — {{ $d['count'] }} msgs">
-                        <div class="w-full rounded-t bg-purple-500/70 hover:bg-purple-400 transition-all" style="height: {{ $h }}%"></div>
+                        <div class="w-full rounded-t bg-indigo-500/70 hover:bg-indigo-400 transition-all" style="height: {{ $h }}%"></div>
                     </div>
                 @endforeach
             </div>
@@ -210,7 +210,7 @@
                                     data-href="{{ $href }}"
                                     title="View cut-off transcripts for {{ $row['label'] }}">
                                     <td class="py-2 pr-3">
-                                        <a href="{{ $href }}" class="block font-mono truncate text-white group-hover:text-purple-300">{{ $row['label'] }}</a>
+                                        <a href="{{ $href }}" class="block font-mono truncate text-white group-hover:text-indigo-300">{{ $row['label'] }}</a>
                                         <div class="h-1 mt-1 rounded-full bg-white/5 overflow-hidden">
                                             <div class="h-full bg-rose-500/70" style="width: {{ $w }}%"></div>
                                         </div>
@@ -256,7 +256,7 @@
                                     data-href="{{ $href }}"
                                     title="View cut-off transcripts for {{ $row['label'] }}">
                                     <td class="py-2 pr-3">
-                                        <a href="{{ $href }}" class="block font-mono truncate text-white group-hover:text-purple-300">{{ $row['label'] }}</a>
+                                        <a href="{{ $href }}" class="block font-mono truncate text-white group-hover:text-indigo-300">{{ $row['label'] }}</a>
                                         <div class="h-1 mt-1 rounded-full bg-white/5 overflow-hidden">
                                             <div class="h-full bg-rose-500/70" style="width: {{ $w }}%"></div>
                                         </div>
@@ -301,7 +301,7 @@
                                 <span class="text-white/50 whitespace-nowrap">{{ $r->c }} convs · {{ (int)$r->turns }} turns</span>
                             </div>
                             <div class="h-1.5 mt-1 rounded-full bg-white/5 overflow-hidden">
-                                <div class="h-full bg-purple-500/70" style="width: {{ $w }}%"></div>
+                                <div class="h-full bg-indigo-500/70" style="width: {{ $w }}%"></div>
                             </div>
                         </div>
                     @endforeach

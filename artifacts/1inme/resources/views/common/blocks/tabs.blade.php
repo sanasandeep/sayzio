@@ -1,7 +1,7 @@
 @php
     $tabs   = is_array($s['tabs'] ?? null) ? $s['tabs'] : [];
     $layout = $s['layout'] ?? ($s['_registry']['layout'] ?? 'tabs');
-    $accent = $s['accent_color'] ?? '#7c3aed';
+    $accent = $s['accent_color'] ?? '#3d6bff';
     $tabsId = 'tabs_' . $block->id;
 @endphp
 

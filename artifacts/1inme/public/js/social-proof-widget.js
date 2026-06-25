@@ -229,7 +229,7 @@
     return {
       position:   ov.position   || base.position   || 'bottom-left',
       theme:      ov.theme      || base.theme      || 'light',
-      accent:     ov.accent     || base.accent     || '#7c3aed',
+      accent:     ov.accent     || base.accent     || '#3d6bff',
       rounded:    ov.rounded    || base.rounded    || 'lg',
       animation:  ov.animation  || base.animation  || 'slide-up',
       shadow:     (ov.shadow    !== undefined) ? !!ov.shadow    : !!base.shadow,
@@ -246,7 +246,7 @@
     if (d.shadow) c.classList.add('__1inme_sp_shadow');
     if (opts.bubble) c.classList.add('__1inme_sp_bubble');
     var radius = ({sm:'6px',md:'10px',lg:'14px',xl:'20px',full:'999px'})[d.rounded || 'lg'];
-    c.style.setProperty('--sp-accent', d.accent || '#7c3aed');
+    c.style.setProperty('--sp-accent', d.accent || '#3d6bff');
     c.style.setProperty('--sp-radius', radius);
     return c;
   }
@@ -394,7 +394,7 @@
 
   function dataAvatarFor(name) {
     var initials = (name || '?').split(/\s+/).slice(0,2).map(function(s){return s[0]||'';}).join('').toUpperCase();
-    var colors = ['#7c3aed','#ec4899','#06b6d4','#10b981','#f59e0b','#ef4444','#3b82f6'];
+    var colors = ['#3d6bff','#ec4899','#06b6d4','#10b981','#f59e0b','#ef4444','#3b82f6'];
     var bg = colors[(name||'').length % colors.length];
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42"><rect width="100%" height="100%" rx="6" fill="'+bg+'"/><text x="50%" y="55%" font-family="sans-serif" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="middle">'+initials+'</text></svg>';
     return 'data:image/svg+xml;base64,' + btoa(svg);

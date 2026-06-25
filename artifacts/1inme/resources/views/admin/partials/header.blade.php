@@ -26,7 +26,7 @@
                 @csrf
                 <button type="submit"
                         class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
-                        style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);"
+                        style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);"
                         title="Switch back to your user dashboard">
                     <i class="fas fa-arrow-right-arrow-left"></i>
                     <span>Switch to user</span>
@@ -40,7 +40,7 @@
 
         <div x-data="{ open: false }" class="relative">
             <button @click="open = !open" class="flex items-center gap-2 transition-colors hover:opacity-80" style="color: var(--text-muted);">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15); color: var(--accent-light);">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15); color: var(--accent-light);">
                     {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
                 </div>
                 <i class="fas fa-chevron-down text-[10px]" style="color: var(--text-faint);"></i>

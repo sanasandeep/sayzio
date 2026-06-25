@@ -73,10 +73,10 @@
                         <input type="radio" name="template" value="{{ $key }}" x-model="template" class="sr-only" {{ $key === 'contact' ? 'checked' : '' }}>
                         <div class="p-4 rounded-xl text-center transition-all"
                              :class="template === '{{ $key }}'
-                                ? 'ring-2 ring-violet-500'
-                                : 'hover:border-violet-400'"
+                                ? 'ring-2 ring-blue-500'
+                                : 'hover:border-blue-400'"
                              style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                            <i class="fas {{ $icon }} text-lg mb-2" :class="template === '{{ $key }}' ? 'text-violet-400' : ''" style="color: var(--text-muted);"></i>
+                            <i class="fas {{ $icon }} text-lg mb-2" :class="template === '{{ $key }}' ? 'text-blue-400' : ''" style="color: var(--text-muted);"></i>
                             <div class="text-xs font-bold" style="color: var(--text-primary);">{{ $label }}</div>
                             <div class="text-[10px] mt-0.5" style="color: var(--text-faint);">{{ $desc }}</div>
                         </div>

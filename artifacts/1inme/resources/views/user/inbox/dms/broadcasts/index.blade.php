@@ -45,7 +45,7 @@
         </label>
 
         <details class="text-sm">
-            <summary class="cursor-pointer text-violet-400">Attach a (lockable) file</summary>
+            <summary class="cursor-pointer text-blue-400">Attach a (lockable) file</summary>
             <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input type="url" name="attachment_url" placeholder="https://… (file URL)" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                 <input type="url" name="attachment_thumb_url" placeholder="https://… (thumb / blur preview)" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
@@ -64,7 +64,7 @@
 
         <div class="flex items-center justify-end gap-2 pt-2">
             <button type="submit" class="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm">Save draft</button>
-            <button type="submit" name="send_now" value="1" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold">Send now</button>
+            <button type="submit" name="send_now" value="1" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Send now</button>
         </div>
     </form>
 
@@ -86,7 +86,7 @@
                     @if($b->status !== 'sent')
                         <form method="POST" action="{{ route('user.inbox.dms.broadcasts.send', $b) }}">
                             @csrf
-                            <button class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold">Send</button>
+                            <button class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">Send</button>
                         </form>
                     @endif
                     <form method="POST" action="{{ route('user.inbox.dms.broadcasts.destroy', $b) }}" onsubmit="return confirm('Delete this broadcast?');">

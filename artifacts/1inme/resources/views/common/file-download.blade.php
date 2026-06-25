@@ -21,7 +21,7 @@
     <style>
         body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0a0612; }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(24px) saturate(1.2); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 4px 32px rgba(0,0,0,0.4); }
-        .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(124,58,237,0.07), transparent), radial-gradient(ellipse 500px 350px at 85% 75%, rgba(139,92,246,0.05), transparent); }
+        .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(61,107,255,0.07), transparent), radial-gradient(ellipse 500px 350px at 85% 75%, rgba(92,131,255,0.05), transparent); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 text-white">
@@ -36,13 +36,13 @@
                 $downloadUrl = route('redirect.file.raw', $link->alias);
             @endphp
 
-            <div class="w-16 h-16 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div class="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 @if($isImage)
-                    <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 @elseif($isPdf)
                     <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 @else
-                    <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                 @endif
             </div>
 
@@ -64,12 +64,12 @@
             </div>
             @endif
 
-            <a href="{{ $downloadUrl }}" class="inline-flex items-center justify-center gap-2 w-full text-white px-6 py-3 rounded-xl font-semibold transition-all" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 16px rgba(124,58,237,0.25);">
+            <a href="{{ $downloadUrl }}" class="inline-flex items-center justify-center gap-2 w-full text-white px-6 py-3 rounded-xl font-semibold transition-all" style="background: linear-gradient(135deg, #5c83ff, #3d6bff); box-shadow: 0 4px 16px rgba(61,107,255,0.25);">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Download File
             </a>
 
-            <p class="text-xs text-white/20 mt-4">Shared via <span class="text-white/30">1IN</span><span class="text-violet-400/60">ME</span></p>
+            <p class="text-xs text-white/20 mt-4">Shared via <span class="text-white/30">1IN</span><span class="text-blue-400/60">ME</span></p>
         </div>
     </div>
 

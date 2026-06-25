@@ -14,7 +14,7 @@
             :class="sidebarMode === 'icons' ? 'justify-center' : ''">
         <div class="flex items-center gap-2 min-w-0">
             <div class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold"
-                 style="background:{{ $currentWs->is_personal ? '#7c3aed' : '#10b981' }}; color:#fff;"
+                 style="background:{{ $currentWs->is_personal ? '#3d6bff' : '#10b981' }}; color:#fff;"
                  title="{{ $currentWs->is_personal ? 'Personal workspace' : 'Team workspace' }}">
                 <i class="fas {{ $currentWs->is_personal ? 'fa-user' : 'fa-users' }} text-[10px]"></i>
             </div>
@@ -22,7 +22,7 @@
                 <div class="truncate text-sm font-semibold flex items-center gap-1.5">
                     <span class="truncate">{{ $currentWs->name }}</span>
                     <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
-                          style="{{ $currentWs->is_personal ? 'background:rgba(124,58,237,.12);color:#a78bfa;' : 'background:rgba(16,185,129,.12);color:#34d399;' }}">
+                          style="{{ $currentWs->is_personal ? 'background:rgba(61,107,255,.12);color:#90acff;' : 'background:rgba(16,185,129,.12);color:#34d399;' }}">
                         {{ $currentWs->is_personal ? 'Personal' : 'Team' }}
                     </span>
                 </div>
@@ -49,12 +49,12 @@
                         style="color: var(--text-primary);">
                     <span class="flex items-center gap-2 min-w-0">
                         <span class="w-5 h-5 rounded flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
-                              style="background:{{ $ws->is_personal ? '#7c3aed' : '#10b981' }}; color:#fff;">
+                              style="background:{{ $ws->is_personal ? '#3d6bff' : '#10b981' }}; color:#fff;">
                             <i class="fas {{ $ws->is_personal ? 'fa-user' : 'fa-users' }} text-[8px]"></i>
                         </span>
                         <span class="truncate">{{ $ws->name }}</span>
                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
-                              style="{{ $ws->is_personal ? 'background:rgba(124,58,237,.12);color:#a78bfa;' : 'background:rgba(16,185,129,.12);color:#34d399;' }}">
+                              style="{{ $ws->is_personal ? 'background:rgba(61,107,255,.12);color:#90acff;' : 'background:rgba(16,185,129,.12);color:#34d399;' }}">
                             {{ $ws->is_personal ? 'Personal' : 'Team' }}
                         </span>
                     </span>

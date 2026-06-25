@@ -56,14 +56,14 @@
 
             <label class="flex items-center gap-3 cursor-pointer">
                 <input type="hidden" name="s3_enabled" value="0">
-                <input type="checkbox" name="s3_enabled" value="1" x-model="enabled" class="accent-violet-500 w-4 h-4">
+                <input type="checkbox" name="s3_enabled" value="1" x-model="enabled" class="accent-blue-500 w-4 h-4">
                 <span class="text-sm text-white/80">Use S3 for user content</span>
             </label>
         </div>
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-5" x-show="enabled" x-cloak>
             <h3 class="font-semibold text-white text-sm flex items-center gap-2">
-                <i class="fas fa-key text-violet-400"></i> Credentials &amp; bucket
+                <i class="fas fa-key text-blue-400"></i> Credentials &amp; bucket
             </h3>
 
             <div class="grid sm:grid-cols-2 gap-4">
@@ -129,13 +129,13 @@
 
             <label class="flex items-center gap-3 cursor-pointer">
                 <input type="hidden" name="s3_use_path_style" value="0">
-                <input type="checkbox" name="s3_use_path_style" value="1" {{ old('s3_use_path_style', $usePathStyle) ? 'checked' : '' }} class="accent-violet-500 w-4 h-4">
+                <input type="checkbox" name="s3_use_path_style" value="1" {{ old('s3_use_path_style', $usePathStyle) ? 'checked' : '' }} class="accent-blue-500 w-4 h-4">
                 <span class="text-sm text-white/80">Use path-style endpoint</span>
                 <span class="text-[11px] text-white/30">(required by some S3-compatible providers)</span>
             </label>
         </div>
 
-        <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             <i class="fas fa-save mr-1"></i> Save settings
         </button>
     </form>

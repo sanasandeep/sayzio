@@ -37,14 +37,14 @@
         --sidebar-link-hover-bg: rgba(255,255,255,0.05);
         --sidebar-link-hover-text: #ffffff;
         --sidebar-active-bg: rgba(255,255,255,0.10);
-        --sidebar-active-border: rgba(34,211,238,0.50);
+        --sidebar-active-border: rgba(61,107,255,0.50);
         --sidebar-active-text: #ffffff;
-        --accent: #a78bfa;
-        --accent-light: #67e8f9;
-        --accent-glow: rgba(168,85,247,0.40);
-        --glow-1: rgba(168,85,247,0.20);
-        --glow-2: rgba(34,211,238,0.20);
-        --glow-3: rgba(236,72,153,0.10);
+        --accent: #7d9bff;
+        --accent-light: #9c92ff;
+        --accent-glow: rgba(61,107,255,0.40);
+        --glow-1: rgba(61,107,255,0.20);
+        --glow-2: rgba(110,97,255,0.20);
+        --glow-3: rgba(215,109,255,0.10);
         --scrollbar-thumb: rgba(255,255,255,0.10);
         --scrollbar-thumb-hover: rgba(255,255,255,0.20);
         --overlay-bg: rgba(0,0,0,0.7);
@@ -55,13 +55,13 @@
         --radius-pill: 999px;
 
         /* Multi-color accent palette — purple/cyan/pink-led to match GlassDark */
-        --c-primary:   #a78bfa;  --c-primary-soft:   rgba(168,85,247,0.18);
+        --c-primary:   #7d9bff;  --c-primary-soft:   rgba(61,107,255,0.18);
         --c-success:   #34d399;  --c-success-soft:   rgba(52,211,153,0.16);
         --c-info:      #67e8f9;  --c-info-soft:      rgba(34,211,238,0.18);
         --c-warning:   #fbbf24;  --c-warning-soft:   rgba(251,191,36,0.16);
         --c-danger:    #fb7185;  --c-danger-soft:    rgba(251,113,133,0.16);
-        --c-pink:      #f472b6;  --c-pink-soft:      rgba(236,72,153,0.18);
-        --c-indigo:    #818cf8;  --c-indigo-soft:    rgba(99,102,241,0.18);
+        --c-pink:      #e29bff;  --c-pink-soft:      rgba(215,109,255,0.18);
+        --c-indigo:    #9c92ff;  --c-indigo-soft:    rgba(110,97,255,0.18);
         --c-teal:      #2dd4bf;  --c-teal-soft:      rgba(20,184,166,0.16);
     }
 
@@ -95,14 +95,14 @@
         --sidebar-link: #4b5675;
         --sidebar-link-hover-bg: #f9f9f9;
         --sidebar-link-hover-text: #071437;
-        --sidebar-active-bg: #f3eeff;
+        --sidebar-active-bg: #eaf0ff;
         --sidebar-active-border: transparent;
-        --sidebar-active-text: #7c3aed;
-        --accent: #7c3aed;
-        --accent-light: #8b5cf6;
-        --accent-glow: rgba(124,58,237,0.14);
-        --glow-1: rgba(124,58,237,0);
-        --glow-2: rgba(168,85,247,0);
+        --sidebar-active-text: #3d6bff;
+        --accent: #3d6bff;
+        --accent-light: #5c83ff;
+        --accent-glow: rgba(61,107,255,0.14);
+        --glow-1: rgba(61,107,255,0);
+        --glow-2: rgba(110,97,255,0);
         --scrollbar-thumb: #e4e6ef;
         --scrollbar-thumb-hover: #b5b5c3;
         --overlay-bg: rgba(7,20,55,0.28);
@@ -110,13 +110,13 @@
         --card-shadow-hover: 0 6px 14px rgba(7,20,55,0.06);
         --noise-opacity: 0;
 
-        --c-primary:   #7c3aed;  --c-primary-soft:   #f3eeff;
+        --c-primary:   #3d6bff;  --c-primary-soft:   #eaf0ff;
         --c-success:   #17c653;  --c-success-soft:   #e9f9ee;
         --c-info:      #1b84ff;  --c-info-soft:      #e9f3ff;
         --c-warning:   #f6c000;  --c-warning-soft:   #fff5d6;
         --c-danger:    #f8285a;  --c-danger-soft:    #fde7ec;
-        --c-pink:      #ec4899;  --c-pink-soft:      #fdeaf3;
-        --c-indigo:    #6366f1;  --c-indigo-soft:    #eceffe;
+        --c-pink:      #d76dff;  --c-pink-soft:      #f9eaff;
+        --c-indigo:    #6e61ff;  --c-indigo-soft:    #ecebff;
         --c-teal:      #14b8a6;  --c-teal-soft:      #e2f7f4;
     }
 
@@ -224,7 +224,7 @@
         position: absolute;
         inset: -1px;
         border-radius: inherit;
-        background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(139,92,246,0.15), rgba(124,58,237,0.05));
+        background: linear-gradient(135deg, rgba(61,107,255,0.4), rgba(110,97,255,0.15), rgba(61,107,255,0.05));
         z-index: -1;
         mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -263,7 +263,7 @@
         position: absolute;
         top: -50px; right: -50px;
         width: 180px; height: 180px;
-        background: radial-gradient(closest-side, var(--stat-tint-soft, rgba(139,92,246,0.22)), transparent 72%);
+        background: radial-gradient(closest-side, var(--stat-tint-soft, rgba(61,107,255,0.22)), transparent 72%);
         filter: blur(6px);
         pointer-events: none;
         z-index: 0;
@@ -520,18 +520,18 @@
         transition: opacity 0.3s;
     }
     .btn-primary:hover {
-        background: #6d28d9;
+        background: #2342c7;
         box-shadow: 0 2px 4px rgba(0,0,0,0.12);
         transform: translateY(-1px);
     }
     .btn-primary:hover::before { opacity: 0; }
     .btn-primary:active { transform: translateY(0); }
     html.light-mode .btn-primary {
-        box-shadow: 0 1px 2px rgba(109,40,217,0.20), inset 0 1px 0 rgba(255,255,255,0.18);
+        box-shadow: 0 1px 2px rgba(61,107,255,0.20), inset 0 1px 0 rgba(255,255,255,0.18);
     }
     html.light-mode .btn-primary:hover {
-        background: #5b21b6;
-        box-shadow: 0 4px 12px -2px rgba(109,40,217,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+        background: #2139a1;
+        box-shadow: 0 4px 12px -2px rgba(61,107,255,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
     }
 
     .btn-ghost {
@@ -644,21 +644,21 @@
         padding: 0 0.1875rem;
     }
     .theme-toggle-btn:hover {
-        border-color: rgba(124,58,237,0.3);
-        box-shadow: 0 0 16px rgba(124,58,237,0.1);
+        border-color: rgba(61,107,255,0.3);
+        box-shadow: 0 0 16px rgba(61,107,255,0.1);
     }
     .theme-toggle-btn .toggle-knob {
         width: 1.125rem;
         height: 1.125rem;
         border-radius: 9999px;
-        background: linear-gradient(135deg, #a78bfa, #67e8f9);
+        background: linear-gradient(135deg, #7d9bff, #9c92ff);
         transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 0.55rem;
         color: white;
-        box-shadow: 0 0 12px rgba(168,85,247,0.50);
+        box-shadow: 0 0 12px rgba(61,107,255,0.50);
     }
     html.light-mode .theme-toggle-btn .toggle-knob {
         transform: translateX(1.25rem);
@@ -700,19 +700,19 @@
         overflow: hidden;
         border-radius: 0.75rem;
         padding: 1rem;
-        background: linear-gradient(135deg, rgba(124,58,237,0.10), rgba(168,85,247,0.04));
-        border: 1px solid rgba(124,58,237,0.18);
+        background: linear-gradient(135deg, rgba(61,107,255,0.10), rgba(110,97,255,0.04));
+        border: 1px solid rgba(61,107,255,0.18);
     }
     html.light-mode .upgrade-card {
-        background: linear-gradient(135deg, #f5f0ff, #fafaff);
-        border-color: #e6d9ff;
+        background: linear-gradient(135deg, #eff3ff, #fafbff);
+        border-color: #d3e0ff;
     }
     .upgrade-card::before {
         content: '';
         position: absolute;
         top: -50%; right: -50%;
         width: 100%; height: 100%;
-        background: radial-gradient(circle, rgba(124,58,237,0.1), transparent 70%);
+        background: radial-gradient(circle, rgba(61,107,255,0.1), transparent 70%);
         animation: float-slow 15s ease-in-out infinite;
     }
 
@@ -742,8 +742,8 @@
         50%,100% { left: 200%; }
     }
     @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 20px rgba(124,58,237,0.15); }
-        50% { box-shadow: 0 0 40px rgba(124,58,237,0.25); }
+        0%, 100% { box-shadow: 0 0 20px rgba(61,107,255,0.15); }
+        50% { box-shadow: 0 0 40px rgba(61,107,255,0.25); }
     }
     @keyframes gradient-shift {
         0% { background-position: 0% 50%; }
@@ -775,12 +775,12 @@
         position: absolute;
         width: 2px;
         height: 2px;
-        background: rgba(124,58,237,0.3);
+        background: rgba(61,107,255,0.3);
         border-radius: 50%;
         animation: float-particle linear infinite;
     }
     html.light-mode .particle {
-        background: rgba(124,58,237,0.15);
+        background: rgba(61,107,255,0.15);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -855,7 +855,7 @@
     .gsm-row-icon {
         background: var(--bg-glass-input);
         border: 1px solid var(--border-glass);
-        color: #1bd4d9;
+        color: #7d9bff;
     }
     html.light-mode .gsm-row-icon { color: var(--accent); }
 
@@ -879,7 +879,7 @@
        LIGHT MODE — accent text colors & very-light grays
        The global utility remap (injected below) handles white / gray / slate
        / zinc / neutral / stone text. Tailwind's LIGHT accent shades
-       (*-100/200/300/400, e.g. text-violet-400, text-emerald-300) are tuned
+       (*-100/200/300/400, e.g. text-blue-400, text-emerald-300) are tuned
        for the dark canvas and go low-contrast on the white light-mode surface.
        They're used overwhelmingly as colored labels/icons and on SOFT same-hue
        tints (e.g. bg-emerald-500/10) which stay pale in light mode, so darkening
@@ -888,8 +888,8 @@
        no white-on-color labels are harmed.) Dark mode is untouched — these
        rules only apply under html.light-mode.
        ===================================================================== */
-    html.light-mode .text-violet-100,  html.light-mode .text-violet-200,  html.light-mode .text-violet-300,  html.light-mode .text-violet-400,
-    html.light-mode .text-purple-100,  html.light-mode .text-purple-200,  html.light-mode .text-purple-300,  html.light-mode .text-purple-400 { color: #6d28d9 !important; }
+    html.light-mode .text-blue-100,  html.light-mode .text-blue-200,  html.light-mode .text-blue-300,  html.light-mode .text-blue-400,
+    html.light-mode .text-indigo-100,  html.light-mode .text-indigo-200,  html.light-mode .text-indigo-300,  html.light-mode .text-indigo-400 { color: #2342c7 !important; }
     html.light-mode .text-fuchsia-100, html.light-mode .text-fuchsia-200, html.light-mode .text-fuchsia-300, html.light-mode .text-fuchsia-400 { color: #a21caf !important; }
     html.light-mode .text-pink-100,    html.light-mode .text-pink-200,    html.light-mode .text-pink-300,    html.light-mode .text-pink-400 { color: #be185d !important; }
     html.light-mode .text-rose-100,    html.light-mode .text-rose-200,    html.light-mode .text-rose-300,    html.light-mode .text-rose-400 { color: #be123c !important; }
@@ -908,10 +908,10 @@
 <script>
 (function(){
     var css = `
-        html.light-mode [class*="text-white"]:not([class*="bg-purple-"]):not([class*="bg-violet-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
+        html.light-mode [class*="text-white"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
             color: var(--text-primary) !important;
         }
-        html.light-mode [class*="text-white/"]:not([class*="bg-purple-"]):not([class*="bg-violet-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
+        html.light-mode [class*="text-white/"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
             color: var(--text-muted) !important;
         }
         html.light-mode [class*="text-white/8"],
@@ -1110,7 +1110,7 @@
         var m = cls.match(/text-(violet|purple|emerald|green|cyan|teal|amber|yellow|orange|red|rose|pink|fuchsia|indigo|blue|sky)-(300|400|500|600)/);
         if(!m) return null;
         var map = {
-            violet: 'rgba(139,92,246,', purple: 'rgba(168,85,247,',
+            violet: 'rgba(61,107,255,', purple: 'rgba(110,97,255,',
             emerald: 'rgba(16,185,129,', green: 'rgba(34,197,94,',
             cyan: 'rgba(6,182,212,', teal: 'rgba(20,184,166,', sky: 'rgba(14,165,233,',
             amber: 'rgba(245,158,11,', yellow: 'rgba(234,179,8,', orange: 'rgba(249,115,22,',

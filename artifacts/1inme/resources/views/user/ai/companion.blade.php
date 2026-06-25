@@ -15,7 +15,7 @@
         <aside class="rounded-2xl border border-white/10 bg-white/[0.03] p-3 space-y-2 md:max-h-[70vh] md:overflow-y-auto">
             <form method="POST" action="{{ route('user.ai.companion.store') }}">
                 @csrf
-                <button class="w-full px-3 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                <button class="w-full px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                     + New conversation
                 </button>
             </form>
@@ -118,7 +118,7 @@
                 </div>
 
                 @if(!empty($activeMinds))
-                    <div class="mb-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.05] px-3 py-2 text-xs text-white/70 flex flex-wrap items-center gap-2">
+                    <div class="mb-3 rounded-xl border border-blue-500/20 bg-blue-500/[0.05] px-3 py-2 text-xs text-white/70 flex flex-wrap items-center gap-2">
                         <span class="text-white/50 uppercase tracking-wider">Grounded in:</span>
                         @foreach($activeMinds as $m)
                             <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/80">
@@ -135,7 +135,7 @@
                         @foreach($history as $turn)
                             <div class="flex {{ $turn['role'] === 'user' ? 'justify-end' : 'justify-start' }}">
                                 <div class="max-w-[80%] rounded-2xl px-4 py-2 text-sm
-                                    {{ $turn['role'] === 'user' ? 'bg-violet-600 text-white' : 'bg-white/10 text-white/90' }}">
+                                    {{ $turn['role'] === 'user' ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/90' }}">
                                     <pre class="whitespace-pre-wrap font-sans">@if(!empty($turn['html'])){!! $turn['html'] !!}@else{{ $turn['content'] }}@endif</pre>
                                     @if(($turn['role'] ?? null) === 'assistant' && !empty($turn['meta']['citations']))
                                         <p class="text-[10px] text-white/50 mt-1">
@@ -184,7 +184,7 @@
                             <i class="fas" :class="vdBusy ? 'fa-spinner fa-spin' : 'fa-microphone'"></i>
                         </button>
                     @endif
-                    <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                    <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                         Send
                     </button>
                 </form>
@@ -225,7 +225,7 @@
                     ])
 
                     <div class="flex justify-end">
-                        <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                        <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                             + Start conversation
                         </button>
                     </div>

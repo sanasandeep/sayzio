@@ -39,11 +39,11 @@
     <button type="button" @click="showDisplay = !showDisplay"
             class="w-full flex items-center justify-between text-sm font-medium py-1.5 group" style="color: var(--text-muted);">
         <span class="flex items-center gap-2">
-            <span class="inline-flex w-7 h-7 rounded-lg items-center justify-center" style="background: linear-gradient(135deg, rgba(139,92,246,0.18), rgba(236,72,153,0.12)); border: 1px solid rgba(139,92,246,0.25);">
-                <i class="fas fa-sliders-h text-violet-400 text-xs"></i>
+            <span class="inline-flex w-7 h-7 rounded-lg items-center justify-center" style="background: linear-gradient(135deg, rgba(92,131,255,0.18), rgba(236,72,153,0.12)); border: 1px solid rgba(92,131,255,0.25);">
+                <i class="fas fa-sliders-h text-blue-400 text-xs"></i>
             </span>
             <span>Display Settings</span>
-            <span class="text-[10px] px-1.5 py-0.5 rounded-md" style="background: rgba(139,92,246,0.10); color: rgba(196,181,253,0.85);">Schedule · Audience · Device</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-md" style="background: rgba(92,131,255,0.10); color: rgba(188,207,255,0.85);">Schedule · Audience · Device</span>
         </span>
         <i :class="showDisplay ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40 group-hover:text-white/70 transition"></i>
     </button>
@@ -54,7 +54,7 @@
         {{-- Tab placement (only when the page has tabs configured) --}}
         <div class="dz-card rounded-xl p-3" style="background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01)); border: 1px solid var(--border-glass);">
             <label class="flex items-center gap-2 text-xs font-medium mb-2" style="color: var(--text-muted);">
-                <i class="fas fa-folder-open text-violet-400 text-[11px]"></i> Show on Page Tab
+                <i class="fas fa-folder-open text-blue-400 text-[11px]"></i> Show on Page Tab
             </label>
             <select name="settings[_tab_id]" class="{{ $inputClass }}">
                 <option value="">Main Page (default — visible when no tab is active)</option>
@@ -70,14 +70,14 @@
 
         {{-- =============== SCHEDULE CARD =============== --}}
         @php $tsId = 'ts_' . substr(md5($block->id . uniqid()), 0, 8); @endphp
-        <div class="rounded-xl overflow-hidden" style="background: linear-gradient(180deg, rgba(139,92,246,0.06), rgba(255,255,255,0.01)); border: 1px solid rgba(139,92,246,0.18);"
+        <div class="rounded-xl overflow-hidden" style="background: linear-gradient(180deg, rgba(92,131,255,0.06), rgba(255,255,255,0.01)); border: 1px solid rgba(92,131,255,0.18);"
              x-data="timeSlotsField_{{ $tsId }}()">
             <button type="button" @click="$root.openCard = $root.openCard === 'schedule' ? '' : 'schedule'"
                     class="w-full flex items-center justify-between px-3 py-2.5">
                 <span class="flex items-center gap-2 text-xs font-medium" style="color: var(--text-secondary, #d4d4d8);">
-                    <i class="fas fa-calendar-alt text-violet-400 text-[11px]"></i>
+                    <i class="fas fa-calendar-alt text-blue-400 text-[11px]"></i>
                     Schedule
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-md ml-1" style="background: rgba(139,92,246,0.14); color: rgba(196,181,253,0.85);" x-text="summary"></span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-md ml-1" style="background: rgba(92,131,255,0.14); color: rgba(188,207,255,0.85);" x-text="summary"></span>
                 </span>
                 <i :class="$root.openCard === 'schedule' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40"></i>
             </button>
@@ -95,16 +95,16 @@
                 <p class="text-[10px] -mt-1.5" style="color: var(--text-dimmed);">Leave blank for "always live". Both fields use your account timezone.</p>
 
                 {{-- Active Time Slots --}}
-                <div class="rounded-lg p-2.5" style="background: rgba(0,0,0,0.18); border: 1px dashed rgba(139,92,246,0.22);">
+                <div class="rounded-lg p-2.5" style="background: rgba(0,0,0,0.18); border: 1px dashed rgba(92,131,255,0.22);">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-secondary, #d4d4d8);">
-                            <i class="far fa-clock text-violet-400 text-[11px]"></i>
+                            <i class="far fa-clock text-blue-400 text-[11px]"></i>
                             Active Time Slots
                             <span class="text-[10px] font-normal" style="color: var(--text-dimmed);">(optional)</span>
                         </label>
                         <button type="button" @click="addSlot()"
                                 class="text-[10px] px-2 py-1 rounded-md flex items-center gap-1 transition"
-                                style="background: rgba(139,92,246,0.18); color: rgba(196,181,253,0.95); border: 1px solid rgba(139,92,246,0.30);">
+                                style="background: rgba(92,131,255,0.18); color: rgba(188,207,255,0.95); border: 1px solid rgba(92,131,255,0.30);">
                             <i class="fas fa-plus text-[9px]"></i> Add slot
                         </button>
                     </div>
@@ -122,16 +122,16 @@
                                 @foreach($allDays as $code => $label)
                                 <button type="button"
                                         @click="toggleDay(i, '{{ $code }}')"
-                                        :class="slots[i].days.includes('{{ $code }}') ? 'ring-1 ring-violet-400/60 text-violet-200' : 'text-white/45 hover:text-white/70'"
-                                        :style="slots[i].days.includes('{{ $code }}') ? 'background: rgba(139,92,246,0.22);' : 'background: rgba(255,255,255,0.04);'"
+                                        :class="slots[i].days.includes('{{ $code }}') ? 'ring-1 ring-blue-400/60 text-blue-200' : 'text-white/45 hover:text-white/70'"
+                                        :style="slots[i].days.includes('{{ $code }}') ? 'background: rgba(92,131,255,0.22);' : 'background: rgba(255,255,255,0.04);'"
                                         class="text-[10px] font-semibold w-8 h-7 rounded-md transition-all">
                                     {{ $label }}
                                 </button>
                                 @endforeach
                                 <div class="flex-1"></div>
-                                <button type="button" @click="presetWeekdays(i)" class="text-[9px] px-2 h-7 rounded-md text-white/40 hover:text-violet-300" style="background: rgba(255,255,255,0.03);" title="Mon–Fri">Wkdays</button>
-                                <button type="button" @click="presetWeekend(i)" class="text-[9px] px-2 h-7 rounded-md text-white/40 hover:text-violet-300" style="background: rgba(255,255,255,0.03);" title="Sat–Sun">Wkend</button>
-                                <button type="button" @click="presetAllDays(i)" class="text-[9px] px-2 h-7 rounded-md text-white/40 hover:text-violet-300" style="background: rgba(255,255,255,0.03);">All</button>
+                                <button type="button" @click="presetWeekdays(i)" class="text-[9px] px-2 h-7 rounded-md text-white/40 hover:text-blue-300" style="background: rgba(255,255,255,0.03);" title="Mon–Fri">Wkdays</button>
+                                <button type="button" @click="presetWeekend(i)" class="text-[9px] px-2 h-7 rounded-md text-white/40 hover:text-blue-300" style="background: rgba(255,255,255,0.03);" title="Sat–Sun">Wkend</button>
+                                <button type="button" @click="presetAllDays(i)" class="text-[9px] px-2 h-7 rounded-md text-white/40 hover:text-blue-300" style="background: rgba(255,255,255,0.03);">All</button>
                             </div>
 
                             {{-- Time range + remove --}}
@@ -157,7 +157,7 @@
                     </template>
 
                     <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
-                        <i class="fas fa-info-circle text-violet-400/50 mr-1"></i>
+                        <i class="fas fa-info-circle text-blue-400/50 mr-1"></i>
                         Block is visible only when the visitor's local time is inside any one of the slots. Across-midnight ranges (e.g. 22:00 → 02:00) are supported.
                     </p>
                 </div>

@@ -24,7 +24,7 @@
     $settings = $payload['settings'] ?? [];
     $theme    = $settings['theme'] ?? [];
     $bg       = $theme['background'] ?? '#0f172a';
-    $accent   = $theme['accent']     ?? '#8b5cf6';
+    $accent   = $theme['accent']     ?? '#5c83ff';
     $text     = $theme['text']       ?? '#f8fafc';
     $defaultTransition = $settings['transition'] ?? 'slide';
     $autoAdvance       = (int) ($settings['auto_advance'] ?? 0);

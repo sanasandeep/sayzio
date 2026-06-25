@@ -29,7 +29,7 @@
         </div>
         <div class="mt-3 flex items-center gap-2">
             <i class="fas fa-search-minus text-white/40 text-xs"></i>
-            <input type="range" min="1" max="4" step="0.01" :value="zoom" @input="onZoom($event.target.value)" class="flex-1 accent-violet-500">
+            <input type="range" min="1" max="4" step="0.01" :value="zoom" @input="onZoom($event.target.value)" class="flex-1 accent-blue-500">
             <i class="fas fa-search-plus text-white/40 text-xs"></i>
         </div>
         <p x-show="error" x-text="error" class="text-xs text-red-400 mt-2"></p>
@@ -38,7 +38,7 @@
             <span x-show="!pendingFile" class="text-xs text-white/40">Re-cropping current photo</span>
             <div class="flex items-center gap-2">
                 <button type="button" @click="cancelCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white">Cancel</button>
-                <button type="button" @click="confirmCrop()" :disabled="!natW" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                <button type="button" @click="confirmCrop()" :disabled="!natW" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                     <i class="fas fa-crop"></i><span>Save crop</span>
                 </button>
             </div>

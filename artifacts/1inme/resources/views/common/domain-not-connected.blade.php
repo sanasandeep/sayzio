@@ -12,7 +12,7 @@
                 background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
         h1 { font-size:20px; margin:0 0 12px; }
         p  { font-size:14px; color:rgba(255,255,255,0.6); line-height:1.5; }
-        code { background:rgba(124,58,237,0.15); padding:2px 8px; border-radius:6px; color:#c4b5fd; }
+        code { background:rgba(61,107,255,0.15); padding:2px 8px; border-radius:6px; color:#bccfff; }
     </style>
 </head>
 <body>

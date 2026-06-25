@@ -14,19 +14,19 @@ export default function Slide161Investorfinancials() {
         <div className="mt-[4vh] flex-1 flex flex-col">
           <div className="grid grid-cols-5 gap-[1vw] pb-[1vh]"><div className="text-[0.9vw] uppercase tracking-[0.25em] text-slate-400 ">Metric</div><div className="text-[0.9vw] uppercase tracking-[0.25em] text-slate-400 ">Y1</div><div className="text-[0.9vw] uppercase tracking-[0.25em] text-slate-400 ">Y2</div><div className="text-[0.9vw] uppercase tracking-[0.25em] text-slate-400 ">Y3</div><div className="text-[0.9vw] uppercase tracking-[0.25em] text-slate-400 ">Y4</div></div>
             <div className="grid grid-cols-5 gap-[1vw] py-[1vh] border-t border-white/10">
-              <div className="font-display text-[1.1vw] font-semibold text-violet-200">ARR</div>
+              <div className="font-display text-[1.1vw] font-semibold text-blue-200">ARR</div>
               <div className="text-[0.95vw] text-slate-300">$1.2M</div><div className="text-[0.95vw] text-slate-300">$5.4M</div><div className="text-[0.95vw] text-slate-300">$14M</div><div className="text-[0.95vw] text-slate-300">$32M</div>
             </div>
             <div className="grid grid-cols-5 gap-[1vw] py-[1vh] border-t border-white/10">
-              <div className="font-display text-[1.1vw] font-semibold text-violet-200">Gross margin</div>
+              <div className="font-display text-[1.1vw] font-semibold text-blue-200">Gross margin</div>
               <div className="text-[0.95vw] text-slate-300">72%</div><div className="text-[0.95vw] text-slate-300">78%</div><div className="text-[0.95vw] text-slate-300">81%</div><div className="text-[0.95vw] text-slate-300">82%</div>
             </div>
             <div className="grid grid-cols-5 gap-[1vw] py-[1vh] border-t border-white/10">
-              <div className="font-display text-[1.1vw] font-semibold text-violet-200">Net revenue retention</div>
+              <div className="font-display text-[1.1vw] font-semibold text-blue-200">Net revenue retention</div>
               <div className="text-[0.95vw] text-slate-300">108%</div><div className="text-[0.95vw] text-slate-300">118%</div><div className="text-[0.95vw] text-slate-300">125%</div><div className="text-[0.95vw] text-slate-300">128%</div>
             </div>
             <div className="grid grid-cols-5 gap-[1vw] py-[1vh] border-t border-white/10">
-              <div className="font-display text-[1.1vw] font-semibold text-violet-200">Burn multiple</div>
+              <div className="font-display text-[1.1vw] font-semibold text-blue-200">Burn multiple</div>
               <div className="text-[0.95vw] text-slate-300">1.8</div><div className="text-[0.95vw] text-slate-300">1.2</div><div className="text-[0.95vw] text-slate-300">0.8</div><div className="text-[0.95vw] text-slate-300">0.6</div>
             </div>
         </div>

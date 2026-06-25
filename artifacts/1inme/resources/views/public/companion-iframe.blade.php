@@ -8,7 +8,7 @@
     <style>
         :root {
             color-scheme: light dark;
-            --accent: {{ $config['accent'] ?? '#7c3aed' }};
+            --accent: {{ $config['accent'] ?? '#3d6bff' }};
         }
         html, body { margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:#fff; color:#111; }
         @media (prefers-color-scheme: dark) { html, body { background:#0b0b10; color:#f5f5f7; } }
@@ -20,7 +20,7 @@
         .msg.a { background:#f5f5f7; color:#111; border-bottom-left-radius:4px; }
         .msg.e { background:#fef2f2; color:#991b1b; }
         @media (prefers-color-scheme: dark) {
-            .msg.u { background: rgba(124,58,237,.18); color:#f5f5f7; }
+            .msg.u { background: rgba(61,107,255,.18); color:#f5f5f7; }
             .msg.a { background: rgba(255,255,255,.06); color:#f5f5f7; }
         }
         .cite { margin-top:6px; font-size:10px; opacity:.6; }

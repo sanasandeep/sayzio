@@ -27,7 +27,7 @@
     <div class="lg:col-span-1">
         <div class="glass rounded-2xl border border-white/10  p-6">
             <div class="text-center">
-                <div class="w-20 h-20 rounded-full bg-violet-500/10 text-violet-300 flex items-center justify-center text-2xl font-bold mx-auto">
+                <div class="w-20 h-20 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-2xl font-bold mx-auto">
                     {{ substr($user->name, 0, 1) }}
                 </div>
                 <h2 class="mt-4 text-lg font-semibold text-white">{{ $user->name }}</h2>
@@ -58,7 +58,7 @@
             @endif
             <div class="mt-3">
                 <a href="{{ route('admin.users.roles.edit', $user) }}"
-                   class="block w-full text-center px-4 py-2 bg-violet-500/10 text-violet-300 rounded-xl text-sm font-medium hover:bg-violet-500/20 transition">
+                   class="block w-full text-center px-4 py-2 bg-blue-500/10 text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-500/20 transition">
                     <i class="fas fa-user-shield mr-1"></i> Manage roles
                 </a>
             </div>
@@ -74,12 +74,12 @@
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Name</label>
                         <input type="text" name="name" value="{{ $user->name }}"
-                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
-                            <select name="status" @if(!empty($isProtected)) disabled @endif class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none @if(!empty($isProtected)) opacity-60 cursor-not-allowed @endif">
+                            <select name="status" @if(!empty($isProtected)) disabled @endif class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none @if(!empty($isProtected)) opacity-60 cursor-not-allowed @endif">
                                 <option value="active" {{ $user->status == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ $user->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
                                 <option value="banned" {{ $user->status == 'banned' ? 'selected' : '' }}>Banned</option>
@@ -92,7 +92,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
-                            <select name="plan_id" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            <select name="plan_id" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                                 <option value="">No Plan</option>
                                 @foreach($plans as $plan)
                                     <option value="{{ $plan->id }}" {{ $user->plan_id == $plan->id ? 'selected' : '' }}>{{ $plan->name }}</option>
@@ -103,9 +103,9 @@
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Plan Expires At</label>
                         <input type="datetime-local" name="plan_expires_at" value="{{ $user->plan_expires_at?->format('Y-m-d\TH:i') }}"
-                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
-                    <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
+                    <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                         Update User
                     </button>
                 </div>
@@ -126,7 +126,7 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
                     <select name="plan_id" required
-                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         @foreach($plans as $plan)
                             <option value="{{ $plan->id }}" {{ $user->plan_id == $plan->id ? 'selected' : '' }}>
                                 {{ $plan->name }}{{ $plan->is_internal ? ' (internal)' : '' }}
@@ -137,12 +137,12 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Complimentary days <span class="text-white/40">(optional)</span></label>
                     <input type="number" name="comp_days" min="1" max="3650" placeholder="e.g. 30 — leave blank for permanent"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
                     @if($user->comp_plan_expires_at)
                         <p class="text-xs text-amber-300/80 mt-1">Current comp window ends {{ $user->comp_plan_expires_at->format('M j, Y') }}.</p>
                     @endif
                 </div>
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                     Assign plan
                 </button>
             </form>
@@ -153,7 +153,7 @@
         <div class="glass rounded-2xl border border-white/10 p-6">
             @if(!empty($isProtected))
                 <h3 class="text-lg font-semibold text-white mb-1"><i class="fas fa-shield-alt text-emerald-400 mr-1"></i> Protected account</h3>
-                <p class="text-xs text-white/40">This account is on the protected list and cannot be suspended or deleted. Manage protection from <a href="{{ route('admin.protected-accounts.index') }}" class="text-violet-300 hover:text-violet-200 underline">Protected accounts</a>.</p>
+                <p class="text-xs text-white/40">This account is on the protected list and cannot be suspended or deleted. Manage protection from <a href="{{ route('admin.protected-accounts.index') }}" class="text-blue-300 hover:text-blue-200 underline">Protected accounts</a>.</p>
             @elseif($user->isSuspended())
                 <h3 class="text-lg font-semibold text-white mb-1">Reactivate account</h3>
                 <p class="text-xs text-white/40 mb-4">This account is currently on hold. Lift it immediately below.</p>
@@ -171,12 +171,12 @@
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Reason</label>
                         <textarea name="reason" rows="2" required maxlength="1000" placeholder="Shown to the user at sign-in"
-                                  class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none"></textarea>
+                                  class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none"></textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Auto-reactivate at <span class="text-white/40">(optional)</span></label>
                         <input type="datetime-local" name="reactivate_at"
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                     <button type="submit" class="px-6 py-2.5 bg-rose-600 text-white rounded-xl font-medium hover:bg-rose-700 transition">
                         <i class="fas fa-ban mr-1"></i> Suspend account
@@ -236,12 +236,12 @@
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Actor</span>
                         <input type="text" name="actor" value="{{ $auditFilters['actor'] ?? '' }}"
                                placeholder="Name, email, or id"
-                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                     </label>
                     <label class="block">
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Role</span>
                         <select name="role"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                             <option value="">Any role</option>
                             @foreach(($auditRoleSlugs ?? []) as $slug)
                                 <option value="{{ $slug }}" @selected(($auditFilters['role'] ?? '') === $slug)>{{ $slug }}</option>
@@ -251,7 +251,7 @@
                     <label class="block">
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</span>
                         <select name="action"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                             <option value="">Any action</option>
                             @foreach(($auditActions ?? []) as $value => $label)
                                 <option value="{{ $value }}" @selected(($auditFilters['action'] ?? '') === $value)>{{ $label }}</option>
@@ -261,7 +261,7 @@
                     <label class="block">
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Source</span>
                         <select name="audit_source"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                             <option value="">Any source</option>
                             @foreach(($auditSources ?? []) as $value => $label)
                                 <option value="{{ $value }}" @selected(($auditFilters['audit_source'] ?? '') === $value)>{{ $label }}</option>
@@ -271,7 +271,7 @@
                     <label class="block">
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Range</span>
                         <select name="audit_range" data-testid="audit-range-filter"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                             <option value="">All time</option>
                             @foreach(($auditRanges ?? []) as $value => $label)
                                 @continue($value === \App\Modules\User\Models\UserRoleAudit::RANGE_ALL)
@@ -282,17 +282,17 @@
                     <label class="block">
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">From</span>
                         <input type="date" name="audit_from" value="{{ $auditFilters['audit_from'] ?? '' }}"
-                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                     </label>
                     <label class="block">
                         <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">To</span>
                         <input type="date" name="audit_to" value="{{ $auditFilters['audit_to'] ?? '' }}"
-                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                     </label>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="submit"
-                            class="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 text-xs font-medium">
+                            class="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 text-xs font-medium">
                         <i class="fas fa-filter mr-1"></i> Apply filters
                     </button>
                     @if($hasAuditFilter)
@@ -366,7 +366,7 @@
                    class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
             <input type="text" name="reason" placeholder="Reason (required)" required
                    class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm md:col-span-1">
-            <button class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Apply adjustment</button>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Apply adjustment</button>
         </form>
 
         @if($walletTransactions->isEmpty())

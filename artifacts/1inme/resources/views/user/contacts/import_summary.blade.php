@@ -26,16 +26,16 @@
     ])
 
     @if($import->isInProgress())
-        <div id="importProgressCard" class="card-premium p-5 mb-6" style="border:1px solid rgba(124,58,237,.30); background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(236,72,153,.06));">
+        <div id="importProgressCard" class="card-premium p-5 mb-6" style="border:1px solid rgba(61,107,255,.30); background:linear-gradient(135deg,rgba(61,107,255,.08),rgba(236,72,153,.06));">
             <div class="flex items-center justify-between mb-3">
                 <div class="text-sm font-bold" style="color:var(--text-primary);">
-                    <i class="fas fa-spinner fa-spin text-purple-400 mr-1.5"></i>
+                    <i class="fas fa-spinner fa-spin text-indigo-400 mr-1.5"></i>
                     Importing in the background
                 </div>
                 <div class="text-xs font-mono" id="importProgressPct" style="color:var(--text-muted);">{{ $import->progressPercent() }}%</div>
             </div>
             <div class="w-full h-2 rounded-full overflow-hidden" style="background:rgba(255,255,255,.06);">
-                <div id="importProgressBar" class="h-full transition-all" style="width: {{ $import->progressPercent() }}%; background:linear-gradient(135deg,#7c3aed,#ec4899);"></div>
+                <div id="importProgressBar" class="h-full transition-all" style="width: {{ $import->progressPercent() }}%; background:linear-gradient(135deg,#3d6bff,#ec4899);"></div>
             </div>
             <div class="text-[11px] mt-2" style="color:var(--text-faint);">
                 <span id="importProgressText">{{ $import->processed_rows }} of {{ $import->total_rows }} rows processed</span>
@@ -109,7 +109,7 @@
     @endif
 
     <div class="flex items-center gap-3">
-        <a href="{{ route('user.contacts.index') }}" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+        <a href="{{ route('user.contacts.index') }}" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
             <i class="fas fa-arrow-left mr-1"></i> Back to contacts
         </a>
         <a href="{{ route('user.contacts.import') }}" class="text-xs" style="color:var(--text-muted);">Import another file</a>

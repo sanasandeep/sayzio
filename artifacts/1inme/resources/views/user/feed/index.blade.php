@@ -28,7 +28,7 @@
                     Mark all read @if($unreadNotifs)<span class="ml-1 inline-block px-1.5 rounded-full bg-rose-500 text-white">{{ $unreadNotifs }}</span>@endif
                 </button>
             </form>
-            <a href="{{ route('creators.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 text-white">
+            <a href="{{ route('creators.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">
                 <i class="fas fa-compass mr-1"></i> Discover creators
             </a>
         </div>
@@ -70,7 +70,7 @@
             <i class="fas fa-stream text-4xl mb-3" style="color: var(--text-faint);"></i>
             <p class="font-semibold mb-2" style="color: var(--text-primary);">Your feed is empty.</p>
             <p class="text-sm mb-4" style="color: var(--text-muted);">Follow creators to see their posts and updates here.</p>
-            <a href="{{ route('creators.index') }}" class="inline-block px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold">Find creators</a>
+            <a href="{{ route('creators.index') }}" class="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold">Find creators</a>
         </div>
     @else
         <div class="space-y-3" id="feedList">
@@ -81,7 +81,7 @@
                         @if(!empty($d['creator_avatar']))
                             <img src="{{ $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                         @else
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">
                                 {{ strtoupper(substr($d['creator_name'] ?? '?', 0, 1)) }}
                             </div>
                         @endif
@@ -99,7 +99,7 @@
                                 <p class="text-sm mt-1" style="color: var(--text-muted);">
                                     Published a new link: <span class="font-semibold">{{ $d['title'] ?? $d['alias'] ?? '' }}</span>
                                 </p>
-                                @if(!empty($d['alias']))<a href="{{ url('/' . $d['alias']) }}" target="_blank" class="text-xs text-violet-600 font-semibold">Open link →</a>@endif
+                                @if(!empty($d['alias']))<a href="{{ url('/' . $d['alias']) }}" target="_blank" class="text-xs text-blue-600 font-semibold">Open link →</a>@endif
                             @elseif($event->type === 'block_added')
                                 <p class="text-sm mt-1" style="color: var(--text-muted);">Added a new block to their Link in Bio: <span class="font-semibold">{{ $d['block_label'] ?? $d['block_type'] ?? '' }}</span></p>
                             @else
@@ -146,7 +146,7 @@ function feedScroll(initialNext) {
                     div.style.cssText = 'background: var(--bg-card); border-color: var(--border-soft);';
                     const avatar = data.creator_avatar
                         ? `<img src="${data.creator_avatar}" class="w-10 h-10 rounded-full object-cover" alt=""/>`
-                        : `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">${(data.creator_name||'?').charAt(0).toUpperCase()}</div>`;
+                        : `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">${(data.creator_name||'?').charAt(0).toUpperCase()}</div>`;
                     let body = '';
                     if (ev.type === 'post') body = `${data.title ? `<h3 class="font-bold mt-1">${escapeHtml(data.title)}</h3>` : ''}<p class="text-sm mt-1" style="color: var(--text-muted);">${escapeHtml(data.body_excerpt||'')}</p>`;
                     else if (ev.type === 'link_published') body = `<p class="text-sm mt-1" style="color: var(--text-muted);">Published a new link: <span class="font-semibold">${escapeHtml(data.title||data.alias||'')}</span></p>`;

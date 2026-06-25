@@ -16,7 +16,7 @@
             @include('admin.bg-templates._form', ['template' => $template, 'categories' => $categories])
             <div class="flex items-center justify-between gap-3 pt-2">
                 <div class="flex items-center gap-3">
-                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white">
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">
                         Save changes
                     </button>
                     <a href="{{ route('admin.bg-templates.index') }}" class="text-sm text-white/60 hover:text-white">Back</a>

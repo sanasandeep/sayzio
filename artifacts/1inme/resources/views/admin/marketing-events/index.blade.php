@@ -41,8 +41,8 @@
     @foreach($sections as $section)
         <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(168,85,247,0.15);">
-                    <i class="fas fa-bullhorn text-purple-300"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(110,97,255,0.15);">
+                    <i class="fas fa-bullhorn text-indigo-300"></i>
                 </div>
                 <div>
                     <h3 class="text-base font-semibold text-white/90">{{ $section['sourceLabel'] }}</h3>

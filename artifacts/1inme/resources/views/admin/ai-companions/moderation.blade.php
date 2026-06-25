@@ -10,15 +10,15 @@
             <p class="text-xs text-white/50 mt-1">Messages flagged for abuse review. Use this to identify Companions whose visitors are sending toxic prompts or whose persona is producing unsafe replies.</p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ route('admin.ai-companions.moderation', ['tab' => 'flagged']) }}" class="px-3 py-1.5 rounded-lg text-xs {{ $tab === 'flagged' ? 'bg-violet-500/20 text-violet-200' : 'bg-white/5 text-white/60 hover:text-white' }}">Flagged ({{ $counts['flagged'] }})</a>
-            <a href="{{ route('admin.ai-companions.moderation', ['tab' => 'recent']) }}" class="px-3 py-1.5 rounded-lg text-xs {{ $tab === 'recent' ? 'bg-violet-500/20 text-violet-200' : 'bg-white/5 text-white/60 hover:text-white' }}">All recent (7d: {{ $counts['recent'] }})</a>
+            <a href="{{ route('admin.ai-companions.moderation', ['tab' => 'flagged']) }}" class="px-3 py-1.5 rounded-lg text-xs {{ $tab === 'flagged' ? 'bg-blue-500/20 text-blue-200' : 'bg-white/5 text-white/60 hover:text-white' }}">Flagged ({{ $counts['flagged'] }})</a>
+            <a href="{{ route('admin.ai-companions.moderation', ['tab' => 'recent']) }}" class="px-3 py-1.5 rounded-lg text-xs {{ $tab === 'recent' ? 'bg-blue-500/20 text-blue-200' : 'bg-white/5 text-white/60 hover:text-white' }}">All recent (7d: {{ $counts['recent'] }})</a>
         </div>
     </div>
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/5">
         @forelse($messages as $m)
             <div class="p-4 flex items-start gap-3">
-                <div class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold {{ $m->role === 'assistant' ? 'bg-violet-500/15 text-violet-300' : 'bg-white/5 text-white/60' }}">
+                <div class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold {{ $m->role === 'assistant' ? 'bg-blue-500/15 text-blue-300' : 'bg-white/5 text-white/60' }}">
                     {{ $m->role === 'assistant' ? 'AI' : 'V' }}
                 </div>
                 <div class="min-w-0 flex-1">

@@ -21,7 +21,7 @@
 
     <div class="card-premium p-6">
         <div class="flex items-start gap-4 mb-5">
-            <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style="background: linear-gradient(135deg,#7c3aed,#ec4899);">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
                 @if($contact->photoUrl())
                     <img src="{{ $contact->photoUrl() }}" class="w-full h-full rounded-full object-cover">
                 @else
@@ -45,17 +45,17 @@
         </div>
 
         @if($biolinkPreview)
-        <div class="mb-5 p-4 rounded-xl" style="background:linear-gradient(135deg,rgba(236,72,153,.08),rgba(124,58,237,.08));border:1px solid rgba(236,72,153,.20);">
+        <div class="mb-5 p-4 rounded-xl" style="background:linear-gradient(135deg,rgba(236,72,153,.08),rgba(61,107,255,.08));border:1px solid rgba(236,72,153,.20);">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:linear-gradient(135deg,#ec4899,#7c3aed);">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:linear-gradient(135deg,#ec4899,#3d6bff);">
                         {{ mb_strtoupper(mb_substr($biolinkPreview['user']->name ?? '?', 0, 2)) }}
                     </div>
                     <div class="min-w-0">
                         <div class="text-xs font-bold uppercase tracking-wider" style="color:#f472b6;">Sayzio Link in Bio</div>
                         <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">{{ $biolinkPreview['user']->name }}</div>
                         @if($biolinkPreview['url'])
-                            <a href="{{ $biolinkPreview['url'] }}" target="_blank" class="text-xs truncate" style="color:#a78bfa;">{{ $biolinkPreview['url'] }}</a>
+                            <a href="{{ $biolinkPreview['url'] }}" target="_blank" class="text-xs truncate" style="color:#90acff;">{{ $biolinkPreview['url'] }}</a>
                         @endif
                     </div>
                 </div>
@@ -80,7 +80,7 @@
                         @csrf
                         <input type="hidden" name="to" value="{{ $_smsTo }}">
                         <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                                style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)"
+                                style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)"
                                 title="Send via your configured SMS gateway (desktop fallback)">
                             <i class="fas fa-paper-plane mr-1"></i> Send via gateway
                         </button>
@@ -91,7 +91,7 @@
         @else
             <form method="POST" action="{{ route('user.contacts.biolink.attach', $contact) }}" class="mb-5">
                 @csrf
-                <button class="text-xs font-medium" style="color:#a78bfa;">
+                <button class="text-xs font-medium" style="color:#90acff;">
                     <i class="fas fa-link mr-1"></i> Re-check for a Sayzio Link in Bio
                 </button>
             </form>

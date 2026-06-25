@@ -12,10 +12,10 @@ export default function Slide008Salesroi() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">ROI of consolidating onto Sayzio.</h2>
         
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">−$1,400</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">annual stack savings (avg)</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">+6h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">weekly time saved</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">+24%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">lead-to-close conversion</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">1 invoice</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">across every workspace</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">−$1,400</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">annual stack savings (avg)</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">+6h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">weekly time saved</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">+24%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">lead-to-close conversion</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">1 invoice</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">across every workspace</div></div>
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Aggregate self-reported numbers from early-access customers, 2025 cohort.</p>
       </div>

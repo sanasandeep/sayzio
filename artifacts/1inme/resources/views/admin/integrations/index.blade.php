@@ -71,7 +71,7 @@
                             </span>
                         </div>
                         <p class="text-xs text-white/45 leading-relaxed">{{ $item['desc'] }}</p>
-                        <div class="text-[11px] text-violet-300/80 mt-auto flex items-center gap-1 group-hover:gap-2 transition-all">
+                        <div class="text-[11px] text-blue-300/80 mt-auto flex items-center gap-1 group-hover:gap-2 transition-all">
                             Open <i class="fas fa-chevron-right text-[9px]"></i>
                         </div>
                     </a>

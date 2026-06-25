@@ -35,7 +35,7 @@
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card overflow-hidden mt-4">
-        <div class="h-40 sm:h-56 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 relative">
+        <div class="h-40 sm:h-56 bg-gradient-to-br from-blue-500 via-fuchsia-500 to-indigo-500 relative">
             @if($creator->cover_image)
                 <img src="{{ $creator->cover_image }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif
@@ -46,7 +46,7 @@
                     @if($creator->avatar)
                         <img src="{{ $creator->avatar }}" alt="" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
                     @else
-                        <div class="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-2xl">
+                        <div class="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-2xl">
                             {{ $creator->getInitials() }}
                         </div>
                     @endif
@@ -56,7 +56,7 @@
                         <a href="{{ route('user.creator-profile.edit') }}" class="px-3.5 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700">
                             <i class="fas fa-pen mr-1"></i> Edit profile
                         </a>
-                        <a href="{{ route('user.monetization.earnings') }}" class="px-3.5 py-2 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100">
+                        <a href="{{ route('user.monetization.earnings') }}" class="px-3.5 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100">
                             <i class="fas fa-gem mr-1"></i> Monetization
                         </a>
                     @else
@@ -66,12 +66,12 @@
                         @if($tiers->count())
                             @if($viewerSubscription && $viewerSubscription->isCurrent())
                                 <a href="{{ route('creator-profile.subscription.manage', ['handle' => $creator->handle]) }}"
-                                   class="px-3.5 py-2 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100">
+                                   class="px-3.5 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100">
                                     <i class="fas fa-circle-check mr-1"></i> Subscribed
                                 </a>
                             @else
                                 <a href="{{ route('creator-profile.subscribe.show', ['handle' => $creator->handle]) }}"
-                                   class="px-3.5 py-2 rounded-lg text-xs font-semibold text-white shadow-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700">
+                                   class="px-3.5 py-2 rounded-lg text-xs font-semibold text-white shadow-sm bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-700 hover:to-fuchsia-700">
                                     <i class="fas fa-gem mr-1"></i> Subscribe
                                 </a>
                             @endif
@@ -151,7 +151,7 @@
                             @endauth
                         @endif
                         @if($creator->isSectionVisible('contact'))
-                            <a href="mailto:{{ $creator->email }}" class="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:border-violet-400 hover:text-violet-600">
+                            <a href="mailto:{{ $creator->email }}" class="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:border-blue-400 hover:text-blue-600">
                                 <i class="fas fa-envelope mr-1"></i> Contact
                             </a>
                         @endif
@@ -160,7 +160,7 @@
                             <button type="button"
                                     data-cp-open-dm
                                     data-cp-dm-handle="{{ $creator->handle ?: $creator->id }}"
-                                    class="px-3.5 py-2 rounded-lg text-xs font-semibold text-white shadow-sm bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700">
+                                    class="px-3.5 py-2 rounded-lg text-xs font-semibold text-white shadow-sm bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700">
                                 <i class="fas fa-paper-plane mr-1"></i> Message
                             </button>
                         @endif
@@ -172,7 +172,7 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 flex-wrap">
                     {{ $creator->name }}
                     @if(method_exists($creator, 'isVerified') && $creator->isVerified())
-                        <span class="text-violet-600" title="Verified"><i class="fas fa-circle-check"></i></span>
+                        <span class="text-blue-600" title="Verified"><i class="fas fa-circle-check"></i></span>
                     @endif
                 </h1>
                 <p class="text-slate-500 text-sm mt-0.5">@<span class="font-medium">{{ $creator->handle }}</span>
@@ -186,7 +186,7 @@
                 @if(is_array($creator->niche_tags) && count($creator->niche_tags))
                     <div class="mt-3 flex flex-wrap gap-1.5">
                         @foreach($creator->niche_tags as $tag)
-                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-medium">#{{ $tag }}</span>
+                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">#{{ $tag }}</span>
                         @endforeach
                     </div>
                 @endif
@@ -242,7 +242,7 @@
                         if ($key === 'email')     $href = preg_match('#^mailto:#', $value)   ? $value : 'mailto:' . $value;
                     @endphp
                     <a href="{{ $href }}" target="_blank" rel="noopener nofollow"
-                       class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-violet-50 hover:text-violet-700 text-slate-700 text-xs font-semibold border border-slate-200">
+                       class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-semibold border border-slate-200">
                         <i class="{{ $p['icon'] }}"></i> {{ $p['label'] }}
                     </a>
                 @endforeach
@@ -257,7 +257,7 @@
                 <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">My links</p>
                 <p class="text-sm text-slate-700 mt-1 truncate">All my projects, services, and current focus.</p>
             </div>
-            <a href="{{ url('/' . $primaryBiolink->alias) }}" class="shrink-0 px-4 py-2 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700">
+            <a href="{{ url('/' . $primaryBiolink->alias) }}" class="shrink-0 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700">
                 Open biolink <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </section>
@@ -301,15 +301,15 @@
         <section class="cp-card mt-4 px-5 py-4">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-bold text-slate-900">More creators like {{ $creator->name }}</h3>
-                <a href="{{ route('creators.index') }}" class="text-xs font-semibold text-violet-600 hover:underline">Browse all →</a>
+                <a href="{{ route('creators.index') }}" class="text-xs font-semibold text-blue-600 hover:underline">Browse all →</a>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 @foreach($relatedCreators as $rc)
-                    <a href="{{ url('/@' . $rc->handle) }}" class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition">
+                    <a href="{{ url('/@' . $rc->handle) }}" class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition">
                         @if($rc->avatar)
                             <img src="{{ $rc->avatar }}" alt="" class="w-9 h-9 rounded-full object-cover bg-slate-100 shrink-0">
                         @else
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
                                 {{ $rc->getInitials() }}
                             </div>
                         @endif

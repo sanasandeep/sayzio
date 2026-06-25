@@ -31,13 +31,13 @@
         <div class="glass rounded-2xl p-6 relative overflow-hidden group hover:shadow-lg transition-all duration-300" style="border: 1px solid var(--border-glass);">
             @if($plan->is_default)
             <div class="absolute top-3 right-3">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-500/20 text-violet-400">Default</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400">Default</span>
             </div>
             @endif
 
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br
-                    {{ $plan->monthly_price == 0 ? 'from-gray-500 to-gray-600' : ($plan->monthly_price < 20 ? 'from-violet-500 to-cyan-500' : ($plan->monthly_price < 50 ? 'from-violet-500 to-violet-500' : 'from-amber-500 to-orange-500')) }}">
+                    {{ $plan->monthly_price == 0 ? 'from-gray-500 to-gray-600' : ($plan->monthly_price < 20 ? 'from-blue-500 to-cyan-500' : ($plan->monthly_price < 50 ? 'from-blue-500 to-blue-500' : 'from-amber-500 to-orange-500')) }}">
                     <i class="fas {{ $plan->monthly_price == 0 ? 'fa-layer-group' : ($plan->monthly_price < 20 ? 'fa-rocket' : ($plan->monthly_price < 50 ? 'fa-crown' : 'fa-gem')) }} text-white text-sm"></i>
                 </div>
                 <div>
@@ -99,7 +99,7 @@
                     @endif
                     @foreach(['custom_domains','qr_customization','pixels','teams','ecommerce','custom_branding'] as $fKey)
                         @if(!empty($features[$fKey]))
-                        <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-violet-500/10 text-violet-400">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-500/10 text-blue-400">
                             {{ str_replace('_', ' ', ucfirst($fKey)) }}
                         </span>
                         @endif
@@ -132,8 +132,8 @@
 
     @if($plans->isEmpty())
     <div class="glass rounded-2xl p-12 text-center" style="border: 1px solid var(--border-glass);">
-        <div class="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-layer-group text-2xl text-violet-400"></i>
+        <div class="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-layer-group text-2xl text-blue-400"></i>
         </div>
         <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No Plans Yet</h3>
         <p class="text-sm mb-4" style="color: var(--text-dimmed);">Create your first subscription plan to get started.</p>

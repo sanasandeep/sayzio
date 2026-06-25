@@ -111,7 +111,7 @@
                             @endif
                         </td>
                         <td class="px-4 py-3">
-                            <span class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">{{ $e->action }}</span>
+                            <span class="px-2 py-0.5 rounded text-xs bg-indigo-100 text-indigo-700">{{ $e->action }}</span>
                             @if($e->object_type)
                                 <div class="text-xs opacity-60 mt-1">{{ $e->object_type }}</div>
                             @endif

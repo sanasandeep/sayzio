@@ -16,7 +16,7 @@
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
             @include('common.partials.brand-logo', ['height' => 'h-8'])
             <span class="ml-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded logo-text"
-                  style="background: rgba(124,58,237,0.12); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.2);">Admin</span>
+                  style="background: rgba(61,107,255,0.12); color: var(--accent-light); border: 1px solid rgba(61,107,255,0.2);">Admin</span>
         </a>
         <template x-if="sidebarMode === 'icons'">
             <a href="{{ route('admin.dashboard') }}" class="group" title="Sayzio Admin">
@@ -35,7 +35,7 @@
 
         <a href="{{ route('admin.dashboard') }}"
            class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-           style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
             <span class="nav-label">Dashboard</span>
             <span class="sidebar-tooltip">Dashboard</span>
@@ -54,7 +54,7 @@
 
         <a href="{{ route('admin.users.activity-log.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.users.activity-log.*') ? 'active' : '' }}"
-           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div>
             <span class="nav-label">Activity log</span>
             <span class="sidebar-tooltip">Activity log</span>
@@ -107,7 +107,7 @@
 
         <a href="{{ route('admin.links.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-link"></i></div>
             <span class="nav-label">All Links</span>
             <span class="sidebar-tooltip">All Links</span>
@@ -123,7 +123,7 @@
 
         <a href="{{ route('admin.bg-templates.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.bg-templates.*') ? 'active' : '' }}"
-           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
             <span class="nav-label">Background Templates</span>
             <span class="sidebar-tooltip">Background Templates</span>
@@ -131,7 +131,7 @@
 
         <a href="{{ route('admin.onboarding-slides.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.onboarding-slides.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-mobile-screen"></i></div>
             <span class="nav-label">Onboarding Slides</span>
             <span class="sidebar-tooltip">Onboarding Slides</span>
@@ -147,7 +147,7 @@
 
         <a href="{{ route('admin.assets.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"
-           style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div>
             <span class="nav-label">Asset Vault</span>
             <span class="sidebar-tooltip">Asset Vault</span>
@@ -259,7 +259,7 @@
 
         <a href="{{ route('admin.addons.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.addons.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div>
             <span class="nav-label">Addons</span>
             <span class="sidebar-tooltip">Addons</span>
@@ -286,7 +286,7 @@
 
         <a href="{{ route('admin.ai-engine.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-engine.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-brain"></i></div>
             <span class="nav-label">AI Engine</span>
             <span class="sidebar-tooltip">AI Engine</span>
@@ -310,7 +310,7 @@
 
         <a href="{{ route('admin.ai-personas.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-personas.*') ? 'active' : '' }}"
-           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div>
             <span class="nav-label">AI Personas</span>
             <span class="sidebar-tooltip">AI Personas</span>
@@ -318,7 +318,7 @@
 
         <a href="{{ route('admin.site-assistant.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.site-assistant.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-robot"></i></div>
             <span class="nav-label">Site Assistant</span>
             <span class="sidebar-tooltip">Site Assistant</span>
@@ -353,7 +353,7 @@
 
         <a href="{{ route('admin.marketing-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
             <span class="nav-label">Marketing</span>
             <span class="sidebar-tooltip">Marketing</span>
@@ -361,7 +361,7 @@
 
         <a href="{{ route('admin.marketing-seo.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-seo.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-magnifying-glass-chart"></i></div>
             <span class="nav-label">Marketing SEO</span>
             <span class="sidebar-tooltip">Marketing SEO</span>
@@ -393,7 +393,7 @@
 
         <a href="{{ route('admin.announcements.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
             <span class="nav-label">Announcements</span>
             <span class="sidebar-tooltip">Announcements</span>
@@ -409,7 +409,7 @@
 
         <a href="{{ route('admin.notifications.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
             <span class="nav-label">Notifications</span>
             <span class="sidebar-tooltip">Notifications</span>
@@ -461,7 +461,7 @@
         @if(auth('admin')->user()?->isSuperAdmin())
         <a href="{{ route('admin.master-password.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.master-password.*') ? 'active' : '' }}"
-           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-key"></i></div>
             <span class="nav-label">Master Password</span>
             <span class="sidebar-tooltip">Master Password</span>
@@ -516,7 +516,7 @@
             @csrf
             <button type="submit"
                     class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                    style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);"
+                    style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);"
                     title="Switch back to your user dashboard">
                 <i class="fas fa-arrow-right-arrow-left" style="font-size: 11px;"></i>
                 <span>Switch back to user</span>
@@ -538,7 +538,7 @@
         <div class="flex items-center gap-3"
              :class="sidebarMode === 'icons' ? 'justify-center' : ''">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                 style="background: linear-gradient(135deg,#8b5cf6,#7c3aed);">
+                 style="background: linear-gradient(135deg,#5c83ff,#3d6bff);">
                 {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
             </div>
             <div class="flex-1 min-w-0 user-info">

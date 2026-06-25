@@ -46,7 +46,7 @@
                 </div>
             @endforeach
         </div>
-        <div class="flex justify-end"><button class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm">Save caps</button></div>
+        <div class="flex justify-end"><button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save caps</button></div>
     </form>
 
     {{-- Global daily AI credit spend trend --}}
@@ -91,7 +91,7 @@
                                 <br><span class="text-[11px] text-white/40">{{ $row['mind']->user?->email }}</span>
                             </td>
                             <td class="text-right text-cyan-300">{{ number_format($row['ingest']) }}</td>
-                            <td class="text-right text-violet-300">{{ number_format($row['query']) }}</td>
+                            <td class="text-right text-blue-300">{{ number_format($row['query']) }}</td>
                             <td class="text-right font-semibold text-white">{{ number_format($row['total']) }}</td>
                         </tr>
                     @endforeach

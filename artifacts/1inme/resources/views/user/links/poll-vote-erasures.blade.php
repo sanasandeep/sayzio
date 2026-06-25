@@ -10,7 +10,7 @@
         'icon' => 'fa-user-slash',
         'back' => route('user.links.poll-votes.index', [$link, $block]),
         'chips' => [
-            ['icon' => 'fa-shield-alt text-violet-400', 'text' => $erasures->total() . ' total ' . \Illuminate\Support\Str::plural('erasure', $erasures->total())],
+            ['icon' => 'fa-shield-alt text-blue-400', 'text' => $erasures->total() . ' total ' . \Illuminate\Support\Str::plural('erasure', $erasures->total())],
         ],
     ])
 
@@ -39,7 +39,7 @@
                             <td class="py-3 text-xs" style="color: var(--text-muted);">
                                 @if($e->link && $e->block_id)
                                     <a href="{{ route('user.links.poll-votes.index', [$e->link_id, $e->block_id]) }}"
-                                       class="hover:underline" style="color: #a78bfa;">
+                                       class="hover:underline" style="color: #90acff;">
                                         {{ $e->link->title ?: $e->link->alias }}
                                     </a>
                                 @else
@@ -56,8 +56,8 @@
                     @empty
                         <tr>
                             <td colspan="5" class="text-center py-12">
-                                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(139,92,246,0.18));">
-                                    <i class="fas fa-user-slash text-2xl text-violet-400"></i>
+                                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(92,131,255,0.18));">
+                                    <i class="fas fa-user-slash text-2xl text-blue-400"></i>
                                 </div>
                                 <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No erasures yet</p>
                                 <p class="text-xs" style="color: var(--text-muted);">When you erase a voter from any of your polls, a record will appear here.</p>

@@ -26,7 +26,7 @@
                                       style="background: rgba(100,116,139,0.15); color: #64748b;">Free</span>
                             @else
                                 <span class="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full"
-                                      style="background: rgba(139,92,246,0.12); color: #8b5cf6;">Paid</span>
+                                      style="background: rgba(92,131,255,0.12); color: #5c83ff;">Paid</span>
                             @endif
                             <span class="text-xs" style="color: var(--text-faint);">/{{ $tier->slug }}</span>
                         </div>
@@ -93,7 +93,7 @@
                     </div>
 
                     <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border-color);">
-                        <button type="submit" class="px-3 py-2 rounded-lg text-sm font-semibold" style="background: #8b5cf6; color: white;">
+                        <button type="submit" class="px-3 py-2 rounded-lg text-sm font-semibold" style="background: #5c83ff; color: white;">
                             <i class="fas fa-save mr-1"></i> Save
                         </button>
                         @if(!$tier->is_free)
@@ -139,7 +139,7 @@
             <textarea name="perks" rows="3" placeholder="Perks — one per line" class="md:col-span-3 px-3 py-2 rounded-lg border bg-transparent text-sm"
                       style="border-color: var(--border-color); color: var(--text-primary);"></textarea>
             <div class="md:col-span-3 flex justify-end">
-                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background: #8b5cf6; color: white;">
+                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background: #5c83ff; color: white;">
                     Add tier
                 </button>
             </div>

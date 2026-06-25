@@ -13,9 +13,9 @@
     .mpp-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
     html.light-mode .mpp-map .leaflet-container { background:#e6e9f0 !important; }
     .mpp-map .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
-    .mpp-map .leaflet-control-attribution a { color:#a78bfa !important; }
+    .mpp-map .leaflet-control-attribution a { color:#90acff !important; }
     .mpp-map .leaflet-control-zoom a { background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important; }
-    .mpp-map .leaflet-control-zoom a:hover { background:#7c3aed !important; }
+    .mpp-map .leaflet-control-zoom a:hover { background:#3d6bff !important; }
     .mpp-marker { width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
     .mpp-marker svg { width:100%; height:100%; display:block; }
 </style>
@@ -32,7 +32,7 @@
         overflow: hidden;
     }
     .block-card:hover {
-        border-color: rgba(124,58,237,0.15);
+        border-color: rgba(61,107,255,0.15);
         background: var(--bg-card-hover);
     }
     .grid-span-row {
@@ -54,9 +54,9 @@
         border-color: var(--border-glass);
     }
     .span-btn.active {
-        background: rgba(124,58,237,0.15);
-        color: #a78bfa;
-        border-color: rgba(124,58,237,0.3);
+        background: rgba(61,107,255,0.15);
+        color: #90acff;
+        border-color: rgba(61,107,255,0.3);
     }
 
     .block-card-wrapper {
@@ -94,11 +94,11 @@
     }
 
     .card-container-block {
-        border-color: rgba(124,58,237,0.2);
-        background: linear-gradient(135deg, var(--bg-card), rgba(124,58,237,0.03));
+        border-color: rgba(61,107,255,0.2);
+        background: linear-gradient(135deg, var(--bg-card), rgba(61,107,255,0.03));
     }
     .card-container-block:hover {
-        border-color: rgba(124,58,237,0.3);
+        border-color: rgba(61,107,255,0.3);
     }
     .child-span-btn {
         background: var(--bg-glass-input);
@@ -114,14 +114,14 @@
         border-color: var(--border-glass);
     }
     .child-span-btn.active {
-        background: rgba(124,58,237,0.15);
-        color: #a78bfa;
-        border-color: rgba(124,58,237,0.3);
+        background: rgba(61,107,255,0.15);
+        color: #90acff;
+        border-color: rgba(61,107,255,0.3);
     }
     .child-block-card.sortable-ghost,
     .block-card.sortable-ghost {
         opacity: 0.4;
-        border: 1px dashed rgba(124,58,237,0.4) !important;
+        border: 1px dashed rgba(61,107,255,0.4) !important;
     }
     .child-block-card.sortable-chosen,
     .block-card.sortable-chosen {
@@ -129,22 +129,22 @@
         z-index: 10;
     }
     .card-child-list.sortable-drag-over {
-        background: rgba(124,58,237,0.04);
-        border: 1px dashed rgba(124,58,237,0.3) !important;
+        background: rgba(61,107,255,0.04);
+        border: 1px dashed rgba(61,107,255,0.3) !important;
         border-radius: 8px;
     }
 
     .block-card-wrapper.sortable-ghost,
     .block-card.sortable-ghost {
         opacity: 0.4;
-        border: 2px dashed rgba(124,58,237,0.4);
-        background: rgba(124,58,237,0.04);
+        border: 2px dashed rgba(61,107,255,0.4);
+        background: rgba(61,107,255,0.04);
         transform: scale(0.97);
     }
     .block-card-wrapper.sortable-chosen,
     .block-card.sortable-chosen {
-        box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 30px rgba(124,58,237,0.12);
-        border-color: rgba(124,58,237,0.3);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 30px rgba(61,107,255,0.12);
+        border-color: rgba(61,107,255,0.3);
         z-index: 10;
     }
     .block-card-wrapper.sortable-drag,
@@ -193,7 +193,7 @@
         background: var(--bg-glass-hover);
         color: var(--text-primary);
     }
-    .block-action-btn.edit-btn:hover { color: #8b5cf6; background: rgba(124,58,237,0.1); }
+    .block-action-btn.edit-btn:hover { color: #5c83ff; background: rgba(61,107,255,0.1); }
     .block-action-btn.toggle-btn:hover { color: #f59e0b; background: rgba(245,158,11,0.1); }
     .block-action-btn.delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
 
@@ -271,8 +271,8 @@
     .gallery-tab:hover { color: var(--text-muted); background: var(--bg-glass); }
     .gallery-tab.active {
         color: white;
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        box-shadow: 0 2px 12px rgba(124,58,237,0.3);
+        background: linear-gradient(135deg, #5c83ff, #3d6bff);
+        box-shadow: 0 2px 12px rgba(61,107,255,0.3);
     }
     .gallery-block-card {
         padding: 12px;
@@ -285,8 +285,8 @@
         width: 100%;
     }
     .gallery-block-card:hover {
-        border-color: rgba(124,58,237,0.3);
-        background: rgba(124,58,237,0.04);
+        border-color: rgba(61,107,255,0.3);
+        background: rgba(61,107,255,0.04);
         transform: translateY(-2px);
         box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
@@ -530,8 +530,8 @@
         border-radius: 24px;
         display: flex; align-items: center; justify-content: center;
         margin: 0 auto 20px;
-        background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(139,92,246,0.05));
-        border: 1px solid rgba(124,58,237,0.12);
+        background: linear-gradient(135deg, rgba(61,107,255,0.1), rgba(92,131,255,0.05));
+        border: 1px solid rgba(61,107,255,0.12);
         position: relative;
     }
     .empty-state-icon::after {
@@ -539,7 +539,7 @@
         position: absolute;
         inset: -8px;
         border-radius: 28px;
-        border: 1px dashed rgba(124,58,237,0.15);
+        border: 1px dashed rgba(61,107,255,0.15);
         animation: spin-slow 20s linear infinite;
     }
     @keyframes spin-slow { to { transform: rotate(360deg); } }
@@ -569,11 +569,11 @@
 
 @php
 $catColors = [
-    'basic' => '#8b5cf6', 'media' => '#ec4899', 'social' => '#3b82f6',
+    'basic' => '#5c83ff', 'media' => '#ec4899', 'social' => '#3b82f6',
     'music' => '#10b981', 'video_platforms' => '#ef4444', 'contact' => '#f59e0b',
     'interactive' => '#06b6d4', 'business' => '#f97316', 'utility' => '#6366f1',
-    'layout' => '#8b5cf6', 'integrations' => '#14b8a6', 'files' => '#64748b',
-    'maps' => '#22c55e', 'identity' => '#8b5cf6',
+    'layout' => '#5c83ff', 'integrations' => '#14b8a6', 'files' => '#64748b',
+    'maps' => '#22c55e', 'identity' => '#5c83ff',
 ];
 @endphp
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
@@ -633,9 +633,9 @@ $catColors = [
             line-height: 1;
         }
         .editor-pill-badge--span {
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            border: 1px solid rgba(124,58,237,0.7);
-            box-shadow: 0 2px 6px rgba(124,58,237,0.35);
+            background: linear-gradient(135deg, #3d6bff, #2342c7);
+            border: 1px solid rgba(61,107,255,0.7);
+            box-shadow: 0 2px 6px rgba(61,107,255,0.35);
         }
         .editor-pill-badge--hidden {
             background: linear-gradient(135deg, #ef4444, #dc2626);
@@ -731,8 +731,8 @@ $catColors = [
         }
         .palette-tab:hover { color: var(--text-muted); background: var(--bg-glass-hover); }
         .palette-tab.active {
-            color: white; background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            box-shadow: 0 2px 10px rgba(124,58,237,0.3);
+            color: white; background: linear-gradient(135deg, #5c83ff, #3d6bff);
+            box-shadow: 0 2px 10px rgba(61,107,255,0.3);
         }
         .palette-body {
             flex: 1; overflow-y: auto; padding: 6px 10px 10px;
@@ -746,8 +746,8 @@ $catColors = [
             transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
         }
         .palette-block-item:hover {
-            border-color: rgba(124,58,237,0.35);
-            background: rgba(124,58,237,0.06);
+            border-color: rgba(61,107,255,0.35);
+            background: rgba(61,107,255,0.06);
             transform: translateY(-1px);
         }
         .palette-block-item:active { cursor: grabbing; }
@@ -795,21 +795,21 @@ $catColors = [
             grid-column: span 12;
             height: 44px; min-height: 44px; opacity: 1;
             justify-content: center;
-            border: 2px dashed rgba(124,58,237,0.6);
-            background: rgba(124,58,237,0.1);
+            border: 2px dashed rgba(61,107,255,0.6);
+            background: rgba(61,107,255,0.1);
             border-radius: 12px;
-            box-shadow: 0 0 0 4px rgba(124,58,237,0.06);
+            box-shadow: 0 0 0 4px rgba(61,107,255,0.06);
         }
-        .palette-block-item.palette-drop-ghost .palette-block-label { color: #a78bfa; }
+        .palette-block-item.palette-drop-ghost .palette-block-label { color: #90acff; }
         .palette-block-item.sortable-drag {
             opacity: 0.95;
             box-shadow: 0 16px 40px rgba(0,0,0,0.4);
-            border-color: rgba(124,58,237,0.4);
+            border-color: rgba(61,107,255,0.4);
         }
         /* Highlight valid drop containers while dragging a palette block. */
         #blockList.palette-dragging,
         .card-child-list.palette-dragging {
-            outline: 2px dashed rgba(124,58,237,0.25);
+            outline: 2px dashed rgba(61,107,255,0.25);
             outline-offset: 4px;
             border-radius: 12px;
         }
@@ -858,7 +858,7 @@ $catColors = [
                 @endphp
                 <div id="paletteList" class="palette-body">
                     @foreach($paletteGroups as $catKey => $catTypes)
-                        @php $secColor = $catColors[$catKey] ?? '#8b5cf6'; @endphp
+                        @php $secColor = $catColors[$catKey] ?? '#5c83ff'; @endphp
                         <button type="button"
                                 class="palette-section-header"
                                 x-show="paletteSectionVisible('{{ $catKey }}')"
@@ -873,7 +873,7 @@ $catColors = [
                         </button>
                         @foreach($catTypes as $typeKey => $typeInfo)
                             @php
-                                $pCatColor = $catColors[$typeInfo['category']] ?? '#8b5cf6';
+                                $pCatColor = $catColors[$typeInfo['category']] ?? '#5c83ff';
                                 $pLocked = !auth()->user()->userCanUseBlockType($typeKey);
                             @endphp
                             @if($pLocked)
@@ -910,7 +910,7 @@ $catColors = [
                     </div>
                 </div>
                 <div class="palette-foot">
-                    <button type="button" @click="openSpecialPanel()" class="w-full py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-violet-500/10" style="border: 1px dashed rgba(124,58,237,0.3); color: #a78bfa;">
+                    <button type="button" @click="openSpecialPanel()" class="w-full py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all hover:bg-blue-500/10" style="border: 1px dashed rgba(61,107,255,0.3); color: #90acff;">
                         <i class="fas fa-grip text-[9px]"></i> Templates, forms &amp; more
                     </button>
                 </div>
@@ -933,12 +933,12 @@ $catColors = [
                     <div id="blockListEmpty" class="flex flex-col items-center justify-center text-center rounded-2xl px-6 py-12 lg:min-h-[420px]"
                          style="grid-column: span 12; background: var(--bg-glass); border: 1px dashed var(--border-glass); {{ $blocks->count() ? 'display:none;' : '' }}">
                         <div class="empty-state-icon">
-                            <i class="fas fa-layer-group text-3xl text-violet-400"></i>
+                            <i class="fas fa-layer-group text-3xl text-blue-400"></i>
                         </div>
                         <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No blocks yet</h3>
                         <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);"><span class="hidden lg:inline">Drag a block from the palette on the left onto this canvas, or start from a curated template.</span><span class="lg:hidden">Start from a curated template, or add blocks one at a time.</span> Your live preview updates instantly.</p>
                         <div class="flex items-center justify-center gap-2 flex-wrap">
-                            <a href="{{ route('user.links.templates.picker', $link) }}" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                            <a href="{{ route('user.links.templates.picker', $link) }}" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #5c83ff, #3d6bff);">
                                 <i class="fas fa-layer-group text-xs"></i> Browse templates
                             </a>
                             <button type="button" onclick="focusBlockPalette()" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #10b981, #059669);">
@@ -964,7 +964,7 @@ $catColors = [
                     <span id="drawerAutoSaveStatus" class="text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="manualSaveFromModal()" class="text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
+                    <button type="button" onclick="manualSaveFromModal()" class="text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all" style="background: linear-gradient(135deg, #5c83ff, #3d6bff); color: white;">
                         <i class="fas fa-save mr-1"></i>Save & Close
                     </button>
                     <button @click="closeEditDrawer()" class="block-action-btn" style="color: var(--text-faint);" title="Close"><i class="fas fa-times"></i></button>
@@ -973,7 +973,7 @@ $catColors = [
             <div class="edit-modal-body">
                 <div class="edit-modal-preview" id="editModalPreview">
                     <div class="relative" style="width: 300px;">
-                        <div class="absolute -inset-1 rounded-[2.8rem]" style="background: linear-gradient(180deg, rgba(124,58,237,0.12), rgba(255,255,255,0.03), rgba(124,58,237,0.08)); filter: blur(1px);"></div>
+                        <div class="absolute -inset-1 rounded-[2.8rem]" style="background: linear-gradient(180deg, rgba(61,107,255,0.12), rgba(255,255,255,0.03), rgba(61,107,255,0.08)); filter: blur(1px);"></div>
                         <div class="relative bg-black rounded-[2.2rem] p-1.5 shadow-2xl" style="border: 2px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
                             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-b-2xl z-10 flex items-center justify-center">
                                 <div class="w-14 h-3 rounded-full" style="background: rgba(255,255,255,0.04);"></div>
@@ -1012,8 +1012,8 @@ $catColors = [
         @csrf @method('PUT')
         <div class="mb-4">
             <div class="flex items-center gap-2 mb-4">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                    <i class="fas {{ $blockTypes[$block->type]['icon'] ?? 'fa-cube' }} text-violet-400 text-sm"></i>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                    <i class="fas {{ $blockTypes[$block->type]['icon'] ?? 'fa-cube' }} text-blue-400 text-sm"></i>
                 </div>
                 <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $blockTypes[$block->type]['label'] ?? ucfirst($block->type) }}</span>
             </div>
@@ -1492,7 +1492,7 @@ function pcLivePreviewBadges(badgesJson) {
 var _csrfToken = function() { return document.querySelector('meta[name="csrf-token"]').content; };
 
 function showToast(msg, type) {
-    var colors = { success: 'linear-gradient(135deg, #10b981, #059669)', error: 'linear-gradient(135deg, #ef4444, #dc2626)', info: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' };
+    var colors = { success: 'linear-gradient(135deg, #10b981, #059669)', error: 'linear-gradient(135deg, #ef4444, #dc2626)', info: 'linear-gradient(135deg, #5c83ff, #3d6bff)' };
     var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
     var toast = document.createElement('div');
     toast.className = 'fixed bottom-4 right-4 z-[9999] px-4 py-2.5 rounded-xl text-xs font-medium text-white shadow-lg transition-all';

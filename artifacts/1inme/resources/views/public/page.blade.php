@@ -1,7 +1,7 @@
 @extends('public.layouts.site')
 @section('content')
 <section class="relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
-    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(124,58,237,.06);"></div>
+    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(61,107,255,.06);"></div>
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{{ $page->title }}</h1>
         @if($page->meta_description)
@@ -58,7 +58,7 @@
                             <div class="aspect-[16/9] bg-white/5 overflow-hidden"><img src="{{ $p->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover"></div>
                         @endif
                         <div class="p-4">
-                            @if($p->category)<span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: {{ $p->category->color ? $p->category->color . '22' : 'rgba(124,58,237,.15)' }}; color: {{ $p->category->color ?: '#a78bfa' }};">{{ $p->category->name }}</span>@endif
+                            @if($p->category)<span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: {{ $p->category->color ? $p->category->color . '22' : 'rgba(61,107,255,.15)' }}; color: {{ $p->category->color ?: '#90acff' }};">{{ $p->category->name }}</span>@endif
                             <h3 class="mt-2 text-sm font-semibold text-white line-clamp-2">{{ $p->title }}</h3>
                             @if($p->excerpt)<p class="mt-1 text-xs text-white/60 line-clamp-2">{{ $p->excerpt }}</p>@endif
                             <p class="mt-3 text-[11px] text-white/40">{{ optional($p->published_at)->format('M j, Y') }} · {{ $p->reading_time_min }} min</p>

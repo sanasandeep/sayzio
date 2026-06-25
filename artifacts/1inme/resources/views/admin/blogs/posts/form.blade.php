@@ -13,7 +13,7 @@
     .rte-content p { margin:.4em 0; }
     .rte-content ul { list-style:disc; padding-left:1.25rem; margin:.4em 0; }
     .rte-content ol { list-style:decimal; padding-left:1.25rem; margin:.4em 0; }
-    .rte-content blockquote { border-left:3px solid rgba(139,92,246,.5); padding-left:.75rem; color:var(--text-secondary); margin:.5em 0; }
+    .rte-content blockquote { border-left:3px solid rgba(92,131,255,.5); padding-left:.75rem; color:var(--text-secondary); margin:.5em 0; }
     .rte-content a { color:var(--accent); text-decoration:underline; }
     .rte-content img { max-width:100%; border-radius:.5rem; }
     .rte-content:empty::before { content: attr(data-placeholder); color:var(--text-faint); }
@@ -98,7 +98,7 @@ window.blogUploadCover = async function(input) {
 @section('content')
 @php $action = $post->exists ? route('admin.blogs.posts.update', $post) : route('admin.blogs.posts.store'); @endphp
 <div class="max-w-6xl mx-auto" x-data="blogForm(@js(old('body_html', $post->body_html ?? '')))">
-    <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-violet-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all posts</a>
+    <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all posts</a>
 
     <form method="POST" action="{{ $action }}" class="mt-4 grid lg:grid-cols-3 gap-6">
         @csrf
@@ -186,7 +186,7 @@ window.blogUploadCover = async function(input) {
                     <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Published at</label>
                     <input type="datetime-local" name="published_at" value="{{ old('published_at', optional($post->published_at)->format('Y-m-d\TH:i')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
                 </div>
-                <button class="w-full px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-medium text-white">{{ $post->exists ? 'Save changes' : 'Create post' }}</button>
+                <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white">{{ $post->exists ? 'Save changes' : 'Create post' }}</button>
                 @if($post->exists)
                     <button form="delete-form" class="w-full px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-300 rounded-lg text-xs">Delete post</button>
                 @endif

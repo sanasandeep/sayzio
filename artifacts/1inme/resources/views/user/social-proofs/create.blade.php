@@ -20,12 +20,12 @@
         <div class="glass rounded-2xl p-5">
             <label class="block text-white/70 text-sm mb-2">Campaign name</label>
             <input type="text" name="name" required value="{{ old('name', 'My notifications') }}" maxlength="120"
-                   class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-violet-500">
+                   class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-blue-500">
             <p class="text-white/40 text-xs mt-2">A campaign holds one or more notifications (recent activity, countdowns, banners, popups, etc.) — embed once, manage many.</p>
         </div>
         <div class="flex justify-end gap-2">
             <a href="{{ route('user.social-proofs.index') }}" class="px-4 py-2 rounded-xl text-white/70 hover:bg-white/5 text-sm">Cancel</a>
-            <button class="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-xl text-sm font-medium">Create &amp; open editor</button>
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-medium">Create &amp; open editor</button>
         </div>
     </form>
 </div>

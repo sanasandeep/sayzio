@@ -12,10 +12,10 @@ export default function Slide186Roadmapinvestmentsplit() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Where the engineering hours go.</h2>
         
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">40%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">AI + integrations</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">25%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">core modules</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">20%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">platform + API</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">15%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">performance + reliability</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">40%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">AI + integrations</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">25%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">core modules</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">20%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">platform + API</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">15%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">performance + reliability</div></div>
         </div>
         
       </div>

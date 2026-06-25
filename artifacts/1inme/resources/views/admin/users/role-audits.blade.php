@@ -20,7 +20,7 @@
                 <p class="text-xs text-white/40 mt-1">
                     Filtered to user
                     <a href="{{ route('admin.users.show', $targetUser) }}"
-                       class="text-violet-300 hover:text-violet-200">
+                       class="text-blue-300 hover:text-blue-200">
                         {{ $targetUser->name ?: $targetUser->email }} (#{{ $targetUser->id }})
                     </a>
                 </p>
@@ -48,18 +48,18 @@
                 <span class="block text-xs uppercase tracking-wide text-white/40 mb-1">Actor</span>
                 <input type="text" name="actor" value="{{ $filters['actor'] }}"
                        placeholder="Name, email, or id"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
             <label class="block">
                 <span class="block text-xs uppercase tracking-wide text-white/40 mb-1">Target user</span>
                 <input type="text" name="target" value="{{ $filters['target'] }}"
                        placeholder="Name, email, or id"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
             <label class="block">
                 <span class="block text-xs uppercase tracking-wide text-white/40 mb-1">Role</span>
                 <select name="role"
-                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                     <option value="">Any role</option>
                     @foreach($roleSlugs as $slug)
                         <option value="{{ $slug }}" @selected($filters['role'] === $slug)>{{ $slug }}</option>
@@ -69,7 +69,7 @@
             <label class="block">
                 <span class="block text-xs uppercase tracking-wide text-white/40 mb-1">Action</span>
                 <select name="action"
-                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                     <option value="">Any action</option>
                     @foreach($actions as $value => $label)
                         <option value="{{ $value }}" @selected($filters['action'] === $value)>{{ $label }}</option>
@@ -79,7 +79,7 @@
             <label class="block">
                 <span class="block text-xs uppercase tracking-wide text-white/40 mb-1">Source</span>
                 <select name="source"
-                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                     <option value="">Any source</option>
                     @foreach($sources as $value => $label)
                         <option value="{{ $value }}" @selected($filters['source'] === $value)>{{ $label }}</option>
@@ -89,18 +89,18 @@
             <label class="block">
                 <span class="block text-xs uppercase tracking-wide text-white/40 mb-1">From</span>
                 <input type="date" name="from" value="{{ $filters['from'] }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
             <label class="block">
                 <span class="block text-xs uppercase tracking-wide text-white/40 mb-1">To</span>
                 <input type="date" name="to" value="{{ $filters['to'] }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 pt-1">
             <button type="submit"
-                    class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium">
+                    class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
                 <i class="fas fa-filter mr-1"></i> Apply filters
             </button>
             @if($hasAnyFilter)
@@ -158,7 +158,7 @@
                             <td class="px-4 py-2">
                                 @if($a->targetUser)
                                     <a href="{{ route('admin.users.show', $a->targetUser) }}"
-                                       class="text-violet-300 hover:text-violet-200">
+                                       class="text-blue-300 hover:text-blue-200">
                                         {{ $a->targetUser->name ?: $a->targetUser->email }}
                                     </a>
                                     @if($a->targetUser->email)

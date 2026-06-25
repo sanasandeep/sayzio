@@ -744,7 +744,7 @@ export default function DialerScreen() {
                       ×{item.calls}
                     </Text>
                   )}
-                  {item.biolink && <MiniTag text="Sayzio" color="#ec4899" />}
+                  {item.biolink && <MiniTag text="Sayzio" color="#d76dff" />}
                   {item.isSpam && <MiniTag text="SPAM" color="#ef4444" />}
                   {item.isBlocked && <MiniTag text="BLOCKED" color="#9ca3af" />}
                 </View>

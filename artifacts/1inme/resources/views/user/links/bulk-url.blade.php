@@ -27,12 +27,12 @@
 
             <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl w-fit">
                 <button type="button" @click="tab = 'paste'"
-                        :class="tab === 'paste' ? 'bg-violet-600 text-white' : 'text-white/60 hover:text-white'"
+                        :class="tab === 'paste' ? 'bg-blue-600 text-white' : 'text-white/60 hover:text-white'"
                         class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all">
                     <i class="fas fa-paste mr-1"></i> Paste list
                 </button>
                 <button type="button" @click="tab = 'csv'"
-                        :class="tab === 'csv' ? 'bg-violet-600 text-white' : 'text-white/60 hover:text-white'"
+                        :class="tab === 'csv' ? 'bg-blue-600 text-white' : 'text-white/60 hover:text-white'"
                         class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all">
                     <i class="fas fa-file-csv mr-1"></i> Upload CSV
                 </button>
@@ -42,16 +42,16 @@
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Destination URLs <span class="text-white/30 text-xs">(one per line)</span></label>
                 <textarea name="urls_text" rows="10"
                           placeholder="https://example.com/page-one&#10;https://example.com/page-two&#10;https://example.com/page-three"
-                          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none font-mono">{{ old('urls_text') }}</textarea>
+                          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none font-mono">{{ old('urls_text') }}</textarea>
             </div>
 
             <div x-show="tab === 'csv'" x-cloak>
                 <label class="block text-sm font-medium text-white/60 mb-1.5">CSV file</label>
                 <input type="file" name="csv_file" accept=".csv,text/csv"
-                       class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700">
+                       class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700">
                 <p class="text-[11px] text-white/40 mt-2">
-                    Required column: <code class="text-violet-300">long_url</code> (or <code class="text-violet-300">url</code>).
-                    Optional: <code class="text-violet-300">alias</code>, <code class="text-violet-300">title</code>.
+                    Required column: <code class="text-blue-300">long_url</code> (or <code class="text-blue-300">url</code>).
+                    Optional: <code class="text-blue-300">alias</code>, <code class="text-blue-300">title</code>.
                 </p>
             </div>
         </div>
@@ -64,7 +64,7 @@
                 @if(($domains ?? collect())->isNotEmpty())
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Branded domain</label>
-                    <select name="domain_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    <select name="domain_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <option value="" class="bg-[#0d0818]">Default</option>
                         @foreach($domains as $d)
                             <option value="{{ $d->id }}" {{ old('domain_id') == $d->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $d->domain }}</option>
@@ -74,7 +74,7 @@
                 @endif
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Project</label>
-                    <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <option value="" class="bg-[#0d0818]">No project</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $project->name }}</option>
@@ -83,7 +83,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Redirect type</label>
-                    <select name="redirect_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    <select name="redirect_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <option value="301" class="bg-[#0d0818]">301 — Permanent</option>
                         <option value="302" {{ old('redirect_type') == 302 ? 'selected' : '' }} class="bg-[#0d0818]">302 — Temporary</option>
                     </select>
@@ -91,7 +91,7 @@
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Expires at <span class="text-white/30 text-xs">(optional)</span></label>
                     <input type="datetime-local" name="expires_at" value="{{ old('expires_at') }}"
-                           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
             </div>
 
@@ -105,43 +105,43 @@
                     <div>
                         <label class="flex items-center gap-3 cursor-pointer">
                             <input type="checkbox" x-model="passwordProtect"
-                                   class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
-                            <span class="text-sm text-white/70"><i class="fas fa-shield-alt mr-1.5 text-violet-400"></i>Password-protect every link</span>
+                                   class="rounded bg-white/5 border-white/20 text-blue-600 focus:ring-blue-500/40">
+                            <span class="text-sm text-white/70"><i class="fas fa-shield-alt mr-1.5 text-blue-400"></i>Password-protect every link</span>
                         </label>
                         <div x-show="passwordProtect" class="mt-2 ml-7">
                             <input type="password" name="password" placeholder="Shared password"
-                                   class="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                     </div>
 
                     <div>
-                        <h3 class="text-xs font-semibold text-violet-400 mb-2 uppercase tracking-wider"><i class="fas fa-search mr-1.5"></i>SEO defaults</h3>
+                        <h3 class="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wider"><i class="fas fa-search mr-1.5"></i>SEO defaults</h3>
                         <div class="space-y-2">
                             <input type="text" name="seo_title" value="{{ old('seo_title') }}" placeholder="SEO title"
-                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                             <textarea name="seo_description" rows="2" placeholder="SEO description"
-                                      class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('seo_description') }}</textarea>
+                                      class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">{{ old('seo_description') }}</textarea>
                         </div>
                     </div>
 
                     <div>
-                        <h3 class="text-xs font-semibold text-violet-400 mb-2 uppercase tracking-wider"><i class="fas fa-chart-bar mr-1.5"></i>UTM parameters</h3>
+                        <h3 class="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wider"><i class="fas fa-chart-bar mr-1.5"></i>UTM parameters</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input type="text" name="utm_source"   value="{{ old('utm_source') }}"   placeholder="utm_source"   class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                            <input type="text" name="utm_medium"   value="{{ old('utm_medium') }}"   placeholder="utm_medium"   class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                            <input type="text" name="utm_campaign" value="{{ old('utm_campaign') }}" placeholder="utm_campaign" class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                            <input type="text" name="utm_term"     value="{{ old('utm_term') }}"     placeholder="utm_term"     class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                            <input type="text" name="utm_content"  value="{{ old('utm_content') }}"  placeholder="utm_content"  class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none md:col-span-2">
+                            <input type="text" name="utm_source"   value="{{ old('utm_source') }}"   placeholder="utm_source"   class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            <input type="text" name="utm_medium"   value="{{ old('utm_medium') }}"   placeholder="utm_medium"   class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            <input type="text" name="utm_campaign" value="{{ old('utm_campaign') }}" placeholder="utm_campaign" class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            <input type="text" name="utm_term"     value="{{ old('utm_term') }}"     placeholder="utm_term"     class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            <input type="text" name="utm_content"  value="{{ old('utm_content') }}"  placeholder="utm_content"  class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none md:col-span-2">
                         </div>
                     </div>
 
                     @if($pixels->count())
                     <div>
-                        <h3 class="text-xs font-semibold text-violet-400 mb-2 uppercase tracking-wider"><i class="fas fa-bullseye mr-1.5"></i>Tracking pixels</h3>
+                        <h3 class="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wider"><i class="fas fa-bullseye mr-1.5"></i>Tracking pixels</h3>
                         <div class="space-y-1">
                             @foreach($pixels as $pixel)
                             <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
+                                <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" class="rounded bg-white/5 border-white/20 text-blue-600 focus:ring-blue-500/40">
                                 <span class="text-sm text-white/60">{{ $pixel->name }} <span class="text-white/25">({{ ucfirst(str_replace('_', ' ', $pixel->type)) }})</span></span>
                             </label>
                             @endforeach
@@ -150,7 +150,7 @@
                     @endif
 
                     <label class="flex items-center gap-3 cursor-pointer pt-2">
-                        <input type="checkbox" name="show_preview_page" value="1" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
+                        <input type="checkbox" name="show_preview_page" value="1" class="rounded bg-white/5 border-white/20 text-blue-600 focus:ring-blue-500/40">
                         <span class="text-sm text-white/60">Show a preview page before each redirect</span>
                     </label>
                 </div>
@@ -159,7 +159,7 @@
 
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.create') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</a>
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                 Preview batch <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
             </button>
         </div>

@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#7c3aed"
+      "backgroundColor": "#3d6bff"
     },
     "ios": {
       "supportsTablet": false,
@@ -88,11 +88,11 @@
         {
           "image": "./assets/images/icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#7c3aed",
+          "backgroundColor": "#3d6bff",
           "imageWidth": 220,
           "dark": {
             "image": "./assets/images/icon.png",
-            "backgroundColor": "#7c3aed"
+            "backgroundColor": "#3d6bff"
           }
         }
       ],

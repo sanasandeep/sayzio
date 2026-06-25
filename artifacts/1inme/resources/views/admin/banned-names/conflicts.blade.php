@@ -83,7 +83,7 @@
                     <tr class="border-t border-white/5 align-top {{ $row['acknowledged'] ? 'opacity-60' : '' }}">
                         <td class="px-5 py-3">
                             @if($row['kind'] === 'user')
-                                <span class="text-xs px-2 py-0.5 rounded bg-violet-500/15 text-violet-200 border border-violet-500/30">handle</span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-200 border border-blue-500/30">handle</span>
                             @elseif($row['kind'] === 'link')
                                 <span class="text-xs px-2 py-0.5 rounded bg-sky-500/15 text-sky-200 border border-sky-500/30">primary alias</span>
                             @else
@@ -108,7 +108,7 @@
                                               onsubmit="return window.themedConfirmSubmit(this, {title: 'Notify {{ $row['owner']->name ?: $row['label'] }}?', message: 'A system notification will be sent asking them to change their handle.', confirmText: 'Send notification', confirmIcon: 'fa-bell', iconClass: 'fa-bell'})">
                                             @csrf
                                             <button type="submit"
-                                                    class="px-2.5 py-1.5 rounded-lg text-xs bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30">
+                                                    class="px-2.5 py-1.5 rounded-lg text-xs bg-blue-500/15 hover:bg-blue-500/25 text-blue-200 border border-blue-500/30">
                                                 <i class="fas fa-bell text-[10px]"></i> Notify user
                                             </button>
                                         </form>

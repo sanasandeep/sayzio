@@ -246,7 +246,7 @@
                     </template>
                     <template x-for="h in coverHistory" :key="h.id">
                         <div class="resume-tailor-history-row" style="cursor:pointer; position:relative;"
-                             :style="coverLetter && coverLetter.id === h.id ? 'background: rgba(124,58,237,0.12); border:1px solid rgba(124,58,237,0.3);' : ''"
+                             :style="coverLetter && coverLetter.id === h.id ? 'background: rgba(61,107,255,0.12); border:1px solid rgba(61,107,255,0.3);' : ''"
                              @click="loadCoverLetter(h.id)">
                             <div class="resume-tailor-history-jd" x-text="h.title || h.jd_excerpt || '(untitled)'"></div>
                             <div class="resume-tailor-history-meta">

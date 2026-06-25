@@ -33,7 +33,7 @@
                 @endphp
                 <div class="flex-1 h-full flex flex-col justify-end min-w-0" title="{{ $title }}">
                     @if($query > 0)
-                        <div class="bg-violet-400/70 hover:bg-violet-300" style="height: {{ $qH }}%"></div>
+                        <div class="bg-blue-400/70 hover:bg-blue-300" style="height: {{ $qH }}%"></div>
                     @endif
                     @if($ingest > 0)
                         <div class="bg-cyan-400/70 hover:bg-cyan-300" style="height: {{ $iH }}%"></div>
@@ -48,7 +48,7 @@
             <span>{{ \Illuminate\Support\Carbon::parse($days[0]['date'])->format('M j') }}</span>
             <span class="flex items-center gap-3">
                 <span class="flex items-center gap-1"><span class="w-2 h-2 bg-cyan-400/70 inline-block rounded-sm"></span> Ingestion</span>
-                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-violet-400/70 inline-block rounded-sm"></span> Questions</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-blue-400/70 inline-block rounded-sm"></span> Questions</span>
             </span>
             <span>{{ \Illuminate\Support\Carbon::parse($days[$count - 1]['date'])->format('M j') }}</span>
         </div>

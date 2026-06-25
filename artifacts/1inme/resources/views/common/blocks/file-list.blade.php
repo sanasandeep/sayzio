@@ -4,7 +4,7 @@
     /** @var string $fontColor */
     $items   = is_array($s['items'] ?? null) ? $s['items'] : [];
     $layout  = $s['layout'] ?? ($s['_registry']['layout'] ?? 'compact');
-    $accent  = $s['accent_color'] ?? '#7c3aed';
+    $accent  = $s['accent_color'] ?? '#3d6bff';
     $title   = trim($s['title'] ?? '');
 
     $fmtSize = static function ($bytes) {

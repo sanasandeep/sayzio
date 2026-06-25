@@ -7,12 +7,12 @@
 <style>
 /* FullCalendar theming to match the rest of the app */
 #bz-cal{ --fc-border-color: rgba(255,255,255,.08); --fc-page-bg-color: transparent;
-         --fc-neutral-bg-color: rgba(255,255,255,.02); --fc-list-event-hover-bg-color: rgba(124,58,237,.12);
-         --fc-today-bg-color: rgba(124,58,237,.10); --fc-event-bg-color:#7c3aed; --fc-event-border-color:#7c3aed;
+         --fc-neutral-bg-color: rgba(255,255,255,.02); --fc-list-event-hover-bg-color: rgba(61,107,255,.12);
+         --fc-today-bg-color: rgba(61,107,255,.10); --fc-event-bg-color:#3d6bff; --fc-event-border-color:#3d6bff;
          --fc-event-text-color:#fff; --fc-button-bg-color:rgba(255,255,255,.06);
          --fc-button-border-color:rgba(255,255,255,.10); --fc-button-text-color:var(--text-primary);
-         --fc-button-active-bg-color:#7c3aed; --fc-button-active-border-color:#7c3aed;
-         --fc-button-hover-bg-color:rgba(124,58,237,.20); --fc-button-hover-border-color:rgba(124,58,237,.30);
+         --fc-button-active-bg-color:#3d6bff; --fc-button-active-border-color:#3d6bff;
+         --fc-button-hover-bg-color:rgba(61,107,255,.20); --fc-button-hover-border-color:rgba(61,107,255,.30);
          --fc-now-indicator-color:#ec4899; }
 #bz-cal .fc-toolbar-title{ color:var(--text-primary); font-weight:700; font-size:1.05rem }
 #bz-cal .fc-col-header-cell-cushion,
@@ -22,7 +22,7 @@
 #bz-cal .fc-list-event-time,
 #bz-cal .fc-list-event-title{ color:var(--text-primary); text-decoration:none }
 #bz-cal .fc-day-other .fc-daygrid-day-number{ color:var(--text-faint) }
-#bz-cal .fc-list-day-cushion{ background:rgba(124,58,237,.08) !important }
+#bz-cal .fc-list-day-cushion{ background:rgba(61,107,255,.08) !important }
 #bz-cal .fc-button{ text-transform:capitalize; font-weight:600; font-size:.78rem; padding:.4rem .8rem; border-radius:.6rem }
 #bz-cal .fc-event{ border-radius:6px; padding:1px 4px; font-weight:600; font-size:.72rem; cursor:pointer }
 #bz-cal .fc-list-empty{ background:transparent; color:var(--text-muted) }
@@ -33,12 +33,12 @@ html.light-mode #bz-cal{
     --fc-button-bg-color:#fff;
     --fc-button-border-color:#e2e8f0;
     --fc-button-text-color:#0f172a;
-    --fc-button-hover-bg-color:rgba(124,58,237,.10);
-    --fc-button-hover-border-color:rgba(124,58,237,.30);
-    --fc-button-active-bg-color:#7c3aed;
-    --fc-button-active-border-color:#7c3aed;
-    --fc-list-event-hover-bg-color:rgba(124,58,237,.06);
-    --fc-today-bg-color:rgba(124,58,237,.06);
+    --fc-button-hover-bg-color:rgba(61,107,255,.10);
+    --fc-button-hover-border-color:rgba(61,107,255,.30);
+    --fc-button-active-bg-color:#3d6bff;
+    --fc-button-active-border-color:#3d6bff;
+    --fc-list-event-hover-bg-color:rgba(61,107,255,.06);
+    --fc-today-bg-color:rgba(61,107,255,.06);
     --fc-event-text-color:#fff;
 }
 html.light-mode #bz-cal .fc-toolbar-title,
@@ -54,7 +54,7 @@ html.light-mode #bz-cal .fc-list-event-title a{ color:#0f172a }
 html.light-mode #bz-cal .fc-day-other .fc-daygrid-day-number{ color:#94a3b8 }
 html.light-mode #bz-cal .fc-button.fc-button-active,
 html.light-mode #bz-cal .fc-button.fc-button-active:focus{ color:#fff !important }
-html.light-mode #bz-cal .fc-list-day-cushion{ background:rgba(124,58,237,.06) !important }
+html.light-mode #bz-cal .fc-list-day-cushion{ background:rgba(61,107,255,.06) !important }
 html.light-mode #bz-cal .fc-list,
 html.light-mode #bz-cal .fc-scrollgrid,
 html.light-mode #bz-cal table{ background:#fff }
@@ -70,7 +70,7 @@ html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
         'subtitle' => 'Every event you\'ve created — switch between Month, Week, Day and List views.',
         'icon' => 'fa-calendar-day',
         'chips' => [
-            ['icon' => 'fa-calendar text-violet-400', 'text' => $totalEvents . ' total event' . ($totalEvents === 1 ? '' : 's')],
+            ['icon' => 'fa-calendar text-blue-400', 'text' => $totalEvents . ' total event' . ($totalEvents === 1 ? '' : 's')],
             ['icon' => 'fa-clock text-pink-400', 'text' => $upcoming->count() . ' upcoming'],
         ],
         'actions' => [
@@ -85,7 +85,7 @@ html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
                 <div id="bz-cal"></div>
             </div>
             <div class="mt-3 flex flex-wrap gap-3 text-xs" style="color: var(--text-muted);">
-                <span class="inline-flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded" style="background:#7c3aed"></span> Primary event</span>
+                <span class="inline-flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded" style="background:#3d6bff"></span> Primary event</span>
                 <span class="inline-flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded" style="background:#ec4899"></span> Extra schedule</span>
                 <span class="ml-auto"><i class="fas fa-info-circle mr-1 opacity-60"></i> Click any event to open it</span>
             </div>
@@ -99,8 +99,8 @@ html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
                 </h3>
                 @if($upcoming->isEmpty())
                     <div class="text-center py-8">
-                        <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(139,92,246,0.18));">
-                            <i class="fas fa-calendar-plus text-xl text-violet-400"></i>
+                        <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(92,131,255,0.18));">
+                            <i class="fas fa-calendar-plus text-xl text-blue-400"></i>
                         </div>
                         <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No upcoming events</p>
                         <p class="text-xs mb-4" style="color: var(--text-muted);">Create your first Event link to see it here.</p>
@@ -115,10 +115,10 @@ html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
                                 $start = $u->start_date;
                                 $end   = $u->end_date;
                             @endphp
-                            <a href="{{ route('user.links.show', $u->link) }}" class="block p-3 rounded-xl transition" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06)" onmouseover="this.style.background='rgba(124,58,237,.10)'; this.style.borderColor='rgba(124,58,237,.30)'" onmouseout="this.style.background='rgba(255,255,255,.04)'; this.style.borderColor='rgba(255,255,255,.06)'">
+                            <a href="{{ route('user.links.show', $u->link) }}" class="block p-3 rounded-xl transition" style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06)" onmouseover="this.style.background='rgba(61,107,255,.10)'; this.style.borderColor='rgba(61,107,255,.30)'" onmouseout="this.style.background='rgba(255,255,255,.04)'; this.style.borderColor='rgba(255,255,255,.06)'">
                                 <div class="flex items-start gap-3">
-                                    <div class="flex-shrink-0 w-12 text-center rounded-lg py-1.5" style="background:rgba(124,58,237,.15); border:1px solid rgba(124,58,237,.25)">
-                                        <div class="text-[9px] uppercase font-bold tracking-wider" style="color:#a78bfa">{{ $start?->format('M') }}</div>
+                                    <div class="flex-shrink-0 w-12 text-center rounded-lg py-1.5" style="background:rgba(61,107,255,.15); border:1px solid rgba(61,107,255,.25)">
+                                        <div class="text-[9px] uppercase font-bold tracking-wider" style="color:#90acff">{{ $start?->format('M') }}</div>
                                         <div class="text-base font-bold leading-none mt-0.5" style="color:#fff">{{ $start?->format('d') }}</div>
                                     </div>
                                     <div class="min-w-0 flex-1">

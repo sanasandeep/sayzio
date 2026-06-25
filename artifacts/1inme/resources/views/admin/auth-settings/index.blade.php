@@ -38,7 +38,7 @@
                        name="email_password_enabled"
                        value="1"
                        @checked(old('email_password_enabled', $emailPasswordEnabled))
-                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                       class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-white">Enable email + password login</span>
@@ -58,7 +58,7 @@
                        name="email_otp_enabled"
                        value="1"
                        @checked(old('email_otp_enabled', $emailOtpEnabled))
-                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                       class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-white">Enable email one-time-code login</span>
@@ -78,7 +78,7 @@
                        name="email_verification_required"
                        value="1"
                        @checked(old('email_verification_required', $emailVerificationRequired))
-                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                       class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-white">Require email verification at sign-up</span>
@@ -108,7 +108,7 @@
                        name="demo_reveal_otp_enabled"
                        value="1"
                        @checked(old('demo_reveal_otp_enabled', $demoRevealOtpEnabled))
-                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                       class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-white">Reveal one-time codes on screen</span>
@@ -138,7 +138,7 @@
                        name="mobile_login_enabled"
                        value="1"
                        @checked(old('mobile_login_enabled', $mobileLoginEnabled))
-                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                       class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-white">Enable WhatsApp (mobile) login</span>
@@ -179,7 +179,7 @@
 
         <div class="flex justify-end">
             <button type="submit"
-                    class="px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition">
+                    class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">
                 <i class="fas fa-save mr-1.5"></i> Save settings
             </button>
         </div>

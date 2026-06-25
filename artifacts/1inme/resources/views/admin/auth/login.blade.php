@@ -16,7 +16,7 @@
     <div class="bg-mesh"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(61,107,255,0.12) 0%, transparent 70%);"></div>
         <div class="absolute -bottom-24 -left-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);"></div>
     </div>
 
@@ -29,8 +29,8 @@
             <div class="text-center mb-7">
                 <a href="{{ route('home') }}" class="inline-flex items-center justify-center">@include('common.partials.brand-logo', ['height' => 'h-12'])</a>
                 <div class="mt-2 inline-flex items-center gap-1.5">
-                    <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.15);">
-                        <i class="fas fa-shield-alt text-violet-400 text-[8px]"></i>
+                    <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.15);">
+                        <i class="fas fa-shield-alt text-blue-400 text-[8px]"></i>
                     </div>
                     <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Admin Panel</span>
                 </div>
@@ -64,10 +64,10 @@
 
                     <div class="flex items-center justify-between">
                         <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-dimmed);">
-                            <input type="checkbox" name="remember" class="rounded text-violet-500 focus:ring-violet-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                            <input type="checkbox" name="remember" class="rounded text-blue-500 focus:ring-blue-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                             Remember me
                         </label>
-                        <a href="{{ route('admin.password.request') }}" class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors">Forgot?</a>
+                        <a href="{{ route('admin.password.request') }}" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
                     </div>
 
                     <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">

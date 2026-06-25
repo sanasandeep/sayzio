@@ -98,7 +98,7 @@
                     </p>
                 </div>
                 <div class="flex items-center gap-4 text-[11px] text-white/60">
-                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-violet-500"></span> Reminded</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-blue-500"></span> Reminded</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400"></span> Converted</span>
                 </div>
             </div>
@@ -113,7 +113,7 @@
                         <div class="flex-1 flex flex-col items-center justify-end h-full min-w-0">
                             <div class="flex-1 flex items-end justify-center gap-1 w-full" role="img"
                                  aria-label="{{ $w['label'] }}: {{ $w['reminded'] }} reminded, {{ $w['converted'] }} converted">
-                                <div class="w-1/2 max-w-[14px] rounded-t bg-violet-500/80 hover:bg-violet-400 transition-colors"
+                                <div class="w-1/2 max-w-[14px] rounded-t bg-blue-500/80 hover:bg-blue-400 transition-colors"
                                      style="height: {{ $w['reminded'] > 0 ? max(4, round(($w['reminded'] / $trendMax) * 100)) : 0 }}%"
                                      title="{{ $w['reminded'] }} reminded"></div>
                                 <div class="w-1/2 max-w-[14px] rounded-t bg-emerald-400/80 hover:bg-emerald-300 transition-colors"
@@ -148,7 +148,7 @@
                        name="enabled"
                        value="1"
                        @checked(old('enabled', $enabled))
-                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                       class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-white">Send periodic verification reminders</span>
@@ -207,7 +207,7 @@
 
         <div class="flex justify-end">
             <button type="submit"
-                    class="px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition">
+                    class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">
                 <i class="fas fa-save mr-1.5"></i> Save settings
             </button>
         </div>

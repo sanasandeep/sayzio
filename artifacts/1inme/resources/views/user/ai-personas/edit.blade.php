@@ -14,7 +14,7 @@
         <div>
             <a href="{{ route('user.ai-personas.index') }}" class="text-xs text-white/50 hover:text-white"><i class="fas fa-arrow-left"></i> Back to Personas</a>
             <h1 class="text-2xl font-bold text-white mt-2">{{ $persona->name }}</h1>
-            <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; AI credit balance: <span class="text-violet-300">{{ number_format($balance) }}</span></p>
+            <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; AI credit balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
             @if($persona->is_disabled)
                 <p class="mt-2 text-xs text-red-300">This Persona is disabled by an administrator: {{ $persona->disabled_reason }}</p>
             @endif

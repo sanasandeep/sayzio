@@ -2,7 +2,7 @@
 @section('title', 'Form Builder')
 
 @php
-    $accent = '#7c3aed';
+    $accent = '#3d6bff';
     $features = [
         [
             'icon'  => 'fa-shapes',
@@ -61,7 +61,7 @@
                     A drag-and-drop form builder with 21 field types, full design control, and instant email, SMS and webhook notifications on every submission — embeddable in any biolink in seconds.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                         <i class="fas fa-rocket text-xs"></i> Build a form free
                     </a>
                     <a href="{{ route('site.features') }}#cat-forms" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -122,7 +122,7 @@
                 <p class="mt-3 text-gray-400 max-w-2xl">Free accounts can build and embed forms with email notifications. SMS and webhook delivery, plus higher submission allowances, unlock on a paid plan.</p>
             </div>
             <div class="relative flex flex-wrap gap-3">
-                <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold whitespace-nowrap">See plans</a>
+                <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold whitespace-nowrap">See plans</a>
                 <a href="{{ route('site.premium-features') }}" class="px-5 py-3 rounded-full border border-white/15 text-gray-200 hover:bg-white/5 text-sm font-semibold whitespace-nowrap">Premium features</a>
             </div>
         </div>
@@ -159,7 +159,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your next lead <span class="grad-text">is one form away.</span></h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, build a form in minutes, and embed it on your Link in Bio to start collecting responses today.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
                     <a href="{{ route('login.page') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Log in</a>
                     <a href="{{ route('site.features') }}#cat-forms" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Explore form features</a>
                 </div>

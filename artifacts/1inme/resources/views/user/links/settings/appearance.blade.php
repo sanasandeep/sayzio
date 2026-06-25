@@ -108,10 +108,10 @@
                                 <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
                                     <template x-for="t in types" :key="t.key">
                                         <button type="button" @click="bgType = t.key"
-                                            :class="bgType === t.key ? 'ring-2 ring-violet-500' : ''"
+                                            :class="bgType === t.key ? 'ring-2 ring-blue-500' : ''"
                                             class="flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all text-center"
                                             style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-                                            :style="bgType === t.key ? 'border-color: rgba(124,58,237,0.5); background: rgba(124,58,237,0.08);' : ''">
+                                            :style="bgType === t.key ? 'border-color: rgba(61,107,255,0.5); background: rgba(61,107,255,0.08);' : ''">
                                             <div class="w-7 h-7 rounded-lg flex items-center justify-center" :style="'background:' + t.preview">
                                                 <i :class="'fas ' + t.icon" class="text-[9px] text-white/80"></i>
                                             </div>
@@ -146,7 +146,7 @@
                                     </div>
                                     <div x-show="gradientType === 'linear' || gradientType === 'conic'">
                                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Angle (<span x-text="gradientAngle"></span>&deg;)</label>
-                                        <input type="range" name="gradient_angle" x-model="gradientAngle" min="0" max="360" class="w-full accent-purple-500">
+                                        <input type="range" name="gradient_angle" x-model="gradientAngle" min="0" max="360" class="w-full accent-indigo-500">
                                     </div>
                                 </div>
 
@@ -158,7 +158,7 @@
                                             <div class="flex items-center gap-2 p-2 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                                                 <input type="color" :value="stop.color" @input="stop.color = $event.target.value" class="w-8 h-8 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
                                                 <div class="flex-1">
-                                                    <input type="range" :value="stop.pos" @input="stop.pos = parseInt($event.target.value)" min="0" max="100" class="w-full accent-purple-500">
+                                                    <input type="range" :value="stop.pos" @input="stop.pos = parseInt($event.target.value)" min="0" max="100" class="w-full accent-indigo-500">
                                                 </div>
                                                 <span class="text-[10px] font-mono w-8 text-center" style="color: var(--text-faint);" x-text="stop.pos + '%'"></span>
                                                 <button type="button" @click="removeStop(idx)" x-show="gradientStops.length > 2" class="w-6 h-6 rounded flex items-center justify-center hover:bg-red-500/10 transition-colors" style="color: var(--text-faint);">
@@ -167,7 +167,7 @@
                                             </div>
                                         </template>
                                     </div>
-                                    <button type="button" @click="addStop()" class="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all hover:bg-violet-500/10" style="color: #a78bfa; border: 1px dashed rgba(124,58,237,0.3);">
+                                    <button type="button" @click="addStop()" class="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all hover:bg-blue-500/10" style="color: #90acff; border: 1px dashed rgba(61,107,255,0.3);">
                                         <i class="fas fa-plus text-[9px] mr-1"></i> Add Color Stop
                                     </button>
                                     <input type="hidden" name="gradient_colors" :value="JSON.stringify(gradientStops)">
@@ -220,7 +220,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Slide Interval (<span class="font-mono">{{ $slideshowInterval }}s</span>)</label>
-                                    <input type="range" name="slideshow_interval" value="{{ $slideshowInterval }}" min="1" max="30" class="w-full accent-purple-500" oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 's'">
+                                    <input type="range" name="slideshow_interval" value="{{ $slideshowInterval }}" min="1" max="30" class="w-full accent-indigo-500" oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 's'">
                                     <div class="flex justify-between text-[9px]" style="color: var(--text-dimmed);"><span>1s</span><span>30s</span></div>
                                 </div>
                             </div>
@@ -269,14 +269,14 @@
                                 <div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
                                     <button type="button" @click="tplCat = 'all'"
                                             class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
-                                            :style="tplCat === 'all' ? 'background: rgba(124,58,237,0.25); color:#c4b5fd; border:1px solid rgba(124,58,237,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
+                                            :style="tplCat === 'all' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
                                         All <span class="opacity-60">{{ $bgTemplates->count() }}</span>
                                     </button>
                                     @foreach($tplCategoryLabels as $catKey => $catLabel)
                                         @if(($tplCategories[$catKey] ?? 0) > 0)
                                         <button type="button" @click="tplCat = '{{ $catKey }}'"
                                                 class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
-                                                :style="tplCat === '{{ $catKey }}' ? 'background: rgba(124,58,237,0.25); color:#c4b5fd; border:1px solid rgba(124,58,237,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
+                                                :style="tplCat === '{{ $catKey }}' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
                                             {{ $catLabel }} <span class="opacity-60">{{ $tplCategories[$catKey] }}</span>
                                         </button>
                                         @endif
@@ -309,13 +309,13 @@
                                            title="{{ $tpl->name }}"
                                            x-show="(tplCat === 'all' || tplCat === '{{ $tplCat }}') && (!tplSearch || '{{ strtolower(addslashes($tpl->name)) }}'.includes(tplSearch.toLowerCase()))">
                                         <input type="radio" name="bg_template_id" value="{{ $tpl->id }}" {{ $bgTemplateId == $tpl->id ? 'checked' : '' }} class="hidden peer" @click="selectedTpl = {{ $tpl->id }}">
-                                        <div class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10 hover:shadow-lg peer-checked:ring-2 peer-checked:ring-violet-400 peer-checked:ring-offset-1 peer-checked:ring-offset-transparent"
+                                        <div class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10 hover:shadow-lg peer-checked:ring-2 peer-checked:ring-blue-400 peer-checked:ring-offset-1 peer-checked:ring-offset-transparent"
                                              style="width:100%;aspect-ratio:9/14;background:{{ $previewBg }};border:1px solid var(--border-glass);"
-                                             :style="{ boxShadow: selectedTpl === {{ $tpl->id }} ? '0 0 0 2px rgba(167,139,250,0.9), 0 4px 12px rgba(0,0,0,.4)' : '' }">
+                                             :style="{ boxShadow: selectedTpl === {{ $tpl->id }} ? '0 0 0 2px rgba(144,172,255,0.9), 0 4px 12px rgba(0,0,0,.4)' : '' }">
                                             <div class="bg-thumb-{{ $tpl->slug }}" style="position:absolute;inset:0;"></div>
                                             {{-- selected check chip --}}
                                             <div class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full items-center justify-center hidden peer-checked:flex"
-                                                 style="background: rgba(124,58,237,0.95); color:#fff; font-size:7px;"
+                                                 style="background: rgba(61,107,255,0.95); color:#fff; font-size:7px;"
                                                  :class="selectedTpl === {{ $tpl->id }} ? '!flex' : ''">
                                                 <i class="fas fa-check" style="font-size:6px;"></i>
                                             </div>
@@ -331,7 +331,7 @@
                             {{-- SHARED CONFIGURATIONS --}}
                             <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
                                 <div class="flex items-center gap-2 mb-3">
-                                    <i class="fas fa-sliders-h text-[10px] text-violet-400"></i>
+                                    <i class="fas fa-sliders-h text-[10px] text-blue-400"></i>
                                     <span class="text-xs font-semibold" style="color: var(--text-primary);">Background Effects</span>
                                 </div>
                                 <div class="space-y-4">
@@ -339,10 +339,10 @@
                                         <div>
                                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Position</label>
                                             <div class="flex gap-2" x-data="{ attach: '{{ $bgAttachment }}' }">
-                                                <button type="button" @click="attach = 'fixed'" :class="attach === 'fixed' ? 'ring-2 ring-violet-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                                <button type="button" @click="attach = 'fixed'" :class="attach === 'fixed' ? 'ring-2 ring-blue-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                                     <i class="fas fa-thumbtack text-[9px] mr-1"></i> Fixed
                                                 </button>
-                                                <button type="button" @click="attach = 'scroll'" :class="attach === 'scroll' ? 'ring-2 ring-violet-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                                <button type="button" @click="attach = 'scroll'" :class="attach === 'scroll' ? 'ring-2 ring-blue-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                                     <i class="fas fa-arrows-alt-v text-[9px] mr-1"></i> Scroll
                                                 </button>
                                                 <input type="hidden" name="bg_attachment" :value="attach">
@@ -359,7 +359,7 @@
 
                                     <div>
                                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Blur Effect (<span class="font-mono">{{ $bgBlur }}px</span>)</label>
-                                        <input type="range" name="bg_blur" value="{{ $bgBlur }}" min="0" max="100" class="w-full accent-purple-500" oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 'px'">
+                                        <input type="range" name="bg_blur" value="{{ $bgBlur }}" min="0" max="100" class="w-full accent-indigo-500" oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 'px'">
                                         <div class="flex justify-between text-[9px]" style="color: var(--text-dimmed);"><span>None</span><span>Heavy blur</span></div>
                                     </div>
 
@@ -373,7 +373,7 @@
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Overlay Opacity (<span class="font-mono">{{ $bgOverlayOpacity }}%</span>)</label>
-                                            <input type="range" name="bg_overlay_opacity" value="{{ $bgOverlayOpacity }}" min="0" max="100" class="w-full accent-purple-500" oninput="this.previousElementSibling.querySelector('span').textContent = this.value + '%'">
+                                            <input type="range" name="bg_overlay_opacity" value="{{ $bgOverlayOpacity }}" min="0" max="100" class="w-full accent-indigo-500" oninput="this.previousElementSibling.querySelector('span').textContent = this.value + '%'">
                                         </div>
                                     </div>
 
@@ -480,7 +480,7 @@
                         {{-- PASSWORD --}}
                         <div>
                             <label class="flex items-center gap-2.5 cursor-pointer select-none">
-                                <input type="checkbox" name="is_password_protected" value="1" x-model="pwd" class="rounded text-violet-500 focus:ring-violet-500/40" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                <input type="checkbox" name="is_password_protected" value="1" x-model="pwd" class="rounded text-blue-500 focus:ring-blue-500/40" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                                 <span class="text-sm font-medium" style="color: var(--text-primary);">Password protect this link</span>
                             </label>
                             <div x-show="pwd" x-transition class="mt-2 ml-7">
@@ -500,16 +500,16 @@
                         <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
                             <label class="block text-xs font-semibold mb-2" style="color: var(--text-primary);"><i class="fas fa-hourglass-half text-[10px] mr-1.5 text-amber-400"></i> Expire When…</label>
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                                <button type="button" @click="expCondition = 'none'" :class="expCondition === 'none' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                <button type="button" @click="expCondition = 'none'" :class="expCondition === 'none' ? 'ring-2 ring-blue-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                     <i class="fas fa-infinity text-[10px] mb-1 block"></i> Never
                                 </button>
-                                <button type="button" @click="expCondition = 'date'" :class="expCondition === 'date' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                <button type="button" @click="expCondition = 'date'" :class="expCondition === 'date' ? 'ring-2 ring-blue-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                     <i class="fas fa-calendar-times text-[10px] mb-1 block"></i> On Date
                                 </button>
-                                <button type="button" @click="expCondition = 'clicks'" :class="expCondition === 'clicks' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                <button type="button" @click="expCondition = 'clicks'" :class="expCondition === 'clicks' ? 'ring-2 ring-blue-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                     <i class="fas fa-hashtag text-[10px] mb-1 block"></i> Click Limit
                                 </button>
-                                <button type="button" @click="expCondition = 'first_click'" :class="expCondition === 'first_click' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                <button type="button" @click="expCondition = 'first_click'" :class="expCondition === 'first_click' ? 'ring-2 ring-blue-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                     <i class="fas fa-bolt text-[10px] mb-1 block"></i> One-Time
                                 </button>
                             </div>
@@ -655,7 +655,7 @@
                     <div class="space-y-1.5">
                         @foreach($pixels as $pixel)
                         <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer select-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                            <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" {{ $link->pixels->contains($pixel->id) ? 'checked' : '' }} class="rounded text-violet-500">
+                            <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" {{ $link->pixels->contains($pixel->id) ? 'checked' : '' }} class="rounded text-blue-500">
                             <span class="text-sm font-medium" style="color: var(--text-primary);">{{ $pixel->name }}</span>
                             <span class="text-[10px] px-1.5 py-0.5 rounded ml-auto" style="background: var(--bg-glass); color: var(--text-faint);">{{ ucfirst(str_replace('_', ' ', $pixel->type)) }}</span>
                         </label>

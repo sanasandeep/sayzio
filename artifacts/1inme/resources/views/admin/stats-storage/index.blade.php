@@ -133,7 +133,7 @@
     {{-- Last sweep outcome --}}
     <div class="glass rounded-2xl border border-white/10 p-5 space-y-3">
         <h3 class="font-semibold text-white flex items-center gap-2">
-            <i class="fas fa-broom text-violet-400"></i> Last cleanup sweep
+            <i class="fas fa-broom text-blue-400"></i> Last cleanup sweep
         </h3>
         @if ($lastRun === null)
             <p class="text-sm text-white/40">No sweep has run yet. <span class="font-mono">stats:prune-history</span> runs daily at 04:05.</p>
@@ -219,7 +219,7 @@
 
         <div class="pt-2">
             <button type="submit"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 transition">
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-500/40 transition">
                 <i class="fas fa-floppy-disk"></i> Save settings
             </button>
         </div>

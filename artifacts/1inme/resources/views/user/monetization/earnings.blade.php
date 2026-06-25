@@ -11,8 +11,8 @@
     @php
         $cards = [
             ['label' => 'Today',          'value' => '$' . number_format($today / 100, 2),         'icon' => 'fa-bolt',          'tint' => '#06b6d4'],
-            ['label' => 'Last 7 days',    'value' => '$' . number_format($last7 / 100, 2),         'icon' => 'fa-calendar-week', 'tint' => '#8b5cf6'],
-            ['label' => 'Last 30 days',   'value' => '$' . number_format($last30 / 100, 2),        'icon' => 'fa-calendar-day',  'tint' => '#a855f7'],
+            ['label' => 'Last 7 days',    'value' => '$' . number_format($last7 / 100, 2),         'icon' => 'fa-calendar-week', 'tint' => '#5c83ff'],
+            ['label' => 'Last 30 days',   'value' => '$' . number_format($last30 / 100, 2),        'icon' => 'fa-calendar-day',  'tint' => '#6e61ff'],
             ['label' => 'This month',     'value' => '$' . number_format($thisMonth / 100, 2),     'icon' => 'fa-receipt',       'tint' => '#ec4899'],
             ['label' => 'All-time gross', 'value' => '$' . number_format($allTime / 100, 2),       'icon' => 'fa-coins',         'tint' => '#10b981'],
             ['label' => 'Refunds issued', 'value' => '$' . number_format(abs($refundsAllTime) / 100, 2), 'icon' => 'fa-rotate-left', 'tint' => '#f59e0b'],
@@ -50,7 +50,7 @@
                         @if($row['post']->image)
                             <img src="{{ $row['post']->image }}" alt="" class="w-10 h-10 object-cover rounded">
                         @else
-                            <div class="w-10 h-10 rounded bg-gradient-to-br from-violet-400 to-fuchsia-500"></div>
+                            <div class="w-10 h-10 rounded bg-gradient-to-br from-blue-400 to-fuchsia-500"></div>
                         @endif
                         <div class="flex-1 min-w-0">
                             <p class="text-sm truncate" style="color: var(--text-primary);">
@@ -70,7 +70,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         @php
             $sources = [
-                ['key' => 'sub', 'label' => 'Subscriptions', 'tint' => '#8b5cf6'],
+                ['key' => 'sub', 'label' => 'Subscriptions', 'tint' => '#5c83ff'],
                 ['key' => 'ppv', 'label' => 'Pay-per-view',  'tint' => '#3b82f6'],
                 ['key' => 'tip', 'label' => 'Tips',          'tint' => '#10b981'],
                 ['key' => 'product', 'label' => 'Products',   'tint' => '#f59e0b'],
@@ -108,7 +108,7 @@
             <div class="flex items-end gap-1.5 h-28">
                 @foreach($series as $w)
                     <div class="flex-1 flex flex-col items-center gap-1 group cursor-default">
-                        <div class="w-full rounded-t" style="height: {{ max(2, round($w['total'] / $max * 100)) }}%; background: linear-gradient(to top, #8b5cf6, #c084fc); min-height: 2px;"
+                        <div class="w-full rounded-t" style="height: {{ max(2, round($w['total'] / $max * 100)) }}%; background: linear-gradient(to top, #5c83ff, #c084fc); min-height: 2px;"
                              title="${{ number_format($w['total'] / 100, 2) }} · {{ $w['label'] }}"></div>
                         <span class="text-[10px]" style="color: var(--text-faint);">{{ $w['label'] }}</span>
                     </div>
@@ -121,7 +121,7 @@
     <div class="rounded-xl border" style="border-color: var(--border-color); background: var(--bg-card);">
         <div class="p-4 border-b flex items-center justify-between" style="border-color: var(--border-color);">
             <h3 class="font-semibold" style="color: var(--text-primary);">Recent activity</h3>
-            <a href="{{ route('user.monetization.payments') }}" class="text-sm" style="color: #8b5cf6;">View all →</a>
+            <a href="{{ route('user.monetization.payments') }}" class="text-sm" style="color: #5c83ff;">View all →</a>
         </div>
         <div class="divide-y" style="--tw-divide-opacity: 1; border-color: var(--border-color);">
             @forelse($events as $e)
@@ -129,7 +129,7 @@
                     <div class="flex items-center gap-3 min-w-0">
                         @php
                             $iconMap = [
-                                'sub' => ['fa-user-plus', '#8b5cf6'],
+                                'sub' => ['fa-user-plus', '#5c83ff'],
                                 'ppv' => ['fa-lock-open', '#3b82f6'],
                                 'tip' => ['fa-heart',     '#ec4899'],
                                 'product' => ['fa-bag-shopping', '#f59e0b'],

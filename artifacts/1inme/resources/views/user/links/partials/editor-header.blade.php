@@ -106,11 +106,11 @@
     }
     .editor-tab.is-active {
         color: #fff;
-        background: linear-gradient(135deg, rgba(167,139,250,0.95), rgba(103,232,249,0.85));
-        box-shadow: 0 6px 18px -6px rgba(167,139,250,0.55), 0 2px 8px -2px rgba(103,232,249,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+        background: linear-gradient(135deg, rgba(144,172,255,0.95), rgba(103,232,249,0.85));
+        box-shadow: 0 6px 18px -6px rgba(144,172,255,0.55), 0 2px 8px -2px rgba(103,232,249,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
     }
     html.light-mode .editor-tab.is-active {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        box-shadow: 0 4px 14px -4px rgba(124,58,237,0.45);
+        background: linear-gradient(135deg, #5c83ff, #3d6bff);
+        box-shadow: 0 4px 14px -4px rgba(61,107,255,0.45);
     }
 </style>

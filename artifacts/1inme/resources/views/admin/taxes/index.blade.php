@@ -7,7 +7,7 @@
             <h1 class="text-2xl font-semibold text-white">Tax Jurisdictions</h1>
             <p class="text-sm text-white/50">GST, VAT and sales-tax rates per country/region. Used by the tax engine on every checkout.</p>
         </div>
-        <a href="{{ route('admin.taxes.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700">+ Add jurisdiction</a>
+        <a href="{{ route('admin.taxes.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">+ Add jurisdiction</a>
     </div>
     @if(session('success'))<div class="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-sm">{{ session('success') }}</div>@endif
 
@@ -36,7 +36,7 @@
                         <td class="px-4 py-2 text-center">{{ $row->b2b_reverse_charge ? '✓' : '—' }}</td>
                         <td class="px-4 py-2 text-center">{{ $row->is_active ? '✓' : '—' }}</td>
                         <td class="px-4 py-2 text-right space-x-2 whitespace-nowrap">
-                            <a href="{{ route('admin.taxes.edit', $row) }}" class="text-violet-300 hover:text-violet-200">Edit</a>
+                            <a href="{{ route('admin.taxes.edit', $row) }}" class="text-blue-300 hover:text-blue-200">Edit</a>
                             <form method="POST" action="{{ route('admin.taxes.destroy', $row) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this jurisdiction?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="text-red-400 hover:text-red-300">Delete</button>

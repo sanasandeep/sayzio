@@ -36,7 +36,7 @@
         @if($creator->avatar)
             <img src="{{ $creator->avatar }}" alt="" class="w-9 h-9 rounded-full object-cover">
         @else
-            <div class="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm">{{ $creator->getInitials() }}</div>
+            <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">{{ $creator->getInitials() }}</div>
         @endif
         <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold truncate">{{ $creator->name }}
@@ -44,7 +44,7 @@
                     <span class="ml-1 text-[10px] uppercase tracking-wider text-amber-600 font-bold align-middle"><i class="fas fa-thumbtack"></i> Pinned</span>
                 @endif
                 @if($post->visibility === \App\Modules\User\Models\CreatorPost::VISIBILITY_TIER)
-                    <span class="ml-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-violet-600 font-bold align-middle">
+                    <span class="ml-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-blue-600 font-bold align-middle">
                         <i class="fas fa-gem"></i> {{ $lowestTier?->name ?? 'Tier' }}
                     </span>
                 @elseif($post->visibility === \App\Modules\User\Models\CreatorPost::VISIBILITY_PPV)
@@ -91,10 +91,10 @@
                 ? ($post->media['poster'] ?? null)
                 : null;
             $palettes = [
-                ['from-violet-300', 'via-fuchsia-300', 'to-sky-300'],
+                ['from-blue-300', 'via-fuchsia-300', 'to-sky-300'],
                 ['from-rose-300',   'via-orange-300',  'to-amber-300'],
                 ['from-emerald-300','via-teal-300',    'to-cyan-300'],
-                ['from-indigo-300', 'via-purple-300',  'to-pink-300'],
+                ['from-indigo-300', 'via-indigo-300',  'to-pink-300'],
             ];
             $palette = $palettes[$post->id % count($palettes)];
         @endphp
@@ -131,7 +131,7 @@
             <div class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent text-center px-5">
                 <div class="bg-white/95 backdrop-blur rounded-2xl p-5 max-w-sm shadow-xl">
                     <div class="flex items-center justify-center w-11 h-11 rounded-full mx-auto mb-2"
-                         style="background: #7c3aed; color: white;">
+                         style="background: #3d6bff; color: white;">
                         <i class="fas fa-lock"></i>
                     </div>
                     @if($needsSub)
@@ -142,7 +142,7 @@
                             Subscribe to {{ $creator->name }} to unlock this and every post in this tier.
                         </p>
                         <a href="{{ route('creator-profile.subscribe.show', ['handle' => $creator->handle]) }}"
-                           class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600">
+                           class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-fuchsia-600">
                             <i class="fas fa-gem"></i> Subscribe
                             @if($lowestTier)
                                 <span class="opacity-80">· from ${{ number_format($lowestTier->price_monthly_cents / 100, 2) }}/mo</span>
@@ -191,11 +191,11 @@
                 <audio src="{{ $post->media['url'] }}" controls preload="metadata" class="w-full"></audio>
             </div>
         @elseif($type === \App\Modules\User\Models\CreatorPost::TYPE_LINK && !empty($post->media['url']))
-            <a href="{{ $post->media['url'] }}" target="_blank" rel="noopener nofollow" class="mt-3 mx-5 mb-1 flex items-stretch border border-slate-200 rounded-xl overflow-hidden hover:border-violet-300 transition">
+            <a href="{{ $post->media['url'] }}" target="_blank" rel="noopener nofollow" class="mt-3 mx-5 mb-1 flex items-stretch border border-slate-200 rounded-xl overflow-hidden hover:border-blue-300 transition">
                 @if(!empty($post->media['image']))
                     <img src="{{ $post->media['image'] }}" alt="" class="w-28 h-28 object-cover bg-slate-100 shrink-0">
                 @else
-                    <div class="w-28 h-28 bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center shrink-0">
+                    <div class="w-28 h-28 bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center shrink-0">
                         <i class="fas fa-link text-2xl"></i>
                     </div>
                 @endif
@@ -281,7 +281,7 @@
                         <div data-cp-replies="{{ $c->id }}" class="mt-1"></div>
 
                         <button type="button"
-                                class="text-[11px] text-slate-400 hover:text-violet-600 mt-1"
+                                class="text-[11px] text-slate-400 hover:text-blue-600 mt-1"
                                 data-cp-toggle-comments="#cp-reply-form-{{ $c->id }}">
                             <i class="fas fa-reply mr-1"></i> Reply
                         </button>
@@ -289,8 +289,8 @@
                               data-cp-endpoint="{{ route('creator-profile.comment', ['handle' => $creator->handle, 'post' => $post->id]) }}"
                               id="cp-reply-form-{{ $c->id }}" class="mt-1 hidden flex gap-2">
                             <input type="hidden" name="parent_id" value="{{ $c->id }}">
-                            <input type="text" name="body" maxlength="2000" placeholder="Reply…" class="flex-1 text-xs px-2 py-1 rounded-md border border-slate-200 focus:border-violet-400 focus:outline-none">
-                            <button type="submit" class="text-xs px-3 py-1 rounded-md bg-violet-600 text-white font-semibold">Send</button>
+                            <input type="text" name="body" maxlength="2000" placeholder="Reply…" class="flex-1 text-xs px-2 py-1 rounded-md border border-slate-200 focus:border-blue-400 focus:outline-none">
+                            <button type="submit" class="text-xs px-3 py-1 rounded-md bg-blue-600 text-white font-semibold">Send</button>
                         </form>
                     </div>
                 </div>
@@ -304,7 +304,7 @@
               data-cp-endpoint="{{ route('creator-profile.comment', ['handle' => $creator->handle, 'post' => $post->id]) }}"
               class="mt-3 flex gap-2">
             <input type="text" name="body" maxlength="2000" placeholder="{{ $viewer ? 'Add a comment…' : 'Sign in to comment' }}"
-                   class="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-200 focus:border-violet-400 focus:outline-none">
+                   class="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:outline-none">
             <button type="submit" class="text-xs px-3 py-2 rounded-lg bg-slate-900 text-white font-semibold">Post</button>
         </form>
     </div>

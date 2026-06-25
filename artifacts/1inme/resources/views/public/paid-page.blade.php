@@ -65,7 +65,7 @@
     .cp-card input[type=text]{background: var(--pp-card-input-bg); border-color: var(--pp-card-input-border); color: var(--pp-card-text);}
     .cp-card input[type=text]::placeholder{color: var(--pp-card-muted);}
     .cp-card input[type=text]:focus{border-color: var(--accent) !important;}
-    .cp-card .bg-slate-900, .cp-card .bg-violet-600{background: var(--accent) !important;}
+    .cp-card .bg-slate-900, .cp-card .bg-blue-600{background: var(--accent) !important;}
     /* Reaction chips: the unselected state follows the card surface so they
        read on dark/glass cards too; the active state keeps its reaction colour. */
     .cp-card .cp-reaction-btn.bg-white{background: var(--pp-card-input-bg); color: var(--pp-card-text); border-color: var(--pp-card-border);}

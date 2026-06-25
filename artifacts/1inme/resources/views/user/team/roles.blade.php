@@ -51,7 +51,7 @@
                     <tr class="border-b" style="border-color: var(--border-strong);">
                         <td class="px-4 py-3 font-medium">
                             Owner
-                            <span class="ml-2 text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700">always full access</span>
+                            <span class="ml-2 text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">always full access</span>
                         </td>
                         @foreach($actions as $a)
                             <td class="px-4 py-3 text-center">

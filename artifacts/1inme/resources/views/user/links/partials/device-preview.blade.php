@@ -13,13 +13,13 @@
     .device-switcher-btn:hover {
         background: var(--bg-glass-hover);
         color: var(--text-muted);
-        border-color: rgba(124,58,237,0.15);
+        border-color: rgba(61,107,255,0.15);
     }
     .device-switcher-btn.active {
-        background: rgba(124,58,237,0.15);
-        color: #a78bfa;
-        border-color: rgba(124,58,237,0.3);
-        box-shadow: 0 0 12px rgba(124,58,237,0.1);
+        background: rgba(61,107,255,0.15);
+        color: #90acff;
+        border-color: rgba(61,107,255,0.3);
+        box-shadow: 0 0 12px rgba(61,107,255,0.1);
     }
 
     /* Manual zoom control — lets creators trade "see the whole device" for
@@ -41,30 +41,30 @@
         appearance: none;
         width: 13px; height: 13px;
         border-radius: 50%;
-        background: #a78bfa;
-        border: 1px solid rgba(167,139,250,0.5);
-        box-shadow: 0 0 6px rgba(124,58,237,0.4);
+        background: #90acff;
+        border: 1px solid rgba(144,172,255,0.5);
+        box-shadow: 0 0 6px rgba(61,107,255,0.4);
         cursor: pointer;
     }
     .preview-zoom-slider::-moz-range-thumb {
         width: 13px; height: 13px;
         border-radius: 50%;
-        background: #a78bfa;
-        border: 1px solid rgba(167,139,250,0.5);
-        box-shadow: 0 0 6px rgba(124,58,237,0.4);
+        background: #90acff;
+        border: 1px solid rgba(144,172,255,0.5);
+        box-shadow: 0 0 6px rgba(61,107,255,0.4);
         cursor: pointer;
     }
     .preview-zoom-reset {
         padding: 1px 7px;
         border-radius: 6px;
         font-size: 9px;
-        color: #a78bfa;
-        background: rgba(124,58,237,0.12);
-        border: 1px solid rgba(124,58,237,0.25);
+        color: #90acff;
+        background: rgba(61,107,255,0.12);
+        border: 1px solid rgba(61,107,255,0.25);
         cursor: pointer;
         transition: all 0.2s ease;
     }
-    .preview-zoom-reset:hover { background: rgba(124,58,237,0.2); }
+    .preview-zoom-reset:hover { background: rgba(61,107,255,0.2); }
 
     /* Cohesive preview "shell": groups the device switcher, the simulate
        controls and the phone frame into one panel so the controls read as
@@ -288,7 +288,7 @@
         position: relative;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.18);
+        box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(61,107,255,0.18);
         background: #000;
     }
     .preview-popout-frame .device-screen {
@@ -315,15 +315,15 @@
         margin-top: 4px;
         padding: 6px 14px;
         border-radius: 8px;
-        background: rgba(124, 58, 237, 0.85);
+        background: rgba(61,107,255, 0.85);
         color: #fff;
         font-size: 12px;
         font-weight: 500;
-        border: 1px solid rgba(167, 139, 250, 0.4);
+        border: 1px solid rgba(144,172,255, 0.4);
         cursor: pointer;
         transition: background 0.2s ease;
     }
-    .preview-expired-banner button:hover { background: rgba(124, 58, 237, 1); }
+    .preview-expired-banner button:hover { background: rgba(61,107,255, 1); }
 </style>
 
 <div class="device-preview-root" x-data="{ previewMode: 'phone' }">

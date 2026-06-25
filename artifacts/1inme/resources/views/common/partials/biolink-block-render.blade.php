@@ -128,7 +128,7 @@
                        style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: {{ $fontColor }};">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                                 style="background: rgba(124,58,237,0.18); color:#c4b5fd;">
+                                 style="background: rgba(61,107,255,0.18); color:#bccfff;">
                                 <i class="fas fa-file-lines"></i>
                             </div>
                             <div class="flex-1 min-w-0">
@@ -431,11 +431,11 @@
                                     @click="vote({{ $i }}, @js($opt))"
                                     :disabled="submitting !== null"
                                     class="w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all disabled:opacity-60"
-                                    :class="voted === {{ $i }} ? 'bg-purple-500/30 border border-purple-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10'">
+                                    :class="voted === {{ $i }} ? 'bg-indigo-500/30 border border-indigo-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10'">
                                 <span class="flex items-center gap-2">
                                     <span class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
-                                          :class="voted === {{ $i }} ? 'border-purple-400' : 'border-white/30'">
-                                        <span x-show="voted === {{ $i }}" class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                          :class="voted === {{ $i }} ? 'border-indigo-400' : 'border-white/30'">
+                                        <span x-show="voted === {{ $i }}" class="w-2 h-2 rounded-full bg-indigo-400"></span>
                                     </span>
                                     <span class="flex-1">{{ $opt }}</span>
                                     <template x-if="submitting === {{ $i }}">
@@ -455,13 +455,13 @@
                             <div class="space-y-2">
                                 <template x-for="opt in results.options" :key="opt.index">
                                     <div class="relative w-full px-4 py-2.5 rounded-xl text-sm overflow-hidden border"
-                                         :class="opt.index === voted ? 'border-purple-400/50' : 'border-white/10'">
+                                         :class="opt.index === voted ? 'border-indigo-400/50' : 'border-white/10'">
                                         <div class="absolute inset-y-0 left-0 transition-all"
-                                             :style="`width:${Math.max(0, Math.min(100, opt.percent))}%; background-color:${opt.index === voted ? 'rgba(124,58,237,0.35)' : 'rgba(124,58,237,0.15)'}`"></div>
+                                             :style="`width:${Math.max(0, Math.min(100, opt.percent))}%; background-color:${opt.index === voted ? 'rgba(61,107,255,0.35)' : 'rgba(61,107,255,0.15)'}`"></div>
                                         <div class="relative flex items-center gap-2">
                                             <span class="flex-1 truncate" x-text="opt.label"></span>
                                             <template x-if="opt.index === voted">
-                                                <i class="fas fa-check text-xs text-purple-300"></i>
+                                                <i class="fas fa-check text-xs text-indigo-300"></i>
                                             </template>
                                             <span class="text-xs font-semibold tabular-nums" x-text="opt.percent + '%'"></span>
                                             <span class="text-[10px] tabular-nums" style="color:{{ $fontColor }}66" x-text="opt.count"></span>
@@ -517,9 +517,9 @@
                         <div class="glass-block rounded-xl p-4">
                             <div class="flex items-center gap-2.5 mb-1.5">
                                 @if(!empty($rev['author_avatar']))<img src="{{ $rev['author_avatar'] }}" class="w-9 h-9 rounded-full object-cover" alt="">
-                                @else<div class="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center"><span class="text-xs font-bold">{{ strtoupper(substr($rev['author_name'] ?: 'A', 0, 1)) }}</span></div>@endif
+                                @else<div class="w-9 h-9 rounded-full bg-indigo-500/20 flex items-center justify-center"><span class="text-xs font-bold">{{ strtoupper(substr($rev['author_name'] ?: 'A', 0, 1)) }}</span></div>@endif
                                 <div class="min-w-0">
-                                    <p class="text-sm font-medium truncate">{{ $rev['author_name'] ?: 'Anonymous' }}@if(!empty($rev['verified']))<span class="inline-flex items-center gap-0.5 align-middle ml-1 text-[9px] font-semibold text-emerald-300 bg-emerald-400/10 border border-emerald-400/30 rounded-full px-1.5 py-px" title="Verified customer"><i class="fas fa-circle-check text-[8px]"></i>Verified</span>@endif @if(!empty($rev['is_pinned']))<i class="fas fa-thumbtack text-purple-400 text-[10px] ml-1"></i>@endif</p>
+                                    <p class="text-sm font-medium truncate">{{ $rev['author_name'] ?: 'Anonymous' }}@if(!empty($rev['verified']))<span class="inline-flex items-center gap-0.5 align-middle ml-1 text-[9px] font-semibold text-emerald-300 bg-emerald-400/10 border border-emerald-400/30 rounded-full px-1.5 py-px" title="Verified customer"><i class="fas fa-circle-check text-[8px]"></i>Verified</span>@endif @if(!empty($rev['is_pinned']))<i class="fas fa-thumbtack text-indigo-400 text-[10px] ml-1"></i>@endif</p>
                                     @if(!empty($rev['rating']))<div class="flex gap-0.5">@for($star = 1; $star <= 5; $star++)<i class="fas fa-star text-[10px] {{ $star <= $rev['rating'] ? 'text-yellow-400' : 'text-white/20' }}"></i>@endfor</div>@endif
                                 </div>
                                 @if(!empty($rev['source']) && $rev['source'] !== 'native')<span class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{{ $rev['source_label'] }}</span>@endif
@@ -540,7 +540,7 @@
                             </div>
                             @endif
                             @if(!empty($rev['reply']))
-                            <div class="mt-2 pl-2.5 border-l-2 border-purple-500/40 text-xs" style="color:{{ $fontColor }}aa"><span class="text-purple-400 font-medium">Reply:</span> {{ $rev['reply'] }}</div>
+                            <div class="mt-2 pl-2.5 border-l-2 border-indigo-500/40 text-xs" style="color:{{ $fontColor }}aa"><span class="text-indigo-400 font-medium">Reply:</span> {{ $rev['reply'] }}</div>
                             @endif
                         </div>
                         @empty
@@ -573,14 +573,14 @@
 
             @elseif(in_array($block->type, ['timeline', 'timeline_staged']))
                 <div class="mb-4 glass-block rounded-xl p-5">
-                    <div class="relative pl-6 border-l-2 border-purple-500/30 space-y-4">
+                    <div class="relative pl-6 border-l-2 border-indigo-500/30 space-y-4">
                         @foreach(($s['items'] ?? []) as $item)
-                        @php $dotColor = ($block->type === 'timeline_staged') ? match($item['status'] ?? 'upcoming') { 'completed' => 'bg-green-400', 'active' => 'bg-purple-400 animate-pulse', default => 'bg-white/30' } : 'bg-purple-400'; @endphp
+                        @php $dotColor = ($block->type === 'timeline_staged') ? match($item['status'] ?? 'upcoming') { 'completed' => 'bg-green-400', 'active' => 'bg-indigo-400 animate-pulse', default => 'bg-white/30' } : 'bg-indigo-400'; @endphp
                         <div class="relative">
                             <div class="absolute -left-[25px] w-3 h-3 rounded-full {{ $dotColor }}"></div>
                             <p class="text-sm font-medium">{{ $item['title'] ?? '' }}</p>
                             @if(!empty($item['description']))<p class="text-xs mt-0.5" style="color:{{ $fontColor }}88">{{ $item['description'] }}</p>@endif
-                            @if(!empty($item['date']))<p class="text-xs mt-0.5 text-purple-400/60">{{ $item['date'] }}</p>@endif
+                            @if(!empty($item['date']))<p class="text-xs mt-0.5 text-indigo-400/60">{{ $item['date'] }}</p>@endif
                         </div>
                         @endforeach
                     </div>
@@ -588,7 +588,7 @@
 
             @elseif($block->type === 'quiz')
                 <div class="mb-4 glass-block rounded-xl p-5 text-center">
-                    <i class="fas fa-brain text-2xl mb-2 text-purple-400"></i>
+                    <i class="fas fa-brain text-2xl mb-2 text-indigo-400"></i>
                     <p class="text-sm font-semibold">{{ $s['title'] ?? 'Quiz' }}</p>
                     <p class="text-xs text-white/40 mt-1">Interactive quiz</p>
                 </div>
@@ -599,7 +599,7 @@
                     @foreach(($s['items'] ?? []) as $item)
                     <div class="glass-block rounded-xl p-3 flex items-center gap-3">
                         @if(!empty($item['image']))<img src="{{ $item['image'] }}" class="w-14 h-14 rounded-lg object-cover" alt="">@endif
-                        <div class="flex-1 min-w-0"><p class="font-medium text-sm truncate">{{ $item['name'] ?? '' }}</p>@if(!empty($item['price']))<p class="text-xs text-purple-400">{{ $item['price'] }}</p>@endif</div>
+                        <div class="flex-1 min-w-0"><p class="font-medium text-sm truncate">{{ $item['name'] ?? '' }}</p>@if(!empty($item['price']))<p class="text-xs text-indigo-400">{{ $item['price'] }}</p>@endif</div>
                         @if(!empty($item['url']))<a href="{{ $item['url'] }}" target="_blank" class="bio-btn px-3 py-1.5 text-xs font-medium">View</a>@endif
                     </div>
                     @endforeach
@@ -657,11 +657,11 @@
                     <svg viewBox="0 0 36 36" class="w-24 h-24 flex-shrink-0">
                         @foreach(($s['items'] ?? []) as $item)
                         @php $pct = $total > 0 ? ($item['value'] / $total * 100) : 0; @endphp
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="{{ $item['color'] ?? '#7c3aed' }}" stroke-width="3.8" stroke-dasharray="{{ $pct }} {{ 100 - $pct }}" stroke-dashoffset="-{{ $offset }}" transform="rotate(-90 18 18)"></circle>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="{{ $item['color'] ?? '#3d6bff' }}" stroke-width="3.8" stroke-dasharray="{{ $pct }} {{ 100 - $pct }}" stroke-dashoffset="-{{ $offset }}" transform="rotate(-90 18 18)"></circle>
                         @php $offset += $pct; @endphp
                         @endforeach
                     </svg>
-                    <div class="space-y-1 text-xs">@foreach(($s['items'] ?? []) as $item)<div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:{{ $item['color'] ?? '#7c3aed' }}"></span>{{ $item['label'] ?? '' }}</div>@endforeach</div>
+                    <div class="space-y-1 text-xs">@foreach(($s['items'] ?? []) as $item)<div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:{{ $item['color'] ?? '#3d6bff' }}"></span>{{ $item['label'] ?? '' }}</div>@endforeach</div>
                 </div>
 
             @elseif($block->type === 'share')
@@ -698,7 +698,7 @@
                     <div class="glass-block rounded-xl flex-shrink-0 w-64 snap-center overflow-hidden">
                         @if(!empty($card['image']))<img src="{{ $card['image'] }}" class="w-full h-32 object-cover" alt="">@endif
                         <div class="p-3"><p class="font-medium text-sm">{{ $card['title'] ?? $card['name'] ?? '' }}</p>@if(!empty($card['description']))<p class="text-xs mt-1" style="color:{{ $fontColor }}88">{{ $card['description'] }}</p>@endif
-                        @if(!empty($card['url']))<a href="{{ $card['url'] }}" target="_blank" class="text-xs text-purple-400 mt-2 inline-block">View &rarr;</a>@endif</div>
+                        @if(!empty($card['url']))<a href="{{ $card['url'] }}" target="_blank" class="text-xs text-indigo-400 mt-2 inline-block">View &rarr;</a>@endif</div>
                     </div>
                     @endforeach
                 </div>
@@ -776,7 +776,7 @@
                         $bgStyle = match($bgType) {
                             'glass' => 'background:rgba(255,255,255,' . (intval($s['glass_opacity'] ?? 6) / 100) . ');backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);-webkit-backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);',
                             'color' => 'background:' . ($s['bg_color'] ?? 'rgba(255,255,255,0.06)') . ';',
-                            'gradient' => 'background:' . ($s['bg_gradient'] ?? 'linear-gradient(135deg,#7c3aed,#ec4899)') . ';',
+                            'gradient' => 'background:' . ($s['bg_gradient'] ?? 'linear-gradient(135deg,#3d6bff,#ec4899)') . ';',
                             'image' => 'background:url(' . ($s['bg_image'] ?? '') . ') center/cover no-repeat;',
                             'transparent' => 'background:transparent;',
                             default => 'background:rgba(255,255,255,0.06);',
@@ -832,14 +832,14 @@
             {{-- IDENTITY --}}
             @elseif($block->type === 'vcard')
                 <div class="mb-4 glass-block rounded-xl p-5 text-center">
-                    <div class="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-3"><i class="fas fa-address-book text-2xl text-purple-400"></i></div>
+                    <div class="w-16 h-16 rounded-full bg-indigo-500/20 flex items-center justify-center mx-auto mb-3"><i class="fas fa-address-book text-2xl text-indigo-400"></i></div>
                     <p class="font-semibold">{{ $s['name'] ?? '' }}</p>
-                    @if(!empty($s['title']))<p class="text-xs text-purple-400">{{ $s['title'] }}</p>@endif
+                    @if(!empty($s['title']))<p class="text-xs text-indigo-400">{{ $s['title'] }}</p>@endif
                     @if(!empty($s['company']))<p class="text-xs text-white/40">{{ $s['company'] }}</p>@endif
                     <div class="flex justify-center gap-4 mt-3 text-sm">
-                        @if(!empty($s['phone']))<a href="tel:{{ $s['phone'] }}" class="text-purple-400"><i class="fas fa-phone"></i></a>@endif
-                        @if(!empty($s['email']))<a href="mailto:{{ $s['email'] }}" class="text-purple-400"><i class="fas fa-envelope"></i></a>@endif
-                        @if(!empty($s['website']))<a href="{{ $s['website'] }}" target="_blank" class="text-purple-400"><i class="fas fa-globe"></i></a>@endif
+                        @if(!empty($s['phone']))<a href="tel:{{ $s['phone'] }}" class="text-indigo-400"><i class="fas fa-phone"></i></a>@endif
+                        @if(!empty($s['email']))<a href="mailto:{{ $s['email'] }}" class="text-indigo-400"><i class="fas fa-envelope"></i></a>@endif
+                        @if(!empty($s['website']))<a href="{{ $s['website'] }}" target="_blank" class="text-indigo-400"><i class="fas fa-globe"></i></a>@endif
                     </div>
                     <button onclick="downloadVCard()" class="bio-btn mt-3 px-5 py-2 text-sm font-medium">Save Contact</button>
                     <script>
@@ -863,7 +863,7 @@
             @endif
         @endif
         <div class="mb-4 glass-block rounded-xl p-4 text-center">
-            <i class="fas fa-cube text-lg mb-1 text-purple-400/50"></i>
+            <i class="fas fa-cube text-lg mb-1 text-indigo-400/50"></i>
             <p class="text-xs text-white/40">{{ \App\Modules\User\Models\BiolinkBlock::TYPES[$block->type]['label'] ?? ucfirst(str_replace('_', ' ', $block->type)) }}</p>
         </div>
     @endif

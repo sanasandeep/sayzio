@@ -53,8 +53,8 @@
             --bg-1: #0a0b10;
             --bg-2: #14111f;
             --bg-3: #1a1230;
-            --accent: #8b5cf6;
-            --accent-glow: rgba(139,92,246,0.45);
+            --accent: #5c83ff;
+            --accent-glow: rgba(92,131,255,0.45);
             --text: #f5f6fa;
             --text-muted: #9aa0b3;
         }
@@ -69,7 +69,7 @@
         .splash-bg {
             position: fixed; inset: 0; z-index: 0; overflow: hidden;
             background:
-                radial-gradient(ellipse at 20% 0%, rgba(139,92,246,0.18), transparent 55%),
+                radial-gradient(ellipse at 20% 0%, rgba(92,131,255,0.18), transparent 55%),
                 radial-gradient(ellipse at 80% 100%, rgba(236,72,153,0.16), transparent 55%),
                 radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.10), transparent 70%),
                 linear-gradient(180deg, var(--bg-1), var(--bg-2) 60%, var(--bg-3));
@@ -79,7 +79,7 @@
         }
         .splash-bg::before {
             width: 480px; height: 480px; top: -120px; left: -120px;
-            background: radial-gradient(circle, rgba(139,92,246,0.45), transparent 70%);
+            background: radial-gradient(circle, rgba(92,131,255,0.45), transparent 70%);
             animation: drift1 18s ease-in-out infinite;
         }
         .splash-bg::after {
@@ -101,7 +101,7 @@
         .cta {
             display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
             padding: 0.95rem 2rem; border-radius: 14px;
-            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            background: linear-gradient(135deg, #5c83ff, #2342c7);
             color: white; font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em;
             text-decoration: none;
             box-shadow: 0 10px 30px -8px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.18);
@@ -121,8 +121,8 @@
             animation: pulse 2.4s ease-in-out infinite;
         }
         @keyframes pulse {
-            0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139,92,246,0.5); }
-            50%     { transform: scale(1.04); box-shadow: 0 0 0 24px rgba(139,92,246,0); }
+            0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(92,131,255,0.5); }
+            50%     { transform: scale(1.04); box-shadow: 0 0 0 24px rgba(92,131,255,0); }
         }
         .fade-up { animation: fadeUp 0.7s ease-out both; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -154,7 +154,7 @@
                 </div>
             @else
                 <div class="fade-up fade-up-1 mb-6 flex items-center justify-center">
-                    <div class="w-16 h-16 rounded-2xl pulse-orb flex items-center justify-center" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                    <div class="w-16 h-16 rounded-2xl pulse-orb flex items-center justify-center" style="background: linear-gradient(135deg, #5c83ff, #2342c7);">
                         <i class="fas fa-bolt text-white text-2xl"></i>
                     </div>
                 </div>
@@ -192,7 +192,7 @@
                                         stroke-dasharray="100.5" stroke-dashoffset="0" pathLength="100"/>
                                 <defs>
                                     <linearGradient id="splash-grad" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0%" stop-color="#a78bfa"/>
+                                        <stop offset="0%" stop-color="#90acff"/>
                                         <stop offset="100%" stop-color="#ec4899"/>
                                     </linearGradient>
                                 </defs>

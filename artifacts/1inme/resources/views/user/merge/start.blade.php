@@ -7,7 +7,7 @@
     <p class="text-sm text-white/60 mb-6">Prove you own the other account and we'll fold all of its data into your current one. The other account will be deleted afterwards.</p>
 
     @if (session('error'))<div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm">{{ session('error') }}</div>@endif
-    @if (session('status'))<div class="mb-4 p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-200 text-sm">{{ session('status') }}</div>@endif
+    @if (session('status'))<div class="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 text-sm">{{ session('status') }}</div>@endif
 
     <div class="glass rounded-2xl p-6 mb-6">
         <h2 class="text-lg font-semibold text-white mb-3">By email or phone</h2>
@@ -20,7 +20,7 @@
                 </select>
                 <input name="value" required placeholder="other@example.com or +15551234567"
                        class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white">
-                <button class="px-4 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700">Send code</button>
+                <button class="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">Send code</button>
             </div>
             <p class="text-xs text-white/50">We'll send a one-time code to the other account so you can prove you control it.</p>
         </form>

@@ -19,7 +19,7 @@
     <section class="rounded-2xl p-5"
              style="background: var(--bg-card); border:1px solid var(--border-strong);">
         <h2 class="text-base font-semibold mb-4" style="color: var(--text-primary);">
-            <i class="fas fa-bullhorn mr-2 text-violet-500"></i> New broadcast
+            <i class="fas fa-bullhorn mr-2 text-blue-500"></i> New broadcast
         </h2>
 
         <form method="POST" action="{{ route('admin.notifications.send') }}" class="space-y-4" x-data="{ kind: '{{ old('target_kind', 'all') }}' }">
@@ -110,7 +110,7 @@
                     Recipients who muted “Announcements from Sayzio” in their notification preferences will be skipped.
                 </p>
                 <button type="submit"
-                        class="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white">
+                        class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white">
                     <i class="fas fa-paper-plane mr-1"></i> Send broadcast
                 </button>
             </div>
@@ -122,7 +122,7 @@
              style="background: var(--bg-card); border:1px solid var(--border-strong);">
         <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid var(--border-subtle);">
             <h2 class="text-base font-semibold" style="color: var(--text-primary);">
-                <i class="fas fa-history mr-2 text-violet-500"></i> Recent broadcasts
+                <i class="fas fa-history mr-2 text-blue-500"></i> Recent broadcasts
             </h2>
             <span class="text-xs" style="color: var(--text-faint);">{{ $broadcasts->total() }} total</span>
         </div>
@@ -140,14 +140,14 @@
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $b->subject }}</span>
                                     <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                          style="background: rgba(124,58,237,0.12); color:#7c3aed;">
+                                          style="background: rgba(61,107,255,0.12); color:#3d6bff;">
                                         {{ $b->target_kind }}@if($b->target_value): {{ $b->target_value }}@endif
                                     </span>
                                 </div>
                                 <p class="text-xs whitespace-pre-line" style="color: var(--text-muted);">{{ \Illuminate\Support\Str::limit($b->body, 240) }}</p>
                                 @if($b->target_url)
                                     <a href="{{ $b->target_url }}" target="_blank" rel="noopener"
-                                       class="inline-flex items-center gap-1 mt-2 text-xs text-violet-500 hover:underline">
+                                       class="inline-flex items-center gap-1 mt-2 text-xs text-blue-500 hover:underline">
                                         <i class="fas fa-external-link"></i> {{ $b->target_url }}
                                     </a>
                                 @endif

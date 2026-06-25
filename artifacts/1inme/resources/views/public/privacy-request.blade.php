@@ -79,7 +79,7 @@
                     </p>
                 @endif
                 <div class="text-center mt-5">
-                    <a href="{{ route('site.contact') }}" class="text-sm text-violet-300 hover:text-violet-200 font-semibold">
+                    <a href="{{ route('site.contact') }}" class="text-sm text-blue-300 hover:text-blue-200 font-semibold">
                         <i class="fas fa-arrow-left mr-1"></i> Back to contact
                     </a>
                 </div>
@@ -103,8 +103,8 @@
                     <label class="block text-xs font-semibold uppercase tracking-wider mb-2 text-gray-400">Request type</label>
                     <div class="grid sm:grid-cols-2 gap-3">
                         <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition"
-                               :class="type === 'export' ? 'border-violet-400/50 bg-violet-500/10' : 'border-white/10 bg-white/[0.02]'">
-                            <input type="radio" name="type" value="export" x-model="type" class="mt-1 accent-violet-500">
+                               :class="type === 'export' ? 'border-blue-400/50 bg-blue-500/10' : 'border-white/10 bg-white/[0.02]'">
+                            <input type="radio" name="type" value="export" x-model="type" class="mt-1 accent-blue-500">
                             <span>
                                 <span class="block text-sm font-bold text-white">Export my data</span>
                                 <span class="block text-xs text-gray-400 mt-0.5">Download a copy of your data.</span>
@@ -153,7 +153,7 @@
 
                 <button type="submit"
                         class="w-full py-3 rounded-lg text-sm font-bold text-white transition"
-                        :class="type === 'deletion' ? 'bg-red-600 hover:bg-red-700' : 'bg-violet-600 hover:bg-violet-700'">
+                        :class="type === 'deletion' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'">
                     Submit request
                 </button>
                 <p class="text-[11px] text-gray-500 text-center leading-relaxed">

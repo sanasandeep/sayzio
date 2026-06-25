@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-semibold text-white">Wallet transactions</h1>
             <p class="text-sm text-white/40">Balance: <span class="text-amber-300 font-semibold">{{ number_format($wallet->balance) }} 🪙</span></p>
         </div>
-        <a href="{{ route('user.wallet.show') }}" class="text-sm text-violet-300 hover:underline">← Back to wallet</a>
+        <a href="{{ route('user.wallet.show') }}" class="text-sm text-blue-300 hover:underline">← Back to wallet</a>
     </div>
 
     <form method="GET" class="flex flex-wrap items-end gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03]">
@@ -29,7 +29,7 @@
             <label class="block text-xs text-white/50 mb-1">To</label>
             <input type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
         </div>
-        <button class="px-4 py-2 bg-violet-600 text-white text-sm rounded-lg">Filter</button>
+        <button class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg">Filter</button>
         <a href="{{ route('user.wallet.transactions') }}" class="px-3 py-2 text-white/60 text-sm">Clear</a>
     </form>
 

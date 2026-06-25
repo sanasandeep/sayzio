@@ -40,7 +40,7 @@ export function ImpersonationBanner() {
         right: 0,
         zIndex: 9999,
         paddingTop: insets.top,
-        backgroundColor: "#7c3aed",
+        backgroundColor: "#3d6bff",
       }}
     >
       <View

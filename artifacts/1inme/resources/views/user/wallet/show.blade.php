@@ -14,13 +14,13 @@
                 <p class="text-xs text-white/30 mt-1">≈ {{ $currency }} {{ number_format($wallet->balance / $rate, 2) }} ({{ $rate }} coins per 1 {{ $currency }})</p>
             @endif
         </div>
-        <a href="{{ route('user.wallet.buy') }}" class="px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Buy Coins</a>
+        <a href="{{ route('user.wallet.buy') }}" class="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Buy Coins</a>
     </div>
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-white font-semibold">Recent transactions</h3>
-            <a href="{{ route('user.wallet.transactions') }}" class="text-xs text-violet-300 hover:underline">View all</a>
+            <a href="{{ route('user.wallet.transactions') }}" class="text-xs text-blue-300 hover:underline">View all</a>
         </div>
         @if($transactions->isEmpty())
             <p class="text-sm text-white/40">No transactions yet.</p>

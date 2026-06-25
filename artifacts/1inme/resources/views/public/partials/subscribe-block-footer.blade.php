@@ -19,12 +19,12 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div>
-                <div class="text-[11px] font-bold uppercase tracking-[.2em] text-violet-300 mb-1">Subscribe</div>
+                <div class="text-[11px] font-bold uppercase tracking-[.2em] text-blue-300 mb-1">Subscribe</div>
                 <h3 class="text-lg sm:text-xl font-bold text-white">Stay in the loop with Sayzio.</h3>
                 <p class="mt-1 text-xs text-gray-400">Pick the channel that suits you — email, WhatsApp Channel, or DM.</p>
             </div>
             <a href="{{ route('site.subscriptions.manage') }}"
-               class="text-[11px] text-gray-500 hover:text-violet-300 underline-offset-2 hover:underline inline-flex items-center gap-1.5 self-start sm:self-auto">
+               class="text-[11px] text-gray-500 hover:text-blue-300 underline-offset-2 hover:underline inline-flex items-center gap-1.5 self-start sm:self-auto">
                 <i class="fas fa-sliders text-[10px]"></i> Manage subscriptions
             </a>
         </div>
@@ -48,9 +48,9 @@
                 <input type="email" id="footer-subscribe-email" name="email" required
                        placeholder="you@example.com"
                        value="{{ old('source') === $__sbfSubmit ? old('email') : '' }}"
-                       class="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-white/5 border border-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:border-violet-400/60">
+                       class="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-white/5 border border-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:border-blue-400/60">
                 <button type="submit"
-                        class="shrink-0 px-4 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
+                        class="shrink-0 px-4 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
                     <i class="fas fa-envelope-open-text text-xs"></i> Email
                 </button>
             </form>

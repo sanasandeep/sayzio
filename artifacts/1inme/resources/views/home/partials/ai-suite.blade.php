@@ -6,7 +6,7 @@
             'title'   => 'A 24/7 chatbot trained on your Link in Bio.',
             'desc'    => 'Greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.',
             'icon'    => 'fa-comments',
-            'color'   => '#7c3aed',
+            'color'   => '#3d6bff',
             'route'   => 'site.ai-chatbot',
         ],
         [
@@ -63,9 +63,9 @@
         opacity: .35; pointer-events: none;
         animation: aiBlobFloat 18s ease-in-out infinite;
     }
-    .ai-suite-v2 .ai-bg-blob-a { top: -120px; left: -100px; background: #7c3aed; }
-    .ai-suite-v2 .ai-bg-blob-b { bottom: -180px; right: -120px; background: #8b5cf6; animation-delay: -6s; }
-    .ai-suite-v2 .ai-bg-blob-c { top: 30%; right: 25%; width: 320px; height: 320px; background: #a855f7; animation-delay: -12s; opacity: .22; }
+    .ai-suite-v2 .ai-bg-blob-a { top: -120px; left: -100px; background: #3d6bff; }
+    .ai-suite-v2 .ai-bg-blob-b { bottom: -180px; right: -120px; background: #5c83ff; animation-delay: -6s; }
+    .ai-suite-v2 .ai-bg-blob-c { top: 30%; right: 25%; width: 320px; height: 320px; background: #6e61ff; animation-delay: -12s; opacity: .22; }
     @keyframes aiBlobFloat {
         0%,100% { transform: translate3d(0,0,0) scale(1); }
         50%     { transform: translate3d(40px,-30px,0) scale(1.08); }
@@ -79,7 +79,7 @@
 
     /* Headline shimmer sweep */
     .ai-shimmer {
-        color: #a78bfa;
+        color: #90acff;
     }
     @keyframes aiShimmer { 0%{ background-position: 0% 50%; } 100%{ background-position: 200% 50%; } }
 
@@ -94,8 +94,8 @@
     }
     .ai-card:hover, .ai-card:focus-visible {
         transform: translateY(-6px);
-        border-color: color-mix(in srgb, var(--ai-accent, #7c3aed) 55%, transparent);
-        box-shadow: 0 30px 70px -28px color-mix(in srgb, var(--ai-accent, #7c3aed) 70%, transparent);
+        border-color: color-mix(in srgb, var(--ai-accent, #3d6bff) 55%, transparent);
+        box-shadow: 0 30px 70px -28px color-mix(in srgb, var(--ai-accent, #3d6bff) 70%, transparent);
     }
     html.light-mode .ai-card {
         background: #ffffff;
@@ -104,14 +104,14 @@
     }
     .ai-card-glow {
         position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
-        background: color-mix(in srgb, var(--ai-accent, #7c3aed) 22%, transparent);
+        background: color-mix(in srgb, var(--ai-accent, #3d6bff) 22%, transparent);
         opacity: .35; transition: opacity .4s ease;
     }
     .ai-card:hover .ai-card-glow { opacity: 1; }
     .ai-card-corner {
         position: absolute; top: -50px; right: -50px; width: 160px; height: 160px;
         border-radius: 9999px; opacity: .22;
-        background: var(--ai-accent, #7c3aed);
+        background: var(--ai-accent, #3d6bff);
     }
 
     /* Illustration frame */
@@ -123,7 +123,7 @@
     }
     html.light-mode .ai-illus {
         background:
-            radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--ai-accent, #7c3aed) 14%, transparent), transparent 60%),
+            radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--ai-accent, #3d6bff) 14%, transparent), transparent 60%),
             linear-gradient(180deg, #f8fafc, #ffffff);
         border-color: rgba(15,23,42,.08);
     }
@@ -312,7 +312,7 @@
         .ai-widget-pop::before,
         .ai-phone,
         .ai-wave i { animation: none !important; }
-        .ai-shimmer { color: #a78bfa; }
+        .ai-shimmer { color: #90acff; }
         .ai-chat-bubble { opacity: 1; transform: none; }
         .ai-widget-pop { transform: none; opacity: 1; }
         .ai-suite-v2 .ai-card { opacity: 1; transform: none; }
@@ -326,7 +326,7 @@
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#7c3aed">AI suite</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#3d6bff">AI suite</div>
             <h2 id="ai-suite-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Built-in AI that <span class="ai-shimmer">works the room</span> for you.
             </h2>

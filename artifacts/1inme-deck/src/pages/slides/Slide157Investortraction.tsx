@@ -12,10 +12,10 @@ export default function Slide157Investortraction() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Traction (placeholders).</h2>
         
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">[ x ]k</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">registered users</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">[ x ]k</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">WAU</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">[ $x ]k</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">MRR</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">+[x]%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">MoM growth</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">[ x ]k</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">registered users</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">[ x ]k</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">WAU</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">[ $x ]k</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">MRR</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">+[x]%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">MoM growth</div></div>
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Replace with the latest numbers before sending. Mark as confidential.</p>
       </div>

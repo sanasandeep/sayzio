@@ -1,7 +1,7 @@
 @php
     /** @var \App\Modules\User\Models\Link $link */
     $menu = $link->restaurantMenu()->with(['categories', 'items'])->first();
-    $accent = $menu->accent_color ?: '#7c3aed';
+    $accent = $menu->accent_color ?: '#3d6bff';
     $currency = $menu->currency ?: 'USD';
     $isOrder = $menu->isOrderMode();
     $title = $link->title ?: $link->alias;

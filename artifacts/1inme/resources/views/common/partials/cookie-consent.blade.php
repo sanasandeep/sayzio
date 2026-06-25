@@ -80,7 +80,7 @@
     .cc-header img.cc-logo { width: 26px; height: 26px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
     .cc-card h3 { margin: 0; font-size: 16px; font-weight: 600; }
     .cc-card p { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: var(--cc-muted, #4b5563); }
-    .cc-card a.cc-policy { color: var(--cc-accent, #7c3aed); text-decoration: underline; }
+    .cc-card a.cc-policy { color: var(--cc-accent, #3d6bff); text-decoration: underline; }
 
     .cc-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .cc-btn { border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; line-height: 1.2; }
@@ -100,7 +100,7 @@
     .cc-switch input { opacity: 0; width: 0; height: 0; }
     .cc-switch .cc-slider { position: absolute; inset: 0; cursor: pointer; background: rgba(0,0,0,0.18); border-radius: 999px; transition: .2s; }
     .cc-switch .cc-slider:before { content: ''; position: absolute; height: 16px; width: 16px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: .2s; }
-    .cc-switch input:checked + .cc-slider { background: var(--cc-accent, #7c3aed); }
+    .cc-switch input:checked + .cc-slider { background: var(--cc-accent, #3d6bff); }
     .cc-switch input:checked + .cc-slider:before { transform: translateX(16px); }
     .cc-switch input:disabled + .cc-slider { opacity: 0.5; cursor: not-allowed; }
 
@@ -198,7 +198,7 @@
         background: transparent; border: 0; padding: 0; margin: 0;
         font: inherit; color: inherit; cursor: pointer; text-decoration: underline;
     }
-    .cc-footer-link:focus-visible { outline: 2px solid var(--cc-accent, #7c3aed); outline-offset: 2px; border-radius: 4px; }
+    .cc-footer-link:focus-visible { outline: 2px solid var(--cc-accent, #3d6bff); outline-offset: 2px; border-radius: 4px; }
 </style>
 <script>
 window.__cookieConsent = window.__cookieConsent || (function(){

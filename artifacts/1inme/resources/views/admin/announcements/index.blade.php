@@ -41,7 +41,7 @@
                         <input type="hidden" name="announcements[{{ $audienceKey }}][enabled]" value="0">
                         <input type="checkbox" name="announcements[{{ $audienceKey }}][enabled]" value="1"
                                @checked(old("announcements.$audienceKey.enabled", $row['enabled']))
-                               class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500">
+                               class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500">
                         Show this banner
                     </label>
                 </div>
@@ -77,7 +77,7 @@
 
         <div class="flex justify-end">
             <button type="submit"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors">
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
                 <i class="fas fa-bullhorn text-xs"></i> Save announcements
             </button>
         </div>

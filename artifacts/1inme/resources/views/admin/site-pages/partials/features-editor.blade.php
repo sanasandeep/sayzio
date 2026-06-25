@@ -23,7 +23,7 @@
     <div>
         <div class="flex items-center justify-between mb-2">
             <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Feature categories</label>
-            <button type="button" @click="addCategory()" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+            <button type="button" @click="addCategory()" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                 <i class="fas fa-plus mr-1"></i> Add category
             </button>
         </div>
@@ -70,8 +70,8 @@
                         </div>
                     </div>
                     <div class="sm:col-span-1 flex items-end">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 border border-violet-400/30 flex items-center justify-center">
-                            <i :class="'fas ' + (cat.icon || 'fa-circle') + ' text-violet-300 text-lg'"></i>
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/30 to-fuchsia-500/20 border border-blue-400/30 flex items-center justify-center">
+                            <i :class="'fas ' + (cat.icon || 'fa-circle') + ' text-blue-300 text-lg'"></i>
                         </div>
                     </div>
                 </div>
@@ -142,8 +142,8 @@
     </div>
 
     <div class="pt-4 border-t border-white/10 flex items-center justify-between">
-        <a href="/{{ $page->slug }}" target="_blank" class="text-xs text-violet-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
-        <button type="submit" class="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Save changes</button>
+        <a href="/{{ $page->slug }}" target="_blank" class="text-xs text-blue-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
+        <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save changes</button>
     </div>
 </form>
 

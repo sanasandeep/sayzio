@@ -14,7 +14,7 @@
     .st-new{background:#ef4444}.st-accepted{background:#f59e0b}.st-preparing{background:#3b82f6}.st-ready{background:#10b981}.st-completed{background:#6b7280}.st-cancelled{background:#9ca3af}
     .ro-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
     .ro-btn { padding:7px 13px; border-radius:999px; font-size:12.5px; font-weight:600; border:1px solid var(--border-glass); background:transparent; color:var(--text-muted); cursor:pointer; }
-    .ro-btn.active { background:linear-gradient(135deg,#8b5cf6,#6366f1); color:#fff; border:0; }
+    .ro-btn.active { background:linear-gradient(135deg,#5c83ff,#6366f1); color:#fff; border:0; }
     .ro-note { font-size:12.5px; color:var(--text-muted); margin-top:6px; font-style:italic; }
     .ro-empty { text-align:center; padding:50px 0; color:var(--text-muted); }
     .ro-live { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }

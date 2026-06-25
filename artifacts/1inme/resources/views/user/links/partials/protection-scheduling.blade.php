@@ -98,7 +98,7 @@
     <div class="mb-4">
         <label class="block text-sm text-white/60 mb-1">Timezone</label>
         <select name="tz" x-model="tz"
-                class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm bg-white/[0.03] focus:ring-2 focus:ring-violet-500/40">
+                class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm bg-white/[0.03] focus:ring-2 focus:ring-blue-500/40">
             @foreach($tzList as $tz)
                 <option value="{{ $tz }}" {{ $tz_ps === $tz ? 'selected' : '' }}>{{ $tz }}</option>
             @endforeach
@@ -112,14 +112,14 @@
             <label class="block text-sm text-white/60 mb-1">Goes live at <span class="text-white/30">(optional)</span></label>
             <input type="datetime-local" name="start_at"
                    value="{{ old('start_at', $startLocal) }}"
-                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
             <p class="text-xs text-white/30 mt-1">Visitors before this time see "not yet available".</p>
         </div>
 
         <div>
             <label class="block text-sm text-white/60 mb-1">Expiry rule</label>
             <select name="_exp_mode" x-model="expMode"
-                    class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                 <option value="none">Never expires</option>
                 <option value="date">Expires on a specific date</option>
                 <option value="first_click">One-time use (expires after first click)</option>
@@ -130,7 +130,7 @@
             <label class="block text-sm text-white/60 mb-1">Expiration date</label>
             <input type="datetime-local" name="expires_at"
                    value="{{ old('expires_at', $expiresLocal) }}"
-                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
         </div>
     </div>
 
@@ -141,7 +141,7 @@
         <input type="hidden" name="click_limit_enabled" :value="clicksLimitOn ? '1' : '0'">
         <label class="flex items-center gap-3 cursor-pointer mb-3">
             <input type="checkbox" x-model="clicksLimitOn"
-                   class="rounded text-violet-400 focus:ring-violet-500/40">
+                   class="rounded text-blue-400 focus:ring-blue-500/40">
             <div>
                 <div class="text-sm font-medium text-white">Limit total clicks</div>
                 <p class="text-xs text-white/40 mt-0.5">Stop accepting visits once this link has been opened a set number of times. Works alongside any expiry rule above.</p>
@@ -153,7 +153,7 @@
             <input type="number" min="1" max="1000000000" name="max_clicks"
                    value="{{ old('max_clicks', $maxClicks_ps ?: '') }}"
                    placeholder="e.g. 100"
-                   class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                   class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
             <p class="text-xs text-white/30 mt-1">Used so far: <span class="font-mono text-white/50">{{ number_format($totalClicks_ps) }}</span> click{{ $totalClicks_ps === 1 ? '' : 's' }}.</p>
         </div>
     </div>
@@ -163,7 +163,7 @@
         <input type="url" name="expiry_url"
                value="{{ old('expiry_url', $s_ps['expiry_url'] ?? '') }}"
                placeholder="https://example.com/expired"
-               class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+               class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
         <p class="text-xs text-white/30 mt-1">Leave empty to show the default "link expired" page.</p>
     </div>
 
@@ -172,7 +172,7 @@
         <input type="hidden" name="active_window_enabled" :value="awEnabled ? '1' : '0'">
         <label class="flex items-center gap-3 cursor-pointer mb-3">
             <input type="checkbox" x-model="awEnabled"
-                   class="rounded text-violet-400 focus:ring-violet-500/40">
+                   class="rounded text-blue-400 focus:ring-blue-500/40">
             <div>
                 <div class="text-sm font-medium text-white">Only active during specific hours each day</div>
                 <p class="text-xs text-white/40 mt-0.5">Outside this window the link behaves as expired.</p>
@@ -186,12 +186,12 @@
                         <div class="flex-1">
                             <label class="block text-xs text-white/60 mb-1" x-text="i === 0 ? 'From' : ''">&nbsp;</label>
                             <input type="time" :name="`active_window_starts[${i}]`" x-model="slot.start"
-                                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         </div>
                         <div class="flex-1">
                             <label class="block text-xs text-white/60 mb-1" x-text="i === 0 ? 'Until' : ''">&nbsp;</label>
                             <input type="time" :name="`active_window_ends[${i}]`" x-model="slot.end"
-                                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         </div>
                         <button type="button" @click="awSlots.splice(i, 1)" x-show="awSlots.length > 1"
                                 class="h-9 w-9 mb-0.5 flex items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-rose-300 hover:border-rose-400/40"
@@ -201,7 +201,7 @@
                     </div>
                 </template>
                 <button type="button" @click="awSlots.push({ start: '18:00', end: '22:00' })"
-                        class="inline-flex items-center gap-1.5 text-xs font-medium text-violet-300 hover:text-violet-200">
+                        class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-300 hover:text-blue-200">
                     <i class="fas fa-plus"></i> Add another time slot
                 </button>
             </div>
@@ -214,7 +214,7 @@
                         <label class="cursor-pointer">
                             <input type="checkbox" name="active_window_days[]" value="{{ $val }}"
                                    x-model="awDays" class="sr-only peer">
-                            <span class="inline-flex items-center justify-center w-12 h-9 text-xs font-medium rounded-lg border border-white/10 bg-white/[0.03] text-white/60 peer-checked:bg-violet-500/20 peer-checked:border-violet-500/50 peer-checked:text-white">{{ $label }}</span>
+                            <span class="inline-flex items-center justify-center w-12 h-9 text-xs font-medium rounded-lg border border-white/10 bg-white/[0.03] text-white/60 peer-checked:bg-blue-500/20 peer-checked:border-blue-500/50 peer-checked:text-white">{{ $label }}</span>
                         </label>
                     @endforeach
                 </div>
@@ -229,7 +229,7 @@
         <input type="text" name="country_blocklist"
                value="{{ old('country_blocklist', $blocklist) }}"
                placeholder="e.g. RU,KP,IR"
-               class="w-full max-w-md border border-white/10 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:ring-2 focus:ring-violet-500/40">
+               class="w-full max-w-md border border-white/10 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:ring-2 focus:ring-blue-500/40">
     </div>
 </div>
 

@@ -68,9 +68,9 @@
              x-data='autoUtmBlock(@json($autoUtmContext), @json($autoUtmOverrides), @json($autoUtmEnabled))'>
             <button type="button" @click="showUtm = !showUtm"
                     class="flex items-center gap-2 text-xs font-medium py-1" style="color: var(--text-muted);">
-                <i class="fas fa-tags text-violet-400"></i>
+                <i class="fas fa-tags text-blue-400"></i>
                 <span>Auto-UTM &amp; Overrides</span>
-                <span x-show="biolinkEnabled" class="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style="background: rgba(139,92,246,0.15); color: #8b5cf6;">ON</span>
+                <span x-show="biolinkEnabled" class="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style="background: rgba(92,131,255,0.15); color: #5c83ff;">ON</span>
                 <i :class="showUtm ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[9px] ml-auto"></i>
             </button>
 

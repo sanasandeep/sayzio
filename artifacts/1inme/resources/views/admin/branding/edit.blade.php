@@ -29,7 +29,7 @@
                     <label class="block text-sm font-medium text-white mb-1">Wordmark — light mode</label>
                     <p class="text-xs text-white/50 mb-2">Shown on light backgrounds. Use the dark/colored version of your logo.</p>
                     <input type="file" name="logo_light" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                           class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700 file:cursor-pointer">
+                           class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer">
                     @error('logo_light')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
             </div>
@@ -43,7 +43,7 @@
                     <label class="block text-sm font-medium text-white mb-1">Wordmark — dark mode</label>
                     <p class="text-xs text-white/50 mb-2">Shown on dark backgrounds. Use the white/light version of your logo.</p>
                     <input type="file" name="logo_dark" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                           class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700 file:cursor-pointer">
+                           class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer">
                     @error('logo_dark')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
             </div>
@@ -57,13 +57,13 @@
                     <label class="block text-sm font-medium text-white mb-1">Square icon / favicon</label>
                     <p class="text-xs text-white/50 mb-2">Used as the favicon, app icon, and small badges.</p>
                     <input type="file" name="icon" accept="image/png,image/jpeg,image/webp,image/x-icon"
-                           class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700 file:cursor-pointer">
+                           class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer">
                     @error('icon')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-white/10">
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-500/20">
                     Save branding
                 </button>
             </div>

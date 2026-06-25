@@ -104,39 +104,39 @@
     }
     .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); transform: translateY(-1px); }
     .pill-active {
-        background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+        background: linear-gradient(135deg, #3d6bff, #5c83ff);
         color: #fff !important;
-        box-shadow: 0 6px 18px rgba(124,58,237,0.4);
+        box-shadow: 0 6px 18px rgba(61,107,255,0.4);
     }
     .pill-active-soft {
-        background: rgba(124,58,237,0.18);
-        border: 1px solid rgba(124,58,237,0.4);
-        color: #ddd6fe !important;
+        background: rgba(61,107,255,0.18);
+        border: 1px solid rgba(61,107,255,0.4);
+        color: #dbe4ff !important;
     }
-    html.light-mode .pill-active-soft { color: #6d28d9 !important; background: rgba(124,58,237,0.14); }
+    html.light-mode .pill-active-soft { color: #2342c7 !important; background: rgba(61,107,255,0.14); }
 
     /* ============ Stat Tile ============ */
     .stat-tile {
         position: relative;
         padding: 18px 18px 16px;
         border-radius: 20px;
-        background: linear-gradient(160deg, var(--tile-bg-from, rgba(124,58,237,0.10)) 0%, var(--bg-glass) 70%);
-        border: 1px solid var(--tile-border, rgba(124,58,237,0.22));
+        background: linear-gradient(160deg, var(--tile-bg-from, rgba(61,107,255,0.10)) 0%, var(--bg-glass) 70%);
+        border: 1px solid var(--tile-border, rgba(61,107,255,0.22));
         overflow: hidden;
         transition: transform .25s ease, box-shadow .25s ease;
     }
     .stat-tile:hover {
         transform: translateY(-3px);
-        box-shadow: 0 18px 48px rgba(0,0,0,0.28), 0 0 32px var(--tile-glow, rgba(124,58,237,0.18));
+        box-shadow: 0 18px 48px rgba(0,0,0,0.28), 0 0 32px var(--tile-glow, rgba(61,107,255,0.18));
     }
     .stat-tile::before {
         content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        background: var(--tile-accent, linear-gradient(90deg, #8b5cf6, #a78bfa));
+        background: var(--tile-accent, linear-gradient(90deg, #5c83ff, #90acff));
     }
     .stat-tile::after {
         content: ""; position: absolute; right: -30px; bottom: -30px;
         width: 120px; height: 120px; border-radius: 50%;
-        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
+        background: var(--tile-accent, linear-gradient(135deg,#5c83ff,#90acff));
         opacity: 0.08; filter: blur(20px); pointer-events: none;
     }
     .stat-tile-head {
@@ -150,13 +150,13 @@
     .stat-tile-icon {
         width: 32px; height: 32px; border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
-        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
+        background: var(--tile-accent, linear-gradient(135deg,#5c83ff,#90acff));
         color: #fff; font-size: 12px;
-        box-shadow: 0 8px 20px var(--tile-glow, rgba(124,58,237,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+        box-shadow: 0 8px 20px var(--tile-glow, rgba(61,107,255,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
     }
     .stat-tile-value {
         font-size: 26px; font-weight: 800; line-height: 1.05;
-        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
+        background: var(--tile-accent, linear-gradient(135deg,#5c83ff,#90acff));
         -webkit-background-clip: text; background-clip: text; color: transparent;
         letter-spacing: -0.02em;
     }
@@ -174,7 +174,7 @@
         backdrop-filter: blur(20px);
         transition: transform .2s ease, border-color .2s ease;
     }
-    .kpi-hero:hover { transform: translateY(-2px); border-color: rgba(124,58,237,0.25); }
+    .kpi-hero:hover { transform: translateY(-2px); border-color: rgba(61,107,255,0.25); }
     .kpi-hero-head {
         display: flex; align-items: center; justify-content: space-between;
         margin-bottom: 10px;
@@ -186,7 +186,7 @@
     .kpi-hero-icon {
         width: 28px; height: 28px; border-radius: 9px;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(124,58,237,0.1);
+        background: rgba(61,107,255,0.1);
         color: var(--accent);
         font-size: 11px;
     }
@@ -260,7 +260,7 @@
         backdrop-filter: blur(14px);
         transition: all .18s ease;
     }
-    .cmp-tile:hover { border-color: rgba(139,92,246,0.35); transform: translateY(-1px); }
+    .cmp-tile:hover { border-color: rgba(92,131,255,0.35); transform: translateY(-1px); }
     .cmp-tile-head {
         font-size: 10px; font-weight: 700;
         text-transform: uppercase; letter-spacing: 0.08em;
@@ -268,7 +268,7 @@
         display: flex; align-items: center; gap: 6px;
         margin-bottom: 8px;
     }
-    .cmp-tile-head i { font-size: 10px; color: #8b5cf6; }
+    .cmp-tile-head i { font-size: 10px; color: #5c83ff; }
     .cmp-tile-row {
         display: flex; align-items: center; justify-content: space-between;
         gap: 8px;
@@ -318,7 +318,7 @@
     }
     .section-card::before {
         content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-        background: var(--sc-accent, linear-gradient(90deg, #8b5cf6, #a78bfa));
+        background: var(--sc-accent, linear-gradient(90deg, #5c83ff, #90acff));
         opacity: 0.7;
     }
     .section-head {
@@ -333,33 +333,33 @@
         width: 36px; height: 36px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
         color: #fff; font-size: 13px;
-        background: var(--sc-accent, linear-gradient(135deg, #8b5cf6, #a78bfa));
-        box-shadow: 0 8px 22px var(--sc-glow, rgba(124,58,237,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+        background: var(--sc-accent, linear-gradient(135deg, #5c83ff, #90acff));
+        box-shadow: 0 8px 22px var(--sc-glow, rgba(61,107,255,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
     }
     .section-pill {
         font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
-        background: var(--sc-glow, rgba(124,58,237,0.12));
-        color: var(--sc-color, #ddd6fe);
-        border: 1px solid var(--sc-border, rgba(124,58,237,0.25));
+        background: var(--sc-glow, rgba(61,107,255,0.12));
+        color: var(--sc-color, #dbe4ff);
+        border: 1px solid var(--sc-border, rgba(61,107,255,0.25));
     }
     html.light-mode .section-pill {
-        background: rgba(124,58,237,0.10);
-        color: #6d28d9;
-        border-color: rgba(124,58,237,0.25);
+        background: rgba(61,107,255,0.10);
+        color: #2342c7;
+        border-color: rgba(61,107,255,0.25);
     }
     /* Light-mode overrides for inline pastel text colors so badges stay legible on white cards */
     html.light-mode [style*="color: #86efac"],
     html.light-mode [style*="color:#86efac"]   { color: #047857 !important; }   /* green pill */
     html.light-mode [style*="color: #d8b4fe"],
-    html.light-mode [style*="color:#d8b4fe"]   { color: #6b21a8 !important; }   /* violet badge */
+    html.light-mode [style*="color:#d8b4fe"]   { color: #2139a1 !important; }   /* violet badge */
     html.light-mode [style*="color: #5eead4"],
     html.light-mode [style*="color:#5eead4"]   { color: #0f766e !important; }   /* teal badge */
-    html.light-mode [style*="color: #ddd6fe"],
-    html.light-mode [style*="color:#ddd6fe"]   { color: #5b21b6 !important; }
+    html.light-mode [style*="color: #dbe4ff"],
+    html.light-mode [style*="color:#dbe4ff"]   { color: #2139a1 !important; }
     html.light-mode [style*="color: #a5b4fc"],
     html.light-mode [style*="color:#a5b4fc"]   { color: #3730a3 !important; }
-    html.light-mode [style*="color: #c4b5fd"],
-    html.light-mode [style*="color:#c4b5fd"]   { color: #1d4ed8 !important; }
+    html.light-mode [style*="color: #bccfff"],
+    html.light-mode [style*="color:#bccfff"]   { color: #1d4ed8 !important; }
     html.light-mode [style*="color: #f9a8d4"],
     html.light-mode [style*="color:#f9a8d4"]   { color: #be185d !important; }
     html.light-mode [style*="color: #fcd34d"],
@@ -408,8 +408,8 @@
     }
     .bar-fill {
         position: absolute; top: 0; left: 0; bottom: 0; border-radius: 999px;
-        background: var(--bar-color, linear-gradient(90deg, #8b5cf6, #ec4899));
-        box-shadow: 0 0 12px var(--bar-glow, rgba(124,58,237,0.5));
+        background: var(--bar-color, linear-gradient(90deg, #5c83ff, #ec4899));
+        box-shadow: 0 0 12px var(--bar-glow, rgba(61,107,255,0.5));
     }
 
     /* List rows with progress bar (referrers, UTM) */
@@ -426,7 +426,7 @@
     .progress-row::before {
         content: ""; position: absolute; left: 0; top: 0; bottom: 0;
         width: var(--pr-width, 0%);
-        background: var(--pr-color, linear-gradient(90deg, rgba(124,58,237,0.18), rgba(236,72,153,0.10)));
+        background: var(--pr-color, linear-gradient(90deg, rgba(61,107,255,0.18), rgba(236,72,153,0.10)));
         z-index: 0;
     }
     .progress-row > * { position: relative; z-index: 1; }
@@ -450,7 +450,7 @@
         color: var(--text-muted);
         transition: all .2s ease;
     }
-    .table-action:hover { background: linear-gradient(135deg,#7c3aed,#8b5cf6); color: #fff; border-color: transparent; box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
+    .table-action:hover { background: linear-gradient(135deg,#3d6bff,#5c83ff); color: #fff; border-color: transparent; box-shadow: 0 6px 18px rgba(61,107,255,0.4); }
 
     .stat-tile-value-sm { font-size: 22px; }
     @media (max-width: 640px) {
@@ -512,17 +512,17 @@
 {{-- ===================== PERIOD CONTROLS ===================== --}}
 <div class="period-bar mb-6">
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-violet-400"></i> Period</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-blue-400"></i> Period</span>
         @foreach(['today'=>'Today','7d'=>'7d','30d'=>'30d','90d'=>'90d','year'=>'Year','all'=>'All'] as $k=>$lbl)
             <a href="{{ $buildUrl(['period'=>$k]) }}" class="pill {{ ($period ?? '30d')===$k ? 'pill-active' : '' }}">{{ $lbl }}</a>
         @endforeach
         <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-layer-group text-violet-400"></i> Group</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-layer-group text-blue-400"></i> Group</span>
         @foreach(['day'=>'Day','week'=>'Week','month'=>'Month','year'=>'Year'] as $k=>$lbl)
             <a href="{{ $buildUrl(['group'=>$k]) }}" class="pill {{ ($groupBy ?? 'day')===$k ? 'pill-active-soft' : '' }}">{{ $lbl }}</a>
         @endforeach
         <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-mobile-screen text-violet-400"></i> Source</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-mobile-screen text-blue-400"></i> Source</span>
         @foreach(['' => 'All', 'mobile_app' => 'Mobile app', 'web' => 'Web'] as $sk => $slbl)
             <a href="{{ $buildUrl(['source' => $sk === '' ? null : $sk]) }}" class="pill {{ (($sourceFilter ?? '') === $sk) ? 'pill-active' : '' }}">{{ $slbl }}</a>
         @endforeach
@@ -575,7 +575,7 @@
 {{-- ===================== ACTIVE FILTERS SUMMARY ===================== --}}
 <div class="glass rounded-2xl px-4 py-3 mb-3 flex flex-wrap items-center gap-2">
     <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">
-        <i class="fas fa-filter text-violet-400"></i> Active filters
+        <i class="fas fa-filter text-blue-400"></i> Active filters
     </span>
     @foreach($activeFilters as $f)
         <a href="{{ $f['clearUrl'] }}"
@@ -596,7 +596,7 @@
 @if(count($availableAliases ?? []) > 1)
 {{-- ===================== ALIAS FILTER ===================== --}}
 <div class="glass rounded-2xl px-4 py-3 mb-3 flex flex-wrap items-center gap-2">
-    <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-link text-violet-400"></i> Alias</span>
+    <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-link text-blue-400"></i> Alias</span>
     <a href="{{ $buildUrl(['alias' => null]) }}" class="pill {{ empty($aliasFilter) ? 'pill-active' : '' }}">All</a>
     @foreach($availableAliases as $al)
         @php $isPrimary = ($al === $link->alias); $count = optional($aliasBreakdown->firstWhere('alias', $al))->total ?? 0; @endphp
@@ -826,7 +826,7 @@
 @endif
 
 {{-- ===================== CLICKS OVER TIME ===================== --}}
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#7c3aed,#ec4899); --sc-glow: rgba(124,58,237,0.35); --sc-color: #ddd6fe; --sc-border: rgba(124,58,237,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#3d6bff,#ec4899); --sc-glow: rgba(61,107,255,0.35); --sc-color: #dbe4ff; --sc-border: rgba(61,107,255,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-chart-line"></i></div> Clicks Over Time <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">({{ ucfirst($groupBy) }})</span></div>
         <span class="section-pill"><i class="fas fa-calendar-week"></i> {{ $startDate->format('M d, Y') }} → {{ $endDate->format('M d, Y') }}</span>
@@ -959,7 +959,7 @@
         ][$key] ?? 'fa-circle-question';
     };
 @endphp
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#a855f7,#ec4899); --sc-glow: rgba(168,85,247,0.35); --sc-color: #f0abfc; --sc-border: rgba(168,85,247,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#6e61ff,#ec4899); --sc-glow: rgba(110,97,255,0.35); --sc-color: #f0abfc; --sc-border: rgba(110,97,255,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-window-restore"></i></div> Channel <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">(detected from user-agent)</span></div>
         <div class="text-xs" style="color: var(--text-faint);">Distinguishes in-app webviews (Instagram, TikTok, Facebook, …) from real browsers and bots.</div>
@@ -1028,7 +1028,7 @@
         unset($g);
     }
 @endphp
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#ec4899); --sc-glow: rgba(139,92,246,0.35); --sc-color: #d8b4fe; --sc-border: rgba(139,92,246,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#5c83ff,#ec4899); --sc-glow: rgba(92,131,255,0.35); --sc-color: #d8b4fe; --sc-border: rgba(92,131,255,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-language"></i></div> Languages</div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -1234,7 +1234,7 @@
 
 {{-- ===================== COUNTRIES / CITIES ===================== --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-7">
-    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#3b82f6,#a78bfa); --sc-glow: rgba(59,130,246,0.35); --sc-color: #c4b5fd; --sc-border: rgba(59,130,246,0.3);">
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#3b82f6,#90acff); --sc-glow: rgba(59,130,246,0.35); --sc-color: #bccfff; --sc-border: rgba(59,130,246,0.3);">
         <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-flag"></i></div> Top Countries</div>
             @if(!empty($countryFilter))
                 <a href="{{ $buildUrl(['country' => null]) }}" class="section-pill" title="Clear country filter"><i class="fas fa-times mr-1"></i>{{ $countryNames[$countryFilter] ?? $countryFilter }}</a>
@@ -1267,7 +1267,7 @@
                     <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($stat->count) }}</td>
                     <td class="bar-cell" style="width: 38%;">
                         <div class="bar-track">
-                            <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#3b82f6,#a78bfa); --bar-glow: rgba(59,130,246,0.4);"></div>
+                            <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#3b82f6,#90acff); --bar-glow: rgba(59,130,246,0.4);"></div>
                         </div>
                         <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $pct }}%</div>
                     </td>
@@ -1332,8 +1332,8 @@
         'pinterest'   => ['fab fa-pinterest',   '#BD081C', 'Pinterest'],
         'twitch'      => ['fab fa-twitch',      '#9146FF', 'Twitch'],
         'dribbble'    => ['fab fa-dribbble',    '#EA4C89', 'Dribbble'],
-        'website'     => ['fas fa-globe',       '#7c3aed', 'Website'],
-        'email'       => ['fas fa-envelope',    '#7c3aed', 'Email'],
+        'website'     => ['fas fa-globe',       '#3d6bff', 'Website'],
+        'email'       => ['fas fa-envelope',    '#3d6bff', 'Email'],
         'spotify'     => ['fab fa-spotify',     '#1DB954', 'Spotify'],
         'soundcloud'  => ['fab fa-soundcloud',  '#FF5500', 'SoundCloud'],
         'apple'       => ['fab fa-apple',       '#0f172a', 'Apple'],
@@ -1411,7 +1411,7 @@
                 'title' => $platLabel ?: $host,
                 'url'   => $destUrl,
                 'thumb' => null,
-                'platform' => ['icon' => 'fas fa-link', 'color' => '#7c3aed', 'label' => $host],
+                'platform' => ['icon' => 'fas fa-link', 'color' => '#3d6bff', 'label' => $host],
                 'parent_title' => $meta['title'] ?? $info['label'],
             ];
         }
@@ -1462,7 +1462,7 @@
         return $a->format('M j').' – '.$b->format($sameYear ? 'M j' : 'M j, Y');
     };
 @endphp
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#d946ef); --sc-glow: rgba(139,92,246,0.35); --sc-color: #d8b4fe; --sc-border: rgba(139,92,246,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#5c83ff,#d946ef); --sc-glow: rgba(92,131,255,0.35); --sc-color: #d8b4fe; --sc-border: rgba(92,131,255,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-th-large"></i></div> Block-Level Clicks</div>
         <span class="section-pill" title="Each row = one block in your Link in Bio page. Clicks are tracked when a visitor taps the block on your public page."><i class="fas fa-link"></i> Internal block clicks · {{ $rangeFmt($startDate, $endDate) }} vs prev</span>
@@ -1543,14 +1543,14 @@
                             {{-- Platform-specific brand icon (per social link inside a socials block) --}}
                             <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: {{ $plat['color'] }}1a; color: {{ $plat['color'] }}; border: 1px solid {{ $plat['color'] }}40;"><i class="{{ $plat['icon'] }} text-base"></i></span>
                         @elseif(!empty($bi['thumb']))
-                            <span class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-glass);"><img src="{{ $bi['thumb'] }}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='<span class=\'inline-flex items-center justify-center w-full h-full\' style=\'background: linear-gradient(135deg,#8b5cf6,#d946ef); color:#fff;\'><i class=\'fas {{ $info['icon'] }}\'></i></span>'"></span>
+                            <span class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-glass);"><img src="{{ $bi['thumb'] }}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='<span class=\'inline-flex items-center justify-center w-full h-full\' style=\'background: linear-gradient(135deg,#5c83ff,#d946ef); color:#fff;\'><i class=\'fas {{ $info['icon'] }}\'></i></span>'"></span>
                         @else
-                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg,#8b5cf6,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-xs"></i></span>
+                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg,#5c83ff,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-xs"></i></span>
                         @endif
                         <div class="min-w-0">
                             <div class="text-sm font-semibold truncate" style="color: var(--text-primary); max-width: 240px;" title="{{ $bi['title'] }}">{{ $bi['title'] }}</div>
                             <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                <span class="text-[9.5px] px-1.5 py-0.5 rounded-md font-bold" style="background: rgba(139,92,246,0.15); color:#d8b4fe;">{{ $info['label'] }}</span>
+                                <span class="text-[9.5px] px-1.5 py-0.5 rounded-md font-bold" style="background: rgba(92,131,255,0.15); color:#d8b4fe;">{{ $info['label'] }}</span>
                                 @if($plat && !empty($bi['parent_title']))
                                     <span class="text-[9.5px] px-1.5 py-0.5 rounded-md" style="background: var(--bg-glass-input); color: var(--text-muted); border: 1px solid var(--border-glass);" title="Parent block">in {{ \Illuminate\Support\Str::limit($bi['parent_title'], 22) }}</span>
                                 @endif
@@ -1566,7 +1566,7 @@
                 <td class="text-right">{!! _blockDeltaPill($b->count, $prev) !!}</td>
                 <td class="bar-cell" style="width: 18%;">
                     <div class="bar-track">
-                        <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#8b5cf6,#d946ef); --bar-glow: rgba(139,92,246,0.4);"></div>
+                        <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#5c83ff,#d946ef); --bar-glow: rgba(92,131,255,0.4);"></div>
                     </div>
                     <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $pct }}%</div>
                 </td>
@@ -1662,7 +1662,7 @@
         var html = '<div class="flex items-end gap-[3px] h-32" style="border-bottom: 1px solid var(--border-glass); padding-bottom: 2px;">';
         byDay.forEach(function(d){
             var h = max > 0 ? Math.max(2, Math.round((d.clicks / max) * 100)) : 2;
-            html += '<div class="flex-1 rounded-t" title="' + esc(d.day) + ': ' + fmt(d.clicks) + ' clicks" style="height:' + h + '%; background: linear-gradient(180deg,#8b5cf6,#6366f1); min-height:2px;"></div>';
+            html += '<div class="flex-1 rounded-t" title="' + esc(d.day) + ': ' + fmt(d.clicks) + ' clicks" style="height:' + h + '%; background: linear-gradient(180deg,#5c83ff,#6366f1); min-height:2px;"></div>';
         });
         html += '</div>';
         if (byDay.length > 0) {
@@ -1671,7 +1671,7 @@
         return html;
     }
     var VISITOR_LABELS = { anonymous:'Anonymous', registered:'Registered', follower:'Followers', subscriber:'Subscribers' };
-    var VISITOR_COLORS = { anonymous:'#94a3b8', registered:'#38bdf8', follower:'#a78bfa', subscriber:'#f472b6' };
+    var VISITOR_COLORS = { anonymous:'#94a3b8', registered:'#38bdf8', follower:'#90acff', subscriber:'#f472b6' };
     function load(){
         bodyEl.innerHTML = '<div class="text-center py-14" style="color: var(--text-faint);"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
         var days = parseInt(rangeEl.value, 10) || 30;
@@ -1700,7 +1700,7 @@
                     + '</div>'
                     + '</div>'
                     + '<div class="mt-5"><div class="text-xs font-semibold mb-2" style="color: var(--text-muted);">By visitor type</div>'
-                    +   (a.by_visitor_type || []).map(function(r){ return bar(VISITOR_LABELS[r.visitor_type] || r.visitor_type, r.clicks, vtMax, VISITOR_COLORS[r.visitor_type] || '#8b5cf6'); }).join('')
+                    +   (a.by_visitor_type || []).map(function(r){ return bar(VISITOR_LABELS[r.visitor_type] || r.visitor_type, r.clicks, vtMax, VISITOR_COLORS[r.visitor_type] || '#5c83ff'); }).join('')
                     + '</div>';
                 bodyEl.innerHTML = html;
             })
@@ -1722,7 +1722,7 @@
 </script>
 
 @if($hasPollBlocks || $pollVotesInRange > 0)
-<div id="poll-engagement" class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#ec4899,#8b5cf6); --sc-glow: rgba(236,72,153,0.35); --sc-color: #f9a8d4; --sc-border: rgba(236,72,153,0.3);">
+<div id="poll-engagement" class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#ec4899,#5c83ff); --sc-glow: rgba(236,72,153,0.35); --sc-color: #f9a8d4; --sc-border: rgba(236,72,153,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-square-poll-vertical"></i></div> Poll Engagement</div>
         <span class="section-pill" title="Total poll responses across every poll block on this link in the selected range."><i class="fas fa-users"></i> {{ number_format($pollVotesInRange) }} total votes</span>
@@ -1736,7 +1736,7 @@
                 @php $pct = round(($row->votes / $pollMax) * 100); @endphp
                 <a href="{{ route('user.links.poll-votes.index', [$link, $row->block_id]) }}"
                    class="progress-row flex items-center gap-3 hover:no-underline"
-                   style="--pr-width: {{ $pct }}%; --pr-color: linear-gradient(90deg, rgba(236,72,153,0.18), rgba(139,92,246,0.10));"
+                   style="--pr-width: {{ $pct }}%; --pr-color: linear-gradient(90deg, rgba(236,72,153,0.18), rgba(92,131,255,0.10));"
                    title="Open per-vote details for this poll">
                     <span class="progress-favicon"><i class="fas fa-square-poll-vertical"></i></span>
                     <div class="flex-1 min-w-0">
@@ -2032,7 +2032,7 @@
 </div>
 
 {{-- ===================== RECENT CLICKS ===================== --}}
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#a78bfa); --sc-glow: rgba(124,58,237,0.35); --sc-color: #ddd6fe; --sc-border: rgba(124,58,237,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#5c83ff,#90acff); --sc-glow: rgba(61,107,255,0.35); --sc-color: #dbe4ff; --sc-border: rgba(61,107,255,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-list"></i></div> Recent Clicks</div>
         <div class="flex items-center gap-2">
@@ -2147,7 +2147,7 @@
                     'interpolate', ['linear'], ['heatmap-density'],
                     0,    'rgba(0,0,0,0)',
                     0.15, 'rgba(56,189,248,0.55)',
-                    0.35, 'rgba(124,58,237,0.75)',
+                    0.35, 'rgba(61,107,255,0.75)',
                     0.55, 'rgba(236,72,153,0.85)',
                     0.75, 'rgba(249,115,22,0.92)',
                     1,    'rgba(239,68,68,1)'
@@ -2765,13 +2765,13 @@ document.addEventListener('DOMContentLoaded', function () {
         Chart.defaults.borderColor = gridColor;
         Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
     }
-    const palette = ['#7c3aed','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#8b5cf6','#ef4444','#14b8a6','#eab308'];
+    const palette = ['#3d6bff','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#5c83ff','#ef4444','#14b8a6','#eab308'];
 
     @if(!$clicksOverTime->isEmpty())
     (function(){
         const ctx = document.getElementById('clicksChart').getContext('2d');
         const g1 = ctx.createLinearGradient(0,0,0,300);
-        g1.addColorStop(0, 'rgba(124,58,237,0.45)'); g1.addColorStop(1, 'rgba(124,58,237,0.02)');
+        g1.addColorStop(0, 'rgba(61,107,255,0.45)'); g1.addColorStop(1, 'rgba(61,107,255,0.02)');
         const g2 = ctx.createLinearGradient(0,0,0,300);
         g2.addColorStop(0, 'rgba(16,185,129,0.30)'); g2.addColorStop(1, 'rgba(16,185,129,0.02)');
         @php
@@ -2790,7 +2790,7 @@ document.addEventListener('DOMContentLoaded', function () {
             $botSeriesHasData = collect($botSeries)->sum() > 0;
         @endphp
         const datasets = [
-            { label: 'Total Clicks', data: @json($totalSeries), borderColor: '#8b5cf6', backgroundColor: g1, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#8b5cf6', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 },
+            { label: 'Total Clicks', data: @json($totalSeries), borderColor: '#5c83ff', backgroundColor: g1, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#5c83ff', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 },
             { label: 'Unique IPs', data: @json($uniqueSeries), borderColor: '#34d399', backgroundColor: g2, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#34d399', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 }
         ];
         @if($botSeriesHasData)
@@ -2821,7 +2821,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { labels: { color: tickColor, usePointStyle: true, padding: 16, font: { size: 11, weight: '600' } } },
-                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1, padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4 }
+                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(61,107,255,0.4)', borderWidth: 1, padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4 }
                 },
                 scales: {
                     x: { grid: { color: gridColor, drawTicks: false }, ticks: { color: tickColor, font: { size: 10 } }, border: { display: false } },
@@ -2841,7 +2841,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 responsive: true, maintainAspectRatio: false, cutout: '65%',
                 plugins: {
                     legend: { position: 'right', labels: { color: tickColor, font: { size: 11, weight: '500' }, usePointStyle: true, padding: 10, boxWidth: 8 } },
-                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1, padding: 10, cornerRadius: 10 }
+                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(61,107,255,0.4)', borderWidth: 1, padding: 10, cornerRadius: 10 }
                 }
             }
         });

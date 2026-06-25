@@ -58,7 +58,7 @@
                            :class="preset === '{{ $key }}' ? 'is-active' : ''"
                            @click.prevent="apply('{{ $key }}')">
                         <div class="flex items-center gap-2">
-                            <input type="radio" name="preset" value="{{ $key }}" :checked="preset === '{{ $key }}'" class="accent-purple-400">
+                            <input type="radio" name="preset" value="{{ $key }}" :checked="preset === '{{ $key }}'" class="accent-indigo-400">
                             <span class="font-semibold text-white">{{ $meta['label'] }}</span>
                         </div>
                         <div class="text-xs text-white/50 mt-1">{{ $meta['description'] }}</div>
@@ -69,9 +69,9 @@
                            :class="preset === c.key ? 'is-active' : ''"
                            @click.prevent="c.key && apply(c.key)">
                         <div class="flex items-center gap-2">
-                            <input type="radio" name="preset" :value="c.key" :checked="preset === c.key" class="accent-purple-400" :disabled="!c.key">
+                            <input type="radio" name="preset" :value="c.key" :checked="preset === c.key" class="accent-indigo-400" :disabled="!c.key">
                             <span class="font-semibold text-white" x-text="c.label || 'Untitled custom preset'"></span>
-                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-500/20 text-purple-200 border border-violet-400/30">Custom</span>
+                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-indigo-200 border border-blue-400/30">Custom</span>
                         </div>
                         <div class="text-xs text-white/50 mt-1" x-text="c.description || 'Workspace preset'"></div>
                     </label>
@@ -79,7 +79,7 @@
                 <label class="pc-admin-card" :class="preset === 'custom' ? 'is-active' : ''"
                        @click.prevent="apply('custom')">
                     <div class="flex items-center gap-2">
-                        <input type="radio" name="preset" value="custom" :checked="preset === 'custom'" class="accent-purple-400">
+                        <input type="radio" name="preset" value="custom" :checked="preset === 'custom'" class="accent-indigo-400">
                         <span class="font-semibold text-white">Custom</span>
                     </div>
                     <div class="text-xs text-white/50 mt-1">Hand-tune each threshold below.</div>
@@ -136,7 +136,7 @@
                             Published presets appear alongside the built-ins in every creator's per-link picker.
                         </p>
                     </div>
-                    <button type="button" @click="addCustom()" class="px-3 py-1.5 text-xs bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition">
+                    <button type="button" @click="addCustom()" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                         <i class="fas fa-plus mr-1"></i> Add preset
                     </button>
                 </div>
@@ -195,7 +195,7 @@
             </div>
 
             <div class="flex items-center gap-3 pt-6 mt-4 border-t border-white/10">
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                     <i class="fas fa-check mr-1"></i> Save defaults
                 </button>
                 <a href="{{ route('admin.dashboard') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>
@@ -213,7 +213,7 @@
         transition: border-color .15s ease, background .15s ease;
     }
     .pc-admin-card:hover { background: var(--bg-glass-hover); }
-    .pc-admin-card.is-active { border-color: rgba(139,92,246,0.6); background: var(--c-primary-soft); }
+    .pc-admin-card.is-active { border-color: rgba(92,131,255,0.6); background: var(--c-primary-soft); }
     .pc-admin-group {
         background: var(--bg-glass);
         border: 1px solid var(--border-glass);

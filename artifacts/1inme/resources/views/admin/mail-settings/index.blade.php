@@ -129,7 +129,7 @@
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
             <div>
                 <h3 class="font-semibold text-white flex items-center gap-2">
-                    <i class="fas fa-id-badge text-violet-400"></i> Default &ldquo;from&rdquo; identity
+                    <i class="fas fa-id-badge text-blue-400"></i> Default &ldquo;from&rdquo; identity
                 </h3>
                 <p class="text-xs text-white/40">The sender shown on every outgoing email.</p>
             </div>
@@ -150,7 +150,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-            <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
                 <i class="fas fa-save mr-1"></i> Save settings
             </button>
             <span class="text-xs text-white/30">Saving runs a connection check automatically.</span>

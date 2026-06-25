@@ -4,7 +4,7 @@
 <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="flex items-center gap-2 mb-6">
         <h1 class="text-2xl font-bold flex-1" style="color: var(--text-primary);">Followers</h1>
-        <a href="{{ route('user.followers.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ request()->routeIs('user.followers.*') ? 'bg-violet-600 text-white' : '' }}" style="{{ request()->routeIs('user.followers.*') ? '' : 'background: var(--bg-soft); color: var(--text-muted);' }}">Followers</a>
+        <a href="{{ route('user.followers.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ request()->routeIs('user.followers.*') ? 'bg-blue-600 text-white' : '' }}" style="{{ request()->routeIs('user.followers.*') ? '' : 'background: var(--bg-soft); color: var(--text-muted);' }}">Followers</a>
         <a href="{{ route('user.following.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background: var(--bg-soft); color: var(--text-muted);">Following</a>
     </div>
 
@@ -22,7 +22,7 @@
                     @if($u->avatar)
                         <img src="{{ $u->avatar }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $u->getInitials() }}</div>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $u->getInitials() }}</div>
                     @endif
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold truncate" style="color: var(--text-primary);">{{ $u->name }}</p>

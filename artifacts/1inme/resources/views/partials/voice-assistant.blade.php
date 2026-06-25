@@ -39,7 +39,7 @@
 <div class="fixed bottom-5 right-5 z-[1000]" style="font-family: inherit">
     <a href="{{ route('user.ai.voice.show') }}"
        title="Voice Assistant — upgrade to unlock"
-       class="relative w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-xl flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-violet-400">
+       class="relative w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-blue-400">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/>
         </svg>
@@ -71,8 +71,8 @@
         {{-- Tabs --}}
         <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <div class="flex items-center gap-3 text-xs font-medium">
-                <button @click="tab='chat'" :class="tab==='chat' ? 'text-violet-300' : 'text-white/50 hover:text-white/80'">Voice</button>
-                <button @click="tab='caps'; loadCaps()" :class="tab==='caps' ? 'text-violet-300' : 'text-white/50 hover:text-white/80'">What I can do</button>
+                <button @click="tab='chat'" :class="tab==='chat' ? 'text-blue-300' : 'text-white/50 hover:text-white/80'">Voice</button>
+                <button @click="tab='caps'; loadCaps()" :class="tab==='caps' ? 'text-blue-300' : 'text-white/50 hover:text-white/80'">What I can do</button>
             </div>
             <div class="flex items-center gap-2">
                 <button
@@ -101,7 +101,7 @@
                     <div :class="m.role === 'user' ? 'text-right' : 'text-left'">
                         <span
                             :class="m.role === 'user'
-                                ? 'bg-violet-600/30 text-violet-100'
+                                ? 'bg-blue-600/30 text-blue-100'
                                 : 'bg-white/5 text-white/85'"
                             class="inline-block rounded-2xl px-3 py-1.5 text-xs max-w-[85%] whitespace-pre-wrap"
                             x-text="m.content"
@@ -148,7 +148,7 @@
                 <div class="space-y-3">
                     <template x-for="(items, group) in caps.tools" :key="group">
                         <div>
-                            <p class="text-violet-300 text-[11px] uppercase tracking-wider mb-1" x-text="group.replace('_',' ')"></p>
+                            <p class="text-blue-300 text-[11px] uppercase tracking-wider mb-1" x-text="group.replace('_',' ')"></p>
                             <ul class="space-y-1">
                                 <template x-for="t in items" :key="t.name">
                                     <li class="text-xs text-white/80 leading-snug">
@@ -179,8 +179,8 @@
         @click="onMicClick()"
         @contextmenu.prevent="panelOpen = !panelOpen"
         :title="recording ? 'Stop and send' : 'Tap to talk · right-click for panel'"
-        :class="recording ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-violet-600 hover:bg-violet-700'"
-        class="w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-violet-400"
+        :class="recording ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'"
+        class="w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-blue-400"
     >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/>

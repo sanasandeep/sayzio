@@ -10,7 +10,7 @@
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">My Files</h1>
             <p class="text-sm mt-1" style="color: var(--text-faint);">Upload, browse, and manage your media files</p>
         </div>
-        <button @click="$refs.fileInput.click()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all">
+        <button @click="$refs.fileInput.click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all">
             <i class="fas fa-cloud-upload-alt"></i> Upload Files
         </button>
         <input type="file" x-ref="fileInput" @change="handleFileSelect($event)" multiple accept="image/*,video/*,audio/*,.pdf,.ppt,.pptx,.xls,.xlsx,.doc,.docx" class="hidden">
@@ -54,7 +54,7 @@
                 </div>
                 <div class="w-full rounded-full h-2 overflow-hidden" style="background: var(--bg-glass-input);">
                     <div class="h-full rounded-full transition-all duration-500"
-                         :class="quota.percent > 90 ? 'bg-red-500' : quota.percent > 70 ? 'bg-yellow-500' : 'bg-violet-500'"
+                         :class="quota.percent > 90 ? 'bg-red-500' : quota.percent > 70 ? 'bg-yellow-500' : 'bg-blue-500'"
                          :style="'width: ' + Math.min(quota.percent, 100) + '%'"></div>
                 </div>
             </div>
@@ -75,7 +75,7 @@
     <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
         <template x-for="t in ['all','image','video','audio','document']" :key="t">
             <button @click="activeType = t; loadFiles(1)" class="text-xs px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap"
-                    :class="activeType === t ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' : 'hover:text-white/50'"
+                    :class="activeType === t ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'hover:text-white/50'"
                     :style="activeType !== t ? 'color: var(--text-faint); background: var(--bg-glass);' : 'background: var(--bg-glass);'">
                 <i class="mr-1" :class="typeIcon(t)"></i>
                 <span x-text="t === 'all' ? 'All Files' : t.charAt(0).toUpperCase() + t.slice(1) + 's'"></span>
@@ -85,22 +85,22 @@
 
     <div x-show="uploading" x-transition class="glass rounded-2xl p-4 mb-4">
         <div class="flex items-center gap-3 mb-2">
-            <div class="animate-spin w-5 h-5 border-2 border-violet-400 border-t-transparent rounded-full"></div>
+            <div class="animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full"></div>
             <span class="text-sm font-medium" style="color: var(--text-secondary);" x-text="'Uploading ' + uploadQueue.length + ' file(s)...'"></span>
         </div>
         <div class="w-full rounded-full h-1.5 overflow-hidden" style="background: var(--bg-glass-input);">
-            <div class="h-full bg-violet-500 rounded-full transition-all duration-300" :style="'width: ' + uploadProgress + '%'"></div>
+            <div class="h-full bg-blue-500 rounded-full transition-all duration-300" :style="'width: ' + uploadProgress + '%'"></div>
         </div>
     </div>
 
     <div x-show="loading && files.length === 0" class="glass rounded-2xl p-12 text-center">
-        <div class="animate-spin w-8 h-8 border-2 border-violet-400 border-t-transparent rounded-full mx-auto"></div>
+        <div class="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto"></div>
         <p class="text-sm mt-3" style="color: var(--text-faint);">Loading files...</p>
     </div>
 
     <div x-show="!loading && filteredFiles.length === 0" x-cloak class="glass rounded-2xl p-12 text-center">
-        <div class="w-16 h-16 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-cloud-upload-alt text-violet-400 text-2xl"></i>
+        <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-cloud-upload-alt text-blue-400 text-2xl"></i>
         </div>
         <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">
             <span x-show="search">No files match your search</span>
@@ -108,7 +108,7 @@
             <span x-show="!search && activeType === 'all'">No files uploaded yet</span>
         </h3>
         <p class="text-sm mb-4" style="color: var(--text-faint);">Drag files here or click Upload to get started</p>
-        <button @click="$refs.fileInput.click()" class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
+        <button @click="$refs.fileInput.click()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
             <i class="fas fa-plus"></i> Upload Files
         </button>
     </div>
@@ -116,7 +116,7 @@
     <div x-show="filteredFiles.length > 0" x-cloak>
         <div x-show="viewMode === 'grid'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             <template x-for="file in filteredFiles" :key="file.id">
-                <div class="glass rounded-xl overflow-hidden group relative cursor-pointer hover:ring-1 hover:ring-violet-500/30 transition-all"
+                <div class="glass rounded-xl overflow-hidden group relative cursor-pointer hover:ring-1 hover:ring-blue-500/30 transition-all"
                      @click="selectedFile = file; showDetail = true">
                     <div class="aspect-square relative overflow-hidden" style="background: var(--bg-glass-input);">
                         <template x-if="file.type === 'image'">
@@ -124,8 +124,8 @@
                         </template>
                         <template x-if="file.type === 'video'">
                             <div class="w-full h-full flex items-center justify-center">
-                                <div class="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-violet-500/10"></div>
-                                <i class="fas fa-play-circle text-4xl text-violet-400/60"></i>
+                                <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-500/10"></div>
+                                <i class="fas fa-play-circle text-4xl text-blue-400/60"></i>
                             </div>
                         </template>
                         <template x-if="file.type === 'audio'">
@@ -187,7 +187,7 @@
                             </td>
                             <td class="py-3 px-4 hidden sm:table-cell">
                                 <span class="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                                      :class="file.type === 'image' ? 'bg-violet-500/10 text-violet-300' : file.type === 'video' ? 'bg-violet-500/10 text-violet-300' : file.type === 'audio' ? 'bg-green-500/10 text-green-300' : 'bg-orange-500/10 text-orange-300'"
+                                      :class="file.type === 'image' ? 'bg-blue-500/10 text-blue-300' : file.type === 'video' ? 'bg-blue-500/10 text-blue-300' : file.type === 'audio' ? 'bg-green-500/10 text-green-300' : 'bg-orange-500/10 text-orange-300'"
                                       x-text="file.type"></span>
                             </td>
                             <td class="py-3 px-4 text-xs hidden sm:table-cell" style="color: var(--text-faint);" x-text="formatSize(file.size_bytes)"></td>
@@ -274,13 +274,13 @@
 
                 <div class="mt-4 p-2.5 rounded-xl flex items-center gap-2" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                     <input type="text" :value="selectedFile?.url" readonly class="flex-1 text-[11px] bg-transparent outline-none" style="color: var(--text-secondary);">
-                    <button @click="copyUrl(selectedFile)" class="text-[10px] px-2 py-1 rounded-lg bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 transition-colors flex-shrink-0">
+                    <button @click="copyUrl(selectedFile)" class="text-[10px] px-2 py-1 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-colors flex-shrink-0">
                         <i class="fas fa-copy mr-1"></i>Copy
                     </button>
                 </div>
 
                 <div class="flex gap-2 mt-4">
-                    <a :href="selectedFile?.url" target="_blank" class="flex-1 text-center py-2 rounded-xl text-xs font-medium transition-all hover:bg-violet-500/30" style="background: var(--bg-glass); color: var(--text-secondary); border: 1px solid var(--border-glass);">
+                    <a :href="selectedFile?.url" target="_blank" class="flex-1 text-center py-2 rounded-xl text-xs font-medium transition-all hover:bg-blue-500/30" style="background: var(--bg-glass); color: var(--text-secondary); border: 1px solid var(--border-glass);">
                         <i class="fas fa-external-link-alt mr-1"></i> Open
                     </a>
                     <button @click="confirmDelete(selectedFile); showDetail = false" class="flex-1 text-center py-2 rounded-xl text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all">
@@ -315,10 +315,10 @@
          @drop.prevent="$refs.dropOverlay.classList.remove('active'); handleDrop($event)"
          class="fixed inset-0 z-40 pointer-events-none transition-all duration-200"
          :class="dragging ? 'pointer-events-auto' : ''"
-         :style="dragging ? 'background: rgba(124,58,237,0.08); backdrop-filter: blur(2px);' : ''">
-        <div x-show="dragging" class="absolute inset-8 border-2 border-dashed border-violet-500/40 rounded-3xl flex items-center justify-center">
+         :style="dragging ? 'background: rgba(61,107,255,0.08); backdrop-filter: blur(2px);' : ''">
+        <div x-show="dragging" class="absolute inset-8 border-2 border-dashed border-blue-500/40 rounded-3xl flex items-center justify-center">
             <div class="text-center">
-                <i class="fas fa-cloud-upload-alt text-4xl text-violet-400/60 mb-2"></i>
+                <i class="fas fa-cloud-upload-alt text-4xl text-blue-400/60 mb-2"></i>
                 <p class="text-sm font-medium" style="color: var(--text-secondary);">Drop files to upload</p>
             </div>
         </div>

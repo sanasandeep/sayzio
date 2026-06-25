@@ -12,7 +12,7 @@
     .rm-input, .rm-select, .rm-textarea { width:100%; border:1px solid var(--border-glass); border-radius:.75rem; background:var(--bg-glass-input); color:var(--text-primary); padding:10px 12px; font-size:14px; outline:none; }
     .rm-textarea { resize:vertical; min-height:60px; }
     .rm-row { margin-bottom:14px; }
-    .rm-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border:0; border-radius:999px; font-weight:600; font-size:13.5px; color:#fff; cursor:pointer; background:linear-gradient(135deg,#8b5cf6,#6366f1); }
+    .rm-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border:0; border-radius:999px; font-weight:600; font-size:13.5px; color:#fff; cursor:pointer; background:linear-gradient(135deg,#5c83ff,#6366f1); }
     .rm-btn.sm { padding:6px 12px; font-size:12.5px; }
     .rm-btn.ghost { background:transparent; color:var(--text-muted); border:1px solid var(--border-glass); }
     .rm-btn.danger { background:transparent; color:#ef4444; border:1px solid rgba(239,68,68,.4); }
@@ -20,7 +20,7 @@
     .rm-item .meta { flex:1; min-width:0; }
     .rm-item .nm { font-weight:650; color:var(--text-primary); font-size:14.5px; }
     .rm-item .ds { font-size:12.5px; color:var(--text-muted); margin-top:2px; }
-    .rm-item .pr { font-size:13px; color:#8b5cf6; font-weight:700; margin-top:4px; }
+    .rm-item .pr { font-size:13px; color:#5c83ff; font-weight:700; margin-top:4px; }
     .rm-cat { border:1px solid var(--border-glass); border-radius:1rem; padding:16px; margin-bottom:16px; }
     .rm-cat-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .rm-cat-head .ct { font-weight:700; color:var(--text-primary); font-size:16px; }
@@ -29,7 +29,7 @@
     .rm-mode-toggle { display:flex; gap:8px; }
     .rm-mode-toggle label { flex:1; text-align:center; padding:10px; border:1px solid var(--border-glass); border-radius:.75rem; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-muted); }
     .rm-mode-toggle input { display:none; }
-    .rm-mode-toggle input:checked + span { color:#8b5cf6; }
+    .rm-mode-toggle input:checked + span { color:#5c83ff; }
     .rm-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:60; padding:16px; }
     .rm-modal { background:var(--bg-card); border:1px solid var(--border-glass); border-radius:1rem; padding:22px; width:100%; max-width:480px; max-height:90vh; overflow:auto; }
 </style>

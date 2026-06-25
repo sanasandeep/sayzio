@@ -14,7 +14,7 @@
         <h2 class="text-lg font-semibold text-white mb-1">Social profile links</h2>
         <p class="text-sm text-white/50 mb-6">
             Paste the full URL to each of your brand's public social profiles. We'll show an icon for every network you fill in
-            in the public site footer; networks left blank are hidden entirely. Each URL must start with <code class="text-violet-300">http://</code> or <code class="text-violet-300">https://</code>.
+            in the public site footer; networks left blank are hidden entirely. Each URL must start with <code class="text-blue-300">http://</code> or <code class="text-blue-300">https://</code>.
         </p>
 
         <form method="POST" action="{{ route('admin.social-links.update') }}" class="space-y-4">
@@ -37,7 +37,7 @@
             @endforeach
 
             <div class="pt-3 border-t border-white/10">
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Save social links</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save social links</button>
             </div>
         </form>
     </div>

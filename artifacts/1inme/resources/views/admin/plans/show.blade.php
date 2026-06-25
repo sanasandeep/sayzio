@@ -32,7 +32,7 @@
 <div class="flex items-center gap-4 mb-6">
     <a href="{{ route('admin.plans.index') }}" class="text-white/30 hover:text-white/50"><i class="fas fa-arrow-left"></i></a>
     <h1 class="text-2xl font-bold text-white">{{ $plan->name }}</h1>
-    <a href="{{ route('admin.plans.edit', $plan) }}" class="ml-auto bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Edit Plan</a>
+    <a href="{{ route('admin.plans.edit', $plan) }}" class="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Edit Plan</a>
 </div>
 
 <div class="space-y-6 max-w-5xl">

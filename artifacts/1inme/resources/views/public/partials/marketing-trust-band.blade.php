@@ -23,7 +23,7 @@
             <div class="flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-8">
                 <div class="flex items-center gap-3 shrink-0">
                     <div class="flex -space-x-2" aria-hidden="true">
-                        @foreach(['#7c3aed', '#1bd4d9', '#e94e8c', '#ff8a3c'] as $c)
+                        @foreach(['#3d6bff', '#1bd4d9', '#e94e8c', '#ff8a3c'] as $c)
                             <span class="w-7 h-7 rounded-full border-2 border-white/30"
                                   style="background: {{ $c }};"></span>
                         @endforeach

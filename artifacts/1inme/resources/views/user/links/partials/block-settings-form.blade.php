@@ -5,7 +5,7 @@ $selectClass = $inputClass;
 $labelClass = 'block text-xs mb-1';
 @endphp
 <style>.block-settings-form label { color: var(--text-faint); } .block-settings-form .glass { background: var(--bg-glass); border: 1px solid var(--border-glass); }
-.block-settings-form .placeholder-banner { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; margin-bottom:14px; border-radius:12px; background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(236,72,153,0.18)); border: 1px solid rgba(167,139,250,0.35); color: #f3e8ff; font-size: 12.5px; line-height:1.4; }
+.block-settings-form .placeholder-banner { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; margin-bottom:14px; border-radius:12px; background: linear-gradient(135deg, rgba(61,107,255,0.18), rgba(236,72,153,0.18)); border: 1px solid rgba(144,172,255,0.35); color: #f3e8ff; font-size: 12.5px; line-height:1.4; }
 .block-settings-form .placeholder-banner i { color:#fbbf24; font-size:14px; margin-top:2px; }
 
 /* Italic+dimmed inputs in placeholder mode; ::after pill on file
@@ -67,7 +67,7 @@ $labelClass = 'block text-xs mb-1';
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <label class="flex items-center gap-2 text-xs text-white/60">
         <input type="hidden" name="settings[is_featured]" value="0">
-        <input type="checkbox" name="settings[is_featured]" value="1" x-model="featured" class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+        <input type="checkbox" name="settings[is_featured]" value="1" x-model="featured" class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
         <i class="fas fa-thumbtack text-amber-400"></i> Mark as featured (pinned style)
     </label>
     <div x-show="featured" x-cloak class="space-y-2 pl-2 border-l-2 border-amber-400/30">
@@ -83,7 +83,7 @@ $labelClass = 'block text-xs mb-1';
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
     @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
-    <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+    <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
 </div>
 
 @elseif($block->type === 'heading')
@@ -101,7 +101,7 @@ $labelClass = 'block text-xs mb-1';
         </select>
     </div>
     <div class="grid grid-cols-2 gap-3" x-show="headingStyle === 'gradient'" x-cloak>
-        <div><label class="{{ $labelClass }}">From Color</label><input type="color" name="settings[from_color]" value="{{ $s['from_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">From Color</label><input type="color" name="settings[from_color]" value="{{ $s['from_color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">To Color</label><input type="color" name="settings[to_color]" value="{{ $s['to_color'] ?? '#ec4899' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
     <div class="grid grid-cols-2 gap-3">
@@ -180,7 +180,7 @@ $labelClass = 'block text-xs mb-1';
             @foreach($listStyles as $key => $meta)
                 <label class="cursor-pointer">
                     <input type="radio" name="settings[style]" value="{{ $key }}" x-model="style" class="sr-only peer">
-                    <div class="rounded-lg p-2 text-center text-[11px] flex flex-col items-center gap-1 transition-all peer-checked:ring-2 peer-checked:ring-violet-500 peer-checked:bg-violet-500/15"
+                    <div class="rounded-lg p-2 text-center text-[11px] flex flex-col items-center gap-1 transition-all peer-checked:ring-2 peer-checked:ring-blue-500 peer-checked:bg-blue-500/15"
                          style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-muted);">
                         <i class="fas {{ $meta['icon'] }} text-sm"></i>
                         <span>{{ $meta['label'] }}</span>
@@ -225,7 +225,7 @@ $labelClass = 'block text-xs mb-1';
                 @endif
             </div>
         </template>
-        <button type="button" @click="items.push({{ $block->type === 'list' ? '{text:\'\',icon:\'\'}' : '{text:\'\'}' }})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+        <button type="button" @click="items.push({{ $block->type === 'list' ? '{text:\'\',icon:\'\'}' : '{text:\'\'}' }})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
     </div>
 </div>
 
@@ -261,7 +261,7 @@ $labelClass = 'block text-xs mb-1';
             @foreach($pricingStyles as $key => $meta)
                 <label class="cursor-pointer">
                     <input type="radio" name="settings[style]" value="{{ $key }}" x-model="style" class="sr-only peer">
-                    <div class="rounded-lg p-2.5 text-left flex items-start gap-2 transition-all peer-checked:ring-2 peer-checked:ring-violet-500 peer-checked:bg-violet-500/15"
+                    <div class="rounded-lg p-2.5 text-left flex items-start gap-2 transition-all peer-checked:ring-2 peer-checked:ring-blue-500 peer-checked:bg-blue-500/15"
                          style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
                         <i class="fas {{ $meta['icon'] }} text-sm mt-0.5" style="color: var(--text-muted);"></i>
                         <div>
@@ -293,7 +293,7 @@ $labelClass = 'block text-xs mb-1';
                 <div class="flex items-center gap-4 flex-wrap">
                     <label class="flex items-center gap-1.5 text-xs" style="color: var(--text-muted);">
                         <input type="hidden" :name="'settings[items]['+i+'][included]'" value="0">
-                        <input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" :value="'1'" class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" :value="'1'" class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                         <i class="fas fa-check text-green-400 text-[10px]"></i> Included
                     </label>
                     <label class="flex items-center gap-1.5 text-xs" style="color: var(--text-muted);">
@@ -305,7 +305,7 @@ $labelClass = 'block text-xs mb-1';
                 </div>
             </div>
         </template>
-        <button type="button" @click="items.push({name:'',description:'',price:'',period:'',included:true,featured:false,thumbnail:'',icon:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+        <button type="button" @click="items.push({name:'',description:'',price:'',period:'',included:true,featured:false,thumbnail:'',icon:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
     </div>
 </div>
 
@@ -319,7 +319,7 @@ $labelClass = 'block text-xs mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
 </div>
@@ -351,7 +351,7 @@ $labelClass = 'block text-xs mb-1';
         </div>
     </template>
     <div class="flex items-center gap-2 mt-1 flex-wrap">
-        <button type="button" @click="images.push('')" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add URL</button>
+        <button type="button" @click="images.push('')" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add URL</button>
         <span class="text-white/10">|</span>
         <button type="button" @click="$refs.gridFileInput.click()" class="text-xs text-emerald-400 hover:text-emerald-300"><i class="fas fa-cloud-upload-alt mr-1"></i>Upload</button>
         <span class="text-white/10">|</span>
@@ -361,23 +361,23 @@ $labelClass = 'block text-xs mb-1';
     <template x-if="uploading">
         <div class="mt-2 rounded-lg p-2" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
             <div class="w-full rounded-full h-1.5 mb-1" style="background: var(--bg-glass-input);">
-                <div class="h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 transition-all" :style="'width:' + uploadProgress + '%'"></div>
+                <div class="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 transition-all" :style="'width:' + uploadProgress + '%'"></div>
             </div>
-            <p class="text-[10px] text-violet-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</p>
+            <p class="text-[10px] text-blue-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</p>
         </div>
     </template>
     <template x-if="showVault">
         <div class="mt-2 rounded-lg overflow-hidden" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
             <div class="p-2 flex items-center gap-2" style="border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.06));">
                 <input type="text" x-model="vaultSearch" placeholder="Search My Files…" class="flex-1 text-xs px-2.5 py-1.5 rounded-lg outline-none" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">
-                <button type="button" @click="loadVault()" class="text-[10px] text-violet-400 hover:text-violet-300 px-2"><i class="fas fa-sync-alt"></i></button>
+                <button type="button" @click="loadVault()" class="text-[10px] text-blue-400 hover:text-blue-300 px-2"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div class="max-h-48 overflow-y-auto p-2">
-                <template x-if="vaultLoading"><div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-violet-400/60"></i></div></template>
+                <template x-if="vaultLoading"><div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-blue-400/60"></i></div></template>
                 <template x-if="!vaultLoading && vaultFiles.length === 0"><div class="py-6 text-center text-xs text-white/30">No images in your vault yet</div></template>
                 <div class="grid grid-cols-4 gap-1.5">
                     <template x-for="f in filteredVault" :key="f.id">
-                        <button type="button" @click="addFromVault(f)" class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-violet-500/50" style="background: var(--bg-glass-input);">
+                        <button type="button" @click="addFromVault(f)" class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-blue-500/50" style="background: var(--bg-glass-input);">
                             <img :src="f.url" class="w-full aspect-square object-cover" :alt="f.original_name">
                         </button>
                     </template>
@@ -452,9 +452,9 @@ function imageListUploader_{{ $gridImgId }}() {
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'video', 'labelText' => 'Video', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @if($block->type === 'header_video')
     <div class="flex gap-4">
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[autoplay]" value="1" {{ ($s['autoplay'] ?? false) ? 'checked' : '' }} class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Autoplay</label>
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[muted]" value="1" {{ ($s['muted'] ?? false) ? 'checked' : '' }} class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Muted</label>
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[loop]" value="1" {{ ($s['loop'] ?? false) ? 'checked' : '' }} class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Loop</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[autoplay]" value="1" {{ ($s['autoplay'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Autoplay</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[muted]" value="1" {{ ($s['muted'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Muted</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[loop]" value="1" {{ ($s['loop'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Loop</label>
     </div>
     @endif
 </div>
@@ -632,7 +632,7 @@ function imageListUploader_{{ $gridImgId }}() {
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400 mt-1"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="items.push({question:'',answer:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push({question:'',answer:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
 </div>
 
 @elseif($block->type === 'poll')
@@ -642,7 +642,7 @@ function imageListUploader_{{ $gridImgId }}() {
     <template x-for="(opt, i) in options" :key="i">
         <div class="flex gap-2 mb-2"><input type="text" x-model="options[i]" :name="'settings[options]['+i+']'" class="{{ $inputClass }}"><button type="button" @click="options.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
-    <button type="button" @click="options.push('')" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Option</button>
+    <button type="button" @click="options.push('')" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Option</button>
     {{-- Server hides /poll-results tallies until this viewer has voted. --}}
     <label class="flex items-center gap-2 mt-3 text-xs text-white/70 cursor-pointer">
         <input type="hidden" name="settings[hide_results_until_voted]" value="0">
@@ -667,7 +667,7 @@ function imageListUploader_{{ $gridImgId }}() {
     @if($block->exists)
         <div class="mt-3 flex flex-wrap items-center gap-3">
             <a href="{{ route('user.links.poll-votes.index', [$block->link_id, $block->id]) }}"
-               class="inline-flex items-center gap-1.5 text-xs text-violet-300 hover:text-violet-200">
+               class="inline-flex items-center gap-1.5 text-xs text-blue-300 hover:text-blue-200">
                 <i class="fas fa-list-ol"></i> View &amp; export votes
             </a>
             {{-- Reset votes: clears all PollVote rows for this block while
@@ -686,7 +686,7 @@ function imageListUploader_{{ $gridImgId }}() {
 if (typeof window.resetPollVotesToast !== 'function') {
     window.resetPollVotesToast = function (msg, type) {
         if (typeof window.showToast === 'function') { window.showToast(msg, type); return; }
-        var colors = { success: 'linear-gradient(135deg, #10b981, #059669)', error: 'linear-gradient(135deg, #ef4444, #dc2626)', info: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' };
+        var colors = { success: 'linear-gradient(135deg, #10b981, #059669)', error: 'linear-gradient(135deg, #ef4444, #dc2626)', info: 'linear-gradient(135deg, #5c83ff, #3d6bff)' };
         var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
         var t = document.createElement('div');
         t.className = 'fixed bottom-4 right-4 z-[10001] px-4 py-2.5 rounded-xl text-xs font-medium text-white shadow-lg transition-all';
@@ -767,7 +767,7 @@ if (typeof window.resetPollVotes !== 'function') {
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="items.push({name:'',text:'',rating:5})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push({name:'',text:'',rating:5})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @elseif($block->type === 'review')
@@ -819,7 +819,7 @@ if (typeof window.resetPollVotes !== 'function') {
         </div>
     </template>
     @php $extra = $block->type === 'timeline' ? "date:''" : "status:'upcoming'"; @endphp
-    <button type="button" @click="items.push({title:'',description:'',{!! $extra !!}})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push({title:'',description:'',{!! $extra !!}})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
 </div>
 
 @elseif($block->type === 'product')
@@ -845,7 +845,7 @@ if (typeof window.resetPollVotes !== 'function') {
     </div>
 
     {{-- Native checkout configuration --}}
-    <div x-show="native" class="space-y-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+    <div x-show="native" class="space-y-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3">
         <div class="grid grid-cols-2 gap-3">
             <div>
                 <label class="{{ $labelClass }}">Amount</label>
@@ -929,7 +929,7 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'progress')
-<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Progress','value'=>75,'color'=>'#7c3aed']]) }} }">
+<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Progress','value'=>75,'color'=>'#3d6bff']]) }} }">
     <label class="{{ $labelClass }}">Progress Bars</label>
     <template x-for="(item, i) in items" :key="i">
         <div class="glass rounded-lg p-3 mb-2 grid grid-cols-3 gap-2">
@@ -938,7 +938,7 @@ if (typeof window.resetPollVotes !== 'function') {
             <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
         </div>
     </template>
-    <button type="button" @click="items.push({label:'',value:50,color:'#7c3aed'})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push({label:'',value:50,color:'#3d6bff'})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @elseif($block->type === 'cta_button')
@@ -946,7 +946,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
     <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Large</option></select></div>
@@ -964,7 +964,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <template x-for="(item, i) in items" :key="i">
         <div class="flex gap-2 mb-2"><input type="text" x-model="items[i]" :name="'settings[items]['+i+']'" class="{{ $inputClass }}"><button type="button" @click="items.splice(i,1)" class="text-red-400/60 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
-    <button type="button" @click="items.push('')" class="text-xs text-violet-400"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push('')" class="text-xs text-blue-400"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @elseif($block->type === 'iframe_embed')
@@ -1041,7 +1041,7 @@ if (typeof window.resetPollVotes !== 'function') {
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Avatar Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size (px)</label><input type="number" name="settings[size]" value="{{ $s['size'] ?? 96 }}" min="32" max="256" class="{{ $inputClass }}"></div>
-        <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-xs text-white/40"><input type="hidden" name="settings[rounded]" value="0"><input type="checkbox" name="settings[rounded]" value="1" {{ ($s['rounded'] ?? true) ? 'checked' : '' }} class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Rounded</label></div>
+        <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-xs text-white/40"><input type="hidden" name="settings[rounded]" value="0"><input type="checkbox" name="settings[rounded]" value="1" {{ ($s['rounded'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Rounded</label></div>
     </div>
 </div>
 
@@ -1082,7 +1082,7 @@ if (typeof window.resetPollVotes !== 'function') {
          them, so you can switch designs without re-entering them. --}}
     <label class="flex items-center gap-2 cursor-pointer select-none">
         <input type="hidden" name="settings[verified]" value="0">
-        <input type="checkbox" name="settings[verified]" value="1" @checked(!empty($s['verified'])) class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/40">
+        <input type="checkbox" name="settings[verified]" value="1" @checked(!empty($s['verified'])) class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
         <span class="text-sm text-white/80">Show verified badge</span>
     </label>
 
@@ -1112,7 +1112,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 <button type="button" @click="socials.splice(i,1)" class="text-red-400/60 hover:text-red-400 shrink-0"><i class="fas fa-times"></i></button>
             </div>
         </template>
-        <button type="button" @click="socials.push({name:'',url:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add social link</button>
+        <button type="button" @click="socials.push({name:'',url:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add social link</button>
     </div>
 
     {{-- Stat counters — shown by the Stats design (profile_card_v3). Each
@@ -1130,7 +1130,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 <button type="button" @click="stats.splice(i,1)" class="text-red-400/60 hover:text-red-400 shrink-0"><i class="fas fa-times"></i></button>
             </div>
         </template>
-        <button type="button" x-show="stats.length < 6" @click="stats.push({label:'',value:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add stat</button>
+        <button type="button" x-show="stats.length < 6" @click="stats.push({label:'',value:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add stat</button>
         <p x-show="stats.length >= 6" class="text-xs text-white/30">Up to 6 stats.</p>
     </div>
     @endif
@@ -1146,7 +1146,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 <button type="button" @click="badges.splice(i,1)" class="text-red-400/60 hover:text-red-400 shrink-0"><i class="fas fa-times"></i></button>
             </div>
         </template>
-        <button type="button" x-show="badges.length < 12" @click="badges.push({label:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add badge</button>
+        <button type="button" x-show="badges.length < 12" @click="badges.push({label:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add badge</button>
         <p x-show="badges.length >= 12" class="text-xs text-white/30">Up to 12 badges.</p>
     </div>
     @endif
@@ -1209,7 +1209,7 @@ if (typeof window.resetPollVotes !== 'function') {
 
     <div x-show="bgType === 'gradient'" x-cloak>
         <label class="{{ $labelClass }}">CSS Gradient</label>
-        <input type="text" name="settings[bg_gradient]" value="{{ $s['bg_gradient'] ?? '' }}" class="{{ $inputClass }}" placeholder="linear-gradient(135deg, #7c3aed, #ec4899)">
+        <input type="text" name="settings[bg_gradient]" value="{{ $s['bg_gradient'] ?? '' }}" class="{{ $inputClass }}" placeholder="linear-gradient(135deg, #3d6bff, #ec4899)">
     </div>
 
     <div x-show="bgType === 'image'" x-cloak>
@@ -1218,8 +1218,8 @@ if (typeof window.resetPollVotes !== 'function') {
     </div>
 
     <div x-show="bgType === 'glass'" x-cloak class="space-y-3">
-        <div><label class="{{ $labelClass }}">Glass Blur (px)</label><input type="range" name="settings[glass_blur]" value="{{ $s['glass_blur'] ?? 12 }}" min="0" max="40" class="w-full accent-purple-500"></div>
-        <div><label class="{{ $labelClass }}">Glass Opacity (%)</label><input type="range" name="settings[glass_opacity]" value="{{ $s['glass_opacity'] ?? 6 }}" min="0" max="30" class="w-full accent-purple-500"></div>
+        <div><label class="{{ $labelClass }}">Glass Blur (px)</label><input type="range" name="settings[glass_blur]" value="{{ $s['glass_blur'] ?? 12 }}" min="0" max="40" class="w-full accent-indigo-500"></div>
+        <div><label class="{{ $labelClass }}">Glass Opacity (%)</label><input type="range" name="settings[glass_opacity]" value="{{ $s['glass_opacity'] ?? 6 }}" min="0" max="30" class="w-full accent-indigo-500"></div>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -1277,7 +1277,7 @@ if (typeof window.resetPollVotes !== 'function') {
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="items.push({name:'',url:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push({name:'',url:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
 </div>
 
 @elseif($block->type === 'quiz')
@@ -1287,7 +1287,7 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'chart_pie')
-<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Segment','value'=>50,'color'=>'#7c3aed']]) }} }">
+<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Segment','value'=>50,'color'=>'#3d6bff']]) }} }">
     <label class="{{ $labelClass }}">Chart Segments</label>
     <template x-for="(item, i) in items" :key="i">
         <div class="glass rounded-lg p-3 mb-2 grid grid-cols-3 gap-2">
@@ -1296,7 +1296,7 @@ if (typeof window.resetPollVotes !== 'function') {
             <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
         </div>
     </template>
-    <button type="button" @click="items.push({label:'',value:25,color:'#ec4899'})" class="text-xs text-violet-400"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push({label:'',value:25,color:'#ec4899'})" class="text-xs text-blue-400"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @elseif($block->type === 'ai_companion')
@@ -1309,7 +1309,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <label class="{{ $labelClass }}">Pick an AI Companion</label>
     @if($userCmps->isEmpty())
         <p class="text-xs text-white/40 mb-2">You haven't created any Link in Bio AI Companions yet.</p>
-        <a href="{{ route('user.ai-companions.create') }}?placement=biolink" target="_blank" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Create one</a>
+        <a href="{{ route('user.ai-companions.create') }}?placement=biolink" target="_blank" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Create one</a>
     @else
         <select name="settings[companion_id]" class="{{ $inputClass }}">
             <option value="">— Choose a Companion —</option>
@@ -1327,7 +1327,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <label class="{{ $labelClass }}">Pick a Buzz campaign</label>
     @if($userSps->isEmpty())
         <p class="text-xs text-white/40 mb-2">You haven't created any campaigns yet.</p>
-        <a href="{{ route('user.social-proofs.create') }}" target="_blank" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Create one</a>
+        <a href="{{ route('user.social-proofs.create') }}" target="_blank" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Create one</a>
     @else
         <select name="settings[social_proof_id]" class="{{ $inputClass }}">
             <option value="">— Choose a campaign —</option>
@@ -1396,8 +1396,8 @@ if (typeof window.resetPollVotes !== 'function') {
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Calendly URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://calendly.com/you/30min" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Embed Height (px)</label><input type="number" name="settings[height]" value="{{ $s['height'] ?? 700 }}" min="400" max="1400" class="{{ $inputClass }}"></div>
-    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[hide_event_details]" value="0"><input type="checkbox" name="settings[hide_event_details]" value="1" {{ !empty($s['hide_event_details']) ? 'checked' : '' }} class="rounded text-violet-500">Hide event details</label>
-    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[hide_cookie_banner]" value="0"><input type="checkbox" name="settings[hide_cookie_banner]" value="1" {{ ($s['hide_cookie_banner'] ?? true) ? 'checked' : '' }} class="rounded text-violet-500">Hide cookie banner</label>
+    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[hide_event_details]" value="0"><input type="checkbox" name="settings[hide_event_details]" value="1" {{ !empty($s['hide_event_details']) ? 'checked' : '' }} class="rounded text-blue-500">Hide event details</label>
+    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[hide_cookie_banner]" value="0"><input type="checkbox" name="settings[hide_cookie_banner]" value="1" {{ ($s['hide_cookie_banner'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500">Hide cookie banner</label>
 </div>
 
 @elseif($block->type === 'map_location')
@@ -1410,14 +1410,14 @@ if (typeof window.resetPollVotes !== 'function') {
     <div>
         <div class="flex items-center justify-between mb-1">
             <span class="{{ $labelClass }}" style="margin-bottom:0;">Pin location</span>
-            <button type="button" @click="toggleMap()" class="text-[11px] font-medium" style="color:#a78bfa;">
+            <button type="button" @click="toggleMap()" class="text-[11px] font-medium" style="color:#90acff;">
                 <i class="fas fa-map-location-dot mr-1"></i> <span x-text="showMap ? 'Hide map' : 'Pick on map'"></span>
             </button>
         </div>
         <div x-show="showMap" x-cloak class="mb-1">
             <div class="flex gap-2 mb-2">
                 <input x-model="searchQuery" @keydown.enter.prevent="searchAddress()" type="text" placeholder="Search a place or address…" class="{{ $inputClass }}">
-                <button type="button" @click="searchAddress()" class="px-3 rounded-lg text-xs font-medium flex-shrink-0" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)">
+                <button type="button" @click="searchAddress()" class="px-3 rounded-lg text-xs font-medium flex-shrink-0" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)">
                     <i class="fas fa-magnifying-glass"></i>
                 </button>
             </div>
@@ -1434,7 +1434,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <p class="text-[11px] text-white/40 -mt-1">If both lat/lng are set they take precedence over the address (useful for pin-precise pinning).</p>
     <div><label class="{{ $labelClass }}">Display Label (optional)</label><input type="text" name="settings[label]" value="{{ $s['label'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Zoom</label><input type="number" name="settings[zoom]" value="{{ $s['zoom'] ?? 15 }}" min="1" max="20" class="{{ $inputClass }}"></div>
-    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[show_directions]" value="0"><input type="checkbox" name="settings[show_directions]" value="1" {{ ($s['show_directions'] ?? true) ? 'checked' : '' }} class="rounded text-violet-500">Show "Directions" button</label>
+    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[show_directions]" value="0"><input type="checkbox" name="settings[show_directions]" value="1" {{ ($s['show_directions'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500">Show "Directions" button</label>
 </div>
 
 @else

@@ -26,9 +26,9 @@
         font-size: 11px;
         font-weight: 700;
         color: #fff;
-        background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+        background: linear-gradient(90deg, #3d6bff, #5c83ff);
         border-radius: 9px;
-        box-shadow: 0 4px 14px rgba(124,58,237,0.32);
+        box-shadow: 0 4px 14px rgba(61,107,255,0.32);
         min-width: 1.75rem;
         white-space: nowrap;
     }
@@ -44,7 +44,7 @@
     }
     .cv-mini-bar-fill {
         height: 100%;
-        background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+        background: linear-gradient(90deg, #3d6bff, #5c83ff);
     }
     .cv-mini-bar-fill.is-fallback {
         background: var(--c-danger);
@@ -63,7 +63,7 @@
         display: inline-block;
         padding: 2px 9px;
         border-radius: 999px;
-        background: var(--accent-soft, rgba(124,58,237,0.14));
+        background: var(--accent-soft, rgba(61,107,255,0.14));
         color: var(--accent);
         font-size: 11px;
         font-weight: 700;
@@ -109,14 +109,14 @@
 
     {{-- ===================== HEADLINE METRICS ===================== --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(124,58,237,0.12); --stat-border-color: rgba(124,58,237,0.2);">
+        <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #5c83ff, #90acff); --stat-glow: rgba(61,107,255,0.12); --stat-border-color: rgba(61,107,255,0.2);">
             <div class="flex items-center justify-between relative z-10">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Sessions started</p>
                     <p class="text-xl font-bold" id="m-sessions" style="color: var(--text-primary);">—</p>
                 </div>
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                    <i class="fas fa-play text-violet-400 text-sm"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                    <i class="fas fa-play text-blue-400 text-sm"></i>
                 </div>
             </div>
         </div>

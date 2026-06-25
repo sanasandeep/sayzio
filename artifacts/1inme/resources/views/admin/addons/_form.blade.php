@@ -28,19 +28,19 @@
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Addon Name</label>
         <input type="text" name="name" value="{{ old('name', $addon->name) }}" required
-               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
         @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
     </div>
 
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Description</label>
         <textarea name="description" rows="2"
-                  class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('description', $addon->description) }}</textarea>
+                  class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">{{ old('description', $addon->description) }}</textarea>
     </div>
 
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Type</label>
-        <select name="type" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+        <select name="type" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
             @foreach(\App\Modules\Admin\Models\Addon::TYPES as $t)
                 <option value="{{ $t }}" {{ old('type', $addon->type) === $t ? 'selected' : '' }}>{{ ucfirst(str_replace('_',' ',$t)) }}</option>
             @endforeach
@@ -58,13 +58,13 @@
                         <label class="block text-xs text-white/40 mb-1">Monthly (USD, cents)</label>
                         <input type="number" name="monthly_price" step="1" min="0" required
                                value="{{ old('monthly_price', (int) round(((float) $addon->monthly_price) * 100)) }}"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                     <div>
                         <label class="block text-xs text-white/40 mb-1">Annual (USD, cents)</label>
                         <input type="number" name="annual_price" step="1" min="0" required
                                value="{{ old('annual_price', (int) round(((float) $addon->annual_price) * 100)) }}"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                 </div>
             </div>
@@ -75,13 +75,13 @@
                         <label class="block text-xs text-white/40 mb-1">Monthly (INR, paise)</label>
                         <input type="number" name="monthly_price_secondary" step="1" min="0" required
                                value="{{ old('monthly_price_secondary', (int) round(((float) $addon->monthly_price_secondary) * 100)) }}"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                     <div>
                         <label class="block text-xs text-white/40 mb-1">Annual (INR, paise)</label>
                         <input type="number" name="annual_price_secondary" step="1" min="0" required
                                value="{{ old('annual_price_secondary', (int) round(((float) $addon->annual_price_secondary) * 100)) }}"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                 </div>
                 <p class="text-[10px] text-white/30 mt-2">INR is required — every addon has explicit USD <em>and</em> INR pricing.</p>
@@ -95,13 +95,13 @@
         <input type="number" name="coin_cost" min="0" step="1"
                value="{{ old('coin_cost', $addon->coin_cost) }}"
                placeholder="e.g. 500"
-               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
     </div>
 
     <div class="grid grid-cols-2 gap-4">
         <div>
             <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
-            <select name="status" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+            <select name="status" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                 <option value="active"   {{ old('status', $addon->status) === 'active' ? 'selected' : '' }}>Active</option>
                 <option value="inactive" {{ old('status', $addon->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
             </select>
@@ -109,7 +109,7 @@
         <div>
             <label class="block text-sm font-medium text-white/80 mb-1">Sort Order</label>
             <input type="number" name="sort_order" min="0" value="{{ old('sort_order', $addon->sort_order) }}"
-                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
         </div>
     </div>
 
@@ -121,7 +121,7 @@
                 <label class="flex items-center gap-2 text-sm text-white/70 p-2 rounded hover:bg-white/5">
                     <input type="checkbox" name="plan_ids[]" value="{{ $plan->id }}"
                            {{ in_array($plan->id, old('plan_ids', $checkedPlanIds)) ? 'checked' : '' }}
-                           class="rounded border-white/10 text-violet-400">
+                           class="rounded border-white/10 text-blue-400">
                     {{ $plan->name }}
                 </label>
             @endforeach
@@ -137,7 +137,7 @@
             <div>
                 <label class="block text-xs text-white/40 mb-1" title="{{ $key }}">{{ $label }}</label>
                 <input type="number" name="features[{{ $key }}]" value="{{ $features[$key] ?? '' }}" min="0"
-                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
             </div>
             @endforeach
         </div>
@@ -147,7 +147,7 @@
             <label class="flex items-center gap-2 text-sm text-white/60 p-2 rounded hover:bg-white/5">
                 <input type="checkbox" name="features[{{ $key }}]" value="1"
                        {{ !empty($features[$key]) ? 'checked' : '' }}
-                       class="rounded border-white/10 text-violet-400">
+                       class="rounded border-white/10 text-blue-400">
                 {{ $label }}
             </label>
             @endforeach
@@ -158,7 +158,7 @@
     @include('admin.partials.zero-price-guard', ['entityLabel' => 'add-on'])
 
     <div class="flex items-center gap-3 pt-4">
-        <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">{{ $submitLabel ?? 'Save Addon' }}</button>
+        <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">{{ $submitLabel ?? 'Save Addon' }}</button>
         <a href="{{ route('admin.addons.index') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>
     </div>
 </div>

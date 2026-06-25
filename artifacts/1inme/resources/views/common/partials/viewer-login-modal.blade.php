@@ -32,26 +32,26 @@
         <template x-if="!loggedIn">
             <div>
                 <div class="flex gap-1 mb-3 text-xs">
-                    <button type="button" :class="channel==='email' ? 'bg-violet-600 text-white' : 'bg-white/10'" class="px-3 py-1 rounded" @click="channel='email'">Email</button>
-                    <button type="button" :class="channel==='mobile' ? 'bg-violet-600 text-white' : 'bg-white/10'" class="px-3 py-1 rounded" @click="channel='mobile'">Mobile</button>
+                    <button type="button" :class="channel==='email' ? 'bg-blue-600 text-white' : 'bg-white/10'" class="px-3 py-1 rounded" @click="channel='email'">Email</button>
+                    <button type="button" :class="channel==='mobile' ? 'bg-blue-600 text-white' : 'bg-white/10'" class="px-3 py-1 rounded" @click="channel='mobile'">Mobile</button>
                 </div>
                 <template x-if="step === 'identifier'">
                     <form @submit.prevent="sendOtp" class="space-y-2">
                         <input :type="channel==='email' ? 'email' : 'tel'" x-model="identifier" required
                                :placeholder="channel==='email' ? 'you@email.com' : '+1 555 123 4567'"
-                               class="w-full px-3 py-2 rounded-lg text-sm outline-none bg-white/10 border border-white/15 focus:border-violet-500"/>
-                        <button :disabled="sending" class="w-full px-4 py-2 rounded-lg text-sm font-bold bg-violet-600 hover:bg-violet-500" x-text="sending ? 'Sending…' : 'Send code'"></button>
+                               class="w-full px-3 py-2 rounded-lg text-sm outline-none bg-white/10 border border-white/15 focus:border-blue-500"/>
+                        <button :disabled="sending" class="w-full px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-500" x-text="sending ? 'Sending…' : 'Send code'"></button>
                     </form>
                 </template>
                 <template x-if="step === 'otp'">
                     <form @submit.prevent="verifyOtp" class="space-y-2">
                         <input type="text" x-model="otp" required maxlength="6" placeholder="6-digit code"
-                               class="w-full px-3 py-2 rounded-lg text-center tracking-[0.4em] font-bold text-lg outline-none bg-white/10 border border-white/15 focus:border-violet-500"/>
+                               class="w-full px-3 py-2 rounded-lg text-center tracking-[0.4em] font-bold text-lg outline-none bg-white/10 border border-white/15 focus:border-blue-500"/>
                         <div class="flex gap-2">
                             <button type="button" @click="step='identifier'; otp=''" class="px-3 py-2 rounded-lg text-xs opacity-80">← Back</button>
-                            <button :disabled="verifying" class="flex-1 px-4 py-2 rounded-lg text-sm font-bold bg-violet-600 hover:bg-violet-500" x-text="verifying ? 'Verifying…' : (creatorId ? 'Verify & follow' : 'Verify')"></button>
+                            <button :disabled="verifying" class="flex-1 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-500" x-text="verifying ? 'Verifying…' : (creatorId ? 'Verify & follow' : 'Verify')"></button>
                         </div>
-                        <button type="button" @click="sendOtp()" :disabled="sending" class="w-full text-xs font-medium text-violet-300 hover:text-violet-200 mt-1" x-text="sending ? 'Resending…' : 'Resend code'"></button>
+                        <button type="button" @click="sendOtp()" :disabled="sending" class="w-full text-xs font-medium text-blue-300 hover:text-blue-200 mt-1" x-text="sending ? 'Resending…' : 'Resend code'"></button>
                     </form>
                 </template>
                 <p class="text-xs mt-3 opacity-90" x-show="message" x-text="message"></p>
@@ -62,7 +62,7 @@
             <div class="text-center py-4">
                 <p class="text-sm opacity-80">You're signed in as</p>
                 <p class="font-bold mt-1" x-text="me?.name || me?.email"></p>
-                <button @click="visible = false" class="mt-4 px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold">Continue</button>
+                <button @click="visible = false" class="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Continue</button>
             </div>
         </template>
     </div>

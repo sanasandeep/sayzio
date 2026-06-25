@@ -5,7 +5,7 @@
 <div class="max-w-3xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-white">Blog settings</h1>
-        <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-violet-400 hover:underline">← Posts</a>
+        <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline">← Posts</a>
     </div>
 
     @if(session('success'))<div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>@endif
@@ -88,7 +88,7 @@
         </section>
 
         <div class="pt-4 border-t border-white/10">
-            <button class="px-5 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-medium text-white">Save settings</button>
+            <button class="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white">Save settings</button>
         </div>
     </form>
 </div>

@@ -16,7 +16,7 @@
             'tag'      => 'For content creators',
             'headline' => 'Turn followers into a fan economy.',
             'icon'     => 'fas fa-camera',
-            'accent'   => '#a78bfa',
+            'accent'   => '#90acff',
             'bullets'  => [
                 'One Link in Bio for TikTok, Reels and YouTube',
                 'Drop merch, presets and digital products',

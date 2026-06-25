@@ -9,8 +9,8 @@
       <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="g2" cx="0.8" cy="0.7" r="0.55">
-      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#3d6bff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#3d6bff" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="600" height="500" fill="url(#bg)"/>
@@ -23,9 +23,9 @@
     <rect x="240" y="318" width="120" height="6" rx="3" fill="#a5f3fc"/>
   </g>
   <g opacity="0.95">
-    <rect x="430" y="220" width="80" height="140" rx="14" fill="none" stroke="#c4b5fd" stroke-width="2"/>
-    <rect x="438" y="232" width="64" height="110" rx="4" fill="#a78bfa" opacity="0.18"/>
-    <circle cx="470" cy="352" r="4" fill="#c4b5fd"/>
+    <rect x="430" y="220" width="80" height="140" rx="14" fill="none" stroke="#bccfff" stroke-width="2"/>
+    <rect x="438" y="232" width="64" height="110" rx="4" fill="#90acff" opacity="0.18"/>
+    <circle cx="470" cy="352" r="4" fill="#bccfff"/>
   </g>
   <g opacity="0.4" stroke="#a5f3fc" stroke-dasharray="3 5" fill="none">
     <path d="M420 240 Q450 220 470 230"/>

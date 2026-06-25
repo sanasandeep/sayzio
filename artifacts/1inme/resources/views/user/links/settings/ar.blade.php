@@ -25,8 +25,8 @@
 
                 <div class="card-premium p-6">
                     <div class="flex items-center gap-3 mb-2">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.12);">
-                            <i class="fas fa-vr-cardboard text-[12px]" style="color:#a78bfa;"></i>
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.12);">
+                            <i class="fas fa-vr-cardboard text-[12px]" style="color:#90acff;"></i>
                         </div>
                         <div>
                             <h3 class="text-sm font-bold" style="color: var(--text-primary);">AR Business Card</h3>
@@ -96,7 +96,7 @@
                     @endif
                 </div>
 
-                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#a78bfa,#67e8f9);">
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#90acff,#67e8f9);">
                     Save AR settings
                 </button>
             </form>
@@ -113,7 +113,7 @@
                     {{-- preview=1 keeps creators on the 3D page even on a
                          non-AR desktop browser; without it, an unsupported
                          device gets sent to the standard biolink. --}}
-                    <a href="{{ $arUrl }}?preview=1" target="_blank" class="block w-full text-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white mb-2" style="background: linear-gradient(135deg,#a78bfa,#67e8f9);">
+                    <a href="{{ $arUrl }}?preview=1" target="_blank" class="block w-full text-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white mb-2" style="background: linear-gradient(135deg,#90acff,#67e8f9);">
                         <i class="fas fa-external-link-alt mr-1.5"></i> Open AR card (preview)
                     </a>
                     <a href="{{ $kitUrl }}" target="_blank" class="block w-full text-center px-4 py-2.5 rounded-lg text-sm font-semibold mb-2" style="background: var(--bg-glass-input); border:1px solid var(--border-glass); color: var(--text-primary);">

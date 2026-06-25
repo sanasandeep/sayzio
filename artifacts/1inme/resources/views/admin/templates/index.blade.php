@@ -8,7 +8,7 @@
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
     <div class="flex items-center gap-2">
-        <a href="{{ route('admin.templates.create', ['kind' => $tab]) }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
+        <a href="{{ route('admin.templates.create', ['kind' => $tab]) }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
             <i class="fas fa-plus mr-2"></i>New {{ $tab === 'card' ? 'Card' : 'Page' }} Template
         </a>
     </div>
@@ -16,11 +16,11 @@
 
 <div class="flex items-center gap-1 mb-4 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
     <a href="{{ route('admin.templates.index', ['tab' => 'page']) }}"
-       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'page' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white' }}">
+       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'page' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white' }}">
         Page Templates ({{ $pageTemplates->count() }})
     </a>
     <a href="{{ route('admin.templates.index', ['tab' => 'card']) }}"
-       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'card' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white' }}">
+       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'card' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white' }}">
         Card Templates ({{ $cardTemplates->count() }})
     </a>
 </div>
@@ -59,7 +59,7 @@
 <div class="flex items-center gap-2 mb-4 flex-wrap">
     <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
         <button type="button" @click="active = 'all'"
-                :class="active === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                :class="active === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
             All ({{ $rows->count() }})
         </button>
@@ -86,18 +86,18 @@
     <div class="flex items-center gap-2 mb-4 flex-wrap">
         <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
             <button type="button" @click="customized = 'all'"
-                    :class="customized === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="customized === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
                 All ({{ $rows->count() }})
             </button>
             <button type="button" @click="customized = 'yes'"
-                    :class="customized === 'yes' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="customized === 'yes' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
                     title="Templates an admin has saved at least once since they were created">
                 <i class="fas fa-pen-nib mr-1 text-[10px]"></i>Customized ({{ $customizedCount }})
             </button>
             <button type="button" @click="customized = 'no'"
-                    :class="customized === 'no' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="customized === 'no' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
                     title="Untouched seed defaults — never edited in the admin panel">
                 <i class="fas fa-seedling mr-1 text-[10px]"></i>Untouched ({{ $untouchedCount }})
@@ -105,7 +105,7 @@
         </div>
         <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
             <button type="button" @click="outdated = 'all'"
-                    :class="outdated === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="outdated === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
                     title="Show templates regardless of blueprint version">
                 Any blueprint
@@ -122,10 +122,10 @@
 
 @if($rows->isEmpty())
     <div class="glass rounded-2xl border border-white/10 p-12 text-center">
-        <i class="fas fa-layer-group text-3xl text-violet-400 mb-3"></i>
+        <i class="fas fa-layer-group text-3xl text-blue-400 mb-3"></i>
         <h3 class="text-base font-semibold text-white mb-1">No {{ $tab }} templates yet</h3>
         <p class="text-sm text-white/40 mb-4">Capture a snapshot from any Link in Bio page to seed the gallery.</p>
-        <a href="{{ route('admin.templates.create', ['kind' => $tab]) }}" class="inline-block px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
+        <a href="{{ route('admin.templates.create', ['kind' => $tab]) }}" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
             Create Template
         </a>
     </div>
@@ -182,12 +182,12 @@
              x-cloak
              data-tpl-id="{{ $tpl->id }}"
              class="glass rounded-2xl border border-white/10 p-4 relative"
-             :class="selected.includes({{ $tpl->id }}) ? 'ring-2 ring-violet-500/60' : ''">
+             :class="selected.includes({{ $tpl->id }}) ? 'ring-2 ring-blue-500/60' : ''">
             <label class="absolute top-3 left-3 z-10 flex items-center cursor-pointer">
                 <input type="checkbox" :value="{{ $tpl->id }}" x-model="selected"
-                       class="w-4 h-4 rounded border-white/30 bg-black/30 text-violet-500 focus:ring-violet-500 cursor-pointer">
+                       class="w-4 h-4 rounded border-white/30 bg-black/30 text-blue-500 focus:ring-blue-500 cursor-pointer">
             </label>
-            <div class="group relative aspect-[4/3] rounded-xl mb-3 flex items-center justify-center overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
+            <div class="group relative aspect-[4/3] rounded-xl mb-3 flex items-center justify-center overflow-hidden" style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(92,131,255,0.04));">
                 @if($tpl->thumbnail_url)
                     <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
                 @else
@@ -209,7 +209,7 @@
                                @change="$el.form.submit()">
                         <button type="button"
                                 @click="document.getElementById(id).click()"
-                                class="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-[11px] font-medium shadow"
+                                class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-medium shadow"
                                 title="{{ $tpl->thumbnail_url ? 'Replace thumbnail' : 'Upload thumbnail' }}">
                             <i class="fas {{ $tpl->thumbnail_url ? 'fa-rotate' : 'fa-upload' }} mr-1 text-[10px]"></i>
                             {{ $tpl->thumbnail_url ? 'Replace' : 'Upload' }}
@@ -248,7 +248,7 @@
                         </a>
                     @endif
                     @if($tab === 'page' && $tplCustomized)
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-300"
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-300"
                               title="Edited in admin on {{ optional($tpl->updated_at)->format('M j, Y') }} (vs created {{ optional($tpl->created_at)->format('M j, Y') }})">
                             <i class="fas fa-pen-nib mr-1 text-[9px]"></i>Customized
                         </span>
@@ -274,7 +274,7 @@
                 <div class="flex items-center gap-1.5">
                     <button type="button"
                             @click="openPreview('{{ route('admin.templates.preview', ['kind' => $tab, 'id' => $tpl->id]) }}', @js($tpl->name))"
-                            class="text-white/30 hover:text-violet-400 p-1.5"
+                            class="text-white/30 hover:text-blue-400 p-1.5"
                             title="Preview as a published page">
                         <i class="fas fa-eye text-xs"></i>
                     </button>
@@ -284,7 +284,7 @@
                             <i class="fas {{ $tpl->is_active ? 'fa-eye-slash' : 'fa-eye' }} text-xs"></i>
                         </button>
                     </form>
-                    <a href="{{ route('admin.templates.edit', ['kind' => $tab, 'id' => $tpl->id]) }}" class="text-white/30 hover:text-violet-400 p-1.5"><i class="fas fa-edit text-xs"></i></a>
+                    <a href="{{ route('admin.templates.edit', ['kind' => $tab, 'id' => $tpl->id]) }}" class="text-white/30 hover:text-blue-400 p-1.5"><i class="fas fa-edit text-xs"></i></a>
                     <form action="{{ route('admin.templates.destroy', ['kind' => $tab, 'id' => $tpl->id]) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this template?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button type="submit" class="text-white/30 hover:text-red-400 p-1.5"><i class="fas fa-trash text-xs"></i></button>
@@ -307,24 +307,24 @@
          :style="{ maxWidth: previewWidths[previewDevice] + 'px', maxHeight: 'calc(100vh - 2rem)' }">
         <div class="flex items-center justify-between mb-3 gap-2">
             <div class="flex items-center gap-2 min-w-0">
-                <i class="fas fa-mobile-screen-button text-violet-400"></i>
+                <i class="fas fa-mobile-screen-button text-blue-400"></i>
                 <h3 class="text-sm font-semibold text-white truncate" x-text="preview.name"></h3>
                 <span class="text-[10px] uppercase tracking-wide text-white/40 shrink-0">Preview</span>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <div class="flex items-center gap-0.5 rounded-lg bg-white/5 p-0.5">
                     <button type="button" @click="previewDevice = 'phone'"
-                            :class="previewDevice === 'phone' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                            :class="previewDevice === 'phone' ? 'bg-blue-500/30 text-white' : 'text-white/45 hover:text-white'"
                             class="px-2 py-1 rounded-md transition" title="Phone width">
                         <i class="fas fa-mobile-screen-button text-xs"></i>
                     </button>
                     <button type="button" @click="previewDevice = 'tablet'"
-                            :class="previewDevice === 'tablet' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                            :class="previewDevice === 'tablet' ? 'bg-blue-500/30 text-white' : 'text-white/45 hover:text-white'"
                             class="px-2 py-1 rounded-md transition" title="Tablet width">
                         <i class="fas fa-tablet-screen-button text-xs"></i>
                     </button>
                     <button type="button" @click="previewDevice = 'desktop'"
-                            :class="previewDevice === 'desktop' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                            :class="previewDevice === 'desktop' ? 'bg-blue-500/30 text-white' : 'text-white/45 hover:text-white'"
                             class="px-2 py-1 rounded-md transition" title="Desktop width">
                         <i class="fas fa-desktop text-xs"></i>
                     </button>

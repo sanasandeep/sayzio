@@ -24,7 +24,7 @@ export default function Slide155Investorpricing() {
             <div className="text-[0.95vw] text-slate-400">per month</div>
             <div className="mt-[2vh] flex flex-col gap-[0.5vh] text-[0.95vw] text-slate-200"><div>&middot; Power individuals</div><div>&middot; Highest LTV / CAC ratio</div></div>
           </div>
-          <div className="rounded-2xl border border-fuchsia-400/50 bg-gradient-to-br from-fuchsia-500/15 to-violet-500/10 p-[1.6vw] flex flex-col">
+          <div className="rounded-2xl border border-fuchsia-400/50 bg-gradient-to-br from-fuchsia-500/15 to-blue-500/10 p-[1.6vw] flex flex-col">
             <div className="flex items-center justify-between"><div className="font-display text-[1.5vw] font-semibold text-fuchsia-200">Studio</div><div className="px-[0.6vw] py-[0.2vh] text-[0.8vw] rounded bg-fuchsia-500/30 text-fuchsia-100">popular</div></div>
             <div className="mt-[0.5vh] font-display text-[2.8vw] font-bold leading-none">$29</div>
             <div className="text-[0.95vw] text-slate-400">per month</div>

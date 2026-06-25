@@ -2,10 +2,10 @@
     <defs>
       <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#faf5ff"/>
-        <stop offset="100%" stop-color="#a855f7" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#6e61ff" stop-opacity="0.18"/>
       </linearGradient>
     </defs>
     <rect width="400" height="400" rx="24" fill="url(#g)"/>
-    <circle cx="200" cy="200" r="120" fill="#a855f7" fill-opacity="0.12"/>
+    <circle cx="200" cy="200" r="120" fill="#6e61ff" fill-opacity="0.12"/>
     <text x="200" y="240" font-size="140" text-anchor="middle" font-family="Apple Color Emoji, Segoe UI Emoji, system-ui, sans-serif">🎵</text>
   </svg>

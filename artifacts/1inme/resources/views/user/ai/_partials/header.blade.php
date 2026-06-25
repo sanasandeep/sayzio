@@ -10,8 +10,8 @@
     </div>
     <div class="text-right">
         <p class="text-xs text-white/40">Coin balance</p>
-        <p class="text-2xl font-bold text-violet-300">{{ number_format($balance) }} <span class="text-sm">coins</span></p>
-        <a href="{{ route('user.wallet.buy') }}" class="text-xs text-violet-300 hover:underline">Top up →</a>
+        <p class="text-2xl font-bold text-blue-300">{{ number_format($balance) }} <span class="text-sm">coins</span></p>
+        <a href="{{ route('user.wallet.buy') }}" class="text-xs text-blue-300 hover:underline">Top up →</a>
     </div>
 </div>
 

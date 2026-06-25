@@ -7,7 +7,7 @@
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white transition-colors" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold text-white">Short Link</h1>
-            <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
+            <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
         </div>
     </div>
 
@@ -21,13 +21,13 @@
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Destination URL <span class="text-red-400">*</span></label>
                 <input type="url" name="long_url" value="{{ old('long_url') }}" placeholder="https://example.com/your-long-url" required
-                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
+                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
                 @error('long_url') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Redirect Type</label>
-                <select name="redirect_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                <select name="redirect_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                     <option value="301" {{ old('redirect_type', '301') === '301' ? 'selected' : '' }} class="bg-[#0d0818]">301 - Permanent Redirect</option>
                     <option value="302" {{ old('redirect_type') === '302' ? 'selected' : '' }} class="bg-[#0d0818]">302 - Temporary Redirect</option>
                 </select>
@@ -37,7 +37,7 @@
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Title</label>
                 <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="My awesome link"
-                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
+                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -47,7 +47,7 @@
                         $defaultHost = \App\Modules\Common\Support\PlatformHosts::currentRequestHost()
                             ?: \App\Modules\Common\Support\PlatformHosts::primary();
                     @endphp
-                    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
+                    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/40">
                         @if(($domains ?? collect())->isNotEmpty())
                             @php $selectedDomainId = old('domain_id', $defaultDomainId ?? ''); @endphp
                             <select name="domain_id" class="bg-white/5 px-2 py-2.5 text-xs text-white/70 border-r border-white/10 outline-none max-w-[180px]">
@@ -72,7 +72,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Project</label>
-                    <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <option value="" class="bg-[#0d0818]">No project</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $project->name }}</option>
@@ -94,21 +94,21 @@
 
             <div x-show="showAdvanced" x-cloak class="mt-5 space-y-6">
                 <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-shield-alt mr-2"></i>Protection</h3>
+                    <h3 class="text-sm font-medium text-blue-400 mb-3"><i class="fas fa-shield-alt mr-2"></i>Protection</h3>
                     <div class="space-y-3">
                         <label class="flex items-center gap-3 cursor-pointer">
                             <input type="checkbox" name="is_password_protected" value="1" x-model="passwordProtect"
-                                   class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
+                                   class="rounded bg-white/5 border-white/20 text-blue-600 focus:ring-blue-500/40">
                             <span class="text-sm text-white/60">Password protect this link</span>
                         </label>
                         <div x-show="passwordProtect" class="ml-7">
                             <input type="password" name="password" placeholder="Enter password"
-                                   class="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                         <div>
                             <label class="block text-sm text-white/60 mb-1.5">Expiration Date</label>
                             <input type="datetime-local" name="expires_at" value="{{ old('expires_at') }}"
-                                   class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                     </div>
                 </div>
@@ -116,12 +116,12 @@
                 <div class="h-px bg-white/5"></div>
 
                 <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-search mr-2"></i>SEO Settings</h3>
+                    <h3 class="text-sm font-medium text-blue-400 mb-3"><i class="fas fa-search mr-2"></i>SEO Settings</h3>
                     <div class="space-y-3">
                         <input type="text" name="seo_title" value="{{ old('seo_title') }}" placeholder="SEO Title"
-                               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <textarea name="seo_description" placeholder="SEO Description" rows="2"
-                                  class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('seo_description') }}</textarea>
+                                  class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">{{ old('seo_description') }}</textarea>
                         @include('user.partials.dropzone-input', [
                             'name'   => 'seo_image',
                             'label'  => 'OG Image',
@@ -143,39 +143,39 @@
                 <div x-data="{ help: false }">
                     <div class="flex items-start justify-between gap-3 mb-2">
                         <div>
-                            <h3 class="text-sm font-medium text-violet-400"><i class="fas fa-chart-bar mr-2"></i>Campaign Tracking <span class="text-white/30 font-normal">(UTM tags &middot; optional)</span></h3>
+                            <h3 class="text-sm font-medium text-blue-400"><i class="fas fa-chart-bar mr-2"></i>Campaign Tracking <span class="text-white/30 font-normal">(UTM tags &middot; optional)</span></h3>
                             <p class="text-[11px] text-white/40 mt-1">Tiny labels that tell Google Analytics where each visitor came from. Skip this if you're not tracking campaigns &mdash; most people don't need it.</p>
                         </div>
                         <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0 bg-white/5 text-white/50 hover:text-white"><i class="fas fa-question-circle mr-1"></i> What is this?</button>
                     </div>
-                    <div x-show="help" x-cloak x-transition class="mb-3 p-3 rounded-lg text-[11px] leading-relaxed bg-violet-500/5 border border-violet-500/20 text-white/70">
-                        Sharing the same link in your newsletter <em>and</em> on Instagram? Set <em>Where it lives</em> to <code class="text-violet-300">newsletter</code> for one and <code class="text-violet-300">instagram</code> for the other. Your analytics tool will then tell you which one brought more visitors.
+                    <div x-show="help" x-cloak x-transition class="mb-3 p-3 rounded-lg text-[11px] leading-relaxed bg-blue-500/5 border border-blue-500/20 text-white/70">
+                        Sharing the same link in your newsletter <em>and</em> on Instagram? Set <em>Where it lives</em> to <code class="text-blue-300">newsletter</code> for one and <code class="text-blue-300">instagram</code> for the other. Your analytics tool will then tell you which one brought more visitors.
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[11px] font-medium text-white/60 mb-1">Where it lives <span class="text-white/30">(source)</span></label>
                             <input type="text" name="utm_source" value="{{ old('utm_source') }}" placeholder="e.g. newsletter, twitter"
-                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                         <div>
                             <label class="block text-[11px] font-medium text-white/60 mb-1">How they'll see it <span class="text-white/30">(medium)</span></label>
                             <input type="text" name="utm_medium" value="{{ old('utm_medium') }}" placeholder="e.g. email, social, paid-ad"
-                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                         <div>
                             <label class="block text-[11px] font-medium text-white/60 mb-1">Why you're sharing it <span class="text-white/30">(campaign)</span></label>
                             <input type="text" name="utm_campaign" value="{{ old('utm_campaign') }}" placeholder="e.g. spring-sale"
-                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                         <div>
                             <label class="block text-[11px] font-medium text-white/60 mb-1">Search keyword <span class="text-white/30">(term)</span></label>
                             <input type="text" name="utm_term" value="{{ old('utm_term') }}" placeholder="e.g. running shoes"
-                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-[11px] font-medium text-white/60 mb-1">Which version of the ad <span class="text-white/30">(content)</span></label>
                             <input type="text" name="utm_content" value="{{ old('utm_content') }}" placeholder="e.g. blue-button, banner-top"
-                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                     </div>
                 </div>
@@ -183,11 +183,11 @@
                 @if($pixels->count())
                 <div class="h-px bg-white/5"></div>
                 <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-bullseye mr-2"></i>Tracking</h3>
+                    <h3 class="text-sm font-medium text-blue-400 mb-3"><i class="fas fa-bullseye mr-2"></i>Tracking</h3>
                     <div class="space-y-2">
                         @foreach($pixels as $pixel)
                         <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
+                            <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" class="rounded bg-white/5 border-white/20 text-blue-600 focus:ring-blue-500/40">
                             <span class="text-sm text-white/60">{{ $pixel->name }} <span class="text-white/25">({{ ucfirst(str_replace('_', ' ', $pixel->type)) }})</span></span>
                         </label>
                         @endforeach
@@ -203,7 +203,7 @@
 
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Back</a>
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                 Create Link
             </button>
         </div>

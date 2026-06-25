@@ -25,17 +25,17 @@
             <label class="block">
                 <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Operator</span>
                 <input type="text" name="operator" value="{{ $filters['operator'] }}" placeholder="Name or email"
-                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
             <label class="block">
                 <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Target user</span>
                 <input type="text" name="target" value="{{ $filters['target'] }}" placeholder="Name, email, or id"
-                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
             <label class="block">
                 <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</span>
                 <select name="action"
-                        class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                        class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
                     <option value="">Any action</option>
                     @foreach($actions as $value => $label)
                         <option value="{{ $value }}" @selected($filters['action'] === $value)>{{ $label }}</option>
@@ -45,17 +45,17 @@
             <label class="block">
                 <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">From</span>
                 <input type="date" name="from" value="{{ $filters['from'] }}"
-                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
             <label class="block">
                 <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">To</span>
                 <input type="date" name="to" value="{{ $filters['to'] }}"
-                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
             </label>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <button type="submit"
-                    class="px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-200 hover:bg-violet-500/30 text-xs font-medium">
+                    class="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 text-xs font-medium">
                 <i class="fas fa-filter mr-1"></i> Apply filters
             </button>
             @if($hasFilter)
@@ -98,14 +98,14 @@
                                 @case('account.suspended') bg-rose-500/10 text-rose-300 @break
                                 @case('account.reactivated') bg-emerald-500/10 text-emerald-300 @break
                                 @case('account.created') bg-sky-500/10 text-sky-300 @break
-                                @default bg-violet-500/10 text-violet-300
+                                @default bg-blue-500/10 text-blue-300
                             @endswitch">
                             {{ $a->actionLabel() }}
                         </span>
                     </td>
                     <td class="text-white/80">
                         @if($a->target_user_id)
-                            <a href="{{ route('admin.users.show', $a->target_user_id) }}" class="hover:text-violet-300">
+                            <a href="{{ route('admin.users.show', $a->target_user_id) }}" class="hover:text-blue-300">
                                 {{ $a->target_name ?: ('#' . $a->target_user_id) }}
                             </a>
                             @if($a->target_email)<span class="block text-xs text-white/30">{{ $a->target_email }}</span>@endif

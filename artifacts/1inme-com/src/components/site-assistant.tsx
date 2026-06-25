@@ -19,7 +19,7 @@ import zioBotMascot from "@assets/icon_1782414678709.png";
  * simplicity and cross-origin reliability.
  */
 
-const BRAND_ACCENT = "#7c3aed";
+const BRAND_ACCENT = "#3d6bff";
 const TOKEN_KEY = "sa_visitor_token_v1";
 
 interface AssistantBlockOption {
@@ -102,7 +102,7 @@ function mdLite(s: string): string {
   out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
   out = out.replace(
     /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:underline">$1</a>'
+    '<a href="$2" target="_blank" rel="noopener" style="color:#7d9bff;text-decoration:underline">$1</a>'
   );
   out = out.replace(/\n/g, "<br>");
   return out;
@@ -391,9 +391,9 @@ export default function SiteAssistant() {
         sub: "rgba(233,231,245,0.6)",
         botBubble: "rgba(255,255,255,0.06)",
         botText: "#e9e7f5",
-        chip: "rgba(124,58,237,0.16)",
+        chip: "rgba(61,107,255,0.16)",
         chipText: "#c4b5fd",
-        chipBorder: "rgba(124,58,237,0.4)",
+        chipBorder: "rgba(61,107,255,0.4)",
         inputBg: "rgba(255,255,255,0.05)",
         inputBorder: "rgba(255,255,255,0.1)",
         listBg: "rgba(255,255,255,0.04)",
@@ -403,14 +403,14 @@ export default function SiteAssistant() {
         panelBorder: "rgba(17,17,30,0.08)",
         text: "#1e1b2e",
         sub: "rgba(30,27,46,0.55)",
-        botBubble: "rgba(124,58,237,0.07)",
+        botBubble: "rgba(61,107,255,0.07)",
         botText: "#1e1b2e",
-        chip: "rgba(124,58,237,0.08)",
-        chipText: "#6d28d9",
-        chipBorder: "rgba(124,58,237,0.25)",
+        chip: "rgba(61,107,255,0.08)",
+        chipText: "#2342c7",
+        chipBorder: "rgba(61,107,255,0.25)",
         inputBg: "rgba(17,17,30,0.03)",
         inputBorder: "rgba(17,17,30,0.1)",
-        listBg: "rgba(124,58,237,0.05)",
+        listBg: "rgba(61,107,255,0.05)",
       };
 
   if (cfg && cfg.enabled === false) return null;
@@ -445,7 +445,7 @@ export default function SiteAssistant() {
               background: t.panelBg,
               border: `1px solid ${t.panelBorder}`,
               boxShadow:
-                "0 24px 60px -20px rgba(80,40,160,0.5), 0 0 0 1px rgba(124,58,237,0.08)",
+                "0 24px 60px -20px rgba(40,70,160,0.5), 0 0 0 1px rgba(61,107,255,0.08)",
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
               color: t.text,
@@ -461,7 +461,7 @@ export default function SiteAssistant() {
                 gap: 10,
                 padding: "14px 16px",
                 background:
-                  "linear-gradient(135deg, rgba(124,58,237,0.22), rgba(168,85,247,0.12))",
+                  "linear-gradient(135deg, rgba(61,107,255,0.22), rgba(110,97,255,0.12))",
                 borderBottom: `1px solid ${t.panelBorder}`,
               }}
             >
@@ -473,7 +473,7 @@ export default function SiteAssistant() {
                   height: 34,
                   borderRadius: 10,
                   objectFit: "contain",
-                  background: "rgba(124,58,237,0.18)",
+                  background: "rgba(61,107,255,0.18)",
                   padding: 1,
                 }}
               />
@@ -631,7 +631,7 @@ export default function SiteAssistant() {
               borderRadius: "14px 14px 4px 14px",
               background: t.panelBg,
               border: `1px solid ${t.panelBorder}`,
-              boxShadow: "0 12px 30px -10px rgba(80,40,160,0.4)",
+              boxShadow: "0 12px 30px -10px rgba(40,70,160,0.4)",
               backdropFilter: "blur(12px)",
               WebkitBackdropFilter: "blur(12px)",
               color: t.text,

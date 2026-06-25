@@ -5,7 +5,7 @@
     <div class="flex items-start justify-between mb-6 gap-3">
         <h1 class="text-2xl font-bold" style="color: var(--text-primary);">My Posts</h1>
         @if(!empty($approvalEnabled))
-            <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(124,58,237,0.12); color: var(--text-primary);">
+            <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(61,107,255,0.12); color: var(--text-primary);">
                 <i class="fas fa-shield-check mr-1"></i>
                 @if(!empty($userIsApprover))
                     Approval workflow on (you can approve)
@@ -38,7 +38,7 @@
             <div x-show="picked.length > 0" class="flex flex-wrap gap-2">
                 <template x-for="f in picked" :key="'chip' + f.id">
                     <span class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full"
-                          style="background: rgba(124,58,237,0.12); color: var(--text-primary);">
+                          style="background: rgba(61,107,255,0.12); color: var(--text-primary);">
                         <i :class="f.provider_icon" class="text-[11px]" style="color: var(--text-muted);"></i>
                         <span x-text="f.name" class="max-w-[200px] truncate"></span>
                         <button type="button" @click="remove(f.id)" class="text-[11px]" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
@@ -59,12 +59,12 @@
                         else this.selectedTiers.splice(i, 1);
                     }
                  }"
-                 class="rounded-xl p-3 border" style="background: rgba(139,92,246,0.05); border-color: rgba(139,92,246,0.2);">
+                 class="rounded-xl p-3 border" style="background: rgba(92,131,255,0.05); border-color: rgba(92,131,255,0.2);">
                 <div class="flex items-center justify-between gap-2 mb-2">
                     <span class="text-xs font-bold flex items-center gap-1.5" style="color: var(--text-primary);">
-                        <i class="fas fa-gem" style="color: #8b5cf6;"></i> Audience &amp; paywall
+                        <i class="fas fa-gem" style="color: #5c83ff;"></i> Audience &amp; paywall
                     </span>
-                    <a href="{{ route('user.monetization.tiers') }}" target="_blank" class="text-[11px]" style="color: #8b5cf6;">
+                    <a href="{{ route('user.monetization.tiers') }}" target="_blank" class="text-[11px]" style="color: #5c83ff;">
                         Manage tiers <i class="fas fa-up-right-from-square text-[9px]"></i>
                     </a>
                 </div>
@@ -72,21 +72,21 @@
                     <label class="cursor-pointer">
                         <input type="radio" name="visibility" value="free" x-model="visibility" class="hidden">
                         <div class="px-2 py-1.5 rounded-lg border text-center text-xs"
-                             :style="visibility === 'free' ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
+                             :style="visibility === 'free' ? 'background:#5c83ff;color:white;border-color:#5c83ff;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
                             <i class="fas fa-globe"></i> Public
                         </div>
                     </label>
                     <label class="cursor-pointer">
                         <input type="radio" name="visibility" value="tier" x-model="visibility" class="hidden">
                         <div class="px-2 py-1.5 rounded-lg border text-center text-xs"
-                             :style="visibility === 'tier' ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
+                             :style="visibility === 'tier' ? 'background:#5c83ff;color:white;border-color:#5c83ff;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
                             <i class="fas fa-layer-group"></i> Tier-only
                         </div>
                     </label>
                     <label class="cursor-pointer">
                         <input type="radio" name="visibility" value="ppv" x-model="visibility" class="hidden">
                         <div class="px-2 py-1.5 rounded-lg border text-center text-xs"
-                             :style="visibility === 'ppv' ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
+                             :style="visibility === 'ppv' ? 'background:#5c83ff;color:white;border-color:#5c83ff;' : 'background:var(--bg-soft);color:var(--text-primary);border-color:var(--border-soft);'">
                             <i class="fas fa-lock"></i> Pay-per-view
                         </div>
                     </label>
@@ -96,7 +96,7 @@
                 <div x-show="visibility === 'tier'" x-cloak class="mt-2">
                     @if($monetizationTiers->isEmpty())
                         <p class="text-xs" style="color: var(--text-faint);">
-                            No paid tiers yet — <a href="{{ route('user.monetization.tiers') }}" class="underline" style="color: #8b5cf6;">create one</a> first.
+                            No paid tiers yet — <a href="{{ route('user.monetization.tiers') }}" class="underline" style="color: #5c83ff;">create one</a> first.
                         </p>
                     @else
                         <p class="text-[11px] mb-1.5" style="color: var(--text-faint);">Visible to subscribers of:</p>
@@ -107,7 +107,7 @@
                                            :checked="selectedTiers.includes({{ (int) $tier->id }})"
                                            @change="toggleTier({{ (int) $tier->id }})">
                                     <span class="px-2.5 py-1 rounded-full text-xs font-semibold border"
-                                          :style="selectedTiers.includes({{ (int) $tier->id }}) ? 'background:#8b5cf6;color:white;border-color:#8b5cf6;' : 'background:transparent;color:var(--text-secondary);border-color:var(--border-soft);'">
+                                          :style="selectedTiers.includes({{ (int) $tier->id }}) ? 'background:#5c83ff;color:white;border-color:#5c83ff;' : 'background:transparent;color:var(--text-secondary);border-color:var(--border-soft);'">
                                         {{ $tier->badge ? $tier->badge.' ' : '' }}{{ $tier->name }}
                                     </span>
                                 </label>
@@ -188,7 +188,7 @@
                         style="border-color: var(--border-soft); color: var(--text-primary);">
                     <i class="fas fa-cloud mr-1"></i> Attach from Cloud Files
                 </button>
-                <button class="ml-auto px-5 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold">
+                <button class="ml-auto px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold">
                     @if(!empty($approvalEnabled) && empty($userIsApprover))
                         Submit for review
                     @else
@@ -228,14 +228,14 @@
                         'Pinned'            => 'bg-amber-100 text-amber-800',
                         'Scheduled'         => 'bg-sky-100 text-sky-800',
                         'Published'         => 'bg-emerald-100 text-emerald-800',
-                        'Pending review'    => 'bg-violet-100 text-violet-800',
+                        'Pending review'    => 'bg-blue-100 text-blue-800',
                         'Changes requested' => 'bg-orange-100 text-orange-800',
                         'Rejected'          => 'bg-rose-100 text-rose-800',
                         'Draft'             => 'bg-slate-100 text-slate-700',
                     ][$status] ?? 'bg-slate-100 text-slate-700';
                     $isMine = (int) ($post->created_by_user_id ?? 0) === (int) auth()->id();
                 @endphp
-                <div class="rounded-2xl border p-4 {{ $post->isPinned() ? 'ring-2 ring-amber-300' : '' }} {{ $post->isPendingReview() ? 'ring-2 ring-violet-300' : '' }}" style="background: var(--bg-card); border-color: var(--border-soft);">
+                <div class="rounded-2xl border p-4 {{ $post->isPinned() ? 'ring-2 ring-amber-300' : '' }} {{ $post->isPendingReview() ? 'ring-2 ring-blue-300' : '' }}" style="background: var(--bg-card); border-color: var(--border-soft);">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -299,14 +299,14 @@
                                     <div x-show="open" x-cloak class="mt-3 space-y-3">
                                         @forelse($post->approvalComments as $cmt)
                                             <div class="flex items-start gap-2 text-sm">
-                                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold uppercase" style="background: rgba(124,58,237,0.15); color: var(--text-primary);">
+                                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold uppercase" style="background: rgba(61,107,255,0.15); color: var(--text-primary);">
                                                     {{ strtoupper(mb_substr($cmt->user->name ?? '?', 0, 1)) }}
                                                 </div>
                                                 <div class="flex-1 min-w-0">
                                                     <div class="flex items-center gap-2 flex-wrap">
                                                         <strong class="text-xs" style="color: var(--text-primary);">{{ $cmt->user->name ?? 'Someone' }}</strong>
                                                         @if($cmt->actionLabel())
-                                                            <span class="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wide" style="background: rgba(124,58,237,0.10); color: var(--text-muted);">{{ $cmt->actionLabel() }}</span>
+                                                            <span class="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wide" style="background: rgba(61,107,255,0.10); color: var(--text-muted);">{{ $cmt->actionLabel() }}</span>
                                                         @endif
                                                         <span class="text-[11px]" style="color: var(--text-faint);">{{ $cmt->created_at->diffForHumans() }}</span>
                                                     </div>
@@ -348,7 +348,7 @@
                                                 @csrf
                                                 <textarea name="note" rows="2" placeholder="What did you change?" class="w-full px-2 py-1.5 rounded border text-xs" style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);"></textarea>
                                                 <div>
-                                                    <button class="px-3 py-1.5 rounded bg-violet-600 text-white text-xs font-semibold">
+                                                    <button class="px-3 py-1.5 rounded bg-blue-600 text-white text-xs font-semibold">
                                                         <i class="fas fa-paper-plane mr-1"></i> Re-send for review
                                                     </button>
                                                 </div>
@@ -380,7 +380,7 @@
                                     @else
                                         <form action="{{ route('user.posts.pin', $post) }}" method="POST">
                                             @csrf
-                                            <button class="text-xs text-violet-600 font-semibold"><i class="fas fa-thumbtack"></i> Pin</button>
+                                            <button class="text-xs text-blue-600 font-semibold"><i class="fas fa-thumbtack"></i> Pin</button>
                                         </form>
                                     @endif
                                 @endif

@@ -55,7 +55,7 @@
         {{-- Option A: strip stale variant keys --}}
         <div class="glass rounded-2xl border border-white/10 p-5 flex flex-col">
             <h3 class="text-sm font-semibold text-white mb-1">
-                <i class="fas fa-eraser text-violet-300 mr-1"></i>Strip stale design-variant keys
+                <i class="fas fa-eraser text-blue-300 mr-1"></i>Strip stale design-variant keys
             </h3>
             <p class="text-xs text-white/50 mb-3 flex-1">
                 Surgically removes only the design-variant keys that no longer resolve, so each
@@ -72,7 +72,7 @@
                   onsubmit="return window.themedConfirmSubmit(this, {title: 'Strip stale variant keys?', body: 'This permanently removes the unresolved design-variant keys from the stored snapshot.', confirmText: 'Strip', confirmIcon: 'fa-eraser', iconClass: 'fa-eraser'})">
                 @csrf
                 <input type="hidden" name="mode" value="strip">
-                <button type="submit" class="w-full px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold">
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold">
                     <i class="fas fa-eraser mr-1"></i>Strip stale variant keys
                 </button>
             </form>
@@ -81,7 +81,7 @@
         {{-- Option B: re-capture from a source --}}
         <div class="glass rounded-2xl border border-white/10 p-5">
             <h3 class="text-sm font-semibold text-white mb-1">
-                <i class="fas fa-camera text-violet-300 mr-1"></i>Re-capture from a source
+                <i class="fas fa-camera text-blue-300 mr-1"></i>Re-capture from a source
             </h3>
             <p class="text-xs text-white/50 mb-3">
                 @if($kind === 'card')
@@ -101,7 +101,7 @@
                     <input type="text" x-model="search" @input.debounce.300ms="searchLinks()" placeholder="Type to search…" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
                     <div x-show="results.length" x-cloak class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#0d0818] shadow-2xl">
                         <template x-for="r in results" :key="r.id">
-                            <button type="button" @click="pickLink(r)" class="w-full text-left px-3 py-2 text-xs text-white/80 hover:bg-violet-600/20 border-b border-white/5">
+                            <button type="button" @click="pickLink(r)" class="w-full text-left px-3 py-2 text-xs text-white/80 hover:bg-blue-600/20 border-b border-white/5">
                                 <span x-text="r.label"></span>
                                 <span class="text-white/30 text-[10px]" x-text="'#' + r.id"></span>
                             </button>

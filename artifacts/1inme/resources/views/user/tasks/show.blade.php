@@ -19,7 +19,7 @@
         border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
         transition: transform .12s ease, box-shadow .12s ease;
     }
-    .kanban-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.12); border-color: rgba(124,58,237,.4); }
+    .kanban-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.12); border-color: rgba(61,107,255,.4); }
     .kanban-card.completed { opacity: .55; text-decoration: line-through; }
     .sortable-ghost { opacity: 0.4; }
     .sortable-chosen { box-shadow: 0 8px 24px rgba(0,0,0,.25); }
@@ -33,9 +33,9 @@
     .rt-toolbar button { padding: 2px 8px; border-radius: 6px; font-size: 12px; color: var(--text-muted); border: 1px solid var(--border-soft); background: var(--bg-glass-input); }
     .rt-toolbar button:hover { color: var(--text-primary); }
     .rt-editor { min-height: 96px; padding: 8px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-glass-input); color: var(--text-primary); font-size: 14px; }
-    .rt-editor:focus { outline: 2px solid rgba(124,58,237,0.4); }
+    .rt-editor:focus { outline: 2px solid rgba(61,107,255,0.4); }
     .progress-track { height: 6px; background: var(--bg-glass-input); border-radius: 999px; overflow: hidden; }
-    .progress-fill  { height: 6px; background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .progress-fill  { height: 6px; background: linear-gradient(90deg,#3d6bff,#90acff); }
     .col-drag-handle { cursor: grab; opacity: 0.5; padding: 0 4px; }
     .col-drag-handle:hover { opacity: 1; }
 </style>
@@ -50,7 +50,7 @@
                 <h1 class="hero-title">{{ $board->name }}</h1>
                 @if($board->scope === 'personal')
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full mr-2"
-                          style="background: rgba(139,92,246,0.12); color:#7c3aed;">PRIVATE</span>
+                          style="background: rgba(92,131,255,0.12); color:#3d6bff;">PRIVATE</span>
                 @endif
                 <span class="text-xs" style="color: var(--text-faint);">
                     {{ $board->columns->count() }} columns · {{ $board->columns->sum(fn($c)=>$c->cards->count()) }} cards
@@ -144,7 +144,7 @@
     <div class="kanban-scroll flex gap-4" data-sortable-cols>
         @foreach($board->columns as $col)
             <div class="kanban-col" data-column-id="{{ $col->id }}"
-                 x-data="{ editing:false, name:'{{ addslashes($col->name) }}', color:'{{ $col->color ?: '#8b5cf6' }}', wip:{{ (int) ($col->wip_limit ?? 0) }}, is_done:{{ $col->is_done ? 'true':'false' }} }">
+                 x-data="{ editing:false, name:'{{ addslashes($col->name) }}', color:'{{ $col->color ?: '#5c83ff' }}', wip:{{ (int) ($col->wip_limit ?? 0) }}, is_done:{{ $col->is_done ? 'true':'false' }} }">
                 <div class="kanban-col-header" :style="'border-top: 3px solid '+color+'; border-radius: 14px 14px 0 0;'">
                     <span class="col-drag-handle" data-col-handle title="Drag to reorder column"><i class="fas fa-grip-vertical"></i></span>
                     <span class="flex-1 cursor-pointer" @click="editing=true" x-text="name"></span>
@@ -171,7 +171,7 @@
                     </label>
                     <div class="flex justify-end gap-2">
                         <button @click="editing=false" class="text-xs px-2 py-1" style="color: var(--text-muted);">Cancel</button>
-                        <button class="text-xs px-3 py-1 rounded" style="background:#8b5cf6;color:#fff;"
+                        <button class="text-xs px-3 py-1 rounded" style="background:#5c83ff;color:#fff;"
                                 @click="$root.saveColumn({{ $col->id }}, { name, color, wip_limit: wip || null, is_done }).then(() => editing=false)">Save</button>
                     </div>
                 </div>
@@ -203,7 +203,7 @@
                                     </span>
                                     @if($card->client_invoice_id)
                                         <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                                              style="background: rgba(124,58,237,0.18); color: #7c3aed;">
+                                              style="background: rgba(61,107,255,0.18); color: #3d6bff;">
                                             <i class="fas fa-receipt"></i>
                                             {{ optional($card->clientInvoice)->status === 'paid' ? 'PAID' : 'INVOICED' }}
                                         </span>
@@ -232,7 +232,7 @@
                                 </div>
                                 <div class="flex -space-x-1">
                                     @foreach($card->assignees->take(3) as $a)
-                                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-[9px] font-bold flex items-center justify-center border" style="border-color: var(--bg-card);" title="{{ $a->name }}">
+                                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white text-[9px] font-bold flex items-center justify-center border" style="border-color: var(--bg-card);" title="{{ $a->name }}">
                                             {{ strtoupper(substr($a->name, 0, 1)) }}
                                         </div>
                                     @endforeach
@@ -264,10 +264,10 @@
                     <input type="checkbox" name="is_done" value="1"> Cards dropped here are marked complete
                 </label>
                 <label class="block text-xs font-semibold mt-3 mb-1" style="color: var(--text-muted);">Colour</label>
-                <input name="color" type="color" value="#8b5cf6" class="w-16 h-8 rounded">
+                <input name="color" type="color" value="#5c83ff" class="w-16 h-8 rounded">
                 <div class="flex justify-end gap-2 mt-5">
                     <button type="button" @click="showAddColumn = false" class="px-3 py-2 rounded-lg text-sm" style="color: var(--text-muted);">Cancel</button>
-                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">Add</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#3d6bff,#90acff);">Add</button>
                 </div>
             </form>
         </div>
@@ -330,7 +330,7 @@
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Assignees</h3>
                     <div class="flex flex-wrap gap-2 mb-2">
                         <template x-for="a in card.assignees" :key="a.id">
-                            <div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs" style="background: rgba(124,58,237,.12); color: var(--text-primary);">
+                            <div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs" style="background: rgba(61,107,255,.12); color: var(--text-primary);">
                                 <span x-text="a.name"></span>
                                 <button @click="unassign(a.id)" class="text-xs"><i class="fas fa-times"></i></button>
                             </div>
@@ -375,8 +375,8 @@
                         <input name="name" placeholder="Label name" maxlength="60" required
                                class="flex-1 px-2 py-1 text-sm rounded border"
                                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <input name="color" type="color" value="#8b5cf6" class="w-12 h-8 rounded">
-                        <button class="px-2 py-1 rounded text-xs font-semibold text-white" style="background:#7c3aed;">Add</button>
+                        <input name="color" type="color" value="#5c83ff" class="w-12 h-8 rounded">
+                        <button class="px-2 py-1 rounded text-xs font-semibold text-white" style="background:#3d6bff;">Add</button>
                     </form>
                 </div>
 
@@ -454,7 +454,7 @@
                         <button type="button" @click="cardTab = 'comments'"
                                 class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide"
                                 :style="cardTab === 'comments'
-                                    ? 'color: var(--text-primary); border-bottom: 2px solid #7c3aed;'
+                                    ? 'color: var(--text-primary); border-bottom: 2px solid #3d6bff;'
                                     : 'color: var(--text-faint);'">
                             <i class="fas fa-comment mr-1"></i> Comments
                             <span class="ml-1 opacity-70" x-text="(card.comments || []).length"></span>
@@ -462,7 +462,7 @@
                         <button type="button" @click="cardTab = 'activity'"
                                 class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide"
                                 :style="cardTab === 'activity'
-                                    ? 'color: var(--text-primary); border-bottom: 2px solid #7c3aed;'
+                                    ? 'color: var(--text-primary); border-bottom: 2px solid #3d6bff;'
                                     : 'color: var(--text-faint);'">
                             <i class="fas fa-clock-rotate-left mr-1"></i> Activity
                             <span class="ml-1 opacity-70" x-text="(card.activities || []).length"></span>
@@ -499,9 +499,9 @@
                                             @mouseenter="mentionIndex = i"
                                             class="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2"
                                             :style="i === mentionIndex
-                                                ? 'background: rgba(124,58,237,0.12); color: var(--text-primary);'
+                                                ? 'background: rgba(61,107,255,0.12); color: var(--text-primary);'
                                                 : 'color: var(--text-primary);'">
-                                        <span class="w-5 h-5 rounded-full bg-violet-500/30 text-[10px] flex items-center justify-center font-bold uppercase"
+                                        <span class="w-5 h-5 rounded-full bg-blue-500/30 text-[10px] flex items-center justify-center font-bold uppercase"
                                               x-text="(m.name || '?').charAt(0)"></span>
                                         <span x-text="m.name"></span>
                                         <span class="ml-auto text-[10px] opacity-60">@<span x-text="m.mention_token"></span></span>
@@ -509,7 +509,7 @@
                                 </template>
                             </div>
 
-                            <button class="mt-1 px-3 py-1 rounded text-xs font-semibold text-white" style="background: #7c3aed;">Post</button>
+                            <button class="mt-1 px-3 py-1 rounded text-xs font-semibold text-white" style="background: #3d6bff;">Post</button>
                         </form>
                     </div>
 
@@ -521,7 +521,7 @@
                         <ol class="space-y-2">
                             <template x-for="a in (card.activities || [])" :key="a.id">
                                 <li class="flex items-start gap-2 text-xs" style="color: var(--text-muted);">
-                                    <i class="fas fa-circle text-[6px] mt-1.5" style="color:#7c3aed;"></i>
+                                    <i class="fas fa-circle text-[6px] mt-1.5" style="color:#3d6bff;"></i>
                                     <div class="flex-1">
                                         <span class="font-semibold" style="color: var(--text-primary);" x-text="a.user?.name || 'Someone'"></span>
                                         <span x-text="' ' + activityLabel(a)"></span>
@@ -601,7 +601,7 @@
                                            class="flex-1 px-2 py-1 text-xs rounded border"
                                            style="background: var(--bg-card); border-color: var(--border-soft); color: var(--text-primary);">
                                     <button class="px-2 py-1 text-xs font-semibold rounded text-white"
-                                            style="background: #7c3aed;">Log</button>
+                                            style="background: #3d6bff;">Log</button>
                                 </form>
 
                                 <ul class="mt-2 space-y-1 max-h-40 overflow-y-auto">
@@ -615,7 +615,7 @@
                                             </span>
                                             <span class="flex items-center gap-2">
                                                 <span x-show="t.invoiced" class="text-[9px] font-bold uppercase"
-                                                      style="color: #7c3aed;">Invoiced</span>
+                                                      style="color: #3d6bff;">Invoiced</span>
                                                 <button type="button" x-show="!t.invoiced && t.ended_at"
                                                         @click="destroyTimeEntry(t.id)" style="color: var(--text-faint);">
                                                     <i class="fas fa-times"></i>
@@ -629,7 +629,7 @@
 
                         <template x-if="card.client_invoice_id">
                             <a :href="`/user/client-invoices/${card.client_invoice_id}`"
-                               class="inline-flex items-center gap-1 text-xs font-semibold" style="color: #7c3aed;">
+                               class="inline-flex items-center gap-1 text-xs font-semibold" style="color: #3d6bff;">
                                 <i class="fas fa-receipt"></i> View invoice →
                             </a>
                         </template>
@@ -668,7 +668,7 @@
                 </select>
                 <div class="flex justify-end gap-2 mt-5">
                     <button type="button" @click="showBilledColumnPicker = false" class="px-3 py-2 rounded-lg text-sm" style="color: var(--text-muted);">Cancel</button>
-                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">Save</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#3d6bff,#90acff);">Save</button>
                 </div>
             </form>
         </div>

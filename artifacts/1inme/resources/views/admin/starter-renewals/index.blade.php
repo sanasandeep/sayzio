@@ -133,7 +133,7 @@
                                     <form method="POST" action="{{ route('admin.starter-renewals.users.send', $due->id) }}">
                                         @csrf
                                         <button type="submit"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 border border-violet-400/30 text-violet-200 text-xs font-semibold transition">
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-200 text-xs font-semibold transition">
                                             <i class="fas fa-paper-plane text-[10px]"></i> Send reminder
                                         </button>
                                     </form>
@@ -163,9 +163,9 @@
         <form method="GET" action="{{ route('admin.starter-renewals.index') }}" class="flex flex-wrap items-center gap-2">
             <input type="text" name="q" value="{{ $search }}"
                    placeholder="User ID or email"
-                   class="flex-1 min-w-[220px] px-3 py-2 rounded-lg bg-white/[0.04] border border-white/15 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400/60">
+                   class="flex-1 min-w-[220px] px-3 py-2 rounded-lg bg-white/[0.04] border border-white/15 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400/60">
             <button type="submit"
-                    class="px-4 py-2 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/30 text-violet-100 text-sm font-semibold transition">
+                    class="px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-100 text-sm font-semibold transition">
                 <i class="fas fa-magnifying-glass mr-1.5"></i> Preview this user
             </button>
             @if($search !== '')
@@ -216,7 +216,7 @@
             </div>
             <div>
                 <a href="{{ route('admin.starter-renewals.preview-email', $selectedUser ? ['q' => $search] : []) }}" target="_blank" rel="noopener"
-                   class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200">
+                   class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-300 hover:text-blue-200">
                     <i class="fas fa-up-right-from-square text-[10px]"></i> Open email preview in a new tab
                 </a>
             </div>
@@ -230,9 +230,9 @@
             </div>
 
             <div class="rounded-2xl border divide-y bg-white" style="border-color: #e2e8f0;">
-                <div class="relative p-4 flex items-start gap-3" style="background: rgba(124,58,237,0.04);">
+                <div class="relative p-4 flex items-start gap-3" style="background: rgba(61,107,255,0.04);">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                         style="background: rgba(124,58,237,0.12); color:#7c3aed;">
+                         style="background: rgba(61,107,255,0.12); color:#3d6bff;">
                         <i class="fas fa-gift"></i>
                     </div>
                     <div class="flex-1 min-w-0">

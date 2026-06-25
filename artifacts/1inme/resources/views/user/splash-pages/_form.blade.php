@@ -11,7 +11,7 @@
         extraButtons:   @js(old('extra_buttons', $splashPage->extra_buttons ?: [])),
         addButton(){
             if (this.extraButtons.length >= 10) return;
-            this.extraButtons.push({ label: '', url: '', bg_color: '#8b5cf6', text_color: '#ffffff' });
+            this.extraButtons.push({ label: '', url: '', bg_color: '#5c83ff', text_color: '#ffffff' });
         },
         removeButton(i){ this.extraButtons.splice(i, 1); },
         readPreview(input, target){
@@ -134,9 +134,9 @@
                 <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Button background color</label>
                 <div class="flex items-center gap-2"
                      x-data="{ bg: @js($mainBg) }">
-                    <input type="color" :value="bg || '#8b5cf6'" @input="bg = $event.target.value"
+                    <input type="color" :value="bg || '#5c83ff'" @input="bg = $event.target.value"
                            class="w-10 h-10 p-0 rounded-lg border-0 cursor-pointer bg-transparent">
-                    <input type="text" name="cta_bg_color" x-model="bg" maxlength="7" placeholder="#8b5cf6"
+                    <input type="text" name="cta_bg_color" x-model="bg" maxlength="7" placeholder="#5c83ff"
                            class="flex-1 px-3 py-2 text-sm font-mono rounded-lg outline-none"
                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                     <button type="button" @click="bg = ''" class="text-[11px] px-2 py-1 rounded" style="color: var(--text-muted); background: var(--bg-glass-hover);">Reset</button>
@@ -211,7 +211,7 @@
                                 <div>
                                     <label class="block text-[11px] font-semibold mb-1" style="color: var(--text-secondary);">Background color</label>
                                     <div class="flex items-center gap-2">
-                                        <input type="color" :value="btn.bg_color || '#8b5cf6'"
+                                        <input type="color" :value="btn.bg_color || '#5c83ff'"
                                                @input="btn.bg_color = $event.target.value"
                                                class="w-9 h-9 p-0 rounded-lg border-0 cursor-pointer bg-transparent">
                                         <input type="text" maxlength="7"
@@ -219,7 +219,7 @@
                                                x-model="btn.bg_color"
                                                class="flex-1 px-3 py-2 text-sm font-mono rounded-lg outline-none"
                                                style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); color: var(--text-primary);"
-                                               placeholder="#8b5cf6">
+                                               placeholder="#5c83ff">
                                     </div>
                                 </div>
                                 <div>

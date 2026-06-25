@@ -15,7 +15,7 @@
         <button type="button" @click="downloadCsv()" class="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-2 rounded-xl text-xs font-medium transition-all">
             <i class="fas fa-download mr-1.5"></i> Download CSV
         </button>
-        <a href="{{ route('user.links.biolink.bulk') }}" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-xs font-medium transition-all">
+        <a href="{{ route('user.links.biolink.bulk') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-medium transition-all">
             <i class="fas fa-plus mr-1.5"></i> New batch
         </a>
     </div>
@@ -40,10 +40,10 @@
                     <td class="px-4 py-3 align-top">
                         @if($r['status'] === 'created')
                             <div class="flex items-center gap-2" x-data="{ copied: false }">
-                                <a href="{{ $r['public_url'] }}" target="_blank" rel="noopener" class="text-xs text-violet-300 hover:underline font-mono break-all">{{ $r['public_url'] }}</a>
+                                <a href="{{ $r['public_url'] }}" target="_blank" rel="noopener" class="text-xs text-blue-300 hover:underline font-mono break-all">{{ $r['public_url'] }}</a>
                                 <button type="button"
                                         @click="navigator.clipboard.writeText('{{ $r['public_url'] }}'); copied = true; setTimeout(() => copied = false, 1500)"
-                                        class="text-white/40 hover:text-violet-300 flex-shrink-0" title="Copy">
+                                        class="text-white/40 hover:text-blue-300 flex-shrink-0" title="Copy">
                                     <i x-show="!copied" class="fas fa-copy text-xs"></i>
                                     <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
                                 </button>

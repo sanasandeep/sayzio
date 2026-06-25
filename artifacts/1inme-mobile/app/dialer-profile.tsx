@@ -538,7 +538,7 @@ export default function DialerProfileScreen() {
               {lookup?.is_spam && <Badge text="SPAM" color="#ef4444" />}
               {lookup?.is_blocked && <Badge text="BLOCKED" color="#9ca3af" />}
               {(lookup?.biolink || profile?.biolink) && (
-                <Badge text="Sayzio" color="#ec4899" />
+                <Badge text="Sayzio" color="#d76dff" />
               )}
             </View>
           </View>
@@ -554,7 +554,7 @@ export default function DialerProfileScreen() {
             onPress={openSms}
           />
           <Action icon="mail" label="Email" tint="#818cf8" onPress={openEmail} />
-          <Action icon="share-2" label="Bio" tint="#ec4899" onPress={shareBio} />
+          <Action icon="share-2" label="Bio" tint="#d76dff" onPress={shareBio} />
           <Action
             icon="copy"
             label="Copy"
@@ -626,10 +626,10 @@ export default function DialerProfileScreen() {
           <View
             style={[
               styles.card,
-              { backgroundColor: colors.card, borderColor: "#ec489955" },
+              { backgroundColor: colors.card, borderColor: "#d76dff55" },
             ]}
           >
-            <Text style={[styles.cardKicker, { color: "#ec4899" }]}>
+            <Text style={[styles.cardKicker, { color: "#d76dff" }]}>
               Sayzio LINK IN BIO
             </Text>
             <Text style={[styles.cardTitle, { color: colors.foreground }]}>
@@ -1701,7 +1701,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#3d6bff",
     alignItems: "center",
     justifyContent: "center",
   },

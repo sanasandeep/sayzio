@@ -28,7 +28,7 @@
     <div class="flex flex-wrap gap-1 mb-3">
         @foreach($gradientCats as $catKey => $catLabel)
         <button type="button" @click="presetCat = '{{ $catKey }}'"
-                :class="presetCat === '{{ $catKey }}' ? 'bg-violet-600 text-white' : ''"
+                :class="presetCat === '{{ $catKey }}' ? 'bg-blue-600 text-white' : ''"
                 class="text-[10px] font-semibold px-2 py-1 rounded"
                 style="background: var(--bg-glass); color: var(--text-faint);">{{ $catLabel }}</button>
         @endforeach
@@ -47,7 +47,7 @@
                     gradientAngle = {{ $p['angle'] }};
                     presetId = '{{ $p['id'] }}';
                 "
-                :class="presetId === '{{ $p['id'] }}' ? 'ring-2 ring-violet-400' : ''"
+                :class="presetId === '{{ $p['id'] }}' ? 'ring-2 ring-blue-400' : ''"
                 class="aspect-square rounded-lg relative overflow-hidden hover:scale-105 transition-transform"
                 style="background: {{ $css }}; border: 1px solid var(--border-glass);"
                 title="{{ $p['name'] }}">

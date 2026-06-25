@@ -16,9 +16,9 @@
         font-size: 12px; font-weight: 600;
         box-shadow: 0 10px 30px rgba(0,0,0,.35);
         z-index: 80; display: flex; align-items: center; gap: 8px;
-        border: 1px solid rgba(124,58,237,.5);
+        border: 1px solid rgba(61,107,255,.5);
     }
-    .vault-toast i { color: #a78bfa; }
+    .vault-toast i { color: #90acff; }
 </style>
 @endpush
 
@@ -32,10 +32,10 @@
     {{-- Dropzone overlay --}}
     <div x-show="dragOver" x-cloak
          class="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
-         style="background: rgba(124,58,237,0.10); backdrop-filter: blur(2px);">
+         style="background: rgba(61,107,255,0.10); backdrop-filter: blur(2px);">
         <div class="rounded-2xl px-10 py-8 text-center"
-             style="background: var(--bg-card); border: 2px dashed #7c3aed; box-shadow: 0 20px 60px rgba(0,0,0,.35);">
-            <i class="fas fa-cloud-arrow-up text-5xl text-violet-400 mb-3"></i>
+             style="background: var(--bg-card); border: 2px dashed #3d6bff; box-shadow: 0 20px 60px rgba(0,0,0,.35);">
+            <i class="fas fa-cloud-arrow-up text-5xl text-blue-400 mb-3"></i>
             <p class="text-base font-bold" style="color: var(--text-primary);">Drop files to upload</p>
             <p class="text-xs mt-1" style="color: var(--text-faint);"
                x-text="folder ? 'Files will be added to “' + ((folders.find(f => f.slug === folder) || { name: folder }).name) + '”' : 'Files will be added to Unfiled'"></p>
@@ -53,8 +53,8 @@
         </div>
         <div class="flex items-center gap-2">
             <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg"
-                  :class="storage.is_s3 ? 'text-emerald-300' : 'text-violet-300'"
-                  :style="(storage.is_s3 ? 'background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.25);' : 'background: rgba(124,58,237,0.10); border: 1px solid rgba(124,58,237,0.25);')">
+                  :class="storage.is_s3 ? 'text-emerald-300' : 'text-blue-300'"
+                  :style="(storage.is_s3 ? 'background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.25);' : 'background: rgba(61,107,255,0.10); border: 1px solid rgba(61,107,255,0.25);')">
                 <i :class="storage.is_s3 ? 'fab fa-aws' : 'fas fa-server'"></i>
                 <span x-text="storage.is_s3 ? 'AWS S3' : 'Local Disk'"></span>
                 <span class="opacity-60">·</span>
@@ -66,7 +66,7 @@
                 <i class="fas fa-folder-plus"></i> New Folder
             </button>
             <button @click="$refs.fileInput.click()"
-                    class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all shadow-sm">
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all shadow-sm">
                 <i class="fas fa-cloud-upload-alt"></i> Upload
             </button>
             <input type="file" x-ref="fileInput" @change="handleFiles($event)" multiple class="hidden">
@@ -99,14 +99,14 @@
         <aside class="rounded-xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border-subtle);">
             <div class="px-4 py-3 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
                 <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-faint);">Folders</span>
-                <button @click="newFolderModal = true" class="text-xs text-violet-400 hover:text-violet-300" title="New folder">
+                <button @click="newFolderModal = true" class="text-xs text-blue-400 hover:text-blue-300" title="New folder">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
             <div class="p-2 max-h-[480px] overflow-y-auto">
                 <button @click="folder = ''; load(1)"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
-                        :class="folder === '' ? 'bg-violet-500/15 text-violet-200' : 'hover:bg-white/5'"
+                        :class="folder === '' ? 'bg-blue-500/15 text-blue-200' : 'hover:bg-white/5'"
                         :style="folder !== '' ? 'color: var(--text-secondary);' : ''">
                     <span class="flex items-center gap-2"><i class="fas fa-layer-group text-xs"></i> All assets</span>
                     <span class="text-[10px] opacity-70" x-text="storage.file_count"></span>
@@ -116,7 +116,7 @@
                     <div class="group flex items-center">
                         <button @click="folder = f.slug; load(1)"
                                 class="flex-1 flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all min-w-0"
-                                :class="folder === f.slug ? 'bg-violet-500/15 text-violet-200' : 'hover:bg-white/5'"
+                                :class="folder === f.slug ? 'bg-blue-500/15 text-blue-200' : 'hover:bg-white/5'"
                                 :style="folder !== f.slug ? 'color: var(--text-secondary);' : ''">
                             <span class="flex items-center gap-2 min-w-0">
                                 <i class="fas text-xs" :class="f.system ? 'fa-inbox' : 'fa-folder'"></i>
@@ -150,7 +150,7 @@
                     <template x-for="t in types" :key="t.k">
                         <button @click="type = t.k; load(1)"
                                 class="text-xs px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all"
-                                :class="type === t.k ? 'text-white bg-violet-600' : ''"
+                                :class="type === t.k ? 'text-white bg-blue-600' : ''"
                                 :style="type === t.k ? '' : 'background: var(--bg-glass); color: var(--text-faint); border: 1px solid var(--border-subtle);'">
                             <i class="mr-1" :class="t.icon"></i>
                             <span x-text="t.label"></span>
@@ -162,7 +162,7 @@
             {{-- Breadcrumb --}}
             <div class="flex items-center gap-2 text-xs" style="color: var(--text-faint);">
                 <i class="fas fa-folder-open"></i>
-                <button @click="folder = ''; load(1)" class="hover:text-violet-400">Asset Vault</button>
+                <button @click="folder = ''; load(1)" class="hover:text-blue-400">Asset Vault</button>
                 <template x-if="folder">
                     <span class="flex items-center gap-2">
                         <i class="fas fa-chevron-right text-[8px]"></i>
@@ -174,7 +174,7 @@
 
             <div x-show="uploading" x-cloak class="rounded-xl p-3" style="background: var(--bg-card); border: 1px solid var(--border-subtle);">
                 <div class="flex items-center gap-3 mb-2">
-                    <div class="animate-spin w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full"></div>
+                    <div class="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
                     <span class="text-sm font-medium" style="color: var(--text-secondary);"
                           x-text="'Uploading ' + uploadDone + ' / ' + uploadTotal"></span>
                 </div>
@@ -186,9 +186,9 @@
 
             <div x-show="!loading && assets.length === 0" x-cloak
                  @click="$refs.fileInput.click()"
-                 class="text-center py-16 rounded-xl cursor-pointer transition-all hover:border-violet-500/50"
+                 class="text-center py-16 rounded-xl cursor-pointer transition-all hover:border-blue-500/50"
                  style="background: var(--bg-card); border: 2px dashed var(--border-glass);">
-                <i class="fas fa-cloud-arrow-up text-4xl mb-3 text-violet-400"></i>
+                <i class="fas fa-cloud-arrow-up text-4xl mb-3 text-blue-400"></i>
                 <p class="text-sm font-semibold" style="color: var(--text-secondary);">Drag &amp; drop files here</p>
                 <p class="text-xs mt-1" style="color: var(--text-faint);">or click anywhere in this box to browse</p>
             </div>
@@ -201,7 +201,7 @@
                             <template x-if="a.type === 'image'">
                                 <img :src="a.url" :alt="a.original_name" class="w-full h-full object-cover" loading="lazy">
                             </template>
-                            <template x-if="a.type === 'video'"><i class="fas fa-film text-3xl text-violet-400"></i></template>
+                            <template x-if="a.type === 'video'"><i class="fas fa-film text-3xl text-blue-400"></i></template>
                             <template x-if="a.type === 'audio'"><i class="fas fa-music text-3xl text-pink-400"></i></template>
                             <template x-if="a.type === 'document'"><i class="fas fa-file-lines text-3xl text-cyan-400"></i></template>
                             <template x-if="a.type === 'archive'"><i class="fas fa-file-zipper text-3xl text-amber-400"></i></template>
@@ -270,7 +270,7 @@
                 <button @click="newFolderModal = false; newFolderName = ''"
                         class="px-3 py-2 text-sm rounded-lg"
                         style="background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-secondary);">Cancel</button>
-                <button @click="createFolder()" class="px-3 py-2 text-sm rounded-lg bg-violet-600 hover:bg-violet-700 text-white">Create</button>
+                <button @click="createFolder()" class="px-3 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white">Create</button>
             </div>
         </div>
     </div>
@@ -300,7 +300,7 @@
                 <button @click="moveModal = false"
                         class="px-3 py-2 text-sm rounded-lg"
                         style="background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-secondary);">Cancel</button>
-                <button @click="commitMove()" class="px-3 py-2 text-sm rounded-lg bg-violet-600 hover:bg-violet-700 text-white">Move</button>
+                <button @click="commitMove()" class="px-3 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white">Move</button>
             </div>
         </div>
     </div>

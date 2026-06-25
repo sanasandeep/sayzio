@@ -8,7 +8,7 @@
     @php
         $portal = app()->bound('current_portal') ? app('current_portal') : ($portal ?? null);
         $brandName = $portal?->brandingName() ?? config('app.name');
-        $brandColor = $portal?->brandingColor() ?? '#7c3aed';
+        $brandColor = $portal?->brandingColor() ?? '#3d6bff';
         $brandLogo = $portal?->brand_logo_url;
     @endphp
     <title>@yield('title', 'Client Portal') · {{ $brandName }}</title>

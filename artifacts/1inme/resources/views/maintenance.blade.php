@@ -12,7 +12,7 @@
         html, body { margin: 0; padding: 0; min-height: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-            background: radial-gradient(1200px 600px at 20% 10%, rgba(124,58,237,0.18), transparent 60%),
+            background: radial-gradient(1200px 600px at 20% 10%, rgba(61,107,255,0.18), transparent 60%),
                         radial-gradient(900px 500px at 90% 100%, rgba(59,130,246,0.18), transparent 60%),
                         #0b0b14;
             color: #e7e7f0;
@@ -39,34 +39,34 @@
         p  { font-size: 15px; line-height: 1.6; color: rgba(231,231,240,0.78); margin: 8px 0; }
         .eta {
             margin-top: 18px; padding: 12px 16px;
-            background: rgba(124,58,237,0.10);
-            border: 1px solid rgba(124,58,237,0.30);
-            border-radius: 12px; font-size: 13px; color: #c4b5fd;
+            background: rgba(61,107,255,0.10);
+            border: 1px solid rgba(61,107,255,0.30);
+            border-radius: 12px; font-size: 13px; color: #bccfff;
         }
         .dot { width: 8px; height: 8px; border-radius: 999px; background: #fbbf24; box-shadow: 0 0 8px #fbbf24; animation: pulse 1.6s ease-in-out infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
         .meta { margin-top: 24px; font-size: 11px; color: rgba(231,231,240,0.4); letter-spacing: 0.06em; text-transform: uppercase; }
 
         /* ---- Sayzio 2.0 "upgrade" variant ---- */
-        .logo { font-size: 13px; font-weight: 800; letter-spacing: 0.2em; color: #a78bfa; text-transform: uppercase; margin-bottom: 16px; }
+        .logo { font-size: 13px; font-weight: 800; letter-spacing: 0.2em; color: #90acff; text-transform: uppercase; margin-bottom: 16px; }
         .badge.upgrade {
-            background: rgba(124,58,237,0.14);
-            border: 1px solid rgba(124,58,237,0.4);
-            color: #c4b5fd;
+            background: rgba(61,107,255,0.14);
+            border: 1px solid rgba(61,107,255,0.4);
+            color: #bccfff;
         }
-        .badge.upgrade .dot { background: #a78bfa; box-shadow: 0 0 8px #a78bfa; }
+        .badge.upgrade .dot { background: #90acff; box-shadow: 0 0 8px #90acff; }
         .hero {
             font-size: 34px; line-height: 1.2; margin: 18px 0 12px; font-weight: 800;
-            background: linear-gradient(90deg, #c4b5fd, #93c5fd 55%, #f0abfc);
+            background: linear-gradient(90deg, #bccfff, #93c5fd 55%, #f0abfc);
             -webkit-background-clip: text; background-clip: text; color: transparent;
         }
         .feature {
             margin-top: 22px; padding: 18px 18px 16px;
-            background: rgba(124,58,237,0.08);
-            border: 1px solid rgba(124,58,237,0.28);
+            background: rgba(61,107,255,0.08);
+            border: 1px solid rgba(61,107,255,0.28);
             border-radius: 16px; text-align: left;
         }
-        .feature .kicker { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #a78bfa; font-weight: 700; }
+        .feature .kicker { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #90acff; font-weight: 700; }
         .feature .ft { font-size: 16px; font-weight: 700; margin: 6px 0 4px; color: #f3f0ff; }
         .feature .fb { font-size: 13.5px; line-height: 1.55; color: rgba(231,231,240,0.74); margin: 0; }
         .note { margin-top: 18px; font-size: 13px; color: rgba(231,231,240,0.7); }

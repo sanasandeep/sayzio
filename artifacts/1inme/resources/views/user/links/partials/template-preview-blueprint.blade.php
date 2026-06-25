@@ -57,7 +57,7 @@
                     $lines = (int) ($cell['lines'] ?? 2);
                     $dots  = (int) ($cell['dots']  ?? 5);
                     $sub   = !empty($cell['sub']);
-                    $btnBg = $cell['btn_bg'] ?? 'rgba(139,92,246,0.85)';
+                    $btnBg = $cell['btn_bg'] ?? 'rgba(92,131,255,0.85)';
                     $text  = $cell['text'] ?? '';
                     $subText = $cell['sub_text'] ?? '';
                     $imgUrl = $cell['img'] ?? '';

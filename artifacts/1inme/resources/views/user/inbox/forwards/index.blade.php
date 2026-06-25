@@ -8,7 +8,7 @@
         'subtitle' => 'Send new inbox messages to an email address or webhook',
         'icon'     => 'fa-share-from-square',
         'chips'    => [
-            ['icon' => 'fa-inbox text-violet-400', 'text' => count($destinations) . ' rule(s)'],
+            ['icon' => 'fa-inbox text-blue-400', 'text' => count($destinations) . ' rule(s)'],
         ],
         'actions'  => [
             ['label' => 'Back to inbox', 'url' => route('user.inbox.index'), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
@@ -37,9 +37,9 @@
                 @foreach($destinations as $d)
                     <details class="rounded-xl p-3" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                         <summary class="cursor-pointer flex items-center gap-3 text-sm" style="color: var(--text-primary);">
-                            <i class="fas {{ $d->type === 'email' ? 'fa-envelope text-violet-400' : 'fa-bolt text-amber-400' }}"></i>
+                            <i class="fas {{ $d->type === 'email' ? 'fa-envelope text-blue-400' : 'fa-bolt text-amber-400' }}"></i>
                             <span class="font-medium">{{ $d->label }}</span>
-                            <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(124,58,237,0.15); color:#c4b5fd;">{{ $d->type }}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(61,107,255,0.15); color:#bccfff;">{{ $d->type }}</span>
                             <span class="text-xs truncate" style="color: var(--text-muted);">→ {{ $d->target }}</span>
                             <span class="ml-auto text-xs px-2 py-0.5 rounded-full"
                                   style="{{ $d->is_active ? 'background:rgba(16,185,129,0.15);color:#86efac;' : 'background:rgba(148,163,184,0.15);color:#cbd5e1;' }}">
@@ -52,7 +52,7 @@
                             @include('user.inbox.forwards._fields', ['dest' => $d, 'sourceLabels' => $sourceLabels])
 
                             <div class="md:col-span-2 flex flex-wrap gap-2 mt-1">
-                                <button type="submit" class="px-4 py-2 text-xs rounded-lg font-semibold" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9); color: white;">
+                                <button type="submit" class="px-4 py-2 text-xs rounded-lg font-semibold" style="background: linear-gradient(135deg,#5c83ff,#2342c7); color: white;">
                                     Save changes
                                 </button>
                                 <button type="submit" form="toggle-{{ $d->id }}" class="px-4 py-2 text-xs rounded-lg font-semibold" style="background: rgba(148,163,184,0.15); color: var(--text-secondary);">
@@ -87,7 +87,7 @@
             @csrf
             @include('user.inbox.forwards._fields', ['dest' => null, 'sourceLabels' => $sourceLabels])
             <div class="md:col-span-2">
-                <button type="submit" class="px-5 py-2.5 text-sm rounded-lg font-semibold" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9); color: white;">
+                <button type="submit" class="px-5 py-2.5 text-sm rounded-lg font-semibold" style="background: linear-gradient(135deg,#5c83ff,#2342c7); color: white;">
                     <i class="fas fa-plus mr-1.5"></i>Add rule
                 </button>
             </div>
@@ -150,7 +150,7 @@
                                     @if(in_array($del->status, ['failed', 'dead'], true))
                                         <form method="POST" action="{{ route('user.inbox.forwards.deliveries.retry', $del) }}" class="inline">
                                             @csrf
-                                            <button class="px-2 py-1 rounded-md text-[11px]" style="background: rgba(124,58,237,0.15); color:#c4b5fd;">
+                                            <button class="px-2 py-1 rounded-md text-[11px]" style="background: rgba(61,107,255,0.15); color:#bccfff;">
                                                 <i class="fas fa-rotate-right mr-1"></i>Retry now
                                             </button>
                                         </form>

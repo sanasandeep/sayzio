@@ -17,7 +17,7 @@
             <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white/50"><i class="fas fa-arrow-left"></i></a>
             <div>
                 <h1 class="text-2xl font-bold text-white">{{ $link->title ?: 'Reviews Page' }}</h1>
-                <a href="{{ $publicUrl }}" target="_blank" class="text-xs text-violet-400 hover:underline">{{ $publicUrl }} <i class="fas fa-external-link-alt ml-1"></i></a>
+                <a href="{{ $publicUrl }}" target="_blank" class="text-xs text-blue-400 hover:underline">{{ $publicUrl }} <i class="fas fa-external-link-alt ml-1"></i></a>
             </div>
         </div>
         <div class="glass rounded-xl px-4 py-2 text-center">
@@ -31,7 +31,7 @@
 
     <div class="flex gap-2 mb-6 border-b border-white/10">
         @foreach(['reviews' => 'Moderation', 'settings' => 'Settings', 'questions' => 'Questions', 'providers' => 'Integrations'] as $key => $label)
-        <button @click="tab='{{ $key }}'" :class="tab==='{{ $key }}' ? 'text-white border-violet-500' : 'text-white/40 border-transparent'" class="px-4 py-2.5 text-sm font-medium border-b-2 -mb-px">{{ $label }}</button>
+        <button @click="tab='{{ $key }}'" :class="tab==='{{ $key }}' ? 'text-white border-blue-500' : 'text-white/40 border-transparent'" class="px-4 py-2.5 text-sm font-medium border-b-2 -mb-px">{{ $label }}</button>
         @endforeach
     </div>
 
@@ -40,7 +40,7 @@
         @forelse($reviews as $review)
         <div class="glass rounded-2xl p-4">
             <div class="flex items-start gap-3">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white font-semibold shrink-0">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-semibold shrink-0">
                     {{ strtoupper(substr($review->author_name ?: 'A', 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -50,7 +50,7 @@
                         @php $statusColors = ['approved' => 'emerald', 'pending' => 'amber', 'hidden' => 'gray', 'unverified' => 'sky']; $c = $statusColors[$review->status] ?? 'gray'; $statusLabel = $review->status === 'unverified' ? 'awaiting verification' : $review->status; @endphp
                         <span class="text-[10px] px-2 py-0.5 rounded-full bg-{{ $c }}-500/15 text-{{ $c }}-300 capitalize">{{ $statusLabel }}</span>
                         @if($review->verified_at)<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300" title="{{ ucfirst($review->verification_method ?? 'email') }}-verified customer"><i class="fas fa-circle-check mr-0.5"></i>Verified</span>@endif
-                        @if($review->is_pinned)<span class="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300">Pinned</span>@endif
+                        @if($review->is_pinned)<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300">Pinned</span>@endif
                         @if($review->is_spam)<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-300">Spam</span>@endif
                         <span class="text-[11px] text-white/30 ml-auto">{{ $review->created_at?->diffForHumans() }}</span>
                     </div>
@@ -73,7 +73,7 @@
                     @endif
 
                     @if($review->reply)
-                    <div class="mt-2 pl-3 border-l-2 border-violet-500 text-sm text-white/60"><span class="text-violet-400 text-xs font-medium">Your reply:</span> {{ $review->reply }}</div>
+                    <div class="mt-2 pl-3 border-l-2 border-blue-500 text-sm text-white/60"><span class="text-blue-400 text-xs font-medium">Your reply:</span> {{ $review->reply }}</div>
                     @endif
 
                     <div class="flex items-center gap-1.5 mt-3 flex-wrap">
@@ -88,7 +88,7 @@
                             <summary class="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 cursor-pointer list-none"><i class="fas fa-reply mr-1"></i>Reply</summary>
                             <form method="POST" action="{{ route('user.links.reviews.reply', $review) }}" class="absolute z-10 mt-2 w-72 glass rounded-xl p-3">@csrf
                                 <textarea name="reply" rows="3" class="w-full bg-black/30 border border-white/10 rounded-lg px-2.5 py-2 text-sm text-white" placeholder="Write a public reply…">{{ $review->reply }}</textarea>
-                                <button class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white">Save reply</button>
+                                <button class="mt-2 w-full text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white">Save reply</button>
                             </form>
                         </details>
                         <form method="POST" action="{{ route('user.links.reviews.destroy', $review) }}" onsubmit="return confirm('Delete this review permanently?')">@csrf @method('DELETE')<button class="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20"><i class="fas fa-trash mr-1"></i>Delete</button></form>
@@ -152,7 +152,7 @@
                 @endforeach
             </div>
             <p class="text-xs text-white/40 -mt-1">Email verification needs an address, so it keeps “Collect reviewer email” turned on.</p>
-            <div class="flex justify-end"><button class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white">Save settings</button></div>
+            <div class="flex justify-end"><button class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">Save settings</button></div>
         </form>
         <script>
         (function () {
@@ -189,7 +189,7 @@
                 <div class="md:col-span-3"><label class="block text-xs text-white/50 mb-1">Type</label><select name="type" x-model="type" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white"><option value="text">Text</option><option value="rating">Rating</option><option value="choice">Choice</option></select></div>
                 <div class="md:col-span-2" x-show="type==='choice'"><label class="block text-xs text-white/50 mb-1">Options (comma)</label><input type="text" x-bind:name="type==='choice' ? 'options_csv' : ''" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white" placeholder="Yes, No" @input="$el.closest('form').querySelectorAll('input[name^=options]').forEach(e=>e.remove()); this.value.split(',').map(o=>o.trim()).filter(Boolean).forEach(o=>{let i=document.createElement('input');i.type='hidden';i.name='options[]';i.value=o;$el.closest('form').appendChild(i);})"></div>
                 <div class="md:col-span-1"><label class="flex items-center gap-1.5 text-xs text-white/60"><input type="checkbox" name="is_required" value="1" class="rounded">Req</label></div>
-                <div class="md:col-span-1"><button class="w-full px-3 py-2.5 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white">Add</button></div>
+                <div class="md:col-span-1"><button class="w-full px-3 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">Add</button></div>
             </form>
         </div>
     </div>
@@ -208,7 +208,7 @@
             <form method="POST" action="{{ route('user.links.reviews.providers.connect', $slug) }}" class="space-y-2">@csrf
                 <input type="text" name="external_ref" value="{{ $conn->external_ref ?? '' }}" placeholder="{{ $p['ref_label'] }}" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
                 <div class="flex gap-2">
-                    <button class="flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white">{{ $conn ? 'Save & sync' : 'Connect' }}</button>
+                    <button class="flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">{{ $conn ? 'Save & sync' : 'Connect' }}</button>
                 </div>
             </form>
             @if($conn)

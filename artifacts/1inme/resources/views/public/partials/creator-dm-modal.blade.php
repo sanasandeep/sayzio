@@ -18,7 +18,7 @@
             <div>
                 <p class="text-sm text-slate-700 mb-3">Sign in to send a direct message.</p>
                 <a href="#" @click.prevent="window.dispatchEvent(new CustomEvent('open-viewer-login', { detail: { creatorId: {{ (int) $creator->id }} } }))"
-                   class="inline-block px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold">Sign in</a>
+                   class="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold">Sign in</a>
             </div>
         </div>
 
@@ -26,7 +26,7 @@
             <template x-for="m in state.messages" :key="m.id">
                 <div :class="m.side === 'viewer' ? 'flex justify-end' : 'flex justify-start'">
                     <div :class="m.side === 'viewer'
-                        ? 'bg-violet-600 text-white rounded-2xl rounded-br-sm px-3 py-2 max-w-[80%]'
+                        ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm px-3 py-2 max-w-[80%]'
                         : (m.kind === 'system'
                             ? 'bg-amber-50 border border-amber-200 text-amber-700 italic rounded-2xl px-3 py-2 max-w-[80%] text-xs'
                             : 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-sm px-3 py-2 max-w-[80%]')">
@@ -35,7 +35,7 @@
                             <div class="mt-2">
                                 <template x-if="a.is_locked">
                                     <button type="button" @click="unlock(a)"
-                                            class="block relative rounded-lg overflow-hidden border border-violet-300 bg-violet-50 text-left">
+                                            class="block relative rounded-lg overflow-hidden border border-blue-300 bg-blue-50 text-left">
                                         <img :src="a.thumb_url" class="w-44 h-44 object-cover blur-md" alt="">
                                         <div class="absolute inset-0 flex items-center justify-center bg-black/40">
                                             <span class="text-white text-xs font-bold">
@@ -66,7 +66,7 @@
                 <p class="text-xs text-slate-500">DMs are turned off for this creator.</p>
             </template>
             <template x-if="state.reason === 'subs_required'">
-                <a :href="`/@${state.handle}/subscribe`" class="block text-center px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold">
+                <a :href="`/@${state.handle}/subscribe`" class="block text-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold">
                     Subscribe to message
                     <span x-show="state.policy.min_tier_name" x-text="`· ${state.policy.min_tier_name}`"></span>
                 </a>
@@ -87,14 +87,14 @@
             <template x-if="state.reason === 'ok'">
                 <form @submit.prevent="send()" class="flex items-end gap-2">
                     <textarea x-model="draft" rows="1" maxlength="5000" placeholder="Write a message…"
-                              class="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:border-violet-400 focus:outline-none text-sm resize-none"
+                              class="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:outline-none text-sm resize-none"
                               @keydown.enter.prevent.exact="send()"></textarea>
                     <button type="button" @click="openTip()" title="Tip"
                             class="px-3 py-2 rounded-lg border border-rose-200 text-rose-500 hover:bg-rose-50">
                         <i class="fas fa-heart"></i>
                     </button>
                     <button type="submit" :disabled="state.sending || !draft.trim()"
-                            class="px-3 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold disabled:opacity-50">
+                            class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-50">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </form>

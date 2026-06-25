@@ -6,7 +6,7 @@
             <i class="fas fa-lock mr-1.5"></i>
             {{ $block->settings['title'] ?? 'Insider Feed' }}
         </h3>
-        <button type="button" class="insider-join-btn text-xs px-3 py-1 rounded-full" style="background: var(--accent, #7c3aed); color:#fff;">
+        <button type="button" class="insider-join-btn text-xs px-3 py-1 rounded-full" style="background: var(--accent, #3d6bff); color:#fff;">
             Join
         </button>
     </div>
@@ -22,6 +22,6 @@
         @csrf
         <input type="email" name="email" required placeholder="Your email" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 mb-2">
         <input type="text" name="display_name" placeholder="Display name (optional)" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 mb-2">
-        <button type="submit" class="w-full py-2 rounded-lg" style="background: var(--accent, #7c3aed); color:#fff;">Unlock Insider Feed</button>
+        <button type="submit" class="w-full py-2 rounded-lg" style="background: var(--accent, #3d6bff); color:#fff;">Unlock Insider Feed</button>
     </form>
 </div>

@@ -40,7 +40,7 @@
     <input type="hidden" name="_resources_present" value="1">
     <header class="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-white/[0.02] cursor-pointer"
             @click="open = !open">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-violet-500/15 text-fuchsia-300 flex items-center justify-center flex-shrink-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-blue-500/15 text-fuchsia-300 flex items-center justify-center flex-shrink-0">
             <i class="fas fa-wand-magic-sparkles"></i>
         </div>
         <div class="min-w-0 flex-1">
@@ -59,7 +59,7 @@
             </div>
             @if(empty($myMinds) && empty($platformMinds))
                 <p class="text-xs text-white/30">
-                    No AI Brains yet — <a href="{{ route('user.ai.mind.show') }}" class="text-violet-300 hover:underline">create one</a> to teach the AI about you, then come back.
+                    No AI Brains yet — <a href="{{ route('user.ai.mind.show') }}" class="text-blue-300 hover:underline">create one</a> to teach the AI about you, then come back.
                 </p>
             @else
                 <div class="flex flex-wrap gap-2">
@@ -97,7 +97,7 @@
             </div>
             @if(empty($vaultFiles))
                 <p class="text-xs text-white/30">
-                    Your vault is empty — <a href="{{ route('user.files.index') }}" class="text-violet-300 hover:underline">upload files</a> to feed the AI images and documents.
+                    Your vault is empty — <a href="{{ route('user.files.index') }}" class="text-blue-300 hover:underline">upload files</a> to feed the AI images and documents.
                 </p>
             @else
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">

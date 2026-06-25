@@ -87,9 +87,9 @@
     {{-- AI Companion auto-reply binding --}}
     @if(($companions ?? collect())->isNotEmpty())
         <form method="POST" action="{{ route('user.inbox.dms.auto-reply', $conversation->id) }}"
-              class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-3 flex flex-wrap items-center gap-2 text-sm">
+              class="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3 flex flex-wrap items-center gap-2 text-sm">
             @csrf @method('PUT')
-            <i class="fas fa-robot text-violet-300"></i>
+            <i class="fas fa-robot text-blue-300"></i>
             <span class="text-white/80">Auto-reply with</span>
             <select name="companion_id" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white">
                 <option value="">— Off —</option>
@@ -97,9 +97,9 @@
                     <option value="{{ $cmp->id }}" @selected((int) $conversation->auto_reply_companion_id === (int) $cmp->id)>{{ $cmp->name }}</option>
                 @endforeach
             </select>
-            <button class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium">Save</button>
+            <button class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium">Save</button>
             @if($conversation->auto_reply_companion_id)
-                <span class="text-[11px] text-violet-200/70">Drafts run on each viewer message; auto-send only fires if the Companion has it enabled.</span>
+                <span class="text-[11px] text-blue-200/70">Drafts run on each viewer message; auto-send only fires if the Companion has it enabled.</span>
             @endif
         </form>
     @endif

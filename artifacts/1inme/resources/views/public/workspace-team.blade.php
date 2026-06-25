@@ -23,7 +23,7 @@
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
             <div data-anim="fade-right">
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-violet-500/10 border border-violet-400/20 text-violet-300">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-blue-500/10 border border-blue-400/20 text-blue-300">
                     <i class="fas fa-people-group text-[10px]"></i> {{ $page->title ?? 'Workspace & Team' }}
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
@@ -33,7 +33,7 @@
                     {{ $page->meta_description ?? 'Invite teammates, agencies and clients with the right permissions. Track every change. Switch between brand spaces in one click.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Start a workspace</a>
+                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start a workspace</a>
                     <a href="{{ route('site.contact') }}" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Talk to sales</a>
                 </div>
                 <div class="mt-10 grid grid-cols-3 gap-6 max-w-md" data-anim="fade-up" data-stagger>
@@ -48,8 +48,8 @@
                 </div>
                 <div class="absolute -bottom-5 -left-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="flex -space-x-2">
-                        <span class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 ring-2 ring-[#11101c] flex items-center justify-center text-xs font-bold">M</span>
-                        <span class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-violet-500 ring-2 ring-[#11101c] flex items-center justify-center text-xs font-bold">A</span>
+                        <span class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 ring-2 ring-[#11101c] flex items-center justify-center text-xs font-bold">M</span>
+                        <span class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 ring-2 ring-[#11101c] flex items-center justify-center text-xs font-bold">A</span>
                         <span class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-pink-500 ring-2 ring-[#11101c] flex items-center justify-center text-xs font-bold">R</span>
                         <span class="w-8 h-8 rounded-full bg-white/10 ring-2 ring-[#11101c] flex items-center justify-center text-xs font-semibold">+5</span>
                     </div>
@@ -67,7 +67,7 @@
             @php $reverse = $i % 2 === 1; @endphp
             <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
                 <div class="{{ $reverse ? 'lg:order-2' : '' }}" data-anim="{{ $reverse ? 'fade-left' : 'fade-right' }}">
-                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-500/20 border border-violet-400/30 text-violet-300 mb-4">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-300 mb-4">
                         <i class="fas {{ $f['icon'] }}"></i>
                     </div>
                     <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{!! $f['title'] !!}</h2>
@@ -92,8 +92,8 @@
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
             @foreach($highlights as $h)
-                <div class="group bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-violet-400/40 rounded-2xl p-6 transition">
-                    <div class="w-11 h-11 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center text-violet-200 mb-4 group-hover:scale-110 transition">
+                <div class="group bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-blue-400/40 rounded-2xl p-6 transition">
+                    <div class="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-200 mb-4 group-hover:scale-110 transition">
                         <i class="fas {{ $h['icon'] }}"></i>
                     </div>
                     <h3 class="text-base font-bold text-white">{!! $h['title'] !!}</h3>
@@ -113,7 +113,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Bring the whole team on board</h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Free for two seats forever. Add more whenever you need them — no awkward sales call.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Create your workspace</a>
+                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create your workspace</a>
                     <a href="{{ route('site.contact') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Talk to us</a>
                 </div>
             </div>

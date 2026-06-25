@@ -69,7 +69,7 @@
     <template x-if="!loggedIn">
         <button type="button"
                 @click="$dispatch('open-viewer-login', { action: 'message', biolinkId: linkId })"
-                class="w-full {{ $isOverlay ? 'px-4 py-2.5 rounded-lg bg-violet-600 text-white hover:bg-violet-500' : 'bio-btn py-2.5' }} text-sm font-medium">
+                class="w-full {{ $isOverlay ? 'px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500' : 'bio-btn py-2.5' }} text-sm font-medium">
             <i class="fas fa-sign-in-alt mr-1"></i> Login to send a message
         </button>
     </template>
@@ -118,7 +118,7 @@
                           style="color: {{ $fontColor }}"></textarea>
                 <button type="submit"
                         :disabled="loading || !body.trim()"
-                        class="{{ $isOverlay ? 'px-4 py-2.5 rounded-lg bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50' : 'bio-btn px-4 py-2.5' }} text-sm font-medium whitespace-nowrap">
+                        class="{{ $isOverlay ? 'px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50' : 'bio-btn px-4 py-2.5' }} text-sm font-medium whitespace-nowrap">
                     <span x-show="!loading">{{ $dmBtn }}</span>
                     <span x-show="loading"><i class="fas fa-spinner fa-spin"></i></span>
                 </button>

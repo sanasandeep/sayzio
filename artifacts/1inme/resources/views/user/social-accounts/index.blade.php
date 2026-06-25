@@ -37,10 +37,10 @@
     @if(session('social_merge_offer'))
         @php $__mergeOffer = session('social_merge_offer'); @endphp
         <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-start gap-3"
-             style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.35); color: var(--text-primary);">
-            <i class="fas fa-code-merge mt-0.5" style="color:#7c3aed;"></i>
+             style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.35); color: var(--text-primary);">
+            <i class="fas fa-code-merge mt-0.5" style="color:#3d6bff;"></i>
             <div class="flex-1 min-w-0">
-                <div class="font-semibold" style="color:#7c3aed;">
+                <div class="font-semibold" style="color:#3d6bff;">
                     That {{ \App\Modules\User\Models\SocialAccountConnection::platformLabel($__mergeOffer['provider'] ?? '') }} account already belongs to another Sayzio account
                 </div>
                 <div class="text-xs mt-0.5" style="color: var(--text-muted);">
@@ -53,7 +53,7 @@
                             @csrf
                             <button type="submit"
                                     class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                                    style="background: rgba(124,58,237,0.15); color:#7c3aed; border: 1px solid rgba(124,58,237,0.4);">
+                                    style="background: rgba(61,107,255,0.15); color:#3d6bff; border: 1px solid rgba(61,107,255,0.4);">
                                 <i class="fas fa-code-merge"></i> Merge accounts
                             </button>
                         </form>
@@ -154,7 +154,7 @@
                 @foreach($connections as $platform => $rows)
                     @foreach($rows as $c)
                         @php
-                            $meta       = $platforms[$platform] ?? ["label"=>ucfirst($platform), "icon"=>"fas fa-link", "color"=>"#7c3aed"];
+                            $meta       = $platforms[$platform] ?? ["label"=>ucfirst($platform), "icon"=>"fas fa-link", "color"=>"#3d6bff"];
                             $health     = $c->healthState();
                             $isOauth    = $c->isOauthPlatform();
                             $oauthReady = $isOauth && $oauthSvc->isConfigured($platform);

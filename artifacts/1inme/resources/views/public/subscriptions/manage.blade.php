@@ -10,7 +10,7 @@
 @endphp
 <section class="pt-16 pb-10">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/15 border border-violet-400/30 text-[11px] font-bold uppercase tracking-wider text-violet-200 mb-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-[11px] font-bold uppercase tracking-wider text-blue-200 mb-3">
             <i class="fas fa-sliders"></i> Subscription Center
         </div>
         <h1 class="text-3xl sm:text-4xl font-bold text-white">Manage your Sayzio subscriptions</h1>
@@ -23,9 +23,9 @@
 <section class="pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-4 md:grid-cols-3">
         {{-- Email newsletter --}}
-        <div class="bg-violet-500/10 border border-violet-400/20 rounded-2xl p-6 flex flex-col">
+        <div class="bg-blue-500/10 border border-blue-400/20 rounded-2xl p-6 flex flex-col">
             <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500/20 text-violet-200">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-200">
                     <i class="fas fa-envelope-open-text"></i>
                 </div>
                 <div>
@@ -53,9 +53,9 @@
                 <input type="email" id="manage-email" name="email" required
                        placeholder="you@example.com"
                        value="{{ old('email') }}"
-                       class="px-4 py-2.5 rounded-full bg-white/5 border border-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:border-violet-400/60">
+                       class="px-4 py-2.5 rounded-full bg-white/5 border border-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:border-blue-400/60">
                 <button type="submit"
-                        class="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
+                        class="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
                     <i class="fas fa-paper-plane text-xs"></i> Email me an unsubscribe link
                 </button>
             </form>
@@ -119,8 +119,8 @@
 
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 text-center">
         <p class="text-xs text-gray-500">
-            Need help? <a href="{{ route('site.contact') }}" class="text-violet-300 hover:underline">Contact us</a>
-            or read our <a href="{{ route('site.privacy') }}" class="text-violet-300 hover:underline">privacy policy</a>.
+            Need help? <a href="{{ route('site.contact') }}" class="text-blue-300 hover:underline">Contact us</a>
+            or read our <a href="{{ route('site.privacy') }}" class="text-blue-300 hover:underline">privacy policy</a>.
         </p>
     </div>
 </section>

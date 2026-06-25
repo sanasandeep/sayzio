@@ -62,7 +62,7 @@
 
         <div class="flex justify-end gap-2">
             <a href="{{ route('admin.taxes.index') }}" class="px-4 py-2 bg-white/5 text-white/70 rounded-xl">Cancel</a>
-            <button class="px-5 py-2 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700">{{ $row->exists ? 'Save' : 'Create' }}</button>
+            <button class="px-5 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">{{ $row->exists ? 'Save' : 'Create' }}</button>
         </div>
     </form>
 </div>

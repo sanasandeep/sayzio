@@ -9,7 +9,7 @@
 
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-2">
         <h3 class="font-semibold text-white">Knowledge Bases</h3>
-        <p class="text-sm text-white/60">These are the platform-wide AI Minds the assistant retrieves from. Pick which ones to use on the <a href="{{ route('admin.site-assistant.edit') }}" class="text-purple-300 underline">settings page</a>. Use the AI Mind admin to add or edit content; this page lists status and lets you queue a re-index.</p>
+        <p class="text-sm text-white/60">These are the platform-wide AI Minds the assistant retrieves from. Pick which ones to use on the <a href="{{ route('admin.site-assistant.edit') }}" class="text-indigo-300 underline">settings page</a>. Use the AI Mind admin to add or edit content; this page lists status and lets you queue a re-index.</p>
     </div>
 
     <div class="glass rounded-2xl border border-white/10 overflow-hidden">
@@ -28,7 +28,7 @@
                     <tr class="border-t border-white/5">
                         <td class="p-3 text-white">
                             {{ $mind->name }}
-                            @if($mind->is_default)<span class="ml-2 text-[10px] uppercase tracking-wide bg-purple-500/20 text-purple-200 rounded px-1.5 py-0.5">default</span>@endif
+                            @if($mind->is_default)<span class="ml-2 text-[10px] uppercase tracking-wide bg-indigo-500/20 text-indigo-200 rounded px-1.5 py-0.5">default</span>@endif
                             @if($mind->is_disabled)<span class="ml-2 text-[10px] uppercase tracking-wide bg-red-500/20 text-red-200 rounded px-1.5 py-0.5">disabled</span>@endif
                         </td>
                         <td class="p-3 text-right text-white/70">{{ (int) $mind->sources_count }}</td>

@@ -3,9 +3,9 @@
     $alias = $link->alias;
     $theme = $link->settings['biolink']['theme'] ?? [];
     $bg = $theme['background'] ?? '#0f172a';
-    $accent = $theme['accent'] ?? '#8b5cf6';
+    $accent = $theme['accent'] ?? '#5c83ff';
     $bubbleBot = $theme['bubble_bot'] ?? '#1e293b';
-    $bubbleUser = $theme['bubble_user'] ?? '#7c3aed';
+    $bubbleUser = $theme['bubble_user'] ?? '#3d6bff';
     $textColor = $theme['text'] ?? '#f8fafc';
     $title = $link->title ?: $link->alias;
 

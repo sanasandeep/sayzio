@@ -42,10 +42,10 @@
         <form method="POST" action="{{ route('admin.protected-accounts.store') }}" class="flex flex-col sm:flex-row gap-3">
             @csrf
             <input type="email" name="email" required maxlength="191" placeholder="email@example.com"
-                   class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                   class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
             <input type="text" name="label" maxlength="191" placeholder="Label (optional)"
-                   class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-violet-500/40 outline-none">
-            <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition whitespace-nowrap">
+                   class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition whitespace-nowrap">
                 <i class="fas fa-shield-alt mr-1"></i> Protect
             </button>
         </form>
@@ -74,7 +74,7 @@
                     <td class="px-6 py-4 text-sm text-white/60">{{ $account->label ?? '—' }}</td>
                     <td class="px-6 py-4">
                         @if($account->isLocked())
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-500/10 text-violet-300">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-300">
                                 <i class="fas fa-lock text-[10px]"></i> Permanent
                             </span>
                         @else

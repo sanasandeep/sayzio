@@ -16,7 +16,7 @@
             </button>
             <button @click="showNew = true; scope = 'team'"
                     class="px-4 py-2 rounded-lg text-sm font-semibold text-white"
-                    style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">
+                    style="background: linear-gradient(135deg,#3d6bff,#90acff);">
                 <i class="fas fa-users mr-1"></i> New Team Board
             </button>
         </div>
@@ -46,7 +46,7 @@
                        style="background: var(--bg-glass-input); border-color: var(--border-strong); color: var(--text-primary);"
                        placeholder="e.g. Marketing Sprint, Launch Plan, My Week">
                 <label class="block text-xs font-semibold mt-3 mb-1" style="color: var(--text-muted);">Accent Colour</label>
-                <input name="color" type="color" value="#8b5cf6" class="w-16 h-8 rounded">
+                <input name="color" type="color" value="#5c83ff" class="w-16 h-8 rounded">
                 <p class="text-xs mt-3" style="color: var(--text-faint);"
                    x-show="scope === 'personal'">Only you will see this board.</p>
                 <p class="text-xs mt-3" style="color: var(--text-faint);"
@@ -56,7 +56,7 @@
                             class="px-3 py-2 rounded-lg text-sm" style="color: var(--text-muted);">Cancel</button>
                     <button type="submit"
                             class="px-4 py-2 rounded-lg text-sm font-semibold text-white"
-                            style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">Create Board</button>
+                            style="background: linear-gradient(135deg,#3d6bff,#90acff);">Create Board</button>
                 </div>
             </form>
         </div>

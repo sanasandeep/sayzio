@@ -41,7 +41,7 @@
             @php $active = request()->routeIs($tab['route']); @endphp
             <a href="{{ route($tab['route']) }}"
                class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors {{ $active ? '' : 'hover:opacity-80' }}"
-               style="border-color: {{ $active ? '#8b5cf6' : 'transparent' }}; color: {{ $active ? '#8b5cf6' : 'var(--text-secondary)' }};">
+               style="border-color: {{ $active ? '#5c83ff' : 'transparent' }}; color: {{ $active ? '#5c83ff' : 'var(--text-secondary)' }};">
                 <i class="fas {{ $tab['icon'] }} mr-1.5"></i>{{ $tab['label'] }}
             </a>
         @endforeach

@@ -12,10 +12,10 @@ export default function Slide151Investormarket() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Market.</h2>
         <p className="mt-[2vh] text-[1.4vw] text-slate-300 max-w-[65vw]">TAM / SAM / SOM placeholders.</p>
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">$104B</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">TAM · creator + SMB tools</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">$28B</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">SAM · identity, links, CRM, AI</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">$3.2B</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">SOM · 5y addressable</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">+18%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">CAGR</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">$104B</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">TAM · creator + SMB tools</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">$28B</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">SAM · identity, links, CRM, AI</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">$3.2B</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">SOM · 5y addressable</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">+18%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">CAGR</div></div>
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Replace with sourced figures (Statista / Gartner / internal) before sharing.</p>
       </div>

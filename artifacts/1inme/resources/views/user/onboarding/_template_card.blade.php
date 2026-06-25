@@ -11,8 +11,8 @@
 @endphp
 <button type="button"
         @click='openPreview(@json($previewData))'
-        class="text-left glass rounded-2xl border border-white/10 overflow-hidden hover:border-violet-500/40 hover:-translate-y-0.5 transition group flex flex-col">
-    <div class="aspect-[4/3] flex items-center justify-center overflow-hidden relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
+        class="text-left glass rounded-2xl border border-white/10 overflow-hidden hover:border-blue-500/40 hover:-translate-y-0.5 transition group flex flex-col">
+    <div class="aspect-[4/3] flex items-center justify-center overflow-hidden relative" style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(92,131,255,0.04));">
         @if($tpl->thumbnail_url)
             <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
         @else

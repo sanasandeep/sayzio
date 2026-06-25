@@ -5,7 +5,7 @@
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-white">Tags</h1>
-        <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-violet-400 hover:underline">← Posts</a>
+        <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline">← Posts</a>
     </div>
 
     @if(session('success'))<div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>@endif
@@ -15,7 +15,7 @@
         @csrf
         <input type="text" name="name" required placeholder="Tag name" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
         <input type="text" name="slug" placeholder="slug (auto)" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm font-mono">
-        <button class="px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm text-white">Add tag</button>
+        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white">Add tag</button>
     </form>
     @endif
 

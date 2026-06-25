@@ -19,7 +19,7 @@
     </div>
 
     @if(!empty($upi_link))
-        <div class="rounded-2xl border border-purple-400/20 bg-purple-500/[0.04] p-5 space-y-4">
+        <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/[0.04] p-5 space-y-4">
             <div>
                 <div class="text-white font-medium">Pay instantly with UPI</div>
                 <div class="text-xs text-white/50">Tap to open GPay / PhonePe / Paytm on your phone, or scan the QR from another device. The payee and amount are filled in for you.</div>
@@ -36,7 +36,7 @@
 
                 <div class="flex-1 space-y-3">
                     <a href="{{ $upi_link }}"
-                       class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium w-full sm:w-auto">
+                       class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium w-full sm:w-auto">
                         <i class="fa-solid fa-mobile-screen-button"></i> Pay with UPI app
                     </a>
                     <div class="text-xs text-white/50">
@@ -61,7 +61,7 @@
             <input type="text" id="upi_reference" name="upi_reference" maxlength="190"
                    value="{{ old('upi_reference', $buyer_reference) }}"
                    placeholder="e.g. 412345678901"
-                   class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-mono placeholder:text-white/30 focus:outline-none focus:border-purple-400/50">
+                   class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-mono placeholder:text-white/30 focus:outline-none focus:border-indigo-400/50">
             <button type="submit" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium">Submit reference</button>
         </div>
         @error('upi_reference')<div class="text-rose-300 text-xs">{{ $message }}</div>@enderror

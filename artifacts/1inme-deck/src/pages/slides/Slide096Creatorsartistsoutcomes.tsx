@@ -12,9 +12,9 @@ export default function Slide096Creatorsartistsoutcomes() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Outcomes a artists can expect.</h2>
         <p className="mt-[2vh] text-[1.4vw] text-slate-300 max-w-[65vw]">Placeholders pulled from early-access cohorts. Replace with your real customer numbers.</p>
         <div className="mt-[5vh] grid grid-cols-3 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">+38%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">click-through to streaming</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">2.4×</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">mailing list growth</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">−6h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">saved per launch</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">+38%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">click-through to streaming</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">2.4×</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">mailing list growth</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">−6h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">saved per launch</div></div>
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">CTA · 1inme.com/artists</p>
       </div>

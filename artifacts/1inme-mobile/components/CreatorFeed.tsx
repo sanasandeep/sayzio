@@ -312,7 +312,7 @@ function PostBody({
           style={{
             borderRadius: 12,
             aspectRatio: 16 / 10,
-            backgroundColor: ["#7c3aed", "#ec4899", "#0ea5e9", "#10b981"][post.id % 4],
+            backgroundColor: ["#3d6bff", "#d76dff", "#0ea5e9", "#10b981"][post.id % 4],
             opacity: 0.55,
           }}
         />
@@ -324,7 +324,7 @@ function PostBody({
         <View
           style={{
             borderRadius: 12,
-            backgroundColor: "rgba(124,58,237,0.10)",
+            backgroundColor: "rgba(61,107,255,0.10)",
             padding: 12,
             alignItems: "center",
             gap: 6,

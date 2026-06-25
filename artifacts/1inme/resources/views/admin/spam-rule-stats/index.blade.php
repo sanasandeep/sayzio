@@ -28,7 +28,7 @@
 
         <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
             @foreach([
-                'blocked_keyword' => ['Blocked keyword', 'fa-key',          '#a855f7'],
+                'blocked_keyword' => ['Blocked keyword', 'fa-key',          '#6e61ff'],
                 'too_many_links'  => ['Too many links',  'fa-link',         '#0ea5e9'],
                 'rate_limit'      => ['Rate limit',      'fa-gauge-high',   '#f59e0b'],
                 'honeypot'        => ['Honeypot',        'fa-spider',       '#ef4444'],
@@ -61,8 +61,8 @@
 
     <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
         <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(168,85,247,0.15);">
-                <i class="fas fa-key text-purple-300"></i>
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(110,97,255,0.15);">
+                <i class="fas fa-key text-indigo-300"></i>
             </div>
             <div>
                 <h3 class="text-base font-semibold text-white/90">Built-in keywords</h3>
@@ -93,7 +93,7 @@
                             <td class="py-2 pl-4">
                                 <div class="h-2 bg-white/5 rounded-full overflow-hidden">
                                     <div class="h-full rounded-full"
-                                         style="width: {{ $maxDefault > 0 ? ($row['count'] / $maxDefault * 100) : 0 }}%; background: linear-gradient(90deg,#7c3aed,#a855f7);"></div>
+                                         style="width: {{ $maxDefault > 0 ? ($row['count'] / $maxDefault * 100) : 0 }}%; background: linear-gradient(90deg,#3d6bff,#6e61ff);"></div>
                                 </div>
                             </td>
                         </tr>

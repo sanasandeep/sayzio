@@ -27,7 +27,7 @@
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->os ?? '—' }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->language ?? '—' }}</td>
             <td class="py-2 px-2 truncate max-w-xs" style="color: var(--text-faint);">{{ $c->referrer ? (parse_url($c->referrer, PHP_URL_HOST) ?: '—') : '—' }}</td>
-            <td class="py-2 px-2" style="color: var(--text-muted);">@if($c->block_id)<span class="badge text-[10px]" style="background:rgba(124,58,237,0.08); color:#a78bfa;">{{ ($blockTypes[$c->block_type]['label'] ?? $c->block_type) }}</span>@else<span style="color:var(--text-faint);">page</span>@endif</td>
+            <td class="py-2 px-2" style="color: var(--text-muted);">@if($c->block_id)<span class="badge text-[10px]" style="background:rgba(61,107,255,0.08); color:#90acff;">{{ ($blockTypes[$c->block_type]['label'] ?? $c->block_type) }}</span>@else<span style="color:var(--text-faint);">page</span>@endif</td>
         </tr>
         @endforeach
         </tbody>
@@ -59,7 +59,7 @@
 
         @for($i = $start; $i <= $end; $i++)
             @if($i == $current)
-                <span class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa); color: white; border: 1px solid rgba(124,58,237,0.4);">{{ $i }}</span>
+                <span class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background: linear-gradient(135deg, #5c83ff, #90acff); color: white; border: 1px solid rgba(61,107,255,0.4);">{{ $i }}</span>
             @else
                 <a href="{{ $recentClicks->url($i) }}" data-rc-page="{{ $i }}" class="rc-page-btn px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">{{ $i }}</a>
             @endif

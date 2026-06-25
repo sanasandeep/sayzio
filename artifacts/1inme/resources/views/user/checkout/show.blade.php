@@ -68,14 +68,14 @@
         @endif
         <div class="space-y-2">
             @foreach($gateways as $g)
-                <label class="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-violet-400/50 cursor-pointer">
-                    <input type="radio" name="gateway" value="{{ $g->slug() }}" required class="accent-violet-500">
+                <label class="flex items-center gap-3 p-3 rounded-xl border border-white/10 hover:border-blue-400/50 cursor-pointer">
+                    <input type="radio" name="gateway" value="{{ $g->slug() }}" required class="accent-blue-500">
                     <span class="text-sm text-white">{{ $g->displayName() }}</span>
                 </label>
             @endforeach
         </div>
 
-        <button type="submit" class="w-full px-4 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Continue</button>
+        <button type="submit" class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Continue</button>
     </form>
 </div>
 @endsection

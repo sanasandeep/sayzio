@@ -4,7 +4,7 @@
 @php
     $statusStyles = [
         'pending_verification' => 'bg-amber-500/20 text-amber-300',
-        'verified'             => 'bg-violet-500/20 text-violet-300',
+        'verified'             => 'bg-blue-500/20 text-blue-300',
         'approved'             => 'bg-sky-500/20 text-sky-300',
         'processing'           => 'bg-sky-500/20 text-sky-300',
         'completed'            => 'bg-emerald-500/20 text-emerald-300',
@@ -38,7 +38,7 @@
                     <option value="deletion" @selected($filters['type']==='deletion')>Deletion</option>
                     <option value="export" @selected($filters['type']==='export')>Export</option>
                 </select>
-                <button class="px-3 py-1.5 rounded-lg text-xs bg-violet-600 text-white hover:bg-violet-700">Filter</button>
+                <button class="px-3 py-1.5 rounded-lg text-xs bg-blue-600 text-white hover:bg-blue-700">Filter</button>
             </form>
         </div>
 
@@ -48,7 +48,7 @@
             @endphp
             @foreach($statusFilters as $key=>$label)
                 <a href="{{ route('admin.privacy-requests.index', array_merge($filters, ['status'=>$key])) }}"
-                   class="px-3 py-1.5 rounded-lg text-xs {{ $filters['status']===$key ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">
+                   class="px-3 py-1.5 rounded-lg text-xs {{ $filters['status']===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">
                     {{ $label }}@if($key!=='all' && isset($counts[$key])) <span class="opacity-60">({{ $counts[$key] }})</span>@endif
                 </a>
             @endforeach
@@ -74,7 +74,7 @@
                             <tr class="border-b border-white/5 hover:bg-white/[0.02]">
                                 <td class="py-3 pr-4">
                                     <span class="inline-flex items-center gap-1.5 text-white/90">
-                                        <i class="fas {{ $r->isDeletion() ? 'fa-user-slash text-red-300' : 'fa-download text-violet-300' }} text-xs"></i>
+                                        <i class="fas {{ $r->isDeletion() ? 'fa-user-slash text-red-300' : 'fa-download text-blue-300' }} text-xs"></i>
                                         {{ $r->typeLabel() }}
                                     </span>
                                 </td>

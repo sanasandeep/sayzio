@@ -9,7 +9,7 @@
       $__wallet = app(\App\Services\Billing\WalletService::class)->walletFor(auth()->user());
       $__low = (int) ($__wallet->low_balance_threshold ?? 100);
     @endphp
-    <div class="card mb-4 border-0" style="background:linear-gradient(135deg,#7c3aed20,#f59e0b20);">
+    <div class="card mb-4 border-0" style="background:linear-gradient(135deg,#3d6bff20,#f59e0b20);">
       <div class="card-body d-flex align-items-center justify-content-between">
         <div>
           <div class="text-muted small text-uppercase">Coin wallet</div>

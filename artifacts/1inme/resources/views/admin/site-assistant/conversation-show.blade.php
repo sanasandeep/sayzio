@@ -35,7 +35,7 @@
                 $isCutOff     = in_array($streamStatus, ['partial', 'failed'], true);
                 $wasRetried   = $isCutOff && isset($retriedAssistantIds[(int) $m->id]);
                 $bubbleClass  = $m->role === 'user'
-                    ? 'bg-purple-600/30 text-white'
+                    ? 'bg-indigo-600/30 text-white'
                     : ($streamStatus === 'failed' || $streamStatus === 'partial'
                         ? 'bg-red-500/10 text-white/90 border border-red-400/30'
                         : 'bg-white/5 text-white/90');
@@ -97,14 +97,14 @@
                                 @endphp
                                 @if($jumpHref)
                                     <a href="{{ $jumpHref }}" title="{{ $tooltip }}"
-                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-purple-500/15 border-purple-400/40 text-purple-100 hover:bg-purple-500/25">
-                                        <span class="text-[9px] uppercase tracking-wide text-purple-300">Asst</span>
+                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-indigo-500/15 border-indigo-400/40 text-indigo-100 hover:bg-indigo-500/25">
+                                        <span class="text-[9px] uppercase tracking-wide text-indigo-300">Asst</span>
                                         <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
                                     </a>
                                 @elseif($fromAsst)
                                     <span title="{{ $tooltip }}"
-                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-purple-500/15 border-purple-400/40 text-purple-100">
-                                        <span class="text-[9px] uppercase tracking-wide text-purple-300">Asst</span>
+                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-indigo-500/15 border-indigo-400/40 text-indigo-100">
+                                        <span class="text-[9px] uppercase tracking-wide text-indigo-300">Asst</span>
                                         <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
                                         <span class="text-[9px] text-white/40">(deleted)</span>
                                     </span>

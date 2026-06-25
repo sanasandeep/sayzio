@@ -43,7 +43,7 @@ export default function AiChatEditorScreen() {
   const [personaId, setPersonaId] = useState<number | null>(null);
   const [greeting, setGreeting] = useState("");
   const [placeholder, setPlaceholder] = useState("");
-  const [accent, setAccent] = useState("#7c3aed");
+  const [accent, setAccent] = useState("#3d6bff");
   const [theme, setTheme] = useState<AiChatTheme>("auto");
   const [showBranding, setShowBranding] = useState(true);
   const [groundInProfile, setGroundInProfile] = useState(true);
@@ -59,7 +59,7 @@ export default function AiChatEditorScreen() {
     setPersonaId(d.persona_id ?? q.data?.personas[0]?.id ?? null);
     setGreeting(d.config.greeting ?? "");
     setPlaceholder(d.config.placeholder ?? "Ask me anything…");
-    setAccent(d.config.accent ?? "#7c3aed");
+    setAccent(d.config.accent ?? "#3d6bff");
     setTheme(d.config.theme ?? "auto");
     setShowBranding(d.config.show_branding ?? true);
     setGroundInProfile(d.config.ground_in_profile ?? true);
@@ -78,7 +78,7 @@ export default function AiChatEditorScreen() {
         config: {
           greeting: greeting.trim() || null,
           placeholder: placeholder.trim() || "Ask me anything…",
-          accent: accent.trim() || "#7c3aed",
+          accent: accent.trim() || "#3d6bff",
           theme,
           show_branding: showBranding,
           ground_in_profile: groundInProfile,
@@ -344,7 +344,7 @@ export default function AiChatEditorScreen() {
             <View
               style={[
                 styles.swatch,
-                { backgroundColor: isHex(accent) ? accent : "#7c3aed" },
+                { backgroundColor: isHex(accent) ? accent : "#3d6bff" },
               ]}
             />
             <View style={{ flex: 1 }}>
@@ -355,7 +355,7 @@ export default function AiChatEditorScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={32}
-                placeholder="#7c3aed"
+                placeholder="#3d6bff"
               />
             </View>
           </View>

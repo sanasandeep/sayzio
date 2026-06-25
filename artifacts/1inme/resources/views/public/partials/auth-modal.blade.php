@@ -22,10 +22,10 @@
             <div class="px-6 pb-6 pt-16 sm:px-8 sm:pb-8 md:pt-8">
                 <div class="flex bg-white/5 rounded-xl p-1 mb-6 text-sm">
                     <button type="button" @click="authTab='login'"
-                            :class="authTab==='login' ? 'bg-violet-600 text-white' : 'text-gray-400'"
+                            :class="authTab==='login' ? 'bg-blue-600 text-white' : 'text-gray-400'"
                             class="flex-1 py-2 rounded-lg font-semibold transition">Login</button>
                     <button type="button" @click="authTab='register'"
-                            :class="authTab==='register' ? 'bg-violet-600 text-white' : 'text-gray-400'"
+                            :class="authTab==='register' ? 'bg-blue-600 text-white' : 'text-gray-400'"
                             class="flex-1 py-2 rounded-lg font-semibold transition">Sign up</button>
                 </div>
 
@@ -37,22 +37,22 @@
                     @csrf
                     <input type="hidden" name="type" :value="otpType">
                     <div class="flex gap-2">
-                        <button type="button" @click="otpType='email'" :class="otpType==='email' ? 'border-violet-500 text-violet-300 bg-violet-500/10' : 'border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border">
+                        <button type="button" @click="otpType='email'" :class="otpType==='email' ? 'border-blue-500 text-blue-300 bg-blue-500/10' : 'border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border">
                             <i class="fas fa-envelope mr-1"></i> Email
                         </button>
-                        <button type="button" @click="otpType='mobile'" :class="otpType==='mobile' ? 'border-violet-500 text-violet-300 bg-violet-500/10' : 'border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border">
+                        <button type="button" @click="otpType='mobile'" :class="otpType==='mobile' ? 'border-blue-500 text-blue-300 bg-blue-500/10' : 'border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border">
                             <i class="fab fa-whatsapp mr-1"></i> WhatsApp
                         </button>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400" x-text="otpType==='email' ? 'Email' : 'WhatsApp Number'"></label>
                         <input type="text" name="identifier" required :placeholder="otpType==='email' ? 'you@example.com' : '+1234567890'"
-                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none">
+                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
                         <p x-show="otpType==='mobile'" x-cloak class="mt-1.5 text-[10px] text-gray-500">
                             <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
                         </p>
                     </div>
-                    <button type="submit" class="w-full py-2.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white">
+                    <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                         <i class="fas fa-paper-plane mr-1 text-xs"></i> Send 6-digit code
                     </button>
                     <p class="text-center text-xs text-gray-500">No password — we'll text or email you a code.</p>
@@ -64,9 +64,9 @@
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Email</label>
                         <input type="email" name="identifier" required placeholder="you@example.com"
-                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none">
+                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
                     </div>
-                    <button type="submit" class="w-full py-2.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white">
+                    <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                         <i class="fas fa-paper-plane mr-1 text-xs"></i> Send 6-digit code
                     </button>
                     <p class="text-center text-xs text-gray-500">No password — we'll email you a code.</p>
@@ -80,24 +80,24 @@
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Full name</label>
                         <input type="text" name="name" required value="{{ old('name') }}" placeholder="Jane Doe"
-                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none">
+                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Email</label>
                         <input type="email" name="email" required value="{{ old('email') }}" placeholder="you@example.com"
-                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none">
+                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Mobile <span class="text-gray-600 normal-case">(optional)</span></label>
                         <input type="text" name="mobile" value="{{ old('mobile') }}" placeholder="+1234567890"
-                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none">
+                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
                     </div>
-                    <button type="submit" class="w-full py-2.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white">
+                    <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                         Create account <i class="fas fa-arrow-right ml-1 text-xs"></i>
                     </button>
                     <p class="text-center text-xs text-gray-500">By signing up you agree to our
-                        <a href="{{ route('site.terms') }}" class="text-violet-400 hover:underline">Terms</a> and
-                        <a href="{{ route('site.privacy') }}" class="text-violet-400 hover:underline">Privacy Policy</a>.
+                        <a href="{{ route('site.terms') }}" class="text-blue-400 hover:underline">Terms</a> and
+                        <a href="{{ route('site.privacy') }}" class="text-blue-400 hover:underline">Privacy Policy</a>.
                     </p>
                 </form>
 

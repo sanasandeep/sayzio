@@ -4,7 +4,7 @@
     .rb-wrap { position: relative; }
     .rb-mesh::before {
         content:""; position:absolute; inset:-20%;
-        background: rgba(124,58,237,.06);
+        background: rgba(61,107,255,.06);
         filter: blur(40px); pointer-events:none; z-index:0;
         animation: rbMesh 14s ease-in-out infinite alternate;
     }
@@ -17,7 +17,7 @@
         background: linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
         color: #0f172a;
         box-shadow:
-            0 30px 80px -30px rgba(124,58,237,.55),
+            0 30px 80px -30px rgba(61,107,255,.55),
             0 12px 30px -10px rgba(0,0,0,.55),
             inset 0 0 0 1px rgba(255,255,255,.6);
         transform: rotate(-3.5deg);
@@ -39,7 +39,7 @@
     }
     .rb-paper-head {
         padding: 22px 22px 16px; color: #fff;
-        background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+        background: linear-gradient(135deg, #3d6bff 0%, #6e61ff 100%);
         position: relative; overflow: hidden;
     }
     .rb-paper-head::before {
@@ -48,7 +48,7 @@
     }
     .rb-avatar {
         width: 52px; height: 52px; border-radius: 50%;
-        background: linear-gradient(135deg, #a855f7, #7c3aed);
+        background: linear-gradient(135deg, #6e61ff, #3d6bff);
         display:flex; align-items:center; justify-content:center;
         color:#fff; font-weight:800; font-size: 20px;
         box-shadow: 0 6px 18px -4px rgba(0,0,0,.45);
@@ -56,7 +56,7 @@
     .rb-bar { height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; position: relative; }
     .rb-bar > span {
         position:absolute; left:0; top:0; bottom:0; border-radius: inherit;
-        background: linear-gradient(90deg, #7c3aed, #a855f7);
+        background: linear-gradient(90deg, #3d6bff, #6e61ff);
         animation: rbFill 2.6s ease-out forwards;
         transform-origin: left center;
         width: var(--rb-w, 70%);
@@ -66,18 +66,18 @@
     .rb-chip {
         display:inline-flex; align-items:center; gap:4px;
         font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 999px;
-        background: rgba(124,58,237,.10); color: #6d28d9; border: 1px solid rgba(124,58,237,.25);
+        background: rgba(61,107,255,.10); color: #2342c7; border: 1px solid rgba(61,107,255,.25);
     }
     .rb-tap {
         position: absolute; width: 22px; height: 22px; border-radius: 50%;
-        background: rgba(255,255,255,.92); box-shadow: 0 0 0 0 rgba(124,58,237,.6);
+        background: rgba(255,255,255,.92); box-shadow: 0 0 0 0 rgba(61,107,255,.6);
         animation: rbTap 3.6s ease-in-out infinite;
         pointer-events: none;
     }
     @keyframes rbTap {
-        0%, 80%, 100% { transform: scale(.8); opacity: 0; box-shadow: 0 0 0 0 rgba(124,58,237,.55); }
+        0%, 80%, 100% { transform: scale(.8); opacity: 0; box-shadow: 0 0 0 0 rgba(61,107,255,.55); }
         15%           { transform: scale(1);  opacity: 1; }
-        25%           { transform: scale(1);  opacity: 1; box-shadow: 0 0 0 14px rgba(124,58,237,0); }
+        25%           { transform: scale(1);  opacity: 1; box-shadow: 0 0 0 14px rgba(61,107,255,0); }
     }
 
     /* Floating template thumbs that spin around the paper */
@@ -99,7 +99,7 @@
     .rb-thumb .rb-thumb-lines span:nth-child(3){ width: 60%; }
     .rb-thumb .rb-thumb-lines span:nth-child(4){ width: 80%; }
     .rb-thumb-1 { top: -28px; left: -36px; transform: rotate(-12deg); animation-delay: .0s; }
-    .rb-thumb-1::before { background: linear-gradient(135deg,#1bd4d9,#7c3aed); }
+    .rb-thumb-1::before { background: linear-gradient(135deg,#1bd4d9,#3d6bff); }
     .rb-thumb-2 { bottom: -22px; right: -28px; transform: rotate(8deg); animation-delay: 1.2s; }
     .rb-thumb-2::before { background: linear-gradient(135deg,#e94e8c,#ff8a3c); }
     .rb-thumb-3 { top: 40%; right: -52px; transform: rotate(14deg); animation-delay: 2.4s; }
@@ -111,17 +111,17 @@
 
     /* Feature pills column */
     .rb-feat { transition: transform .35s ease, background .35s ease, border-color .35s ease; }
-    .rb-feat:hover { transform: translateX(6px); border-color: rgba(124,58,237,.45); background: rgba(124,58,237,.08); }
+    .rb-feat:hover { transform: translateX(6px); border-color: rgba(61,107,255,.45); background: rgba(61,107,255,.08); }
     .rb-feat-icon {
         width: 44px; height: 44px; border-radius: 14px;
         display:flex; align-items:center; justify-content:center; flex-shrink:0;
-        color: #fff; box-shadow: 0 12px 28px -10px var(--rb-c, #7c3aed);
-        background: var(--rb-c, #7c3aed);
+        color: #fff; box-shadow: 0 12px 28px -10px var(--rb-c, #3d6bff);
+        background: var(--rb-c, #3d6bff);
         position: relative;
     }
     .rb-feat-icon::after {
         content:""; position:absolute; inset:-5px; border-radius:18px;
-        border: 2px solid color-mix(in srgb, var(--rb-c, #7c3aed) 50%, transparent);
+        border: 2px solid color-mix(in srgb, var(--rb-c, #3d6bff) 50%, transparent);
         opacity:.35; animation: rbPulse 2.4s ease-in-out infinite;
     }
     @keyframes rbPulse { 0%,100% { transform: scale(1); opacity:.25; } 50% { transform: scale(1.08); opacity:.65; } }
@@ -191,7 +191,7 @@
                     <div class="px-5 py-4 space-y-4">
                         <div>
                             <div class="flex items-center justify-between mb-1.5">
-                                <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700">Experience</div>
+                                <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700">Experience</div>
                                 <span class="rb-chip"><i class="fas fa-sparkles text-[8px]"></i> AI polished</span>
                             </div>
                             <div class="text-[12px] font-bold text-slate-900 leading-tight">Senior Product Designer</div>
@@ -199,7 +199,7 @@
                             <div class="text-[10px] text-slate-600 mt-1 leading-snug">Shipped onboarding redesign, +28% activation. Led design system across 4 squads.</div>
                         </div>
                         <div>
-                            <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-2">Skills</div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-2">Skills</div>
                             <div class="space-y-2">
                                 <div>
                                     <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Product design</span><span class="text-slate-500">95%</span></div>
@@ -216,9 +216,9 @@
                             </div>
                         </div>
                         <div>
-                            <div class="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-1.5">Portfolio</div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1.5">Portfolio</div>
                             <div class="grid grid-cols-3 gap-1.5">
-                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#7c3aed,#1bd4d9);"></div>
+                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#3d6bff,#1bd4d9);"></div>
                                 <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#e94e8c,#ff8a3c);"></div>
                                 <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#22d3ee,#16a34a);"></div>
                             </div>
@@ -240,7 +240,7 @@
             {{-- RIGHT: features --}}
             <div class="space-y-4">
                 @foreach([
-                    ['fa-wand-magic-sparkles', '#7c3aed', 'AI writes the boring parts',  'Paste your past role &mdash; we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
+                    ['fa-wand-magic-sparkles', '#3d6bff', 'AI writes the boring parts',  'Paste your past role &mdash; we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
                     ['fa-grip-vertical',       '#1bd4d9', 'Drag-and-drop sections',       'Reorder Experience, Education, Projects, Skills and custom blocks. Live preview, no save button.'],
                     ['fa-palette',             '#e94e8c', '20+ recruiter-tested templates','Minimalist, design-led, classic ATS &mdash; all responsive, all printable, all yours to recolor.'],
                     ['fa-link',                '#ff8a3c', 'Public portfolio link',        'Share <span class="text-white font-semibold">1inme.com/you/cv</span> instantly. Embed projects, GitHub repos, Behance shots and case studies.'],

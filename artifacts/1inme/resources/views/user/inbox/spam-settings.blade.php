@@ -71,7 +71,7 @@
             <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Your custom keywords that fired</div>
             <div class="flex flex-wrap gap-1.5">
                 @foreach($customKeywordHits as $kw => $count)
-                    <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
+                    <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(61,107,255,0.15); color: #bccfff;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
                         <i class="fas fa-key text-[10px] mr-1 opacity-60"></i>{{ $kw }} <span class="opacity-70 ml-0.5">×{{ $count }}</span>
                         <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return window.themedConfirmSubmit(this, {title: 'Stop blocking this keyword?', message: @js('Stop blocking “' . $kw . '”?'), confirmText: 'Stop blocking', confirmIcon: 'fa-times'})">
                             @csrf
@@ -220,8 +220,8 @@
 
         <div class="glass rounded-2xl p-6 mb-6">
             <div class="flex items-center gap-3 mb-5">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.2);">
-                    <i class="fas fa-plus text-violet-400"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.2);">
+                    <i class="fas fa-plus text-blue-400"></i>
                 </div>
                 <div>
                     <h2 class="font-semibold" style="color: var(--text-primary);">Your custom blocked keywords</h2>
@@ -233,7 +233,7 @@
                 <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Currently blocked — click × to stop blocking</div>
                 <div class="flex flex-wrap gap-1.5">
                     @foreach($spam['blocked_keywords'] as $kw)
-                        <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;">
+                        <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(61,107,255,0.15); color: #bccfff;">
                             <i class="fas fa-key text-[10px] mr-1 opacity-60"></i>{{ $kw }}
                             <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return window.themedConfirmSubmit(this, {title: 'Stop blocking this keyword?', message: @js('Stop blocking “' . $kw . '”?'), confirmText: 'Stop blocking', confirmIcon: 'fa-times'})">
                                 @csrf
@@ -281,7 +281,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
                 <i class="fas fa-save mr-1.5"></i>Save Spam Settings
             </button>
         </div>

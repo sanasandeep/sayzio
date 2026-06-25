@@ -13,18 +13,18 @@
 <script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph($__pricingProducts), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
 <style>
-    .grad-bar { background: linear-gradient(135deg,#7c3aed 0%,#9333ea 50%,#c026d3 100%); }
+    .grad-bar { background: linear-gradient(135deg,#3d6bff 0%,#2b54eb 50%,#c026d3 100%); }
     .grad-text {
-        background: linear-gradient(120deg,#c4b5fd 0%,#a855f7 38%,#7c3aed 66%,#c026d3 100%);
+        background: linear-gradient(120deg,#bccfff 0%,#6e61ff 38%,#3d6bff 66%,#c026d3 100%);
         -webkit-background-clip: text; background-clip: text;
         -webkit-text-fill-color: transparent; color: transparent;
     }
-    .hero-title { text-shadow: 0 0 60px rgba(124,58,237,.25); }
-    html.light-mode .hero-title { text-shadow: 0 0 50px rgba(124,58,237,.18); }
+    .hero-title { text-shadow: 0 0 60px rgba(61,107,255,.25); }
+    html.light-mode .hero-title { text-shadow: 0 0 50px rgba(61,107,255,.18); }
     .grad-glow { position: relative; }
     .grad-glow::before {
         content: ""; position: absolute; inset: -1px; border-radius: 1.1rem; padding: 1px;
-        background: linear-gradient(135deg,#a855f7 0%,#7c3aed 50%,#c026d3 100%);
+        background: linear-gradient(135deg,#6e61ff 0%,#3d6bff 50%,#c026d3 100%);
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
         -webkit-mask-composite: xor; mask-composite: exclude;
         opacity: 0; transition: opacity .35s ease;
@@ -57,20 +57,20 @@
         100% { transform: translateY(0); opacity: 1; }
     }
     .coin-bg {
-        background: rgba(124,58,237,.06);
+        background: rgba(61,107,255,.06);
     }
     .pulse-dot { animation: pulse 1.6s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.5} }
     .float-coin { animation: floaty 3s ease-in-out infinite; }
     @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
     .seg { transition: background-color .25s ease, color .25s ease, box-shadow .25s ease; }
-    .seg-active { background-color: #7c3aed; color: #fff; box-shadow: 0 8px 24px -10px rgba(124,58,237,.55); }
+    .seg-active { background-color: #3d6bff; color: #fff; box-shadow: 0 8px 24px -10px rgba(61,107,255,.55); }
 
     /* Most-popular ribbon — gentle wiggle on hover */
     .pop-ribbon { animation: ribbonGlow 3s ease-in-out infinite; }
     @keyframes ribbonGlow {
-        0%, 100% { box-shadow: 0 8px 24px -10px rgba(124,58,237,.55); }
-        50%      { box-shadow: 0 12px 32px -8px rgba(167,139,250,.65); }
+        0%, 100% { box-shadow: 0 8px 24px -10px rgba(61,107,255,.55); }
+        50%      { box-shadow: 0 12px 32px -8px rgba(144,172,255,.65); }
     }
     .grad-glow:hover .pop-ribbon { animation: ribbonWiggle .55s ease-in-out; }
     @keyframes ribbonWiggle {
@@ -83,22 +83,22 @@
     .smart-banner {
         position: relative; overflow: hidden;
         background:
-            radial-gradient(120% 140% at 0% 0%, rgba(124,58,237,.16), transparent 55%),
+            radial-gradient(120% 140% at 0% 0%, rgba(61,107,255,.16), transparent 55%),
             radial-gradient(120% 140% at 100% 0%, rgba(236,72,153,.10), transparent 55%),
             rgba(255,255,255,.02);
-        box-shadow: 0 24px 60px -36px rgba(124,58,237,.6);
+        box-shadow: 0 24px 60px -36px rgba(61,107,255,.6);
     }
     /* Banner uses light-on-dark text in both modes, so keep a dark surface in light mode for contrast. */
     html.light-mode .smart-banner {
         background:
-            radial-gradient(120% 140% at 0% 0%, rgba(124,58,237,.30), transparent 55%),
+            radial-gradient(120% 140% at 0% 0%, rgba(61,107,255,.30), transparent 55%),
             radial-gradient(120% 140% at 100% 0%, rgba(236,72,153,.20), transparent 55%),
             #1e1b2e;
         border-color: rgba(255,255,255,.12);
-        box-shadow: 0 24px 60px -36px rgba(124,58,237,.5);
+        box-shadow: 0 24px 60px -36px rgba(61,107,255,.5);
     }
     .smart-pill {
-        background: rgba(124,58,237,.22);
+        background: rgba(61,107,255,.22);
         border: 1px solid rgba(255,255,255,.18);
     }
     .smart-meter {
@@ -106,7 +106,7 @@
     }
     .smart-meter > span {
         display: block; height: 100%; border-radius: 9999px;
-        background: #7c3aed;
+        background: #3d6bff;
         transition: width .9s cubic-bezier(.2,.7,.2,1);
     }
     .smart-meter.warn > span { background: #f59e0b; }
@@ -120,12 +120,12 @@
     .feat-matrix-scroll {
         overflow: auto; -webkit-overflow-scrolling: touch;
         max-height: min(78vh, 760px);
-        scrollbar-width: thin; scrollbar-color: rgba(124,58,237,.55) transparent;
+        scrollbar-width: thin; scrollbar-color: rgba(61,107,255,.55) transparent;
     }
     .feat-matrix-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
     .feat-matrix-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.03); }
-    .feat-matrix-scroll::-webkit-scrollbar-thumb { background: rgba(124,58,237,.5); border-radius: 9999px; }
-    .feat-matrix-scroll::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,.75); }
+    .feat-matrix-scroll::-webkit-scrollbar-thumb { background: rgba(61,107,255,.5); border-radius: 9999px; }
+    .feat-matrix-scroll::-webkit-scrollbar-thumb:hover { background: rgba(61,107,255,.75); }
     .feat-matrix { min-width: max-content; }
     .feat-cell {
         padding: .85rem 1rem; border-top: 1px solid rgba(255,255,255,.05);
@@ -144,7 +144,7 @@
         font-size: .68rem; font-weight: 700; color: #94a3b8;
         padding-top: 1rem; padding-bottom: 1rem;
         position: sticky; top: 0; z-index: 3;
-        box-shadow: inset 0 -1px 0 rgba(167,139,250,.22);
+        box-shadow: inset 0 -1px 0 rgba(144,172,255,.22);
     }
     .feat-cell.feat-row-name {
         position: sticky; left: 0; background: #0b0a14;
@@ -155,22 +155,22 @@
     /* The top-left corner cell sits at both sticky axes → highest layer. */
     .feat-cell.feat-head.feat-row-name { z-index: 4; background: rgba(17,16,28,.96); }
     .feat-cell.feat-group {
-        background: linear-gradient(90deg, rgba(124,58,237,.18), rgba(124,58,237,.08));
-        color: #c4b5fd;
+        background: linear-gradient(90deg, rgba(61,107,255,.18), rgba(61,107,255,.08));
+        color: #bccfff;
         text-transform: uppercase; letter-spacing: .08em;
         font-size: .66rem; font-weight: 700;
         padding: .6rem 1rem;
         position: sticky; left: 0; z-index: 1;
-        box-shadow: inset 2px 0 0 rgba(167,139,250,.55);
+        box-shadow: inset 2px 0 0 rgba(144,172,255,.55);
     }
     .feat-cell.feat-popular-col {
-        background: rgba(124,58,237,.07);
-        box-shadow: inset 1px 0 0 rgba(167,139,250,.12), inset -1px 0 0 rgba(167,139,250,.12);
+        background: rgba(61,107,255,.07);
+        box-shadow: inset 1px 0 0 rgba(144,172,255,.12), inset -1px 0 0 rgba(144,172,255,.12);
     }
-    .feat-cell.feat-popular-col.feat-stripe { background: rgba(124,58,237,.10); }
+    .feat-cell.feat-popular-col.feat-stripe { background: rgba(61,107,255,.10); }
     .feat-cell.feat-head.feat-popular-col {
-        background: rgba(124,58,237,.20);
-        box-shadow: inset 0 -1px 0 rgba(167,139,250,.45), inset 1px 0 0 rgba(167,139,250,.3), inset -1px 0 0 rgba(167,139,250,.3);
+        background: rgba(61,107,255,.20);
+        box-shadow: inset 0 -1px 0 rgba(144,172,255,.45), inset 1px 0 0 rgba(144,172,255,.3), inset -1px 0 0 rgba(144,172,255,.3);
     }
     .feat-mark { display: inline-flex; align-items: center; justify-content: center;
                  width: 28px; height: 28px; border-radius: 9999px; }
@@ -195,15 +195,15 @@
     }
     html.light-mode .feat-cell.feat-head.feat-row-name { background: #f1f0f7; }
     html.light-mode .feat-cell.feat-popular-col {
-        background: rgba(124,58,237,.06);
+        background: rgba(61,107,255,.06);
     }
     html.light-mode .feat-cell.feat-head.feat-popular-col { background: #e6e0fb; }
     html.light-mode .feat-mark-no { color: #94a3b8; }
     html.light-mode .feat-cell.feat-stripe { background: rgba(15,23,42,.028); }
     html.light-mode .feat-cell.feat-row-name.feat-stripe { background: #f7f7fb; }
-    html.light-mode .feat-cell.feat-popular-col.feat-stripe { background: rgba(124,58,237,.09); }
+    html.light-mode .feat-cell.feat-popular-col.feat-stripe { background: rgba(61,107,255,.09); }
     html.light-mode .feat-cell.feat-group {
-        background: linear-gradient(90deg, #e7e2fb, #f1eefc); color: #6d28d9;
+        background: linear-gradient(90deg, #e7e2fb, #f1eefc); color: #2342c7;
     }
     html.light-mode .feat-mark-yes { box-shadow: 0 0 0 1px rgba(16,185,129,.3), 0 4px 12px -6px rgba(16,185,129,.4); }
 
@@ -220,14 +220,14 @@
         box-shadow: 0 18px 40px -30px rgba(0,0,0,.8);
         transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;
     }
-    .plan-card:hover { box-shadow: 0 34px 80px -34px rgba(124,58,237,.6); }
+    .plan-card:hover { box-shadow: 0 34px 80px -34px rgba(61,107,255,.6); }
     /* Accent (recommended / most-popular) tier — lifted, glowier, and a
        half-step larger so the hero card clearly leads the rail. */
     .plan-card.is-accent {
-        box-shadow: 0 40px 90px -34px rgba(124,58,237,.6), 0 0 0 1px rgba(167,139,250,.18) inset;
+        box-shadow: 0 40px 90px -34px rgba(61,107,255,.6), 0 0 0 1px rgba(144,172,255,.18) inset;
         transform: translateY(-6px);
     }
-    .plan-card.is-accent:hover { box-shadow: 0 50px 110px -34px rgba(124,58,237,.7), 0 0 0 1px rgba(167,139,250,.28) inset; }
+    .plan-card.is-accent:hover { box-shadow: 0 50px 110px -34px rgba(61,107,255,.7), 0 0 0 1px rgba(144,172,255,.28) inset; }
     .plan-card.is-current {
         box-shadow: 0 34px 80px -34px rgba(16,185,129,.5), 0 0 0 1px rgba(52,211,153,.18) inset;
     }
@@ -240,15 +240,15 @@
         background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
         border-bottom: 1px solid rgba(255,255,255,.06);
     }
-    .plan-band.is-accent  { background: linear-gradient(135deg, rgba(124,58,237,.30), rgba(168,85,247,.10)); border-bottom-color: rgba(167,139,250,.34); }
+    .plan-band.is-accent  { background: linear-gradient(135deg, rgba(61,107,255,.30), rgba(110,97,255,.10)); border-bottom-color: rgba(144,172,255,.34); }
     .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.24), rgba(52,211,153,.08)); border-bottom-color: rgba(52,211,153,.32); }
     .plan-band.is-accent::before,
     .plan-band.is-current::before {
         content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
     }
-    .plan-band.is-accent::before  { background: linear-gradient(90deg,#7c3aed,#a855f7,#ec4899); }
+    .plan-band.is-accent::before  { background: linear-gradient(90deg,#3d6bff,#6e61ff,#ec4899); }
     .plan-band.is-current::before { background: linear-gradient(90deg,#10b981,#34d399); }
-    .plan-card.is-accent  { background: radial-gradient(140% 80% at 50% -10%, rgba(124,58,237,.14), transparent 60%), rgba(124,58,237,.06); }
+    .plan-card.is-accent  { background: radial-gradient(140% 80% at 50% -10%, rgba(61,107,255,.14), transparent 60%), rgba(61,107,255,.06); }
     .plan-card.is-current { background: radial-gradient(140% 80% at 50% -10%, rgba(16,185,129,.12), transparent 60%), rgba(16,185,129,.05); }
 
     /* Header tier chip + name — a small gradient icon badge plus a crisp,
@@ -259,11 +259,11 @@
         width: 2.5rem; height: 2.5rem; border-radius: .8rem;
         display: inline-flex; align-items: center; justify-content: center;
         font-size: .95rem; color: #fff;
-        background: linear-gradient(135deg,#7c3aed,#a21caf);
-        box-shadow: 0 10px 22px -10px rgba(124,58,237,.8), inset 0 1px 0 rgba(255,255,255,.28);
+        background: linear-gradient(135deg,#3d6bff,#a21caf);
+        box-shadow: 0 10px 22px -10px rgba(61,107,255,.8), inset 0 1px 0 rgba(255,255,255,.28);
     }
     .plan-band-ico.is-current { background: linear-gradient(135deg,#10b981,#34d399); box-shadow: 0 10px 22px -10px rgba(16,185,129,.8), inset 0 1px 0 rgba(255,255,255,.3); }
-    .plan-band-ico.is-accent  { background: linear-gradient(135deg,#7c3aed,#c026d3); box-shadow: 0 12px 26px -10px rgba(192,38,211,.75), inset 0 1px 0 rgba(255,255,255,.32); }
+    .plan-band-ico.is-accent  { background: linear-gradient(135deg,#3d6bff,#c026d3); box-shadow: 0 12px 26px -10px rgba(192,38,211,.75), inset 0 1px 0 rgba(255,255,255,.32); }
     .plan-band-name { color: #fff; font-weight: 800; letter-spacing: -.01em; }
     html.light-mode .plan-band-name { color: #0f172a !important; }
 
@@ -276,21 +276,21 @@
         border-radius: .9rem;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
     }
-    .plan-card.is-accent .plan-price { background: linear-gradient(180deg, rgba(124,58,237,.16), rgba(124,58,237,.06)); border-color: rgba(167,139,250,.28); }
+    .plan-card.is-accent .plan-price { background: linear-gradient(180deg, rgba(61,107,255,.16), rgba(61,107,255,.06)); border-color: rgba(144,172,255,.28); }
     .plan-card.is-current .plan-price { background: linear-gradient(180deg, rgba(16,185,129,.14), rgba(16,185,129,.05)); border-color: rgba(52,211,153,.24); }
     .price-suffix { opacity: .85; }
 
     /* Light-mode counterparts (dark is the default; the global
        marketing-anim.css doesn't know these custom classes). */
     html.light-mode .plan-card { background: #ffffff; box-shadow: 0 18px 40px -30px rgba(15,23,42,.35); }
-    html.light-mode .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(124,58,237,.4); }
+    html.light-mode .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(61,107,255,.4); }
     html.light-mode .plan-band { background: linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.01)); border-bottom-color: rgba(15,23,42,.08); }
-    html.light-mode .plan-band.is-accent  { background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(168,85,247,.05)); border-bottom-color: rgba(124,58,237,.25); }
+    html.light-mode .plan-band.is-accent  { background: linear-gradient(135deg, rgba(61,107,255,.16), rgba(110,97,255,.05)); border-bottom-color: rgba(61,107,255,.25); }
     html.light-mode .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.16), rgba(52,211,153,.05)); border-bottom-color: rgba(16,185,129,.25); }
     html.light-mode .plan-card.is-accent  { background: #faf8ff; }
     html.light-mode .plan-card.is-current { background: #f3fcf8; }
     html.light-mode .plan-price { background: rgba(15,23,42,.03); border-color: rgba(15,23,42,.08); }
-    html.light-mode .plan-card.is-accent .plan-price { background: rgba(124,58,237,.07); border-color: rgba(124,58,237,.2); }
+    html.light-mode .plan-card.is-accent .plan-price { background: rgba(61,107,255,.07); border-color: rgba(61,107,255,.2); }
     html.light-mode .plan-card.is-current .plan-price { background: rgba(16,185,129,.07); border-color: rgba(16,185,129,.2); }
 
     /* ── Single-row, horizontally-scrollable plan rail ──
@@ -316,12 +316,12 @@
            hover) and any card's hover lift + gradient glow are never clipped
            by this overflow container. */
         padding: 1.5rem .25rem 1rem;
-        scrollbar-width: thin; scrollbar-color: rgba(124,58,237,.55) transparent;
+        scrollbar-width: thin; scrollbar-color: rgba(61,107,255,.55) transparent;
     }
     .plans-scroll::-webkit-scrollbar { height: 9px; }
     .plans-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 9999px; }
-    .plans-scroll::-webkit-scrollbar-thumb { background: rgba(124,58,237,.5); border-radius: 9999px; }
-    .plans-scroll::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,.75); }
+    .plans-scroll::-webkit-scrollbar-thumb { background: rgba(61,107,255,.5); border-radius: 9999px; }
+    .plans-scroll::-webkit-scrollbar-thumb:hover { background: rgba(61,107,255,.75); }
     html.light-mode .plans-scroll::-webkit-scrollbar-track { background: rgba(15,23,42,.06); }
     .plans-row { display: flex; gap: 1.25rem; align-items: stretch; }
     .plans-row > .plan-card { flex: 1 0 290px; min-width: 290px; max-width: 360px; scroll-snap-align: start; }
@@ -341,8 +341,8 @@
        Knob — deepen the gradient end-stop (the old magenta #c026d3 was light
        enough that bold white text washed out on it). */
     .cycle-knob {
-        background: linear-gradient(135deg,#6d28d9 0%,#7c3aed 50%,#a21caf 100%);
-        box-shadow: 0 8px 22px -8px rgba(124,58,237,.7);
+        background: linear-gradient(135deg,#2342c7 0%,#3d6bff 50%,#a21caf 100%);
+        box-shadow: 0 8px 22px -8px rgba(61,107,255,.7);
     }
     /* Labels are driven entirely by these custom classes so the global
        light-mode `.text-white` remap can't touch them. Inactive labels keep a
@@ -357,8 +357,8 @@
         border-color: rgba(15,23,42,.12) !important;
     }
     html.light-mode .cycle-knob {
-        background: linear-gradient(135deg,#6d28d9 0%,#7c3aed 50%,#a21caf 100%) !important;
-        box-shadow: 0 8px 22px -6px rgba(124,58,237,.85), 0 0 0 1.5px rgba(124,58,237,.6) !important;
+        background: linear-gradient(135deg,#2342c7 0%,#3d6bff 50%,#a21caf 100%) !important;
+        box-shadow: 0 8px 22px -6px rgba(61,107,255,.85), 0 0 0 1.5px rgba(61,107,255,.6) !important;
     }
     html.light-mode .cycle-seg { color: #475569; }
     html.light-mode .cycle-seg:hover { color: #111827; }
@@ -376,7 +376,7 @@
     html.light-mode .hover\:bg-white\/\[0\.10\]:hover { background-color: rgba(15,23,42,.07) !important; }
 
     /* Coin-package tint reads cleaner over the lighter surface. */
-    html.light-mode .coin-bg { background: rgba(124,58,237,.045); }
+    html.light-mode .coin-bg { background: rgba(61,107,255,.045); }
 
     /* ── Smart upgrade banner keeps its dark surface in BOTH modes, so its
        text and accents must stay light too — the global light-mode rules
@@ -387,8 +387,8 @@
     html.light-mode .smart-banner .text-gray-400 { color: #bdbace !important; }
     html.light-mode .smart-banner .text-gray-500 { color: #918da8 !important; }
     html.light-mode .smart-banner [class*="text-white/"] { color: rgba(248,250,252,.7) !important; }
-    html.light-mode .smart-banner .text-violet-200,
-    html.light-mode .smart-banner .text-violet-300 { color: #c4b5fd !important; }
+    html.light-mode .smart-banner .text-blue-200,
+    html.light-mode .smart-banner .text-blue-300 { color: #bccfff !important; }
     html.light-mode .smart-banner .text-pink-300    { color: #f9a8d4 !important; }
     html.light-mode .smart-banner .text-amber-300   { color: #fcd34d !important; }
     html.light-mode .smart-banner .text-emerald-300 { color: #6ee7b7 !important; }
@@ -396,7 +396,7 @@
     html.light-mode .smart-banner .border-white\/10 { border-color: rgba(255,255,255,.14) !important; }
 
     /* ── Referral teaser icon — gradient chip, white glyph in both modes ── */
-    .ref-icon { background: linear-gradient(135deg,#7c3aed,#c026d3); color: #fff; }
+    .ref-icon { background: linear-gradient(135deg,#3d6bff,#c026d3); color: #fff; }
     html.light-mode .ref-icon { color: #fff !important; }
 
     /* The smart banner keeps a dark surface in both modes, so its emerald
@@ -559,19 +559,19 @@
     class="relative pt-20 pb-12 lg:pt-28 lg:pb-16">
     <div class="absolute inset-0 -z-10 overflow-hidden">
         <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[60rem] h-[60rem] rounded-full opacity-30 blur-[120px]"
-             style="background: #7c3aed;"></div>
+             style="background: #3d6bff;"></div>
         <div class="absolute top-40 -right-32 w-[36rem] h-[36rem] rounded-full opacity-20 blur-[100px]"
-             style="background: #8b5cf6;"></div>
+             style="background: #5c83ff;"></div>
         <div class="absolute top-72 -left-32 w-[36rem] h-[36rem] rounded-full opacity-20 blur-[100px]"
-             style="background: #6d28d9;"></div>
+             style="background: #2342c7;"></div>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-3xl mx-auto space-y-5" data-anim="fade-up">
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-violet-500/15 border border-violet-400/25 backdrop-blur-sm text-xs font-bold uppercase tracking-[.2em] text-violet-100 shadow-lg shadow-violet-900/25">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500/15 via-fuchsia-500/10 to-blue-500/15 border border-blue-400/25 backdrop-blur-sm text-xs font-bold uppercase tracking-[.2em] text-blue-100 shadow-lg shadow-blue-900/25">
                 <span class="relative flex h-2 w-2">
-                    <span class="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75 animate-ping motion-reduce:hidden"></span>
-                    <span class="relative inline-flex h-2 w-2 rounded-full bg-violet-300"></span>
+                    <span class="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping motion-reduce:hidden"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-blue-300"></span>
                 </span>
                 Pricing &amp; coins
             </div>
@@ -602,7 +602,7 @@
                     </span>
                     <span class="text-[11px] text-gray-500">
                         Set from your billing country (<span class="uppercase">{{ $user->country }}</span>) —
-                        <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">change</a>
+                        <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">change</a>
                     </span>
                 @else
                     <span class="text-[11px] uppercase tracking-wider font-semibold text-gray-500">Currency</span>
@@ -631,7 +631,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6">
                         {{-- Left: current plan + usage gauges --}}
                         <div>
-                            <div class="text-[11px] font-bold uppercase tracking-[.18em] text-violet-300 mb-1">
+                            <div class="text-[11px] font-bold uppercase tracking-[.18em] text-blue-300 mb-1">
                                 <i class="fas fa-user-circle"></i> You're signed in
                             </div>
                             <div class="text-white text-lg font-semibold">
@@ -672,8 +672,8 @@
                         @if($rec['recommendedPlan'])
                             @php $recPlan = $rec['recommendedPlan']; @endphp
                             <a href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
-                               class="group block rounded-2xl border border-violet-400/40 p-5 bg-violet-600/15 hover:bg-violet-600/25 transition relative overflow-hidden">
-                                <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-violet-500/20 blur-2xl pointer-events-none"></div>
+                               class="group block rounded-2xl border border-blue-400/40 p-5 bg-blue-600/15 hover:bg-blue-600/25 transition relative overflow-hidden">
+                                <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-blue-500/20 blur-2xl pointer-events-none"></div>
                                 <div class="text-[11px] font-bold uppercase tracking-[.18em] text-pink-300 mb-1">
                                     <i class="fas fa-wand-magic-sparkles"></i> Recommended for you
                                 </div>
@@ -711,7 +711,7 @@
         <div class="flex flex-col items-center justify-center gap-2.5 mt-10" data-anim="fade-up">
             <div class="cycle-track relative inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20">
                 {{-- Sliding knob --}}
-                <span class="cycle-knob absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full grad-bar shadow-lg shadow-violet-900/30 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                <span class="cycle-knob absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full grad-bar shadow-lg shadow-blue-900/30 transition-transform duration-300 ease-out motion-reduce:transition-none"
                       :class="cycle==='annual' ? 'translate-x-full' : 'translate-x-0'" aria-hidden="true"></span>
                 <button type="button" @click="cycle='monthly'"
                     :class="cycle==='monthly' ? 'cycle-on' : ''"
@@ -939,7 +939,7 @@
                         : ($isRecommended
                             ? 'border-pink-400/50'
                             : ($isPopular
-                                ? 'border-violet-500/50'
+                                ? 'border-blue-500/50'
                                 : 'border-white/10'));
                     // Header-band tint mirrors the card emphasis.
                     $bandClass = $isCurrent ? 'is-current' : ($isAccent ? 'is-accent' : '');
@@ -1124,12 +1124,12 @@
                             <div class="space-y-4">
                                 @forelse($groups as $groupName => $items)
                                     <div>
-                                        <div class="text-[11px] font-bold uppercase tracking-wider text-violet-300 mb-2">{{ $groupName }}</div>
+                                        <div class="text-[11px] font-bold uppercase tracking-wider text-blue-300 mb-2">{{ $groupName }}</div>
                                         <ul class="space-y-2.5">
                                             @foreach($items as $f)
                                                 <li class="flex items-start gap-2.5">
-                                                    <span class="mt-0.5 w-5 h-5 shrink-0 rounded-md bg-violet-500/15 ring-1 ring-violet-400/25 flex items-center justify-center">
-                                                        <i class="fas {{ $f['icon'] }} text-violet-300 text-[10px]"></i>
+                                                    <span class="mt-0.5 w-5 h-5 shrink-0 rounded-md bg-blue-500/15 ring-1 ring-blue-400/25 flex items-center justify-center">
+                                                        <i class="fas {{ $f['icon'] }} text-blue-300 text-[10px]"></i>
                                                     </span>
                                                     <span class="min-w-0">
                                                         <span class="block text-sm font-semibold text-white leading-tight">{{ $f['name'] }}</span>
@@ -1142,7 +1142,7 @@
                                                                 <span class="block text-xs text-gray-500 leading-snug" x-show="!open">{{ implode(', ', $blockPreview) }}@if($blockExtra > 0)<span class="text-gray-400"> &amp; {{ $blockExtra }} more</span>@endif</span>
                                                                 <span class="block text-xs text-gray-500 leading-snug" x-show="open" x-cloak>{{ implode(', ', $blockNames) }}</span>
                                                                 @if($blockExtra > 0)
-                                                                    <button type="button" @click="open = !open" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-300 hover:text-violet-200 transition">
+                                                                    <button type="button" @click="open = !open" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 hover:text-blue-200 transition">
                                                                         <span x-show="!open">Show all {{ count($blockNames) }} blocks</span>
                                                                         <span x-show="open" x-cloak>Show fewer</span>
                                                                         <i class="fas fa-chevron-down text-[8px]" :class="open ? 'rotate-180' : ''"></i>
@@ -1167,7 +1167,7 @@
             </div>
             @if($planCount > 1)
                 <div x-show="scrollable" x-cloak class="mt-3 flex items-center justify-center gap-2 text-[11px] text-gray-500" aria-hidden="true">
-                    <i class="fas fa-arrows-left-right text-violet-400/70"></i>
+                    <i class="fas fa-arrows-left-right text-blue-400/70"></i>
                     Scroll to compare every plan
                 </div>
             @endif
@@ -1268,7 +1268,7 @@
                             return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
                         }
                         return '<span x-data="{ open: false }" class="inline-flex flex-col items-center gap-1">'
-                             . '<button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-white font-semibold hover:text-violet-200 transition" '
+                             . '<button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-white font-semibold hover:text-blue-200 transition" '
                              . ':aria-expanded="open" aria-label="' . e($count . ' blocks') . '">'
                              . $count . ' blocks <i class="fas fa-chevron-down text-[8px]" :class="open ? \'rotate-180\' : \'\'"></i>'
                              . '</button>'
@@ -1294,7 +1294,7 @@
         @endphp
         <div class="mt-16" data-anim="fade-up">
             <div class="text-center max-w-2xl mx-auto mb-6">
-                <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-400 mb-2">Side by side</div>
+                <div class="text-xs font-bold uppercase tracking-[.2em] text-blue-400 mb-2">Side by side</div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Compare features at a glance</h2>
                 <p class="text-gray-400 mt-2">Every plan, every important feature — laid out so you can spot the deltas in seconds.</p>
             </div>
@@ -1379,14 +1379,14 @@
                     <p class="text-[11px] text-amber-300/80 mt-2">e.g. a single ad campaign or a batch of NFC tags.</p>
                 </div>
                 <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col">
-                    <div class="w-10 h-10 rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30 flex items-center justify-center mb-3">
-                        <i class="fas fa-wand-magic-sparkles text-violet-300"></i>
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/15 ring-1 ring-blue-400/30 flex items-center justify-center mb-3">
+                        <i class="fas fa-wand-magic-sparkles text-blue-300"></i>
                     </div>
                     <div class="text-sm font-semibold text-white">AI features</div>
                     <p class="text-xs text-gray-400 mt-1 leading-relaxed flex-grow">
                         Power OpenAI tools billed straight from your balance — pay only for what you use.
                     </p>
-                    <p class="text-[11px] text-violet-300/80 mt-2">e.g. generating a persona or scanning business cards.</p>
+                    <p class="text-[11px] text-blue-300/80 mt-2">e.g. generating a persona or scanning business cards.</p>
                 </div>
             </div>
 
@@ -1487,7 +1487,7 @@
             <p class="text-gray-400">Want the full feature breakdown?</p>
             <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] text-sm font-medium transition">
-                    <i class="fas fa-star text-violet-400"></i> See premium features
+                    <i class="fas fa-star text-blue-400"></i> See premium features
                 </a>
                 <a href="#coins" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] text-sm font-medium transition">
                     <i class="fas fa-coins text-amber-400"></i> Browse coin packages
@@ -1502,18 +1502,18 @@
                     <i class="fas fa-gift"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-[11px] font-bold uppercase tracking-[.2em] text-violet-300 mb-1">Referral program</div>
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] text-blue-300 mb-1">Referral program</div>
                     <div class="text-white font-semibold leading-snug">Tell a friend, both get credit.</div>
                     <p class="text-sm text-gray-400 mt-1 leading-relaxed">
-                        Share your personal <span class="font-mono text-violet-300">/r/&lt;your-code&gt;</span> link — every signup is tracked back to you, and your referrals land on the right plan with a thank-you discount applied automatically.
+                        Share your personal <span class="font-mono text-blue-300">/r/&lt;your-code&gt;</span> link — every signup is tracked back to you, and your referrals land on the right plan with a thank-you discount applied automatically.
                     </p>
                 </div>
                 @auth
-                    <a href="{{ \Illuminate\Support\Facades\Route::has('user.referrals.index') ? route('user.referrals.index') : route('user.dashboard') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-violet-400/30 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 text-sm font-bold whitespace-nowrap shrink-0">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('user.referrals.index') ? route('user.referrals.index') : route('user.dashboard') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 text-sm font-bold whitespace-nowrap shrink-0">
                         Get my referral link <i class="fas fa-arrow-right text-[11px]"></i>
                     </a>
                 @else
-                    <a href="{{ route('register.page') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-violet-400/30 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 text-sm font-bold whitespace-nowrap shrink-0">
+                    <a href="{{ route('register.page') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20 text-sm font-bold whitespace-nowrap shrink-0">
                         Sign up &amp; share <i class="fas fa-arrow-right text-[11px]"></i>
                     </a>
                 @endauth

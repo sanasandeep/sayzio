@@ -28,7 +28,7 @@
             <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Platform mind</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 @foreach($platform as $m)
-                    <a href="{{ route('user.minds.edit', $m) }}" class="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-900/20 to-violet-900/10 p-5 hover:border-white/20 transition">
+                    <a href="{{ route('user.minds.edit', $m) }}" class="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-900/20 to-blue-900/10 p-5 hover:border-white/20 transition">
                         <div class="flex items-start justify-between gap-2">
                             <div>
                                 <p class="text-white font-semibold">{{ $m->name }} <span class="ml-1 text-[10px] uppercase tracking-wider text-cyan-300/80">Default</span></p>
@@ -62,7 +62,7 @@
                                 <p class="text-white font-semibold">{{ $m->name }}</p>
                                 <p class="text-xs text-white/50 mt-1">{{ $m->description ?: 'No description.' }}</p>
                             </div>
-                            <i class="fas fa-brain text-violet-300/60"></i>
+                            <i class="fas fa-brain text-blue-300/60"></i>
                         </div>
                         <div class="flex items-center gap-3 text-xs text-white/40">
                             <span><i class="fas fa-layer-group mr-1"></i>{{ $m->sources_count }} sources</span>

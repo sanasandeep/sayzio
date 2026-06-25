@@ -3,7 +3,7 @@
             <h3 class="font-semibold text-white flex items-center gap-2">
                 {{ $plan->name }}
                 @if($plan->is_popular)
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/15 text-violet-300" title="Shown as Most Popular on the homepage">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/15 text-blue-300" title="Shown as Most Popular on the homepage">
                         <i class="fas fa-star mr-1"></i>Most Popular
                     </span>
                 @endif
@@ -47,10 +47,10 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
-            <a href="{{ route('admin.plans.edit', $plan) }}" class="text-white/30 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
+            <a href="{{ route('admin.plans.edit', $plan) }}" class="text-white/30 hover:text-blue-400" title="Edit"><i class="fas fa-edit"></i></a>
             <form action="{{ route('admin.plans.duplicate', $plan) }}" method="POST" class="inline">
                 @csrf
-                <button type="submit" class="text-white/30 hover:text-violet-400" title="Duplicate (creates an internal, inactive copy)"><i class="fas fa-copy"></i></button>
+                <button type="submit" class="text-white/30 hover:text-blue-400" title="Duplicate (creates an internal, inactive copy)"><i class="fas fa-copy"></i></button>
             </form>
             <form action="{{ route('admin.plans.archive', $plan) }}" method="POST" class="inline">
                 @csrf

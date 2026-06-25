@@ -154,7 +154,7 @@
                 <div class="flex items-center gap-3">
                     <button type="button" id="cc_locale_add"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium"
-                        style="background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.35); color: #c4b5fd;">
+                        style="background: rgba(61,107,255,0.15); border: 1px solid rgba(61,107,255,0.35); color: #bccfff;">
                         <i class="fas fa-plus mr-1"></i> Add language
                     </button>
                     <span class="text-[11px] text-white/40">Up to 50 languages.</span>
@@ -348,7 +348,7 @@
                             </div>
                         @endif
                         <input id="cc_logo_file" type="file" name="header_logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                               class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700 file:cursor-pointer">
+                               class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer">
                         @error('header_logo_file')<p class="text-xs text-red-400">{{ $message }}</p>@enderror
                         <label class="block text-[11px] text-white/40">Or paste a URL / path
                             <input id="cc_logo_url" type="text" name="header_logo_url" value="{{ $cfg['header_logo_url'] }}" placeholder="/img/logo.png or https://..." class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
@@ -407,7 +407,7 @@
             </div>
 
             <div class="flex items-center gap-3 pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">
                     Save settings
                 </button>
                 <span class="text-xs text-white/40">Categories changes always trigger a version bump.</span>
@@ -418,7 +418,7 @@
             <div class="flex items-center justify-between">
                 <div class="text-xs uppercase tracking-wider text-white/40 font-semibold">Live preview</div>
                 <div class="flex items-center gap-1 text-[11px]">
-                    <button type="button" data-cc-surface="site"    class="cc-surface-tab px-2 py-1 rounded-md bg-violet-600/30 text-violet-200">Site</button>
+                    <button type="button" data-cc-surface="site"    class="cc-surface-tab px-2 py-1 rounded-md bg-blue-600/30 text-blue-200">Site</button>
                     <button type="button" data-cc-surface="biolink" class="cc-surface-tab px-2 py-1 rounded-md bg-white/5 text-white/60">Link in Bio</button>
                 </div>
             </div>
@@ -456,7 +456,7 @@
             activeSurface = b.getAttribute('data-cc-surface');
             document.querySelectorAll('.cc-surface-tab').forEach(x => {
                 const on = x.getAttribute('data-cc-surface') === activeSurface;
-                x.className = 'cc-surface-tab px-2 py-1 rounded-md ' + (on ? 'bg-violet-600/30 text-violet-200' : 'bg-white/5 text-white/60');
+                x.className = 'cc-surface-tab px-2 py-1 rounded-md ' + (on ? 'bg-blue-600/30 text-blue-200' : 'bg-white/5 text-white/60');
             });
             build();
         });

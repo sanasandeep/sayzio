@@ -24,8 +24,8 @@
 
         <div class="glass rounded-2xl p-6 mb-6">
             <div class="flex items-center gap-3 mb-5">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(139,92,246,0.2));">
-                    <i class="fas fa-envelope text-violet-400"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(61,107,255,0.3), rgba(92,131,255,0.2));">
+                    <i class="fas fa-envelope text-blue-400"></i>
                 </div>
                 <div>
                     <h2 class="font-semibold" style="color: var(--text-primary);">Email Settings</h2>
@@ -118,7 +118,7 @@
         <div class="glass rounded-2xl p-6 mb-6">
             <div class="flex items-center gap-3 mb-5">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(59,130,246,0.15);">
-                    <i class="fas fa-magic text-violet-400"></i>
+                    <i class="fas fa-magic text-blue-400"></i>
                 </div>
                 <div>
                     <h2 class="font-semibold" style="color: var(--text-primary);">Welcome Email</h2>
@@ -144,7 +144,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
                 <i class="fas fa-save mr-1.5"></i>Save Settings
             </button>
         </div>

@@ -44,7 +44,7 @@
                         placeholder="Tell us why this should be restored…"
                         style="width:100%;background:rgba(0,0,0,.3);color:#fff;border:1px solid rgba(255,255,255,.1);
                                border-radius:8px;padding:8px;font-family:inherit;font-size:13px;"></textarea>
-                    <button type="submit" style="margin-top:8px;background:#7c3aed;color:#fff;border:none;
+                    <button type="submit" style="margin-top:8px;background:#3d6bff;color:#fff;border:none;
                             padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
                         Send appeal
                     </button>
@@ -98,7 +98,7 @@
                        style="width:100%;background:rgba(0,0,0,.3);color:#fff;border:1px solid rgba(255,255,255,.1);
                               border-radius:8px;padding:9px;font-size:13px;margin-bottom:14px;">
                 <button type="submit"
-                        style="width:100%;background:#7c3aed;color:#fff;border:none;padding:10px;
+                        style="width:100%;background:#3d6bff;color:#fff;border:none;padding:10px;
                                border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">
                     Submit report
                 </button>

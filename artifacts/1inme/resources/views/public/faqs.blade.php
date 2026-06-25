@@ -15,8 +15,8 @@
 @endif
 <style>
     .faq-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; transition: background .2s ease, border-color .2s ease; }
-    .faq-card:hover { background: rgba(255,255,255,.05); border-color: rgba(124,58,237,.35); }
-    .faq-card[open] { border-color: rgba(124,58,237,.5); background: rgba(124,58,237,.06); }
+    .faq-card:hover { background: rgba(255,255,255,.05); border-color: rgba(61,107,255,.35); }
+    .faq-card[open] { border-color: rgba(61,107,255,.5); background: rgba(61,107,255,.06); }
     .faq-card[open] .faq-chevron { transform: rotate(180deg); }
     .faq-chevron { transition: transform .25s ease; }
     .faq-anchor { scroll-margin-top: 100px; }
@@ -25,8 +25,8 @@
     .faq-cat-link .count { font-size: 11px; opacity: .55; font-weight: 600; }
     .faq-chip { padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); color: #d1d5db; cursor: pointer; transition: all .2s ease; }
     .faq-chip:hover { color: #fff; background: rgba(255,255,255,.08); }
-    .faq-chip.is-active { background: #7c3aed; color: #fff; border-color: transparent; box-shadow: 0 8px 24px -10px rgba(124,58,237,.6); }
-    mark.faq-hl { background: rgba(124,58,237,.28); color: #fff; padding: 0 2px; border-radius: 3px; }
+    .faq-chip.is-active { background: #3d6bff; color: #fff; border-color: transparent; box-shadow: 0 8px 24px -10px rgba(61,107,255,.6); }
+    mark.faq-hl { background: rgba(61,107,255,.28); color: #fff; padding: 0 2px; border-radius: 3px; }
 
     /* Light-mode legibility: these custom classes hardcode light text tuned
        for the dark default, so they need explicit dark counterparts on the
@@ -45,7 +45,7 @@
 @endphp
 <section class="pt-16 pb-8 lg:pt-24 lg:pb-10 text-center">
     <div class="max-w-3xl mx-auto px-4">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-[.2em] mb-4" style="background:rgba(124,58,237,.12); color:#a78bfa;">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-[.2em] mb-4" style="background:rgba(61,107,255,.12); color:#90acff;">
             <i class="fas fa-circle-question"></i> Help centre
         </div>
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">{{ $page->title }}</h1>
@@ -119,7 +119,7 @@
             <label class="relative block">
                 <span class="absolute inset-y-0 left-4 flex items-center text-gray-500"><i class="fas fa-search"></i></span>
                 <input type="search" x-model="q" placeholder="Search {{ $__totalFaqs }} answers — try ‘refund’, ‘custom domain’, ‘QR code’…"
-                       class="w-full pl-11 pr-4 py-4 rounded-2xl bg-white/[.04] border border-white/10 focus:border-[#7c3aed] focus:ring-2 focus:ring-[#7c3aed]/30 outline-none text-sm text-white placeholder-gray-500"
+                       class="w-full pl-11 pr-4 py-4 rounded-2xl bg-white/[.04] border border-white/10 focus:border-[#3d6bff] focus:ring-2 focus:ring-[#3d6bff]/30 outline-none text-sm text-white placeholder-gray-500"
                        aria-label="Search FAQs">
             </label>
             <div class="mt-4 flex flex-wrap gap-2 justify-center">
@@ -159,7 +159,7 @@
                     <section data-faq-group="{{ $cat }}" id="cat-{{ \Illuminate\Support\Str::slug($cat) }}" class="faq-anchor">
                         <div class="flex items-center justify-between gap-4 mb-4">
                             <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">{{ $cat }}</h2>
-                            <span class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full" style="background:rgba(124,58,237,.12); color:#a78bfa;">{{ count($items) }} answers</span>
+                            <span class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full" style="background:rgba(61,107,255,.12); color:#90acff;">{{ count($items) }} answers</span>
                         </div>
                         <div class="space-y-3">
                             @foreach($items as $row)
@@ -183,7 +183,7 @@
                 @endforeach
 
                 <div data-faq-empty class="hidden glass rounded-2xl p-10 text-center">
-                    <i class="fas fa-binoculars text-3xl mb-3" style="color:#a78bfa"></i>
+                    <i class="fas fa-binoculars text-3xl mb-3" style="color:#90acff"></i>
                     <h3 class="text-xl font-bold text-white mb-1">No answers match that search.</h3>
                     <p class="text-sm text-gray-400 mb-4">Try a different keyword, or get in touch — we are usually a few minutes away.</p>
                     <a href="{{ route('site.contact') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold">

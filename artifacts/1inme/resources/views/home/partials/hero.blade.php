@@ -23,14 +23,14 @@
         [
             'word' => 'Creator',
             'theme' => 'creator',
-            'wallpaper' => 'linear-gradient(140deg,#7c3aed 0%,#e94e8c 60%,#ff8a3c 100%)',
-            'tint' => '#7c3aed',
+            'wallpaper' => 'linear-gradient(140deg,#3d6bff 0%,#e94e8c 60%,#ff8a3c 100%)',
+            'tint' => '#3d6bff',
             'categories' => ['Video','Merch','Photo','Music','Art','Podcast'],
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_creator.jpg', 'handle' => '@jamie.creates', 'tag' => 'Storyteller · 24.1k followers', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-x-twitter']],
             'blocks' => [
                 ['icon' => 'fas fa-video',             'color' => '#ff5252', 'title' => 'Latest video',       'sub' => 'New drop · 2 days ago',   'thumb' => '/images/hero-roles/thumb_youtube.jpg'],
-                ['icon' => 'fas fa-envelope-open-text','color' => '#7c3aed', 'title' => 'Join the newsletter','sub' => 'Weekly · 12k subs'],
+                ['icon' => 'fas fa-envelope-open-text','color' => '#3d6bff', 'title' => 'Join the newsletter','sub' => 'Weekly · 12k subs'],
                 ['icon' => 'fas fa-store',             'color' => '#ff8a3c', 'title' => 'Shop merch',         'sub' => 'New tees in stock',       'thumb' => '/images/hero-roles/thumb_merch.jpg'],
             ],
         ],
@@ -51,13 +51,13 @@
         [
             'word' => 'Businessman',
             'theme' => 'business',
-            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#7c3aed 100%)',
+            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#3d6bff 100%)',
             'tint' => '#1bd4d9',
             'categories' => ['Photo','Video','Podcast','Merch','Art','Music'],
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_business.jpg', 'handle' => '@marcus.solutions', 'tag' => 'Founder · B2B Consulting', 'socials' => ['fa-linkedin','fa-x-twitter','fa-medium','fa-youtube']],
             'blocks' => [
-                ['icon' => 'fas fa-concierge-bell', 'color' => '#7c3aed', 'title' => 'Services & pricing', 'sub' => 'Strategy · Audits · Retainers'],
+                ['icon' => 'fas fa-concierge-bell', 'color' => '#3d6bff', 'title' => 'Services & pricing', 'sub' => 'Strategy · Audits · Retainers'],
                 ['icon' => 'fas fa-calendar-check', 'color' => '#1bd4d9', 'title' => 'Book a call',        'sub' => '30 min · Calendly'],
                 ['icon' => 'fas fa-paper-plane',    'color' => '#ff8a3c', 'title' => 'Get a quote',        'sub' => 'Reply within 24h'],
             ],
@@ -79,21 +79,21 @@
         [
             'word' => 'Coach',
             'theme' => 'coach',
-            'wallpaper' => 'linear-gradient(140deg,#1bd4d9 0%,#7c3aed 60%,#ffc845 100%)',
+            'wallpaper' => 'linear-gradient(140deg,#1bd4d9 0%,#3d6bff 60%,#ffc845 100%)',
             'tint' => '#1bd4d9',
             'categories' => ['Video','Photo','Podcast','Music','Merch','Art'],
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_coach.jpg', 'handle' => '@coach.kai', 'tag' => 'Strength coach · 1:1 + group', 'socials' => ['fa-instagram','fa-tiktok','fa-youtube','fa-spotify']],
             'blocks' => [
                 ['icon' => 'fas fa-calendar-check',  'color' => '#1bd4d9', 'title' => 'Book a session',     'sub' => '45 min consult'],
-                ['icon' => 'fas fa-quote-right',     'color' => '#7c3aed', 'title' => 'Wins from clients',  'sub' => '140+ five-star reviews'],
+                ['icon' => 'fas fa-quote-right',     'color' => '#3d6bff', 'title' => 'Wins from clients',  'sub' => '140+ five-star reviews'],
                 ['icon' => 'fas fa-clipboard-list',  'color' => '#ff8a3c', 'title' => 'Free intake form',   'sub' => '2 minutes · No fluff'],
             ],
         ],
         [
             'word' => 'Photographer',
             'theme' => 'portfolio',
-            'wallpaper' => 'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#7c3aed 100%)',
+            'wallpaper' => 'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#3d6bff 100%)',
             'tint' => '#1bd4d9',
             'categories' => ['Photo','Art','Merch','Video','Music','Podcast'],
             'gallery' => $galleryPool,
@@ -107,7 +107,7 @@
         [
             'word' => 'Influencer',
             'theme' => 'social',
-            'wallpaper' => 'linear-gradient(140deg,#e94e8c 0%,#7c3aed 50%,#ffc845 100%)',
+            'wallpaper' => 'linear-gradient(140deg,#e94e8c 0%,#3d6bff 50%,#ffc845 100%)',
             'tint' => '#e94e8c',
             'categories' => ['Video','Photo','Merch','Music','Art','Podcast'],
             'gallery' => $galleryPool,
@@ -121,7 +121,7 @@
         [
             'word' => 'Podcaster',
             'theme' => 'podcast',
-            'wallpaper' => 'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#7c3aed 100%)',
+            'wallpaper' => 'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#3d6bff 100%)',
             'tint' => '#ff8a3c',
             'categories' => ['Podcast','Music','Video','Art','Merch','Photo'],
             'gallery' => $galleryPool,
@@ -135,14 +135,14 @@
         [
             'word' => 'Writer',
             'theme' => 'creator',
-            'wallpaper' => 'linear-gradient(140deg,#1e1b4b 0%,#7c3aed 55%,#ec4899 100%)',
-            'tint' => '#a855f7',
+            'wallpaper' => 'linear-gradient(140deg,#1e1b4b 0%,#3d6bff 55%,#ec4899 100%)',
+            'tint' => '#6e61ff',
             'categories' => ['Writing','Book','Podcast','Video','Art','Photo'],
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_writer.jpg', 'handle' => '@nora.writes', 'tag' => 'Essayist · Substack 18k', 'socials' => ['fa-substack','fa-medium','fa-x-twitter','fa-instagram']],
             'blocks' => [
-                ['icon' => 'fas fa-feather',            'color' => '#a855f7', 'title' => 'New essay',         'sub' => 'On slow internet · 12 min', 'thumb' => '/images/hero-roles/thumb_writing.jpg'],
-                ['icon' => 'fas fa-envelope-open-text', 'color' => '#7c3aed', 'title' => 'Subscribe free',    'sub' => 'Weekly long reads'],
+                ['icon' => 'fas fa-feather',            'color' => '#6e61ff', 'title' => 'New essay',         'sub' => 'On slow internet · 12 min', 'thumb' => '/images/hero-roles/thumb_writing.jpg'],
+                ['icon' => 'fas fa-envelope-open-text', 'color' => '#3d6bff', 'title' => 'Subscribe free',    'sub' => 'Weekly long reads'],
                 ['icon' => 'fas fa-book-open',          'color' => '#ffc845', 'title' => 'Buy the book',      'sub' => 'Quiet Signals · paperback', 'thumb' => '/images/hero-roles/thumb_book.jpg'],
             ],
         ],
@@ -156,7 +156,7 @@
             'profile' => ['avatar' => '/images/hero-roles/role_chef.jpg', 'handle' => '@chef.remi', 'tag' => 'Recipes · Pop-ups · Cookbook', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-pinterest']],
             'blocks' => [
                 ['icon' => 'fas fa-utensils',           'color' => '#fb923c', 'title' => 'Recipe of the week', 'sub' => '20-min weeknight pasta',  'thumb' => '/images/hero-roles/thumb_food.jpg'],
-                ['icon' => 'fas fa-graduation-cap',     'color' => '#7c3aed', 'title' => 'Knife skills course','sub' => '6 lessons · self-paced',  'thumb' => '/images/hero-roles/thumb_course.jpg'],
+                ['icon' => 'fas fa-graduation-cap',     'color' => '#3d6bff', 'title' => 'Knife skills course','sub' => '6 lessons · self-paced',  'thumb' => '/images/hero-roles/thumb_course.jpg'],
                 ['icon' => 'fas fa-store',              'color' => '#ff8a3c', 'title' => 'Shop the spice kit', 'sub' => 'Limited drop',           'thumb' => '/images/hero-roles/thumb_merch.jpg'],
             ],
         ],
@@ -171,7 +171,7 @@
             'blocks' => [
                 ['icon' => 'fas fa-dumbbell',           'color' => '#10b981', 'title' => '30-day flow',        'sub' => 'Daily 20-min sessions',   'thumb' => '/images/hero-roles/thumb_fitness.jpg'],
                 ['icon' => 'fas fa-calendar-check',     'color' => '#1bd4d9', 'title' => 'Book a 1:1',         'sub' => '60 min · Zoom or Bali'],
-                ['icon' => 'fas fa-graduation-cap',     'color' => '#7c3aed', 'title' => 'Teacher training',   'sub' => '200hr · Cohort 6 open',   'thumb' => '/images/hero-roles/thumb_course.jpg'],
+                ['icon' => 'fas fa-graduation-cap',     'color' => '#3d6bff', 'title' => 'Teacher training',   'sub' => '200hr · Cohort 6 open',   'thumb' => '/images/hero-roles/thumb_course.jpg'],
             ],
         ],
         [
@@ -184,14 +184,14 @@
             'profile' => ['avatar' => '/images/hero-roles/role_designer.jpg', 'handle' => '@studio.kova', 'tag' => 'Brand & product designer · Lisbon', 'socials' => ['fa-dribbble','fa-behance','fa-instagram','fa-linkedin']],
             'blocks' => [
                 ['icon' => 'fas fa-pen-ruler',          'color' => '#ec4899', 'title' => 'Selected work',     'sub' => '14 case studies',         'thumb' => '/images/hero-roles/thumb_design.jpg'],
-                ['icon' => 'fas fa-paper-plane',        'color' => '#7c3aed', 'title' => 'Hire the studio',   'sub' => 'Brand · Web · Product'],
+                ['icon' => 'fas fa-paper-plane',        'color' => '#3d6bff', 'title' => 'Hire the studio',   'sub' => 'Brand · Web · Product'],
                 ['icon' => 'fas fa-store',              'color' => '#ffc845', 'title' => 'Template shop',     'sub' => 'Figma kits · ready to ship'],
             ],
         ],
         [
             'word' => 'Developer',
             'theme' => 'creator',
-            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 55%,#7c3aed 100%)',
+            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 55%,#3d6bff 100%)',
             'tint' => '#1bd4d9',
             'categories' => ['Code','Video','Course','Podcast','Writing','Design'],
             'gallery' => $galleryPool,
@@ -199,19 +199,19 @@
             'blocks' => [
                 ['icon' => 'fas fa-code',               'color' => '#ffffff', 'title' => 'Open source',       'sub' => '8.4k ★ · TypeScript',     'thumb' => '/images/hero-roles/thumb_code.jpg'],
                 ['icon' => 'fas fa-graduation-cap',     'color' => '#1bd4d9', 'title' => 'Build with me',     'sub' => 'Course · 24 lessons',     'thumb' => '/images/hero-roles/thumb_course.jpg'],
-                ['icon' => 'fas fa-feather',            'color' => '#7c3aed', 'title' => 'Engineering blog',  'sub' => 'Weekly deep dives',       'thumb' => '/images/hero-roles/thumb_writing.jpg'],
+                ['icon' => 'fas fa-feather',            'color' => '#3d6bff', 'title' => 'Engineering blog',  'sub' => 'Weekly deep dives',       'thumb' => '/images/hero-roles/thumb_writing.jpg'],
             ],
         ],
         [
             'word' => 'Streamer',
             'theme' => 'social',
-            'wallpaper' => 'linear-gradient(140deg,#3b0764 0%,#a855f7 55%,#ec4899 100%)',
-            'tint' => '#a855f7',
+            'wallpaper' => 'linear-gradient(140deg,#3b0764 0%,#6e61ff 55%,#ec4899 100%)',
+            'tint' => '#6e61ff',
             'categories' => ['Stream','Video','Merch','Music','Podcast','Photo'],
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_streamer.jpg', 'handle' => '@nyx.plays', 'tag' => 'Variety streamer · 92k Twitch', 'socials' => ['fa-twitch','fa-youtube','fa-discord','fa-x-twitter']],
             'blocks' => [
-                ['icon' => 'fab fa-twitch',             'color' => '#a855f7', 'title' => 'Live now',          'sub' => 'Speedrun night · 1.2k watching', 'thumb' => '/images/hero-roles/thumb_stream.jpg'],
+                ['icon' => 'fab fa-twitch',             'color' => '#6e61ff', 'title' => 'Live now',          'sub' => 'Speedrun night · 1.2k watching', 'thumb' => '/images/hero-roles/thumb_stream.jpg'],
                 ['icon' => 'fab fa-discord',            'color' => '#5865f2', 'title' => 'Join the Discord',  'sub' => '14k members'],
                 ['icon' => 'fas fa-store',              'color' => '#ffc845', 'title' => 'Merch · Hoodies',   'sub' => 'New season drop',         'thumb' => '/images/hero-roles/thumb_merch.jpg'],
             ],
@@ -219,14 +219,14 @@
         [
             'word' => 'Educator',
             'theme' => 'coach',
-            'wallpaper' => 'linear-gradient(140deg,#0c4a6e 0%,#38bdf8 55%,#7c3aed 100%)',
+            'wallpaper' => 'linear-gradient(140deg,#0c4a6e 0%,#38bdf8 55%,#3d6bff 100%)',
             'tint' => '#38bdf8',
             'categories' => ['Course','Video','Writing','Podcast','Book','Photo'],
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_educator.jpg', 'handle' => '@ms.alvarez', 'tag' => 'Tutor · SAT · Calculus · 1:1', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-linkedin']],
             'blocks' => [
                 ['icon' => 'fas fa-graduation-cap',     'color' => '#38bdf8', 'title' => 'Live cohort',       'sub' => 'Spring intake open',      'thumb' => '/images/hero-roles/thumb_course.jpg'],
-                ['icon' => 'fas fa-calendar-check',     'color' => '#7c3aed', 'title' => 'Book a session',    'sub' => '50 min · Zoom'],
+                ['icon' => 'fas fa-calendar-check',     'color' => '#3d6bff', 'title' => 'Book a session',    'sub' => '50 min · Zoom'],
                 ['icon' => 'fas fa-clipboard-list',     'color' => '#ff8a3c', 'title' => 'Free practice pack','sub' => 'PDFs · Drills · Keys'],
             ],
         ],
@@ -240,7 +240,7 @@
             'profile' => ['avatar' => '/images/hero-roles/role_author.jpg', 'handle' => '@iain.morrow', 'tag' => 'Novelist · Quiet Signals out now', 'socials' => ['fa-goodreads','fa-instagram','fa-x-twitter','fa-medium']],
             'blocks' => [
                 ['icon' => 'fas fa-book-open',          'color' => '#f59e0b', 'title' => 'Buy Quiet Signals', 'sub' => 'Hardcover · audiobook',   'thumb' => '/images/hero-roles/thumb_book.jpg'],
-                ['icon' => 'fas fa-feather',            'color' => '#7c3aed', 'title' => 'Read a chapter',    'sub' => 'Free preview'],
+                ['icon' => 'fas fa-feather',            'color' => '#3d6bff', 'title' => 'Read a chapter',    'sub' => 'Free preview'],
                 ['icon' => 'fas fa-calendar-check',     'color' => '#1bd4d9', 'title' => 'Tour & signings',   'sub' => '8 cities · Spring'],
             ],
         ],
@@ -255,7 +255,7 @@
             'blocks' => [
                 ['icon' => 'fas fa-hand-holding-heart', 'color' => '#22c55e', 'title' => 'Donate today',      'sub' => 'Every $5 = 20 lbs cleaned'],
                 ['icon' => 'fas fa-people-group',       'color' => '#1bd4d9', 'title' => 'Volunteer',         'sub' => 'Beach cleanups · monthly'],
-                ['icon' => 'fas fa-chart-line',         'color' => '#7c3aed', 'title' => 'Impact report',     'sub' => '2025 · 8.4M lbs removed'],
+                ['icon' => 'fas fa-chart-line',         'color' => '#3d6bff', 'title' => 'Impact report',     'sub' => '2025 · 8.4M lbs removed'],
             ],
         ],
         [
@@ -268,7 +268,7 @@
             'profile' => ['avatar' => '/images/hero-roles/role_realtor.jpg', 'handle' => '@home.with.eli', 'tag' => 'Realtor® · Austin TX · 9 yrs', 'socials' => ['fa-instagram','fa-youtube','fa-linkedin','fa-tiktok']],
             'blocks' => [
                 ['icon' => 'fas fa-house',              'color' => '#1bd4d9', 'title' => 'Featured listings', 'sub' => '12 active · Austin metro', 'thumb' => '/images/hero-roles/thumb_photo.jpg'],
-                ['icon' => 'fas fa-calendar-check',     'color' => '#7c3aed', 'title' => 'Book a tour',       'sub' => 'In-person or virtual'],
+                ['icon' => 'fas fa-calendar-check',     'color' => '#3d6bff', 'title' => 'Book a tour',       'sub' => 'In-person or virtual'],
                 ['icon' => 'fas fa-calculator',         'color' => '#ff8a3c', 'title' => 'Free home valuation','sub' => '60-second estimate'],
             ],
         ],
@@ -292,16 +292,16 @@
     $heroBlockIcons = [
         ['i' => 'fas fa-store',              'c' => '#ff8a3c', 'l' => 'Merch'],
         ['i' => 'fas fa-link',               'c' => '#1bd4d9', 'l' => 'Link'],
-        ['i' => 'fas fa-qrcode',             'c' => '#7c3aed', 'l' => 'QR'],
+        ['i' => 'fas fa-qrcode',             'c' => '#3d6bff', 'l' => 'QR'],
         ['i' => 'fas fa-music',              'c' => '#e94e8c', 'l' => 'Music'],
         ['i' => 'fas fa-video',              'c' => '#ffc845', 'l' => 'Video'],
         ['i' => 'fas fa-image',              'c' => '#1bd4d9', 'l' => 'Image'],
         ['i' => 'fas fa-microphone',         'c' => '#ff8a3c', 'l' => 'Podcast'],
-        ['i' => 'fas fa-calendar-check',     'c' => '#7c3aed', 'l' => 'Calendar'],
+        ['i' => 'fas fa-calendar-check',     'c' => '#3d6bff', 'l' => 'Calendar'],
         ['i' => 'fas fa-book-open',          'c' => '#f59e0b', 'l' => 'Book'],
         ['i' => 'fas fa-graduation-cap',     'c' => '#38bdf8', 'l' => 'Course'],
         ['i' => 'fas fa-utensils',           'c' => '#fb923c', 'l' => 'Recipe'],
-        ['i' => 'fas fa-feather',            'c' => '#a855f7', 'l' => 'Writing'],
+        ['i' => 'fas fa-feather',            'c' => '#6e61ff', 'l' => 'Writing'],
         ['i' => 'fas fa-code',               'c' => '#ffffff', 'l' => 'Code'],
         ['i' => 'fas fa-dumbbell',           'c' => '#10b981', 'l' => 'Fitness'],
         ['i' => 'fas fa-plane',              'c' => '#06b6d4', 'l' => 'Travel'],
@@ -334,7 +334,7 @@
                         <span id="hero-role-word" class="grad-text role-word">Creator</span>
                         <svg class="absolute -bottom-3 left-0 w-full" height="14" viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true">
                             <path class="draw-line" d="M2 9 Q 60 2, 110 8 T 218 6" stroke="url(#g)" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <defs><linearGradient id="g"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
+                            <defs><linearGradient id="g"><stop offset="0%" stop-color="#3d6bff"/><stop offset="100%" stop-color="#6e61ff"/></linearGradient></defs>
                         </svg>
                     </span>
                     <span class="sr-only" aria-live="polite" aria-atomic="true" id="hero-role-sr">Creator</span>
@@ -424,7 +424,7 @@
                             <span class="text-[9px] font-bold" style="color:#1ed760">+18%</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(124,58,237,.2);color:#a78bfa"><i class="fas fa-link text-xs"></i></div>
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(61,107,255,.2);color:#90acff"><i class="fas fa-link text-xs"></i></div>
                             <div class="min-w-0">
                                 <div class="text-[11px] font-bold truncate">Latest drop</div>
                                 <div class="text-[9px] text-gray-400">1,284 clicks</div>
@@ -440,14 +440,14 @@
                         </div>
                         <div class="flex items-end gap-0.5 h-5 mt-1">
                             @foreach([6,9,5,11,8,14,10,16,13,18] as $h)
-                                <span class="flex-1 rounded-sm" style="height:{{ $h * 5 }}%;background:linear-gradient(180deg,#1bd4d9,#7c3aed)"></span>
+                                <span class="flex-1 rounded-sm" style="height:{{ $h * 5 }}%;background:linear-gradient(180deg,#1bd4d9,#3d6bff)"></span>
                             @endforeach
                         </div>
                     </div>
 
                     <div class="float-c float-card float-card--qr hidden lg:block" style="animation-delay:-1.5s" aria-hidden="true">
                         <div class="flex items-center gap-2">
-                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(124,58,237,.2);color:#a78bfa"><i class="fas fa-qrcode text-base"></i></div>
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(61,107,255,.2);color:#90acff"><i class="fas fa-qrcode text-base"></i></div>
                             <div>
                                 <span class="float-card-label">QR scans</span>
                                 <div class="text-sm font-bold leading-tight">1,420 <span class="text-[10px] text-gray-400 font-normal">/ 7d</span></div>
@@ -457,7 +457,7 @@
 
                     <div class="float-a float-card float-card--follower hidden lg:block" style="animation-delay:-2.5s" aria-hidden="true">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold" style="background:linear-gradient(135deg,#ec4899,#7c3aed)">M</div>
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold" style="background:linear-gradient(135deg,#ec4899,#3d6bff)">M</div>
                             <div class="min-w-0">
                                 <span class="float-card-label">New follower</span>
                                 <div class="text-[11px] font-bold truncate">@maya.daily</div>
@@ -500,7 +500,7 @@
                         <span class="sub">health</span>
                     </div>
                     <div class="hero-mstat">
-                        <span class="lbl"><i class="fas fa-qrcode" style="color:#a78bfa"></i> QR</span>
+                        <span class="lbl"><i class="fas fa-qrcode" style="color:#90acff"></i> QR</span>
                         <span class="val">1.4k</span>
                         <span class="sub">scans</span>
                     </div>
@@ -636,20 +636,20 @@
             // the phone feels alive — not locked to a single gradient
             // per role. Role's own wallpaper is kept as the seed.
             const WALLPAPERS = [
-                'linear-gradient(140deg,#7c3aed 0%,#e94e8c 60%,#ff8a3c 100%)',
+                'linear-gradient(140deg,#3d6bff 0%,#e94e8c 60%,#ff8a3c 100%)',
                 'linear-gradient(140deg,#e94e8c 0%,#ff8a3c 55%,#ffc845 100%)',
-                'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#7c3aed 100%)',
+                'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#3d6bff 100%)',
                 'linear-gradient(140deg,#0f3a2a 0%,#1ed760 55%,#1bd4d9 100%)',
-                'linear-gradient(140deg,#1bd4d9 0%,#7c3aed 60%,#ffc845 100%)',
-                'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#7c3aed 100%)',
-                'linear-gradient(140deg,#e94e8c 0%,#7c3aed 50%,#ffc845 100%)',
-                'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#7c3aed 100%)',
+                'linear-gradient(140deg,#1bd4d9 0%,#3d6bff 60%,#ffc845 100%)',
+                'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#3d6bff 100%)',
+                'linear-gradient(140deg,#e94e8c 0%,#3d6bff 50%,#ffc845 100%)',
+                'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#3d6bff 100%)',
                 'linear-gradient(160deg,#0b132b 0%,#3a0ca3 45%,#f72585 100%)',
-                'linear-gradient(135deg,#06b6d4 0%,#3b82f6 55%,#9333ea 100%)',
+                'linear-gradient(135deg,#06b6d4 0%,#3b82f6 55%,#2b54eb 100%)',
                 'linear-gradient(150deg,#fde047 0%,#fb923c 45%,#ef4444 100%)',
                 'linear-gradient(135deg,#064e3b 0%,#10b981 50%,#fde047 100%)',
                 'linear-gradient(140deg,#312e81 0%,#ec4899 55%,#fbbf24 100%)',
-                'linear-gradient(160deg,#1e1b4b 0%,#7c3aed 45%,#22d3ee 100%)',
+                'linear-gradient(160deg,#1e1b4b 0%,#3d6bff 45%,#22d3ee 100%)',
             ];
             let lastWallpaper = null;
             function applyWallpaper(role) {
@@ -716,7 +716,7 @@
             function fallbackTileCover(role) {
                 const cat = (role.categories || [])[0] || '';
                 const ico = CAT_ICONS[cat] || 'fas fa-shapes';
-                const bg  = role.wallpaper || 'linear-gradient(140deg,#7c3aed,#1bd4d9)';
+                const bg  = role.wallpaper || 'linear-gradient(140deg,#3d6bff,#1bd4d9)';
                 return `<span class="hero-tile-fallback" style="background:${bg}">`
                      + `<i class="${ico}" aria-hidden="true"></i>`
                      + `<span class="ftl">${escapeHTML(cat || role.word)}</span>`
@@ -764,7 +764,7 @@
                                   <i style="background:#ff8a3c"></i>
                                   <i style="background:#ffc845"></i>
                                   <i style="background:#1bd4d9"></i>
-                                  <i style="background:#7c3aed"></i>
+                                  <i style="background:#3d6bff"></i>
                                 </div>
                               </div>
                               <i class="fas fa-palette" style="color:#ffc845;font-size:17px"></i>

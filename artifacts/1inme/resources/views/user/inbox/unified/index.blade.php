@@ -8,7 +8,7 @@
         'subtitle' => 'Every channel in one triaged stream',
         'icon' => 'fa-inbox',
         'chips' => [
-            ['icon' => 'fa-envelope text-violet-400', 'text' => number_format($counts['unread']) . ' unread'],
+            ['icon' => 'fa-envelope text-blue-400', 'text' => number_format($counts['unread']) . ' unread'],
             ['icon' => 'fa-clock text-amber-400',    'text' => number_format($counts['overdue']) . ' overdue'],
         ],
         'actions' => [
@@ -42,7 +42,7 @@
                         @php $active = $filters['status'] === $val; @endphp
                         <a href="?{{ http_build_query(array_merge(request()->except(['status','page']), ['status' => $val])) }}"
                            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs"
-                           style="{{ $active ? 'background: linear-gradient(135deg,#8b5cf6,#6d28d9); color:white;' : 'color: var(--text-secondary);' }}">
+                           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
                             <i class="fas {{ $icon }} w-4 text-center"></i> {{ ucfirst($val) }}
                         </a>
                     @endforeach
@@ -54,7 +54,7 @@
                         @php $active = ($filters['channel'] ?? null) === $key; @endphp
                         <a href="?{{ http_build_query(array_merge(request()->except(['channel','page']), $active ? [] : ['channel' => $key])) }}"
                            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs"
-                           style="{{ $active ? 'background: linear-gradient(135deg,#8b5cf6,#6d28d9); color:white;' : 'color: var(--text-secondary);' }}">
+                           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
                             <i class="{{ $icon }} w-4 text-center" style="color: {{ $active ? 'white' : $color }};"></i> {{ $lbl }}
                         </a>
                     @endforeach
@@ -66,7 +66,7 @@
                         @php $active = ($filters['category'] ?? null) === $key; $count = $byCategory[$key] ?? 0; @endphp
                         <a href="?{{ http_build_query(array_merge(request()->except(['category','page']), $active ? [] : ['category' => $key])) }}"
                            class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs"
-                           style="{{ $active ? 'background: linear-gradient(135deg,#8b5cf6,#6d28d9); color:white;' : 'color: var(--text-secondary);' }}">
+                           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
                             <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background: {{ $color }};"></span>{{ $lbl }}</span>
                             <span class="text-[10px] opacity-70">{{ $count }}</span>
                         </a>
@@ -91,7 +91,7 @@
                     <input type="checkbox" name="overdue" value="1" {{ $filters['overdue'] ? 'checked' : '' }} onchange="this.form.submit()"> Overdue SLA only
                 </label>
 
-                <button class="w-full px-3 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">Apply</button>
+                <button class="w-full px-3 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">Apply</button>
             </form>
         </aside>
 
@@ -117,7 +117,7 @@
                     <div class="card-premium overflow-hidden">
                         <div class="divide-y" style="border-color: var(--border-glass);">
                             @foreach($threads as $t)
-                                <div class="flex items-center gap-3 p-4 hover:bg-violet-500/5 transition-colors {{ !$t->is_read ? 'bg-violet-500/5' : '' }}">
+                                <div class="flex items-center gap-3 p-4 hover:bg-blue-500/5 transition-colors {{ !$t->is_read ? 'bg-blue-500/5' : '' }}">
                                     <input type="checkbox" name="thread_ids[]" value="{{ $t->id }}" form="bulk-form" x-model="selected" class="flex-shrink-0">
                                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
                                          style="background: linear-gradient(135deg, {{ $t->channelColor() }}aa, {{ $t->categoryColor() }}aa); color: white;">
@@ -130,7 +130,7 @@
                                     <a href="{{ route('user.inbox.unified.show', $t->id) }}" class="flex-1 min-w-0">
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <span class="text-sm font-{{ $t->is_read ? 'medium' : 'bold' }} truncate" style="color: var(--text-primary);">{{ $t->sender_name ?: 'Unknown' }}</span>
-                                            @if(!$t->is_read)<span class="w-2 h-2 rounded-full bg-violet-500"></span>@endif
+                                            @if(!$t->is_read)<span class="w-2 h-2 rounded-full bg-blue-500"></span>@endif
                                             <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                                                   style="background: rgba(0,0,0,0.25); color: {{ $t->channelColor() }};">
                                                 <i class="{{ $t->channelIcon() }}"></i> {{ $t->channelLabel() }}

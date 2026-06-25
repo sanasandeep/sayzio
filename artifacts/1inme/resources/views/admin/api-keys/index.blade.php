@@ -113,7 +113,7 @@
             <label class="flex items-center gap-3 cursor-pointer">
                 <input type="hidden" name="alerts_enabled" value="0">
                 <input type="checkbox" name="alerts_enabled" value="1" {{ $alertsEnabled ? 'checked' : '' }}
-                       class="w-4 h-4 accent-violet-500">
+                       class="w-4 h-4 accent-blue-500">
                 <span class="text-sm text-white">Enable alert delivery</span>
             </label>
 
@@ -127,12 +127,12 @@
                     @foreach($alertCategories as $cat)
                         <label class="flex items-start gap-3 {{ $cat['always_on'] ? '' : 'cursor-pointer' }}">
                             @if($cat['always_on'])
-                                <input type="checkbox" checked disabled class="mt-0.5 w-4 h-4 accent-violet-500 opacity-60">
+                                <input type="checkbox" checked disabled class="mt-0.5 w-4 h-4 accent-blue-500 opacity-60">
                             @else
                                 <input type="hidden" name="alert_cat_{{ $cat['key'] }}" value="0">
                                 <input type="checkbox" name="alert_cat_{{ $cat['key'] }}" value="1"
                                        {{ $cat['enabled'] ? 'checked' : '' }}
-                                       class="mt-0.5 w-4 h-4 accent-violet-500">
+                                       class="mt-0.5 w-4 h-4 accent-blue-500">
                             @endif
                             <span class="min-w-0">
                                 <span class="text-sm text-white flex items-center gap-2">
@@ -185,7 +185,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
                 <i class="fas fa-save mr-1"></i> Save settings
             </button>
             <span class="text-xs text-white/30">Save before sending a test so the new values are used.</span>
@@ -251,7 +251,7 @@
                         </span>
                     </div>
                     <p class="text-[11px] text-white/40">{{ $item['desc'] }}</p>
-                    <span class="text-[11px] text-violet-300 mt-2 inline-flex items-center gap-1">Open <i class="fas fa-arrow-right text-[9px]"></i></span>
+                    <span class="text-[11px] text-blue-300 mt-2 inline-flex items-center gap-1">Open <i class="fas fa-arrow-right text-[9px]"></i></span>
                 </a>
             @endforeach
         </div>

@@ -16,7 +16,7 @@
         <div class="text-sm text-white/40">Active</div>
     </div>
     <div class="glass rounded-2xl p-4">
-        <div class="text-2xl font-bold text-violet-400">{{ number_format($stats['total_clicks']) }}</div>
+        <div class="text-2xl font-bold text-blue-400">{{ number_format($stats['total_clicks']) }}</div>
         <div class="text-sm text-white/40">Total Clicks</div>
     </div>
     <div class="glass rounded-2xl p-4">
@@ -31,7 +31,7 @@
 
 <div class="glass rounded-2xl p-4 mb-6">
     <form method="GET" action="{{ route('admin.links.index') }}" class="flex flex-wrap gap-3">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search links, users..." class="border border-white/10 rounded-xl px-3 py-2 text-sm w-64 focus:ring-2 focus:ring-violet-500/40">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search links, users..." class="border border-white/10 rounded-xl px-3 py-2 text-sm w-64 focus:ring-2 focus:ring-blue-500/40">
         <select name="type" class="border border-white/10 rounded-xl px-3 py-2 text-sm">
             <option value="">All Types</option>
             @foreach(['url', 'biolink', 'file', 'ics', 'vcf'] as $t)
@@ -43,7 +43,7 @@
             <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
             <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
         </select>
-        <button type="submit" class="bg-violet-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-violet-700">Filter</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700">Filter</button>
         @if(request()->hasAny(['search', 'type', 'status']))
             <a href="{{ route('admin.links.index') }}" class="text-white/40 hover:text-white/60 px-3 py-2 text-sm">Clear</a>
         @endif
@@ -66,7 +66,7 @@
             <thead class="bg-white/5">
                 <tr>
                     <th class="px-4 py-3 text-left" data-no-sort>
-                        <input type="checkbox" id="selectAll" class="rounded border-white/10 text-violet-400 focus:ring-violet-500/40">
+                        <input type="checkbox" id="selectAll" class="rounded border-white/10 text-blue-400 focus:ring-blue-500/40">
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Link</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">User</th>
@@ -81,13 +81,13 @@
                 @forelse($links as $link)
                 <tr class="hover:bg-white/5">
                     <td class="px-4 py-3">
-                        <input type="checkbox" name="link_ids[]" value="{{ $link->id }}" class="link-checkbox rounded border-white/10 text-violet-400 focus:ring-violet-500/40">
+                        <input type="checkbox" name="link_ids[]" value="{{ $link->id }}" class="link-checkbox rounded border-white/10 text-blue-400 focus:ring-blue-500/40">
                     </td>
                     <td class="px-4 py-3">
                         <div class="text-sm font-medium text-white">{{ Str::limit($link->title ?: $link->alias, 35) }}</div>
                         <div class="text-xs text-white/40 font-mono">{{ $link->getShortUrl() }}</div>
                         @if($link->long_url)
-                            <div class="text-xs text-violet-500 truncate max-w-xs">{{ Str::limit($link->long_url, 50) }}</div>
+                            <div class="text-xs text-blue-500 truncate max-w-xs">{{ Str::limit($link->long_url, 50) }}</div>
                         @endif
                     </td>
                     <td class="px-4 py-3">
@@ -96,8 +96,8 @@
                     </td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                            {{ $link->type === 'url' ? 'bg-violet-500/10 text-violet-400' : '' }}
-                            {{ $link->type === 'biolink' ? 'bg-violet-500/10 text-violet-400' : '' }}
+                            {{ $link->type === 'url' ? 'bg-blue-500/10 text-blue-400' : '' }}
+                            {{ $link->type === 'biolink' ? 'bg-blue-500/10 text-blue-400' : '' }}
                             {{ $link->type === 'file' ? 'bg-emerald-500/10 text-emerald-400' : '' }}
                             {{ $link->type === 'ics' ? 'bg-amber-500/10 text-amber-400' : '' }}
                             {{ $link->type === 'vcf' ? 'bg-pink-50 text-pink-700' : '' }}
@@ -112,7 +112,7 @@
                     <td class="px-4 py-3 text-sm text-white/40">{{ $link->created_at->format('M d, Y') }}</td>
                     <td class="px-4 py-3 text-right">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{{ route('admin.links.show', $link) }}" class="text-violet-400 hover:text-violet-300 text-sm">View</a>
+                            <a href="{{ route('admin.links.show', $link) }}" class="text-blue-400 hover:text-blue-300 text-sm">View</a>
                             <button type="button" class="text-yellow-600 hover:text-yellow-700 text-sm" onclick="document.getElementById('toggle-form-{{ $link->id }}').submit()">{{ $link->is_active ? 'Disable' : 'Enable' }}</button>
                             <button type="button" class="text-red-400 hover:text-red-400 text-sm" onclick="return window.themedConfirmAction(this, {title: 'Delete this link?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash', onConfirm: function(){ document.getElementById('delete-form-{{ $link->id }}').submit(); }})">Delete</button>
                         </div>

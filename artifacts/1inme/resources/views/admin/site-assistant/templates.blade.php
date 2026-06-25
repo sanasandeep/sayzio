@@ -21,7 +21,7 @@
             </select>
             <label class="flex items-center gap-2 text-sm text-white"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" checked> Active</label>
             <textarea name="payload_json" rows="6" required class="md:col-span-2 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono">{"options":[{"label":"Tell me more","value":"more"}]}</textarea>
-            <div><button class="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white text-sm font-semibold">Add template</button></div>
+            <div><button class="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold">Add template</button></div>
         </form>
     </div>
 
@@ -39,7 +39,7 @@
                     <td class="p-3">{!! $t->is_active ? '<span class="text-emerald-300 text-xs">●</span>' : '<span class="text-white/30 text-xs">○</span>' !!}</td>
                     <td class="p-3 text-right space-x-1">
                         <details class="inline-block text-left">
-                            <summary class="cursor-pointer text-purple-300 text-xs">Edit</summary>
+                            <summary class="cursor-pointer text-indigo-300 text-xs">Edit</summary>
                             <form method="POST" action="{{ route('admin.site-assistant.templates.update', $t) }}" class="mt-2 space-y-2 p-3 bg-black/40 rounded-lg w-96">
                                 @csrf @method('PUT')
                                 <input name="key" value="{{ $t->key }}" pattern="[a-z0-9_]+" class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white">
@@ -49,7 +49,7 @@
                                 </select>
                                 <textarea name="payload_json" rows="6" class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-xs text-white font-mono">{{ json_encode($t->payload, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea>
                                 <label class="flex items-center gap-2 text-xs text-white"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" {{ $t->is_active?'checked':'' }}> Active</label>
-                                <button class="px-3 py-1 rounded bg-purple-500 text-white text-xs">Save</button>
+                                <button class="px-3 py-1 rounded bg-indigo-500 text-white text-xs">Save</button>
                             </form>
                         </details>
                         <form method="POST" action="{{ route('admin.site-assistant.templates.destroy', $t) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this template?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">

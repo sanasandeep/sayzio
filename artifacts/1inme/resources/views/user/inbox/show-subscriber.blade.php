@@ -68,7 +68,7 @@
     @if($contactMessage !== '')
         <div class="card-premium p-6 mb-4">
             <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">
-                <i class="fas fa-comment-dots mr-2 text-violet-400"></i>Message
+                <i class="fas fa-comment-dots mr-2 text-blue-400"></i>Message
             </h3>
             <div class="text-sm whitespace-pre-line p-4 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">{{ $contactMessage }}</div>
         </div>
@@ -90,9 +90,9 @@
                     <dt class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-faint);">{{ $k }}</dt>
                     <dd class="sm:col-span-2 text-sm" style="color: var(--text-primary);">
                         @if($k === 'Email')
-                            <a href="mailto:{{ $v }}" class="text-violet-400 hover:underline">{{ $v }}</a>
+                            <a href="mailto:{{ $v }}" class="text-blue-400 hover:underline">{{ $v }}</a>
                         @elseif($k === 'Channel URL')
-                            <a href="{{ $v }}" target="_blank" class="text-violet-400 hover:underline">{{ $v }}</a>
+                            <a href="{{ $v }}" target="_blank" class="text-blue-400 hover:underline">{{ $v }}</a>
                         @else
                             <span class="whitespace-pre-line">{{ $v }}</span>
                         @endif
@@ -111,7 +111,7 @@
     @if(!empty($replyTo))
         <div class="card-premium p-6 mb-4">
             <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">
-                <i class="fas fa-reply mr-2 text-violet-400"></i>Reply by email
+                <i class="fas fa-reply mr-2 text-blue-400"></i>Reply by email
             </h3>
             <p class="text-xs mb-4" style="color: var(--text-faint);">
                 Sending to <span class="font-mono" style="color: var(--text-secondary);">{{ $replyTo }}</span>
@@ -148,7 +148,7 @@
                     <div x-show="picked.length > 0" class="flex flex-wrap gap-2">
                         <template x-for="f in picked" :key="'rchip' + f.id">
                             <span class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full"
-                                  style="background: rgba(139,92,246,0.15); color: var(--text-primary);">
+                                  style="background: rgba(92,131,255,0.15); color: var(--text-primary);">
                                 <i :class="f.provider_icon" class="text-[11px]" style="color: var(--text-muted);"></i>
                                 <span x-text="f.name" class="max-w-[200px] truncate"></span>
                                 <button type="button" @click="remove(f.id)" class="text-[11px]" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
@@ -161,7 +161,7 @@
                                 style="border-color: var(--border-glass); color: var(--text-secondary);">
                             <i class="fas fa-cloud mr-1"></i> Attach from Cloud Files
                         </button>
-                        <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold" style="background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff;">
+                        <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold" style="background: linear-gradient(135deg,#5c83ff,#6366f1); color: #fff;">
                             <i class="fas fa-paper-plane mr-1"></i>Send reply
                         </button>
                     </div>
@@ -173,7 +173,7 @@
         @if($replies->isNotEmpty())
             <div class="card-premium p-6 mb-4">
                 <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);">
-                    <i class="fas fa-history mr-2 text-violet-400"></i>Previous replies ({{ $replies->count() }})
+                    <i class="fas fa-history mr-2 text-blue-400"></i>Previous replies ({{ $replies->count() }})
                 </h3>
                 <div class="space-y-3">
                     @foreach($replies as $r)

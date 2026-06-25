@@ -56,7 +56,7 @@
                     Lightweight viewer accounts, live follower counts, a public creators directory, daily digest emails with previews and test sends, and one-tap follow buttons on every social block. No algorithms, no middlemen.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                         <i class="fas fa-rocket text-xs"></i> Start growing free
                     </a>
                     <a href="{{ route('site.features') }}#cat-feed" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -117,7 +117,7 @@
                 <p class="mt-3 text-gray-400 max-w-2xl">Free accounts can collect unlimited followers and post to the creators feed. Daily digest scheduling, priority directory placement, and Top Followers CSV unlock on a paid plan.</p>
             </div>
             <div class="relative flex flex-wrap gap-3">
-                <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold whitespace-nowrap">See plans</a>
+                <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold whitespace-nowrap">See plans</a>
                 <a href="{{ route('site.premium-features') }}" class="px-5 py-3 rounded-full border border-white/15 text-gray-200 hover:bg-white/5 text-sm font-semibold whitespace-nowrap">Premium features</a>
             </div>
         </div>
@@ -154,7 +154,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your audience. <span class="grad-text">Your line to them.</span></h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, switch on followers, and start growing an audience no algorithm can take from you.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
                     <a href="{{ route('site.discovery') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Browse the creators directory</a>
                 </div>
             </div>

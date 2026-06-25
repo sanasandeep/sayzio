@@ -33,7 +33,7 @@
             <label class="md:col-span-1 flex items-center gap-2 text-xs" style="color: var(--text-muted);">
                 <input type="checkbox" name="is_active" value="1" checked> Active
             </label>
-            <button type="submit" class="md:col-span-1 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white">Add</button>
+            <button type="submit" class="md:col-span-1 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">Add</button>
             <p class="md:col-span-12 text-[11px]" style="color: var(--text-faint);">Hold Ctrl/Cmd to tag multiple plans. Leave blank to allow every plan to use this domain.</p>
             <div class="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 mt-1" style="border-top:1px solid var(--border-subtle);">
                 <label class="text-[11px] flex flex-col gap-1" style="color: var(--text-muted);">Light logo
@@ -63,7 +63,7 @@
                         <span class="text-amber-400 text-[10px] ml-1">unverified</span>
                     @endif
                     @if($d->is_primary)
-                        <span class="inline-flex items-center text-violet-300 text-[10px] ml-1 px-1.5 py-0.5 rounded" style="background: rgba(124,58,237,0.12); border:1px solid rgba(124,58,237,0.3);"><i class="fas fa-star mr-1 text-[8px]"></i>primary</span>
+                        <span class="inline-flex items-center text-blue-300 text-[10px] ml-1 px-1.5 py-0.5 rounded" style="background: rgba(61,107,255,0.12); border:1px solid rgba(61,107,255,0.3);"><i class="fas fa-star mr-1 text-[8px]"></i>primary</span>
                     @endif
                 </div>
                 <input type="text" name="cname_target" value="{{ $d->cname_target }}" class="col-span-3 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
@@ -109,12 +109,12 @@
 
                 <div class="col-span-12 flex flex-wrap items-center gap-1">
                     @if(!$d->is_verified)
-                        <button type="submit" form="vfy-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-violet-600 hover:bg-violet-700 text-white" title="Check CNAME via DNS">Verify</button>
+                        <button type="submit" form="vfy-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-blue-600 hover:bg-blue-700 text-white" title="Check CNAME via DNS">Verify</button>
                     @endif
                     @if($d->is_primary)
-                        <span class="px-2 py-1.5 rounded-md text-xs bg-violet-500/15 text-violet-300 border border-violet-500/30" title="This is the platform default domain"><i class="fas fa-star mr-1 text-[9px]"></i>Primary</span>
+                        <span class="px-2 py-1.5 rounded-md text-xs bg-blue-500/15 text-blue-300 border border-blue-500/30" title="This is the platform default domain"><i class="fas fa-star mr-1 text-[9px]"></i>Primary</span>
                     @else
-                        <button type="submit" form="primary-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-white/5 text-white/70 hover:bg-violet-500/20 hover:text-violet-200 border border-white/10" title="Make this the platform default domain">Make primary</button>
+                        <button type="submit" form="primary-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-white/5 text-white/70 hover:bg-blue-500/20 hover:text-blue-200 border border-white/10" title="Make this the platform default domain">Make primary</button>
                     @endif
                     <button type="submit" form="del-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30" onclick="return window.themedConfirmAction(this, {title: 'Remove this domain?', message: 'Links bound to it will lose their host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">Del</button>
                 </div>

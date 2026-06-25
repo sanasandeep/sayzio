@@ -59,7 +59,7 @@
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Accent color</label>
-                    <input type="text" name="accent_color" value="{{ $cfg['accent_color'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="#7c3aed">
+                    <input type="text" name="accent_color" value="{{ $cfg['accent_color'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="#3d6bff">
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Display name</label>
@@ -199,7 +199,7 @@
                 <div id="intro_locales" class="space-y-3"></div>
 
                 <div class="flex items-center gap-3">
-                    <button type="button" id="intro_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 border border-purple-500/35 text-purple-200">
+                    <button type="button" id="intro_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/15 border border-indigo-500/35 text-indigo-200">
                         + Add language
                     </button>
                     <span class="text-[11px] text-white/40">Up to 50 languages.</span>
@@ -431,7 +431,7 @@
                 </div>
                 <div id="sa_preview_input_row" style="display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)">
                     <textarea id="sa_preview_input" rows="1" disabled placeholder="Type a message…" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;padding:8px 10px;border-radius:10px;resize:none;font-size:13px;font-family:inherit;min-height:36px"></textarea>
-                    <button id="sa_preview_send" type="button" disabled style="background:#7c3aed;border:0;color:#fff;padding:0 14px;border-radius:10px;font-size:14px;cursor:default">Send</button>
+                    <button id="sa_preview_send" type="button" disabled style="background:#3d6bff;border:0;color:#fff;padding:0 14px;border-radius:10px;font-size:14px;cursor:default">Send</button>
                 </div>
                 <div id="sa_preview_low_balance_anonymous" data-audience="anonymous" style="margin:0 10px 10px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7;color:#fde68a">Anonymous</span>
@@ -503,7 +503,7 @@
                 function accent(){
                     var i = form.querySelector('input[name="accent_color"]');
                     var v = i ? i.value.trim() : '';
-                    return v || '#7c3aed';
+                    return v || '#3d6bff';
                 }
                 function avatarUrl(){
                     var i = form.querySelector('input[name="avatar_url"]');
@@ -806,7 +806,7 @@
                 <div id="sp_locales" class="space-y-3"></div>
 
                 <div class="flex items-center gap-3">
-                    <button type="button" id="sp_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 border border-purple-500/35 text-purple-200">
+                    <button type="button" id="sp_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/15 border border-indigo-500/35 text-indigo-200">
                         + Add language
                     </button>
                     <span class="text-[11px] text-white/40">Up to 50 languages.</span>
@@ -899,7 +899,7 @@
                 <div class="md:col-span-3">
                     <label class="block text-xs text-white/60 mb-1">Knowledge Bases (platform Minds)</label>
                     @if($platformMinds->isEmpty())
-                        <p class="text-xs text-white/40">No platform Minds yet. <a class="text-purple-300 underline" href="{{ route('admin.site-assistant.knowledge') }}">Manage knowledge bases →</a></p>
+                        <p class="text-xs text-white/40">No platform Minds yet. <a class="text-indigo-300 underline" href="{{ route('admin.site-assistant.knowledge') }}">Manage knowledge bases →</a></p>
                     @else
                         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                             @php $picked = array_map('intval', (array)($cfg['mind_ids'] ?? [])); @endphp
@@ -910,7 +910,7 @@
                                 </label>
                             @endforeach
                         </div>
-                        <p class="text-xs text-white/40 mt-1">Leave all unchecked to use the platform-default Mind only. <a class="text-purple-300 underline" href="{{ route('admin.site-assistant.knowledge') }}">Manage knowledge bases →</a></p>
+                        <p class="text-xs text-white/40 mt-1">Leave all unchecked to use the platform-default Mind only. <a class="text-indigo-300 underline" href="{{ route('admin.site-assistant.knowledge') }}">Manage knowledge bases →</a></p>
                     @endif
                 </div>
                 <div class="md:col-span-3">
@@ -968,7 +968,7 @@
                 <div id="lb_locales" class="space-y-3"></div>
 
                 <div class="flex items-center gap-3">
-                    <button type="button" id="lb_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 border border-purple-500/35 text-purple-200">
+                    <button type="button" id="lb_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/15 border border-indigo-500/35 text-indigo-200">
                         + Add language
                     </button>
                     <span class="text-[11px] text-white/40">Up to 50 languages.</span>
@@ -1112,7 +1112,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button class="px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-white text-sm font-semibold">Save settings</button>
+            <button class="px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold">Save settings</button>
         </div>
     </form>
 </div>

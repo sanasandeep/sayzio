@@ -34,7 +34,7 @@
 <section class="pb-24" aria-labelledby="subscribe-block-h-{{ $__sbSource }}">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/15 border border-violet-400/30 text-[11px] font-bold uppercase tracking-wider text-violet-200 mb-3">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-[11px] font-bold uppercase tracking-wider text-blue-200 mb-3">
                 <i class="fas fa-bell"></i> Subscribe
             </div>
             <h2 id="subscribe-block-h-{{ $__sbSource }}" class="text-2xl sm:text-3xl font-bold" style="color: var(--text-primary);">{{ $__sbHeading }}</h2>
@@ -43,9 +43,9 @@
 
         <div class="grid grid-cols-1 {{ $__sbGridCols }} gap-4">
             {{-- Card 1: Email newsletter --}}
-            <div class="bg-violet-500/10 border border-violet-400/20 rounded-2xl p-6 flex flex-col">
+            <div class="bg-blue-500/10 border border-blue-400/20 rounded-2xl p-6 flex flex-col">
                 <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-violet-500/20 text-violet-200">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-200">
                         <i class="fas fa-envelope-open-text"></i>
                     </div>
                     <div>
@@ -72,9 +72,9 @@
                     <input type="email" id="subscribe-email-{{ $__sbSource }}" name="email" required
                            placeholder="you@example.com"
                            value="{{ old('source') === $__sbSubmitSource ? old('email') : '' }}"
-                           class="theme-input px-4 py-2.5 rounded-full text-sm focus:outline-none focus:border-violet-400/60">
+                           class="theme-input px-4 py-2.5 rounded-full text-sm focus:outline-none focus:border-blue-400/60">
                     <button type="submit"
-                            class="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
+                            class="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
                         <i class="fas fa-paper-plane text-xs"></i> Subscribe
                     </button>
                 </form>
@@ -134,7 +134,7 @@
 
         <div class="text-center mt-5">
             <a href="{{ route('site.subscriptions.manage') }}"
-               class="inline-flex items-center gap-1.5 text-[12px] hover:text-violet-300 underline-offset-2 hover:underline"
+               class="inline-flex items-center gap-1.5 text-[12px] hover:text-blue-300 underline-offset-2 hover:underline"
                style="color: var(--text-muted);">
                 <i class="fas fa-sliders text-[10px]"></i> Already subscribed? Manage subscriptions
             </a>

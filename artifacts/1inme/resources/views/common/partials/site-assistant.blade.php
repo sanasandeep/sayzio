@@ -71,7 +71,7 @@
 .sa-launcher-wrap::after{
   content:"";position:absolute;inset:0;
   border-radius:30px 30px 8px 30px;
-  border:2px solid rgba(167,139,250,.55);z-index:0;
+  border:2px solid rgba(144,172,255,.55);z-index:0;
   opacity:0;
   animation:sa-pulse-ring 2.6s cubic-bezier(.22,.61,.36,1) infinite;
   transition:opacity .25s ease;
@@ -87,7 +87,7 @@
   pointer-events:auto; /* re-enable clicks on the button itself (wrap is none) */
   background:
     radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 45%),
-    conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#a855f7 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg);
+    conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#6e61ff 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg);
   box-shadow:
     0 8px 18px -6px rgba(99,102,241,.45),
     inset 0 0 0 1.5px rgba(255,255,255,.35);
@@ -212,7 +212,7 @@
 .sa-close{margin-left:auto;background:transparent;border:0;color:#94a3b8;font-size:18px;cursor:pointer}
 .sa-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .sa-msg{max-width:85%;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
-.sa-msg.user{align-self:flex-end;background:var(--sa-accent,#7c3aed);color:#fff;border-bottom-right-radius:4px}
+.sa-msg.user{align-self:flex-end;background:var(--sa-accent,#3d6bff);color:#fff;border-bottom-right-radius:4px}
 .sa-msg.assistant{align-self:flex-start;background:rgba(255,255,255,.06);color:#e2e8f0;border-bottom-left-radius:4px}
 .sa-msg.error{align-self:center;background:rgba(239,68,68,.12);color:#fca5a5;font-size:12px;border-radius:8px}
 .sa-cutoff{align-self:flex-start;display:flex;align-items:center;gap:8px;font-size:11.5px;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);padding:6px 10px;border-radius:8px;margin-top:-2px;max-width:85%}
@@ -222,7 +222,7 @@
 .sa-blocks{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .sa-buttons{display:flex;flex-wrap:wrap;gap:6px}
 .sa-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer}
-.sa-btn:hover{background:var(--sa-accent,#7c3aed);border-color:transparent}
+.sa-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent}
 .sa-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;padding-right:4px}
 .sa-list-item{display:flex;gap:10px;align-items:flex-start;padding:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer}
 .sa-list-item:hover{background:rgba(255,255,255,.08)}
@@ -232,7 +232,7 @@
 .sa-image{max-width:100%;border-radius:10px}
 .sa-form{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .sa-form input,.sa-form textarea{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);color:#fff;padding:8px 10px;border-radius:8px;font-size:13px;font-family:inherit;width:100%;box-sizing:border-box}
-.sa-form button{background:var(--sa-accent,#7c3aed);color:#fff;border:0;padding:8px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.sa-form button{background:var(--sa-accent,#3d6bff);color:#fff;border:0;padding:8px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
 .sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
 .sa-suggested .sa-btn{font-size:11.5px}
 .sa-low-balance{display:none;margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;align-items:center;gap:8px;flex-wrap:wrap}
@@ -242,7 +242,7 @@
 .sa-low-balance .sa-lb-cta:hover{background:rgba(251,191,36,.36);color:#fff}
 .sa-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)}
 .sa-input-row textarea{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;padding:8px 10px;border-radius:10px;resize:none;font-size:13px;font-family:inherit;max-height:120px;min-height:36px}
-.sa-input-row button{background:var(--sa-accent,#7c3aed);border:0;color:#fff;padding:0 14px;border-radius:10px;cursor:pointer;font-size:14px}
+.sa-input-row button{background:var(--sa-accent,#3d6bff);border:0;color:#fff;padding:0 14px;border-radius:10px;cursor:pointer;font-size:14px}
 .sa-input-row button:disabled{opacity:.5;cursor:not-allowed}
 .sa-typing{align-self:flex-start;font-size:11px;color:#94a3b8;padding:0 4px}
 .sa-badge{position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a}
@@ -260,7 +260,7 @@ html.light-mode .sa-cutoff{color:#b45309;background:rgba(251,191,36,.12);border:
 html.light-mode .sa-cutoff button{background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.5);color:#92400e}
 html.light-mode .sa-cutoff button:hover{background:rgba(251,191,36,.35)}
 html.light-mode .sa-btn{background:rgba(15,23,42,.05);border:1px solid rgba(15,23,42,.12);color:#1e293b}
-html.light-mode .sa-btn:hover{background:var(--sa-accent,#7c3aed);border-color:transparent;color:#fff}
+html.light-mode .sa-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff}
 html.light-mode .sa-list-item{background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.08)}
 html.light-mode .sa-list-item:hover{background:rgba(15,23,42,.06)}
 html.light-mode .sa-list-item .sa-li-title{color:#0f172a}
@@ -384,7 +384,7 @@ window.__SA_CHROME = {
     s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
     s=s.replace(/\*([^*]+)\*/g,'<em>$1</em>');
     s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
-    s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:underline">$1</a>');
+    s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:#90acff;text-decoration:underline">$1</a>');
     s=s.replace(/\n/g,'<br>');
     return s;
   }
@@ -393,7 +393,7 @@ window.__SA_CHROME = {
   var pos=ds.position==='bottom-left'?'sa-pos-left':'sa-pos-right';
   var launcherWrap=el('div',{class:'sa-launcher-wrap '+pos});
   var launcher=el('button',{id:'sa-launcher',class:pos,type:'button','aria-label':'Open assistant',
-    style:{'--sa-accent':ds.accent||'#7c3aed'}}, '');
+    style:{'--sa-accent':ds.accent||'#3d6bff'}}, '');
   // Face of the assistant: the Zio Bot mascot rides on the brand-gradient
   // button. When an admin hasn't set an avatar the resolver already hands
   // us the bundled mascot, so ds.avatar is effectively always present; the
@@ -424,7 +424,7 @@ window.__SA_CHROME = {
   launcherWrap.appendChild(tooltip);
   document.body.appendChild(launcherWrap);
 
-  var panel=el('div',{id:'sa-panel',class:pos,style:{'--sa-accent':ds.accent||'#7c3aed'}});
+  var panel=el('div',{id:'sa-panel',class:pos,style:{'--sa-accent':ds.accent||'#3d6bff'}});
   var avatarHtml = ds.avatar ? '<img src="'+escapeHtml(ds.avatar)+'" alt="">' : '<div class="sa-avatar">★</div>';
   // Subheading is rendered server-side using the localized
   // `subheading` field exposed by the partial, so visitors with a

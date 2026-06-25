@@ -189,7 +189,7 @@
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
             @if($heroBadgeLabel !== '')
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
                     @if($heroBadgeIcon !== '')<i class="fas {{ $heroBadgeIcon }} text-[10px]"></i>@endif {{ $heroBadgeLabel }}
                 </span>
             @endif
@@ -229,7 +229,7 @@
             </div>
             @if($heroLocTitle !== '' || $heroLocSubtitle !== '')
                 <div class="absolute -bottom-5 -left-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
-                    @if($heroLocIcon !== '')<i class="fas {{ $heroLocIcon }} text-violet-400"></i>@endif
+                    @if($heroLocIcon !== '')<i class="fas {{ $heroLocIcon }} text-blue-400"></i>@endif
                     <div class="text-xs">
                         @if($heroLocTitle !== '')<div class="font-semibold text-white">{{ $heroLocTitle }}</div>@endif
                         @if($heroLocSubtitle !== '')<div class="text-gray-400">{{ $heroLocSubtitle }}</div>@endif
@@ -254,8 +254,8 @@
         @endif
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5" data-anim="fade-up" data-stagger>
             @foreach($valueCards as $v)
-                <div class="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-violet-400/40 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1">
-                    <div class="w-11 h-11 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center text-violet-200 mb-4">
+                <div class="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-blue-400/40 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1">
+                    <div class="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-200 mb-4">
                         <i class="fas {{ $v['icon'] ?? 'fa-circle-dot' }}"></i>
                     </div>
                     @if(!empty($v['title']))<h3 class="text-base font-bold text-white">{{ $v['title'] }}</h3>@endif
@@ -318,12 +318,12 @@
                     @if($founderTitle !== '')
                         <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight">{{ $founderTitle }}</h2>
                     @endif
-                    <div class="bg-violet-500/10 border border-white/10 rounded-3xl p-6 sm:p-10 grid sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-center">
+                    <div class="bg-blue-500/10 border border-white/10 rounded-3xl p-6 sm:p-10 grid sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-center">
                         <div class="shrink-0 mx-auto sm:mx-0">
                             @php $founderPhoto = $personPhoto($founder) ?? $defaultFounderPhoto; @endphp
                             <div class="relative">
-                                <img src="{{ $founderPhoto }}" alt="{{ $founder['name'] ?? '' }}" class="w-40 h-40 rounded-full object-cover border-2 border-violet-400/40 shadow-2xl">
-                                <div class="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-violet-500 border-4 border-[#1e2330] flex items-center justify-center text-white">
+                                <img src="{{ $founderPhoto }}" alt="{{ $founder['name'] ?? '' }}" class="w-40 h-40 rounded-full object-cover border-2 border-blue-400/40 shadow-2xl">
+                                <div class="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-blue-500 border-4 border-[#1e2330] flex items-center justify-center text-white">
                                     <i class="fas fa-crown text-sm"></i>
                                 </div>
                             </div>
@@ -331,7 +331,7 @@
                         <div class="text-center sm:text-left">
                             <h3 class="text-2xl sm:text-3xl font-bold text-white">{{ $founder['name'] ?? '' }}</h3>
                             @if(!empty($founder['role']))
-                                <p class="text-sm text-violet-300 mt-1 font-medium uppercase tracking-wider">{{ $founder['role'] }}</p>
+                                <p class="text-sm text-blue-300 mt-1 font-medium uppercase tracking-wider">{{ $founder['role'] }}</p>
                             @endif
                             @if(!empty($founder['bio']))
                                 <p class="text-gray-300 mt-4 leading-relaxed">{{ $founder['bio'] }}</p>
@@ -340,10 +340,10 @@
                             @if(!empty($fl['twitter']) || !empty($fl['linkedin']))
                                 <div class="mt-4 flex gap-3 justify-center sm:justify-start">
                                     @if(!empty($fl['twitter']))
-                                        <a href="{{ $fl['twitter'] }}" target="_blank" rel="noopener" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-violet-600 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition"><i class="fab fa-x-twitter"></i></a>
+                                        <a href="{{ $fl['twitter'] }}" target="_blank" rel="noopener" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-blue-600 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition"><i class="fab fa-x-twitter"></i></a>
                                     @endif
                                     @if(!empty($fl['linkedin']))
-                                        <a href="{{ $fl['linkedin'] }}" target="_blank" rel="noopener" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-violet-600 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition"><i class="fab fa-linkedin"></i></a>
+                                        <a href="{{ $fl['linkedin'] }}" target="_blank" rel="noopener" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-blue-600 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition"><i class="fab fa-linkedin"></i></a>
                                     @endif
                                 </div>
                             @endif
@@ -359,7 +359,7 @@
                 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
                     <div class="bg-white/[0.03] border border-white/10 rounded-3xl p-6 sm:p-10">
                         @if($eefindEyebrow !== '')
-                            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
                                 <i class="fas fa-building text-[10px]"></i> {{ $eefindEyebrow }}
                             </span>
                         @endif
@@ -393,25 +393,25 @@
                             <div class="mt-7 grid sm:grid-cols-2 gap-3 text-sm">
                                 @if($eefindAddress !== '')
                                     <div class="flex items-start gap-3 text-gray-300">
-                                        <i class="fas fa-location-dot text-violet-400 mt-0.5"></i>
+                                        <i class="fas fa-location-dot text-blue-400 mt-0.5"></i>
                                         <span>{{ $eefindAddress }}</span>
                                     </div>
                                 @endif
                                 @if($eefindEmail !== '')
                                     <div class="flex items-start gap-3 text-gray-300">
-                                        <i class="fas fa-envelope text-violet-400 mt-0.5"></i>
+                                        <i class="fas fa-envelope text-blue-400 mt-0.5"></i>
                                         <a href="mailto:{{ $eefindEmail }}" class="hover:text-white transition">{{ $eefindEmail }}</a>
                                     </div>
                                 @endif
                                 @if($eefindWhatsapp !== '')
                                     <div class="flex items-start gap-3 text-gray-300">
-                                        <i class="fab fa-whatsapp text-violet-400 mt-0.5"></i>
+                                        <i class="fab fa-whatsapp text-blue-400 mt-0.5"></i>
                                         <span>{{ $eefindWhatsapp }}</span>
                                     </div>
                                 @endif
                                 @if($eefindWebsite !== '')
                                     <div class="flex items-start gap-3 text-gray-300">
-                                        <i class="fas fa-globe text-violet-400 mt-0.5"></i>
+                                        <i class="fas fa-globe text-blue-400 mt-0.5"></i>
                                         <a href="{{ $eefindWebsiteUrl }}" target="_blank" rel="noopener" class="hover:text-white transition">{{ $eefindWebsite }}</a>
                                     </div>
                                 @endif
@@ -432,12 +432,12 @@
                     @if($milestonesSubtitle !== '')
                         <p class="text-center text-gray-400 mb-10">{{ $milestonesSubtitle }}</p>
                     @endif
-                    <ol class="relative border-l border-violet-400/30 pl-6 ml-2 space-y-8">
+                    <ol class="relative border-l border-blue-400/30 pl-6 ml-2 space-y-8">
                         @foreach($milestones as $m)
                             <li class="relative" data-anim="fade-right">
-                                <span class="absolute -left-[34px] top-1 w-4 h-4 rounded-full bg-violet-500 border-4 border-[#1e2330] ring-2 ring-violet-400/40 pulse-dot text-violet-400/40"></span>
+                                <span class="absolute -left-[34px] top-1 w-4 h-4 rounded-full bg-blue-500 border-4 border-[#1e2330] ring-2 ring-blue-400/40 pulse-dot text-blue-400/40"></span>
                                 @if(!empty($m['date']))
-                                    <div class="text-xs uppercase tracking-wider text-violet-300 font-semibold">{{ $milestoneLabel($m['date']) }}</div>
+                                    <div class="text-xs uppercase tracking-wider text-blue-300 font-semibold">{{ $milestoneLabel($m['date']) }}</div>
                                 @endif
                                 @if(!empty($m['title']))<h3 class="text-lg font-bold text-white mt-1">{{ $m['title'] }}</h3>@endif
                                 @if(!empty($m['description']))<p class="text-sm text-gray-300 mt-1 leading-relaxed">{{ $m['description'] }}</p>@endif
@@ -464,7 +464,7 @@
                             @if($ctaPrimaryLbl !== '' || $ctaSecondaryLbl !== '')
                                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                                     @if($ctaPrimaryLbl !== '')
-                                        <a href="{{ $ctaPrimaryUrl }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $ctaPrimaryLbl }}</a>
+                                        <a href="{{ $ctaPrimaryUrl }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">{{ $ctaPrimaryLbl }}</a>
                                     @endif
                                     @if($ctaSecondaryLbl !== '')
                                         <a href="{{ $ctaSecondaryUrl }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">{{ $ctaSecondaryLbl }}</a>

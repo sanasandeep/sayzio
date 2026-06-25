@@ -14,11 +14,11 @@
         <p class="text-white/40 text-sm mt-1">Manage your tracking pixels for retargeting</p>
     </div>
     @if($__canEdit)
-    <a href="{{ route('user.pixels.create') }}" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+    <a href="{{ route('user.pixels.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
         <i class="fas fa-plus"></i> Add Tracker
     </a>
     @else
-    <span class="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 cursor-not-allowed opacity-60 bg-violet-600/40 text-white" title="Your role doesn't allow adding trackers — ask a workspace admin">
+    <span class="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 cursor-not-allowed opacity-60 bg-blue-600/40 text-white" title="Your role doesn't allow adding trackers — ask a workspace admin">
         <i class="fas fa-lock"></i> Add Tracker
     </span>
     @endif
@@ -26,13 +26,13 @@
 
 @if($pixels->isEmpty())
 <div class="glass rounded-2xl p-12 text-center">
-    <div class="w-16 h-16 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-        <i class="fas fa-bullseye text-violet-400 text-2xl"></i>
+    <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-bullseye text-blue-400 text-2xl"></i>
     </div>
     <h3 class="text-lg font-semibold text-white mb-2">No trackers yet</h3>
     @if($__canEdit)
     <p class="text-white/40 mb-4">Add trackers to retarget link visitors.</p>
-    <a href="{{ route('user.pixels.create') }}" class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
+    <a href="{{ route('user.pixels.create') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
         <i class="fas fa-plus"></i> Add Tracker
     </a>
     @else
@@ -66,7 +66,7 @@
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                         @if($__canEdit)
-                            <a href="{{ route('user.pixels.edit', $pixel) }}" class="text-white/30 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
+                            <a href="{{ route('user.pixels.edit', $pixel) }}" class="text-white/30 hover:text-blue-400" title="Edit"><i class="fas fa-edit"></i></a>
                             <form action="{{ route('user.pixels.destroy', $pixel) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this tracker?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>

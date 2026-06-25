@@ -13,7 +13,7 @@
             <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_companions_per_user'] == -1 ? '∞' : $caps['max_companions_per_user'] }} used</p>
         </div>
         @if($caps['max_companions_per_user'] == -1 || $used < $caps['max_companions_per_user'])
-            <a href="{{ route('user.ai-companions.create') }}" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm">
+            <a href="{{ route('user.ai-companions.create') }}" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">
                 <i class="fas fa-plus"></i> New Companion
             </a>
         @endif
@@ -21,10 +21,10 @@
 
     @if($companions->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
-            <i class="fas fa-comments text-4xl text-violet-400/70"></i>
+            <i class="fas fa-comments text-4xl text-blue-400/70"></i>
             <p class="mt-3 text-white font-semibold">No Companions yet.</p>
             <p class="text-sm text-white/50 mt-1">Pick an AI Persona, choose a placement, and ship a chatbot in minutes.</p>
-            <a href="{{ route('user.ai-companions.create') }}" class="inline-block mt-4 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm">
+            <a href="{{ route('user.ai-companions.create') }}" class="inline-block mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">
                 <i class="fas fa-plus"></i> Create your first Companion
             </a>
         </div>
@@ -42,12 +42,12 @@
                 @endphp
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3 {{ $c->is_disabled ? 'opacity-60' : '' }}">
                     <div class="flex items-start gap-3">
-                        <div class="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-300">
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-300">
                             <i class="fas {{ $icon }}"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
-                                <a href="{{ route('user.ai-companions.edit', $c) }}" class="text-white font-semibold truncate hover:text-violet-300">{{ $c->name }}</a>
+                                <a href="{{ route('user.ai-companions.edit', $c) }}" class="text-white font-semibold truncate hover:text-blue-300">{{ $c->name }}</a>
                                 @if($c->is_disabled)
                                     <span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-300 border border-red-500/20">Disabled</span>
                                 @endif

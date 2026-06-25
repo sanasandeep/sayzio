@@ -85,10 +85,10 @@ export function AnnouncementBanner() {
         <div
           key={a.audience}
           role="status"
-          className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-violet-50 border-b border-white/10"
+          className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-blue-50 border-b border-white/10"
           style={{
             background:
-              "linear-gradient(90deg, rgba(124,58,237,0.97), rgba(168,85,247,0.97))",
+              "linear-gradient(90deg, rgba(61,107,255,0.97), rgba(110,97,255,0.97))",
           }}
         >
           <Megaphone className="h-4 w-4 shrink-0 opacity-90" />
@@ -97,7 +97,7 @@ export function AnnouncementBanner() {
             <a
               href={a.linkUrl}
               rel="noopener"
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-800 transition-transform hover:-translate-y-0.5"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-800 transition-transform hover:-translate-y-0.5"
             >
               {a.linkLabel !== "" ? a.linkLabel : "Learn more"}
               <ArrowRight className="h-3 w-3" />

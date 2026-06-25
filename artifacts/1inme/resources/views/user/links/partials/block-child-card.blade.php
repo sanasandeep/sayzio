@@ -4,7 +4,7 @@
     $pollTallies = $pollTallies ?? [];
     $cs = $child->settings ?? [];
     $cTypeInfo = $blockTypes[$child->type] ?? ['label' => ucfirst($child->type), 'icon' => 'fa-cube'];
-    $cCatColor = $catColors[$cTypeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
+    $cCatColor = $catColors[$cTypeInfo['category'] ?? 'basic'] ?? '#5c83ff';
     $childSpan = intval($cs['_style']['grid_span'] ?? 12) ?: 12;
 @endphp
 <div class="child-block-card rounded-lg transition-all hover:bg-white/[0.03]" data-block-id="{{ $child->id }}" style="border: 1px solid var(--border-glass);">

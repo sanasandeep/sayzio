@@ -14,7 +14,7 @@
     <div class="rounded-2xl border p-8 text-center"
          style="border-color: var(--border-strong); background: var(--bg-card);">
         <div class="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
-             style="background: rgba(139,92,246,0.12); color:#7c3aed;">
+             style="background: rgba(92,131,255,0.12); color:#3d6bff;">
             <i class="fas fa-lock text-2xl"></i>
         </div>
         <h1 class="text-xl font-bold mb-2" style="color: var(--text-primary);">You don't have access</h1>
@@ -22,13 +22,13 @@
 
         @if(!empty($permissionLabels ?? []))
             <div class="rounded-lg p-4 mb-5 text-left"
-                 style="background: rgba(139,92,246,0.08);">
+                 style="background: rgba(92,131,255,0.08);">
                 <p class="text-xs uppercase tracking-wide mb-2" style="color: var(--text-faint);">
                     This page needs permission to
                 </p>
                 <ul class="text-sm font-medium space-y-1" style="color: var(--text-primary);">
                     @foreach($permissionLabels as $label)
-                        <li><i class="fas fa-key text-xs mr-2" style="color:#7c3aed;"></i>{{ $label }}</li>
+                        <li><i class="fas fa-key text-xs mr-2" style="color:#3d6bff;"></i>{{ $label }}</li>
                     @endforeach
                 </ul>
             </div>
@@ -49,7 +49,7 @@
                         {{ $owner->name }} <span class="font-normal" style="color: var(--text-muted);">(workspace owner)</span>
                     </p>
                     @if(!empty($owner->email))
-                        <a href="mailto:{{ $owner->email }}" class="text-xs hover:underline" style="color:#7c3aed;">
+                        <a href="mailto:{{ $owner->email }}" class="text-xs hover:underline" style="color:#3d6bff;">
                             <i class="fas fa-envelope mr-1"></i>{{ $owner->email }}
                         </a>
                     @endif
@@ -105,7 +105,7 @@
                                   rows="2"
                                   maxlength="280"
                                   placeholder="e.g. I need this to reply to support tickets today"
-                                  class="w-full text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                  class="w-full text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                   style="border-color: var(--border-soft); background: var(--bg-card); color: var(--text-primary);"></textarea>
                         <p class="text-xs mt-1" style="color: var(--text-faint);">Up to 280 characters.</p>
                     </div>

@@ -12,7 +12,7 @@
     .sl-bg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 8px; }
     .sl-bg-tpl  { aspect-ratio: 9/14; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-glass); position: relative; transition: transform .15s ease, box-shadow .15s ease; overflow: hidden; }
     .sl-bg-tpl:hover { transform: scale(1.06); z-index: 2; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
-    .sl-bg-tpl.is-selected { box-shadow: 0 0 0 2px #a78bfa, 0 4px 12px rgba(0,0,0,.4); }
+    .sl-bg-tpl.is-selected { box-shadow: 0 0 0 2px #90acff, 0 4px 12px rgba(0,0,0,.4); }
     .sl-bg-tpl-name { position: absolute; bottom: 0; left: 0; right: 0; font-size: 9px; padding: 1px 3px; background: rgba(0,0,0,.55); color: #fff; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sl-bg-list { display: flex; flex-direction: column; gap: 6px; }
     .sl-bg-list-row { display: flex; gap: 6px; }
@@ -32,9 +32,9 @@
     .sl-toggle {
         display: flex; align-items: center; gap: 14px;
         padding: 16px 20px; color: #fff;
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #ec4899 0%, #5c83ff 100%);
         border-radius: 1rem; margin-bottom: 18px;
-        box-shadow: 0 10px 30px -12px rgba(139,92,246,0.55);
+        box-shadow: 0 10px 30px -12px rgba(92,131,255,0.55);
     }
     .sl-toggle .form-check-input { transform: scale(1.4); cursor: pointer; }
     .sl-toggle-title { font-weight: 700; font-size: 14px; }
@@ -67,19 +67,19 @@
         gap: 10px; margin-bottom: 10px;
     }
     .sl-slide-idx {
-        background: #8b5cf6; color: #fff; border-radius: 999px;
+        background: #5c83ff; color: #fff; border-radius: 999px;
         min-width: 28px; height: 28px; display: inline-flex;
         align-items: center; justify-content: center;
         font-weight: 700; font-size: 13px;
     }
 
-    .sl-btn { background: rgba(139,92,246,0.18); color: #c4b5fd;
-        border: 1px solid rgba(139,92,246,0.4); padding: 7px 12px;
+    .sl-btn { background: rgba(92,131,255,0.18); color: #bccfff;
+        border: 1px solid rgba(92,131,255,0.4); padding: 7px 12px;
         border-radius: 8px; font-size: 13px; cursor: pointer;
         transition: background 0.15s; }
-    .sl-btn:hover { background: rgba(139,92,246,0.32); }
-    .sl-btn-primary { background: #7c3aed; color: white; border-color: #7c3aed; }
-    .sl-btn-primary:hover { background: #6d28d9; }
+    .sl-btn:hover { background: rgba(92,131,255,0.32); }
+    .sl-btn-primary { background: #3d6bff; color: white; border-color: #3d6bff; }
+    .sl-btn-primary:hover { background: #2342c7; }
     .sl-btn-danger  { background: rgba(239,68,68,0.18); color: #fca5a5;
         border-color: rgba(239,68,68,0.4); }
     .sl-btn-ghost   { background: transparent; color: var(--text-muted);
@@ -88,20 +88,20 @@
     /* Light-mode contrast fixes — the chip/button colors above were tuned
        for the dark canvas and become invisible on a white surface. */
     html.light-mode .sl-btn {
-        background: rgba(124,58,237,0.10);
-        color: #5b21b6;
-        border-color: rgba(124,58,237,0.30);
+        background: rgba(61,107,255,0.10);
+        color: #2139a1;
+        border-color: rgba(61,107,255,0.30);
     }
-    html.light-mode .sl-btn:hover { background: rgba(124,58,237,0.18); }
-    html.light-mode .sl-btn-primary { background: #7c3aed; color: #fff; border-color: #7c3aed; }
-    html.light-mode .sl-btn-primary:hover { background: #6d28d9; }
+    html.light-mode .sl-btn:hover { background: rgba(61,107,255,0.18); }
+    html.light-mode .sl-btn-primary { background: #3d6bff; color: #fff; border-color: #3d6bff; }
+    html.light-mode .sl-btn-primary:hover { background: #2342c7; }
     html.light-mode .sl-btn-danger  { background: #fde7ec; color: #b91c1c; border-color: #fca5a5; }
     html.light-mode .sl-btn-ghost   { color: var(--text-secondary); }
 
     .sl-block-chip {
         display: inline-flex; align-items: center; gap: 6px;
-        background: rgba(139,92,246,0.18); color: var(--text-primary);
-        border: 1px solid rgba(139,92,246,0.35);
+        background: rgba(92,131,255,0.18); color: var(--text-primary);
+        border: 1px solid rgba(92,131,255,0.35);
         border-radius: 999px; padding: 4px 10px;
         font-size: 12px; margin: 0 4px 4px 0; font-weight: 600;
     }
@@ -110,7 +110,7 @@
         font-size: 14px; cursor: pointer; padding: 0; line-height: 1;
     }
     html.light-mode .sl-block-chip {
-        background: #f3eeff; color: #5b21b6; border-color: #d8c3ff;
+        background: #f3eeff; color: #2139a1; border-color: #d8c3ff;
     }
     html.light-mode .sl-block-chip button { color: #dc2626; }
 
@@ -130,11 +130,11 @@
         background: var(--bg-glass-input); border: 1px solid var(--border-glass);
         color: var(--text-muted); cursor: pointer; transition: all .12s ease;
     }
-    .sl-span-btn:hover { color: var(--text-primary); border-color: rgba(124,58,237,0.5); }
+    .sl-span-btn:hover { color: var(--text-primary); border-color: rgba(61,107,255,0.5); }
     .sl-span-btn.active {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        background: linear-gradient(135deg, #5c83ff, #3d6bff);
         color: #fff; border-color: transparent;
-        box-shadow: 0 2px 8px -2px rgba(124,58,237,0.55);
+        box-shadow: 0 2px 8px -2px rgba(61,107,255,0.55);
     }
 
     /* Per-block compact row — the cluster of Anim/Delay/Align/Width below each chip. */
@@ -248,7 +248,7 @@
                 <div class="sl-row">
                     <div>
                         <label class="sl-field-label">Accent</label>
-                        <input type="color" id="sl-theme-acc" class="sl-input" value="{{ $deckPayload['settings']['theme']['accent'] ?? '#8b5cf6' }}">
+                        <input type="color" id="sl-theme-acc" class="sl-input" value="{{ $deckPayload['settings']['theme']['accent'] ?? '#5c83ff' }}">
                     </div>
                     <div>
                         <label class="sl-field-label">Default transition</label>

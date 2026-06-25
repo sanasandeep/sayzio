@@ -16,7 +16,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <a href="{{ route('admin.bg-templates.create') }}"
-                   class="px-4 py-2 rounded-xl text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white inline-flex items-center gap-2">
+                   class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-2">
                     <i class="fas fa-plus text-xs"></i> New template
                 </a>
             </div>
@@ -36,12 +36,12 @@
                class="flex-1 min-w-[220px] bg-black/30 border border-white/15 rounded-lg px-3 py-2 text-sm text-white">
         <div class="flex items-center gap-1.5 flex-wrap">
             <a href="{{ route('admin.bg-templates.index', ['q' => $q]) }}"
-               class="text-[12px] font-semibold px-3 py-1.5 rounded-full {{ $currentCat === '' ? 'bg-violet-600/30 text-violet-200 border border-violet-500/40' : 'bg-white/5 text-white/70 border border-white/10' }}">
+               class="text-[12px] font-semibold px-3 py-1.5 rounded-full {{ $currentCat === '' ? 'bg-blue-600/30 text-blue-200 border border-blue-500/40' : 'bg-white/5 text-white/70 border border-white/10' }}">
                 All <span class="opacity-60">{{ $totalCount }}</span>
             </a>
             @foreach($categories as $cat)
                 <a href="{{ route('admin.bg-templates.index', ['q' => $q, 'cat' => $cat]) }}"
-                   class="text-[12px] font-semibold px-3 py-1.5 rounded-full {{ $currentCat === $cat ? 'bg-violet-600/30 text-violet-200 border border-violet-500/40' : 'bg-white/5 text-white/70 border border-white/10' }}">
+                   class="text-[12px] font-semibold px-3 py-1.5 rounded-full {{ $currentCat === $cat ? 'bg-blue-600/30 text-blue-200 border border-blue-500/40' : 'bg-white/5 text-white/70 border border-white/10' }}">
                     {{ ucfirst($cat) }} <span class="opacity-60">{{ $categoryCounts[$cat] ?? 0 }}</span>
                 </a>
             @endforeach
@@ -74,7 +74,7 @@
                 </div>
                 <div class="flex items-center gap-1.5 mt-auto">
                     <a href="{{ route('admin.bg-templates.edit', $tpl) }}"
-                       class="flex-1 text-center text-[11px] font-semibold px-2 py-1.5 rounded-md bg-violet-600/20 hover:bg-violet-600/30 text-violet-200">
+                       class="flex-1 text-center text-[11px] font-semibold px-2 py-1.5 rounded-md bg-blue-600/20 hover:bg-blue-600/30 text-blue-200">
                         <i class="fas fa-pen text-[10px] mr-1"></i> Edit
                     </a>
                     <form method="POST" action="{{ route('admin.bg-templates.toggle', $tpl) }}" class="inline">

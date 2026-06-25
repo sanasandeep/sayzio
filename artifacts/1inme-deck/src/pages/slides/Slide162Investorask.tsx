@@ -12,10 +12,10 @@ export default function Slide162Investorask() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Funding ask.</h2>
         
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">$[ X ]M</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">Series A</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">[ X ]%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">equity</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">[ X ]mo</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">runway</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">$[ Y ]M</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">post-money cap</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">$[ X ]M</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">Series A</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">[ X ]%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">equity</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">[ X ]mo</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">runway</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">$[ Y ]M</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">post-money cap</div></div>
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Update with the live round structure.</p>
       </div>

@@ -6,7 +6,7 @@
     $lastUpdated = $page->last_updated_at;
 @endphp
 <section class="relative pt-16 pb-10 lg:pt-24 lg:pb-12 overflow-hidden">
-    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(124,58,237,.06);"></div>
+    <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(61,107,255,.06);"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{{ $page->title }}</h1>
         @if($lastUpdated || ($hasHistory ?? false))
@@ -18,7 +18,7 @@
                     </span>
                 @endif
                 @if($hasHistory ?? false)
-                    <a href="{{ route('site.policy.history', $page->slug) }}" class="text-violet-400 hover:text-violet-300 underline-offset-2 hover:underline">
+                    <a href="{{ route('site.policy.history', $page->slug) }}" class="text-blue-400 hover:text-blue-300 underline-offset-2 hover:underline">
                         <i class="fas fa-clock-rotate-left mr-1"></i>View change history
                     </a>
                 @endif
@@ -76,13 +76,13 @@
                 @php
                     $contactEmail = \App\Modules\Admin\Models\AppSetting::get('contact_recipient_email');
                 @endphp
-                <div class="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-6 sm:p-8">
+                <div class="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-6 sm:p-8">
                     <h3 class="text-lg font-semibold text-white mb-2">Questions about this policy?</h3>
                     <p class="text-sm text-gray-300 mb-4">
                         We're happy to clarify anything you read on this page. Reach out and a real person on our team will get back to you.
                     </p>
                     <div class="flex flex-wrap items-center gap-3">
-                        <a href="{{ route('site.contact') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium">
+                        <a href="{{ route('site.contact') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium">
                             <i class="far fa-envelope"></i> Contact us
                         </a>
                         @if($contactEmail)

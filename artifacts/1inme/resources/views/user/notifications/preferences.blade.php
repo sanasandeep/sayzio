@@ -7,7 +7,7 @@
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Notification preferences</h1>
             <p class="text-sm mt-1" style="color: var(--text-muted);">Choose which alerts reach you, and where.</p>
         </div>
-        <a href="{{ route('user.notifications.index') }}" class="text-sm text-violet-500 hover:underline">
+        <a href="{{ route('user.notifications.index') }}" class="text-sm text-blue-500 hover:underline">
             <i class="fas fa-arrow-left mr-1"></i> Back to feed
         </a>
     </div>
@@ -41,19 +41,19 @@
                         <div class="col-span-2 text-center">
                             <input type="hidden" name="prefs[{{ $type }}][in_app]" value="0"/>
                             <input type="checkbox" name="prefs[{{ $type }}][in_app]" value="1"
-                                   class="h-4 w-4 accent-violet-600"
+                                   class="h-4 w-4 accent-blue-600"
                                    @checked($row['in_app'] ?? $meta['default_in_app'])/>
                         </div>
                         <div class="col-span-2 text-center">
                             <input type="hidden" name="prefs[{{ $type }}][email]" value="0"/>
                             <input type="checkbox" name="prefs[{{ $type }}][email]" value="1"
-                                   class="h-4 w-4 accent-violet-600"
+                                   class="h-4 w-4 accent-blue-600"
                                    @checked($row['email'] ?? $meta['default_email'])/>
                         </div>
                         <div class="col-span-1 text-center">
                             <input type="hidden" name="prefs[{{ $type }}][push]" value="0"/>
                             <input type="checkbox" name="prefs[{{ $type }}][push]" value="1"
-                                   class="h-4 w-4 accent-violet-600"
+                                   class="h-4 w-4 accent-blue-600"
                                    @checked($row['push'] ?? $meta['default_push'])/>
                         </div>
                     </label>
@@ -64,7 +64,7 @@
                             $nextRun  = $backlinkDigestMeta['next_run_at'] ?? null;
                         @endphp
                         <div class="mt-3 ml-0 sm:ml-1 rounded-lg p-3 text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-                             style="background: var(--bg-soft, rgba(124,58,237,0.06)); border:1px solid var(--border-soft);">
+                             style="background: var(--bg-soft, rgba(61,107,255,0.06)); border:1px solid var(--border-soft);">
                             <div class="space-y-1" style="color: var(--text-muted);">
                                 <div>
                                     <span class="font-semibold" style="color: var(--text-primary);">Next digest:</span>
@@ -92,7 +92,7 @@
                             <div>
                                 <button type="button"
                                         onclick="document.getElementById('backlink-digest-sample-form').submit()"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border hover:bg-violet-50"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border hover:bg-blue-50"
                                         style="border-color: var(--border-soft); color: var(--text-primary);">
                                     <i class="fas fa-paper-plane mr-1"></i> Send me a sample now
                                 </button>
@@ -234,7 +234,7 @@
 
         <div class="px-4 py-4 flex items-center justify-between" style="border-top:1px solid var(--border-soft);">
             <p class="text-xs" style="color: var(--text-faint);">Push delivery rolls out with the next mobile release.</p>
-            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white">
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white">
                 Save preferences
             </button>
         </div>

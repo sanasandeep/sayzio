@@ -9,7 +9,7 @@
      focused/selected states elsewhere on the picker. --}}
 <style>
     mark.tpl-mark {
-        background-color: rgba(139, 92, 246, 0.30);
+        background-color: rgba(92,131,255, 0.30);
         color: #fff;
         border-radius: 2px;
         padding: 0 2px;
@@ -80,7 +80,7 @@
             <h1 class="text-2xl font-bold text-white">Choose a starting template</h1>
             <p class="text-sm text-white/40 mt-1">Pick a curated preset to skip the blank page, or start from scratch.</p>
             @if(!empty($hasRecommended))
-                <p class="text-xs text-violet-300 mt-2"><i class="fas fa-sparkles mr-1"></i>Recommended for {{ $personaLabel }} appear first.</p>
+                <p class="text-xs text-blue-300 mt-2"><i class="fas fa-sparkles mr-1"></i>Recommended for {{ $personaLabel }} appear first.</p>
             @endif
         </div>
         <a href="{{ route('user.links.blocks.editor', $link) }}" class="px-4 py-2 text-sm text-white/60 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition">
@@ -125,7 +125,7 @@
     <div class="flex items-center gap-1 mb-3 overflow-x-auto pb-2">
         @foreach($cats as $key => $label)
             @if($key === 'all' || in_array($key, $usedCats, true))
-            <button @click="category = '{{ $key }}'" :class="category === '{{ $key }}' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white bg-white/5'" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex-shrink-0">
+            <button @click="category = '{{ $key }}'" :class="category === '{{ $key }}' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white bg-white/5'" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition flex-shrink-0">
                 {{ $label }}
             </button>
             @endif
@@ -135,10 +135,10 @@
     @if($pageTemplates->isEmpty())
         <div class="glass rounded-2xl border border-white/10 p-10 sm:p-14 text-center max-w-xl mx-auto">
             <div class="relative w-20 h-20 mx-auto mb-5">
-                <div class="absolute inset-0 rounded-2xl blur-xl opacity-60" style="background: linear-gradient(135deg, rgba(124,58,237,0.55), rgba(236,72,153,0.35));"></div>
+                <div class="absolute inset-0 rounded-2xl blur-xl opacity-60" style="background: linear-gradient(135deg, rgba(61,107,255,0.55), rgba(236,72,153,0.35));"></div>
                 <div class="relative w-20 h-20 rounded-2xl flex items-center justify-center border border-white/10"
-                     style="background: linear-gradient(135deg, rgba(124,58,237,0.22), rgba(139,92,246,0.10));">
-                    <i class="fas fa-layer-group text-3xl text-violet-300"></i>
+                     style="background: linear-gradient(135deg, rgba(61,107,255,0.22), rgba(92,131,255,0.10));">
+                    <i class="fas fa-layer-group text-3xl text-blue-300"></i>
                 </div>
             </div>
             <h3 class="text-lg font-semibold text-white mb-2">No templates yet</h3>
@@ -149,8 +149,8 @@
             </p>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
                 <a href="{{ route('user.links.blocks.editor', $link) }}"
-                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-lg shadow-violet-900/30"
-                   style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition shadow-lg shadow-blue-900/30"
+                   style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
                     <i class="fas fa-pen-to-square"></i>
                     Open the editor
                 </a>
@@ -165,10 +165,10 @@
         <div x-show="visibleCount === 0" x-cloak
              class="glass rounded-2xl border border-white/10 p-8 sm:p-10 text-center max-w-lg mx-auto">
             <div class="relative w-14 h-14 mx-auto mb-4">
-                <div class="absolute inset-0 rounded-2xl blur-xl opacity-60" style="background: linear-gradient(135deg, rgba(124,58,237,0.55), rgba(236,72,153,0.35));"></div>
+                <div class="absolute inset-0 rounded-2xl blur-xl opacity-60" style="background: linear-gradient(135deg, rgba(61,107,255,0.55), rgba(236,72,153,0.35));"></div>
                 <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center border border-white/10"
-                     style="background: linear-gradient(135deg, rgba(124,58,237,0.22), rgba(139,92,246,0.10));">
-                    <i class="fas fa-magnifying-glass text-lg text-violet-300"></i>
+                     style="background: linear-gradient(135deg, rgba(61,107,255,0.22), rgba(92,131,255,0.10));">
+                    <i class="fas fa-magnifying-glass text-lg text-blue-300"></i>
                 </div>
             </div>
             <h3 class="text-base font-semibold text-white mb-1.5">No templates match your filters</h3>
@@ -184,8 +184,8 @@
             </p>
             <button type="button"
                     @click="search = ''; category = 'all'"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition shadow-lg shadow-violet-900/30"
-                    style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition shadow-lg shadow-blue-900/30"
+                    style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
                 <i class="fas fa-rotate-left"></i>
                 Clear filters
             </button>
@@ -203,9 +203,9 @@
                 <div x-show="matches('{{ $tpl->category }}', {{ \Illuminate\Support\Js::from(strtolower($tpl->name . ' ' . $tpl->description . ' ' . ucfirst($tpl->category))) }})"
                      x-cloak
                      x-data="{ expanded: false }"
-                     class="glass rounded-2xl border border-white/10 overflow-hidden hover:border-violet-500/40 transition group">
+                     class="glass rounded-2xl border border-white/10 overflow-hidden hover:border-blue-500/40 transition group">
                     @php $previewRows = $tpl->preview_layout ?? []; @endphp
-                    <div class="aspect-[4/3] flex items-center justify-center overflow-hidden relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
+                    <div class="aspect-[4/3] flex items-center justify-center overflow-hidden relative" style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(92,131,255,0.04));">
                         @if($tpl->thumbnail_url)
                             <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
                         @elseif(!empty($previewRows))
@@ -257,13 +257,13 @@
                             <div class="flex flex-wrap gap-1 mb-2">
                                 @foreach($shownChips as $chip)
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium text-white/90"
-                                          style="background: rgba(139,92,246,0.10); border: 1px solid rgba(139,92,246,0.18);">
-                                        <i class="fas {{ $chip['icon'] }} text-violet-300" style="font-size: 9px;"></i>
+                                          style="background: rgba(92,131,255,0.10); border: 1px solid rgba(92,131,255,0.18);">
+                                        <i class="fas {{ $chip['icon'] }} text-blue-300" style="font-size: 9px;"></i>
                                         <span>{{ $chip['count'] > 1 ? $chip['count'] . ' ' . $chip['label'] . 's' : $chip['label'] }}</span>
                                     </span>
                                 @endforeach
                                 @if($extraChips > 0)
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-violet-300/90">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-blue-300/90">
                                         +{{ $extraChips }} more
                                     </span>
                                 @endif
@@ -271,7 +271,7 @@
                             <p class="text-[10px] text-white/35 mb-2">{{ $blockCount }} {{ \Illuminate\Support\Str::plural('block', $blockCount) }} total</p>
                             <button type="button"
                                     @click="expanded = !expanded"
-                                    class="text-[11px] text-violet-400 hover:text-violet-300 mb-3 inline-flex items-center gap-1">
+                                    class="text-[11px] text-blue-400 hover:text-blue-300 mb-3 inline-flex items-center gap-1">
                                 <i class="fas" :class="expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                                 <span x-text="expanded ? 'Hide what\'s inside' : 'See what\'s inside'"></span>
                             </button>
@@ -281,7 +281,7 @@
                                     @foreach($summary as $entry)
                                         <li class="text-[11px] text-white/85">
                                             <div class="flex items-start gap-2">
-                                                <i class="fas {{ $entry['icon'] ?: 'fa-cube' }} text-violet-400 mt-0.5 w-3 text-center"></i>
+                                                <i class="fas {{ $entry['icon'] ?: 'fa-cube' }} text-blue-400 mt-0.5 w-3 text-center"></i>
                                                 <span class="flex-1 min-w-0">
                                                     <span class="font-semibold">{{ $entry['label'] }}</span>
                                                     @if(!empty($entry['preview']))
@@ -293,7 +293,7 @@
                                                 <ul class="mt-1 ml-5 pl-2 border-l border-white/10 space-y-1">
                                                     @foreach($entry['children'] as $child)
                                                         <li class="flex items-start gap-2 text-[10.5px] text-white/70">
-                                                            <i class="fas {{ $child['icon'] ?: 'fa-cube' }} text-violet-400/80 mt-0.5 w-3 text-center"></i>
+                                                            <i class="fas {{ $child['icon'] ?: 'fa-cube' }} text-blue-400/80 mt-0.5 w-3 text-center"></i>
                                                             <span class="flex-1 min-w-0">
                                                                 <span class="font-medium">{{ $child['label'] }}</span>
                                                                 @if(!empty($child['preview']))
@@ -327,7 +327,7 @@
                                     @csrf
                                     <input type="hidden" name="template_id" value="{{ $tpl->id }}">
                                     @if($hasBlocks)<input type="hidden" name="confirm_overwrite" value="1">@endif
-                                    <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition">
+                                    <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition">
                                         {{ $hasBlocks ? 'Replace with this template' : 'Use this template' }}
                                     </button>
                                 </form>
@@ -351,24 +351,24 @@
              :style="{ maxWidth: previewWidths[previewDevice] + 'px', maxHeight: 'calc(100vh - 2rem)' }">
             <div class="flex items-center justify-between mb-3 gap-2">
                 <div class="flex items-center gap-2 min-w-0">
-                    <i class="fas fa-mobile-screen-button text-violet-400"></i>
+                    <i class="fas fa-mobile-screen-button text-blue-400"></i>
                     <h3 class="text-sm font-semibold text-white truncate" x-text="preview.name"></h3>
                     <span class="text-[10px] uppercase tracking-wide text-white/40 shrink-0">Preview</span>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="flex items-center gap-0.5 rounded-lg bg-white/5 p-0.5">
                         <button type="button" @click="previewDevice = 'phone'"
-                                :class="previewDevice === 'phone' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                                :class="previewDevice === 'phone' ? 'bg-blue-500/30 text-white' : 'text-white/45 hover:text-white'"
                                 class="px-2 py-1 rounded-md transition" title="Phone width">
                             <i class="fas fa-mobile-screen-button text-xs"></i>
                         </button>
                         <button type="button" @click="previewDevice = 'tablet'"
-                                :class="previewDevice === 'tablet' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                                :class="previewDevice === 'tablet' ? 'bg-blue-500/30 text-white' : 'text-white/45 hover:text-white'"
                                 class="px-2 py-1 rounded-md transition" title="Tablet width">
                             <i class="fas fa-tablet-screen-button text-xs"></i>
                         </button>
                         <button type="button" @click="previewDevice = 'desktop'"
-                                :class="previewDevice === 'desktop' ? 'bg-violet-500/30 text-white' : 'text-white/45 hover:text-white'"
+                                :class="previewDevice === 'desktop' ? 'bg-blue-500/30 text-white' : 'text-white/45 hover:text-white'"
                                 class="px-2 py-1 rounded-md transition" title="Desktop width">
                             <i class="fas fa-desktop text-xs"></i>
                         </button>

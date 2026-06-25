@@ -28,9 +28,9 @@
     }
     .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); transform: translateY(-1px); }
     .pill-active {
-        background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+        background: linear-gradient(135deg, #3d6bff, #5c83ff);
         color: #fff !important;
-        box-shadow: 0 6px 18px rgba(124,58,237,0.4);
+        box-shadow: 0 6px 18px rgba(61,107,255,0.4);
     }
     .kpi-hero {
         position: relative;
@@ -53,7 +53,7 @@
     }
     .section-card::before {
         content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-        background: var(--sc-accent, linear-gradient(90deg, #8b5cf6, #a78bfa));
+        background: var(--sc-accent, linear-gradient(90deg, #5c83ff, #90acff));
         opacity: 0.7;
     }
     .section-title { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
@@ -61,8 +61,8 @@
         width: 36px; height: 36px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
         color: #fff; font-size: 13px;
-        background: var(--sc-accent, linear-gradient(135deg, #8b5cf6, #a78bfa));
-        box-shadow: 0 8px 22px var(--sc-glow, rgba(124,58,237,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+        background: var(--sc-accent, linear-gradient(135deg, #5c83ff, #90acff));
+        box-shadow: 0 8px 22px var(--sc-glow, rgba(61,107,255,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
     }
     .fancy-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
     .fancy-table thead th {
@@ -126,7 +126,7 @@
 {{-- ===================== PERIOD CONTROLS ===================== --}}
 <div class="period-bar mb-6">
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-violet-400"></i> Period</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-blue-400"></i> Period</span>
         @foreach(['today'=>'Today','7d'=>'7d','30d'=>'30d','90d'=>'90d','year'=>'Year','all'=>'All'] as $k=>$lbl)
             <a href="{{ $buildUrl(['period'=>$k]) }}" class="pill {{ ($period ?? '30d')===$k ? 'pill-active' : '' }}">{{ $lbl }}</a>
         @endforeach
@@ -136,7 +136,7 @@
 {{-- ===================== KPI ROW ===================== --}}
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="kpi-hero">
-        <div class="kpi-hero-label"><i class="fas fa-percentage text-violet-400 mr-1"></i> Visitors who follow you</div>
+        <div class="kpi-hero-label"><i class="fas fa-percentage text-blue-400 mr-1"></i> Visitors who follow you</div>
         <div class="kpi-hero-value mt-2">{{ $followerVisitorPct }}%</div>
         <div class="kpi-hero-sub">{{ number_format($uniqueFollowerVisitors) }} of {{ number_format($uniqueVisitors) }} unique visitors</div>
     </div>
@@ -153,7 +153,7 @@
 </div>
 
 {{-- ===================== TREND CHART ===================== --}}
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#7c3aed,#ec4899); --sc-glow: rgba(124,58,237,0.35);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#3d6bff,#ec4899); --sc-glow: rgba(61,107,255,0.35);">
     <div class="section-title mb-4">
         <div class="section-icon"><i class="fas fa-chart-line"></i></div>
         Follower vs Non-Follower Clicks
@@ -176,9 +176,9 @@
     $__retFollowersPct = $retFollowers['pct'] ?? [0, 0, 0, 0];
     $__retNonFollowersPct = $retNonFollowers['pct'] ?? [0, 0, 0, 0];
 @endphp
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#06b6d4,#8b5cf6); --sc-glow: rgba(6,182,212,0.35);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#06b6d4,#5c83ff); --sc-glow: rgba(6,182,212,0.35);">
     <div class="section-title mb-4">
-        <div class="section-icon" style="background: linear-gradient(135deg,#06b6d4,#8b5cf6);"><i class="fas fa-arrows-rotate"></i></div>
+        <div class="section-icon" style="background: linear-gradient(135deg,#06b6d4,#5c83ff);"><i class="fas fa-arrows-rotate"></i></div>
         Weekly Retention by Cohort
         <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">
             (% of week-1 visitors who came back · {{ $retentionStart->format('M d') }} – {{ $retentionEnd->format('M d, Y') }})
@@ -191,14 +191,14 @@
     @else
         <div style="height: 320px;"><canvas id="cohortRetentionChart"></canvas></div>
         <div class="flex flex-wrap gap-4 mt-4 text-[11px]" style="color: var(--text-faint);">
-            <span><i class="fas fa-circle text-violet-400 mr-1"></i> Followers · {{ number_format($retFollowers['week1_count']) }} week-1 visitors</span>
+            <span><i class="fas fa-circle text-blue-400 mr-1"></i> Followers · {{ number_format($retFollowers['week1_count']) }} week-1 visitors</span>
             <span><i class="fas fa-circle text-emerald-400 mr-1"></i> Non-followers · {{ number_format($retNonFollowers['week1_count']) }} week-1 visitors</span>
         </div>
     @endif
 </div>
 
 {{-- ===================== TOP FOLLOWERS TABLE ===================== --}}
-<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#d946ef); --sc-glow: rgba(139,92,246,0.35);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#5c83ff,#d946ef); --sc-glow: rgba(92,131,255,0.35);">
     <div class="section-title mb-4">
         <div class="section-icon"><i class="fas fa-trophy"></i></div>
         Top 10 Most-Engaged Followers
@@ -242,7 +242,7 @@
                                     @if($f->avatar)
                                         <img src="{{ $f->avatar }}" class="w-7 h-7 rounded-full object-cover" alt=""/>
                                     @else
-                                        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold">
+                                        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold">
                                             {{ strtoupper(substr($f->name ?? '?', 0, 1)) }}
                                         </div>
                                     @endif
@@ -280,8 +280,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (el) {
     const ctx = el.getContext('2d');
     const g1 = ctx.createLinearGradient(0, 0, 0, 320);
-    g1.addColorStop(0, 'rgba(139,92,246,0.45)');
-    g1.addColorStop(1, 'rgba(139,92,246,0.0)');
+    g1.addColorStop(0, 'rgba(92,131,255,0.45)');
+    g1.addColorStop(1, 'rgba(92,131,255,0.0)');
     const g2 = ctx.createLinearGradient(0, 0, 0, 320);
     g2.addColorStop(0, 'rgba(52,211,153,0.40)');
     g2.addColorStop(1, 'rgba(52,211,153,0.0)');
@@ -294,11 +294,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 {
                     label: 'Follower clicks',
                     data: @json($dailySeries->pluck('followers')),
-                    borderColor: '#8b5cf6',
+                    borderColor: '#5c83ff',
                     backgroundColor: g1,
                     tension: 0.4, fill: true, borderWidth: 2.5,
                     pointRadius: 0, pointHoverRadius: 6,
-                    pointHoverBackgroundColor: '#8b5cf6',
+                    pointHoverBackgroundColor: '#5c83ff',
                     pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2,
                 },
                 {
@@ -330,8 +330,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (retEl) {
         const rctx = retEl.getContext('2d');
         const rg1 = rctx.createLinearGradient(0, 0, 0, 320);
-        rg1.addColorStop(0, 'rgba(139,92,246,0.35)');
-        rg1.addColorStop(1, 'rgba(139,92,246,0.0)');
+        rg1.addColorStop(0, 'rgba(92,131,255,0.35)');
+        rg1.addColorStop(1, 'rgba(92,131,255,0.0)');
         const rg2 = rctx.createLinearGradient(0, 0, 0, 320);
         rg2.addColorStop(0, 'rgba(52,211,153,0.30)');
         rg2.addColorStop(1, 'rgba(52,211,153,0.0)');
@@ -344,11 +344,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     {
                         label: 'Followers',
                         data: @json($__retFollowersPct),
-                        borderColor: '#8b5cf6',
+                        borderColor: '#5c83ff',
                         backgroundColor: rg1,
                         tension: 0.4, fill: true, borderWidth: 2.5,
                         pointRadius: 4, pointHoverRadius: 7,
-                        pointBackgroundColor: '#8b5cf6',
+                        pointBackgroundColor: '#5c83ff',
                         pointBorderColor: '#fff', pointBorderWidth: 2,
                     },
                     {

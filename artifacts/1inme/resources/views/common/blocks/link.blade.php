@@ -8,7 +8,7 @@
         $_st    = $block->settings['_style'] ?? [];
         $_accent = $_st['border_color'] ?? '';
         if ($_accent === '' || $_accent === 'transparent') $_accent = $_st['text_color'] ?? '';
-        if ($_accent === '') $_accent = '#7c3aed';
+        if ($_accent === '') $_accent = '#3d6bff';
     @endphp
     @if(!empty($s['is_featured']))
         @php $accent = $s['accent_color'] ?? '#f59e0b'; @endphp
@@ -31,7 +31,7 @@
     @elseif($_lnkLayout === 'plain_text')
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block mb-3 text-center text-sm font-medium underline decoration-1 underline-offset-4 hover:decoration-2 transition"
-           style="color: {{ $block->settings['_style']['text_color'] ?? '#a78bfa' }};">
+           style="color: {{ $block->settings['_style']['text_color'] ?? '#90acff' }};">
             @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
         </a>
     @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))

@@ -127,7 +127,7 @@
                             <input type="url" name="extra[hero][side_image]" x-model="url" placeholder="https://… or /storage/… (or upload below)" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             @error('extra.hero.side_image')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                             <div class="flex items-center gap-2 flex-wrap">
-                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
@@ -169,7 +169,7 @@
                         <label class="text-[10px] uppercase tracking-wider text-white/40">Hero stats trio</label>
                         <p class="text-[11px] text-white/40">Numeric values animate; non-numeric values are shown as plain text.</p>
                     </div>
-                    <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:'',visible:true})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white" :disabled="rows.length>=6"><i class="fas fa-plus mr-1"></i>Add stat</button>
+                    <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:'',visible:true})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white" :disabled="rows.length>=6"><i class="fas fa-plus mr-1"></i>Add stat</button>
                 </div>
                 <template x-for="(s, i) in rows" :key="i">
                     <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2" :class="{'opacity-50': !s.visible}">
@@ -219,7 +219,7 @@
                         <label class="text-[10px] uppercase tracking-wider text-white/40">Value cards</label>
                         <p class="text-[11px] text-white/40">Removing all cards hides the entire row on /about.</p>
                     </div>
-                    <button type="button" @click="if(rows.length<8) rows.push({icon:'fa-circle-dot',title:'',desc:''})" :disabled="rows.length>=8" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add card</button>
+                    <button type="button" @click="if(rows.length<8) rows.push({icon:'fa-circle-dot',title:'',desc:''})" :disabled="rows.length>=8" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add card</button>
                 </div>
                 <template x-for="(c, i) in rows" :key="i">
                     <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2">
@@ -271,7 +271,7 @@
                                 <input type="url" name="extra[story_images][{{ $img['key'] }}][url]" x-model="url" placeholder="https://… or /storage/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                                 @error('extra.story_images.'.$img['key'].'.url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                    <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                         <i class="fas fa-upload"></i>
                                         <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                     </button>
@@ -373,7 +373,7 @@
                     class="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex items-center gap-3 transition"
                     :class="{
                         'opacity-50': dragIndex === i,
-                        'border-violet-400/60 bg-violet-500/10': overIndex === i && dragIndex !== null && dragIndex !== i,
+                        'border-blue-400/60 bg-blue-500/10': overIndex === i && dragIndex !== null && dragIndex !== i,
                         'opacity-60': !s.visible && dragIndex !== i,
                     }"
                 >
@@ -382,7 +382,7 @@
                          a "1" when visible, "0" when hidden. --}}
                     <input type="hidden" :name="'extra[section_visibility][' + s.slug + ']'" :value="s.visible ? '1' : '0'">
                     <i class="fas fa-grip-vertical text-white/40 cursor-move" title="Drag to reorder"></i>
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-violet-500/20 border border-violet-400/30 text-[11px] font-semibold text-violet-200" x-text="i + 1"></span>
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-500/20 border border-blue-400/30 text-[11px] font-semibold text-blue-200" x-text="i + 1"></span>
                     <div class="flex-1 min-w-0">
                         <div class="text-sm font-medium flex items-center gap-2" :class="s.visible ? 'text-white' : 'text-white/60'">
                             <span x-text="s.label"></span>
@@ -396,7 +396,7 @@
                             :title="s.visible ? 'Hide this section on /about' : 'Show this section on /about'"
                             :aria-pressed="s.visible ? 'true' : 'false'"
                             class="relative inline-flex h-5 w-9 items-center rounded-full transition mr-1"
-                            :class="s.visible ? 'bg-violet-500' : 'bg-white/15'">
+                            :class="s.visible ? 'bg-blue-500' : 'bg-white/15'">
                             <span class="sr-only">Toggle visibility</span>
                             <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition"
                                 :class="s.visible ? 'translate-x-4' : 'translate-x-0.5'"></span>
@@ -471,7 +471,7 @@
                     <div class="flex items-start gap-3">
                         <div class="shrink-0 text-center">
                             <template x-if="photo">
-                                <img :src="photo" alt="" class="w-32 h-32 rounded-full object-cover border-2 border-violet-400/40 bg-white/5" x-on:error="$el.style.display='none'">
+                                <img :src="photo" alt="" class="w-32 h-32 rounded-full object-cover border-2 border-blue-400/40 bg-white/5" x-on:error="$el.style.display='none'">
                             </template>
                             <template x-if="!photo">
                                 <div class="w-32 h-32 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2">As shown on /about</div>
@@ -481,7 +481,7 @@
                         <div class="flex-1 space-y-2">
                             <input type="url" name="extra[founder][photo]" x-model="photo" placeholder="https://… or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
@@ -539,7 +539,7 @@
                         <label class="text-[10px] uppercase tracking-wider text-white/40">Company stats</label>
                         <p class="text-[11px] text-white/40">Numeric values animate; non-numeric values are shown as plain text. Remove all to hide the row.</p>
                     </div>
-                    <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:''})" :disabled="rows.length>=6" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add stat</button>
+                    <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:''})" :disabled="rows.length>=6" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add stat</button>
                 </div>
                 <template x-for="(s, i) in rows" :key="i">
                     <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2">
@@ -597,7 +597,7 @@
                 <h3 class="text-sm font-semibold text-white">Milestones timeline</h3>
                 <p class="text-xs text-white/50">Use <code class="text-white/60">YYYY-MM</code> or <code class="text-white/60">YYYY-MM-DD</code> for dates.</p>
             </div>
-            <button type="button" @click="rows.push({date:'',title:'',description:''})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add milestone</button>
+            <button type="button" @click="rows.push({date:'',title:'',description:''})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add milestone</button>
         </div>
         <template x-for="(m, i) in rows" :key="i">
             <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
@@ -632,7 +632,7 @@
 --}}
 <div x-data="aboutEditorPreview()" x-cloak>
     <button x-show="!open" @click="setOpen(true)" type="button"
-            class="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-lg shadow-violet-900/30">
+            class="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-lg shadow-blue-900/30">
         <i class="fas fa-eye"></i>
         <span>Preview /about</span>
     </button>
@@ -641,7 +641,7 @@
          class="fixed bottom-4 right-4 z-40 w-[min(440px,calc(100vw-2rem))] h-[min(78vh,720px)] rounded-2xl bg-[#0b0712] border border-white/10 shadow-2xl shadow-black/60 flex flex-col overflow-hidden">
         <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/10 bg-white/5">
             <div class="flex items-center gap-2 min-w-0">
-                <i class="fas fa-eye text-violet-400 text-xs"></i>
+                <i class="fas fa-eye text-blue-400 text-xs"></i>
                 <span class="text-xs font-semibold text-white truncate">About preview</span>
                 <span x-show="loading" class="text-[10px] uppercase tracking-wider text-white/40">Loading…</span>
             </div>

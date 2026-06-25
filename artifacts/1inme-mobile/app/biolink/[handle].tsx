@@ -391,8 +391,8 @@ function PollBlock({
               style={[
                 styles.pollOption,
                 {
-                  borderColor: isVoted ? "#7c3aed" : colors.border,
-                  backgroundColor: isVoted ? "#7c3aed22" : "transparent",
+                  borderColor: isVoted ? "#3d6bff" : colors.border,
+                  backgroundColor: isVoted ? "#3d6bff22" : "transparent",
                   opacity: submitting !== null && !isBusy ? 0.5 : 1,
                 },
               ]}
@@ -402,7 +402,7 @@ function PollBlock({
                   {opt}
                 </Text>
                 {isBusy ? <ActivityIndicator size="small" color={colors.foreground} /> : null}
-                {isVoted ? <Feather name="check" size={16} color="#7c3aed" /> : null}
+                {isVoted ? <Feather name="check" size={16} color="#3d6bff" /> : null}
               </View>
             </Pressable>
           );
@@ -630,7 +630,7 @@ function RsvpBlock({
             disabled={submitting}
             style={{
               marginTop: 8,
-              backgroundColor: "#7c3aed",
+              backgroundColor: "#3d6bff",
               borderRadius: 10,
               paddingVertical: 10,
               alignItems: "center",
@@ -719,7 +719,7 @@ function PollResultsCard({
               style={[
                 styles.pollOption,
                 {
-                  borderColor: isPicked ? "#7c3aed" : colors.border,
+                  borderColor: isPicked ? "#3d6bff" : colors.border,
                   backgroundColor: "transparent",
                   overflow: "hidden",
                   position: "relative",
@@ -731,14 +731,14 @@ function PollResultsCard({
                   position: "absolute",
                   left: 0, top: 0, bottom: 0,
                   width: `${Math.max(0, Math.min(100, opt.percent))}%`,
-                  backgroundColor: isPicked ? "#7c3aed44" : "#7c3aed1f",
+                  backgroundColor: isPicked ? "#3d6bff44" : "#3d6bff1f",
                 }}
               />
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14, flex: 1 }]} numberOfLines={2}>
                   {opt.label}
                 </Text>
-                {isPicked ? <Feather name="check" size={14} color="#7c3aed" /> : null}
+                {isPicked ? <Feather name="check" size={14} color="#3d6bff" /> : null}
                 <Text style={[styles.body, { color: colors.foreground, textAlign: "right", fontSize: 13, fontWeight: "600" }]}>
                   {opt.percent}%
                 </Text>
@@ -898,10 +898,10 @@ function NativeProductBlock({
             paddingHorizontal: 8,
             paddingVertical: 2,
             borderRadius: 999,
-            backgroundColor: "rgba(124,58,237,0.15)",
+            backgroundColor: "rgba(61,107,255,0.15)",
           }}
         >
-          <Text style={{ fontSize: 10, fontWeight: "700", color: "#a78bfa" }}>
+          <Text style={{ fontSize: 10, fontWeight: "700", color: "#7d9bff" }}>
             {productType === "physical" ? "Ships" : "Digital"}
           </Text>
         </View>
@@ -1762,13 +1762,13 @@ function profileAccent(layout: string): string {
       return "#c4b5fd";
     case "minimal_dark":
     case "cover_hero":
-      return "#a78bfa";
+      return "#7d9bff";
     default:
-      return "#7c3aed";
+      return "#3d6bff";
   }
 }
 
-const PROFILE_AVATAR_BG = "rgba(124,58,237,0.20)";
+const PROFILE_AVATAR_BG = "rgba(61,107,255,0.20)";
 
 function ProfileAvatar({
   avatar,
@@ -1967,8 +1967,8 @@ function ProfileCardView({
         <LinearGradient
           colors={
             hasCover
-              ? ["rgba(124,58,237,0.40)", "rgba(236,72,153,0.28)"]
-              : ["#7c3aed", "#d946ef"]
+              ? ["rgba(61,107,255,0.40)", "rgba(236,72,153,0.28)"]
+              : ["#3d6bff", "#d76dff"]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -2074,7 +2074,7 @@ function ProfileCardView({
           <Image source={{ uri: cover }} style={{ height: 96, width: "100%" }} />
         ) : (
           <LinearGradient
-            colors={["#7c3aed", "#d946ef"]}
+            colors={["#3d6bff", "#d76dff"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ height: 96, width: "100%" }}
@@ -2147,7 +2147,7 @@ function ProfileCardView({
           grad
         ) : (
           <LinearGradient
-            colors={["#7c3aed", "#d946ef"]}
+            colors={["#3d6bff", "#d76dff"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
@@ -2441,7 +2441,7 @@ function ProfileCardView({
                     paddingHorizontal: 12,
                     paddingVertical: 4,
                     borderRadius: 999,
-                    backgroundColor: "rgba(124,58,237,0.18)",
+                    backgroundColor: "rgba(61,107,255,0.18)",
                   }}
                 >
                   <Text style={{ fontSize: 12, color: accent }}>{label}</Text>
@@ -3167,13 +3167,13 @@ export default function BiolinkViewer() {
                 paddingHorizontal: 10,
                 paddingVertical: 4,
                 borderRadius: 999,
-                backgroundColor: "rgba(124,58,237,0.15)",
+                backgroundColor: "rgba(61,107,255,0.15)",
                 borderWidth: 1,
-                borderColor: "rgba(124,58,237,0.4)",
+                borderColor: "rgba(61,107,255,0.4)",
                 marginBottom: 12,
               }}
             >
-              <Text style={{ fontSize: 11, fontWeight: "700", color: "#a78bfa" }}>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#7d9bff" }}>
                 A/B test live · Showing Variant {q.data.ab_test.variant.toUpperCase()}
               </Text>
             </View>

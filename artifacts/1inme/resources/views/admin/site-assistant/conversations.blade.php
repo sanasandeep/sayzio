@@ -63,7 +63,7 @@
                         @elseif($c->handed_off)<span class="text-amber-300 text-xs">handed off</span>
                         @else<span class="text-emerald-300 text-xs">active</span>@endif
                     </td>
-                    <td class="p-3 text-right"><a href="{{ route('admin.site-assistant.conversations.show', $c) }}" class="text-purple-300 text-xs">View</a></td>
+                    <td class="p-3 text-right"><a href="{{ route('admin.site-assistant.conversations.show', $c) }}" class="text-indigo-300 text-xs">View</a></td>
                 </tr>
             @empty
                 <tr><td colspan="8" class="p-6 text-center text-white/40 text-sm">No conversations yet.</td></tr>

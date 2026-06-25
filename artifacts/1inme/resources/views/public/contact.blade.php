@@ -103,7 +103,7 @@
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
             @if($heroBadgeLabel !== '')
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
                     @if($heroBadgeIcon !== '')<i class="fas {{ $heroBadgeIcon }} text-[10px]"></i>@endif {{ $heroBadgeLabel }}
                 </span>
             @endif
@@ -124,7 +124,7 @@
                         </div>
                     @endif
                     @if($heroLanguages !== '')
-                        <div class="text-gray-400"><i class="fas fa-language text-violet-300 mr-1"></i> {{ $heroLanguages }}</div>
+                        <div class="text-gray-400"><i class="fas fa-language text-blue-300 mr-1"></i> {{ $heroLanguages }}</div>
                     @endif
                 </div>
             @endif
@@ -135,7 +135,7 @@
             </div>
             @if($showFloatingCard)
                 <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
-                    @if($floatingCardIcon !== '')<i class="fas {{ $floatingCardIcon }} text-violet-400 text-lg"></i>@endif
+                    @if($floatingCardIcon !== '')<i class="fas {{ $floatingCardIcon }} text-blue-400 text-lg"></i>@endif
                     <div class="text-xs">
                         @if($floatingCardTitle !== '')<div class="font-semibold text-white">{{ $floatingCardTitle }}</div>@endif
                         @if($floatingCardSubtitle !== '')<div class="text-gray-400">{{ $floatingCardSubtitle }}</div>@endif
@@ -170,13 +170,13 @@
             @if($email !== '')
                 <div>
                     <div class="text-[11px] uppercase tracking-wider text-gray-400 mb-1"><i class="fas fa-envelope mr-1.5"></i>Email</div>
-                    <a href="mailto:{{ $email }}" class="text-sm text-violet-300 hover:text-violet-200 break-all">{{ $email }}</a>
+                    <a href="mailto:{{ $email }}" class="text-sm text-blue-300 hover:text-blue-200 break-all">{{ $email }}</a>
                 </div>
             @endif
             @if($phone !== '')
                 <div>
                     <div class="text-[11px] uppercase tracking-wider text-gray-400 mb-1"><i class="fas fa-phone mr-1.5"></i>Phone</div>
-                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="text-sm text-violet-300 hover:text-violet-200">{{ $phone }}</a>
+                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="text-sm text-blue-300 hover:text-blue-200">{{ $phone }}</a>
                 </div>
             @endif
             @if($hours !== '')
@@ -194,7 +194,7 @@
                             @php $url = trim((string)($social[$key] ?? '')); @endphp
                             @if($url !== '')
                                 <a href="{{ $url }}" target="_blank" rel="noopener" title="{{ $label }}"
-                                   class="w-9 h-9 rounded-lg bg-white/5 hover:bg-violet-600 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition">
+                                   class="w-9 h-9 rounded-lg bg-white/5 hover:bg-blue-600 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition">
                                     <i class="fab {{ $icon }}"></i>
                                 </a>
                             @endif
@@ -231,7 +231,7 @@
             </div>
             <div class="map-card__footer px-4 py-3 flex items-center justify-between text-xs text-gray-300">
                 <span class="inline-flex items-center gap-1.5">
-                    <i class="fas fa-location-dot text-violet-300/80 text-[11px]"></i>
+                    <i class="fas fa-location-dot text-blue-300/80 text-[11px]"></i>
                     {{ $mapLabel ?: 'Find us on OpenStreetMap' }}
                 </span>
                 <a href="{{ $mapLargerUrl }}" target="_blank" rel="noopener" class="map-card__footer-link font-semibold">
@@ -251,8 +251,8 @@
                 $cTitle = trim((string)($card['title'] ?? ''));
                 $cDesc  = trim((string)($card['desc']  ?? ''));
             @endphp
-            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
-                <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas {{ $cIcon !== '' ? $cIcon : 'fa-circle-dot' }}"></i></div>
+            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-blue-400/40 transition">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-300 mb-3"><i class="fas {{ $cIcon !== '' ? $cIcon : 'fa-circle-dot' }}"></i></div>
                 @if($cTitle !== '')<div class="text-sm font-bold text-white">{{ $cTitle }}</div>@endif
                 @if($cDesc !== '')<div class="text-xs text-gray-400 mt-1">{{ $cDesc }}</div>@endif
             </div>
@@ -307,7 +307,7 @@
                 @if($formMessageLabel !== '')<label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">{{ $formMessageLabel }}</label>@endif
                 <textarea name="message" required rows="6" @if($formMessagePlaceholder !== '') placeholder="{{ $formMessagePlaceholder }}" @endif class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('message') }}</textarea>
             </div>
-            <button type="submit" class="w-full py-3 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white transition">
+            <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white transition">
                 {{ $formSubmitLabel !== '' ? $formSubmitLabel : 'Send message' }}
             </button>
         </form>
@@ -328,8 +328,8 @@
             </p>
             <div class="mt-5 grid sm:grid-cols-2 gap-4">
                 <a href="{{ route('privacy.request', ['type' => 'export']) }}"
-                   class="group flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-violet-400/40 transition">
-                    <div class="w-10 h-10 shrink-0 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300"><i class="fas fa-download"></i></div>
+                   class="group flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-blue-400/40 transition">
+                    <div class="w-10 h-10 shrink-0 rounded-lg bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-300"><i class="fas fa-download"></i></div>
                     <div>
                         <div class="text-sm font-bold text-white">Export my data</div>
                         <div class="text-xs text-gray-400 mt-0.5">Get a downloadable archive of your account and files.</div>
@@ -364,11 +364,11 @@
     .map-card {
         position: relative;
         border-radius: 1.25rem;
-        background: rgba(124,58,237,0.06);
-        border: 1px solid rgba(167,139,250,0.30);
+        background: rgba(61,107,255,0.06);
+        border: 1px solid rgba(144,172,255,0.30);
         box-shadow:
             0 1px 0 rgba(255,255,255,0.06) inset,
-            0 24px 60px -30px rgba(124,58,237,0.55),
+            0 24px 60px -30px rgba(61,107,255,0.55),
             0 18px 50px -28px rgba(0,0,0,0.7);
         transition: transform .45s cubic-bezier(.2,.7,.2,1), box-shadow .45s cubic-bezier(.2,.7,.2,1);
     }
@@ -376,12 +376,12 @@
         transform: translateY(-4px);
         box-shadow:
             0 1px 0 rgba(255,255,255,0.08) inset,
-            0 30px 70px -28px rgba(124,58,237,0.7),
+            0 30px 70px -28px rgba(61,107,255,0.7),
             0 22px 60px -26px rgba(0,0,0,0.75);
     }
     .map-card__glow {
         position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
-        background: rgba(167,139,250,0.10);
+        background: rgba(144,172,255,0.10);
         opacity:0; transition: opacity .45s ease;
     }
     .map-card:hover .map-card__glow { opacity:1; }
@@ -406,7 +406,7 @@
     /* Corner gradient accents framing the live map. */
     .map-card__corner {
         position:absolute; width:30px; height:30px; z-index:500; pointer-events:none;
-        border-color: rgba(167,139,250,0.65); border-style:solid; border-width:0;
+        border-color: rgba(144,172,255,0.65); border-style:solid; border-width:0;
     }
     .map-card__corner--tl { top:10px; left:10px; border-top-width:2px; border-left-width:2px; border-top-left-radius:8px; }
     .map-card__corner--tr { top:10px; right:10px; border-top-width:2px; border-right-width:2px; border-top-right-radius:8px; }
@@ -414,14 +414,14 @@
     .map-card__corner--br { bottom:10px; right:10px; border-bottom-width:2px; border-right-width:2px; border-bottom-right-radius:8px; }
     .map-card__footer {
         position:relative;
-        background: rgba(124,58,237,0.05);
+        background: rgba(61,107,255,0.05);
         border-top: 1px solid rgba(255,255,255,0.08);
     }
     .map-card__footer-link {
         display:inline-flex; align-items:center; gap:.35rem;
-        color:#c4b5fd; transition: color .2s ease, transform .2s ease;
+        color:#bccfff; transition: color .2s ease, transform .2s ease;
     }
-    .map-card__footer-link:hover { color:#ddd6fe; }
+    .map-card__footer-link:hover { color:#dbe4ff; }
     .map-card__footer-link:hover .map-card__footer-arrow { transform: translate(2px,-2px); }
     .map-card__footer-arrow { transition: transform .2s ease; }
 
@@ -442,7 +442,7 @@
         filter: saturate(0.92) brightness(0.98) contrast(1.02);
     }
     .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
-    .leaflet-control-attribution a { color:#a78bfa !important; }
+    .leaflet-control-attribution a { color:#90acff !important; }
     .leaflet-control-zoom { border:none !important; box-shadow:0 8px 24px -12px rgba(0,0,0,0.8) !important; }
     .leaflet-control-zoom a {
         background:rgba(30,35,48,0.92) !important; color:#fff !important;
@@ -451,7 +451,7 @@
     }
     .leaflet-control-zoom a:first-child { border-top-left-radius:10px; border-top-right-radius:10px; }
     .leaflet-control-zoom a:last-child { border-bottom-left-radius:10px; border-bottom-right-radius:10px; }
-    .leaflet-control-zoom a:hover { background:#7c3aed !important; }
+    .leaflet-control-zoom a:hover { background:#3d6bff !important; }
     .brand-marker {
         width:34px; height:44px; position:relative;
         filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45));
@@ -461,7 +461,7 @@
     .brand-marker .pulse {
         position:absolute; left:50%; bottom:-4px; width:14px; height:14px;
         margin-left:-7px; border-radius:9999px;
-        background:rgba(124,58,237,0.55);
+        background:rgba(61,107,255,0.55);
         animation: brand-marker-pulse 1.8s ease-out infinite;
     }
     .brand-marker .pulse.pulse--delay { animation-delay:.9s; }
@@ -475,14 +475,14 @@
     }
     .brand-popup .leaflet-popup-content-wrapper {
         background:#1e2230; color:#fff;
-        border:1px solid rgba(167,139,250,0.30);
-        border-radius:14px; box-shadow:0 18px 40px -20px rgba(124,58,237,0.7);
+        border:1px solid rgba(144,172,255,0.30);
+        border-radius:14px; box-shadow:0 18px 40px -20px rgba(61,107,255,0.7);
     }
-    .brand-popup .leaflet-popup-tip { background:#1c2030; border:1px solid rgba(167,139,250,0.30); }
+    .brand-popup .leaflet-popup-tip { background:#1c2030; border:1px solid rgba(144,172,255,0.30); }
     .brand-popup .leaflet-popup-content { margin:11px 15px; font-size:13px; line-height:1.45; }
     .brand-popup .leaflet-popup-content .bp-eyebrow {
         display:flex; align-items:center; gap:.4rem; font-size:10px; letter-spacing:.08em;
-        text-transform:uppercase; color:#a78bfa; margin-bottom:3px; font-weight:600;
+        text-transform:uppercase; color:#90acff; margin-bottom:3px; font-weight:600;
     }
     .brand-popup a.leaflet-popup-close-button { color:#9ca3af !important; }
     .brand-popup a.leaflet-popup-close-button:hover { color:#fff !important; }
@@ -528,11 +528,11 @@
 
         var pinSvg = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
             '<defs><linearGradient id="bm-g" x1="0" y1="0" x2="0" y2="1">' +
-            '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+            '<stop offset="0%" stop-color="#90acff"/><stop offset="100%" stop-color="#3d6bff"/>' +
             '</linearGradient></defs>' +
             '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#bm-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
             '<circle cx="17" cy="16" r="6" fill="#fff"/>' +
-            '<text x="17" y="19.5" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" fill="#7c3aed">1</text>' +
+            '<text x="17" y="19.5" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" fill="#3d6bff">1</text>' +
             '</svg>';
 
         var icon = L.divIcon({

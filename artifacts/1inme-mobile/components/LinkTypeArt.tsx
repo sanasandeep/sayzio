@@ -32,14 +32,14 @@ function Art({ kind }: { kind: LinkKind }) {
     case "url":
       return (
         <>
-          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#a78bfa" fillOpacity={0.1} stroke="#a78bfa" strokeOpacity={0.3} />
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#7d9bff" fillOpacity={0.1} stroke="#7d9bff" strokeOpacity={0.3} />
           <Rect x={20} y={26} width={120} height={9} rx={4.5} fill="#94a3b8" fillOpacity={0.4} />
           <Rect x={20} y={40} width={84} height={7} rx={3.5} fill="#94a3b8" fillOpacity={0.25} />
-          <Path d="M80 52 l6 8 h-12 z" fill="#a78bfa" />
-          <Rect x={34} y={62} width={92} height={18} rx={9} fill="#a78bfa" fillOpacity={0.18} stroke="#a78bfa" strokeOpacity={0.55} />
-          <Circle cx={48} cy={71} r={3} fill="#a78bfa" />
-          <Rect x={58} y={68} width={44} height={6} rx={3} fill="#a78bfa" fillOpacity={0.7} />
-          <Path d="M110 68 l6 3 l-6 3" fill="none" stroke="#a78bfa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          <Path d="M80 52 l6 8 h-12 z" fill="#7d9bff" />
+          <Rect x={34} y={62} width={92} height={18} rx={9} fill="#7d9bff" fillOpacity={0.18} stroke="#7d9bff" strokeOpacity={0.55} />
+          <Circle cx={48} cy={71} r={3} fill="#7d9bff" />
+          <Rect x={58} y={68} width={44} height={6} rx={3} fill="#7d9bff" fillOpacity={0.7} />
+          <Path d="M110 68 l6 3 l-6 3" fill="none" stroke="#7d9bff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
         </>
       );
     case "file":
@@ -90,13 +90,13 @@ function Art({ kind }: { kind: LinkKind }) {
     case "biolink":
       return (
         <>
-          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#f472b6" fillOpacity={0.1} stroke="#f472b6" strokeOpacity={0.3} />
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#e29bff" fillOpacity={0.1} stroke="#e29bff" strokeOpacity={0.3} />
           <Rect x={58} y={10} width={44} height={76} rx={9} fill="#94a3b8" fillOpacity={0.12} stroke="#94a3b8" strokeOpacity={0.4} />
-          <Circle cx={80} cy={26} r={8} fill="#f472b6" />
+          <Circle cx={80} cy={26} r={8} fill="#e29bff" />
           <Rect x={70} y={38} width={20} height={4} rx={2} fill="#94a3b8" fillOpacity={0.5} />
-          <Rect x={66} y={48} width={28} height={8} rx={4} fill="#f472b6" fillOpacity={0.45} />
-          <Rect x={66} y={60} width={28} height={8} rx={4} fill="#f472b6" fillOpacity={0.32} />
-          <Rect x={66} y={72} width={28} height={8} rx={4} fill="#f472b6" fillOpacity={0.22} />
+          <Rect x={66} y={48} width={28} height={8} rx={4} fill="#e29bff" fillOpacity={0.45} />
+          <Rect x={66} y={60} width={28} height={8} rx={4} fill="#e29bff" fillOpacity={0.32} />
+          <Rect x={66} y={72} width={28} height={8} rx={4} fill="#e29bff" fillOpacity={0.22} />
         </>
       );
     case "resume":

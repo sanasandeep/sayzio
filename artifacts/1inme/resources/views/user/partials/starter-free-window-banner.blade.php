@@ -18,8 +18,8 @@
              }"
              x-show="!dismissed"
              x-cloak
-             class="mb-4 p-3.5 rounded-xl text-violet-200 text-xs font-medium"
-             style="border: 1px solid rgba(124,58,237,0.25); background: rgba(124,58,237,0.08);">
+             class="mb-4 p-3.5 rounded-xl text-blue-200 text-xs font-medium"
+             style="border: 1px solid rgba(61,107,255,0.25); background: rgba(61,107,255,0.08);">
             <div class="flex items-center gap-2.5">
                 <i class="fas fa-gift"></i>
                 <span class="flex-1">
@@ -39,14 +39,14 @@
                     @csrf
                     <button type="submit"
                             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                            style="border: 1px solid rgba(124,58,237,0.4); background: rgba(124,58,237,0.12); color: #c4b5fd;">
+                            style="border: 1px solid rgba(61,107,255,0.4); background: rgba(61,107,255,0.12); color: #bccfff;">
                         <i class="fas fa-rotate text-[9px]"></i> Renew free
                     </button>
                 </form>
 
                 <button type="button"
                         @click="dismiss()"
-                        class="inline-flex items-center justify-center w-6 h-6 rounded-full text-violet-200/70 hover:text-violet-100 hover:bg-violet-500/10 transition-colors"
+                        class="inline-flex items-center justify-center w-6 h-6 rounded-full text-blue-200/70 hover:text-blue-100 hover:bg-blue-500/10 transition-colors"
                         title="Dismiss"
                         aria-label="Dismiss this reminder">
                     <i class="fas fa-times text-[10px]"></i>

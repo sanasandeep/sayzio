@@ -18,14 +18,14 @@
             @endforeach
         </select>
     </div>
-    <button class="px-4 py-1.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700">Apply</button>
-    <a href="{{ route('admin.ai-engine.edit') }}" class="text-xs text-violet-300 hover:underline ml-auto">AI Engine settings →</a>
+    <button class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Apply</button>
+    <a href="{{ route('admin.ai-engine.edit') }}" class="text-xs text-blue-300 hover:underline ml-auto">AI Engine settings →</a>
 </form>
 
 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
     @foreach([
         ['Spent',         $totals['spent'],      'text-red-300',     'coins'],
-        ['Refunded',      $totals['refunded'],   'text-violet-300',  'coins'],
+        ['Refunded',      $totals['refunded'],   'text-blue-300',  'coins'],
         ['Adjusted',      $totals['adjusted'],   'text-amber-300',   'coins'],
         ['Input tokens',  $totals['tokens_in'],  'text-sky-300',     'prompt tokens'],
         ['Output tokens', $totals['tokens_out'], 'text-emerald-300', 'completion tokens'],
@@ -45,7 +45,7 @@
             <i class="fas fa-camera-retro text-fuchsia-400 mr-1"></i> Card &amp; brochure scans
         </h3>
         <a href="{{ route('admin.ai-usage.index', ['days' => $days, 'feature' => 'card_scan']) }}"
-           class="text-xs text-violet-300 hover:underline">View ledger entries →</a>
+           class="text-xs text-blue-300 hover:underline">View ledger entries →</a>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div><p class="text-[10px] uppercase text-white/40">Scans</p><p class="text-xl font-bold text-white">{{ number_format($cardScanStats['total']) }}</p></div>
@@ -74,7 +74,7 @@
                 <tr class="border-t border-white/5">
                     <td class="py-2 text-white">
                         <a href="{{ route('admin.ai-usage.index', ['days' => $days, 'feature' => $f->feature]) }}"
-                           class="text-violet-300 hover:underline">{{ \App\Services\AI\AiFeatureCatalog::featureLabel($f->feature) }}</a>
+                           class="text-blue-300 hover:underline">{{ \App\Services\AI\AiFeatureCatalog::featureLabel($f->feature) }}</a>
                         <span class="text-[10px] text-white/30 ml-1">{{ $f->feature }}</span>
                     </td>
                     <td class="text-right text-white/70">{{ number_format($f->calls) }}</td>
@@ -122,15 +122,15 @@
                         <div class="text-white">{{ $u->name ?? 'User #'.$r->user_id }}</div>
                         <div class="text-[11px] text-white/40">{{ $u->email ?? '' }}</div>
                     </td>
-                    <td class="text-right text-violet-200 font-semibold">{{ number_format((int) ($b->balance ?? 0)) }}</td>
+                    <td class="text-right text-blue-200 font-semibold">{{ number_format((int) ($b->balance ?? 0)) }}</td>
                     <td class="text-right text-red-300">{{ number_format($r->spent) }}</td>
-                    <td class="text-right text-violet-300">{{ number_format($r->refunded) }}</td>
+                    <td class="text-right text-blue-300">{{ number_format($r->refunded) }}</td>
                     <td class="text-right text-amber-300">{{ number_format($r->adjusted) }}</td>
                     <td class="text-right text-white/70">{{ number_format($r->calls) }}</td>
                     <td class="text-right text-white/50 text-xs">{{ number_format($r->tokens_in + $r->tokens_out) }}</td>
                     <td class="text-right">
                         @if($u)
-                            <a href="{{ route('admin.ai-usage.show', $u) }}" class="text-violet-300 hover:underline text-xs">View / adjust</a>
+                            <a href="{{ route('admin.ai-usage.show', $u) }}" class="text-blue-300 hover:underline text-xs">View / adjust</a>
                         @endif
                     </td>
                 </tr>

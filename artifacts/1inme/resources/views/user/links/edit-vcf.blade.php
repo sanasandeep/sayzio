@@ -25,7 +25,7 @@
 
         <div class="flex justify-end gap-3 mt-6">
             <a href="{{ route('user.links.show', $link) }}" class="px-5 py-2.5 rounded-xl text-sm text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition">Cancel</a>
-            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 shadow-lg shadow-violet-500/30 transition">
+            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-fuchsia-500 hover:from-blue-600 hover:to-fuchsia-600 shadow-lg shadow-blue-500/30 transition">
                 <i class="fas fa-save mr-1"></i> Save Changes
             </button>
         </div>

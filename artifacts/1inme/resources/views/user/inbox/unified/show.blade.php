@@ -54,7 +54,7 @@
             {{-- Messages --}}
             <div class="space-y-3">
                 @foreach($thread->messages as $m)
-                    <div class="card-premium p-4 {{ $m->direction === 'out' ? 'ml-12' : 'mr-12' }}" style="{{ $m->direction === 'out' ? 'background: rgba(139,92,246,0.05);' : '' }}">
+                    <div class="card-premium p-4 {{ $m->direction === 'out' ? 'ml-12' : 'mr-12' }}" style="{{ $m->direction === 'out' ? 'background: rgba(92,131,255,0.05);' : '' }}">
                         <div class="flex items-center gap-2 mb-2 text-xs" style="color: var(--text-muted);">
                             <span class="font-semibold" style="color: var(--text-secondary);">{{ $m->sender_name ?: ($m->direction === 'out' ? 'You' : 'Them') }}</span>
                             <span>·</span>
@@ -83,7 +83,7 @@
                             @endphp
                             <div class="p-2.5 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                                 <div class="flex items-center gap-2.5 flex-wrap">
-                                    <i class="fas fa-paperclip text-violet-400"></i>
+                                    <i class="fas fa-paperclip text-blue-400"></i>
                                     <span class="text-sm flex-1 min-w-0 truncate" style="color: var(--text-primary);">{{ $label }}</span>
 
                                     @if($pending)
@@ -106,7 +106,7 @@
                                         <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1" style="background: rgba(16,185,129,0.12); color: #34d399;">
                                             <i class="fas fa-shield-check"></i>Clean
                                         </span>
-                                        <a href="{{ $url }}" target="_blank" class="px-2 py-1 rounded text-[11px] text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+                                        <a href="{{ $url }}" target="_blank" class="px-2 py-1 rounded text-[11px] text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">
                                             <i class="fas fa-download mr-1"></i>Open
                                         </a>
                                     @endif
@@ -131,7 +131,7 @@
                 @if(!empty($suggestions))
                 <div class="flex flex-wrap gap-2">
                     @foreach($suggestions as $s)
-                        <button type="button" @click="replyText = @js($s)" class="px-3 py-1.5 rounded-lg text-xs text-left max-w-md truncate" style="background: rgba(139,92,246,0.1); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.2);" title="{{ $s }}">
+                        <button type="button" @click="replyText = @js($s)" class="px-3 py-1.5 rounded-lg text-xs text-left max-w-md truncate" style="background: rgba(92,131,255,0.1); color: #bccfff; border: 1px solid rgba(92,131,255,0.2);" title="{{ $s }}">
                             <i class="fas fa-magic-wand-sparkles mr-1"></i>{{ \Illuminate\Support\Str::limit($s, 90) }}
                         </button>
                     @endforeach
@@ -155,7 +155,7 @@
                 @endif
 
                 <div class="flex justify-end">
-                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">
                         <i class="fas fa-paper-plane mr-1"></i> Send reply
                     </button>
                 </div>
@@ -177,7 +177,7 @@
                     @if($thread->category_source === 'auto' && $thread->category_confidence)
                         <div class="text-[10px]" style="color: var(--text-faint);">AI confidence: {{ number_format($thread->category_confidence * 100) }}%</div>
                     @elseif($thread->category_source === 'manual')
-                        <div class="text-[10px]" style="color: #a78bfa;">Manual override (used as training feedback)</div>
+                        <div class="text-[10px]" style="color: #90acff;">Manual override (used as training feedback)</div>
                     @endif
                 </form>
 
@@ -193,7 +193,7 @@
                     <textarea name="note" rows="2" maxlength="500" placeholder="Handoff note (optional)…"
                               class="w-full px-2 py-1.5 rounded-lg text-xs"
                               style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"></textarea>
-                    <button class="w-full px-2 py-1.5 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+                    <button class="w-full px-2 py-1.5 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">
                         <i class="fas fa-user-plus mr-1"></i>Apply assignment
                     </button>
                 </form>
@@ -261,11 +261,11 @@
                             <option value="">Pick a board…</option>
                             @foreach($availableBoards as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach
                         </select>
-                        <button class="px-2 py-1 rounded-lg text-xs font-semibold text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);" title="Create kanban card"><i class="fas fa-columns"></i></button>
+                        <button class="px-2 py-1 rounded-lg text-xs font-semibold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);" title="Create kanban card"><i class="fas fa-columns"></i></button>
                     </form>
                     <form method="POST" action="{{ route('user.inbox.unified.convert.contact', $thread->id) }}">@csrf
                         <button class="w-full px-3 py-2 rounded-lg text-xs text-left" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
-                            <i class="fas fa-address-book mr-2 text-violet-400"></i>Save as contact
+                            <i class="fas fa-address-book mr-2 text-blue-400"></i>Save as contact
                         </button>
                     </form>
                     <form method="POST" action="{{ route('user.inbox.unified.convert.vault', $thread->id) }}">@csrf

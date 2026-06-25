@@ -42,7 +42,7 @@
                     <i class="fas fa-spinner fa-spin mr-1"></i> Processing — refresh in a moment.
                 @endif
             </p>
-            <a href="{{ route('user.contacts.scan.create') }}" class="inline-block mt-4 text-xs font-semibold" style="color:#a78bfa;">
+            <a href="{{ route('user.contacts.scan.create') }}" class="inline-block mt-4 text-xs font-semibold" style="color:#90acff;">
                 <i class="fas fa-arrow-left mr-1"></i> Try another upload
             </a>
         </div>
@@ -213,7 +213,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     @php
                         $colorField = function($name, $label, $value) {
-                            $val = e($value ?: '#7C3AED');
+                            $val = e($value ?: '#3d6bff');
                             return <<<HTML
                                 <label class="block">
                                     <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">{$label}</span>
@@ -279,7 +279,7 @@
                     <a href="{{ route('user.contacts.scan.create') }}" class="text-xs" style="color: var(--text-muted);">
                         <i class="fas fa-rotate-right mr-1"></i> Scan another
                     </a>
-                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition" style="background: linear-gradient(135deg,#7c3aed,#ec4899);">
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
                         <i class="fas fa-floppy-disk mr-1"></i> Save
                     </button>
                 </div>

@@ -168,7 +168,7 @@
                 <div class="flex-1">
                     <strong style="color: var(--text-primary);">Publishing 18+ content?</strong>
                     Enable the adult-content toggle in
-                    <a href="{{ route('user.adult-content.show') }}" class="text-violet-700 hover:underline font-semibold">Adult content settings</a>
+                    <a href="{{ route('user.adult-content.show') }}" class="text-blue-700 hover:underline font-semibold">Adult content settings</a>
                     to unlock CCBill and Segpay as payout providers.
                 </div>
             </div>

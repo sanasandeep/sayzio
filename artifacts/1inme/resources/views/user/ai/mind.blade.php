@@ -18,14 +18,14 @@
                   class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">{{ old('thoughts', $input) }}</textarea>
         @error('thoughts')<p class="text-xs text-red-300">{{ $message }}</p>@enderror
         <div class="flex justify-end">
-            <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+            <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                 Think it through
             </button>
         </div>
     </form>
 
     @if($result)
-        <div class="mt-6 rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-5">
+        <div class="mt-6 rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-5">
             <div class="flex items-center justify-between mb-2">
                 <p class="text-xs text-white/40 uppercase tracking-wider">Result</p>
                 <p class="text-xs text-white/40">

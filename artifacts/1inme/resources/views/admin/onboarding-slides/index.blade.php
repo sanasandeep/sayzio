@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Splash slider shown to new users in the mobile app. Reorder by editing the sort order; inactive slides are hidden from the app.</p>
-    <a href="{{ route('admin.onboarding-slides.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700"><i class="fas fa-plus mr-2"></i>Add Slide</a>
+    <a href="{{ route('admin.onboarding-slides.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Add Slide</a>
 </div>
 
 @if(session('success'))
@@ -41,7 +41,7 @@
                 <span>order: <span class="text-white/70">{{ $slide->sort_order }}</span></span>
             </div>
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
-                <a href="{{ route('admin.onboarding-slides.edit', $slide) }}" class="text-white/40 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
+                <a href="{{ route('admin.onboarding-slides.edit', $slide) }}" class="text-white/40 hover:text-blue-400" title="Edit"><i class="fas fa-edit"></i></a>
                 <form action="{{ route('admin.onboarding-slides.destroy', $slide) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this slide?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                     <button class="text-white/40 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
                 </form>
@@ -50,7 +50,7 @@
     </div>
     @empty
     <div class="col-span-full text-center text-white/40 py-12">
-        No slides yet. <a href="{{ route('admin.onboarding-slides.create') }}" class="text-violet-400 hover:underline">Create your first one</a>.
+        No slides yet. <a href="{{ route('admin.onboarding-slides.create') }}" class="text-blue-400 hover:underline">Create your first one</a>.
     </div>
     @endforelse
 </div>

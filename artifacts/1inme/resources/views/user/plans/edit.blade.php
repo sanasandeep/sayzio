@@ -8,7 +8,7 @@
     <div class="glass rounded-2xl p-6 lg:p-8" style="border: 1px solid var(--border-glass);">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                     <i class="fas fa-edit text-white text-sm"></i>
                 </div>
                 <div>
@@ -32,7 +32,7 @@
                         <input type="text" name="name" value="{{ old('name', $plan->name) }}" required
                                class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
                                style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
-                               onfocus="this.style.borderColor='rgba(124,58,237,0.4)'; this.style.boxShadow='0 0 0 3px rgba(124,58,237,0.08)'"
+                               onfocus="this.style.borderColor='rgba(61,107,255,0.4)'; this.style.boxShadow='0 0 0 3px rgba(61,107,255,0.08)'"
                                onblur="this.style.borderColor='var(--border-glass)'; this.style.boxShadow='none'">
                     </div>
                     <div>
@@ -50,7 +50,7 @@
                     <textarea name="description" rows="2"
                               class="w-full px-4 py-2.5 rounded-xl text-sm outline-none resize-none"
                               style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
-                              onfocus="this.style.borderColor='rgba(124,58,237,0.4)'"
+                              onfocus="this.style.borderColor='rgba(61,107,255,0.4)'"
                               onblur="this.style.borderColor='var(--border-glass)'">{{ old('description', $plan->description) }}</textarea>
                 </div>
 
@@ -85,7 +85,7 @@
                 @php $features = $plan->features ?? []; @endphp
                 <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
                     <div class="flex items-center gap-2 mb-4">
-                        <i class="fas fa-sliders-h text-violet-400 text-xs"></i>
+                        <i class="fas fa-sliders-h text-blue-400 text-xs"></i>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Plan Features & Limits</h3>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -129,7 +129,7 @@
                                onmouseout="this.style.background='transparent'; this.style.borderColor='transparent'">
                             <input type="checkbox" name="features[{{ $key }}]" value="1"
                                    {{ !empty($features[$key]) ? 'checked' : '' }}
-                                   class="rounded border-gray-500 text-violet-500 focus:ring-violet-500/30 bg-transparent">
+                                   class="rounded border-gray-500 text-blue-500 focus:ring-blue-500/30 bg-transparent">
                             {{ $label }}
                         </label>
                         @endforeach

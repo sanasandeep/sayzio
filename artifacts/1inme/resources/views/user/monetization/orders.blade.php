@@ -33,7 +33,7 @@
                                             {{ $order->statusLabel() }}
                                         </span>
                                         @if($order->contains_physical)
-                                            <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold" style="background: rgba(139,92,246,0.12); color: #8b5cf6;"><i class="fas fa-truck mr-1"></i>Physical</span>
+                                            <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold" style="background: rgba(92,131,255,0.12); color: #5c83ff;"><i class="fas fa-truck mr-1"></i>Physical</span>
                                         @endif
                                     </div>
                                     <div class="text-xs" style="color: var(--text-faint);">

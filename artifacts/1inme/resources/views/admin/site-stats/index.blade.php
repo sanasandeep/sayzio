@@ -9,7 +9,7 @@
             <h1 class="text-2xl font-bold text-white">Marketing Stats</h1>
             <p class="text-sm text-gray-400 mt-1">Numbers shown across the marketing site (homepage, About, Features, etc.).</p>
         </div>
-        <a href="{{ route('admin.site-stats.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-violet-500 text-white text-sm font-semibold hover:opacity-90">
+        <a href="{{ route('admin.site-stats.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:opacity-90">
             <i class="fas fa-plus"></i> Add stat
         </a>
     </div>
@@ -36,7 +36,7 @@
                 <tr class="hover:bg-white/[0.03]">
                     <td class="px-4 py-3 text-gray-400">{{ $stat->sort_order }}</td>
                     <td class="px-4 py-3">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, {{ $stat->color }}, #7c3aed);">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, {{ $stat->color }}, #3d6bff);">
                             <i class="fas {{ $stat->icon }} text-white"></i>
                         </div>
                     </td>

@@ -42,21 +42,21 @@
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Name</label>
                     <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                     @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Email</label>
                     <input type="email" name="email" value="{{ old('email', $user->email) }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                     @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Phone</label>
                     <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                 </div>
 
                 <div>
@@ -80,7 +80,7 @@
                             'OTHER' => 'Other (everywhere else, $ USD)',
                         ];
                     @endphp
-                    <select name="country" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    <select name="country" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         @foreach($countries as $code => $label)
                             @if($code === 'OTHER')
                                 @continue
@@ -102,11 +102,11 @@
                             <div>
                                 <label class="block text-xs text-white/50 mb-1">Country (ISO-2)</label>
                                 <input type="text" name="billing_country" maxlength="2" value="{{ old('billing_country', $billing->country ?? $user->country) }}"
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-violet-500/40">
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
                             </div>
                             <div>
                                 <label class="block text-xs text-white/50 mb-1">State / region</label>
-                                <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                                <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                                     <option value="" class="bg-[#0d0818]">— None / N/A —</option>
                                     <optgroup label="India" class="bg-[#0d0818]">
                                         @foreach($inStates as $code => $label)
@@ -123,25 +123,25 @@
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <input type="text" name="billing_postal_code" placeholder="Postal code" value="{{ old('billing_postal_code', $billing->postal_code) }}" maxlength="16"
-                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                             <input type="text" name="billing_city" placeholder="City" value="{{ old('billing_city', $billing->city) }}" maxlength="100"
-                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                         </div>
                         <input type="text" name="billing_line1" placeholder="Address line 1" value="{{ old('billing_line1', $billing->line1) }}" maxlength="255"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                         <input type="text" name="billing_line2" placeholder="Address line 2 (optional)" value="{{ old('billing_line2', $billing->line2) }}" maxlength="255"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                         <input type="text" name="business_name" placeholder="Registered business name (optional)" value="{{ old('business_name', $billing->business_name) }}" maxlength="255"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                         <div class="grid grid-cols-3 gap-3">
-                            <select name="tax_id_kind" data-tax-kind class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                            <select name="tax_id_kind" data-tax-kind class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                                 @php $currentKind = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE'); @endphp
                                 <option value="NONE"  {{ $currentKind === 'NONE'  ? 'selected' : '' }} class="bg-[#0d0818]">No tax ID</option>
                                 <option value="GSTIN" {{ $currentKind === 'GSTIN' ? 'selected' : '' }} class="bg-[#0d0818]">GSTIN (India)</option>
                                 <option value="VATIN" {{ $currentKind === 'VATIN' ? 'selected' : '' }} class="bg-[#0d0818]">VATIN (EU / UK)</option>
                             </select>
                             <input type="text" name="tax_id" data-tax-id placeholder="Tax ID number" value="{{ old('tax_id', $billing->tax_id) }}" maxlength="32"
-                                   class="col-span-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-violet-500/40">
+                                   class="col-span-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
                         </div>
                         <p class="text-[11px]" data-tax-feedback></p>
                         @error('tax_id')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
@@ -151,7 +151,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Timezone</label>
-                        <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                             @foreach($timezones as $tz)
                                 <option value="{{ $tz }}" {{ $user->timezone == $tz ? 'selected' : '' }} class="bg-[#0d0818]">{{ $tz }}</option>
                             @endforeach
@@ -159,7 +159,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Language</label>
-                        <select name="language" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <select name="language" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                             <option value="en" {{ $user->language == 'en' ? 'selected' : '' }} class="bg-[#0d0818]">English</option>
                         </select>
                     </div>
@@ -171,16 +171,16 @@
                         <div>
                             <label class="block text-sm font-medium text-white/60 mb-1.5">Handle (used in the Creators directory)</label>
                             <input type="text" name="handle" value="{{ old('handle', $user->handle) }}" placeholder="your_handle"
-                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                             @error('handle')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-white/60 mb-1.5">Bio</label>
-                            <textarea name="bio" rows="3" maxlength="500" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('bio', $user->bio) }}</textarea>
+                            <textarea name="bio" rows="3" maxlength="500" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">{{ old('bio', $user->bio) }}</textarea>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-white/60 mb-1.5">What best describes you?</label>
-                            <select name="persona" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            <select name="persona" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                                 <option value="" class="bg-[#0d0818]">Prefer not to say</option>
                                 @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
                                     <option value="{{ $p['slug'] }}" {{ old('persona', $user->persona) === $p['slug'] ? 'selected' : '' }} class="bg-[#0d0818]">{{ $p['label'] }}</option>
@@ -202,7 +202,7 @@
                                 class="w-4 h-4">
                             Show me in the public Creators directory at /creators
                             @if(!$canPublicProfile)
-                                <a href="{{ route('user.upgrade') }}" class="ml-1 text-[11px] uppercase tracking-wider text-violet-400 hover:underline">Upgrade to unlock</a>
+                                <a href="{{ route('user.upgrade') }}" class="ml-1 text-[11px] uppercase tracking-wider text-blue-400 hover:underline">Upgrade to unlock</a>
                             @endif
                         </label>
                         <label class="flex items-center gap-2 text-sm text-white/70">
@@ -247,7 +247,7 @@
                                     Send my daily digest at
                                 </label>
                                 <div class="flex items-center gap-3">
-                                    <select name="digest_preferred_hour" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                    <select name="digest_preferred_hour" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                                         @for($h = 0; $h < 24; $h++)
                                             @php
                                                 $suffix = $h < 12 ? 'am' : 'pm';
@@ -271,7 +271,7 @@
                              data-preview-url="{{ route('user.profile.digest.preview') }}">
                             <div class="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
                                 <div class="flex items-center gap-2 text-xs text-white/70">
-                                    <i class="fas fa-envelope text-violet-400"></i>
+                                    <i class="fas fa-envelope text-blue-400"></i>
                                     <span>Daily digest preview</span>
                                 </div>
                                 <span data-digest-badge-slot>
@@ -284,7 +284,7 @@
                                             Live preview · showing your {{ $digestPreviewCount }} pending update{{ $digestPreviewCount === 1 ? '' : 's' }}
                                         </span>
                                     @else
-                                        <span class="text-[10px] uppercase tracking-wider text-violet-300/80 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30" title="You don't have any pending updates yet, so this is a placeholder.">
+                                        <span class="text-[10px] uppercase tracking-wider text-blue-300/80 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30" title="You don't have any pending updates yet, so this is a placeholder.">
                                             Example preview · not your real queue
                                         </span>
                                     @endif
@@ -302,7 +302,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition-all hover:shadow-lg hover:shadow-violet-500/20">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-500/20">
                     Save Changes
                 </button>
             </div>
@@ -315,7 +315,7 @@
         <form method="POST" action="{{ route('user.profile.digest.sample') }}">
             @csrf
             <button type="submit" class="px-5 py-2 bg-white/5 border border-white/15 text-white rounded-xl font-medium hover:bg-white/10 transition-all">
-                <i class="fas fa-paper-plane mr-1.5 text-violet-300"></i>
+                <i class="fas fa-paper-plane mr-1.5 text-blue-300"></i>
                 Send sample digest
             </button>
         </form>
@@ -324,8 +324,8 @@
     <div class="glass rounded-2xl p-6">
         <h2 class="text-lg font-semibold text-white mb-1">Sign-in security</h2>
         <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes — there's no password to manage.</p>
-        <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.20);">
-            <i class="fas fa-shield-alt text-violet-400 mt-0.5"></i>
+        <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
+            <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
             <div class="text-sm text-white/70">
                 Each time you sign in, we send a fresh 6-digit code to your email{{ auth()->user()->mobile ? ' or mobile number' : '' }}. Keep your contact details up to date above so you can always receive it.
             </div>
@@ -361,7 +361,7 @@
                 '</span>';
         } else {
             badgeSlot.innerHTML =
-                '<span class="text-[10px] uppercase tracking-wider text-violet-300/80 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30" title="You don\'t have any pending updates yet, so this is a placeholder.">' +
+                '<span class="text-[10px] uppercase tracking-wider text-blue-300/80 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30" title="You don\'t have any pending updates yet, so this is a placeholder.">' +
                   'Example preview · not your real queue' +
                 '</span>';
         }

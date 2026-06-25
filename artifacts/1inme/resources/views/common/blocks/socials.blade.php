@@ -39,7 +39,7 @@
             @php
                 $name    = $platform['name'] ?? '';
                 $display = $platform['display'] ?? 'icon';
-                $iconDef = ($socialIcons ?? [])[$name] ?? ['fas fa-link', '#7c3aed'];
+                $iconDef = ($socialIcons ?? [])[$name] ?? ['fas fa-link', '#3d6bff'];
 
                 // Connection-backed entries override URL + brand metadata + count.
                 $conn = ! empty($platform['connection_id']) ? ($connMap[$platform['connection_id']] ?? null) : null;

@@ -3,7 +3,7 @@
 <body style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f8fafc;margin:0;padding:24px;color:#0f172a;">
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;">
 
-    <div style="padding:20px 24px;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;">
+    <div style="padding:20px 24px;background:linear-gradient(135deg,#3d6bff,#db2777);color:#fff;">
         <div style="font-size:11px;letter-spacing:.12em;opacity:.85;text-transform:uppercase;">{{ $isSample ? 'Sample preview' : 'Your week on Sayzio' }}</div>
         <div style="font-size:22px;font-weight:800;margin-top:4px;">Hi {{ $creator->name }},</div>
         <div style="font-size:13px;opacity:.9;margin-top:2px;">{{ $periodStart }} – {{ $periodEnd }}</div>
@@ -13,7 +13,7 @@
         <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:16px;">
             <tr>
                 <td align="center" style="padding:14px;border:1px solid #e2e8f0;border-radius:10px;">
-                    <div style="font-size:24px;font-weight:800;color:#7c3aed;">+{{ number_format($newFollowers) }}</div>
+                    <div style="font-size:24px;font-weight:800;color:#3d6bff;">+{{ number_format($newFollowers) }}</div>
                     <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;">New followers</div>
                 </td>
                 <td width="8"></td>
@@ -42,7 +42,7 @@
         @endif
 
         <div style="margin-top:24px;text-align:center;">
-            <a href="{{ $statsUrl }}" style="display:inline-block;padding:10px 18px;background:#7c3aed;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:13px;">Open your Stats home</a>
+            <a href="{{ $statsUrl }}" style="display:inline-block;padding:10px 18px;background:#3d6bff;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:13px;">Open your Stats home</a>
         </div>
         <div style="margin-top:8px;text-align:center;">
             <a href="{{ $profileUrl }}" style="font-size:12px;color:#64748b;text-decoration:underline;">View your profile</a>

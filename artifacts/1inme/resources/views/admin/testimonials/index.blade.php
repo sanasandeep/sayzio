@@ -23,13 +23,13 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 <a href="{{ route('admin.testimonials.index') }}"
-                   class="px-3 py-2 rounded-xl text-xs font-medium border {{ !$row ? 'bg-violet-600/20 border-violet-500/40 text-violet-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}">All</a>
+                   class="px-3 py-2 rounded-xl text-xs font-medium border {{ !$row ? 'bg-blue-600/20 border-blue-500/40 text-blue-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}">All</a>
                 <a href="{{ route('admin.testimonials.index', ['row' => 'top']) }}"
-                   class="px-3 py-2 rounded-xl text-xs font-medium border {{ $row === 'top' ? 'bg-violet-600/20 border-violet-500/40 text-violet-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}">Top row</a>
+                   class="px-3 py-2 rounded-xl text-xs font-medium border {{ $row === 'top' ? 'bg-blue-600/20 border-blue-500/40 text-blue-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}">Top row</a>
                 <a href="{{ route('admin.testimonials.index', ['row' => 'bottom']) }}"
-                   class="px-3 py-2 rounded-xl text-xs font-medium border {{ $row === 'bottom' ? 'bg-violet-600/20 border-violet-500/40 text-violet-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}">Bottom row</a>
+                   class="px-3 py-2 rounded-xl text-xs font-medium border {{ $row === 'bottom' ? 'bg-blue-600/20 border-blue-500/40 text-blue-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}">Bottom row</a>
                 <a href="{{ route('admin.testimonials.create') }}"
-                   class="px-4 py-2 rounded-xl text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white inline-flex items-center gap-2">
+                   class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-2">
                     <i class="fas fa-plus text-xs"></i> Add testimonial
                 </a>
             </div>

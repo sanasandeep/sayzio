@@ -4,7 +4,7 @@
 @section('content')
 @php
     $embedSnippet = '<script src="' . $embedScriptUrl . '" data-companion="' . $companion->public_id .
-        '" data-accent="' . ($config['accent'] ?? '#7c3aed') .
+        '" data-accent="' . ($config['accent'] ?? '#3d6bff') .
         '" data-position="' . ($config['position'] ?? 'bottom-right') .
         '" data-label="' . htmlspecialchars($config['launcher_label'] ?? 'Chat', ENT_QUOTES) .
         '" data-greeting="' . htmlspecialchars($config['greeting_bubble'] ?? '', ENT_QUOTES) .
@@ -93,7 +93,7 @@
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold text-white/60 mb-1">Accent</label>
-                    <input type="color" name="config[accent]" value="{{ $config['accent'] ?? '#7c3aed' }}" class="w-full h-10 bg-black/30 border border-white/10 rounded-lg">
+                    <input type="color" name="config[accent]" value="{{ $config['accent'] ?? '#3d6bff' }}" class="w-full h-10 bg-black/30 border border-white/10 rounded-lg">
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold text-white/60 mb-1">Launcher position</label>
@@ -151,7 +151,7 @@
                     @endforeach
                 </div>
                 <button type="button" onclick="document.getElementById('domains-list').insertAdjacentHTML('beforeend','<div class=\'flex gap-2\'><input name=\'allowed_domains[]\' placeholder=\'example.com\' class=\'flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white\'><button type=button onclick=this.parentElement.remove() class=\'px-2 py-1 rounded-lg bg-red-500/10 text-red-300 text-xs\'><i class=\'fas fa-times\'></i></button></div>')"
-                        class="text-xs text-violet-300 hover:text-violet-200"><i class="fas fa-plus"></i> Add domain</button>
+                        class="text-xs text-blue-300 hover:text-blue-200"><i class="fas fa-plus"></i> Add domain</button>
             </fieldset>
         @endif
 
@@ -174,7 +174,7 @@
         @endif
 
         <div class="flex justify-end gap-2 pt-2">
-            <button class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm">Save Companion</button>
+            <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save Companion</button>
         </div>
     </form>
 
@@ -190,7 +190,7 @@
     @elseif($companion->placement === 'inbox')
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2 text-sm text-white/80">
             <h2 class="font-bold">How to use the inbox bot</h2>
-            <p>Open any DM thread under <a href="{{ route('user.inbox.dms.index') }}" class="text-violet-300 underline">Inbox → DMs</a>, switch on "Auto-reply with this Companion", and your next viewer message will get a drafted reply. Toggle <em>Auto-send</em> above to send the reply without confirming.</p>
+            <p>Open any DM thread under <a href="{{ route('user.inbox.dms.index') }}" class="text-blue-300 underline">Inbox → DMs</a>, switch on "Auto-reply with this Companion", and your next viewer message will get a drafted reply. Toggle <em>Auto-send</em> above to send the reply without confirming.</p>
         </div>
     @else
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2 text-sm text-white/80">

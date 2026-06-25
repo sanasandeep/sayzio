@@ -15,10 +15,10 @@ export default function SlideWhatYouCanCreate() {
         <div className="mt-[3.5vh] grid grid-cols-4 gap-[1.4vw] flex-1 content-start">
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-[1.3vw] flex flex-col">
-            <div className="text-[0.85vw] uppercase tracking-[0.22em] text-violet-300">Everyday links</div>
+            <div className="text-[0.85vw] uppercase tracking-[0.22em] text-blue-300">Everyday links</div>
             <div className="mt-[0.8vh] text-[0.92vw] text-slate-400 leading-snug">Quick, single-purpose links you can share anywhere in seconds.</div>
             <div className="mt-[1.6vh] flex items-start gap-[0.7vw]">
-              <span className="mt-[0.4vh] h-[0.9vw] w-[0.9vw] rounded-md bg-violet-400 shrink-0" />
+              <span className="mt-[0.4vh] h-[0.9vw] w-[0.9vw] rounded-md bg-blue-400 shrink-0" />
               <div>
                 <div className="font-display text-[1.05vw] font-semibold leading-tight">Short Link</div>
                 <div className="text-[0.85vw] text-slate-400 leading-snug">Shorten any URL with a custom alias and click tracking.</div>

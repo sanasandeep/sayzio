@@ -21,7 +21,7 @@
         </div>
         <textarea name="body" rows="4" required maxlength="5000" placeholder="The text inserted when you pick this snippet…" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"></textarea>
         <div class="flex justify-end">
-            <button class="px-4 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);"><i class="fas fa-plus mr-1"></i>Save snippet</button>
+            <button class="px-4 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);"><i class="fas fa-plus mr-1"></i>Save snippet</button>
         </div>
     </form>
 
@@ -33,7 +33,7 @@
                 <div class="flex items-start gap-4 p-4">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
-                            <span class="text-[11px] font-mono px-2 py-0.5 rounded" style="background: rgba(139,92,246,0.15); color: #c4b5fd;">{{ $sn->shortcut }}</span>
+                            <span class="text-[11px] font-mono px-2 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #bccfff;">{{ $sn->shortcut }}</span>
                             <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $sn->label }}</span>
                         </div>
                         <div class="text-xs mt-2 whitespace-pre-wrap" style="color: var(--text-muted);">{{ $sn->body }}</div>

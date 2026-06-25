@@ -30,19 +30,19 @@
     @if($activeImport)
     <a href="{{ route('user.contacts.import.show', $activeImport) }}"
        class="block mb-6 px-4 py-3 rounded-xl text-sm transition"
-       style="background: linear-gradient(135deg, rgba(124,58,237,0.10), rgba(236,72,153,0.08)); border: 1px solid rgba(124,58,237,0.30); color: var(--text-primary);">
+       style="background: linear-gradient(135deg, rgba(61,107,255,0.10), rgba(236,72,153,0.08)); border: 1px solid rgba(61,107,255,0.30); color: var(--text-primary);">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div class="flex items-center gap-2">
-                <i class="fas fa-spinner fa-spin text-purple-400"></i>
+                <i class="fas fa-spinner fa-spin text-indigo-400"></i>
                 <span class="font-semibold">Import in progress</span>
                 <span class="text-xs" style="color: var(--text-muted);">
                     {{ $activeImport->processed_rows }} / {{ $activeImport->total_rows }} rows ({{ $activeImport->progressPercent() }}%)
                 </span>
             </div>
-            <span class="text-xs font-medium" style="color:#a78bfa;">View summary <i class="fas fa-arrow-right ml-1 text-[10px]"></i></span>
+            <span class="text-xs font-medium" style="color:#90acff;">View summary <i class="fas fa-arrow-right ml-1 text-[10px]"></i></span>
         </div>
         <div class="mt-2 w-full h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,.06);">
-            <div class="h-full" style="width: {{ $activeImport->progressPercent() }}%; background:linear-gradient(135deg,#7c3aed,#ec4899);"></div>
+            <div class="h-full" style="width: {{ $activeImport->progressPercent() }}%; background:linear-gradient(135deg,#3d6bff,#ec4899);"></div>
         </div>
     </a>
     @endif
@@ -65,7 +65,7 @@
                     </div>
                     <form method="POST" action="{{ route('user.contacts.google.sync', $googleAccount) }}" class="mb-2">
                         @csrf
-                        <button class="w-full px-3 py-2 rounded-lg text-xs font-medium transition" style="background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.30)">
+                        <button class="w-full px-3 py-2 rounded-lg text-xs font-medium transition" style="background:rgba(61,107,255,.15);color:#90acff;border:1px solid rgba(61,107,255,.30)">
                             <i class="fas fa-sync mr-1"></i> Sync now
                         </button>
                     </form>
@@ -89,7 +89,7 @@
                 <a href="{{ route('user.contacts.create') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition mb-2" style="background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.25)">
                     <i class="fas fa-user-plus mr-1"></i> New contact
                 </a>
-                <a href="{{ route('user.contacts.import') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition mb-2" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.25)">
+                <a href="{{ route('user.contacts.import') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition mb-2" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.25)">
                     <i class="fas fa-file-import mr-1"></i> Import CSV / vCard
                 </a>
                 <a href="{{ route('user.contacts.scan.create') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(236,72,153,.12);color:#ec4899;border:1px solid rgba(236,72,153,.25)">
@@ -108,7 +108,7 @@
                     ? 'linear-gradient(135deg,#ef4444,#f97316)'
                     : ($usage['near_cap']
                         ? 'linear-gradient(135deg,#f59e0b,#ec4899)'
-                        : 'linear-gradient(135deg,#22d3ee,#7c3aed)');
+                        : 'linear-gradient(135deg,#22d3ee,#3d6bff)');
             @endphp
             <div class="card-premium p-4 mb-4">
                 <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
@@ -150,12 +150,12 @@
                     <div class="inline-flex rounded-xl p-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
                         <a href="{{ route('user.contacts.index', ['tab' => 'all', 'q' => $search]) }}"
                            class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ $tab === 'all' ? 'text-white' : '' }}"
-                           style="{{ $tab === 'all' ? 'background:linear-gradient(135deg,#7c3aed,#ec4899);' : 'color:var(--text-muted);' }}">
+                           style="{{ $tab === 'all' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);' }}">
                             All <span class="ml-1 opacity-70">({{ $stats['total'] }})</span>
                         </a>
                         <a href="{{ route('user.contacts.index', ['tab' => 'biolink', 'q' => $search]) }}"
                            class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ $tab === 'biolink' ? 'text-white' : '' }}"
-                           style="{{ $tab === 'biolink' ? 'background:linear-gradient(135deg,#7c3aed,#ec4899);' : 'color:var(--text-muted);' }}">
+                           style="{{ $tab === 'biolink' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);' }}">
                             With Link in Bio <span class="ml-1 opacity-70">({{ $stats['biolink'] }})</span>
                         </a>
                     </div>
@@ -172,12 +172,12 @@
 
                 @if($contacts->isEmpty())
                     <div class="text-center py-16">
-                        <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(124,58,237,0.18));">
+                        <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(61,107,255,0.18));">
                             <i class="fas fa-address-book text-2xl text-cyan-400"></i>
                         </div>
                         <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No contacts yet</p>
                         <p class="text-xs mb-4" style="color: var(--text-muted);">Add one manually or connect your Google account.</p>
-                        <a href="{{ route('user.contacts.create') }}" class="inline-block px-4 py-2 rounded-lg text-xs font-semibold" style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:white">
+                        <a href="{{ route('user.contacts.create') }}" class="inline-block px-4 py-2 rounded-lg text-xs font-semibold" style="background:linear-gradient(135deg,#3d6bff,#ec4899);color:white">
                             <i class="fas fa-user-plus mr-1"></i> New contact
                         </a>
                     </div>
@@ -194,9 +194,9 @@
                                             ->orderByDesc('id')->first();
                                     }
                                 @endphp
-                                <div class="px-4 py-4 rounded-xl" style="background:linear-gradient(135deg,rgba(236,72,153,.06),rgba(124,58,237,.06));border:1px solid rgba(236,72,153,.20);">
+                                <div class="px-4 py-4 rounded-xl" style="background:linear-gradient(135deg,rgba(236,72,153,.06),rgba(61,107,255,.06));border:1px solid rgba(236,72,153,.20);">
                                     <div class="flex items-start gap-3">
-                                        <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                                        <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                                             @if($c->photoUrl())
                                                 <img src="{{ $c->photoUrl() }}" class="w-full h-full rounded-full object-cover">
                                             @else
@@ -214,7 +214,7 @@
                                             <div class="mt-2 text-[11px] flex items-center gap-2 flex-wrap">
                                                 <span class="px-2 py-0.5 rounded" style="background:rgba(255,255,255,.05);color:var(--text-muted);">{{ '@' . $c->biolinkUser?->publicHandle() }}</span>
                                                 @if($bioLink)
-                                                    <a href="{{ url('/' . $bioLink->alias) }}" target="_blank" class="font-medium" style="color:#a78bfa;">
+                                                    <a href="{{ url('/' . $bioLink->alias) }}" target="_blank" class="font-medium" style="color:#90acff;">
                                                         {{ url('/' . $bioLink->alias) }} <i class="fas fa-external-link-alt ml-1 text-[9px]"></i>
                                                     </a>
                                                 @else
@@ -227,7 +227,7 @@
                                                 <a href="tel:{{ $c->phones->first()->value_e164 ?: $c->phones->first()->value }}" class="px-2.5 py-1 rounded-lg text-[10px] font-medium text-center" style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)"><i class="fas fa-phone"></i></a>
                                             @endif
                                             @if($bioLink)
-                                                <a href="{{ url('/' . $bioLink->alias) }}" target="_blank" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white text-center" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">Open</a>
+                                                <a href="{{ url('/' . $bioLink->alias) }}" target="_blank" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white text-center" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">Open</a>
                                             @endif
                                         </div>
                                     </div>
@@ -237,8 +237,8 @@
                     @else
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             @foreach($contacts as $c)
-                                <a href="{{ route('user.contacts.show', $c) }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);" onmouseover="this.style.background='rgba(124,58,237,.08)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
-                                    <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background: linear-gradient(135deg,#7c3aed,#ec4899);">
+                                <a href="{{ route('user.contacts.show', $c) }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);" onmouseover="this.style.background='rgba(61,107,255,.08)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
+                                    <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
                                         @if($c->photoUrl())
                                             <img src="{{ $c->photoUrl() }}" class="w-full h-full rounded-full object-cover">
                                         @else

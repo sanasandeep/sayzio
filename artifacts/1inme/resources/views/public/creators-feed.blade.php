@@ -5,7 +5,7 @@
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
                 <i class="fas fa-stream text-[10px]"></i> Live feed
             </span>
             <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
@@ -42,12 +42,12 @@
             <div class="space-y-5" data-anim="fade-up" data-stagger>
                 @foreach($posts as $p)
                     @php($u = $p->user)
-                    <article class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-violet-400/40 transition">
+                    <article class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-blue-400/40 transition">
                         <header class="flex items-center gap-3 mb-3">
                             @if($u && $u->avatar)
                                 <img src="{{ $u->avatar }}" alt="{{ $u?->name ?? 'Avatar' }}" class="w-10 h-10 rounded-full object-cover ring-2 ring-white/5">
                             @else
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/5">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/5">
                                     {{ strtoupper(mb_substr($u?->name ?? '?', 0, 1)) }}
                                 </div>
                             @endif
@@ -55,13 +55,13 @@
                                 <div class="text-sm font-semibold text-white truncate">{{ $u?->name ?: 'Creator' }}</div>
                                 <div class="text-[11px] text-white/40 truncate">
                                     @if($u?->handle)
-                                        <a href="/{{ $u->handle }}" class="hover:text-violet-400">@{{ $u->handle }}</a> ·
+                                        <a href="/{{ $u->handle }}" class="hover:text-blue-400">@{{ $u->handle }}</a> ·
                                     @endif
                                     {{ $p->published_at?->diffForHumans() }}
                                 </div>
                             </div>
                             @if($showPinned && $p->pinned_at)
-                                <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-violet-500/15 text-violet-300"><i class="fas fa-thumbtack mr-1"></i>Pinned</span>
+                                <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-blue-500/15 text-blue-300"><i class="fas fa-thumbtack mr-1"></i>Pinned</span>
                             @endif
                         </header>
                         @if($p->title)

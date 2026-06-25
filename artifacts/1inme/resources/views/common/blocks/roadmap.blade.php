@@ -35,7 +35,7 @@
     $statusAccent = [
         'ideas'       => '#94a3b8',
         'planned'     => '#60a5fa',
-        'in_progress' => '#a78bfa',
+        'in_progress' => '#90acff',
         'shipped'     => '#34d399',
     ];
 

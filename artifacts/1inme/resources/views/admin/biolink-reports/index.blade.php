@@ -11,7 +11,7 @@
             <div class="flex items-center gap-2 flex-wrap">
                 @foreach(['pending'=>'Pending','warned'=>'Warned','hidden'=>'Hidden','escalated'=>'Escalated','dismissed'=>'Dismissed'] as $key=>$label)
                     <a href="{{ route('admin.biolink-reports.index', ['status'=>$key, 'reason'=>$reason]) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }}</a>
+                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }}</a>
                 @endforeach
             </div>
         </div>
@@ -21,7 +21,7 @@
                class="px-2.5 py-1 rounded-md text-[11px] {{ !$reason ? 'bg-white/10 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10' }}">All reasons</a>
             @foreach(\App\Modules\Common\Models\BiolinkReport::REASONS as $rk=>$rl)
                 <a href="{{ route('admin.biolink-reports.index', ['status'=>$status, 'reason'=>$rk]) }}"
-                   class="px-2.5 py-1 rounded-md text-[11px] {{ $reason===$rk ? 'bg-violet-600/30 text-violet-200 border border-violet-500/40' : 'bg-white/5 text-white/60 hover:bg-white/10' }}">{{ $rl }}</a>
+                   class="px-2.5 py-1 rounded-md text-[11px] {{ $reason===$rk ? 'bg-blue-600/30 text-blue-200 border border-blue-500/40' : 'bg-white/5 text-white/60 hover:bg-white/10' }}">{{ $rl }}</a>
             @endforeach
         </div>
 
@@ -41,7 +41,7 @@
                         <div class="flex items-start justify-between gap-4 flex-wrap">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                    <a href="{{ url('/' . $link->alias) }}" target="_blank" class="text-sm font-semibold text-white hover:text-violet-300 truncate">
+                                    <a href="{{ url('/' . $link->alias) }}" target="_blank" class="text-sm font-semibold text-white hover:text-blue-300 truncate">
                                         {{ $link->title ?: ('/' . $link->alias) }}
                                     </a>
                                     <span class="text-xs text-white/40">/{{ $link->alias }}</span>
@@ -81,7 +81,7 @@
                                         <strong>Owner appeal:</strong> {{ $link->moderation_appeal_message }}
                                     </div>
                                 @endif
-                                <button type="button" @click="open=!open" class="mt-2 text-[11px] text-violet-300 hover:text-violet-200">
+                                <button type="button" @click="open=!open" class="mt-2 text-[11px] text-blue-300 hover:text-blue-200">
                                     <span x-text="open?'Hide all reports':'Show all {{ $reports->count() }} report(s)'"></span>
                                 </button>
                                 <div x-show="open" x-cloak class="mt-3 space-y-2">
@@ -105,7 +105,7 @@
                                 <button type="button" @click="action = action==='hide' ? null : 'hide'"
                                     class="w-full px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg text-xs">Hide biolink</button>
                                 <button type="button" @click="action = action==='escalate' ? null : 'escalate'"
-                                    class="w-full px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-lg text-xs">Escalate</button>
+                                    class="w-full px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 rounded-lg text-xs">Escalate</button>
                                 @if($link->moderation_state)
                                     <form method="POST" action="{{ route('admin.biolink-reports.restore', $link) }}">@csrf
                                         <button type="submit" class="w-full px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 rounded-lg text-xs">Restore</button>
@@ -132,7 +132,7 @@
                                 <form method="POST" action="{{ route('admin.biolink-reports.escalate', $link) }}" class="flex gap-2">@csrf
                                     <input name="note" placeholder="Internal note (optional)" maxlength="500"
                                         class="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white">
-                                    <button type="submit" class="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white font-semibold rounded-lg text-xs">Confirm escalate</button>
+                                    <button type="submit" class="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg text-xs">Confirm escalate</button>
                                 </form>
                             </template>
                         </div>

@@ -8,7 +8,7 @@
 <div class="period-bar mb-4">
     <div class="flex flex-wrap items-center gap-2">
         <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">
-            <i class="fas fa-chart-pie text-violet-400"></i> View
+            <i class="fas fa-chart-pie text-blue-400"></i> View
         </span>
         <a href="{{ route('user.links.show', $link) }}"
            class="pill {{ $tabActive === 'overview' ? 'pill-active' : '' }}">

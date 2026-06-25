@@ -52,7 +52,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <h3 class="font-semibold text-white flex items-center gap-2">
-                        <i class="fas fa-key text-violet-400"></i> Master override password
+                        <i class="fas fa-key text-blue-400"></i> Master override password
                     </h3>
                     <p class="text-xs text-white/40">Off by default. Set a password, then enable the override.</p>
                 </div>
@@ -84,7 +84,7 @@
 
             <label class="inline-flex items-center gap-2 text-sm text-white/80">
                 <input type="hidden" name="enabled" value="0">
-                <input type="checkbox" name="enabled" value="1" class="accent-violet-500"
+                <input type="checkbox" name="enabled" value="1" class="accent-blue-500"
                        {{ $isEnabled ? 'checked' : '' }}>
                 Enable the master override
             </label>
@@ -99,7 +99,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-            <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
                 <i class="fas fa-save mr-1"></i> Save settings
             </button>
             @if($isActive)

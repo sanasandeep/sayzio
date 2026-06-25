@@ -16,7 +16,7 @@
     <div class="bg-mesh"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(61,107,255,0.12) 0%, transparent 70%);"></div>
         <div class="absolute -bottom-24 -left-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);"></div>
     </div>
 
@@ -31,8 +31,8 @@
             </div>
 
             <div class="text-center mb-6">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                    <i class="fas fa-lock text-violet-400"></i>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                    <i class="fas fa-lock text-blue-400"></i>
                 </div>
                 <h2 class="text-lg font-bold" style="color: var(--text-primary);">Admin Password Reset</h2>
                 <p class="text-xs mt-1" style="color: var(--text-dimmed);">Enter your admin email to receive a reset link.</p>
@@ -64,7 +64,7 @@
             </form>
 
             <p class="mt-6 text-center text-xs">
-                <a href="{{ route('admin.login') }}" class="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
+                <a href="{{ route('admin.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
                     <i class="fas fa-arrow-left text-[10px] mr-1"></i> Back to login
                 </a>
             </p>

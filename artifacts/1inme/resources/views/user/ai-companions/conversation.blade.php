@@ -19,7 +19,7 @@
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
         @forelse($messages as $m)
             <div class="flex {{ $m->role === 'user' ? 'justify-start' : 'justify-end' }}">
-                <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm {{ $m->role === 'user' ? 'bg-white/10 text-white' : 'bg-violet-600/30 text-white' }}">
+                <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm {{ $m->role === 'user' ? 'bg-white/10 text-white' : 'bg-blue-600/30 text-white' }}">
                     <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">{{ $m->role === 'user' ? 'Visitor' : 'AI' }} · {{ $m->created_at->diffForHumans() }}</div>
                     <div class="whitespace-pre-wrap">{{ $m->content }}</div>
                     @if(!empty($m->citations))

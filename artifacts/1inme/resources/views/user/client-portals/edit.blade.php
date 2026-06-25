@@ -62,7 +62,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs opacity-70 mb-1">Color</label>
-                        <input type="color" name="brand_color" value="{{ $portal->brand_color ?: '#7c3aed' }}" class="h-10 w-full rounded border" style="border-color: var(--border-strong); background: var(--bg-input);">
+                        <input type="color" name="brand_color" value="{{ $portal->brand_color ?: '#3d6bff' }}" class="h-10 w-full rounded border" style="border-color: var(--border-strong); background: var(--bg-input);">
                     </div>
                     <div>
                         <label class="block text-xs opacity-70 mb-1">Enabled</label>

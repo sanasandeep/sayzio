@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="max-w-4xl space-y-5">
-    <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-violet-300 hover:underline">← Back to report</a>
+    <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-blue-300 hover:underline">← Back to report</a>
 
     <div class="glass rounded-2xl border border-white/10 p-6 flex items-center justify-between">
         <div>
             <p class="text-xs uppercase tracking-wider text-white/40">Coin balance</p>
-            <p class="text-4xl font-bold text-violet-300 mt-1">{{ number_format($balance) }}</p>
+            <p class="text-4xl font-bold text-blue-300 mt-1">{{ number_format($balance) }}</p>
             <p class="text-xs text-white/40 mt-1">AI usage is paid from the coin wallet.</p>
         </div>
         <div>
@@ -34,7 +34,7 @@
                    class="w-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
             <input type="text" name="reason" required maxlength="500" placeholder="Reason"
                    class="flex-1 min-w-[260px] bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-            <button class="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700">Apply</button>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Apply</button>
         </div>
     </form>
 

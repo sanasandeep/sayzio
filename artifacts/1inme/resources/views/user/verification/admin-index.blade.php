@@ -18,7 +18,7 @@
             <a href="{{ route('user.verification.admin', ['status' => 'rejected']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ request('status') === 'rejected' ? 'text-white' : '' }}" style="{{ request('status') === 'rejected' ? 'background: #ef4444;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
                 Rejected
             </a>
-            <a href="{{ route('user.verification.admin') }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ !request('status') ? 'text-white' : '' }}" style="{{ !request('status') ? 'background: #7c3aed;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
+            <a href="{{ route('user.verification.admin') }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ !request('status') ? 'text-white' : '' }}" style="{{ !request('status') ? 'background: #3d6bff;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
                 All
             </a>
         </div>
@@ -39,12 +39,12 @@
                     @if($req->logo_path)
                     <img src="{{ asset('storage/' . $req->logo_path) }}" alt="" class="w-12 h-12 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
                     @else
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-building text-violet-400"></i></div>
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-building text-blue-400"></i></div>
                     @endif
                     <div>
                         <div class="flex items-center gap-2 mb-0.5">
                             <span class="text-sm font-bold" style="color: var(--text-primary);">{{ $req->display_name }}</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $req->category === 'artist_creator' ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-500/10 text-violet-400' }}">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $req->category === 'artist_creator' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-500/10 text-blue-400' }}">
                                 {{ $req->category === 'artist_creator' ? 'Artist / Creator' : 'Business / Product' }}
                             </span>
                         </div>
@@ -71,8 +71,8 @@
     <div class="mt-6">{{ $requests->withQueryString()->links() }}</div>
     @else
     <div class="card-premium p-10 text-center">
-        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: rgba(124,58,237,0.1);">
-            <i class="fas fa-inbox text-violet-400 text-2xl"></i>
+        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: rgba(61,107,255,0.1);">
+            <i class="fas fa-inbox text-blue-400 text-2xl"></i>
         </div>
         <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">No verification requests</h3>
         <p class="text-xs" style="color: var(--text-dimmed);">{{ request('status') ? 'No ' . request('status') . ' requests found.' : 'No requests submitted yet.' }}</p>

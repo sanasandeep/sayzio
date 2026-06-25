@@ -34,7 +34,7 @@
         html, body { margin: 0; padding: 0; min-height: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-            background: radial-gradient(1200px 600px at 20% 10%, rgba(124,58,237,0.18), transparent 60%),
+            background: radial-gradient(1200px 600px at 20% 10%, rgba(61,107,255,0.18), transparent 60%),
                         radial-gradient(900px 500px at 90% 100%, rgba(59,130,246,0.18), transparent 60%),
                         #0b0b14;
             color: #e7e7f0;
@@ -53,19 +53,19 @@
         .badge {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 6px 12px; border-radius: 999px; font-size: 12px;
-            background: rgba(124,58,237,0.12);
-            border: 1px solid rgba(124,58,237,0.35);
-            color: #c4b5fd; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+            background: rgba(61,107,255,0.12);
+            border: 1px solid rgba(61,107,255,0.35);
+            color: #bccfff; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
         }
-        .logo { font-size: 13px; font-weight: 800; letter-spacing: 0.2em; color: #a78bfa; text-transform: uppercase; margin-bottom: 18px; }
+        .logo { font-size: 13px; font-weight: 800; letter-spacing: 0.2em; color: #90acff; text-transform: uppercase; margin-bottom: 18px; }
         h1 { font-size: 28px; margin: 20px 0 10px; font-weight: 700; }
         p  { font-size: 15px; line-height: 1.6; color: rgba(231,231,240,0.78); margin: 8px 0; }
         .cta {
             display: inline-block; margin-top: 24px; padding: 12px 22px;
-            background: #7c3aed; color: #fff; text-decoration: none;
+            background: #3d6bff; color: #fff; text-decoration: none;
             border-radius: 999px; font-size: 14px; font-weight: 700;
         }
-        .cta:hover { background: #6d28d9; }
+        .cta:hover { background: #2342c7; }
         .meta { margin-top: 24px; font-size: 11px; color: rgba(231,231,240,0.4); letter-spacing: 0.06em; text-transform: uppercase; }
     </style>
 </head>

@@ -37,7 +37,7 @@
                             <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="font-mono font-bold text-sm px-2 py-0.5 rounded"
-                                          style="background: rgba(139,92,246,0.12); color: #8b5cf6;">{{ $promo->code }}</span>
+                                          style="background: rgba(92,131,255,0.12); color: #5c83ff;">{{ $promo->code }}</span>
                                     <span class="text-xs font-semibold" style="color: var(--text-secondary);">{{ $promo->describe() }}</span>
                                     <span class="text-[11px] px-2 py-0.5 rounded-full"
                                           style="background: rgba({{ $badge[1] }},0.12); color: {{ $badge[2] }};">{{ $badge[0] }}</span>
@@ -131,7 +131,7 @@
                                 <div class="md:col-span-3 flex justify-end gap-2">
                                     <button type="button" @click="editing = false"
                                             class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border-color); color: var(--text-secondary);">Cancel</button>
-                                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background: #8b5cf6; color: white;">Save changes</button>
+                                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background: #5c83ff; color: white;">Save changes</button>
                                 </div>
                             </form>
                         </div>
@@ -192,7 +192,7 @@
             @endif
 
             <div class="md:col-span-3 flex justify-end">
-                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background: #8b5cf6; color: white;">
+                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background: #5c83ff; color: white;">
                     Add code
                 </button>
             </div>

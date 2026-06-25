@@ -17,7 +17,7 @@
                 <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
             </button>
             <button type="button" @click="if({{ $modelKey }}.length<24) {{ $modelKey }}.push({quote:'',name:'',role:'',photo:''})"
-                    class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                    class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                 <i class="fas fa-plus mr-1"></i> Add testimonial
             </button>
         </div>
@@ -50,7 +50,7 @@
                 <template x-for="(t,i) in {{ $modelKey }}" :key="'{{ $modelKey }}p'+i">
                     <figure x-show="(t.quote || '').trim() !== ''"
                             class="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col">
-                        <div class="text-violet-300/70 text-xl leading-none mb-2" aria-hidden="true">&ldquo;</div>
+                        <div class="text-blue-300/70 text-xl leading-none mb-2" aria-hidden="true">&ldquo;</div>
                         <blockquote class="text-gray-200 text-xs leading-relaxed flex-1" x-text="t.quote"></blockquote>
                         <figcaption class="mt-3 flex items-center gap-2.5">
                             <template x-if="(t.photo || '').trim() !== ''">
@@ -59,7 +59,7 @@
                             </template>
                             <template x-if="(t.photo || '').trim() === ''">
                                 <div class="w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center"
-                                     style="background:linear-gradient(135deg,#7c3aed,#ec4899);"
+                                     style="background:linear-gradient(135deg,#3d6bff,#ec4899);"
                                      x-text="((t.name || '·').trim().charAt(0) || '·').toUpperCase()"></div>
                             </template>
                             <div class="min-w-0">

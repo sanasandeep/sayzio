@@ -35,7 +35,7 @@
                             </form>
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <a href="{{ route('admin.payment-gateways.edit', $r['slug']) }}" class="text-violet-300 hover:text-violet-200">Configure</a>
+                            <a href="{{ route('admin.payment-gateways.edit', $r['slug']) }}" class="text-blue-300 hover:text-blue-200">Configure</a>
                         </td>
                     </tr>
                 @endforeach

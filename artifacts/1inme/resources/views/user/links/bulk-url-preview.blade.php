@@ -46,18 +46,18 @@
             <span class="font-semibold text-white/80">Applies to all:</span>
             @if(!empty($shared['domain_id']))
                 @php $d = $domains->firstWhere('id', $shared['domain_id']); @endphp
-                @if($d)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-globe mr-1 text-violet-400"></i>{{ $d->domain }}</span>@endif
+                @if($d)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-globe mr-1 text-blue-400"></i>{{ $d->domain }}</span>@endif
             @endif
             @if(!empty($shared['project_id']))
                 @php $p = $projects->firstWhere('id', $shared['project_id']); @endphp
-                @if($p)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-folder mr-1 text-violet-400"></i>{{ $p->name }}</span>@endif
+                @if($p)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-folder mr-1 text-blue-400"></i>{{ $p->name }}</span>@endif
             @endif
             <span class="px-2 py-1 rounded-md bg-white/5 border border-white/10">Redirect: {{ $shared['redirect_type'] }}</span>
             @if(!empty($shared['expires_at']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-clock mr-1 text-amber-400"></i>Expires {{ $shared['expires_at'] }}</span>@endif
-            @if(!empty($shared['password']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-lock mr-1 text-violet-400"></i>Password protected</span>@endif
-            @if(!empty($shared['utm_source']) || !empty($shared['utm_medium']) || !empty($shared['utm_campaign']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-chart-bar mr-1 text-violet-400"></i>UTM tags</span>@endif
-            @if(!empty($shared['pixel_ids']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-bullseye mr-1 text-violet-400"></i>{{ count($shared['pixel_ids']) }} pixel(s)</span>@endif
-            @if(!empty($shared['show_preview_page']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-eye mr-1 text-violet-400"></i>Preview page on</span>@endif
+            @if(!empty($shared['password']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-lock mr-1 text-blue-400"></i>Password protected</span>@endif
+            @if(!empty($shared['utm_source']) || !empty($shared['utm_medium']) || !empty($shared['utm_campaign']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-chart-bar mr-1 text-blue-400"></i>UTM tags</span>@endif
+            @if(!empty($shared['pixel_ids']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-bullseye mr-1 text-blue-400"></i>{{ count($shared['pixel_ids']) }} pixel(s)</span>@endif
+            @if(!empty($shared['show_preview_page']))<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-eye mr-1 text-blue-400"></i>Preview page on</span>@endif
         </div>
 
         <div class="glass rounded-2xl overflow-hidden mb-6">
@@ -79,17 +79,17 @@
                         <td class="px-3 py-2 text-white/40 align-top pt-3">{{ $i + 1 }}</td>
                         <td class="px-3 py-2 align-top">
                             <input type="url" name="rows[{{ $i }}][long_url]" value="{{ $row['long_url'] }}"
-                                   class="w-full bg-white/5 border {{ $hasErr ? 'border-red-500/40' : 'border-white/10' }} rounded-lg px-2 py-1.5 text-xs text-white focus:ring-2 focus:ring-violet-500/40 outline-none font-mono">
+                                   class="w-full bg-white/5 border {{ $hasErr ? 'border-red-500/40' : 'border-white/10' }} rounded-lg px-2 py-1.5 text-xs text-white focus:ring-2 focus:ring-blue-500/40 outline-none font-mono">
                         </td>
                         <td class="px-3 py-2 align-top">
                             <input type="text" name="rows[{{ $i }}][alias]" value="{{ $row['alias'] ?: $row['final_alias'] }}"
                                    placeholder="auto"
-                                   class="w-full bg-white/5 border {{ $hasErr ? 'border-red-500/40' : 'border-white/10' }} rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border {{ $hasErr ? 'border-red-500/40' : 'border-white/10' }} rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </td>
                         <td class="px-3 py-2 align-top">
                             <input type="text" name="rows[{{ $i }}][title]" value="{{ $row['title'] }}"
                                    placeholder="—"
-                                   class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </td>
                         <td class="px-3 py-2 align-top">
                             @if($hasErr)
@@ -104,7 +104,7 @@
                         </td>
                         <td class="px-3 py-3 text-center align-top">
                             <input type="checkbox" name="rows[{{ $i }}][skip]" value="1" {{ $hasErr ? 'checked' : '' }}
-                                   class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
+                                   class="rounded bg-white/5 border-white/20 text-blue-600 focus:ring-blue-500/40">
                         </td>
                     </tr>
                     @endforeach
@@ -116,7 +116,7 @@
             <a href="{{ route('user.links.url.bulk') }}" class="px-5 py-2.5 text-sm text-white/50 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                 <i class="fas fa-arrow-left mr-1"></i> Edit input
             </a>
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20"
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20"
                     onclick="return confirm('Create the unskipped links now?')">
                 <i class="fas fa-check mr-1.5 text-xs"></i> Create {{ $validCount }} link{{ $validCount === 1 ? '' : 's' }}
             </button>

@@ -47,7 +47,7 @@
 
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-1">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-eye text-violet-400 text-xs"></i></div>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-eye text-blue-400 text-xs"></i></div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Visibility</h3>
                 </div>
                 <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Choose who can view this page. Restricted tiers show a gated screen to everyone else.</p>
@@ -62,7 +62,7 @@
 
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-1">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(59,130,246,0.1);"><i class="fas fa-search text-violet-400 text-xs"></i></div>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(59,130,246,0.1);"><i class="fas fa-search text-blue-400 text-xs"></i></div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">SEO & Meta Tags</h3>
                 </div>
                 <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Control how search engines index and display your page.</p>
@@ -169,7 +169,7 @@
 
                     <div class="pt-3 mt-3" style="border-top: 1px solid var(--border-glass);">
                         <div class="flex items-center gap-2 mb-3">
-                            <i class="fab fa-twitter text-violet-400 text-xs"></i>
+                            <i class="fab fa-twitter text-blue-400 text-xs"></i>
                             <span class="text-xs font-semibold" style="color: var(--text-primary);">Twitter Card</span>
                         </div>
                         <div class="space-y-3">
@@ -285,14 +285,14 @@
 
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-1">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-mobile-alt text-violet-400 text-xs"></i></div>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-mobile-alt text-blue-400 text-xs"></i></div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Web App Manifest (PWA)</h3>
                 </div>
                 <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Make your page installable as a Progressive Web App on mobile devices.</p>
                 <div class="space-y-3">
                     <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all hover:bg-white/[0.02]" style="border: 1px solid var(--border-glass);">
                         <input type="hidden" name="manifest[enabled]" value="0">
-                        <input type="checkbox" name="manifest[enabled]" value="1" {{ ($manifest['enabled'] ?? false) ? 'checked' : '' }} class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <input type="checkbox" name="manifest[enabled]" value="1" {{ ($manifest['enabled'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500 focus:ring-blue-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                         <div>
                             <span class="text-xs font-semibold" style="color: var(--text-primary);">Enable Web App Manifest</span>
                             <p class="text-[10px]" style="color: var(--text-dimmed);">Adds a manifest.json so visitors can install your page as an app</p>
@@ -336,8 +336,8 @@
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Theme Color</label>
                             <div class="flex items-center gap-2">
-                                <input type="color" name="manifest[theme_color]" value="{{ $manifest['theme_color'] ?? '#7c3aed' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
-                                <input type="text" value="{{ $manifest['theme_color'] ?? '#7c3aed' }}" class="theme-input flex-1 text-xs font-mono"
+                                <input type="color" name="manifest[theme_color]" value="{{ $manifest['theme_color'] ?? '#3d6bff' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
+                                <input type="text" value="{{ $manifest['theme_color'] ?? '#3d6bff' }}" class="theme-input flex-1 text-xs font-mono"
                                     oninput="this.previousElementSibling.value = this.value"
                                     onchange="this.previousElementSibling.value = this.value">
                             </div>
@@ -370,13 +370,13 @@
             <div class="card-premium p-6" x-data="shareButtonSettings()">
                 <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-share-nodes text-violet-400 text-xs"></i></div>
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-share-nodes text-blue-400 text-xs"></i></div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Share Button & QR Code</h3>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="hidden" name="share_button[enabled]" value="0">
                         <input type="checkbox" name="share_button[enabled]" value="1" x-model="enabled" class="sr-only peer">
-                        <div class="w-9 h-5 rounded-full peer-focus:ring-2 peer-focus:ring-violet-500/40 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="enabled ? 'background: #7c3aed' : ''">
+                        <div class="w-9 h-5 rounded-full peer-focus:ring-2 peer-focus:ring-blue-500/40 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="enabled ? 'background: #3d6bff' : ''">
                             <div class="absolute top-[2px] start-[2px] rounded-full h-4 w-4 transition-all bg-white" :class="enabled ? 'translate-x-4' : ''"></div>
                         </div>
                     </label>
@@ -386,7 +386,7 @@
                 <div x-show="enabled" x-transition class="space-y-4">
                     <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all hover:bg-white/[0.02]" style="border: 1px solid var(--border-glass);">
                         <input type="hidden" name="share_button[show_qr]" value="0">
-                        <input type="checkbox" name="share_button[show_qr]" value="1" {{ ($shareBtn['show_qr'] ?? true) ? 'checked' : '' }} class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <input type="checkbox" name="share_button[show_qr]" value="1" {{ ($shareBtn['show_qr'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500 focus:ring-blue-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                         <div>
                             <span class="text-xs font-semibold" style="color: var(--text-primary);">Show QR Code</span>
                             <p class="text-[10px]" style="color: var(--text-dimmed);">Display a scannable QR code in the share popup</p>
@@ -431,8 +431,8 @@
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button Color</label>
                             <div class="flex items-center gap-2">
-                                <input type="color" name="share_button[color]" value="{{ $shareBtn['color'] ?? '#7c3aed' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
-                                <input type="text" value="{{ $shareBtn['color'] ?? '#7c3aed' }}" class="theme-input flex-1 text-xs font-mono" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
+                                <input type="color" name="share_button[color]" value="{{ $shareBtn['color'] ?? '#3d6bff' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
+                                <input type="text" value="{{ $shareBtn['color'] ?? '#3d6bff' }}" class="theme-input flex-1 text-xs font-mono" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
                             </div>
                         </div>
                         <div>
@@ -446,7 +446,7 @@
 
                     <div class="p-4 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
                         <div class="flex items-center gap-2 mb-3">
-                            <i class="fas fa-qrcode text-violet-400 text-[10px]"></i>
+                            <i class="fas fa-qrcode text-blue-400 text-[10px]"></i>
                             <span class="text-xs font-semibold" style="color: var(--text-primary);">QR Code Appearance</span>
                         </div>
                         <div class="grid grid-cols-3 gap-3">
@@ -476,13 +476,13 @@
             <div class="card-premium p-6" x-data="menuBarSettings()">
                 <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(59,130,246,0.1);"><i class="fas fa-bars text-violet-400 text-xs"></i></div>
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(59,130,246,0.1);"><i class="fas fa-bars text-blue-400 text-xs"></i></div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Navigation Menu Bar</h3>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="hidden" name="menu_bar[enabled]" value="0">
                         <input type="checkbox" name="menu_bar[enabled]" value="1" x-model="enabled" class="sr-only peer">
-                        <div class="w-9 h-5 rounded-full peer-focus:ring-2 peer-focus:ring-violet-500/40 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="enabled ? 'background: #3b82f6' : ''">
+                        <div class="w-9 h-5 rounded-full peer-focus:ring-2 peer-focus:ring-blue-500/40 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="enabled ? 'background: #3b82f6' : ''">
                             <div class="absolute top-[2px] start-[2px] rounded-full h-4 w-4 transition-all bg-white" :class="enabled ? 'translate-x-4' : ''"></div>
                         </div>
                     </label>
@@ -536,8 +536,8 @@
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Active</label>
                             <div class="flex items-center gap-1">
-                                <input type="color" name="menu_bar[active_color]" value="{{ $menuBar['active_color'] ?? '#7c3aed' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
-                                <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['active_color'] ?? '#7c3aed' }}</span>
+                                <input type="color" name="menu_bar[active_color]" value="{{ $menuBar['active_color'] ?? '#3d6bff' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['active_color'] ?? '#3d6bff' }}</span>
                             </div>
                         </div>
                     </div>
@@ -562,10 +562,10 @@
                     <div class="p-4 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2">
-                                <i class="fas fa-link text-violet-400 text-[10px]"></i>
+                                <i class="fas fa-link text-blue-400 text-[10px]"></i>
                                 <span class="text-xs font-semibold" style="color: var(--text-primary);">Menu Items</span>
                             </div>
-                            <button type="button" @click="addItem()" class="text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all" style="background: rgba(59,130,246,0.15); color: #a78bfa;">
+                            <button type="button" @click="addItem()" class="text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all" style="background: rgba(59,130,246,0.15); color: #90acff;">
                                 <i class="fas fa-plus mr-1"></i>Add Item
                             </button>
                         </div>
@@ -579,7 +579,7 @@
                                         </template>
                                         <template x-if="item.target === 'tab'">
                                             <div class="theme-input w-full text-xs flex items-center gap-1.5" style="opacity: 0.85;">
-                                                <i class="fas fa-folder-open text-violet-400 text-[10px]"></i>
+                                                <i class="fas fa-folder-open text-blue-400 text-[10px]"></i>
                                                 <span style="color: var(--text-dimmed);" x-text="'Tab #' + (item.id || (item.label || 'unnamed').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))"></span>
                                             </div>
                                         </template>
@@ -590,7 +590,7 @@
                                         </select>
                                     </div>
                                     <label class="flex items-center gap-1 cursor-pointer shrink-0">
-                                        <input type="checkbox" x-model="item.is_active" class="rounded text-violet-500 focus:ring-violet-500/40 w-3 h-3" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                        <input type="checkbox" x-model="item.is_active" class="rounded text-blue-500 focus:ring-blue-500/40 w-3 h-3" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                                         <span class="text-[9px]" style="color: var(--text-dimmed);">Active</span>
                                     </label>
                                     <button type="button" @click="removeItem(idx)" class="text-red-400/60 hover:text-red-400 transition-colors shrink-0">
@@ -687,7 +687,7 @@
 
             <div class="card-premium p-6" x-data="{ autoUtmEnabled: {{ !empty($autoUtm['enabled']) ? 'true' : 'false' }} }">
                 <div class="flex items-center gap-3 mb-1">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1);"><i class="fas fa-tags text-violet-400 text-xs"></i></div>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(92,131,255,0.1);"><i class="fas fa-tags text-blue-400 text-xs"></i></div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Auto-UTM on outbound links</h3>
                 </div>
                 <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">
@@ -695,7 +695,7 @@
                 </p>
                 <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all hover:bg-white/[0.02] mb-3" style="border: 1px solid var(--border-glass);">
                     <input type="hidden" name="auto_utm[enabled]" value="0">
-                    <input type="checkbox" name="auto_utm[enabled]" value="1" x-model="autoUtmEnabled" class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                    <input type="checkbox" name="auto_utm[enabled]" value="1" x-model="autoUtmEnabled" class="rounded text-blue-500 focus:ring-blue-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                     <div>
                         <span class="text-xs font-semibold" style="color: var(--text-primary);">Enable Auto-UTM for this biolink</span>
                         <p class="text-[10px]" style="color: var(--text-dimmed);">Defaults: source <code>1inme</code>, medium <code>biolink</code>, campaign <code>{slug}</code>, content <code>{block}</code>.</p>
@@ -728,7 +728,7 @@
                 <div class="space-y-3">
                     <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all hover:bg-white/[0.02]" style="border: 1px solid var(--border-glass);">
                         <input type="hidden" name="verified_badge" value="0">
-                        <input type="checkbox" name="verified_badge" value="1" {{ ($bs['verified_badge'] ?? false) ? 'checked' : '' }} class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <input type="checkbox" name="verified_badge" value="1" {{ ($bs['verified_badge'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500 focus:ring-blue-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                         <div>
                             <span class="text-xs font-semibold" style="color: var(--text-primary);">Verified badge</span>
                             <p class="text-[10px]" style="color: var(--text-dimmed);">Show a verified checkmark on your page</p>
@@ -736,7 +736,7 @@
                     </label>
                     <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all hover:bg-white/[0.02]" style="border: 1px solid var(--border-glass);">
                         <input type="hidden" name="branding_hidden" value="0">
-                        <input type="checkbox" name="branding_hidden" value="1" {{ ($bs['branding_hidden'] ?? false) ? 'checked' : '' }} class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <input type="checkbox" name="branding_hidden" value="1" {{ ($bs['branding_hidden'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500 focus:ring-blue-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                         <div>
                             <span class="text-xs font-semibold" style="color: var(--text-primary);">Hide "Powered by Sayzio"</span>
                             <p class="text-[10px]" style="color: var(--text-dimmed);">Remove the default branding footer</p>
@@ -766,9 +766,9 @@
 
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-1">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1);"><i class="fas fa-code text-violet-400 text-xs"></i></div>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(92,131,255,0.1);"><i class="fas fa-code text-blue-400 text-xs"></i></div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Custom CSS & JS</h3>
-                    @if(!$canCode)<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style="background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(124,58,237,0.1)); color: #8b5cf6;">PRO</span>@endif
+                    @if(!$canCode)<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style="background: linear-gradient(135deg, rgba(92,131,255,0.15), rgba(61,107,255,0.1)); color: #5c83ff;">PRO</span>@endif
                 </div>
                 @if($canCode)
                 <p class="text-[11px] mb-4" style="color: var(--text-dimmed);">Inject custom code into your Link in Bio page.</p>
@@ -777,7 +777,7 @@
                         @foreach(['css' => 'CSS', 'js_head' => 'JS (Head)', 'js_body' => 'JS (Body)'] as $ctKey => $ctLabel)
                         <button type="button" @click="codeTab = '{{ $ctKey }}'"
                                 :class="codeTab === '{{ $ctKey }}' ? 'text-white shadow-sm' : ''"
-                                :style="codeTab === '{{ $ctKey }}' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                                :style="codeTab === '{{ $ctKey }}' ? 'background: linear-gradient(135deg, #5c83ff, #3d6bff);' : 'color: var(--text-faint);'"
                                 class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">{{ $ctLabel }}</button>
                         @endforeach
                     </div>
@@ -787,7 +787,7 @@
                 </div>
                 @else
                 <p class="text-xs mt-2 mb-3" style="color: var(--text-dimmed);">Add custom CSS and JavaScript to your page.</p>
-                <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff;">Upgrade Plan</a>
+                <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg" style="background: linear-gradient(135deg, #5c83ff, #3d6bff); color: #fff;">Upgrade Plan</a>
                 @endif
             </div>
         </div>
@@ -854,11 +854,11 @@
                                 <span class="text-[10px]" style="color: var(--text-dimmed);">How visitors will see it</span>
                             </div>
                             <div class="rounded-xl p-3" style="background: #0f172a; border: 1px solid var(--border-glass);">
-                                <div class="rounded-lg p-3 flex flex-wrap items-center gap-3" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(124,58,237,0.45); box-shadow: 0 12px 32px rgba(2,6,23,0.55);">
+                                <div class="rounded-lg p-3 flex flex-wrap items-center gap-3" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(61,107,255,0.45); box-shadow: 0 12px 32px rgba(2,6,23,0.55);">
                                     <div class="flex-1 min-w-[180px] text-[12px] leading-snug" style="color: #f9fafb;" x-text="bannerText || 'This page uses essential cookies to work. With your consent we also load analytics and marketing pixels.'"></div>
                                     <div class="flex gap-2 flex-wrap">
                                         <button type="button" disabled class="px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-default" style="background: rgba(255,255,255,0.12); color: #f9fafb;" x-text="declineLabel || 'Decline'"></button>
-                                        <button type="button" disabled class="px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-default" style="background: #7c3aed; color: #fff;" x-text="acceptLabel || 'Accept'"></button>
+                                        <button type="button" disabled class="px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-default" style="background: #3d6bff; color: #fff;" x-text="acceptLabel || 'Accept'"></button>
                                     </div>
                                 </div>
                             </div>

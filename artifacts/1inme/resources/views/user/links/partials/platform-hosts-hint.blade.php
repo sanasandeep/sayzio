@@ -17,12 +17,12 @@
 @endphp
 @if(!empty($others))
     <div class="mt-2 flex items-start gap-2 text-[11px]" style="color: var(--text-faint, rgba(255,255,255,0.4));">
-        <i class="fas fa-globe mt-0.5 text-violet-400/70"></i>
+        <i class="fas fa-globe mt-0.5 text-blue-400/70"></i>
         <div class="min-w-0">
             <span>Also live on:</span>
             @foreach($others as $h)
                 <span class="inline-flex items-center px-1.5 py-0.5 ml-1 rounded font-mono text-[10px]"
-                      style="background: rgba(124,58,237,0.08); color: #a78bfa; border: 1px solid rgba(124,58,237,0.18);"
+                      style="background: rgba(61,107,255,0.08); color: #90acff; border: 1px solid rgba(61,107,255,0.18);"
                       title="{{ $alias ? $h.'/'.$alias : $h }}">{{ $h }}</span>
             @endforeach
         </div>

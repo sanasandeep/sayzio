@@ -108,18 +108,18 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Plan Name</label>
                     <input type="text" name="name" value="{{ old('name', $isEdit ? $plan->name : '') }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                     @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Description</label>
                     <textarea name="description" rows="2"
-                              class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('description', $isEdit ? $plan->description : '') }}</textarea>
+                              class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">{{ old('description', $isEdit ? $plan->description : '') }}</textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
-                        <select name="status" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <select name="status" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                             @php $st = old('status', $isEdit ? $plan->status : 'active'); @endphp
                             <option value="active"   {{ $st === 'active' ? 'selected' : '' }}>Active</option>
                             <option value="inactive" {{ $st === 'inactive' ? 'selected' : '' }}>Inactive</option>
@@ -128,7 +128,7 @@
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Sort Order</label>
                         <input type="number" name="sort_order" value="{{ old('sort_order', $isEdit ? $plan->sort_order : 0) }}" min="0"
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                 </div>
                 <div>
@@ -136,7 +136,7 @@
                         <input type="hidden" name="is_popular" value="0">
                         <input type="checkbox" name="is_popular" value="1"
                                {{ old('is_popular', $isEdit ? $plan->is_popular : false) ? 'checked' : '' }}
-                               class="rounded border-white/10 text-violet-400">
+                               class="rounded border-white/10 text-blue-400">
                         Show as Most Popular on homepage
                     </label>
                     <p class="text-[11px] text-white/40 mt-1 ml-2">Highlights this plan as the second card in the landing-page pricing block. Saving will clear the flag on any other plan.</p>
@@ -146,7 +146,7 @@
                         <input type="hidden" name="is_internal" value="0">
                         <input type="checkbox" name="is_internal" value="1"
                                {{ old('is_internal', $isEdit ? $plan->is_internal : false) ? 'checked' : '' }}
-                               class="rounded border-white/10 text-violet-400">
+                               class="rounded border-white/10 text-blue-400">
                         Internal plan (admin/staff only)
                     </label>
                     <p class="text-[11px] text-white/40 mt-1 ml-2">Hides this plan from the public pricing page, the in-app upgrade page and the smart-upgrade recommender. It stays assignable to users by admins/staff — use it for private/comp plans that should never appear in self-serve checkout.</p>
@@ -173,12 +173,12 @@
                         <div>
                             <label class="block text-xs text-white/40 mb-1">Monthly (USD, cents)</label>
                             <input type="number" name="monthly_price" value="{{ $mp }}" step="1" min="0" required
-                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-white/40 mb-1">Annual (USD, cents)</label>
                             <input type="number" name="annual_price" value="{{ $ap }}" step="1" min="0" required
-                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                     </div>
                 </div>
@@ -188,12 +188,12 @@
                         <div>
                             <label class="block text-xs text-white/40 mb-1">Monthly (INR, paise)</label>
                             <input type="number" name="monthly_price_secondary" value="{{ $ms }}" step="1" min="0" required
-                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-white/40 mb-1">Annual (INR, paise)</label>
                             <input type="number" name="annual_price_secondary" value="{{ $as }}" step="1" min="0" required
-                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </div>
                     </div>
                 </div>
@@ -247,7 +247,7 @@
             <input type="hidden" name="intro_discount[enabled]" value="0">
             <label class="flex items-center gap-3 mb-4 cursor-pointer">
                 <input type="checkbox" name="intro_discount[enabled]" value="1" x-model="enabled"
-                       class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
+                       class="w-4 h-4 rounded bg-white/5 border-white/20 text-blue-500 focus:ring-blue-500/40">
                 <span class="text-sm text-white/80">Enable an introductory discount for this plan</span>
             </label>
 
@@ -258,11 +258,11 @@
                     <div class="flex gap-2">
                         <label class="flex-1 cursor-pointer">
                             <input type="radio" name="intro_discount[type]" value="percent" x-model="type" class="peer sr-only">
-                            <div class="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 text-center peer-checked:border-violet-500/60 peer-checked:text-white peer-checked:bg-violet-500/10">Percentage off</div>
+                            <div class="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 text-center peer-checked:border-blue-500/60 peer-checked:text-white peer-checked:bg-blue-500/10">Percentage off</div>
                         </label>
                         <label class="flex-1 cursor-pointer">
                             <input type="radio" name="intro_discount[type]" value="fixed" x-model="type" class="peer sr-only">
-                            <div class="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 text-center peer-checked:border-violet-500/60 peer-checked:text-white peer-checked:bg-violet-500/10">Fixed amount off</div>
+                            <div class="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 text-center peer-checked:border-blue-500/60 peer-checked:text-white peer-checked:bg-blue-500/10">Fixed amount off</div>
                         </label>
                     </div>
                 </div>
@@ -271,7 +271,7 @@
                 <div x-show="type === 'percent'" x-cloak>
                     <label class="block text-xs text-white/40 mb-1">Percent off (1–100)</label>
                     <input type="number" name="intro_discount[percent]" value="{{ $introPercent }}" min="0" max="100" step="1" x-model="percent"
-                           class="w-40 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-40 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
 
                 {{-- Fixed amounts (minor units, mirroring the price inputs) --}}
@@ -280,13 +280,13 @@
                         <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD off</div>
                         <label class="block text-xs text-white/40 mb-1">Amount (USD, cents)</label>
                         <input type="number" name="intro_discount[fixed][USD]" value="{{ $introFixedUsd }}" min="0" step="1" x-model="fixedUsd"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                     <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
                         <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR off</div>
                         <label class="block text-xs text-white/40 mb-1">Amount (INR, paise)</label>
                         <input type="number" name="intro_discount[fixed][INR]" value="{{ $introFixedInr }}" min="0" step="1" x-model="fixedInr"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                 </div>
 
@@ -296,12 +296,12 @@
                     <div class="flex gap-4">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="intro_discount[cycles][]" value="monthly" x-model="cycles" {{ in_array('monthly', $introCycles, true) ? 'checked' : '' }}
-                                   class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
+                                   class="w-4 h-4 rounded bg-white/5 border-white/20 text-blue-500 focus:ring-blue-500/40">
                             <span class="text-sm text-white/70">Monthly</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="intro_discount[cycles][]" value="annual" x-model="cycles" {{ in_array('annual', $introCycles, true) ? 'checked' : '' }}
-                                   class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
+                                   class="w-4 h-4 rounded bg-white/5 border-white/20 text-blue-500 focus:ring-blue-500/40">
                             <span class="text-sm text-white/70">Annual</span>
                         </label>
                     </div>
@@ -312,16 +312,16 @@
                 <div>
                     <label class="block text-xs text-white/40 mb-1">Badge label <span class="text-white/30">(optional, max 120 chars)</span></label>
                     <input type="text" name="intro_discount[label]" value="{{ $introLabel }}" maxlength="120" placeholder="e.g. Launch offer — 50% off your first month"
-                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
 
                 {{-- Live preview: resulting normal vs. discounted first-term price.
                      Reads the base price inputs above (kept in sync on every form
                      edit) and the discount settings, so admins see exactly what the
                      pricing page will show without saving + reloading. --}}
-                <div class="rounded-xl border border-violet-400/20 bg-violet-500/[0.06] p-4">
+                <div class="rounded-xl border border-blue-400/20 bg-blue-500/[0.06] p-4">
                     <div class="text-xs font-semibold text-white/80 mb-1 flex items-center gap-1.5">
-                        <i class="fas fa-eye text-violet-300"></i> Live preview — normal vs. discounted first term
+                        <i class="fas fa-eye text-blue-300"></i> Live preview — normal vs. discounted first term
                     </div>
                     <p class="text-[11px] text-white/40 mb-3">Buyers see the struck-through normal price with the discounted first-term price as the headline. Renewals always charge the normal price.</p>
                     <div class="grid grid-cols-2 gap-3">
@@ -356,19 +356,19 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Trial Days</label>
                     <input type="number" name="trial_days" value="{{ old('trial_days', $isEdit ? $plan->trial_days : 0) }}" min="0" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                     <p class="text-[11px] text-white/40 mt-1">Free trial length for new subscribers.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Grace Days</label>
                     <input type="number" name="grace_days" value="{{ old('grace_days', $isEdit ? ($plan->grace_days ?? 7) : 7) }}" min="0" max="365" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                     <p class="text-[11px] text-white/40 mt-1">Days features remain active after a failed renewal before auto-downgrade.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1">Refund Window (days)</label>
                     <input type="number" name="refund_window_days" value="{{ old('refund_window_days', $isEdit ? ($plan->refund_window_days ?? 7) : 7) }}" min="0" max="365" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                     <p class="text-[11px] text-white/40 mt-1">Self-serve refund eligibility window after payment.</p>
                 </div>
             </div>
@@ -385,7 +385,7 @@
                     <div>
                         <label class="block text-xs text-white/60 mb-1">{{ $r['label'] }}</label>
                         <input type="number" name="features[{{ $r['key'] }}]" value="{{ (int) $val($r['key'], 0) }}" min="0"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <p class="text-[10px] text-white/40 mt-1">{{ $r['hint'] }}</p>
                     </div>
                 @endforeach
@@ -405,7 +405,7 @@
                         <input type="checkbox" name="features[{{ $mk }}]" value="1"
                                x-model="modules['{{ $mk }}']"
                                {{ $moduleOn($mk) ? 'checked' : '' }}
-                               class="mt-1 rounded border-white/10 text-violet-400">
+                               class="mt-1 rounded border-white/10 text-blue-400">
                         <span class="flex-1">
                             <span class="block text-sm font-medium text-white/90">{{ $m['label'] }}</span>
                             <span class="block text-[11px] text-white/40 leading-snug">{{ $m['desc'] }}</span>
@@ -441,7 +441,7 @@
                             <input type="number" name="features[{{ $q['key'] }}]" value="{{ $current }}" min="{{ $minAttr }}" @isset($q['max']) max="{{ $q['max'] }}" @endisset
                                    x-ref="qty_{{ $q['key'] }}"
                                    @if($rootModel) x-model.number="{{ $rootModel }}" @endif
-                                   class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-l-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-l-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                             <button type="button"
                                     @click="$refs.qty_{{ $q['key'] }}.value = '-1'@if($rootModel); {{ $rootModel }} = -1 @endif"
                                     title="Set to unlimited (-1)"
@@ -451,7 +451,7 @@
                             {{ $q['hint'] }} <span class="text-white/30">·</span> <code class="text-white/50">-1</code> = unlimited
                             @if($q['key'] === 'storage_limit_mb')
                                 <br>
-                                <span class="text-violet-300/80">
+                                <span class="text-blue-300/80">
                                     <span x-show="storageMb === -1" x-cloak>≈ Unlimited GB</span>
                                     <span x-show="storageMb > 0"   x-cloak>≈ <span x-text="(storageMb / 1024).toFixed(2)"></span> GB</span>
                                     <span x-show="storageMb === 0" x-cloak>0 GB</span>
@@ -488,7 +488,7 @@
                                 <input type="number" name="features[max_aliases_per_link_by_type][{{ $slug }}]"
                                        value="{{ is_numeric($tv) ? $tv : '' }}" min="-1" placeholder="inherit"
                                        x-ref="alias_{{ $slug }}"
-                                       class="flex-1 min-w-0 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-l-lg text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                       class="flex-1 min-w-0 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-l-lg text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                                 <button type="button" @click="$refs.alias_{{ $slug }}.value = '-1'" title="Set to unlimited (-1)"
                                         class="px-2.5 bg-white/10 border border-white/10 border-l-0 rounded-r-lg text-white/70 hover:text-white hover:bg-white/15 text-sm font-bold">∞</button>
                             </div>
@@ -511,7 +511,7 @@
                         <input type="hidden" name="features[teams]" value="0">
                         <input type="checkbox" name="features[teams]" value="1"
                                {{ $val('teams', false) ? 'checked' : '' }}
-                               class="rounded border-white/10 text-violet-400">
+                               class="rounded border-white/10 text-blue-400">
                         Teams enabled
                     </label>
                     <p class="text-[11px] text-white/40 mt-1 ml-2">Lets the user invite teammates into a workspace.</p>
@@ -523,7 +523,7 @@
                         <div class="flex items-stretch gap-1">
                             <input type="number" name="features[{{ $row['key'] }}]" value="{{ $scalarVal($row['key'], $row['default']) }}" min="-1"
                                    x-ref="qty_{{ $row['key'] }}"
-                                   class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-l-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-l-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                             <button type="button" @click="$refs.qty_{{ $row['key'] }}.value = '-1'" title="Set to unlimited (-1)"
                                     class="px-3 bg-white/10 border border-white/10 border-l-0 rounded-r-xl text-white/70 hover:text-white hover:bg-white/15 text-sm font-bold">∞</button>
                         </div>
@@ -537,7 +537,7 @@
         <section id="sec-storage" class="glass rounded-2xl border border-white/10 p-6">
             <header class="mb-4">
                 <h2 class="text-base font-semibold text-white">Total user storage</h2>
-                <p class="text-xs text-white/40">Live converter for the storage cap defined in <a href="#sec-quantities" class="text-violet-300 hover:underline">Quantity limits</a>. The per-upload size cap also lives there.</p>
+                <p class="text-xs text-white/40">Live converter for the storage cap defined in <a href="#sec-quantities" class="text-blue-300 hover:underline">Quantity limits</a>. The per-upload size cap also lives there.</p>
             </header>
             {{-- Read-only mirror that reads `storageMb` / `fileMb` from the root
                  x-data scope — they are bound to the canonical inputs in the
@@ -552,7 +552,7 @@
                         <span x-show="storageMb === -1" x-cloak>Unlimited storage.</span>
                         <span x-show="storageMb > 0"   x-cloak>≈ <span x-text="(storageMb / 1024).toFixed(2)"></span> GB</span>
                         <span x-show="storageMb === 0" x-cloak>No storage allowed.</span>
-                        <span class="text-white/30">·</span> Edit in <a href="#sec-quantities" class="text-violet-300 hover:underline">Quantity limits</a>.
+                        <span class="text-white/30">·</span> Edit in <a href="#sec-quantities" class="text-blue-300 hover:underline">Quantity limits</a>.
                     </p>
                 </div>
                 <div>
@@ -562,7 +562,7 @@
                     <p class="text-[10px] text-white/40 mt-1">
                         <span x-show="fileMb === -1" x-cloak>Unlimited per-file size.</span>
                         <span x-show="fileMb > 0"   x-cloak>Largest single upload.</span>
-                        <span class="text-white/30">·</span> Edit in <a href="#sec-quantities" class="text-violet-300 hover:underline">Quantity limits</a>.
+                        <span class="text-white/30">·</span> Edit in <a href="#sec-quantities" class="text-blue-300 hover:underline">Quantity limits</a>.
                     </p>
                 </div>
             </div>
@@ -577,7 +577,7 @@
                     <div class="mt-6 pt-5 border-t border-white/10">
                         <div class="flex items-center gap-2 mb-2">
                             <h3 class="text-sm font-medium text-white/80">Upload limits per location</h3>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/20">PER PLAN</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/20">PER PLAN</span>
                         </div>
                         <p class="text-[11px] text-white/40 mb-4">Override the maximum file size and allowed file types for each upload location. Leave blank to use the system default.</p>
                         <div x-data="{ open: {} }" class="space-y-3">
@@ -601,7 +601,7 @@
                                                            name="features[upload_limits][{{ $key }}][max_mb]"
                                                            value="{{ $row['max_mb'] }}"
                                                            placeholder="{{ $row['default_max_mb'] }}"
-                                                           class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                                           class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:ring-2 focus:ring-blue-500/40 outline-none">
                                                 </div>
                                                 <div class="col-span-8 md:col-span-6">
                                                     <label class="block text-[10px] text-white/40 mb-1">Allowed extensions <span class="text-white/30">(default: {{ implode(', ', $row['default_extensions']) ?: 'any' }})</span></label>
@@ -609,7 +609,7 @@
                                                            name="features[upload_limits][{{ $key }}][extensions]"
                                                            value="{{ implode(',', $row['extensions']) }}"
                                                            placeholder="{{ implode(',', $row['default_extensions']) }}"
-                                                           class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs font-mono focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                                           class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs font-mono focus:ring-2 focus:ring-blue-500/40 outline-none">
                                                 </div>
                                             </div>
                                         @endforeach
@@ -630,11 +630,11 @@
             </header>
             <div class="flex items-center gap-6 mb-4">
                 <label class="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
-                    <input type="radio" name="block_mode" value="all" x-model="blockMode" class="text-violet-400 border-white/10">
+                    <input type="radio" name="block_mode" value="all" x-model="blockMode" class="text-blue-400 border-white/10">
                     All blocks (<code class="text-white/50">*</code>)
                 </label>
                 <label class="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
-                    <input type="radio" name="block_mode" value="pick" x-model="blockMode" class="text-violet-400 border-white/10">
+                    <input type="radio" name="block_mode" value="pick" x-model="blockMode" class="text-blue-400 border-white/10">
                     Only the ones I pick below
                 </label>
             </div>
@@ -652,7 +652,7 @@
                             <label class="flex items-center gap-2 text-[11px] text-white/60 cursor-pointer">
                                 <input type="checkbox" x-model="all"
                                        @change="document.querySelectorAll('input[data-block-cat=\'{{ $catKey }}\']').forEach(el => el.checked = all)"
-                                       class="rounded border-white/10 text-violet-400">
+                                       class="rounded border-white/10 text-blue-400">
                                 Select all
                             </label>
                         </div>
@@ -662,7 +662,7 @@
                                     <input type="checkbox" name="block_types_allowed[]" value="{{ $slug }}"
                                            data-block-cat="{{ $catKey }}"
                                            {{ in_array($slug, $blockSelected, true) ? 'checked' : '' }}
-                                           class="rounded border-white/10 text-violet-400">
+                                           class="rounded border-white/10 text-blue-400">
                                     <i class="fas {{ $meta['icon'] ?? 'fa-cube' }} text-white/40 text-[10px]"></i>
                                     <span>{{ $meta['label'] }}</span>
                                 </label>
@@ -694,7 +694,7 @@
                                 <input type="hidden" name="features[{{ $flag['key'] }}]" value="0">
                                 <input type="checkbox" name="features[{{ $flag['key'] }}]" value="1"
                                        {{ $val($flag['key'], false) ? 'checked' : '' }}
-                                       class="mt-1 rounded border-white/10 text-violet-400">
+                                       class="mt-1 rounded border-white/10 text-blue-400">
                                 <span class="flex-1">
                                     <span class="block font-medium">{{ $label }}</span>
                                     @if($desc)<span class="block text-[11px] text-white/40 leading-snug mt-0.5">{{ $desc }}</span>@endif
@@ -703,7 +703,7 @@
                         @elseif($flag['type'] === 'select')
                             <label class="block">
                                 <span class="block text-sm font-medium text-white/80 mb-1">{{ $label }}</span>
-                                <select name="features[{{ $flag['key'] }}]" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                <select name="features[{{ $flag['key'] }}]" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                                     @php $cur = $val($flag['key'], $flag['default'] ?? null); @endphp
                                     @foreach($flag['options'] as $opt => $optLabel)
                                         <option value="{{ $opt }}" {{ (string) $cur === (string) $opt ? 'selected' : '' }}>{{ $optLabel }}</option>
@@ -735,7 +735,7 @@
                         <input type="hidden" name="features[{{ $row['key'] }}]" value="0">
                         <input type="checkbox" name="features[{{ $row['key'] }}]" value="1"
                                {{ $val($row['key'], false) ? 'checked' : '' }}
-                               class="mt-1 rounded border-white/10 text-violet-400">
+                               class="mt-1 rounded border-white/10 text-blue-400">
                         <span class="flex-1">
                             <span class="block text-sm font-medium text-white/90">{{ $label }}</span>
                             @if($desc)<span class="block text-[11px] text-white/40 leading-snug mt-0.5">{{ $desc }}</span>@endif
@@ -755,7 +755,7 @@
                                    name="features[{{ $row['key'] }}]"
                                    value="{{ $scalarVal($row['key'], '') }}"
                                    placeholder="1"
-                                   class="w-full rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/90 focus:border-violet-400 focus:outline-none">
+                                   class="w-full rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/90 focus:border-blue-400 focus:outline-none">
                             <p class="text-[11px] text-white/40 leading-snug mt-1">{{ $row['hint'] }}</p>
                         </div>
                     @endforeach
@@ -791,7 +791,7 @@
                                     <input type="number" name="features[integration_accounts_max][{{ $kind }}]"
                                            value="{{ $cap }}" min="-1"
                                            x-ref="int_cap_{{ $kind }}"
-                                           class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-l-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                           class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-l-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                                     <button type="button" @click="$refs.int_cap_{{ $kind }}.value = '-1'" title="Set to unlimited"
                                             class="px-3 bg-white/10 border border-white/10 border-l-0 rounded-r-xl text-white/70 hover:text-white hover:bg-white/15 text-sm font-bold">∞</button>
                                 </div>
@@ -801,11 +801,11 @@
                                 <label class="block text-xs text-white/60 mb-1">Allowed providers</label>
                                 <div class="flex items-center gap-4 mb-2">
                                     <label class="flex items-center gap-2 text-xs text-white/80 cursor-pointer">
-                                        <input type="radio" name="provider_mode[{{ $kind }}]" value="all" x-model="providerMode['{{ $kind }}']" class="text-violet-400">
+                                        <input type="radio" name="provider_mode[{{ $kind }}]" value="all" x-model="providerMode['{{ $kind }}']" class="text-blue-400">
                                         All providers (<code class="text-white/50">*</code>)
                                     </label>
                                     <label class="flex items-center gap-2 text-xs text-white/80 cursor-pointer">
-                                        <input type="radio" name="provider_mode[{{ $kind }}]" value="pick" x-model="providerMode['{{ $kind }}']" class="text-violet-400">
+                                        <input type="radio" name="provider_mode[{{ $kind }}]" value="pick" x-model="providerMode['{{ $kind }}']" class="text-blue-400">
                                         Only the ones I pick
                                     </label>
                                 </div>
@@ -815,7 +815,7 @@
                                         <label class="flex items-center gap-2 text-xs text-white/70 p-2 rounded hover:bg-white/5 cursor-pointer">
                                             <input type="checkbox" name="integration_providers_allowed[{{ $kind }}][]" value="{{ $p['slug'] }}"
                                                    {{ in_array($p['slug'], $allowedList, true) ? 'checked' : '' }}
-                                                   class="rounded border-white/10 text-violet-400">
+                                                   class="rounded border-white/10 text-blue-400">
                                             {{ $p['label'] }}
                                         </label>
                                     @endforeach
@@ -831,7 +831,7 @@
         <section id="sec-addons" class="glass rounded-2xl border border-white/10 p-6">
             <header class="mb-4">
                 <h2 class="text-base font-semibold text-white">Eligible addons</h2>
-                <p class="text-xs text-white/40">Pick which addons customers on this plan may purchase. Manage the catalog from <a href="{{ route('admin.addons.index') }}" class="text-violet-400 hover:underline">Addons</a>.</p>
+                <p class="text-xs text-white/40">Pick which addons customers on this plan may purchase. Manage the catalog from <a href="{{ route('admin.addons.index') }}" class="text-blue-400 hover:underline">Addons</a>.</p>
             </header>
             @if(($addons ?? collect())->isEmpty())
                 <p class="text-sm text-white/40">No addons in the catalog yet.</p>
@@ -841,7 +841,7 @@
                         <label class="flex items-start gap-2 text-sm text-white/70 p-2 rounded hover:bg-white/5 {{ $addon->is_archived ? 'opacity-60' : '' }}">
                             <input type="checkbox" name="addon_ids[]" value="{{ $addon->id }}"
                                    {{ in_array($addon->id, old('addon_ids', $attachedAddonIds ?? [])) ? 'checked' : '' }}
-                                   class="mt-1 rounded border-white/10 text-violet-400">
+                                   class="mt-1 rounded border-white/10 text-blue-400">
                             <span>
                                 <span class="block">{{ $addon->name }} @if($addon->is_archived)<span class="text-[10px] text-white/40">(archived)</span>@endif</span>
                                 <span class="block text-[11px] text-white/40">${{ number_format($addon->monthly_price, 2) }}/mo · ${{ number_format($addon->annual_price, 2) }}/yr · {{ str_replace('_',' ',$addon->type) }}</span>
@@ -861,7 +861,7 @@
                 <p class="text-xs text-white/40">{{ $isEdit ? 'Editing existing plan — make sure to keep INR pricing in sync.' : 'New plan — values you leave at defaults are still saved explicitly.' }}</p>
                 <div class="flex items-center gap-3">
                     <a href="{{ route('admin.plans.index') }}" class="px-5 py-2 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition text-sm">Cancel</a>
-                    <button type="submit" class="px-6 py-2 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition text-sm">{{ $isEdit ? 'Update Plan' : 'Create Plan' }}</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition text-sm">{{ $isEdit ? 'Update Plan' : 'Create Plan' }}</button>
                 </div>
             </div>
         </div>

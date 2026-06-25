@@ -32,7 +32,7 @@
             <template x-if="!loading && files.length === 0">
                 <div class="text-center py-8 text-sm" style="color: var(--text-faint);">
                     <p>No files in the workspace library yet.</p>
-                    <a href="{{ route('user.cloud-files.index') }}" class="text-violet-400 underline text-xs">Open Cloud Files</a>
+                    <a href="{{ route('user.cloud-files.index') }}" class="text-blue-400 underline text-xs">Open Cloud Files</a>
                 </div>
             </template>
             <template x-for="f in files" :key="f.id">
@@ -59,7 +59,7 @@
                         style="color: var(--text-muted);">Cancel</button>
                 <button type="button" @click="confirm()" :disabled="saving"
                         class="px-4 py-2 rounded text-sm font-semibold text-white disabled:opacity-50"
-                        style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">
+                        style="background: linear-gradient(135deg,#3d6bff,#90acff);">
                     <span x-show="!saving">{{ $_confirmLabel ?? 'Attach selected' }}</span>
                     <span x-show="saving"><i class="fas fa-spinner fa-spin"></i> Attaching…</span>
                 </button>

@@ -12,10 +12,10 @@ export default function Slide150Investorproblem() {
         <h2 className="font-display text-[3.6vw] font-bold leading-[1.04] tracking-tight max-w-[65vw]">Problem.</h2>
         
         <div className="mt-[5vh] grid grid-cols-4 gap-[1.5vw]">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">9</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">tools per active creator</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">$214</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">stack cost / month</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">2.4h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">lost daily to context switching</div></div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">37%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">of features ever used</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">9</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">tools per active creator</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">$214</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">stack cost / month</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">2.4h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">lost daily to context switching</div></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-blue-300">37%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">of features ever used</div></div>
         </div>
         <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Placeholder market figures. Swap for verified secondary research before sending.</p>
       </div>

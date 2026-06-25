@@ -24,7 +24,7 @@
         <code class="text-sm font-mono text-gray-100 break-all">{{ $path }}</code>
         <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-{{ $authBadge[1] }}-500/10 text-{{ $authBadge[1] }}-300 border border-{{ $authBadge[1] }}-400/20 ml-auto">{{ $authBadge[0] }}</span>
         @if($id)
-            <a href="#{{ $id }}" class="anchor-link text-gray-500 hover:text-violet-400 text-xs ml-1" aria-label="Anchor"><i class="fas fa-link"></i></a>
+            <a href="#{{ $id }}" class="anchor-link text-gray-500 hover:text-blue-400 text-xs ml-1" aria-label="Anchor"><i class="fas fa-link"></i></a>
         @endif
     </header>
 

@@ -8,7 +8,7 @@
     $persona = $persona ?? ($page->slug ? str_replace('for-', '', $page->slug) : 'creators');
     $allMeta = SitePagesContent::useCaseMeta();
     $meta    = !empty($meta) ? $meta : ($allMeta[$persona] ?? ($allMeta['creators'] ?? []));
-    $accent  = $meta['accent'] ?? '#7c3aed';
+    $accent  = $meta['accent'] ?? '#3d6bff';
     $icon    = $meta['icon'] ?? 'fa-star';
     $eyebrow = $meta['eyebrow'] ?? 'Use case';
     $tagline = $meta['tagline'] ?? '';
@@ -49,7 +49,7 @@
                     {{ $page->meta_description }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ $ctaUrl }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                    <a href="{{ $ctaUrl }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                         <i class="fas fa-rocket text-xs"></i> {{ $ctaLabel }}
                     </a>
                     <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -201,7 +201,7 @@
             @endforeach
         </div>
         <div class="text-center mt-8">
-            <a href="{{ route('site.services') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-violet-300 hover:text-white">
+            <a href="{{ route('site.services') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-white">
                 See all use cases <i class="fas fa-arrow-right text-xs"></i>
             </a>
         </div>
@@ -217,7 +217,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Ready to make it <span class="grad-text">yours</span>?</h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, build your page in minutes, and share one link everywhere.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ $ctaUrl }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $ctaLabel }}</a>
+                    <a href="{{ $ctaUrl }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">{{ $ctaLabel }}</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

@@ -15,12 +15,12 @@
     {{-- Tabs --}}
     <div class="flex border-b border-slate-200 mb-4 text-sm font-semibold">
         <a href="{{ route('admin.moderation-queue.index', ['tab' => 'reports']) }}"
-           class="px-4 py-2 -mb-px {{ $tab === 'reports' ? 'border-b-2 border-violet-600 text-violet-700' : 'text-slate-600 hover:text-slate-900' }}">
+           class="px-4 py-2 -mb-px {{ $tab === 'reports' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-slate-600 hover:text-slate-900' }}">
             Reports
             <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-700">{{ $pendingCounts['reports'] }}</span>
         </a>
         <a href="{{ route('admin.moderation-queue.index', ['tab' => 'dmca']) }}"
-           class="px-4 py-2 -mb-px {{ $tab === 'dmca' ? 'border-b-2 border-violet-600 text-violet-700' : 'text-slate-600 hover:text-slate-900' }}">
+           class="px-4 py-2 -mb-px {{ $tab === 'dmca' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-slate-600 hover:text-slate-900' }}">
             DMCA
             <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-700">{{ $pendingCounts['dmca'] }}</span>
         </a>
@@ -123,7 +123,7 @@
                             <div class="font-semibold text-slate-900">{{ $r->reporter_name }}</div>
                             <div class="text-xs text-slate-500">{{ $r->reporter_email }}</div>
                         </td>
-                        <td class="px-4 py-3 text-xs"><a href="{{ $r->original_work_url }}" class="text-violet-700 hover:underline break-all" target="_blank" rel="noopener">{{ \Illuminate\Support\Str::limit($r->original_work_url, 50) }}</a></td>
+                        <td class="px-4 py-3 text-xs"><a href="{{ $r->original_work_url }}" class="text-blue-700 hover:underline break-all" target="_blank" rel="noopener">{{ \Illuminate\Support\Str::limit($r->original_work_url, 50) }}</a></td>
                         <td class="px-4 py-3 text-xs"><a href="{{ $r->infringing_url }}" class="text-rose-700 hover:underline break-all" target="_blank" rel="noopener">{{ \Illuminate\Support\Str::limit($r->infringing_url, 50) }}</a></td>
                         <td><span class="inline-block px-2 py-0.5 rounded-full text-[11px] {{ $r->status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700' }}">{{ $dmcaStatuses[$r->status] ?? $r->status }}</span></td>
                         <td class="text-xs text-slate-500">{{ $r->created_at?->diffForHumans() }}</td>

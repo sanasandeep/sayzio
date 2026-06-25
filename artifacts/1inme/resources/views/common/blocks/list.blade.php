@@ -8,7 +8,7 @@
         }, $_rawItems);
         $_style = $s['style'] ?? 'clean';
         $_defaultIcon = fa_icon_class($s['icon'] ?? 'fa-check', 'fas fa-check');
-        $_accent = $btnColor ?? '#7c3aed';
+        $_accent = $btnColor ?? '#3d6bff';
     @endphp
 
     @if($block->type === 'list')

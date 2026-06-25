@@ -133,7 +133,7 @@
             background: #4f46e5; color: #fff; font-weight: 600; cursor: pointer;
         }
         .resume-owner-banner {
-            background: rgba(124,58,237,0.10); color: #5b21b6; border-radius: 12px;
+            background: rgba(61,107,255,0.10); color: #2139a1; border-radius: 12px;
             padding: 10px 14px; margin-bottom: 14px; font-size: 12px;
             display: flex; align-items: center; gap: 8px;
         }
@@ -149,7 +149,7 @@
                 @if (!$resume->is_public)
                     It's currently <strong>not public</strong> — only you can see it.
                 @endif
-                <a href="{{ route('user.resume.editor') }}" style="color:#5b21b6; font-weight:700; margin-left:4px;">Manage</a>
+                <a href="{{ route('user.resume.editor') }}" style="color:#2139a1; font-weight:700; margin-left:4px;">Manage</a>
             </span>
         </div>
     @endif

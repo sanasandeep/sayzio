@@ -101,7 +101,7 @@
             transition: all .2s ease;
         }
         .sidebar-edge-toggle:hover {
-            background: #7c3aed; color: #fff; border-color: #7c3aed;
+            background: #3d6bff; color: #fff; border-color: #3d6bff;
             transform: scale(1.08);
         }
         html.light-mode .sidebar-edge-toggle {
@@ -173,7 +173,7 @@
         }
         .sidebar-group-toggle:hover { color: var(--text-muted); }
         .sidebar-group-toggle:focus-visible {
-            outline: 2px solid rgba(124,58,237,0.5);
+            outline: 2px solid rgba(61,107,255,0.5);
             outline-offset: 2px;
             border-radius: 6px;
         }
@@ -211,8 +211,8 @@
         .header-search-box input::placeholder { color: var(--text-faint); }
         .header-search-box input:focus {
             width: 280px;
-            border-color: rgba(124,58,237,0.3);
-            box-shadow: 0 0 0 3px rgba(124,58,237,0.08);
+            border-color: rgba(61,107,255,0.3);
+            box-shadow: 0 0 0 3px rgba(61,107,255,0.08);
             background: var(--bg-glass-input-focus);
         }
         .header-search-box i {
@@ -252,8 +252,8 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #8b5cf6;
-            box-shadow: 0 0 6px rgba(124,58,237,0.6);
+            background: #5c83ff;
+            box-shadow: 0 0 6px rgba(61,107,255,0.6);
         }
 
         .header-breadcrumb {
@@ -313,7 +313,7 @@
         .user-avatar-ring {
             padding: 2px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #8b5cf6, #a78bfa, #7c3aed);
+            background: linear-gradient(135deg, #5c83ff, #90acff, #3d6bff);
             display: inline-flex;
         }
         .user-avatar-ring .inner {
@@ -357,9 +357,9 @@
             transition: all .18s ease;
             text-decoration: none;
         }
-        .hero-back:hover { background: rgba(124,58,237,0.18); color: #fff; transform: translateX(-2px); border-color: rgba(124,58,237,0.4); }
-        html.light-mode .hero-back { background: rgba(255,255,255,0.7); color: #4c1d95; }
-        html.light-mode .hero-back:hover { background: rgba(124,58,237,0.14); color: #4c1d95; }
+        .hero-back:hover { background: rgba(61,107,255,0.18); color: #fff; transform: translateX(-2px); border-color: rgba(61,107,255,0.4); }
+        html.light-mode .hero-back { background: rgba(255,255,255,0.7); color: #20367f; }
+        html.light-mode .hero-back:hover { background: rgba(61,107,255,0.14); color: #20367f; }
 
         /* ----- Emblem (favicon / letter avatar) ----- */
         .hero-emblem {
@@ -412,22 +412,22 @@
             display: inline-flex; align-items: center; gap: 8px;
             margin-top: 10px;
             padding: 6px 10px 6px 12px;
-            background: rgba(124,58,237,0.10);
-            border: 1px solid rgba(124,58,237,0.22);
+            background: rgba(61,107,255,0.10);
+            border: 1px solid rgba(61,107,255,0.22);
             border-radius: 999px;
             max-width: 100%;
             font-size: 12.5px;
         }
-        html.light-mode .hero-url { background: rgba(124,58,237,0.07); border-color: rgba(124,58,237,0.20); }
-        .hero-url-icon { font-size: 10px; color: #a78bfa; }
-        html.light-mode .hero-url-icon { color: #7c3aed; }
+        html.light-mode .hero-url { background: rgba(61,107,255,0.07); border-color: rgba(61,107,255,0.20); }
+        .hero-url-icon { font-size: 10px; color: #90acff; }
+        html.light-mode .hero-url-icon { color: #3d6bff; }
         .hero-url-text {
             color: var(--text-primary); font-weight: 600;
             text-decoration: none;
             min-width: 0;
         }
-        .hero-url-text:hover { color: #a78bfa; }
-        html.light-mode .hero-url-text:hover { color: #6d28d9; }
+        .hero-url-text:hover { color: #90acff; }
+        html.light-mode .hero-url-text:hover { color: #2342c7; }
         .hero-url-btn {
             display: inline-flex; align-items: center; justify-content: center;
             width: 24px; height: 24px; border-radius: 8px;
@@ -437,8 +437,8 @@
             transition: all .15s ease;
             font-size: 10px;
         }
-        .hero-url-btn:hover { background: rgba(124,58,237,0.16); color: #ddd6fe; }
-        html.light-mode .hero-url-btn:hover { background: rgba(124,58,237,0.12); color: #6d28d9; }
+        .hero-url-btn:hover { background: rgba(61,107,255,0.16); color: #dbe4ff; }
+        html.light-mode .hero-url-btn:hover { background: rgba(61,107,255,0.12); color: #2342c7; }
 
         @media (max-width: 640px) {
             .page-hero { padding: 16px 18px 16px 22px; border-radius: 18px; }
@@ -530,7 +530,7 @@
                 {{-- ========== TOP LEVEL — most-used destinations stay visible ========== --}}
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"
-                   style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+                   style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-house"></i></div>
                     <span class="nav-label">Dashboard</span>
                     <span class="sidebar-tooltip">Dashboard</span>
@@ -538,7 +538,7 @@
                 @if($__can['links_view'])
                 <a href="{{ route('user.links.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"
-                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                   style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-link"></i></div>
                     <span class="nav-label">All Links</span>
                     <span class="sidebar-tooltip">All Links</span>
@@ -556,11 +556,11 @@
                 @if($__can['inbox_view'])
                 <a href="{{ route('user.inbox.unified.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.inbox.unified.*') ? 'active' : '' }}"
-                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                   style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
                     <span class="nav-label">Inbox
                         @php $__topInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
-                        @if($__topInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__topInbox > 99 ? '99+' : $__topInbox }}</span>@endif
+                        @if($__topInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-blue-500 text-white">{{ $__topInbox > 99 ? '99+' : $__topInbox }}</span>@endif
                     </span>
                     <span class="sidebar-tooltip">Inbox 2.0 — triaged across forms, DMs &amp; sponsorships</span>
                 </a>
@@ -578,7 +578,7 @@
                 @if($__can['posts_view'])
                 <a href="{{ route('user.stats.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"
-                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                   style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
                     <span class="nav-label">Stats</span>
                     <span class="sidebar-tooltip">Stats</span>
@@ -635,7 +635,7 @@
                         </a>
                         <a href="{{ route('user.splash-pages.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+                           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div>
                             <span class="nav-label">Intros</span>
                             <span class="sidebar-tooltip">Intros</span>
@@ -761,7 +761,7 @@
                         </a>
                         <a href="{{ route('user.monetization.earnings') }}"
                            class="sidebar-link {{ request()->routeIs('user.monetization.*') ? 'active' : '' }}"
-                           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-gem"></i></div>
                             <span class="nav-label">Monetization</span>
                             <span class="sidebar-tooltip">Monetization</span>
@@ -783,7 +783,7 @@
                         @if($__can['links_view'])
                         <a href="{{ route('user.social-proofs.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+                           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
                             <span class="nav-label">Buzz</span>
                             <span class="sidebar-tooltip">Buzz</span>
@@ -854,7 +854,7 @@
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
                         <a href="{{ route('user.ai.mind.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.mind.*') ? 'active' : '' }}"
-                           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-brain"></i></div>
                             <span class="nav-label">Mind</span>
                             <span class="sidebar-tooltip">Mind</span>
@@ -870,7 +870,7 @@
                         @endif
                         <a href="{{ route('user.ai.persona.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.persona.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-user-pen"></i></div>
                             <span class="nav-label">Persona</span>
                             <span class="sidebar-tooltip">Persona</span>
@@ -884,14 +884,14 @@
                         </a>
                         <a href="{{ route('user.ai.companion.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"
-                           style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-comments"></i></div>
                             <span class="nav-label">Companion</span>
                             <span class="sidebar-tooltip">Companion</span>
                         </a>
                         <a href="{{ route('user.ai-companions.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"
-                           style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-robot"></i></div>
                             <span class="nav-label">Companions</span>
                             <span class="sidebar-tooltip">AI Companions (chatbot widget / embed / inbox bot)</span>
@@ -906,7 +906,7 @@
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                         <a href="{{ route('user.ai.ask-coach.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div>
                             <span class="nav-label">Ask Coach</span>
                             <span class="sidebar-tooltip">Ask Coach</span>
@@ -946,14 +946,14 @@
                         @if($__can['settings_view'])
                         <a href="{{ route('user.events.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div>
                             <span class="nav-label">Events</span>
                             <span class="sidebar-tooltip">Events calendar</span>
                         </a>
                         <a href="{{ route('user.calendar.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"
-                           style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div>
                             <span class="nav-label">Calendar Sync</span>
                             <span class="sidebar-tooltip">Calendar Sync</span>
@@ -975,7 +975,7 @@
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
                         <a href="{{ route('user.profile.edit') }}"
                            class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div>
                             <span class="nav-label">Profile</span>
                             <span class="sidebar-tooltip">Profile</span>
@@ -989,7 +989,7 @@
                         </a>
                         <a href="{{ route('user.settings.sessions.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.settings.sessions.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-shield-halved"></i></div>
                             <span class="nav-label">Devices &amp; sessions</span>
                             <span class="sidebar-tooltip">Devices &amp; sessions</span>
@@ -997,7 +997,7 @@
                         @if(auth()->check() && auth()->user()->planFeatureEnabled('api_access'))
                         <a href="{{ route('user.api-keys.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.api-keys.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-key"></i></div>
                             <span class="nav-label">API keys</span>
                             <span class="sidebar-tooltip">API keys</span>
@@ -1060,13 +1060,13 @@
                 <div class="upgrade-card">
                     <div class="relative z-10 upgrade-inner">
                         <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 rounded-lg bg-violet-500 flex items-center justify-center">
+                            <div class="w-6 h-6 rounded-lg bg-blue-500 flex items-center justify-center">
                                 <i class="fas fa-gem text-white text-[8px]"></i>
                             </div>
                             <span class="text-xs font-bold" style="color: var(--text-primary);">{{ auth()->user()->plan->name ?? 'Free' }} Plan</span>
                         </div>
                         <p class="text-[10px] mb-3 leading-relaxed" style="color: var(--text-dimmed);">Unlock analytics, custom domains & more.</p>
-                        <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-violet-600 hover:shadow-lg hover:shadow">
+                        <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-blue-600 hover:shadow-lg hover:shadow">
                             Upgrade
                         </a>
                     </div>
@@ -1079,7 +1079,7 @@
                     @csrf
                     <button type="submit"
                             class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                            style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);"
+                            style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);"
                             title="Switch to the admin dashboard">
                         <i class="fas fa-user-shield" style="font-size: 11px;"></i>
                         <span>Switch to admin</span>
@@ -1229,7 +1229,7 @@
                         @if($__can['inbox_view'])
                         <a href="{{ route('user.inbox.unified.index') }}" class="sidebar-link {{ request()->routeIs('user.inbox.unified.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div> <span>Inbox
                             @php $__mTopInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
-                            @if($__mTopInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__mTopInbox > 99 ? '99+' : $__mTopInbox }}</span>@endif
+                            @if($__mTopInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-blue-500 text-white">{{ $__mTopInbox > 99 ? '99+' : $__mTopInbox }}</span>@endif
                         </span></a>
                         @endif
                         <a href="{{ route('user.notifications.index') }}" class="sidebar-link {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Notifications
@@ -1472,7 +1472,7 @@
                             @csrf
                             <button type="submit"
                                     class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                                    style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light);">
+                                    style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);">
                                 <i class="fas fa-user-shield" style="font-size: 11px;"></i>
                                 <span>Switch to admin</span>
                             </button>
@@ -1514,7 +1514,7 @@
                     </div>
                 @endif
                 @if(session('info'))
-                    <div class="mb-4 p-3.5 rounded-xl text-violet-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(124,58,237,0.15); background: rgba(124,58,237,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);">
                         <i class="fas fa-info-circle"></i> {{ session('info') }}
                     </div>
                 @endif

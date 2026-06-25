@@ -18,7 +18,7 @@
             @csrf
             @include('user.contacts._form', ['contact' => null, 'phoneLabels' => $phoneLabels, 'emailLabels' => $emailLabels, 'prefillPhone' => $prefillPhone])
             <div class="mt-6 flex gap-2">
-                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                     <i class="fas fa-check mr-1"></i> Save contact
                 </button>
                 <a href="{{ route('user.contacts.index') }}" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background:rgba(255,255,255,.05);color:var(--text-muted);border:1px solid rgba(255,255,255,.10)">Cancel</a>

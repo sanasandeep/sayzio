@@ -34,11 +34,11 @@
 @section('content')
 <article class="pt-12 pb-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
-        <a href="{{ route('site.blogs.index') }}" class="text-xs text-violet-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to blog</a>
+        <a href="{{ route('site.blogs.index') }}" class="text-xs text-blue-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to blog</a>
 
         <div class="mt-6">
             @if($post->category)
-                <a href="{{ route('site.blogs.category', $post->category->slug) }}" class="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: {{ $post->category->color ? $post->category->color . '22' : 'rgba(124,58,237,.15)' }}; color: {{ $post->category->color ?: '#a78bfa' }};">{{ $post->category->name }}</a>
+                <a href="{{ route('site.blogs.category', $post->category->slug) }}" class="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: {{ $post->category->color ? $post->category->color . '22' : 'rgba(61,107,255,.15)' }}; color: {{ $post->category->color ?: '#90acff' }};">{{ $post->category->name }}</a>
             @endif
             <h1 class="mt-3 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">{{ $post->title }}</h1>
             <div class="mt-5 flex items-center gap-3">
@@ -47,7 +47,7 @@
                     @if($authorAvatar)
                         <img src="{{ $authorAvatar }}" alt="{{ $post->author->name }}" class="w-10 h-10 rounded-full object-cover">
                     @else
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white" style="background:#7c3aed;">{{ strtoupper(substr($post->author->name ?? '?', 0, 1)) }}</div>
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white" style="background:#3d6bff;">{{ strtoupper(substr($post->author->name ?? '?', 0, 1)) }}</div>
                     @endif
                 @endif
                 <div class="text-xs text-white/60 leading-tight">
@@ -78,7 +78,7 @@
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-2">In this article</p>
                 <ul class="space-y-1.5">
                     @foreach($toc as $h)
-                        <li class="text-sm {{ $h['level'] === 3 ? 'pl-4' : '' }}"><a href="#{{ $h['id'] }}" class="text-white/80 hover:text-violet-300">{{ $h['text'] }}</a></li>
+                        <li class="text-sm {{ $h['level'] === 3 ? 'pl-4' : '' }}"><a href="#{{ $h['id'] }}" class="text-white/80 hover:text-blue-300">{{ $h['text'] }}</a></li>
                     @endforeach
                 </ul>
             </nav>
@@ -131,18 +131,18 @@
             @if($settings['approval_mode'] === 'closed')
                 <p class="mt-6 text-white/50 text-sm">Comments are currently closed.</p>
             @elseif(!$commenter['type'])
-                <p class="mt-6 text-white/60 text-sm">Please <a href="{{ route('user.login') }}" class="text-violet-400 hover:underline">sign in</a> to leave a comment.</p>
+                <p class="mt-6 text-white/60 text-sm">Please <a href="{{ route('user.login') }}" class="text-blue-400 hover:underline">sign in</a> to leave a comment.</p>
             @else
                 <form method="POST" action="{{ route('site.blogs.comments.store', $post->slug) }}" class="mt-6 space-y-3">
                     @csrf
                     <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-white" style="background: #7c3aed;">{{ strtoupper(substr($commenter['name'], 0, 1)) }}</div>
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-white" style="background: #3d6bff;">{{ strtoupper(substr($commenter['name'], 0, 1)) }}</div>
                         <span class="text-sm text-white/80">Posting as <strong>{{ $commenter['name'] }}</strong></span>
                     </div>
-                    <textarea name="body" required rows="4" placeholder="Share your thoughts…" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/40 focus:border-violet-500 outline-none">{{ old('body') }}</textarea>
+                    <textarea name="body" required rows="4" placeholder="Share your thoughts…" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/40 focus:border-blue-500 outline-none">{{ old('body') }}</textarea>
                     @error('body')<p class="text-xs text-red-400">{{ $message }}</p>@enderror
                     <div class="flex justify-end">
-                        <button class="px-5 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-medium">Post comment</button>
+                        <button class="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">Post comment</button>
                     </div>
                 </form>
             @endif
@@ -150,7 +150,7 @@
             <div class="mt-10 space-y-6">
                 @forelse($comments as $c)
                     <div id="comment-{{ $c->id }}" class="flex gap-3">
-                        <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-semibold text-white" style="background: #7c3aed;">{{ $c->authorInitial() }}</div>
+                        <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-semibold text-white" style="background: #3d6bff;">{{ $c->authorInitial() }}</div>
                         <div class="flex-1">
                             <div class="bg-white/[0.03] border border-white/10 rounded-xl p-4">
                                 <div class="flex items-center justify-between text-xs text-white/60">
@@ -162,11 +162,11 @@
 
                             @foreach($c->replies as $r)
                                 <div id="comment-{{ $r->id }}" class="mt-3 ml-6 flex gap-3">
-                                    <div class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background: #7c3aed;">{{ $r->authorInitial() }}</div>
-                                    <div class="flex-1 bg-violet-500/[0.06] border border-violet-500/20 rounded-xl p-4">
+                                    <div class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold text-white" style="background: #3d6bff;">{{ $r->authorInitial() }}</div>
+                                    <div class="flex-1 bg-blue-500/[0.06] border border-blue-500/20 rounded-xl p-4">
                                         <div class="flex items-center gap-2 text-xs text-white/70">
                                             <span class="font-semibold text-white">{{ $r->author_name }}</span>
-                                            <span class="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 text-[10px] uppercase tracking-wider">Staff</span>
+                                            <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] uppercase tracking-wider">Staff</span>
                                             <span class="text-white/40">· {{ $r->created_at->diffForHumans() }}</span>
                                         </div>
                                         <p class="mt-2 text-sm text-white/80 whitespace-pre-line">{{ $r->body }}</p>

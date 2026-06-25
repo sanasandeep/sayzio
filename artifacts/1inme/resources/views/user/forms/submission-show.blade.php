@@ -100,7 +100,7 @@
                         @elseif(is_bool($v))
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $v ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400' }}">{{ $v ? 'Yes' : 'No' }}</span>
                         @elseif(filter_var($v, FILTER_VALIDATE_EMAIL))
-                            <a href="mailto:{{ $v }}" class="text-violet-400 hover:underline">{{ $v }}</a>
+                            <a href="mailto:{{ $v }}" class="text-blue-400 hover:underline">{{ $v }}</a>
                         @else
                             <span class="whitespace-pre-line">{{ $v }}</span>
                         @endif
@@ -126,7 +126,7 @@
                     @endphp
                     <div class="p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-paperclip text-violet-400"></i>
+                            <i class="fas fa-paperclip text-blue-400"></i>
                             <span class="text-sm flex-1 min-w-0 truncate" style="color: var(--text-primary);">{{ $submission->data[$field] ?? $field }}</span>
 
                             @if($disabled)
@@ -159,7 +159,7 @@
                                 </a>
                             @else
                                 <a href="{{ $href }}" target="_blank" class="px-2 py-1 rounded text-[11px] text-white"
-                                   style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+                                   style="background: linear-gradient(135deg,#5c83ff,#2342c7);">
                                     <i class="fas fa-download mr-1"></i>Open
                                 </a>
                             @endif
@@ -244,7 +244,7 @@
     @if(!empty($replyTo) && $__can('inbox.reply'))
         <div class="card-premium p-6 mb-6">
             <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">
-                <i class="fas fa-reply mr-2 text-violet-400"></i>Reply by email
+                <i class="fas fa-reply mr-2 text-blue-400"></i>Reply by email
             </h3>
             <p class="text-xs mb-4" style="color: var(--text-faint);">
                 Sending to <span class="font-mono" style="color: var(--text-secondary);">{{ $replyTo }}</span>
@@ -273,7 +273,7 @@
                     @error('body')<p class="text-xs text-rose-400 mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div class="flex justify-end">
-                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold" style="background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff;">
+                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold" style="background: linear-gradient(135deg,#5c83ff,#6366f1); color: #fff;">
                         <i class="fas fa-paper-plane mr-1"></i>Send reply
                     </button>
                 </div>
@@ -283,7 +283,7 @@
         @if(!empty($replies) && $replies->isNotEmpty())
             <div class="card-premium p-6 mb-6">
                 <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);">
-                    <i class="fas fa-history mr-2 text-violet-400"></i>Previous replies ({{ $replies->count() }})
+                    <i class="fas fa-history mr-2 text-blue-400"></i>Previous replies ({{ $replies->count() }})
                 </h3>
                 <div class="space-y-3">
                     @foreach($replies as $r)

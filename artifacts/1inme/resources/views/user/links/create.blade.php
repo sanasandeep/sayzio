@@ -27,7 +27,7 @@
             <label class="block text-sm font-medium text-white/60 mb-1.5">
                 Custom URL <span class="text-white/30 text-xs">(optional)</span>
             </label>
-            <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 focus-within:ring-2 focus-within:ring-violet-500/40 overflow-hidden">
+            <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40 overflow-hidden">
                 <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
                     {{ $domainHost }}/
                 </span>
@@ -45,7 +45,7 @@
                 Leave blank and we'll generate one for you. Letters, numbers, dashes &amp; underscores only.
                 Length: {{ $aliasLimits['min'] }}–{{ $aliasLimits['max'] }} characters
                 @if(!empty($aliasUpgradeHint))
-                    · <a href="{{ route('user.plans.index') }}" class="text-violet-400 hover:underline">upgrade for more</a>
+                    · <a href="{{ route('user.plans.index') }}" class="text-blue-400 hover:underline">upgrade for more</a>
                 @endif.
             </p>
         </div>
@@ -79,16 +79,16 @@
         </a>
 
         <a href="{{ route('user.links.wizard') }}"
-           class="block glass rounded-2xl p-5 mb-4 border border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/5 hover:from-violet-500/15 hover:to-fuchsia-500/10 transition-all group">
+           class="block glass rounded-2xl p-5 mb-4 border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-fuchsia-500/5 hover:from-blue-500/15 hover:to-fuchsia-500/10 transition-all group">
             <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center flex-shrink-0">
+                <div class="w-11 h-11 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center flex-shrink-0">
                     <i class="fas fa-magic text-lg"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="text-white font-medium">Build a Link in Bio with the guided wizard</div>
                     <div class="text-xs text-white/50 mt-0.5">Answer a few questions and we'll generate your page — blocks, layout and all.</div>
                 </div>
-                <i class="fas fa-arrow-right text-white/30 group-hover:text-violet-300 transition-colors"></i>
+                <i class="fas fa-arrow-right text-white/30 group-hover:text-blue-300 transition-colors"></i>
             </div>
         </a>
 
@@ -122,7 +122,7 @@
                                     <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">
                                     <div class="h-full border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-1"
                                          :class="type === '{{ $opt['value'] }}'
-                                            ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-500/10'
+                                            ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
                                             : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20'">
                                         <div class="relative rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] aspect-[5/3]">
                                             <img src="{{ asset('img/link-types/' . $opt['value'] . '.svg') }}"
@@ -142,7 +142,7 @@
                                             </div>
                                             <span class="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all"
                                                   :class="type === '{{ $opt['value'] }}'
-                                                    ? 'border-violet-400 bg-violet-500'
+                                                    ? 'border-blue-400 bg-blue-500'
                                                     : 'border-white/20'">
                                                 <i class="fas fa-check text-[10px] text-white transition-opacity"
                                                    :class="type === '{{ $opt['value'] }}' ? 'opacity-100' : 'opacity-0'"></i>
@@ -161,7 +161,7 @@
 
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.index') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</a>
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                 Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
             </button>
         </div>

@@ -29,8 +29,8 @@
         <form method="POST" action="{{ route('user.domains.store') }}" class="flex gap-3">
             @csrf
             <input type="text" name="domain" placeholder="links.yourbrand.com" required
-                   class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Add</button>
+                   class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Add</button>
         </form>
         <p class="text-[11px] text-white/40 mt-2">After adding, you'll get the exact CNAME record (name + target + TTL) to paste into your DNS provider — then click Verify here.</p>
     </div>
@@ -81,10 +81,10 @@
                                 Restore the CNAME below or this domain will be auto-unverified after {{ \App\Modules\Common\Services\DomainHealthChecker::graceHours() }}h.
                             </div>
                             <div class="font-mono text-white/60">
-                                Type: <span class="text-violet-300">CNAME</span> ·
-                                Name: <span class="text-violet-300">{{ $d->domain }}</span> ·
-                                Target: <span class="text-violet-300">{{ $__expectedCname }}</span> ·
-                                TTL: <span class="text-violet-300">300</span>
+                                Type: <span class="text-blue-300">CNAME</span> ·
+                                Name: <span class="text-blue-300">{{ $d->domain }}</span> ·
+                                Target: <span class="text-blue-300">{{ $__expectedCname }}</span> ·
+                                TTL: <span class="text-blue-300">300</span>
                             </div>
                             @if($d->dns_last_target)
                                 <div class="text-white/30">Currently resolving to: <span class="font-mono">{{ $d->dns_last_target }}</span></div>
@@ -96,10 +96,10 @@
                                 <div><span class="text-amber-400">unverified</span> — add this DNS record at your registrar:</div>
                             @endif
                             <div class="font-mono text-white/60">
-                                Type: <span class="text-violet-300">CNAME</span> ·
-                                Name: <span class="text-violet-300">{{ $d->domain }}</span> ·
-                                Target: <span class="text-violet-300">{{ $d->cname_target ?: parse_url(config('app.url'), PHP_URL_HOST) }}</span> ·
-                                TTL: <span class="text-violet-300">300</span> (or Auto)
+                                Type: <span class="text-blue-300">CNAME</span> ·
+                                Name: <span class="text-blue-300">{{ $d->domain }}</span> ·
+                                Target: <span class="text-blue-300">{{ $d->cname_target ?: parse_url(config('app.url'), PHP_URL_HOST) }}</span> ·
+                                TTL: <span class="text-blue-300">300</span> (or Auto)
                             </div>
                             <div class="text-white/30">DNS changes can take up to 24 hours to propagate. If verify fails, wait a few minutes and try again.</div>
                         @endif
@@ -108,10 +108,10 @@
                 <div class="flex items-center gap-2">
                     @if(!$d->is_verified && $__canEdit)
                         <form method="POST" action="{{ route('user.domains.verify', $d) }}">@csrf
-                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-violet-600 hover:bg-violet-700 text-white">Verify now</button>
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-blue-600 hover:bg-blue-700 text-white">Verify now</button>
                         </form>
                     @elseif(!$d->is_verified)
-                        <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-violet-600/40 text-white" title="Your role doesn't allow verifying domains — ask a workspace admin"><i class="fas fa-lock mr-1"></i>Verify</span>
+                        <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-blue-600/40 text-white" title="Your role doesn't allow verifying domains — ask a workspace admin"><i class="fas fa-lock mr-1"></i>Verify</span>
                     @endif
                     @if($__canEdit)
                     <form method="POST" action="{{ route('user.domains.destroy', $d) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove {{ $d->domain }}?', message: 'Existing links bound to it will lose their custom host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')

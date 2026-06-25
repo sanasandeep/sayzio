@@ -69,7 +69,7 @@
             </div>
         </div>
 
-        <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             <i class="fas fa-save mr-1"></i> Save settings
         </button>
     </form>

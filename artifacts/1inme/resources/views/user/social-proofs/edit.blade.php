@@ -4,12 +4,12 @@
 @push('styles')
 <style>
 /* --- Buzz editor: theme-aware base (dark mode defaults) --- */
-.bz-tab.active{background:rgba(124,58,237,.18);color:#fff;border-color:rgba(124,58,237,.4)}
+.bz-tab.active{background:rgba(61,107,255,.18);color:#fff;border-color:rgba(61,107,255,.4)}
 .bz-input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px 10px;color:#fff;font-size:13px}
-.bz-input:focus{outline:none;border-color:#7c3aed}
+.bz-input:focus{outline:none;border-color:#3d6bff}
 .bz-label{display:block;font-size:11.5px;color:rgba(255,255,255,.55);margin-bottom:4px;font-weight:500}
 .bz-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px}
-.bz-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:500;background:rgba(124,58,237,.15);color:#c4b5fd;border:1px solid rgba(124,58,237,.25)}
+.bz-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:500;background:rgba(61,107,255,.15);color:#bccfff;border:1px solid rgba(61,107,255,.25)}
 .bz-divider{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
 .bz-btn-icon{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;font-size:12px}
 .bz-btn-icon:hover{background:rgba(255,255,255,.08);color:#fff}
@@ -20,14 +20,14 @@
 /* --- Buzz editor: LIGHT MODE overrides (scoped to #bz-editor only) --- */
 html.light-mode #bz-editor .bz-tab{color:#475569;border-color:rgba(15,23,42,.10);background:#fff}
 html.light-mode #bz-editor .bz-tab:hover{background:#f8fafc}
-html.light-mode #bz-editor .bz-tab.active{background:rgba(124,58,237,.10);color:#6d28d9;border-color:rgba(124,58,237,.35)}
+html.light-mode #bz-editor .bz-tab.active{background:rgba(61,107,255,.10);color:#2342c7;border-color:rgba(61,107,255,.35)}
 html.light-mode #bz-editor .bz-input{background:#fff;border-color:#e2e8f0;color:#0f172a}
 html.light-mode #bz-editor .bz-input::placeholder{color:#94a3b8}
-html.light-mode #bz-editor .bz-input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.10)}
+html.light-mode #bz-editor .bz-input:focus{border-color:#3d6bff;box-shadow:0 0 0 3px rgba(61,107,255,.10)}
 html.light-mode #bz-editor .bz-label{color:#475569;font-weight:600}
 html.light-mode #bz-editor .bz-card{background:#fff;border-color:#e2e8f0;box-shadow:0 1px 2px rgba(15,23,42,.04)}
 html.light-mode #bz-editor .bz-divider{background:#e2e8f0}
-html.light-mode #bz-editor .bz-pill{background:rgba(124,58,237,.10);color:#6d28d9;border-color:rgba(124,58,237,.25)}
+html.light-mode #bz-editor .bz-pill{background:rgba(61,107,255,.10);color:#2342c7;border-color:rgba(61,107,255,.25)}
 html.light-mode #bz-editor .bz-btn-icon{background:#f1f5f9;border-color:#e2e8f0;color:#475569}
 html.light-mode #bz-editor .bz-btn-icon:hover{background:#e2e8f0;color:#0f172a}
 html.light-mode #bz-editor .bz-trig-card{background:#f8fafc;border-color:#cbd5e1;border-style:dashed}
@@ -51,7 +51,7 @@ html.light-mode .bz-scope [class*="bg-black/"] *{color:inherit !important}
 
 /* --- Inline template picker cards --- */
 .bz-tpl{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;display:flex;flex-direction:column}
-.bz-tpl:hover{border-color:rgba(124,58,237,.50);background:rgba(124,58,237,.08);transform:translateY(-1px)}
+.bz-tpl:hover{border-color:rgba(61,107,255,.50);background:rgba(61,107,255,.08);transform:translateY(-1px)}
 .bz-tpl-preview{height:110px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0 8px,transparent 8px 16px);border-bottom:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:10px}
 .bz-tpl-label{color:#fff}
 .bz-tpl-desc{color:rgba(255,255,255,.45);line-height:1.35}
@@ -59,11 +59,11 @@ html.light-mode .bz-scope [class*="bg-black/"] *{color:inherit !important}
 /* Mini-preview building blocks (used inside .bz-tpl-preview by templatePreview()) */
 .tpl-card{background:#fff;color:#0f172a;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:8px 10px;font-size:10px;line-height:1.25;display:flex;gap:8px;align-items:center;max-width:170px}
 .tpl-card.dark{background:#18181b;color:#fff}
-.tpl-card .tpl-avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600}
+.tpl-card .tpl-avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#90acff,#3d6bff);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600}
 .tpl-card .tpl-body{display:flex;flex-direction:column;min-width:0}
 .tpl-card .tpl-t1{font-weight:600}
 .tpl-card .tpl-t2{font-size:9px;color:#64748b;margin-top:1px}
-.tpl-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:600;background:#7c3aed;color:#fff}
+.tpl-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:600;background:#3d6bff;color:#fff}
 .tpl-bar{position:absolute;left:0;right:0;height:22px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:#fff;letter-spacing:.3px}
 .tpl-bar.top{top:6px}
 .tpl-bar.bottom{bottom:6px}
@@ -74,7 +74,7 @@ html.light-mode .bz-scope [class*="bg-black/"] *{color:inherit !important}
 .tpl-new{color:#dc2626;font-weight:700;font-size:13px}
 
 html.light-mode .bz-tpl{background:#f8fafc;border-color:#e2e8f0}
-html.light-mode .bz-tpl:hover{background:rgba(124,58,237,.06);border-color:rgba(124,58,237,.40)}
+html.light-mode .bz-tpl:hover{background:rgba(61,107,255,.06);border-color:rgba(61,107,255,.40)}
 html.light-mode .bz-tpl-preview{background:repeating-linear-gradient(45deg,#eef2f7 0 8px,#f8fafc 8px 16px);border-bottom-color:#e2e8f0}
 html.light-mode .bz-tpl-label{color:#0f172a}
 html.light-mode .bz-tpl-desc{color:#64748b}
@@ -139,7 +139,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
                 <input type="hidden" name="is_active" value="0">
                 <input type="checkbox" name="is_active" value="1" {{ $proof->is_active ? 'checked' : '' }}> Active
             </label>
-            <button class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Save changes</button>
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Save changes</button>
         </div>
     </div>
 
@@ -160,7 +160,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
             <div class="bg-black/40 rounded-xl p-3 font-mono text-xs text-emerald-300 break-all">
                 &lt;script src="{{ url('/sp/' . $proof->uuid . '.js') }}" async&gt;&lt;/script&gt;
             </div>
-            <button type="button" class="mt-2 text-xs text-violet-300 hover:text-violet-200"
+            <button type="button" class="mt-2 text-xs text-blue-300 hover:text-blue-200"
                     @click="navigator.clipboard.writeText('<script src=\'{{ url('/sp/' . $proof->uuid . '.js') }}\' async></script>'); $event.target.textContent='Copied ✓'">
                 <i class="fas fa-copy mr-1"></i> Copy snippet
             </button>
@@ -175,7 +175,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
                 <h3 class="text-white font-semibold text-sm">Notifications in this campaign</h3>
                 <p class="text-white/40 text-xs mt-0.5">Add as many notifications as you want. They'll all run on the embed and rotate based on their triggers.</p>
             </div>
-            <button type="button" @click="openTypePicker = !openTypePicker" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
+            <button type="button" @click="openTypePicker = !openTypePicker" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
                 <i class="fas mr-1" :class="openTypePicker ? 'fa-times' : 'fa-plus'"></i>
                 <span x-text="openTypePicker ? 'Cancel' : 'Add notification'"></span>
             </button>
@@ -333,7 +333,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
 
         <div x-show="notifications.length === 0" class="bz-card text-center py-8">
             <p class="text-white/50 text-sm mb-3">No notifications yet — add your first one!</p>
-            <button type="button" @click="openTypePicker = true" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm">Add notification</button>
+            <button type="button" @click="openTypePicker = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm">Add notification</button>
         </div>
     </div>
 
@@ -438,8 +438,8 @@ html.light-mode .bz-tpl-desc{color:#64748b}
     <div class="space-y-3">
         <div class="bz-card">
             <div class="flex items-center justify-between mb-3">
-                <h3 class="text-white font-semibold text-sm"><i class="fas fa-eye mr-1.5 text-violet-300"></i> Live preview</h3>
-                <button type="button" @click="livePreview()" class="text-xs text-violet-300 hover:text-violet-200"><i class="fas fa-sync-alt mr-1"></i> Refresh</button>
+                <h3 class="text-white font-semibold text-sm"><i class="fas fa-eye mr-1.5 text-blue-300"></i> Live preview</h3>
+                <button type="button" @click="livePreview()" class="text-xs text-blue-300 hover:text-blue-200"><i class="fas fa-sync-alt mr-1"></i> Refresh</button>
             </div>
             <div id="bz-preview" class="preview-frame">
                 <div class="absolute inset-0 flex items-center justify-center text-white/30 text-xs pointer-events-none" id="bz-preview-hint">Notifications will appear here</div>
@@ -553,15 +553,15 @@ function buzzEditor() {
                     '<div class="tpl-body"><div class="tpl-stars">★★★★★</div><div class="tpl-t2">"Best purchase ever!"</div></div></div>',
                 testimonial_quote:
                     '<div class="tpl-card" style="max-width:180px"><div class="tpl-body">'+
-                    '<div style="font-size:14px;color:#7c3aed;line-height:1">"</div>'+
+                    '<div style="font-size:14px;color:#3d6bff;line-height:1">"</div>'+
                     '<div class="tpl-t2" style="font-style:italic;color:#0f172a">A total game-changer for our team.</div>'+
                     '<div class="tpl-t2" style="margin-top:3px">— Alex K.</div></div></div>',
                 email_signup:
                     '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">Get 10% off</div>'+
-                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#7c3aed;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
                 exit_offer:
-                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px;border:2px solid #7c3aed">'+
-                    '<div class="tpl-t1" style="color:#7c3aed">Wait! Don\'t leave</div>'+
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px;border:2px solid #3d6bff">'+
+                    '<div class="tpl-t1" style="color:#3d6bff">Wait! Don\'t leave</div>'+
                     '<div class="tpl-t2">Take 15% off your order</div></div>',
                 feedback_thumbs:
                     '<div class="tpl-card" style="gap:6px"><div class="tpl-body" style="flex-direction:row;align-items:center;gap:5px">'+
@@ -581,23 +581,23 @@ function buzzEditor() {
                     '<div class="tpl-card"><div class="tpl-body"><div class="tpl-t2">Was <span class="tpl-strike">$99</span></div>'+
                     '<div class="tpl-new">Now $59</div></div></div>',
                 announcement_bar:
-                    '<div class="tpl-bar top" style="background:#7c3aed">🎉 Free shipping over $50</div>'+
+                    '<div class="tpl-bar top" style="background:#3d6bff">🎉 Free shipping over $50</div>'+
                     '<div style="margin-top:14px;color:rgba(255,255,255,.4);font-size:9px">Top bar style</div>',
                 sticky_cta:
                     '<div class="tpl-bar bottom" style="background:#0f172a">'+
                     '<span>Get started today</span>'+
-                    '<span style="margin-left:8px;background:#7c3aed;padding:2px 8px;border-radius:4px">Sign up →</span></div>',
+                    '<span style="margin-left:8px;background:#3d6bff;padding:2px 8px;border-radius:4px">Sign up →</span></div>',
                 cookie_consent:
                     '<div class="tpl-bar bottom" style="background:#1f2937;height:30px;justify-content:space-between;padding:0 8px;font-size:8.5px">'+
                     '<span>🍪 We use cookies</span>'+
-                    '<span style="background:#7c3aed;padding:2px 6px;border-radius:3px">Accept</span></div>',
+                    '<span style="background:#3d6bff;padding:2px 6px;border-radius:3px">Accept</span></div>',
                 whatsapp_chat:
                     '<div class="tpl-bubble" style="background:#25d366">💬</div>',
                 click_to_call:
                     '<div class="tpl-bubble" style="background:#0f172a">📞</div>',
                 video_popup:
                     '<div style="width:120px;height:74px;background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative">'+
-                    '<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;color:#7c3aed;font-size:14px">▶</div></div>',
+                    '<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;color:#3d6bff;font-size:14px">▶</div></div>',
                 share_buttons:
                     '<div style="display:flex;gap:6px">'+
                     ['#1877f2','#1da1f2','#0a66c2','#bd081c','#25d366'].map(c =>
@@ -875,7 +875,7 @@ function buzzEditor() {
                 ]),
                 '<div><label class="bz-label">Activity pool ({name}, {location}, {action} placeholders)</label>'
                 + '<div>' + rows + '</div>'
-                + '<button type="button" class="text-xs text-violet-300 hover:text-violet-200 mt-1" @click="getNotif(\''+n.id+'\').settings.pool = getNotif(\''+n.id+'\').settings.pool || []; getNotif(\''+n.id+'\').settings.pool.push({name:\'\',location:\'\',action:\'just signed up\'}); livePreview()"><i class="fas fa-plus mr-1"></i>Add row</button></div>',
+                + '<button type="button" class="text-xs text-blue-300 hover:text-blue-200 mt-1" @click="getNotif(\''+n.id+'\').settings.pool = getNotif(\''+n.id+'\').settings.pool || []; getNotif(\''+n.id+'\').settings.pool.push({name:\'\',location:\'\',action:\'just signed up\'}); livePreview()"><i class="fas fa-plus mr-1"></i>Add row</button></div>',
             ]);
         },
 
@@ -892,7 +892,7 @@ function buzzEditor() {
             return this.tpl([
                 '<label class="inline-flex items-center gap-2 text-xs text-white/70"><input type="checkbox" x-model="getNotif(\''+n.id+'\').settings.rotate" @change="livePreview()"> Rotate through reviews</label>',
                 '<div><label class="bz-label">Reviews</label><div>' + rows + '</div>'
-                + '<button type="button" class="text-xs text-violet-300 hover:text-violet-200 mt-1" @click="getNotif(\''+n.id+'\').settings.items = getNotif(\''+n.id+'\').settings.items || []; getNotif(\''+n.id+'\').settings.items.push({author:\'\',text:\'\',rating:5}); livePreview()"><i class="fas fa-plus mr-1"></i>Add review</button></div>',
+                + '<button type="button" class="text-xs text-blue-300 hover:text-blue-200 mt-1" @click="getNotif(\''+n.id+'\').settings.items = getNotif(\''+n.id+'\').settings.items || []; getNotif(\''+n.id+'\').settings.items.push({author:\'\',text:\'\',rating:5}); livePreview()"><i class="fas fa-plus mr-1"></i>Add review</button></div>',
             ]);
         },
     };

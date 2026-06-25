@@ -21,7 +21,7 @@
             <input type="hidden" name="{{ $name }}" value="{{ $value }}">
         @endforeach
         <button type="submit"
-            class="w-full px-4 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">
+            class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">
             Pay with PayU
         </button>
     </form>

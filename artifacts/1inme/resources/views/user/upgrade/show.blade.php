@@ -83,15 +83,15 @@
         <h1 class="text-3xl font-semibold text-white">Pick the plan that fits your work</h1>
         @if(!$user || !$user->country)
             <p class="text-white/60">All prices below.
-                <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">Set your country</a> for accurate pricing.
+                <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">Set your country</a> for accurate pricing.
             </p>
         @endif
 
         <div class="inline-flex rounded-full border border-white/10 bg-white/[0.02] p-1 mt-3">
             <a href="{{ route('user.upgrade', ['cycle' => 'monthly']) }}"
-               class="px-4 py-1.5 text-sm rounded-full transition {{ $cycle === 'monthly' ? 'bg-violet-600 text-white' : 'text-white/60 hover:text-white' }}">Monthly</a>
+               class="px-4 py-1.5 text-sm rounded-full transition {{ $cycle === 'monthly' ? 'bg-blue-600 text-white' : 'text-white/60 hover:text-white' }}">Monthly</a>
             <a href="{{ route('user.upgrade', ['cycle' => 'annual']) }}"
-               class="px-4 py-1.5 text-sm rounded-full transition {{ $cycle === 'annual' ? 'bg-violet-600 text-white' : 'text-white/60 hover:text-white' }}">Annual <span class="text-[10px] opacity-70">save 2 months</span></a>
+               class="px-4 py-1.5 text-sm rounded-full transition {{ $cycle === 'annual' ? 'bg-blue-600 text-white' : 'text-white/60 hover:text-white' }}">Annual <span class="text-[10px] opacity-70">save 2 months</span></a>
         </div>
 
         <div class="pt-1">
@@ -108,7 +108,7 @@
     @php $rec = $recommendation ?? null; @endphp
     @if($rec && $rec['recommendedPlan'])
         @php $recPlan = $rec['recommendedPlan']; @endphp
-        <div class="rounded-2xl border border-pink-400/40 p-5 sm:p-6 bg-gradient-to-br from-violet-600/15 via-pink-500/10 to-amber-500/5 relative overflow-hidden">
+        <div class="rounded-2xl border border-pink-400/40 p-5 sm:p-6 bg-gradient-to-br from-blue-600/15 via-pink-500/10 to-amber-500/5 relative overflow-hidden">
             <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-pink-500/15 blur-3xl pointer-events-none"></div>
             <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-5 items-center">
                 <div>
@@ -136,7 +136,7 @@
                                 </div>
                                 @unless($u['unlimited'])
                                     <div class="h-1.5 rounded-full bg-white/[.06] mt-1 overflow-hidden">
-                                        <div class="h-full rounded-full" style="width: {{ max(2, $u['pct']) }}%; background: linear-gradient(90deg,{{ $u['pct'] >= 70 ? '#f59e0b,#ef4444' : '#7c3aed,#ec4899,#f59e0b' }});"></div>
+                                        <div class="h-full rounded-full" style="width: {{ max(2, $u['pct']) }}%; background: linear-gradient(90deg,{{ $u['pct'] >= 70 ? '#f59e0b,#ef4444' : '#3d6bff,#ec4899,#f59e0b' }});"></div>
                                     </div>
                                 @endunless
                             </div>
@@ -170,7 +170,7 @@
             <div x-data='{ prices: @json($row['prices']), taxByCur: @json($row['taxByCur']) }'
                  class="relative rounded-2xl border {{ $isCurrent ? 'border-emerald-500/60 ring-1 ring-emerald-500/40' : ($isRec ? 'border-pink-400/60 ring-1 ring-pink-400/30' : 'border-white/10') }} bg-white/[0.02] p-6 flex flex-col">
                 @if($isRec)
-                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-pink-500/20">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-blue-500 to-pink-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-pink-500/20">
                         <i class="fas fa-wand-magic-sparkles mr-1"></i> Recommended
                     </div>
                 @endif
@@ -229,7 +229,7 @@
                                     <div class="mt-2 text-[11px] text-emerald-300/80">No tax applies for {{ $cTax['place_of_supply'] ?? 'your region' }}.</div>
                                 @else
                                     <div class="mt-2 text-[11px] text-white/40">+ taxes as applicable —
-                                        <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">add billing address</a>
+                                        <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">add billing address</a>
                                         to see exact tax.
                                     </div>
                                 @endif
@@ -264,7 +264,7 @@
                         'max_companions' => 'AI Companions',
                     ] as $key => $label)
                         @if(isset($features[$key]) && (int) $features[$key] !== 0)
-                            <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $features[$key] == -1 ? 'Unlimited' : number_format((int)$features[$key]) }} {{ $label }}</span></li>
+                            <li class="flex items-start gap-2"><span class="text-blue-400">•</span><span>{{ $features[$key] == -1 ? 'Unlimited' : number_format((int)$features[$key]) }} {{ $label }}</span></li>
                         @endif
                     @endforeach
                     @php
@@ -298,14 +298,14 @@
                         @if($blockNames)
                             @php $blockPreview = array_slice($blockNames, 0, 6); $blockExtra = count($blockNames) - count($blockPreview); @endphp
                             <li class="flex items-start gap-2">
-                                <span class="text-violet-400">•</span>
+                                <span class="text-blue-400">•</span>
                                 <span class="min-w-0">
                                     <span class="block">{{ count($blockNames) }} Link in Bio block types</span>
                                     <span x-data="{ open: false }" class="block mt-1">
                                         <span class="block text-xs text-white/45 leading-snug" x-show="!open">{{ implode(', ', $blockPreview) }}@if($blockExtra > 0)<span class="text-white/60"> &amp; {{ $blockExtra }} more</span>@endif</span>
                                         <span class="block text-xs text-white/45 leading-snug" x-show="open" x-cloak>{{ implode(', ', $blockNames) }}</span>
                                         @if($blockExtra > 0)
-                                            <button type="button" @click="open = !open" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-300 hover:text-violet-200 transition">
+                                            <button type="button" @click="open = !open" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 hover:text-blue-200 transition">
                                                 <span x-show="!open">Show all {{ count($blockNames) }} blocks</span>
                                                 <span x-show="open" x-cloak>Show fewer</span>
                                                 <i class="fas fa-chevron-down text-[8px]" :class="open ? 'rotate-180' : ''"></i>
@@ -323,10 +323,10 @@
                         @endphp
                         <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>Developer API access</span></li>
                         @if($apiCalls !== 0)
-                            <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $apiCalls === -1 ? 'Unlimited' : number_format($apiCalls) }} API calls / month</span></li>
+                            <li class="flex items-start gap-2"><span class="text-blue-400">•</span><span>{{ $apiCalls === -1 ? 'Unlimited' : number_format($apiCalls) }} API calls / month</span></li>
                         @endif
                         @if($apiRate !== 0)
-                            <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $apiRate === -1 ? 'Unlimited' : number_format($apiRate) }} API rate (calls / min)</span></li>
+                            <li class="flex items-start gap-2"><span class="text-blue-400">•</span><span>{{ $apiRate === -1 ? 'Unlimited' : number_format($apiRate) }} API rate (calls / min)</span></li>
                         @endif
                     @endif
                 </ul>
@@ -337,7 +337,7 @@
                         <button disabled class="w-full px-4 py-2.5 bg-white/10 text-white/60 rounded-xl font-medium cursor-not-allowed">Current plan</button>
                     @else
                         <a :href="checkoutUrl({{ $plan->id }})"
-                           class="block text-center w-full px-4 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
+                           class="block text-center w-full px-4 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                             Choose {{ $plan->name }}<span x-show="addonCount() > 0" x-cloak> + add-ons</span>
                         </a>
                     @endif
@@ -364,7 +364,7 @@
                 @php $a = $row['model']; $eligible = !empty($row['planIds']); @endphp
                 <div x-data='{ prices: @json($row['prices']), taxByCur: @json($row['taxByCur']) }'
                      class="rounded-xl border bg-white/[0.02] p-4 transition"
-                     :class="isSelected({{ $a->id }}) ? 'border-violet-500/60 ring-1 ring-violet-500/30' : 'border-white/10'">
+                     :class="isSelected({{ $a->id }}) ? 'border-blue-500/60 ring-1 ring-blue-500/30' : 'border-white/10'">
                     <div class="flex items-baseline justify-between gap-3">
                         <div class="font-medium text-white">{{ $a->name }}</div>
                         <div class="text-sm text-white/80 whitespace-nowrap"><span x-text="(prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}'">{{ $row['shown']['formatted'] }}</span><span class="text-xs text-white/40"> / {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></div>
@@ -396,7 +396,7 @@
                         <div class="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3">
                             <label class="flex items-center gap-2 text-sm text-white/75 cursor-pointer select-none">
                                 <input type="checkbox" :checked="isSelected({{ $a->id }})" @change="toggle({{ $a->id }})"
-                                       class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/40">
+                                       class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
                                 <span x-text="isSelected({{ $a->id }}) ? 'Added' : 'Add to plan'"></span>
                             </label>
                             <div x-show="isSelected({{ $a->id }})" x-cloak class="flex items-center gap-1.5">
@@ -410,7 +410,7 @@
                         <div class="mt-2 flex flex-wrap items-center gap-1">
                             <span class="text-[10px] uppercase tracking-wider text-white/30">Works with</span>
                             @foreach($a->plans as $p)
-                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-300/80 border border-violet-500/15">{{ $p->name }}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-300/80 border border-blue-500/15">{{ $p->name }}</span>
                             @endforeach
                         </div>
                     @else

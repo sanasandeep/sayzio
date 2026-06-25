@@ -239,9 +239,9 @@ function tierTint(color: string | null): string {
     case "emerald": return "#10b981";
     case "amber": return "#f59e0b";
     case "rose": return "#f43f5e";
-    case "fuchsia": return "#d946ef";
+    case "fuchsia": return "#d76dff";
     case "slate": return "#64748b";
-    default: return "#8b5cf6";
+    default: return "#3d6bff";
   }
 }
 

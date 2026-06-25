@@ -328,7 +328,7 @@ export default function RestaurantMenuBuilderScreen() {
             onChangeText={setAccent}
             autoCapitalize="none"
             autoCorrect={false}
-            placeholder="#7c3aed"
+            placeholder="#3d6bff"
           />
           <Button
             label="Save settings"

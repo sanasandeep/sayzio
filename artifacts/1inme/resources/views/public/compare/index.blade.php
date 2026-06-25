@@ -26,7 +26,7 @@
             and an honest take on where each tool wins.
         </p>
         <div data-anim="fade-up" class="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a href="{{ url('/register') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+            <a href="{{ url('/register') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                 <i class="fas fa-rocket text-xs"></i> Start free
             </a>
             <a href="{{ route('site.pricing') }}#compare" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -84,7 +84,7 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">One link. <span class="grad-text">The whole stack.</span></h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Stop paying for four tools that each do one thing. Build your free Sayzio and bring everything under one link.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ url('/register') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Start free</a>
+                    <a href="{{ url('/register') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start free</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

@@ -48,28 +48,28 @@
         <div class="flex gap-1 mb-4 p-0.5 rounded-lg" style="background: var(--bg-glass-input);">
             <button type="button" @click="activeStyleTab = 'designs'"
                     :class="activeStyleTab === 'designs' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'designs' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'designs' ? 'background: linear-gradient(135deg, #5c83ff, #3d6bff);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-shapes mr-1"></i>Designs
-                <span class="ml-1 inline-block px-1 rounded-full text-[8px]" style="background: rgba(124,58,237,0.18); color: #a78bfa;">{{ count($variants) }}</span>
+                <span class="ml-1 inline-block px-1 rounded-full text-[8px]" style="background: rgba(61,107,255,0.18); color: #90acff;">{{ count($variants) }}</span>
             </button>
             @if($showText)
             <button type="button" @click="activeStyleTab = 'typography'"
                     :class="activeStyleTab === 'typography' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'typography' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'typography' ? 'background: linear-gradient(135deg, #5c83ff, #3d6bff);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-font mr-1"></i>Text
             </button>
             @endif
             <button type="button" @click="activeStyleTab = 'appearance'"
                     :class="activeStyleTab === 'appearance' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'appearance' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'appearance' ? 'background: linear-gradient(135deg, #5c83ff, #3d6bff);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-palette mr-1"></i>Look
             </button>
             <button type="button" @click="activeStyleTab = 'spacing'"
                     :class="activeStyleTab === 'spacing' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'spacing' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'spacing' ? 'background: linear-gradient(135deg, #5c83ff, #3d6bff);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-arrows-alt mr-1"></i>Layout
             </button>
@@ -96,8 +96,8 @@
              x-init="$nextTick(() => loadLivePreviews())">
             {{-- Plain-language explainer so first-time users understand
                  what they're picking and that it's safe to experiment. --}}
-            <div class="p-2.5 rounded-lg flex items-start gap-2" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);">
-                <i class="fas fa-shapes text-[12px] mt-0.5" style="color: #a78bfa;"></i>
+            <div class="p-2.5 rounded-lg flex items-start gap-2" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.2);">
+                <i class="fas fa-shapes text-[12px] mt-0.5" style="color: #90acff;"></i>
                 <div class="flex-1">
                     <div class="text-[11px] font-bold leading-tight" style="color: var(--text-primary);">One-click skins for this block</div>
                     <div class="text-[10px] mt-0.5" style="color: var(--text-dimmed);">Pick a shape and theme — your text, link and image stay the same. Use <b>Reset</b> to undo or <b>Surprise me</b> to spin a random look.</div>
@@ -114,7 +114,7 @@
                      back to false in each action's `finally`. --}}
                 <span x-show="_busy" x-cloak
                       class="mr-auto inline-flex items-center gap-1 text-[10px] font-bold py-1 px-2 rounded-md"
-                      style="background: rgba(124,58,237,0.14); border: 1px solid rgba(124,58,237,0.35); color: #c4b5fd;">
+                      style="background: rgba(61,107,255,0.14); border: 1px solid rgba(61,107,255,0.35); color: #bccfff;">
                     <i class="fas fa-circle-notch fa-spin text-[10px]"></i>
                     <span>Saving design…</span>
                 </span>
@@ -151,7 +151,7 @@
                 </button>
                 <button type="button" @click="surpriseMe()"
                         :disabled="_busy"
-                        :style="_busy ? 'opacity:0.6;cursor:not-allowed;background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;' : 'background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;'"
+                        :style="_busy ? 'opacity:0.6;cursor:not-allowed;background: linear-gradient(135deg, #ec4899, #5c83ff); color: white;' : 'background: linear-gradient(135deg, #ec4899, #5c83ff); color: white;'"
                         class="text-[10px] font-bold py-1 px-2 rounded-md transition-all">
                     <i class="fas fa-dice mr-1"></i>Surprise me
                 </button>
@@ -195,9 +195,9 @@
                 <div class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color: var(--text-dimmed);">Theme</div>
                 <div class="flex flex-wrap gap-1">
                     <button type="button" @click="activeFilter = 'all'"
-                            :class="activeFilter === 'all' ? 'ring-1 ring-violet-400/60' : ''"
+                            :class="activeFilter === 'all' ? 'ring-1 ring-blue-400/60' : ''"
                             class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                            :style="activeFilter === 'all' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                            :style="activeFilter === 'all' ? 'background: rgba(61,107,255,0.18); color: #90acff;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
                         All
                     </button>
                     <button type="button" @click="activeFilter = 'favorites'"
@@ -208,9 +208,9 @@
                     </button>
                     @foreach($variantTagsPresent as $tagKey => $tagLabel)
                     <button type="button" @click="activeFilter = '{{ $tagKey }}'"
-                            :class="activeFilter === '{{ $tagKey }}' ? 'ring-1 ring-violet-400/60' : ''"
+                            :class="activeFilter === '{{ $tagKey }}' ? 'ring-1 ring-blue-400/60' : ''"
                             class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                            :style="activeFilter === '{{ $tagKey }}' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                            :style="activeFilter === '{{ $tagKey }}' ? 'background: rgba(61,107,255,0.18); color: #90acff;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
                         {{ $tagLabel }}
                     </button>
                     @endforeach
@@ -279,7 +279,7 @@
                         @click="applyVariant('{{ $v['key'] }}', $el)"
                         :disabled="_busy"
                         class="group p-2 rounded-xl text-left transition-all hover:scale-[1.03] relative"
-                        :style="(currentVariant === '{{ $v['key'] }}' ? 'background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.6); box-shadow: 0 0 12px rgba(124,58,237,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);') + (_busy && _busyKey !== '{{ $v['key'] }}' ? ' opacity:0.5;cursor:not-allowed;' : '') + (_busy && _busyKey === '{{ $v['key'] }}' ? ' cursor:wait;' : '')">
+                        :style="(currentVariant === '{{ $v['key'] }}' ? 'background: rgba(61,107,255,0.12); border: 2px solid rgba(61,107,255,0.6); box-shadow: 0 0 12px rgba(61,107,255,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);') + (_busy && _busyKey !== '{{ $v['key'] }}' ? ' opacity:0.5;cursor:not-allowed;' : '') + (_busy && _busyKey === '{{ $v['key'] }}' ? ' cursor:wait;' : '')">
                     {{-- Per-card "Saving…" overlay — shown only on the
                          exact variant card that was just clicked, so the
                          creator can see which design is being applied
@@ -287,12 +287,12 @@
                     <div x-show="_busyKey === '{{ $v['key'] }}'" x-cloak
                          class="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1 z-10"
                          style="background: rgba(15,15,25,0.72); backdrop-filter: blur(2px);">
-                        <i class="fas fa-circle-notch fa-spin text-[16px]" style="color: #c4b5fd;"></i>
-                        <span class="text-[9px] font-bold" style="color: #c4b5fd;">Saving…</span>
+                        <i class="fas fa-circle-notch fa-spin text-[16px]" style="color: #bccfff;"></i>
+                        <span class="text-[9px] font-bold" style="color: #bccfff;">Saving…</span>
                     </div>
                     {{-- Selected check --}}
                     <div class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all"
-                         :style="currentVariant === '{{ $v['key'] }}' ? 'background: #8b5cf6; opacity: 1;' : 'opacity: 0;'">
+                         :style="currentVariant === '{{ $v['key'] }}' ? 'background: #5c83ff; opacity: 1;' : 'opacity: 0;'">
                         <i class="fas fa-check text-white text-[8px]"></i>
                     </div>
                     {{-- Favorite star --}}
@@ -346,7 +346,7 @@
                                   style="color: {{ $thumbText }};">Click me →</span>
                         @elseif($shapeKind === 'image_btn')
                             <div class="w-full h-full rounded flex items-end p-1.5"
-                                 style="background: linear-gradient(135deg,#7c3aed,#ec4899); border-radius: {{ min($thumbRadius, 16) }}px;">
+                                 style="background: linear-gradient(135deg,#3d6bff,#ec4899); border-radius: {{ min($thumbRadius, 16) }}px;">
                                 <span class="text-[9px] font-bold text-white drop-shadow">Click me</span>
                             </div>
                         @elseif($shapeKind === 'avatar')
@@ -371,7 +371,7 @@
                     <div class="flex flex-wrap gap-0.5 mt-0.5">
                         @foreach(($v['tags'] ?? []) as $tagKey)
                         @if(isset($variantTags[$tagKey]))
-                        <span class="text-[8px] px-1 rounded" style="background: rgba(124,58,237,0.1); color: #a78bfa;">{{ $variantTags[$tagKey] }}</span>
+                        <span class="text-[8px] px-1 rounded" style="background: rgba(61,107,255,0.1); color: #90acff;">{{ $variantTags[$tagKey] }}</span>
                         @endif
                         @endforeach
                     </div>
@@ -461,11 +461,11 @@
             <div>
                 <label class="{{ $labelClass }}">Display Mode</label>
                 <div class="grid grid-cols-2 gap-2" x-data="{ mode: '{{ $st['display_mode'] ?? 'card' }}' }">
-                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'card' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
+                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'card' ? 'background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.3); color: #5c83ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
                         <input type="radio" name="style[display_mode]" value="card" x-model="mode" class="hidden">
                         <i class="fas fa-square text-xs"></i> Card
                     </label>
-                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'content' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
+                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'content' ? 'background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.3); color: #5c83ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
                         <input type="radio" name="style[display_mode]" value="content" x-model="mode" class="hidden">
                         <i class="fas fa-align-left text-xs"></i> Content Only
                     </label>
@@ -490,7 +490,7 @@
                     @php $gp = $st['glass_preset'] ?? ''; @endphp
                     @foreach(['off' => 'Off', 'light' => 'Light', 'heavy' => 'Heavy'] as $gpVal => $gpLabel)
                         <label class="flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold"
-                               style="{{ $gp === $gpVal ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);' }}">
+                               style="{{ $gp === $gpVal ? 'background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.3); color: #5c83ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);' }}">
                             <input type="radio" name="style[glass_preset]" value="{{ $gpVal }}" {{ $gp === $gpVal ? 'checked' : '' }} class="hidden"> {{ $gpLabel }}
                         </label>
                     @endforeach
@@ -506,7 +506,7 @@
                     @php $sp = $st['shadow_preset'] ?? ''; @endphp
                     @foreach(['none' => 'None', 'soft' => 'Soft', 'medium' => 'Medium', 'strong' => 'Strong'] as $spVal => $spLabel)
                         <label class="flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold"
-                               style="{{ $sp === $spVal ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);' }}">
+                               style="{{ $sp === $spVal ? 'background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.3); color: #5c83ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);' }}">
                             <input type="radio" name="style[shadow_preset]" value="{{ $spVal }}" {{ $sp === $spVal ? 'checked' : '' }} class="hidden"> {{ $spLabel }}
                         </label>
                     @endforeach
@@ -590,7 +590,7 @@
                     <label class="flex flex-col items-center cursor-pointer" @click="gridSpan = '{{ $gv }}'">
                         <input type="radio" name="style[grid_span]" value="{{ $gv }}" {{ ($st['grid_span'] ?? 12) == $gv ? 'checked' : '' }} class="hidden">
                         <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all"
-                              :style="gridSpan == '{{ $gv }}' ? 'background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.3); color: #a78bfa;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $gl }}</span>
+                              :style="gridSpan == '{{ $gv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $gl }}</span>
                     </label>
                     @endforeach
                 </div>
@@ -808,7 +808,7 @@ window.blockDesignsGallery = function(opts) {
                 case 'image':
                     return '<div style="' + inline + 'width:78%;height:88%;display:flex;align-items:center;justify-content:center;color:' + color + ';opacity:0.9;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6" fill="currentColor" stroke="none"/><path d="M21 15l-5-5L5 21"/></svg></div>';
                 case 'image_btn':
-                    return '<div style="' + inline + 'width:88%;height:88%;display:flex;align-items:flex-end;padding:6px;color:#fff;background-image:linear-gradient(135deg,#7c3aed,#ec4899);"><span style="font-size:9px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.4);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</span></div>';
+                    return '<div style="' + inline + 'width:88%;height:88%;display:flex;align-items:flex-end;padding:6px;color:#fff;background-image:linear-gradient(135deg,#3d6bff,#ec4899);"><span style="font-size:9px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.4);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</span></div>';
                 case 'avatar':
                     return '<div style="' + inline + 'width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:' + color + ';font-weight:700;font-size:14px;">' + (label.charAt(0).toUpperCase() || 'A') + '</div>';
                 case 'heading':

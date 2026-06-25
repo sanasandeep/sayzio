@@ -7,7 +7,7 @@
 
     /** @var array<string, mixed> $competitor */
     $c       = $competitor;
-    $accent  = $c['accent'] ?? '#7c3aed';
+    $accent  = $c['accent'] ?? '#3d6bff';
     $faqs    = $c['faqs'] ?? [];
     $theyWin = $c['they_win'] ?? [];
     $weWin   = $c['we_win'] ?? [];
@@ -28,7 +28,7 @@
         {{-- VS chips --}}
         <div data-anim="fade-up" class="flex items-center justify-center gap-3 sm:gap-5 mb-7">
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white"
-                  style="background: var(--c1, #7c3aed);">
+                  style="background: var(--c1, #3d6bff);">
                 <i class="fas fa-bolt"></i> Sayzio
             </span>
             <span class="text-sm font-bold uppercase tracking-widest text-gray-500">vs</span>
@@ -54,7 +54,7 @@
         </div>
 
         <div data-anim="fade-up" class="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a href="{{ url('/register') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+            <a href="{{ url('/register') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                 <i class="fas fa-rocket text-xs"></i> Switch to Sayzio free
             </a>
             <a href="#head-to-head" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
@@ -85,7 +85,7 @@
             <article class="glass rounded-3xl p-7" data-anim="fade-right">
                 <div class="flex items-center gap-3 mb-5">
                     <span class="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
-                          style="background: var(--c1, #7c3aed);">
+                          style="background: var(--c1, #3d6bff);">
                         <i class="fas fa-bolt"></i>
                     </span>
                     <h3 class="text-lg font-bold text-white">Where Sayzio wins</h3>
@@ -152,7 +152,7 @@
                     @endforeach
                 </div>
                 <div class="mt-9 text-center">
-                    <a href="{{ url('/register') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                    <a href="{{ url('/register') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
                         <i class="fas fa-rocket text-xs"></i> Start your free Sayzio
                     </a>
                 </div>

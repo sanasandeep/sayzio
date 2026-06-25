@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#0b0b13; --card:#15151f; --line:rgba(255,255,255,.08); --ink:#f4f4f8; --muted:#9aa0ad; --accent:#8b5cf6; --star:#fbbf24; }
+        :root { --bg:#0b0b13; --card:#15151f; --line:rgba(255,255,255,.08); --ink:#f4f4f8; --muted:#9aa0ad; --accent:#5c83ff; --star:#fbbf24; }
         * { box-sizing:border-box; }
         body { margin:0; font-family:'Space Grotesk',system-ui,sans-serif; background:radial-gradient(1200px 600px at 50% -10%, #1c1430 0%, var(--bg) 60%); color:var(--ink); min-height:100vh; }
         .wrap { max-width:880px; margin:0 auto; padding:40px 20px 80px; }
@@ -64,7 +64,7 @@
         .grid.cols { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
         .review { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
         .review .top { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-        .avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#8b5cf6,#ec4899); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; color:#fff; overflow:hidden; }
+        .avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#5c83ff,#ec4899); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; color:#fff; overflow:hidden; }
         .avatar img { width:100%; height:100%; object-fit:cover; }
         .review .name { font-weight:600; font-size:14px; }
         .review .meta { font-size:11px; color:var(--muted); }
@@ -75,7 +75,7 @@
         .media audio { width:100%; }
         .answers { margin:8px 0 0; padding:10px; background:rgba(255,255,255,.03); border-radius:10px; font-size:12.5px; }
         .answers b { color:var(--ink); }
-        .reply { margin-top:10px; padding:10px 12px; border-left:3px solid var(--accent); background:rgba(139,92,246,.08); border-radius:0 10px 10px 0; font-size:13px; }
+        .reply { margin-top:10px; padding:10px 12px; border-left:3px solid var(--accent); background:rgba(92,131,255,.08); border-radius:0 10px 10px 0; font-size:13px; }
         .reply .who { font-size:11px; color:var(--accent); font-weight:600; margin-bottom:3px; }
         .pin { font-size:10px; color:var(--star); font-weight:600; }
         .verified { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:600; color:#34d399; background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.35); border-radius:99px; padding:1px 7px; vertical-align:middle; }

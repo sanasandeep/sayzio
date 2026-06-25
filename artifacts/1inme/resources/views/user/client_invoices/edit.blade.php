@@ -102,7 +102,7 @@
         </section>
 
         <div class="flex items-center justify-between">
-            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">Save changes</button>
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#3d6bff,#90acff);">Save changes</button>
         </div>
     </form>
 

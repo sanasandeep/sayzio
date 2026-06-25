@@ -24,7 +24,7 @@
         <label class="flex items-center gap-3 cursor-pointer">
             <input type="hidden" name="enabled" value="0">
             <input type="checkbox" name="enabled" value="1" {{ $enabled ? 'checked' : '' }}
-                   class="w-4 h-4 accent-violet-500">
+                   class="w-4 h-4 accent-blue-500">
             <span class="text-sm text-white">Enable AI Engine</span>
         </label>
 
@@ -57,11 +57,11 @@
             <p class="text-[11px] text-white/30">Sends a tiny 1-token request to OpenAI to confirm the key works. No coins are charged. Tests the key typed above, or the stored key when the field is blank.</p>
 
             <div class="flex flex-wrap items-center gap-4 pt-1">
-                <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-violet-300 hover:underline">
+                <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-blue-300 hover:underline">
                     <i class="fas fa-chart-line mr-1"></i> View AI usage
                 </a>
                 <a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener"
-                   class="text-xs text-violet-300 hover:underline">
+                   class="text-xs text-blue-300 hover:underline">
                     <i class="fas fa-arrow-up-right-from-square mr-1"></i> Check OpenAI balance
                 </a>
             </div>
@@ -77,7 +77,7 @@
                 <p class="text-xs text-white/40">Coins charged per 1 000 tokens (fractional allowed). Per-call cost is rounded up to whole coins.</p>
             </div>
             <button type="button" onclick="addModelRow()"
-                    class="px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700">
+                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700">
                 <i class="fas fa-plus mr-1"></i> Add model
             </button>
         </div>
@@ -108,7 +108,7 @@
                         @if($usedBy)
                             <div class="flex flex-wrap gap-1">
                                 @foreach($usedBy as $feat)
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 text-violet-200 text-[10px] font-mono uppercase tracking-wider">{{ $feat }}</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30 text-blue-200 text-[10px] font-mono uppercase tracking-wider">{{ $feat }}</span>
                                 @endforeach
                             </div>
                         @else
@@ -121,7 +121,7 @@
                     </select></td>
                     <td>
                         <input type="hidden" name="models[{{ $i }}][enabled]" value="0">
-                        <input type="checkbox" data-enabled-toggle name="models[{{ $i }}][enabled]" value="1" {{ $m['enabled'] ? 'checked':'' }} class="accent-violet-500">
+                        <input type="checkbox" data-enabled-toggle name="models[{{ $i }}][enabled]" value="1" {{ $m['enabled'] ? 'checked':'' }} class="accent-blue-500">
                         <p data-disable-warning class="hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1">
                             <i class="fas fa-triangle-exclamation mt-0.5"></i>
                             <span data-disable-warning-text></span>
@@ -232,7 +232,7 @@
             <label class="inline-flex items-center gap-2 cursor-pointer">
                 <input type="hidden" name="voice_enabled" value="0">
                 <input type="checkbox" name="voice_enabled" value="1" {{ $voiceEnabled ? 'checked' : '' }}
-                       class="h-4 w-4 rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500">
+                       class="h-4 w-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500">
                 <span class="text-white/80 text-sm">Enabled</span>
             </label>
         </div>
@@ -326,7 +326,7 @@
                         <label class="inline-flex items-center gap-2 text-xs text-white/80 bg-white/5 border border-white/10 rounded-full px-3 py-1">
                             <input type="checkbox" name="voice_plans[]" value="{{ $plan->slug }}"
                                    @checked(in_array($plan->slug, $voicePlans, true))
-                                   class="h-3.5 w-3.5 rounded border-white/20 bg-white/5 text-violet-500">
+                                   class="h-3.5 w-3.5 rounded border-white/20 bg-white/5 text-blue-500">
                             {{ $plan->name }}
                         </label>
                     @endforeach
@@ -336,10 +336,10 @@
     </div>
 
     <div class="flex items-center justify-between">
-        <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-violet-300 hover:underline">
+        <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-blue-300 hover:underline">
             View AI usage report →
         </a>
-        <button type="submit" class="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
+        <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             Save settings
         </button>
     </div>
@@ -438,7 +438,7 @@ function addModelRow() {
         <td class="py-2"><input name="models[${i}][name]" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
         <td class="py-2"><span class="text-white/30 text-xs">—</span></td>
         <td><select name="models[${i}][kind]" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"><option value="chat">chat</option><option value="embedding">embedding</option></select></td>
-        <td><input type="hidden" name="models[${i}][enabled]" value="0"><input type="checkbox" data-enabled-toggle name="models[${i}][enabled]" value="1" checked class="accent-violet-500"><p data-disable-warning class="hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1"><i class="fas fa-triangle-exclamation mt-0.5"></i><span data-disable-warning-text></span></p></td>
+        <td><input type="hidden" name="models[${i}][enabled]" value="0"><input type="checkbox" data-enabled-toggle name="models[${i}][enabled]" value="1" checked class="accent-blue-500"><p data-disable-warning class="hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1"><i class="fas fa-triangle-exclamation mt-0.5"></i><span data-disable-warning-text></span></p></td>
         <td class="text-right"><input type="number" min="0" step="0.01" name="models[${i}][in_coins_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
         <td class="text-right"><input type="number" min="0" step="0.01" name="models[${i}][out_coins_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
         <td class="text-right"><button type="button" onclick="this.closest('tr').remove()" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button></td>`;
@@ -464,7 +464,7 @@ function addModelRow() {
             return;
         }
         cell.innerHTML = '<div class="flex flex-wrap gap-1">' + features.map(function (f) {
-            return '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 text-violet-200 text-[10px] font-mono uppercase tracking-wider">' + f + '</span>';
+            return '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30 text-blue-200 text-[10px] font-mono uppercase tracking-wider">' + f + '</span>';
         }).join('') + '</div>';
     }
     function refreshDisableWarning(row) {

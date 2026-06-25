@@ -45,7 +45,7 @@
             ])
 
             <div class="flex justify-end">
-                <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                     Get suggestions
                 </button>
             </div>
@@ -53,7 +53,7 @@
     @endif
 
     @if($result)
-        <div class="mt-6 rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-5">
+        <div class="mt-6 rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-5">
             <div class="flex items-center justify-between mb-2">
                 <p class="text-xs text-white/40 uppercase tracking-wider">Coach on "{{ $result['link_title'] }}"</p>
                 <p class="text-xs text-white/40">

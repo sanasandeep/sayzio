@@ -24,7 +24,7 @@
 
     <div class="card-premium p-6 mb-4">
         <div class="flex items-start gap-4">
-            <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                 @if($contact && $contact->photoUrl())
                     <img src="{{ $contact->photoUrl() }}" class="w-full h-full rounded-full object-cover">
                 @elseif($contact)
@@ -57,7 +57,7 @@
                         <i class="fas fa-envelope mr-1"></i> Email
                     </a>
                 @endif
-                <a href="{{ $payload['vcard_url'] }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-center" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.20)">
+                <a href="{{ $payload['vcard_url'] }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-center" style="background:rgba(110,97,255,.12);color:#6e61ff;border:1px solid rgba(110,97,255,.20)">
                     <i class="fas fa-address-card mr-1"></i> vCard
                 </a>
                 @if($contact)
@@ -143,7 +143,7 @@
                     <p class="text-sm mb-4" style="color:var(--text-muted);">&commat;{{ $payload['biolink']['handle'] }}</p>
                     @if($payload['biolink']['url'])
                         <div class="flex flex-wrap items-center gap-2">
-                            <a href="{{ $payload['biolink']['url'] }}" target="_blank" class="inline-block px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                            <a href="{{ $payload['biolink']['url'] }}" target="_blank" class="inline-block px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                                 Open Link in Bio <i class="fas fa-external-link-alt ml-1 text-xs"></i>
                             </a>
                             @if($number)
@@ -157,7 +157,7 @@
                                         @csrf
                                         <input type="hidden" name="to" value="{{ $number }}">
                                         <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold"
-                                                style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)"
+                                                style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)"
                                                 title="Send via your configured SMS gateway (desktop fallback)">
                                             <i class="fas fa-paper-plane mr-1"></i> Send via gateway
                                         </button>
@@ -186,7 +186,7 @@
             @if($contact)
                 <form method="POST" action="{{ route('user.contacts.biolink.attach', $contact) }}">
                     @csrf
-                    <button class="text-xs font-medium" style="color:#a78bfa;">
+                    <button class="text-xs font-medium" style="color:#90acff;">
                         <i class="fas fa-link mr-1"></i> Re-check / re-attach
                     </button>
                 </form>
@@ -225,13 +225,13 @@
                 @foreach($allChannels as $ch)
                     <a href="{{ $ch['url'] }}" @if(!\Illuminate\Support\Str::startsWith($ch['url'], ['tel:','sms:','mailto:','facetime'])) target="_blank" rel="noopener" @endif
                        class="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.08);">
-                        <i class="fas {{ $iconFor($ch['type']) }}" style="color:#a78bfa;width:18px;text-align:center;"></i>
+                        <i class="fas {{ $iconFor($ch['type']) }}" style="color:#90acff;width:18px;text-align:center;"></i>
                         <span class="min-w-0">
                             <span class="block truncate">{{ $ch['label'] }}</span>
                             <span class="block text-[11px] truncate" style="color:var(--text-faint);">{{ $ch['value'] }}</span>
                         </span>
                         @if(($ch['source'] ?? '') === 'manual')
-                            <span class="ml-auto text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
+                            <span class="ml-auto text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(110,97,255,.15);color:#c084fc;">manual</span>
                         @endif
                     </a>
                 @endforeach
@@ -251,7 +251,7 @@
                         <i class="fas fa-globe" style="color:#60a5fa;"></i>
                         {{ $s['label'] }}
                         @if(($s['source'] ?? '') === 'manual')
-                            <span class="text-[9px] px-1 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
+                            <span class="text-[9px] px-1 py-0.5 rounded" style="background:rgba(110,97,255,.15);color:#c084fc;">manual</span>
                         @endif
                     </a>
                 @endforeach
@@ -278,14 +278,14 @@
             .dialer-loc-map .leaflet-container, .dialer-loc-thumb .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
             html.light-mode .dialer-loc-map .leaflet-container, html.light-mode .dialer-loc-thumb .leaflet-container { background:#e6e9f0 !important; }
             .dialer-loc-map .leaflet-control-attribution, .dialer-loc-thumb .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
-            .dialer-loc-map .leaflet-control-attribution a, .dialer-loc-thumb .leaflet-control-attribution a { color:#a78bfa !important; }
+            .dialer-loc-map .leaflet-control-attribution a, .dialer-loc-thumb .leaflet-control-attribution a { color:#90acff !important; }
             .dialer-loc-map .leaflet-control-zoom a {
                 background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important;
             }
-            .dialer-loc-map .leaflet-control-zoom a:hover { background:#7c3aed !important; }
+            .dialer-loc-map .leaflet-control-zoom a:hover { background:#3d6bff !important; }
             .dialer-loc-marker { position:relative; width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
             .dialer-loc-marker svg { width:100%; height:100%; display:block; }
-            .dialer-loc-badge { position:absolute; top:5px; left:50%; transform:translateX(-50%); width:14px; height:14px; line-height:14px; text-align:center; font-size:10px; font-weight:700; color:#7c3aed; font-family:'Space Grotesk', sans-serif; pointer-events:none; }
+            .dialer-loc-badge { position:absolute; top:5px; left:50%; transform:translateX(-50%); width:14px; height:14px; line-height:14px; text-align:center; font-size:10px; font-weight:700; color:#3d6bff; font-family:'Space Grotesk', sans-serif; pointer-events:none; }
             /* Read-only map preview: non-interactive, taps fall through to open Maps. */
             .dialer-loc-thumb { pointer-events:none; }
             /* Combined map: pan/zoom disabled, but markers stay clickable to open Maps. */
@@ -315,7 +315,7 @@
                         @endif
                         <span class="flex items-center gap-3 px-3 py-2.5">
                             @if($combinedLocMap && $hasPt)
-                                <span class="inline-flex items-center justify-center shrink-0" style="width:20px;height:20px;border-radius:9999px;background:linear-gradient(#a78bfa,#7c3aed);color:#fff;font-size:11px;font-weight:700;">{{ $locNum }}</span>
+                                <span class="inline-flex items-center justify-center shrink-0" style="width:20px;height:20px;border-radius:9999px;background:linear-gradient(#90acff,#3d6bff);color:#fff;font-size:11px;font-weight:700;">{{ $locNum }}</span>
                             @else
                                 <i class="fas fa-location-dot" style="color:#f87171;"></i>
                             @endif
@@ -326,7 +326,7 @@
                                 @endif
                             </span>
                             @if(($loc['source'] ?? '') === 'manual')
-                                <span class="text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(168,85,247,.15);color:#c084fc;">manual</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded" style="background:rgba(110,97,255,.15);color:#c084fc;">manual</span>
                             @endif
                             <i class="fas fa-arrow-up-right-from-square text-xs" style="color:var(--text-faint);"></i>
                         </span>
@@ -341,7 +341,7 @@
                         if (typeof L === 'undefined') return;
                         var pin = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
                             '<defs><linearGradient id="dlt-g" x1="0" y1="0" x2="0" y2="1">' +
-                            '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+                            '<stop offset="0%" stop-color="#90acff"/><stop offset="100%" stop-color="#3d6bff"/>' +
                             '</linearGradient></defs>' +
                             '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#dlt-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
                             '<circle cx="17" cy="16" r="6" fill="#fff"/></svg>';
@@ -373,7 +373,7 @@
                         if (typeof L === 'undefined') return;
                         var pin = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
                             '<defs><linearGradient id="dlc-g" x1="0" y1="0" x2="0" y2="1">' +
-                            '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+                            '<stop offset="0%" stop-color="#90acff"/><stop offset="100%" stop-color="#3d6bff"/>' +
                             '</linearGradient></defs>' +
                             '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#dlc-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
                             '<circle cx="17" cy="16" r="6" fill="#fff"/></svg>';
@@ -443,7 +443,7 @@
                 <input type="hidden" name="contact_id" value="{{ $contact->id }}">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--text-faint);">Manual additions</h3>
-                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                         <i class="fas fa-save mr-1"></i> Save
                     </button>
                 </div>
@@ -467,7 +467,7 @@
                             <button type="button" @click="channels.splice(i,1)" class="px-2 rounded-lg" style="color:#ef4444;"><i class="fas fa-trash text-xs"></i></button>
                         </div>
                     </template>
-                    <button type="button" @click="channels.push({type:'phone',label:'',value:''})" class="text-xs font-medium" style="color:#a78bfa;"><i class="fas fa-plus mr-1"></i> Add channel</button>
+                    <button type="button" @click="channels.push({type:'phone',label:'',value:''})" class="text-xs font-medium" style="color:#90acff;"><i class="fas fa-plus mr-1"></i> Add channel</button>
                 </div>
 
                 {{-- Socials --}}
@@ -480,14 +480,14 @@
                             <button type="button" @click="socials.splice(i,1)" class="px-2 rounded-lg" style="color:#ef4444;"><i class="fas fa-trash text-xs"></i></button>
                         </div>
                     </template>
-                    <button type="button" @click="socials.push({platform:'',label:'',url:''})" class="text-xs font-medium" style="color:#a78bfa;"><i class="fas fa-plus mr-1"></i> Add social</button>
+                    <button type="button" @click="socials.push({platform:'',label:'',url:''})" class="text-xs font-medium" style="color:#90acff;"><i class="fas fa-plus mr-1"></i> Add social</button>
                 </div>
 
                 {{-- Location --}}
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <div class="text-xs font-semibold" style="color:var(--text-muted);">Location</div>
-                        <button type="button" @click="toggleMap()" class="text-[11px] font-medium" style="color:#a78bfa;">
+                        <button type="button" @click="toggleMap()" class="text-[11px] font-medium" style="color:#90acff;">
                             <i class="fas fa-map-location-dot mr-1"></i> <span x-text="showMap ? 'Hide map' : 'Pick on map'"></span>
                         </button>
                     </div>
@@ -495,7 +495,7 @@
                     <div x-show="showMap" x-cloak class="mb-3">
                         <div class="flex gap-2 mb-2">
                             <input x-model="searchQuery" @keydown.enter.prevent="searchAddress()" type="text" placeholder="Search a place or address…" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
-                            <button type="button" @click="searchAddress()" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)">
+                            <button type="button" @click="searchAddress()" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)">
                                 <i class="fas fa-magnifying-glass"></i>
                             </button>
                         </div>
@@ -525,11 +525,11 @@
         <script>
             const DIALER_PIN_SVG = '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
                 '<defs><linearGradient id="dlm-g" x1="0" y1="0" x2="0" y2="1">' +
-                '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+                '<stop offset="0%" stop-color="#90acff"/><stop offset="100%" stop-color="#3d6bff"/>' +
                 '</linearGradient></defs>' +
                 '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#dlm-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
                 '<circle cx="17" cy="16" r="6" fill="#fff"/>' +
-                '<text x="17" y="19.5" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" fill="#7c3aed">1</text>' +
+                '<text x="17" y="19.5" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" fill="#3d6bff">1</text>' +
                 '</svg>';
 
             function dialerManual(initial) {
@@ -714,14 +714,14 @@
         <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 <input id="cb-at" type="datetime-local" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
-                <button type="button" onclick="setCallback()" class="text-[11px] px-2.5 py-1.5 rounded-lg font-medium" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)">
+                <button type="button" onclick="setCallback()" class="text-[11px] px-2.5 py-1.5 rounded-lg font-medium" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)">
                     <i class="fas fa-bell mr-1"></i> Remind me
                 </button>
             </div>
-            <button type="button" onclick="saveLog()" class="text-xs px-4 py-2 rounded-xl font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">Save log</button>
+            <button type="button" onclick="saveLog()" class="text-xs px-4 py-2 rounded-xl font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">Save log</button>
         </div>
         @if($callback)
-            <div class="mt-3 text-[11px] flex items-center gap-1.5" style="color:#a78bfa;">
+            <div class="mt-3 text-[11px] flex items-center gap-1.5" style="color:#90acff;">
                 <i class="fas fa-bell"></i> Call-back reminder set for {{ \Illuminate\Support\Carbon::parse($callback['callback_at'])->diffForHumans() }}
             </div>
         @endif
@@ -751,7 +751,7 @@
 <style>
 .qa-btn { display:flex; flex-direction:column; align-items:center; gap:3px; padding:10px 4px; border-radius:12px; font-size:11px; font-weight:600; text-align:center; }
 .qa-btn i { font-size:14px; }
-.outcome-chip.active { background:rgba(124,58,237,.18) !important; color:#a78bfa !important; border-color:rgba(124,58,237,.35) !important; }
+.outcome-chip.active { background:rgba(61,107,255,.18) !important; color:#90acff !important; border-color:rgba(61,107,255,.35) !important; }
 </style>
 
 <script>

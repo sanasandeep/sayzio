@@ -46,8 +46,8 @@
             </p>
         </div>
 
-        <div class="rounded-xl p-4" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.20);">
-            <h4 class="text-xs font-bold uppercase tracking-wide mb-1" style="color:#a78bfa;">
+        <div class="rounded-xl p-4" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
+            <h4 class="text-xs font-bold uppercase tracking-wide mb-1" style="color:#90acff;">
                 <i class="fas fa-sparkles mr-1"></i> What we'll extract
             </h4>
             <p class="text-xs leading-relaxed" style="color: var(--text-muted);">
@@ -62,7 +62,7 @@
             </a>
             <button type="submit" {{ $engineOn ? '' : 'disabled' }}
                     class="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition"
-                    style="background: linear-gradient(135deg,#7c3aed,#ec4899); {{ $engineOn ? '' : 'opacity:.5;cursor:not-allowed;' }}">
+                    style="background: linear-gradient(135deg,#3d6bff,#ec4899); {{ $engineOn ? '' : 'opacity:.5;cursor:not-allowed;' }}">
                 <i class="fas fa-wand-magic-sparkles mr-1"></i> Scan with AI
             </button>
         </div>

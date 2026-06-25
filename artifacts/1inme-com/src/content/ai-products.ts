@@ -23,7 +23,7 @@ export const aiProducts: AiProduct[] = [
     eyebrow: "AI Chatbot",
     tagline: "A 24/7 chatbot for your Link in Bio — trained on you, on-brand, never asleep.",
     navDesc: "24/7 chatbot trained on your Link in Bio",
-    accent: "#7c3aed",
+    accent: "#3d6bff",
     title: "AI Chatbot",
     description:
       "Drop a 24/7 AI chatbot onto your Link in Bio that greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.",

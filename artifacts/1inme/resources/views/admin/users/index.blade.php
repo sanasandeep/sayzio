@@ -6,9 +6,9 @@
 @section('content')
 <div x-data="bulkUsers()">
 @if(request('promote'))
-<div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20">
-    <i class="fas fa-user-shield text-violet-300 mt-0.5"></i>
-    <div class="text-sm text-violet-100">
+<div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+    <i class="fas fa-user-shield text-blue-300 mt-0.5"></i>
+    <div class="text-sm text-blue-100">
         <span class="font-medium">Promote an existing user to admin.</span>
         Find the person below, then click the
         <i class="fas fa-user-shield mx-0.5"></i> shield action on their row to grant back-office admin access.
@@ -18,7 +18,7 @@
 <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
     <form method="GET" class="flex items-center gap-2 flex-wrap">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search users..."
-               class="px-4 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+               class="px-4 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
         <select name="status" class="px-3 py-2 border border-white/10 rounded-xl text-sm">
             <option value="">All Status</option>
             <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
@@ -35,7 +35,7 @@
     </form>
     @if($canManageUsers)
     <a href="{{ route('admin.users.create') }}"
-       class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition whitespace-nowrap">
+       class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition whitespace-nowrap">
         <i class="fas fa-user-plus mr-1"></i> Create account
     </a>
     @endif
@@ -46,14 +46,14 @@
      a single POST to the bulk endpoint; selected ids are injected as
      hidden inputs by Alpine. Grant-coins idempotency is handled server-side. --}}
 <div x-show="selected.length" x-cloak
-     class="mb-4 glass rounded-2xl border border-violet-500/20 p-4">
+     class="mb-4 glass rounded-2xl border border-blue-500/20 p-4">
     <form method="POST" action="{{ route('admin.users.bulk') }}" class="flex flex-wrap items-end gap-3">
         @csrf
         <template x-for="id in selected" :key="id">
             <input type="hidden" name="user_ids[]" :value="id">
         </template>
         <div class="text-sm text-white/70 mr-2">
-            <span class="font-semibold text-violet-300" x-text="selected.length"></span> selected
+            <span class="font-semibold text-blue-300" x-text="selected.length"></span> selected
         </div>
         <div>
             <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</label>
@@ -81,7 +81,7 @@
             <input type="text" name="reason" maxlength="255" placeholder="Reason"
                    class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
         </div>
-        <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             Apply to selected
         </button>
         <button type="button" @click="selected = []; document.querySelectorAll('.bulk-cb').forEach(c => c.checked = false)"
@@ -118,7 +118,7 @@
                 @endif
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-violet-500/10 text-violet-300 flex items-center justify-center text-sm font-medium">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-sm font-medium">
                             {{ substr($user->name, 0, 1) }}
                         </div>
                         <div>
@@ -146,10 +146,10 @@
                 <td class="px-6 py-4 text-sm text-white/40">{{ $user->created_at->format('M d, Y') }}</td>
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('admin.users.show', $user) }}" class="text-white/30 hover:text-violet-400" title="View"><i class="fas fa-eye"></i></a>
+                        <a href="{{ route('admin.users.show', $user) }}" class="text-white/30 hover:text-blue-400" title="View"><i class="fas fa-eye"></i></a>
                         @if($canManageAdminAccess)
                         <a href="{{ route('admin.users.roles.edit', $user) }}#admin-access"
-                           class="{{ $userAdmin ? 'text-violet-300 hover:text-violet-200' : 'text-white/30 hover:text-violet-400' }}"
+                           class="{{ $userAdmin ? 'text-blue-300 hover:text-blue-200' : 'text-white/30 hover:text-blue-400' }}"
                            title="Manage admin access"><i class="fas fa-user-shield"></i></a>
                         @endif
                         @if(auth('admin')->user()?->hasPermission('users.impersonate'))

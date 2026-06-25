@@ -19,7 +19,7 @@
             <label class="block text-sm font-semibold mb-2">Who can DM me?</label>
             <div class="space-y-2">
                 @foreach($modes as $value => $label)
-                    <label class="flex items-start gap-3 p-3 rounded-xl border border-white/10 hover:border-violet-400/40 cursor-pointer">
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-white/10 hover:border-blue-400/40 cursor-pointer">
                         <input type="radio" name="dm_access_mode" value="{{ $value }}" @checked(($user->dm_access_mode ?? 'open') === $value) class="mt-1">
                         <span class="text-sm">{{ $label }}</span>
                     </label>
@@ -61,7 +61,7 @@
 
         <div class="flex items-center justify-between pt-2 border-t border-white/10">
             <div class="text-xs" style="color: var(--text-muted);">Once a fan pays the message fee, they keep posting until you reply.</div>
-            <button class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold">Save</button>
+            <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Save</button>
         </div>
     </form>
 </div>

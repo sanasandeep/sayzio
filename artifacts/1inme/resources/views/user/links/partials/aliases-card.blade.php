@@ -22,8 +22,8 @@
 <div class="card-premium p-6" x-data="{ editing: false, alias: @js($link->alias) }">
     <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);">
-                <i class="fas fa-link text-violet-400 text-xs"></i>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1);">
+                <i class="fas fa-link text-blue-400 text-xs"></i>
             </div>
             <div>
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">Short URL &amp; Aliases</h3>
@@ -68,7 +68,7 @@
                                 class="text-[11px] px-2.5 py-1 rounded-md hover:bg-white/5"
                                 style="color: var(--text-faint);">Cancel</button>
                         <button type="button"
-                                class="text-[11px] px-2.5 py-1 rounded-md bg-violet-600 hover:bg-violet-700 text-white font-semibold"
+                                class="text-[11px] px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                                 @click="fetch('{{ route('user.links.update-alias', $link) }}', {
                                     method: 'PUT',
                                     headers: {
@@ -123,7 +123,7 @@
             <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px dashed var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
             <input type="text" name="alias" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
                    placeholder="my-campaign" class="flex-1 px-3 py-2 text-sm bg-transparent outline-none" style="color: var(--text-primary);">
-            <button type="submit" class="px-3 text-xs font-semibold whitespace-nowrap hover:bg-violet-500/10" style="color: #a78bfa;">
+            <button type="submit" class="px-3 text-xs font-semibold whitespace-nowrap hover:bg-blue-500/10" style="color: #90acff;">
                 <i class="fas fa-plus text-[10px] mr-1"></i>Add alias
             </button>
         </form>

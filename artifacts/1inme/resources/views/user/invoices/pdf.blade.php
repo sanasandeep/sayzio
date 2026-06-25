@@ -9,7 +9,7 @@
     <title>Tax Invoice {{ $invoice->number }}</title>
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; color:#1a1a1a; font-size:11px; line-height:1.45; }
-        h1 { font-size:18px; margin:0 0 4px; color:#7c3aed; letter-spacing:0.5px; }
+        h1 { font-size:18px; margin:0 0 4px; color:#3d6bff; letter-spacing:0.5px; }
         h2 { font-size:13px; margin:16px 0 6px; }
         table { width:100%; border-collapse:collapse; }
         th, td { padding:6px 8px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
@@ -37,7 +37,7 @@
                 @endif
             </td>
             <td class="right" style="width:40%">
-                <h2 style="margin:0;color:#7c3aed">TAX INVOICE</h2>
+                <h2 style="margin:0;color:#3d6bff">TAX INVOICE</h2>
                 <div><strong>{{ $invoice->number }}</strong></div>
                 <div class="muted">Issued {{ optional($invoice->issued_at)->format('d M Y') }}</div>
                 <div class="muted">FY {{ $invoice->financial_year }}</div>

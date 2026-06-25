@@ -868,7 +868,7 @@ export default function EditBlockScreen() {
                 gap: 10,
                 padding: 12,
                 borderRadius: 12,
-                backgroundColor: "rgba(124,58,237,0.16)",
+                backgroundColor: "rgba(61,107,255,0.16)",
                 borderWidth: 1,
                 borderColor: "rgba(167,139,250,0.35)",
               }}

@@ -20,7 +20,7 @@
                 @endif
 
                 <p style="text-align:center; margin:24px 0;">
-                    <a href="{{ $setupUrl }}" style="background:#7c3aed; color:#ffffff; text-decoration:none; padding:12px 22px; border-radius:8px; font-weight:600; display:inline-block;">Set up 2FA now</a>
+                    <a href="{{ $setupUrl }}" style="background:#3d6bff; color:#ffffff; text-decoration:none; padding:12px 22px; border-radius:8px; font-weight:600; display:inline-block;">Set up 2FA now</a>
                 </p>
             @endif
 

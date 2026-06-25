@@ -2,7 +2,7 @@
     use App\Modules\User\Support\QrCodeDesignSanitizer;
     /** @var \App\Modules\User\Models\Link $link */
     /** @var \App\Modules\User\Models\RestaurantTable $table */
-    $accent = $menu->accent_color ?: '#7c3aed';
+    $accent = $menu->accent_color ?: '#3d6bff';
     $place = $link->title ?: $link->alias;
 
     // Reuse the shared QR Studio design vocabulary so table codes are styled

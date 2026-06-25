@@ -19,7 +19,7 @@
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white transition-colors" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold text-white">{{ $typeLabel }}</h1>
-            <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
+            <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
         </div>
     </div>
 
@@ -31,7 +31,7 @@
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Title</label>
                 <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="{{ $placeholder }}"
-                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
+                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
                 <p class="text-xs text-white/30 mt-1">Shown in your dashboard. Visitors won't see this directly.</p>
                 @error('title') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
@@ -43,7 +43,7 @@
                         $defaultHost = \App\Modules\Common\Support\PlatformHosts::currentRequestHost()
                             ?: \App\Modules\Common\Support\PlatformHosts::primary();
                     @endphp
-                    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
+                    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/40">
                         @if(($domains ?? collect())->isNotEmpty())
                             @php $selectedDomainId = old('domain_id', $defaultDomainId ?? ''); @endphp
                             <select name="domain_id" class="bg-white/5 px-2 py-2.5 text-xs text-white/70 border-r border-white/10 outline-none max-w-[180px]">
@@ -67,7 +67,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Project</label>
-                    <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         <option value="" class="bg-[#0d0818]">No project</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $project->name }}</option>
@@ -76,8 +76,8 @@
                 </div>
             </div>
 
-            <div class="text-xs text-white/40 bg-violet-500/5 border border-violet-500/10 rounded-xl px-4 py-3">
-                <i class="fas fa-info-circle text-violet-400 mr-1.5"></i>
+            <div class="text-xs text-white/40 bg-blue-500/5 border border-blue-500/10 rounded-xl px-4 py-3">
+                <i class="fas fa-info-circle text-blue-400 mr-1.5"></i>
                 After creating, you'll pick a starting template (or skip) and land in the Link in Bio editor where you can add blocks, customize the look, and more.
             </div>
         </div>
@@ -85,13 +85,13 @@
         @php($aiBuilderEnabled = $linkType === 'biolink' && \App\Services\AI\AiEngineSettings::isEnabled())
 
         @if($aiBuilderEnabled)
-        <div class="glass rounded-2xl p-5 mb-6 border border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5">
+        <div class="glass rounded-2xl p-5 mb-6 border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-fuchsia-500/5">
             <div class="flex items-start gap-3">
-                <div class="shrink-0 w-10 h-10 rounded-xl bg-violet-600/30 flex items-center justify-center">
-                    <i class="fas fa-wand-magic-sparkles text-violet-300"></i>
+                <div class="shrink-0 w-10 h-10 rounded-xl bg-blue-600/30 flex items-center justify-center">
+                    <i class="fas fa-wand-magic-sparkles text-blue-300"></i>
                 </div>
                 <div class="flex-1">
-                    <h3 class="text-sm font-semibold text-white">Build with AI <span class="ml-1.5 text-[10px] uppercase tracking-wide text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded">New</span></h3>
+                    <h3 class="text-sm font-semibold text-white">Build with AI <span class="ml-1.5 text-[10px] uppercase tracking-wide text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded">New</span></h3>
                     <p class="text-xs text-white/50 mt-1">Skip the blank page — describe your page, paste your links, and add photos. AI assembles a complete Link in Bio for you to refine in the editor. Uses AI credits.</p>
                 </div>
             </div>
@@ -101,11 +101,11 @@
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Back</a>
             @if($aiBuilderEnabled)
-            <button type="submit" name="start_mode" value="ai" class="bg-white/5 hover:bg-white/10 border border-violet-500/30 text-violet-200 px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/10">
+            <button type="submit" name="start_mode" value="ai" class="bg-white/5 hover:bg-white/10 border border-blue-500/30 text-blue-200 px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/10">
                 <i class="fas fa-wand-magic-sparkles mr-1.5 text-xs"></i> Build with AI
             </button>
             @endif
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                 {{ $aiBuilderEnabled ? 'Start blank' : 'Create Link in Bio' }} <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
             </button>
         </div>

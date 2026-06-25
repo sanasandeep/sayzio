@@ -36,19 +36,19 @@
         padding: 1rem 1.1rem; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px;
         line-height: 1.55; color: #e5e7eb; overflow-x: auto;
     }
-    .doc-code .tk-key { color:#a78bfa; }
+    .doc-code .tk-key { color:#90acff; }
     .doc-code .tk-str { color:#86efac; }
     .doc-code .tk-num { color:#fbbf24; }
     .doc-code .tk-cmt { color:#64748b; }
     .copy-btn { transition: all .15s ease; }
-    .copy-btn:hover { color:#a78bfa; }
+    .copy-btn:hover { color:#90acff; }
     .copy-btn.copied { color:#34d399; }
     html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
     .endpoint-card { transition: border-color .15s ease, transform .15s ease; }
-    .endpoint-card:hover { border-color: rgba(167,139,250,.35); }
+    .endpoint-card:hover { border-color: rgba(144,172,255,.35); }
     .anchor-link { opacity:0; transition: opacity .15s ease; }
     .endpoint-card:hover .anchor-link { opacity:1; }
-    .sidebar-link.active { color:#a78bfa; background: rgba(167,139,250,.08); border-left-color:#a78bfa; }
+    .sidebar-link.active { color:#90acff; background: rgba(144,172,255,.08); border-left-color:#90acff; }
 </style>
 @endpush
 
@@ -60,7 +60,7 @@
         <div class="mesh-bg opacity-60"></div>
         <div class="relative grid lg:grid-cols-[1.1fr_1fr] gap-8 items-center p-6 sm:p-10">
             <div data-anim="fade-right">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold mb-3">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold mb-3">
                     <i class="fas fa-bolt text-[10px]"></i> REST API · v1
                 </div>
                 <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">Build on <span class="grad-text">Sayzio</span>.</h1>
@@ -68,18 +68,18 @@
                     Bearer-token authenticated, JSON in / JSON out. Power mobile apps, integrations and automations on top of every link, biolink and creator post.
                 </p>
                 <div class="mt-5 flex flex-wrap items-center gap-3">
-                    <code class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-violet-300 font-mono">{{ $base }}</code>
+                    <code class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-blue-300 font-mono">{{ $base }}</code>
                     <button type="button" data-copy="{{ $base }}" class="copy-btn px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 inline-flex items-center gap-2">
                         <i class="fas fa-copy text-xs"></i> <span>Copy base URL</span>
                     </button>
-                    <a href="#auth" class="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-sm font-semibold text-white inline-flex items-center gap-2">
+                    <a href="#auth" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-semibold text-white inline-flex items-center gap-2">
                         <i class="fas fa-arrow-down text-xs"></i> Get a token
                     </a>
                 </div>
                 <div class="mt-7 flex items-center gap-6 text-sm" data-anim="fade-up" data-stagger>
                     <div><div class="text-2xl font-bold"><span data-count="60" data-count-suffix="+"></span></div><div class="text-[11px] uppercase tracking-wider text-gray-500 mt-0.5">Endpoints</div></div>
                     <div class="w-px h-10 bg-white/10"></div>
-                    <div><div class="text-2xl font-bold"><span data-count="120"></span><span class="text-violet-300">ms</span></div><div class="text-[11px] uppercase tracking-wider text-gray-500 mt-0.5">p50 latency</div></div>
+                    <div><div class="text-2xl font-bold"><span data-count="120"></span><span class="text-blue-300">ms</span></div><div class="text-[11px] uppercase tracking-wider text-gray-500 mt-0.5">p50 latency</div></div>
                     <div class="w-px h-10 bg-white/10"></div>
                     <div><div class="text-2xl font-bold"><span data-count="99.99" data-count-suffix="%"></span></div><div class="text-[11px] uppercase tracking-wider text-gray-500 mt-0.5">Uptime</div></div>
                 </div>
@@ -116,10 +116,10 @@
                 <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-4 text-gray-300 text-sm leading-relaxed">
                     <p>The Sayzio REST API gives you programmatic access to everything your account can do on the web: managing links and biolinks, browsing the creators feed, following creators, and managing subscribers.</p>
                     <ul class="list-disc list-inside space-y-1 text-gray-400">
-                        <li>All endpoints live under <code class="text-violet-300">{{ $base }}</code>.</li>
-                        <li>All requests and responses use <code class="text-violet-300">application/json</code>.</li>
-                        <li>Authentication is via a bearer token in the <code class="text-violet-300">Authorization</code> header.</li>
-                        <li>Successful responses are wrapped in <code class="text-violet-300">{ "data": … }</code>; errors in <code class="text-violet-300">{ "error": { … } }</code>.</li>
+                        <li>All endpoints live under <code class="text-blue-300">{{ $base }}</code>.</li>
+                        <li>All requests and responses use <code class="text-blue-300">application/json</code>.</li>
+                        <li>Authentication is via a bearer token in the <code class="text-blue-300">Authorization</code> header.</li>
+                        <li>Successful responses are wrapped in <code class="text-blue-300">{ "data": … }</code>; errors in <code class="text-blue-300">{ "error": { … } }</code>.</li>
                     </ul>
                 </div>
             </section>
@@ -131,7 +131,7 @@
                     <p>Sign in or register to receive a personal access token, then send it on every protected request:</p>
                     <x-doc-code lang="http">Authorization: Bearer YOUR_TOKEN
 Accept: application/json</x-doc-code>
-                    <p>Tokens never expire on their own — log out (<code class="text-violet-300">POST /auth/logout</code>) to revoke the current one. Some public endpoints (biolinks, feed) accept an optional bearer token to reveal additional content based on follow/subscribe relationships.</p>
+                    <p>Tokens never expire on their own — log out (<code class="text-blue-300">POST /auth/logout</code>) to revoke the current one. Some public endpoints (biolinks, feed) accept an optional bearer token to reveal additional content based on follow/subscribe relationships.</p>
                 </div>
             </section>
 
@@ -166,7 +166,7 @@ Accept: application/json</x-doc-code>
                                     ['429','rate_limited','Too many requests.'],
                                 ] as $row)
                                     <tr>
-                                        <td class="py-2 px-2 font-mono text-violet-300">{{ $row[0] }}</td>
+                                        <td class="py-2 px-2 font-mono text-blue-300">{{ $row[0] }}</td>
                                         <td class="py-2 px-2 font-mono text-amber-300">{{ $row[1] }}</td>
                                         <td class="py-2 px-2 text-gray-400">{{ $row[2] }}</td>
                                     </tr>
@@ -181,7 +181,7 @@ Accept: application/json</x-doc-code>
             <section id="pagination" class="scroll-mt-20">
                 <h2 class="text-2xl font-bold mb-4">Pagination</h2>
                 <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-4 text-gray-300 text-sm leading-relaxed">
-                    <p>List endpoints accept <code class="text-violet-300">page</code> and <code class="text-violet-300">per_page</code> (max 100) query parameters and return:</p>
+                    <p>List endpoints accept <code class="text-blue-300">page</code> and <code class="text-blue-300">per_page</code> (max 100) query parameters and return:</p>
                     <x-doc-code lang="json">{
   "data": {
     "items": [ /* … */ ],
@@ -197,9 +197,9 @@ Accept: application/json</x-doc-code>
                 <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-sm text-gray-300 space-y-2">
                     <p>The following endpoints are rate-limited per IP / token. Excess requests return <code class="text-amber-300">429 rate_limited</code>.</p>
                     <ul class="list-disc list-inside text-gray-400">
-                        <li><code class="text-violet-300">POST /auth/register</code> — 10 / minute</li>
-                        <li><code class="text-violet-300">POST /auth/login</code> — 10 / minute</li>
-                        <li><code class="text-violet-300">POST /biolinks/{alias}/subscribe</code> — 10 / minute</li>
+                        <li><code class="text-blue-300">POST /auth/register</code> — 10 / minute</li>
+                        <li><code class="text-blue-300">POST /auth/login</code> — 10 / minute</li>
+                        <li><code class="text-blue-300">POST /biolinks/{alias}/subscribe</code> — 10 / minute</li>
                     </ul>
                 </div>
             </section>
@@ -228,7 +228,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Auth endpoints ─────────────────────────────────── --}}
             <section id="auth" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-user-shield text-violet-400 text-base mr-2"></i>Authentication</h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-user-shield text-blue-400 text-base mr-2"></i>Authentication</h2>
                 <div class="space-y-5">
 
                     <x-endpoint method="POST" path="/auth/register" auth="false" id="register"
@@ -284,7 +284,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Profile ────────────────────────────────────────── --}}
             <section id="profile" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-id-card text-violet-400 text-base mr-2"></i>Profile</h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-id-card text-blue-400 text-base mr-2"></i>Profile</h2>
                 <div class="space-y-5">
                     <x-endpoint method="GET" path="/profile" id="profile-show"
                         summary="Same payload as GET /auth/me." />
@@ -311,7 +311,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Links ──────────────────────────────────────────── --}}
             <section id="links" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-link text-violet-400 text-base mr-2"></i>Links</h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-link text-blue-400 text-base mr-2"></i>Links</h2>
                 <div class="space-y-5">
 
                     <x-endpoint method="GET" path="/links" id="links-list" summary="Paginated list of YOUR links.">
@@ -349,7 +349,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Biolinks ───────────────────────────────────────── --}}
             <section id="biolinks" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-square-share-nodes text-violet-400 text-base mr-2"></i>Biolinks <span class="text-xs text-gray-500 font-normal ml-1">(public, visibility-aware)</span></h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-square-share-nodes text-blue-400 text-base mr-2"></i>Biolinks <span class="text-xs text-gray-500 font-normal ml-1">(public, visibility-aware)</span></h2>
                 <div class="space-y-5">
                     <x-endpoint method="GET" path="/biolinks/{alias}" auth="optional" id="biolinks-show"
                         summary="Public biolink. Visibility tiers are enforced — supply a token to view gated content as a follower/subscriber.">
@@ -377,7 +377,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Feed ───────────────────────────────────────────── --}}
             <section id="feed" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-rss text-violet-400 text-base mr-2"></i>Feed</h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-rss text-blue-400 text-base mr-2"></i>Feed</h2>
                 <div class="space-y-5">
                     <x-endpoint method="GET" path="/feed" auth="optional" id="feed-global"
                         summary="Global creators feed. Anonymous viewers see only public events; signed-in viewers also see registered events plus followers/subscribers events from creators they follow or subscribe to.">
@@ -394,7 +394,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Follows ────────────────────────────────────────── --}}
             <section id="follows" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-user-plus text-violet-400 text-base mr-2"></i>Follows</h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-user-plus text-blue-400 text-base mr-2"></i>Follows</h2>
                 <div class="space-y-5">
                     <x-endpoint method="POST"   path="/follows/{userId}" id="follow"
                         summary="Follow a creator. Returns 422 self_follow if you target yourself."  responseStatus="201 Created" />
@@ -409,7 +409,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Subscribers ────────────────────────────────────── --}}
             <section id="subscribers" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-envelope-open-text text-violet-400 text-base mr-2"></i>Subscribers <span class="text-xs text-gray-500 font-normal ml-1">(creator-side)</span></h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-envelope-open-text text-blue-400 text-base mr-2"></i>Subscribers <span class="text-xs text-gray-500 font-normal ml-1">(creator-side)</span></h2>
                 <div class="space-y-5">
                     <x-endpoint method="GET" path="/subscribers" id="subs-list"
                         summary="List of YOUR subscribers.">
@@ -427,7 +427,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Discovery ──────────────────────────────────────── --}}
             <section id="discovery" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-compass text-violet-400 text-base mr-2"></i>Discovery <span class="text-xs text-gray-500 font-normal ml-1">(public)</span></h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-compass text-blue-400 text-base mr-2"></i>Discovery <span class="text-xs text-gray-500 font-normal ml-1">(public)</span></h2>
                 <div class="space-y-5">
                     <x-endpoint method="GET" path="/discovery/creators" auth="false" id="disc-list"
                         summary="Paginated discoverable creators sorted by followers count.">
@@ -443,7 +443,7 @@ Accept: application/json</x-doc-code>
 
             {{-- ── Health ─────────────────────────────────────────── --}}
             <section id="health" class="scroll-mt-20">
-                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-heart-pulse text-violet-400 text-base mr-2"></i>Health</h2>
+                <h2 class="text-2xl font-bold mb-5"><i class="fas fa-heart-pulse text-blue-400 text-base mr-2"></i>Health</h2>
                 <x-endpoint method="GET" path="/health" auth="false" id="health-check"
                     summary="Liveness probe. Always returns 200 when the API is up.">
                     <x-slot:response lang="json">{ "data": { "status": "ok", "time": "2026-04-21T06:33:08+00:00" } }</x-slot:response>
@@ -451,7 +451,7 @@ Accept: application/json</x-doc-code>
             </section>
 
             <div class="mt-16 text-center text-xs text-gray-500">
-                Found a problem with this page? <a class="text-violet-400 hover:underline" href="{{ route('site.contact') }}">Let us know</a>.
+                Found a problem with this page? <a class="text-blue-400 hover:underline" href="{{ route('site.contact') }}">Let us know</a>.
             </div>
 
         </main>

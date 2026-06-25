@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#0b0b13; --card:#15151f; --line:rgba(255,255,255,.08); --ink:#f4f4f8; --muted:#9aa0ad; --accent:#8b5cf6; --ok:#34d399; }
+        :root { --bg:#0b0b13; --card:#15151f; --line:rgba(255,255,255,.08); --ink:#f4f4f8; --muted:#9aa0ad; --accent:#5c83ff; --ok:#34d399; }
         * { box-sizing:border-box; }
         body { margin:0; font-family:'Space Grotesk',system-ui,sans-serif; background:radial-gradient(1200px 600px at 50% -10%, #1c1430 0%, var(--bg) 60%); color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
         .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:36px 30px; max-width:460px; text-align:center; }

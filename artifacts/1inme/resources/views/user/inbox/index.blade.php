@@ -21,7 +21,7 @@
         'subtitle' => 'Every message from every form, link & block',
         'icon' => 'fa-inbox',
         'chips' => [
-            ['icon' => 'fa-envelope text-violet-400', 'text' => number_format($unread) . ' unread'],
+            ['icon' => 'fa-envelope text-blue-400', 'text' => number_format($unread) . ' unread'],
         ],
         'actions' => [
             ['label' => 'Forwarding rules', 'url' => route('user.inbox.forwards.index'), 'icon' => 'fa-share-from-square', 'class' => 'btn-ghost'],
@@ -61,7 +61,7 @@
                         @php $active = ($filters['source'] ?? '') === $val; @endphp
                         <a href="?{{ http_build_query(array_merge(request()->except(['source','page']), $val ? ['source' => $val] : [])) }}"
                            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs"
-                           style="{{ $active ? 'background: linear-gradient(135deg,#8b5cf6,#6d28d9); color:white;' : 'color: var(--text-secondary);' }}">
+                           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
                             <i class="fas {{ $meta[1] }} w-4 text-center"></i>{{ $meta[0] }}
                         </a>
                     @endforeach
@@ -114,7 +114,7 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button type="submit" class="flex-1 px-3 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">Apply</button>
+                    <button type="submit" class="flex-1 px-3 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">Apply</button>
                     <a href="{{ route('user.inbox.index') }}" class="px-3 py-2 rounded-lg text-xs" style="color: var(--text-muted);">Reset</a>
                 </div>
             </form>
@@ -155,7 +155,7 @@
                                 $routeType = $row->source_type === 'form_submission' ? 'form_submission' : 'subscriber';
                                 $token = $routeType . ':' . $row->item_id;
                             @endphp
-                            <div class="flex items-center gap-3 p-4 hover:bg-violet-500/5 transition-colors {{ !$row->is_read ? 'bg-violet-500/5' : '' }}">
+                            <div class="flex items-center gap-3 p-4 hover:bg-blue-500/5 transition-colors {{ !$row->is_read ? 'bg-blue-500/5' : '' }}">
                                 <input type="checkbox" name="items[]" value="{{ $token }}" form="bulk-form" x-model="selected" class="flex-shrink-0">
                                 <button type="submit" form="row-star-{{ $token }}" class="text-base flex-shrink-0" title="{{ $row->is_starred ? 'Unstar' : 'Star' }}">
                                     <i class="fa{{ $row->is_starred ? 's' : 'r' }} fa-star {{ $row->is_starred ? 'text-amber-400' : '' }}" style="color: {{ $row->is_starred ? '' : 'var(--text-faint)' }};"></i>
@@ -166,15 +166,15 @@
                                 </form>
                                 <a href="{{ route('user.inbox.show', [$routeType, $row->item_id]) }}" class="flex items-center gap-3 flex-1 min-w-0">
                                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                                         style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white;">
+                                         style="background: linear-gradient(135deg, #5c83ff, #ec4899); color: white;">
                                         {{ strtoupper(substr($row->name, 0, 1)) }}
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <span class="text-sm font-{{ $row->is_read ? 'medium' : 'bold' }} truncate" style="color: var(--text-primary);">{{ $row->name }}</span>
-                                            @unless($row->is_read)<span class="w-2 h-2 rounded-full bg-violet-500 flex-shrink-0"></span>@endunless
+                                            @unless($row->is_read)<span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>@endunless
                                             <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                                                  style="background: rgba(139,92,246,0.15); color: #a78bfa;">
+                                                  style="background: rgba(92,131,255,0.15); color: #90acff;">
                                                 {{ $row->source_label }}
                                             </span>
                                             @if($row->is_spam)

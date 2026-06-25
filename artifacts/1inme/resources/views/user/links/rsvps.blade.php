@@ -66,7 +66,7 @@
             </div>
             <div class="flex-1 mx-6 hidden md:block">
                 <div class="w-full h-2 rounded-full overflow-hidden" style="background:rgba(255,255,255,.08)">
-                    <div style="width: {{ min(100, ($cap > 0 ? ($counts['yes']/$cap)*100 : 0)) }}%; background:linear-gradient(90deg,#10b981,#7c3aed); height:100%"></div>
+                    <div style="width: {{ min(100, ($cap > 0 ? ($counts['yes']/$cap)*100 : 0)) }}%; background:linear-gradient(90deg,#10b981,#3d6bff); height:100%"></div>
                 </div>
             </div>
             <div class="text-right text-xs" style="color: var(--text-muted);">
@@ -86,7 +86,7 @@
                 ['Maybe',                   $counts['maybe'], '#f59e0b', 'fa-question'],
                 ['Can\'t make it',          $counts['no'],    '#94a3b8', 'fa-times'],
                 ['Waitlist',                $counts['waitlist'], '#f97316', 'fa-hourglass-half'],
-                ['Total',                   $counts['total'], '#a78bfa', 'fa-users'],
+                ['Total',                   $counts['total'], '#90acff', 'fa-users'],
             ];
         @endphp
         @foreach($tiles as [$label, $value, $color, $icon])
@@ -119,7 +119,7 @@
                     @forelse($rsvps as $r)
                         @php
                             $rmap = ['yes'=>['Going','#10b981'],'maybe'=>['Maybe','#f59e0b'],'no'=>['Not going','#94a3b8']];
-                            [$rlabel, $rcolor] = $rmap[$r->response] ?? [$r->response, '#a78bfa'];
+                            [$rlabel, $rcolor] = $rmap[$r->response] ?? [$r->response, '#90acff'];
                             $smap = ['confirmed' => ['Confirmed','#10b981'], 'waitlist' => ['Waitlist','#f97316'], 'cancelled' => ['Cancelled','#ef4444']];
                             [$slabel, $scolor] = $smap[$r->status] ?? ['Confirmed', '#10b981'];
                             $hasExpand = !empty($r->occurrences) || !empty($r->answers) || $r->company || $r->role;
@@ -153,7 +153,7 @@
                             <td class="py-3 text-xs" style="color: var(--text-muted);">{{ $r->created_at?->diffForHumans() }}</td>
                             <td class="py-3 pr-5 text-right">
                                 @if($hasExpand)
-                                    <button type="button" @click="open = !open" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs transition" style="background:rgba(124,58,237,.10);color:#a78bfa;border:1px solid rgba(124,58,237,.20)" title="Toggle details">
+                                    <button type="button" @click="open = !open" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs transition" style="background:rgba(61,107,255,.10);color:#90acff;border:1px solid rgba(61,107,255,.20)" title="Toggle details">
                                         <i class="fas" :class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                                     </button>
                                 @endif
@@ -175,7 +175,7 @@
                             </td>
                         </tr>
                         @if($hasExpand)
-                            <tr x-show="open" x-cloak style="border-top:1px solid rgba(255,255,255,0.04); background:rgba(124,58,237,0.04)">
+                            <tr x-show="open" x-cloak style="border-top:1px solid rgba(255,255,255,0.04); background:rgba(61,107,255,0.04)">
                                 <td colspan="8" class="px-5 py-3 text-xs" style="color: var(--text-secondary);">
                                     @if(!empty($r->occurrences))
                                         <div class="mb-2">
@@ -199,8 +199,8 @@
                     @empty
                         <tr>
                             <td colspan="8" class="text-center py-12">
-                                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(139,92,246,0.18));">
-                                    <i class="fas fa-inbox text-2xl text-violet-400"></i>
+                                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(92,131,255,0.18));">
+                                    <i class="fas fa-inbox text-2xl text-blue-400"></i>
                                 </div>
                                 <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No RSVPs yet</p>
                                 <p class="text-xs" style="color: var(--text-muted);">Share your event link to start collecting responses.</p>

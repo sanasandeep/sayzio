@@ -10,7 +10,7 @@ if (Platform.OS !== "web") {
 const PIN_SVG =
   '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
   '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>' +
+  '<stop offset="0%" stop-color="#7d9bff"/><stop offset="100%" stop-color="#3d6bff"/>' +
   "</linearGradient></defs>" +
   '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
   '<circle cx="17" cy="16" r="6" fill="#fff"/></svg>';
@@ -66,7 +66,7 @@ function buildMultiHtml(markers: MapMarker[]): string {
   html, body, #map { height: 100%; margin: 0; padding: 0; background: #1e2330; }
   .pin { position: relative; width: 30px; height: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); cursor: pointer; }
   .pin svg { width: 100%; height: 100%; display: block; }
-  .pin .badge { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; line-height: 14px; text-align: center; font-size: 10px; font-weight: 700; color: #7c3aed; font-family: sans-serif; }
+  .pin .badge { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; line-height: 14px; text-align: center; font-size: 10px; font-weight: 700; color: #3d6bff; font-family: sans-serif; }
   .leaflet-control-attribution { font-size: 8px; }
 </style>
 </head><body>

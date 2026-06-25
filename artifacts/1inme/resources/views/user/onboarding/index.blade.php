@@ -79,9 +79,9 @@
                                     data-persona-card
                                     x-show="q === '' || @js($haystack).includes(q.toLowerCase())"
                                     @click="selectPersona(@js($p['slug']))"
-                                    :class="picked === @js($p['slug']) ? 'bg-violet-600/20 border-violet-500/60 ring-1 ring-violet-500/40' : 'border-transparent hover:bg-white/5'"
+                                    :class="picked === @js($p['slug']) ? 'bg-blue-600/20 border-blue-500/60 ring-1 ring-blue-500/40' : 'border-transparent hover:bg-white/5'"
                                     class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg border text-left transition">
-                                <span class="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600/40 to-fuchsia-600/30 flex items-center justify-center overflow-hidden">
+                                <span class="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600/40 to-fuchsia-600/30 flex items-center justify-center overflow-hidden">
                                     @if(!empty($p['image']))
                                         <img src="{{ $p['image'] }}" alt="" loading="lazy"
                                              onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';"
@@ -95,7 +95,7 @@
                                     <span class="block text-[12.5px] font-semibold text-white truncate">{{ $p['label'] }}</span>
                                     <span class="block text-[10.5px] text-white/45 truncate">{{ $p['blurb'] }}</span>
                                 </span>
-                                <i class="fas fa-check text-[10px] text-violet-300" x-show="picked === @js($p['slug'])" x-cloak></i>
+                                <i class="fas fa-check text-[10px] text-blue-300" x-show="picked === @js($p['slug'])" x-cloak></i>
                             </button>
                         @endforeach
                     </div>
@@ -113,14 +113,14 @@
                  time but didn't apply or skip. Disappears as soon as they
                  act on it (or when they apply / skip elsewhere). --}}
             <div x-show="resume" x-cloak
-                 class="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/30">
-                <i class="fas fa-clock-rotate-left text-violet-300 text-xs shrink-0"></i>
+                 class="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                <i class="fas fa-clock-rotate-left text-blue-300 text-xs shrink-0"></i>
                 <p class="flex-1 text-xs text-white/80 min-w-0 truncate">
                     Pick up where you left off — you were checking out
                     <span class="font-semibold text-white" x-text="'&quot;' + (resume?.name || '') + '&quot;'"></span>
                 </p>
                 <button type="button" @click="resumePreview()"
-                        class="shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-semibold inline-flex items-center gap-1.5">
+                        class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold inline-flex items-center gap-1.5">
                     <i class="fas fa-eye"></i> Open again
                 </button>
                 <button type="button" @click="dismissResume()"
@@ -186,7 +186,7 @@
                         <form method="POST" action="{{ route('user.onboarding.template.apply') }}">
                             @csrf
                             <input type="hidden" name="template_id" :value="selectedTemplate.id">
-                            <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition inline-flex items-center gap-1.5">
+                            <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition inline-flex items-center gap-1.5">
                                 <i class="fas fa-check"></i> Use this template
                             </button>
                         </form>

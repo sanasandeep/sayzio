@@ -37,7 +37,7 @@
      role="group" aria-label="Currency selection">
     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] text-xs">
         @if($isAuto)
-            <i class="fas fa-location-arrow text-violet-300" aria-hidden="true"></i>
+            <i class="fas fa-location-arrow text-blue-300" aria-hidden="true"></i>
             <span class="text-gray-400">Auto-detected:</span>
         @elseif($isManual)
             <i class="fas fa-hand-pointer text-pink-300" aria-hidden="true"></i>
@@ -57,7 +57,7 @@
     @if($isCountry)
         <span class="text-[11px] text-gray-500">
             Set from your billing country (<span class="uppercase">{{ $user->country }}</span>) —
-            <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">change</a>
+            <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">change</a>
         </span>
     @else
         {{-- Instant client-side switch — no page reload. `currency` and
@@ -72,12 +72,12 @@
                 @endif
             </span>
             <button type="button" @click="switchCurrency('USD')"
-                    :class="currency === 'USD' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'"
+                    :class="currency === 'USD' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'"
                     :aria-pressed="currency === 'USD' ? 'true' : 'false'"
                     class="px-2.5 py-0.5 text-[11px] rounded-l-full border border-white/10 transition-colors motion-reduce:transition-none"
                     aria-label="Show prices in US dollars">USD ($)</button>
             <button type="button" @click="switchCurrency('INR')"
-                    :class="currency === 'INR' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'"
+                    :class="currency === 'INR' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'"
                     :aria-pressed="currency === 'INR' ? 'true' : 'false'"
                     class="px-2.5 py-0.5 text-[11px] rounded-r-full border border-white/10 border-l-0 transition-colors motion-reduce:transition-none"
                     aria-label="Show prices in Indian rupees">INR (₹)</button>

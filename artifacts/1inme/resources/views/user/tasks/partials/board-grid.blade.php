@@ -7,12 +7,12 @@
         @foreach($boards as $b)
             <a href="{{ route('user.tasks.show', $b) }}"
                class="group block rounded-2xl border p-5 transition hover:shadow-lg"
-               style="background: var(--bg-card); border-color: var(--border-soft); border-left: 4px solid {{ $b->color ?: '#8b5cf6' }};">
+               style="background: var(--bg-card); border-color: var(--border-soft); border-left: 4px solid {{ $b->color ?: '#5c83ff' }};">
                 <div class="flex items-start justify-between gap-2">
-                    <h3 class="text-base font-bold group-hover:text-violet-500" style="color: var(--text-primary);">{{ $b->name }}</h3>
+                    <h3 class="text-base font-bold group-hover:text-blue-500" style="color: var(--text-primary);">{{ $b->name }}</h3>
                     @if($b->scope === 'personal')
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                              style="background: rgba(139,92,246,0.12); color:#7c3aed;">PRIVATE</span>
+                              style="background: rgba(92,131,255,0.12); color:#3d6bff;">PRIVATE</span>
                     @endif
                 </div>
                 @if($b->description)

@@ -90,7 +90,7 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-violet-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all pages</a>
+    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-blue-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all pages</a>
 
     @php
         $isServices = $page->slug === 'services';
@@ -195,7 +195,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Use-case blocks</label>
-                    <button type="button" @click="sections.push({heading:'',tagline:'',body:'',icon:'fa-circle-dot',tint:'',bullets:'',cta_label:'Get started',cta_url:'/register'})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                    <button type="button" @click="sections.push({heading:'',tagline:'',body:'',icon:'fa-circle-dot',tint:'',bullets:'',cta_label:'Get started',cta_url:'/register'})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add use case
                     </button>
                 </div>
@@ -236,7 +236,7 @@
                                     <button type="button" @click="$store.iconPicker.openFor(s.icon, (name) => s.icon = name)"
                                             class="shrink-0 px-2.5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-white/70 hover:text-white text-sm flex items-center gap-2"
                                             title="Pick from gallery">
-                                        <span class="w-5 h-5 flex items-center justify-center text-violet-200">
+                                        <span class="w-5 h-5 flex items-center justify-center text-blue-200">
                                             <i class="fas" :class="s.icon || 'fa-circle-dot'"></i>
                                         </span>
                                         <i class="fas fa-th"></i>
@@ -245,7 +245,7 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Tint (Tailwind gradient classes)</label>
-                                <input type="text" :name="'sections['+i+'][tint]'" x-model="s.tint" placeholder="from-violet-500/30 to-fuchsia-500/10"
+                                <input type="text" :name="'sections['+i+'][tint]'" x-model="s.tint" placeholder="from-blue-500/30 to-fuchsia-500/10"
                                        class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
                                 <p class="mt-1 text-[11px] text-white/40">Leave empty to use a built-in default.</p>
                             </div>
@@ -270,7 +270,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Content sections</label>
-                    <button type="button" @click="sections.push({id:'',heading:'',body:'',visible:true})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                    <button type="button" @click="sections.push({id:'',heading:'',body:'',visible:true})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add section
                     </button>
                 </div>
@@ -442,9 +442,9 @@
             @if(in_array($page->slug, $errorSlugs))
                 <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $errorLabels[$page->slug] }} response.</span>
             @else
-                <a href="/{{ $page->slug === 'home' ? '' : $page->slug }}" target="_blank" class="text-xs text-violet-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
+                <a href="/{{ $page->slug === 'home' ? '' : $page->slug }}" target="_blank" class="text-xs text-blue-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
             @endif
-            <button type="submit" class="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Save changes</button>
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save changes</button>
         </div>
     </form>
     @endif
@@ -464,7 +464,7 @@
                     Show search bar
                 </label>
                 <div class="pt-2">
-                    <button type="submit" class="px-5 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-medium text-white">Save settings</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white">Save settings</button>
                 </div>
             </form>
         </div>
@@ -485,7 +485,7 @@
                     Show pinned posts at the top
                 </label>
                 <div class="pt-2">
-                    <button type="submit" class="px-5 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-medium text-white">Save settings</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white">Save settings</button>
                 </div>
             </form>
         </div>
@@ -526,7 +526,7 @@
                                 <form method="POST" action="{{ route('admin.site-pages.revisions.restore', [$page->slug, $rev->id]) }}"
                                       onsubmit="return window.themedConfirmSubmit(this, {title: 'Restore this revision?', message: 'Your current content will be saved as a new revision first.', confirmText: 'Restore', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
                                     @csrf
-                                    <button type="submit" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
+                                    <button type="submit" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
                                         <i class="fas fa-clock-rotate-left mr-1"></i>Restore
                                     </button>
                                 </form>
@@ -545,7 +545,7 @@
                 @csrf
                 <input type="text" name="question" required placeholder="Question" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 <textarea name="answer" required rows="3" placeholder="Answer" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
-                <button type="submit" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-xs font-medium text-white"><i class="fas fa-plus mr-1"></i> Add FAQ</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs font-medium text-white"><i class="fas fa-plus mr-1"></i> Add FAQ</button>
             </form>
 
             <div class="space-y-3">
@@ -558,7 +558,7 @@
                                 <input type="text" name="question" value="{{ $f->question }}" required class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             </div>
                             <textarea name="answer" required rows="3" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $f->answer }}</textarea>
-                            <button type="submit" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-xs text-white">Save</button>
+                            <button type="submit" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs text-white">Save</button>
                         </form>
                         <form method="POST" action="{{ route('admin.site-pages.faqs.destroy', $f) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this FAQ?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')

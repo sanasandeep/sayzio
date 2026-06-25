@@ -64,7 +64,7 @@
             <i class="fas fa-filter text-[10px]"></i> Apply
         </button>
         @if($days || $propertyType)
-            <a href="{{ route('user.backlinks.index') }}" class="text-xs text-violet-400 hover:text-violet-300 font-semibold">
+            <a href="{{ route('user.backlinks.index') }}" class="text-xs text-blue-400 hover:text-blue-300 font-semibold">
                 <i class="fas fa-times text-[9px]"></i> Clear
             </a>
         @endif
@@ -75,8 +75,8 @@
     @if($backlinks->isEmpty())
         <div class="p-12 text-center">
             <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                 style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.12);">
-                <i class="fas fa-bullseye text-xl text-violet-400"></i>
+                 style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.12);">
+                <i class="fas fa-bullseye text-xl text-blue-400"></i>
             </div>
             <p class="text-sm mb-1 font-bold" style="color: var(--text-muted);">No backlinks yet</p>
             <p class="text-xs mb-1" style="color: var(--text-dimmed);">
@@ -105,7 +105,7 @@
                         <tr style="border-bottom: 1px solid var(--border-subtle);">
                             <td class="px-5 py-3 align-top">
                                 <a href="{{ $row->page_url }}" target="_blank" rel="noopener nofollow"
-                                   class="font-semibold hover:text-violet-300 transition-colors block truncate max-w-[28ch]"
+                                   class="font-semibold hover:text-blue-300 transition-colors block truncate max-w-[28ch]"
                                    style="color: var(--text-primary);"
                                    title="{{ $row->page_url }}">
                                     {{ $row->page_title ?: $row->page_host ?: $row->page_url }}
@@ -123,7 +123,7 @@
                             </td>
                             <td class="px-5 py-3 align-top">
                                 <span class="badge inline-flex items-center gap-1.5"
-                                      style="background: rgba(168,85,247,0.1); color: #f0abfc; border: 1px solid rgba(168,85,247,0.25);">
+                                      style="background: rgba(110,97,255,0.1); color: #f0abfc; border: 1px solid rgba(110,97,255,0.25);">
                                     <i class="fas {{ $icon }} text-[9px]"></i>{{ $label }}
                                 </span>
                                 <div class="text-[11px] mt-1 truncate max-w-[28ch]" style="color: var(--text-faint);" title="{{ $row->matched_url }}">

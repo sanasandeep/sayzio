@@ -78,17 +78,17 @@
     <div class="flex items-center gap-1 mb-1.5">
         <button type="button" @click="mode = 'upload'"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
-                :class="mode === 'upload' ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' : 'text-white/40 hover:text-white/60'">
+                :class="mode === 'upload' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
             <i class="fas fa-cloud-upload-alt mr-1"></i>Upload
         </button>
         <button type="button" @click="mode = 'url'"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
-                :class="mode === 'url' ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' : 'text-white/40 hover:text-white/60'">
+                :class="mode === 'url' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
             <i class="fas fa-link mr-1"></i>URL
         </button>
         <button type="button" @click="mode = 'vault'; if (vaultFiles.length === 0) loadVault()"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
-                :class="mode === 'vault' ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' : 'text-white/40 hover:text-white/60'">
+                :class="mode === 'vault' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
             <i class="fas fa-folder-open mr-1"></i>My Files
         </button>
     </div>
@@ -98,7 +98,7 @@
          the form has something to submit regardless of mode). --}}
     <div x-show="mode === 'upload'" x-cloak>
     <div class="relative rounded-xl overflow-hidden transition-all"
-         :class="{ 'ring-2 ring-violet-500/60 bg-violet-500/5': dragging, 'ring-2 ring-red-500/60 bg-red-500/5': error, 'bg-white/5': !dragging && !error }"
+         :class="{ 'ring-2 ring-blue-500/60 bg-blue-500/5': dragging, 'ring-2 ring-red-500/60 bg-red-500/5': error, 'bg-white/5': !dragging && !error }"
          style="border: 1.5px dashed rgba(255,255,255,0.18);"
          @dragover.prevent="dragging = true"
          @dragleave.prevent="dragging = false"
@@ -119,11 +119,11 @@
         <template x-if="files.length === 0 && !currentUrl && !currentName">
             <div class="{{ $compact ? 'px-3 py-3' : 'px-4 py-5' }} text-center pointer-events-none">
                 <div class="flex items-center justify-center gap-2.5">
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25);">
-                        <i class="fas fa-cloud-upload-alt text-violet-400 text-sm"></i>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25);">
+                        <i class="fas fa-cloud-upload-alt text-blue-400 text-sm"></i>
                     </div>
                     <div class="text-left">
-                        <p class="text-xs text-white/80"><span class="text-violet-300 font-medium">Drop {{ $multiple ? 'files' : 'a file' }}</span> or click to browse</p>
+                        <p class="text-xs text-white/80"><span class="text-blue-300 font-medium">Drop {{ $multiple ? 'files' : 'a file' }}</span> or click to browse</p>
                         @if($hint || $maxMb)
                             <p class="text-[10px] text-white/30 mt-0.5">{{ $hint }}@if($hint && $maxMb) · @endif @if($maxMb) Max {{ $maxMb }} MB @endif</p>
                         @endif
@@ -140,8 +140,8 @@
                     </template>
                 @endif
                 <template x-if="!currentUrl || '{{ $previewKind }}' !== 'image'">
-                    <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(124,58,237,0.10);">
-                        <i class="fas fa-file text-violet-400"></i>
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(61,107,255,0.10);">
+                        <i class="fas fa-file text-blue-400"></i>
                     </div>
                 </template>
                 <div class="flex-1 min-w-0">
@@ -159,8 +159,8 @@
                             <img :src="f.preview" :alt="f.name" class="w-10 h-10 rounded-md object-cover flex-shrink-0">
                         </template>
                         <template x-if="!f.preview">
-                            <div class="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0" style="background: rgba(124,58,237,0.10);">
-                                <i :class="iconFor(f)" class="text-violet-400 text-sm"></i>
+                            <div class="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0" style="background: rgba(61,107,255,0.10);">
+                                <i :class="iconFor(f)" class="text-blue-400 text-sm"></i>
                             </div>
                         </template>
                         <div class="flex-1 min-w-0">
@@ -188,7 +188,7 @@
                        @keydown.enter.prevent="importFromUrl()">
                 <button type="button" @click="importFromUrl()" :disabled="urlImporting || !urlInput"
                         class="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-                        :class="urlImporting || !urlInput ? 'opacity-50 cursor-not-allowed bg-white/5 text-white/40' : 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30 hover:bg-violet-500/30'">
+                        :class="urlImporting || !urlInput ? 'opacity-50 cursor-not-allowed bg-white/5 text-white/40' : 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30 hover:bg-blue-500/30'">
                     <template x-if="!urlImporting"><span><i class="fas fa-download mr-1"></i>Use</span></template>
                     <template x-if="urlImporting"><span><i class="fas fa-spinner fa-spin mr-1"></i>Fetching</span></template>
                 </button>
@@ -204,11 +204,11 @@
                 <input type="text" x-model="vaultSearch" placeholder="Search My Files…"
                        class="flex-1 text-xs px-2.5 py-1.5 rounded-lg outline-none"
                        style="background: var(--bg-glass-input, rgba(0,0,0,0.20)); color: var(--text-primary, #fff); border: 1px solid var(--border-glass, rgba(255,255,255,0.10));">
-                <button type="button" @click="loadVault()" class="text-[10px] text-violet-400 hover:text-violet-300 px-2"><i class="fas fa-sync-alt"></i></button>
+                <button type="button" @click="loadVault()" class="text-[10px] text-blue-400 hover:text-blue-300 px-2"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div class="max-h-48 overflow-y-auto p-2">
                 <template x-if="vaultLoading">
-                    <div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-violet-400/60"></i></div>
+                    <div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-blue-400/60"></i></div>
                 </template>
                 <template x-if="!vaultLoading && vaultFiles.length === 0">
                     <div class="py-6 text-center text-xs text-white/30">No files in your vault yet</div>
@@ -217,7 +217,7 @@
                     <template x-for="f in filteredVault" :key="f.id">
                         <button type="button" @click="pickVault(f)"
                                 :disabled="vaultPicking"
-                                class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-violet-500/50 group relative"
+                                class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-blue-500/50 group relative"
                                 style="background: var(--bg-glass-input, rgba(0,0,0,0.20));">
                             <template x-if="f.type === 'image'">
                                 <img :src="f.url" class="w-full aspect-square object-cover" :alt="f.original_name">
@@ -233,7 +233,7 @@
                     </template>
                 </div>
                 <template x-if="!vaultLoading && vaultHasMore">
-                    <button type="button" @click="loadMoreVault()" class="w-full text-[10px] text-violet-400 hover:text-violet-300 py-2 text-center">Load more…</button>
+                    <button type="button" @click="loadMoreVault()" class="w-full text-[10px] text-blue-400 hover:text-blue-300 py-2 text-center">Load more…</button>
                 </template>
             </div>
         </div>

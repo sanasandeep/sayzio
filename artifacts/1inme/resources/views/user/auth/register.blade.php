@@ -16,8 +16,8 @@
     <div class="bg-mesh"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(61,107,255,0.12) 0%, transparent 70%);"></div>
+        <div class="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(92,131,255,0.08) 0%, transparent 70%);"></div>
     </div>
 
     <div class="absolute top-5 right-5 z-20">
@@ -121,8 +121,8 @@
                             @error('referral_code')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                         </div>
 
-                        <div class="rounded-xl px-3 py-2.5 text-[11px] flex items-start gap-2" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.18); color: var(--text-dimmed);">
-                            <i class="fas fa-shield-alt text-violet-400 mt-0.5"></i>
+                        <div class="rounded-xl px-3 py-2.5 text-[11px] flex items-start gap-2" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.18); color: var(--text-dimmed);">
+                            <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
                             <span>{{ ($emailPasswordEnabled ?? false) ? "Use your email and password to sign in. Keep your password somewhere safe — it can't be reset yet." : "No password needed. We'll email you a 6-digit code to sign in every time." }}</span>
                         </div>
 
@@ -168,7 +168,7 @@
 
                 <p class="mt-6 text-center text-xs" style="color: var(--text-dimmed);">
                     Already have an account?
-                    <a href="{{ route('user.login') }}" class="text-violet-400 hover:text-violet-300 font-semibold transition-colors">Sign in</a>
+                    <a href="{{ route('user.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Sign in</a>
                 </p>
             </div>
         </div>

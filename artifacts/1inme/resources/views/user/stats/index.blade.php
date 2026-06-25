@@ -49,7 +49,7 @@
                 @endforeach
             </select>
             @if(workspace_owner()?->getPlanFeature('analytics_export', true))
-                <a href="{{ route('user.stats.export', ['range' => $range]) }}" class="px-3 py-2 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white text-sm font-semibold hover:opacity-90 transition">
+                <a href="{{ route('user.stats.export', ['range' => $range]) }}" class="px-3 py-2 rounded-lg bg-gradient-to-br from-blue-600 to-fuchsia-600 text-white text-sm font-semibold hover:opacity-90 transition">
                     <i class="fas fa-download mr-1"></i> CSV
                 </a>
             @else
@@ -70,7 +70,7 @@
                 ['label' => 'Subscribers',       'value' => number_format($kpis['subscribers_active']), 'delta' => '+' . $kpis['subscribers_new'] . ' new',         'icon' => 'fa-crown',        'tint' => 'amber'],
             ];
             $tints = [
-                'violet' => 'background: rgba(124,58,237,0.14); color: #a78bfa;',
+                'violet' => 'background: rgba(61,107,255,0.14); color: #90acff;',
                 'sky'    => 'background: rgba(14,165,233,0.14); color: #38bdf8;',
                 'rose'   => 'background: rgba(244,63,94,0.14); color: #fb7185;',
                 'amber'  => 'background: rgba(245,158,11,0.16); color: #fbbf24;',
@@ -89,7 +89,7 @@
     </div>
 
     {{-- Earnings strip --}}
-    <div class="bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white rounded-xl p-5 mb-6 flex items-center justify-between">
+    <div class="bg-gradient-to-br from-blue-600 to-fuchsia-600 text-white rounded-xl p-5 mb-6 flex items-center justify-between">
         <div>
             <div class="text-[11px] uppercase tracking-wider opacity-80">Unlock revenue · {{ $rangeLabel }}</div>
             <div class="text-3xl font-extrabold mt-1">${{ number_format($kpis['unlock_revenue_cents']/100, 2) }}</div>
@@ -154,7 +154,7 @@
         data: {
             labels,
             datasets: [
-                { label: 'New followers',  data: audience, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,.15)', tension: .3, fill: true },
+                { label: 'New followers',  data: audience, borderColor: '#3d6bff', backgroundColor: 'rgba(61,107,255,.15)', tension: .3, fill: true },
                 { label: 'Posts published',data: content,  borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,.15)', tension: .3, fill: true },
             ]
         },
@@ -164,7 +164,7 @@
                 tooltip: {
                     backgroundColor: __c.tipBg,
                     titleColor: __c.tick, bodyColor: __c.tick,
-                    borderColor: 'rgba(124,58,237,0.35)', borderWidth: 1,
+                    borderColor: 'rgba(61,107,255,0.35)', borderWidth: 1,
                     padding: 10, cornerRadius: 10,
                 },
             },

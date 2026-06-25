@@ -258,7 +258,7 @@ export default function AskCoachScreen() {
               style={[
                 styles.sendBtn,
                 {
-                  backgroundColor: sending || !draft.trim() ? colors.mutedForeground : "#7c3aed",
+                  backgroundColor: sending || !draft.trim() ? colors.mutedForeground : "#3d6bff",
                 },
               ]}
             >
@@ -296,7 +296,7 @@ function MessageBubble({
     >
       <View
         style={{
-          backgroundColor: isUser ? "#7c3aed" : colors.card,
+          backgroundColor: isUser ? "#3d6bff" : colors.card,
           padding: 10,
           borderRadius: 14,
         }}
@@ -312,7 +312,7 @@ function MessageBubble({
                 key={i}
                 onPress={() => Linking.openURL(a.url)}
                 style={{
-                  backgroundColor: "#7c3aed33",
+                  backgroundColor: "#3d6bff33",
                   paddingHorizontal: 8,
                   paddingVertical: 4,
                   borderRadius: 8,

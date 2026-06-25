@@ -68,18 +68,18 @@
         {{-- Category chips --}}
         <div class="flex flex-wrap gap-1">
             <button type="button" @click="cat = 'all'"
-                    :class="cat === 'all' ? 'bg-violet-600 text-white' : ''"
+                    :class="cat === 'all' ? 'bg-blue-600 text-white' : ''"
                     class="text-[10px] font-semibold px-2 py-1 rounded"
                     style="background: var(--bg-glass-input); color: var(--text-faint);">All</button>
             <button type="button" @click="cat = 'mine'"
-                    :class="cat === 'mine' ? 'bg-violet-600 text-white' : ''"
+                    :class="cat === 'mine' ? 'bg-blue-600 text-white' : ''"
                     class="text-[10px] font-semibold px-2 py-1 rounded"
                     style="background: var(--bg-glass-input); color: var(--text-faint);">
                 <i class="fas fa-star text-[8px] mr-1"></i>My Fonts (<span x-text="customFonts.length"></span>)
             </button>
             @foreach($fontCats as $catKey => $catLabel)
             <button type="button" @click="cat = '{{ $catKey }}'"
-                    :class="cat === '{{ $catKey }}' ? 'bg-violet-600 text-white' : ''"
+                    :class="cat === '{{ $catKey }}' ? 'bg-blue-600 text-white' : ''"
                     class="text-[10px] font-semibold px-2 py-1 rounded"
                     style="background: var(--bg-glass-input); color: var(--text-faint);">{{ $catLabel }}</button>
             @endforeach
@@ -92,13 +92,13 @@
                 <p class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">My Fonts</p>
                 <button type="button" @click="$refs.fileInput.click()"
                         class="text-[10px] font-semibold px-2 py-0.5 rounded"
-                        style="color: #a78bfa; background: rgba(124,58,237,0.08);">
+                        style="color: #90acff; background: rgba(61,107,255,0.08);">
                     <i class="fas fa-upload text-[8px] mr-1"></i>Upload
                 </button>
             </div>
             <template x-for="font in filteredCustomFonts()" :key="font.id">
                 <div class="group flex items-center justify-between rounded-lg px-2 py-1.5 cursor-pointer hover:bg-white/5"
-                     :style="selected === font.token ? 'background: rgba(124,58,237,0.18); border: 1px solid rgba(124,58,237,0.3);' : ''"
+                     :style="selected === font.token ? 'background: rgba(61,107,255,0.18); border: 1px solid rgba(61,107,255,0.3);' : ''"
                      @click="select(font.token)">
                     <span class="text-sm truncate" :style="'font-family: ' + safeQuote(font.family) + ', sans-serif;'" x-text="font.family"></span>
                     <button type="button" @click.stop="removeCustomFont(font.id)"
@@ -116,7 +116,7 @@
             <p class="text-xs mb-2" style="color: var(--text-faint);">No custom fonts yet.</p>
             <button type="button" @click="$refs.fileInput.click()"
                     class="text-[11px] font-semibold px-3 py-1.5 rounded-lg"
-                    style="background: rgba(124,58,237,0.12); color: #a78bfa;">
+                    style="background: rgba(61,107,255,0.12); color: #90acff;">
                 <i class="fas fa-upload text-[10px] mr-1"></i>Upload .woff/.woff2/.ttf/.otf
             </button>
         </div>
@@ -127,7 +127,7 @@
             <template x-for="font in filteredGoogleFonts()" :key="font.family">
                 <div class="rounded-lg px-2 py-1.5 cursor-pointer hover:bg-white/5"
                      x-init="queuePreviewFont(font.family)"
-                     :style="selected === font.family ? 'background: rgba(124,58,237,0.18); border: 1px solid rgba(124,58,237,0.3);' : ''"
+                     :style="selected === font.family ? 'background: rgba(61,107,255,0.18); border: 1px solid rgba(61,107,255,0.3);' : ''"
                      @click="select(font.family)">
                     <span class="text-base" :style="'font-family: ' + safeQuote(font.family) + ', sans-serif;'" x-text="font.family"></span>
                 </div>

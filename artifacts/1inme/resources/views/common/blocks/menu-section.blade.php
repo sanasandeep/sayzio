@@ -3,7 +3,7 @@
     /** @var string $fontColor */
     $name   = trim($s['name'] ?? '');
     $items  = is_array($s['items'] ?? null) ? $s['items'] : [];
-    $accent = $s['accent_color'] ?? '#7c3aed';
+    $accent = $s['accent_color'] ?? '#3d6bff';
     $layout = $s['layout'] ?? 'plain';
 @endphp
 

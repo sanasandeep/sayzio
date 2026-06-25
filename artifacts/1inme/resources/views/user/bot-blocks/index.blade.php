@@ -10,7 +10,7 @@
                 they don't count toward totals, breakdowns, exports, or the "bot hits filtered" badge.
             </p>
         </div>
-        <a href="{{ url()->previous() }}" class="text-sm text-violet-500 hover:underline">
+        <a href="{{ url()->previous() }}" class="text-sm text-blue-500 hover:underline">
             <i class="fas fa-arrow-left mr-1"></i> Back
         </a>
     </div>
@@ -67,7 +67,7 @@
     <div class="rounded-2xl"
          style="background: var(--bg-card); border:1px solid var(--border-soft);">
         <div class="px-4 py-3 text-sm font-semibold" style="color: var(--text-primary); border-bottom:1px solid var(--border-soft);">
-            <i class="fas fa-plus-circle mr-1.5 text-violet-500"></i> Block a bot family
+            <i class="fas fa-plus-circle mr-1.5 text-blue-500"></i> Block a bot family
         </div>
         <form method="POST" action="{{ route('user.bot-blocks.store') }}" class="px-4 py-4 flex items-center gap-3 flex-wrap">
             @csrf
@@ -86,7 +86,7 @@
                 <option value="Other scraper">Other scraper</option>
                 <option value="Unknown (no UA)">Unknown (no UA)</option>
             </select>
-            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white">
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white">
                 Block
             </button>
         </form>

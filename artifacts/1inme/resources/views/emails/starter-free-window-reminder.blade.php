@@ -18,10 +18,10 @@
             Good news: Starter is free forever — we just like to check in once a year. Renewing keeps your account and all your links exactly as they are. Nothing changes, nothing is locked, and you won't lose anything.
         </p>
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{{ $renewUrl }}" style="background-color: #7c3aed; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">Renew free for another year</a>
+            <a href="{{ $renewUrl }}" style="background-color: #3d6bff; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">Renew free for another year</a>
         </div>
         <p style="color: #94a3b8; font-size: 12px;">If the button doesn't work, copy and paste this link into your browser:<br>
-            <a href="{{ $renewUrl }}" style="color: #7c3aed; word-break: break-all;">{{ $renewUrl }}</a>
+            <a href="{{ $renewUrl }}" style="color: #3d6bff; word-break: break-all;">{{ $renewUrl }}</a>
         </p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 28px 0 16px;">
         <p style="color: #94a3b8; font-size: 12px; line-height: 1.6;">

@@ -41,7 +41,7 @@
                       placeholder="Welcome! Here's a little something just for you…"></textarea>
         </label>
         <details class="text-sm">
-            <summary class="cursor-pointer text-violet-400">Attach a (lockable) file</summary>
+            <summary class="cursor-pointer text-blue-400">Attach a (lockable) file</summary>
             <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input type="url" name="attachment_url" placeholder="https://… (file URL)" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                 <input type="url" name="attachment_thumb_url" placeholder="https://… (thumb / blur preview)" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
@@ -62,7 +62,7 @@
             <input type="checkbox" name="is_active" value="1" checked> Active
         </label>
         <div class="flex justify-end pt-2">
-            <button class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold">Add rule</button>
+            <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Add rule</button>
         </div>
     </form>
 

@@ -25,10 +25,10 @@
 
     @unless($canPaidForms)
         {{-- Plan gate (Pro and above) --}}
-        <div class="card-premium p-6 mb-6" style="background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.25);">
+        <div class="card-premium p-6 mb-6" style="background: rgba(92,131,255,0.06); border: 1px solid rgba(92,131,255,0.25);">
             <div class="flex items-start gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(139,92,246,0.15);">
-                    <i class="fas fa-crown text-violet-400"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(92,131,255,0.15);">
+                    <i class="fas fa-crown text-blue-400"></i>
                 </div>
                 <div class="flex-1">
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Paid forms are a Pro feature</h3>

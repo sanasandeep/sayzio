@@ -19,8 +19,8 @@
         <div class="glass rounded-2xl p-5">
             <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $msg->channel === 'email' ? 'rgba(124,58,237,0.15)' : 'rgba(37,211,102,0.15)' }};">
-                        <i class="{{ $msg->channel === 'email' ? 'fas fa-envelope text-violet-400' : 'fab fa-whatsapp' }}" style="{{ $msg->channel !== 'email' ? 'color:#25D366' : '' }}"></i>
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $msg->channel === 'email' ? 'rgba(61,107,255,0.15)' : 'rgba(37,211,102,0.15)' }};">
+                        <i class="{{ $msg->channel === 'email' ? 'fas fa-envelope text-blue-400' : 'fab fa-whatsapp' }}" style="{{ $msg->channel !== 'email' ? 'color:#25D366' : '' }}"></i>
                     </div>
                     <div>
                         @if($msg->subject)<h3 class="font-semibold text-sm" style="color: var(--text-primary);">{{ $msg->subject }}</h3>@endif
@@ -44,8 +44,8 @@
     <div class="mt-4">{{ $messages->links() }}</div>
     @else
     <div class="glass rounded-2xl p-12 text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(139,92,246,0.1));">
-            <i class="fas fa-paper-plane text-2xl text-violet-400"></i>
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background: linear-gradient(135deg, rgba(61,107,255,0.2), rgba(92,131,255,0.1));">
+            <i class="fas fa-paper-plane text-2xl text-blue-400"></i>
         </div>
         <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">No messages yet</h3>
         <p class="text-sm" style="color: var(--text-muted);">Messages you send to leads will appear here.</p>

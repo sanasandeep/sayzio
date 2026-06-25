@@ -40,7 +40,7 @@
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <p class="text-xs text-white/40">Credits spent</p>
-            <p class="text-2xl font-bold text-violet-300 mt-1">{{ number_format($creditsSpent) }} ✦</p>
+            <p class="text-2xl font-bold text-blue-300 mt-1">{{ number_format($creditsSpent) }} ✦</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <p class="text-xs text-white/40">👍 / 👎</p>
@@ -77,21 +77,21 @@
                     <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.02]">
                         <input type="checkbox" name="plans[]" value="{{ $p->slug }}"
                                {{ in_array($p->slug, $enabledPlans, true) ? 'checked' : '' }}
-                               class="rounded border-white/20 bg-white/5 text-violet-500">
+                               class="rounded border-white/20 bg-white/5 text-blue-500">
                         <span class="text-sm text-white/80">{{ $p->name }}</span>
                     </label>
                 @endforeach
                 <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.02]">
                     <input type="checkbox" name="plans[]" value="free"
                            {{ in_array('free', $enabledPlans, true) ? 'checked' : '' }}
-                           class="rounded border-white/20 bg-white/5 text-violet-500">
+                           class="rounded border-white/20 bg-white/5 text-blue-500">
                     <span class="text-sm text-white/80">Free / no plan</span>
                 </label>
             </div>
         </div>
 
         <div class="pt-2">
-            <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+            <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                 Save settings
             </button>
         </div>

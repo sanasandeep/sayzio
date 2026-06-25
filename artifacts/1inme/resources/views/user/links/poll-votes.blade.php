@@ -11,7 +11,7 @@
         'back' => route('user.links.show', $link),
         'chips' => [
             ['icon' => 'fa-users text-emerald-400', 'text' => $total . ' votes'],
-            ['icon' => 'fa-shield-alt text-violet-400', 'text' => 'Dedupe: 1 vote per voter'],
+            ['icon' => 'fa-shield-alt text-blue-400', 'text' => 'Dedupe: 1 vote per voter'],
         ],
         'actions' => [
             ['label' => 'Export CSV', 'url' => route('user.links.poll-votes.export', [$link, $block]), 'icon' => 'fa-download', 'class' => 'btn-primary'],
@@ -67,7 +67,7 @@
                     Recent erasures
                 </div>
                 <a href="{{ route('user.links.poll-votes.erasures', [$link, $block]) }}"
-                   class="text-xs font-semibold inline-flex items-center gap-1 hover:underline" style="color: #a78bfa;">
+                   class="text-xs font-semibold inline-flex items-center gap-1 hover:underline" style="color: #90acff;">
                     Full history <i class="fas fa-arrow-right text-[10px]"></i>
                 </a>
             </div>
@@ -145,7 +145,7 @@
                                 @csrf
                                 <button type="submit"
                                         class="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
-                                        style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.25); color: #a78bfa;">
+                                        style="background: rgba(92,131,255,0.15); border: 1px solid rgba(92,131,255,0.25); color: #90acff;">
                                     <i class="fas fa-undo"></i> Undo last reset
                                 </button>
                             </form>
@@ -158,7 +158,7 @@
                                     $label = $block->settings['options'][$optIdx] ?? ('Option ' . ((int) $optIdx + 1));
                                 @endphp
                                 <span class="text-[11px] px-2 py-1 rounded-md"
-                                      style="background: rgba(139,92,246,0.10); color: #a78bfa; border: 1px solid rgba(139,92,246,0.18);">
+                                      style="background: rgba(92,131,255,0.10); color: #90acff; border: 1px solid rgba(92,131,255,0.18);">
                                     {{ $label }}: <span class="font-semibold">{{ (int) $cnt }}</span>
                                 </span>
                             @endforeach
@@ -186,7 +186,7 @@
                             <span style="color: var(--text-muted);">{{ $row['count'] }} ({{ $row['pct'] }}%)</span>
                         </div>
                         <div class="w-full h-2 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.06);">
-                            <div class="h-full rounded-full" style="width: {{ $row['pct'] }}%; background: linear-gradient(90deg, #8b5cf6, #ec4899);"></div>
+                            <div class="h-full rounded-full" style="width: {{ $row['pct'] }}%; background: linear-gradient(90deg, #5c83ff, #ec4899);"></div>
                         </div>
                     </div>
                 @endforeach
@@ -210,7 +210,7 @@
                     @forelse($votes as $v)
                         <tr style="border-top: 1px solid rgba(255,255,255,0.06);">
                             <td class="py-3 pl-5">
-                                <span class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" style="background: rgba(139,92,246,0.18); color: #a78bfa;">
+                                <span class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" style="background: rgba(92,131,255,0.18); color: #90acff;">
                                     {{ $v->option_label ?: ('Option ' . ($v->option_index + 1)) }}
                                 </span>
                             </td>
@@ -240,8 +240,8 @@
                     @empty
                         <tr>
                             <td colspan="5" class="text-center py-12">
-                                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(139,92,246,0.18));">
-                                    <i class="fas fa-poll text-2xl text-violet-400"></i>
+                                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(92,131,255,0.18));">
+                                    <i class="fas fa-poll text-2xl text-blue-400"></i>
                                 </div>
                                 <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No votes yet</p>
                                 <p class="text-xs" style="color: var(--text-muted);">Share your biolink to start collecting poll responses.</p>

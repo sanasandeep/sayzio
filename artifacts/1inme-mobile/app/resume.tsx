@@ -1449,7 +1449,7 @@ function StylePanel({
               style={[
                 styles.swatch,
                 {
-                  backgroundColor: th.accent ?? "#7c3aed",
+                  backgroundColor: th.accent ?? "#3d6bff",
                   borderColor: active ? colors.foreground : "transparent",
                 },
               ]}

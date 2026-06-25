@@ -14,7 +14,7 @@
         <h3 class="text-white font-semibold mb-3">Feature toggle</h3>
         <label class="flex items-center gap-3 text-sm text-white/80">
             <input type="checkbox" name="enabled" value="1" {{ $enabled ? 'checked' : '' }}
-                   class="rounded border-white/10 text-violet-400">
+                   class="rounded border-white/10 text-blue-400">
             Wallet feature is enabled (customers can buy and spend coins).
         </label>
     </div>
@@ -47,6 +47,6 @@
         </div>
     </div>
 
-    <button class="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Save settings</button>
+    <button class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Save settings</button>
 </form>
 @endsection

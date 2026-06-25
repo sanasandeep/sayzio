@@ -11,13 +11,13 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
         .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center;
             justify-content: center; padding: 24px; text-align: center; }
-        .badge { width: 84px; height: 84px; border-radius: 22px; background: linear-gradient(135deg,#7c3aed,#a855f7);
+        .badge { width: 84px; height: 84px; border-radius: 22px; background: linear-gradient(135deg,#3d6bff,#6e61ff);
             display: flex; align-items: center; justify-content: center; font-size: 38px; margin-bottom: 20px;
-            box-shadow: 0 18px 48px -12px rgba(124,58,237,.55); }
+            box-shadow: 0 18px 48px -12px rgba(61,107,255,.55); }
         h1 { font-size: 18px; font-weight: 600; margin: 0 0 6px; }
         p  { font-size: 13px; opacity: .6; margin: 0 0 22px; }
         .btn { display: inline-block; padding: 12px 22px; border-radius: 14px; font-size: 14px; font-weight: 600;
-            text-decoration: none; background: #7c3aed; color: #fff; border: 0; cursor: pointer; }
+            text-decoration: none; background: #3d6bff; color: #fff; border: 0; cursor: pointer; }
         .btn.secondary { background: rgba(255,255,255,0.08); margin-left: 10px; }
         .row { margin-top: 6px; }
         .pulse { animation: pulse 1.4s ease-in-out infinite; }

@@ -1,7 +1,7 @@
 @php
     $items  = is_array($s['items'] ?? null) ? $s['items'] : [];
     $layout = $s['layout'] ?? ($s['_registry']['layout'] ?? 'plain');
-    $accent = $s['accent_color'] ?? '#7c3aed';
+    $accent = $s['accent_color'] ?? '#3d6bff';
 @endphp
 
 <div class="mb-4 space-y-2" x-data="{ open: -1 }">

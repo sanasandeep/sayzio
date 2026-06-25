@@ -18,8 +18,8 @@
     <div class="particles" id="login-particles"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(61,107,255,0.15) 0%, transparent 70%);"></div>
+        <div class="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(92,131,255,0.1) 0%, transparent 70%);"></div>
         <div class="absolute top-1/4 right-1/3 w-[350px] h-[350px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%); animation-delay: -8s;"></div>
         <div class="absolute bottom-1/3 left-1/4 w-[250px] h-[250px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(236,72,153,0.06) 0%, transparent 70%); animation-delay: -5s;"></div>
     </div>
@@ -75,17 +75,17 @@
                     @if($methodCount > 1)
                     <div class="flex gap-2 mb-4">
                         @if($emailPasswordEnabled)
-                        <button type="button" @click="method = 'password'" :class="method === 'password' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'password' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                        <button type="button" @click="method = 'password'" :class="method === 'password' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'password' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
                             <i class="fas fa-key mr-1"></i> Password
                         </button>
                         @endif
                         @if($emailOtpEnabled)
-                        <button type="button" @click="method = 'email_otp'" :class="method === 'email_otp' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'email_otp' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                        <button type="button" @click="method = 'email_otp'" :class="method === 'email_otp' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'email_otp' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
                             <i class="fas fa-envelope mr-1"></i> Email code
                         </button>
                         @endif
                         @if($mobileLoginEnabled)
-                        <button type="button" @click="method = 'mobile'" :class="method === 'mobile' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                        <button type="button" @click="method = 'mobile'" :class="method === 'mobile' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
                             <i class="fab fa-whatsapp mr-1"></i> WhatsApp
                         </button>
                         @endif
@@ -187,7 +187,7 @@
 
                 <p class="mt-6 text-center text-xs" style="color: var(--text-dimmed);">
                     Don't have an account?
-                    <a href="{{ route('user.register') }}" class="text-violet-400 hover:text-violet-300 font-semibold transition-colors">Sign up free</a>
+                    <a href="{{ route('user.register') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Sign up free</a>
                 </p>
             </div>
         </div>

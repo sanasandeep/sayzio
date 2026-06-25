@@ -40,12 +40,12 @@
             @forelse($invoices as $inv)
                 <tr style="border-top: 1px solid var(--border-soft); color: var(--text-primary);">
                     <td class="p-3 font-mono">{{ $inv->number }}</td>
-                    <td class="p-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(124,58,237,0.12); color: #7c3aed;">{{ strtoupper($inv->status) }}</span></td>
+                    <td class="p-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(61,107,255,0.12); color: #3d6bff;">{{ strtoupper($inv->status) }}</span></td>
                     <td class="p-3">{{ $inv->recipient_email ?? '—' }}</td>
                     <td class="p-3 text-right">{{ strtoupper($inv->currency) }} {{ number_format($inv->grand_total_minor / 100, 2) }}</td>
                     <td class="p-3">{{ optional($inv->issued_at)->format('Y-m-d') }}</td>
                     <td class="p-3 text-right">
-                        <a href="{{ route('user.client-invoices.edit', $inv) }}" class="text-xs font-semibold" style="color: #7c3aed;">Open →</a>
+                        <a href="{{ route('user.client-invoices.edit', $inv) }}" class="text-xs font-semibold" style="color: #3d6bff;">Open →</a>
                     </td>
                 </tr>
             @empty

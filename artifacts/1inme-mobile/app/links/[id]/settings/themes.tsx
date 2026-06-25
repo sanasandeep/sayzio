@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     borderColor: "#222",
     borderWidth: 1,
   },
-  cardAccent: { borderColor: "#a78bfa" },
+  cardAccent: { borderColor: "#7d9bff" },
   h2: { color: "#fff", fontSize: 15, fontWeight: "600", marginBottom: 4 },
   label: { color: "#aaa", fontSize: 12, marginTop: 4 },
   input: {
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   rowTitle: { color: "#fff", fontSize: 14, fontWeight: "600" },
   rowMuted: { color: "#888", fontSize: 11, marginTop: 2 },
   btnPrimary: {
-    backgroundColor: "#a78bfa",
+    backgroundColor: "#7d9bff",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  btnSecondaryText: { color: "#a78bfa", fontWeight: "600", fontSize: 12 },
+  btnSecondaryText: { color: "#7d9bff", fontWeight: "600", fontSize: 12 },
   btnDanger: {
     backgroundColor: "rgba(239,68,68,0.15)",
     paddingHorizontal: 12,

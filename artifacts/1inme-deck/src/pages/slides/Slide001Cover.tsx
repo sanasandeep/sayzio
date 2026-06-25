@@ -13,7 +13,7 @@ export default function Slide001Cover() {
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
         <div className="flex-1 flex flex-col justify-center max-w-[80vw]">
           <span className="inline-block self-start px-[1.2vw] py-[0.6vh] rounded-full border border-fuchsia-400/40 bg-fuchsia-500/10 text-[1vw] tracking-[0.25em] uppercase text-fuchsia-200">Sectioned Deck · 2026</span>
-          <h1 className="mt-[3vh] font-display text-[7.5vw] font-bold tracking-tight leading-[0.92]">One link.<span className="block bg-gradient-to-r from-violet-300 via-fuchsia-300 to-pink-200 bg-clip-text text-transparent">One identity.</span><span className="block text-slate-200">One platform.</span></h1>
+          <h1 className="mt-[3vh] font-display text-[7.5vw] font-bold tracking-tight leading-[0.92]">One link.<span className="block bg-gradient-to-r from-blue-300 via-fuchsia-300 to-pink-200 bg-clip-text text-transparent">One identity.</span><span className="block text-slate-200">One platform.</span></h1>
           <p className="mt-[3vh] text-[1.6vw] text-slate-300 max-w-[60vw] leading-snug">A single deck for sales, product, features, personas, investors, and roadmap. Jump to the section you need.</p>
         </div>
       </div>

@@ -2,7 +2,7 @@
     @if($_lnkLayout === 'plain_text')
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block mb-3 text-center font-semibold underline decoration-1 underline-offset-4 hover:decoration-2 transition"
-           style="color: {{ $block->settings['_style']['text_color'] ?? ($s['color'] ?? '#a78bfa') }};
+           style="color: {{ $block->settings['_style']['text_color'] ?? ($s['color'] ?? '#90acff') }};
                   font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};">
             {{ $s['text'] ?? 'Click Here' }}
         </a>
@@ -17,9 +17,9 @@
     @else
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block w-full mb-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
-           style="background: {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}; color: {{ $s['text_color'] ?? ($btnTextColor ?? '#fff') }};
+           style="background: {{ $s['color'] ?? ($btnColor ?? '#3d6bff') }}; color: {{ $s['text_color'] ?? ($btnTextColor ?? '#fff') }};
                   padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
-                  border-radius: {{ $btnRadius ?? '12px' }}; box-shadow: 0 6px 20px {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}40;
+                  border-radius: {{ $btnRadius ?? '12px' }}; box-shadow: 0 6px 20px {{ $s['color'] ?? ($btnColor ?? '#3d6bff') }}40;
                   font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
             {{ $s['text'] ?? 'Click Here' }}
         </a>

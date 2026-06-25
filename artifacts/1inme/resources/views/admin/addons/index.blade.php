@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Standalone upgrades that attach to one or more plans.</p>
-    <a href="{{ route('admin.addons.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
+    <a href="{{ route('admin.addons.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
         <i class="fas fa-plus mr-2"></i>Add Addon
     </a>
 </div>
@@ -57,14 +57,14 @@
             <p class="text-[11px] uppercase tracking-wider text-white/40 mb-1">Eligible plans</p>
             <div class="flex flex-wrap gap-1">
                 @foreach($addon->plans as $p)
-                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/20">{{ $p->name }}</span>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/20">{{ $p->name }}</span>
                 @endforeach
             </div>
         </div>
         @endif
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
-            <a href="{{ route('admin.addons.edit', $addon) }}" class="text-white/30 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
+            <a href="{{ route('admin.addons.edit', $addon) }}" class="text-white/30 hover:text-blue-400" title="Edit"><i class="fas fa-edit"></i></a>
             <form action="{{ route('admin.addons.archive', $addon) }}" method="POST" class="inline">
                 @csrf
                 <button type="submit" class="text-white/30 hover:text-amber-400" title="{{ $addon->is_archived ? 'Restore' : 'Archive' }}">
@@ -79,7 +79,7 @@
     </div>
     @empty
     <div class="col-span-full text-center text-white/40 py-12">
-        No addons yet. <a href="{{ route('admin.addons.create') }}" class="text-violet-400 hover:underline">Create your first one</a>.
+        No addons yet. <a href="{{ route('admin.addons.create') }}" class="text-blue-400 hover:underline">Create your first one</a>.
     </div>
     @endforelse
 </div>

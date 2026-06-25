@@ -27,11 +27,11 @@
         $__lockTargetName = $__lockTarget?->name;
     @endphp
     <div data-plan-lock="{{ $feature }}"
-         class="rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 mb-4 flex items-start gap-3">
-        <i class="fas fa-lock text-violet-300 mt-0.5"></i>
-        <div class="flex-1 text-sm text-violet-100">
+         class="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 mb-4 flex items-start gap-3">
+        <i class="fas fa-lock text-blue-300 mt-0.5"></i>
+        <div class="flex-1 text-sm text-blue-100">
             <div class="font-semibold">{{ $label ?? str_replace('_', ' ', $feature) }} is locked on your current plan.</div>
-            <div class="text-violet-200/80 mt-0.5">
+            <div class="text-blue-200/80 mt-0.5">
                 @if($__lockTargetName)
                     Upgrade to the <strong>{{ $__lockTargetName }}</strong> plan to unlock this feature.
                 @else
@@ -40,7 +40,7 @@
             </div>
         </div>
         <a href="{{ route('user.upgrade') }}"
-           class="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg bg-violet-500 hover:bg-violet-400 text-white">
+           class="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-white">
             Upgrade
         </a>
     </div>

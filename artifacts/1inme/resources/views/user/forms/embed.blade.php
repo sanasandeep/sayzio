@@ -44,7 +44,7 @@
 
     <div class="card-premium p-1 mb-6 inline-flex">
         @foreach(['iframe' => ['Iframe', 'fa-window-maximize'], 'script' => ['Script tag', 'fa-code'], 'link' => ['Direct link', 'fa-link'], 'biolink' => ['Link in Bio block', 'fa-th-large']] as $key => [$label, $icon])
-            <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'bg-violet-500 text-white' : ''" class="px-4 py-2 rounded-lg text-xs font-semibold" style="color: var(--text-muted);">
+            <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'bg-blue-500 text-white' : ''" class="px-4 py-2 rounded-lg text-xs font-semibold" style="color: var(--text-muted);">
                 <i class="fas {{ $icon }} text-[10px] mr-1"></i> {{ $label }}
             </button>
         @endforeach
@@ -57,7 +57,7 @@
         <p class="text-[11px] mb-4" style="color: var(--text-faint);">Easiest way to embed in any website. Paste this HTML wherever the form should appear.</p>
         <div class="relative">
             <pre class="p-4 rounded-xl text-xs overflow-x-auto" style="background: #0a0b10; color: #d1d5db; border: 1px solid var(--border-glass);"><code id="iframe-code">{{ $iframe }}</code></pre>
-            <button type="button" @click="navigator.clipboard.writeText(document.getElementById('iframe-code').textContent); copied='iframe'; setTimeout(()=>copied='',1800)" class="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold" style="background: rgba(139,92,246,0.2); color: #a78bfa;">
+            <button type="button" @click="navigator.clipboard.writeText(document.getElementById('iframe-code').textContent); copied='iframe'; setTimeout(()=>copied='',1800)" class="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold" style="background: rgba(92,131,255,0.2); color: #90acff;">
                 <span x-show="copied !== 'iframe'"><i class="fas fa-copy text-[10px] mr-1"></i> Copy</span>
                 <span x-show="copied === 'iframe'" style="color: #10b981;"><i class="fas fa-check text-[10px] mr-1"></i> Copied!</span>
             </button>
@@ -73,7 +73,7 @@
         <p class="text-[11px] mb-4" style="color: var(--text-faint);">Lightweight loader that injects an iframe into a target div. Great for SPAs and dynamic pages.</p>
         <div class="relative">
             <pre class="p-4 rounded-xl text-xs overflow-x-auto whitespace-pre-wrap" style="background: #0a0b10; color: #d1d5db; border: 1px solid var(--border-glass);"><code id="script-code">{{ $script }}</code></pre>
-            <button type="button" @click="navigator.clipboard.writeText(document.getElementById('script-code').textContent); copied='script'; setTimeout(()=>copied='',1800)" class="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold" style="background: rgba(139,92,246,0.2); color: #a78bfa;">
+            <button type="button" @click="navigator.clipboard.writeText(document.getElementById('script-code').textContent); copied='script'; setTimeout(()=>copied='',1800)" class="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold" style="background: rgba(92,131,255,0.2); color: #90acff;">
                 <span x-show="copied !== 'script'"><i class="fas fa-copy text-[10px] mr-1"></i> Copy</span>
                 <span x-show="copied === 'script'" style="color: #10b981;"><i class="fas fa-check text-[10px] mr-1"></i> Copied!</span>
             </button>
@@ -96,11 +96,11 @@
     <div x-show="tab === 'biolink'" class="card-premium p-6">
         <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Add to a Link in Bio page</h3>
         <p class="text-[11px] mb-4" style="color: var(--text-faint);">From any Link in Bio editor, add a "Form" block and select <strong>{{ $form->title }}</strong> from the picker.</p>
-        <div class="rounded-xl p-5" style="background: linear-gradient(160deg, rgba(139,92,246,0.08), rgba(236,72,153,0.06)); border: 1px solid rgba(139,92,246,0.2);">
+        <div class="rounded-xl p-5" style="background: linear-gradient(160deg, rgba(92,131,255,0.08), rgba(236,72,153,0.06)); border: 1px solid rgba(92,131,255,0.2);">
             <ol class="text-sm space-y-2" style="color: var(--text-secondary);">
-                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(139,92,246,0.2); color: #a78bfa;">1</span> Open any Link in Bio page and click <strong>Edit Blocks</strong>.</li>
-                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(139,92,246,0.2); color: #a78bfa;">2</span> Add a new block of type <strong>Form</strong>.</li>
-                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(139,92,246,0.2); color: #a78bfa;">3</span> In the block settings, select form ID <code class="px-1.5 py-0.5 rounded text-xs" style="background: rgba(255,255,255,0.06);">{{ $form->id }}</code> ({{ $form->title }}).</li>
+                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(92,131,255,0.2); color: #90acff;">1</span> Open any Link in Bio page and click <strong>Edit Blocks</strong>.</li>
+                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(92,131,255,0.2); color: #90acff;">2</span> Add a new block of type <strong>Form</strong>.</li>
+                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(92,131,255,0.2); color: #90acff;">3</span> In the block settings, select form ID <code class="px-1.5 py-0.5 rounded text-xs" style="background: rgba(255,255,255,0.06);">{{ $form->id }}</code> ({{ $form->title }}).</li>
             </ol>
         </div>
     </div>

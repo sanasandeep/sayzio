@@ -8,7 +8,7 @@
     $sevMap = [
         'critical' => ['bg' => 'rgba(239,68,68,0.12)',  'border' => 'rgba(239,68,68,0.35)',  'color' => '#fca5a5', 'icon' => 'fa-triangle-exclamation'],
         'warning'  => ['bg' => 'rgba(245,158,11,0.12)', 'border' => 'rgba(245,158,11,0.35)', 'color' => '#fcd34d', 'icon' => 'fa-circle-exclamation'],
-        'tip'      => ['bg' => 'rgba(59,130,246,0.12)', 'border' => 'rgba(59,130,246,0.35)', 'color' => '#c4b5fd', 'icon' => 'fa-lightbulb'],
+        'tip'      => ['bg' => 'rgba(59,130,246,0.12)', 'border' => 'rgba(59,130,246,0.35)', 'color' => '#bccfff', 'icon' => 'fa-lightbulb'],
         'win'      => ['bg' => 'rgba(16,185,129,0.12)', 'border' => 'rgba(16,185,129,0.35)', 'color' => '#6ee7b7', 'icon' => 'fa-circle-check'],
     ];
     $deltaPct = $p['delta_pct'] ?? null;
@@ -58,9 +58,9 @@
         }
     }
     $componentMeta = [
-        'ctr'        => ['label' => 'CTR',        'color' => '#a78bfa'],
+        'ctr'        => ['label' => 'CTR',        'color' => '#90acff'],
         'bounce'     => ['label' => 'Bounce',     'color' => '#f472b6'],
-        'engagement' => ['label' => 'Engagement', 'color' => '#a78bfa'],
+        'engagement' => ['label' => 'Engagement', 'color' => '#90acff'],
         'momentum'   => ['label' => 'Momentum',   'color' => '#34d399'],
         'diversity'  => ['label' => 'Diversity',  'color' => '#fbbf24'],
         'activity'   => ['label' => 'Activity',   'color' => '#f87171'],
@@ -121,7 +121,7 @@
             </div>
             <div class="flex-1 min-w-0">
                 <div class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">
-                    <i class="fas fa-wand-magic-sparkles text-violet-400"></i> {{ $p['headline'] }}
+                    <i class="fas fa-wand-magic-sparkles text-blue-400"></i> {{ $p['headline'] }}
                 </div>
                 <div class="text-lg font-semibold mt-0.5" style="color: var(--text-primary);">{{ $p['label'] }}</div>
                 @if(!empty($sparkPoints))
@@ -310,7 +310,7 @@
                     <label class="pc-preset-card" :class="pcPreset === '{{ $key }}' ? 'is-active' : ''"
                            @click.prevent="applyPreset('{{ $key }}')">
                         <div class="pc-preset-top">
-                            <input type="radio" name="preset" value="{{ $key }}" :checked="pcPreset === '{{ $key }}'" class="accent-purple-400">
+                            <input type="radio" name="preset" value="{{ $key }}" :checked="pcPreset === '{{ $key }}'" class="accent-indigo-400">
                             <span class="pc-preset-label">{{ $meta['label'] }}</span>
                         </div>
                         <div class="pc-preset-desc">{{ $meta['description'] }}</div>
@@ -319,7 +319,7 @@
                 <label class="pc-preset-card" :class="pcPreset === 'custom' ? 'is-active' : ''"
                        @click.prevent="applyPreset('custom')">
                     <div class="pc-preset-top">
-                        <input type="radio" name="preset" value="custom" :checked="pcPreset === 'custom'" class="accent-purple-400">
+                        <input type="radio" name="preset" value="custom" :checked="pcPreset === 'custom'" class="accent-indigo-400">
                         <span class="pc-preset-label">Custom</span>
                     </div>
                     <div class="pc-preset-desc">Hand-tune each threshold below.</div>
@@ -533,7 +533,7 @@
     }
     .perf-coach .pc-preset-card:hover { background: var(--bg-glass-hover); }
     .perf-coach .pc-preset-card.is-active {
-        border-color: rgba(139,92,246,0.6); background: var(--c-primary-soft);
+        border-color: rgba(92,131,255,0.6); background: var(--c-primary-soft);
     }
     .perf-coach .pc-preset-top {
         display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
@@ -593,9 +593,9 @@
     }
     .perf-coach .pc-btn-ghost:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
     .perf-coach .pc-btn-save {
-        background: linear-gradient(135deg, rgba(139,92,246,0.9), rgba(99,102,241,0.9));
+        background: linear-gradient(135deg, rgba(92,131,255,0.9), rgba(99,102,241,0.9));
         /* White text intentional: button bg is the dark violet/indigo accent gradient in both light & dark modes. */
-        color: #fff; border-color: rgba(139,92,246,0.6);
+        color: #fff; border-color: rgba(92,131,255,0.6);
     }
     .perf-coach .pc-btn-save:hover { filter: brightness(1.1); }
     [x-cloak] { display: none !important; }

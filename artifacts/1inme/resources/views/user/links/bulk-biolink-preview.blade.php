@@ -41,14 +41,14 @@
 
         <div class="glass rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-2 text-xs text-white/60">
             <span class="font-semibold text-white/80">Blueprint:</span>
-            <span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-shapes mr-1 text-violet-400"></i>{{ $blueprintLabel }}</span>
+            <span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-shapes mr-1 text-blue-400"></i>{{ $blueprintLabel }}</span>
             @if(!empty($shared['domain_id']))
                 @php $d = $domains->firstWhere('id', $shared['domain_id']); @endphp
-                @if($d)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-globe mr-1 text-violet-400"></i>{{ $d->domain }}</span>@endif
+                @if($d)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-globe mr-1 text-blue-400"></i>{{ $d->domain }}</span>@endif
             @endif
             @if(!empty($shared['project_id']))
                 @php $p = $projects->firstWhere('id', $shared['project_id']); @endphp
-                @if($p)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-folder mr-1 text-violet-400"></i>{{ $p->name }}</span>@endif
+                @if($p)<span class="px-2 py-1 rounded-md bg-white/5 border border-white/10"><i class="fas fa-folder mr-1 text-blue-400"></i>{{ $p->name }}</span>@endif
             @endif
         </div>
 
@@ -76,18 +76,18 @@
                         <td class="px-3 py-2 align-top">
                             <input type="text" name="rows[{{ $i }}][alias]" value="{{ $row['alias_input'] ?: $row['final_alias'] }}"
                                    placeholder="auto"
-                                   class="w-full bg-white/5 border {{ $hasErr ? 'border-red-500/40' : 'border-white/10' }} rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border {{ $hasErr ? 'border-red-500/40' : 'border-white/10' }} rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </td>
                         <td class="px-3 py-2 align-top">
                             <input type="text" name="rows[{{ $i }}][title]" value="{{ $row['title'] }}"
                                    placeholder="—"
-                                   class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                   class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </td>
                         @foreach($dataTokens as $t)
                             @if($t !== 'title')
                                 <td class="px-3 py-2 align-top">
                                     <input type="text" name="rows[{{ $i }}][data][{{ $t }}]" value="{{ $row['data'][$t] ?? '' }}"
-                                           class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                           class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                                 </td>
                             @endif
                         @endforeach
@@ -104,7 +104,7 @@
                         </td>
                         <td class="px-3 py-3 text-center align-top">
                             <input type="checkbox" name="rows[{{ $i }}][skip]" value="1" {{ $hasErr ? 'checked' : '' }}
-                                   class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
+                                   class="rounded bg-white/5 border-white/20 text-blue-600 focus:ring-blue-500/40">
                         </td>
                     </tr>
                     @endforeach
@@ -116,7 +116,7 @@
             <a href="{{ route('user.links.biolink.bulk') }}" class="px-5 py-2.5 text-sm text-white/50 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                 <i class="fas fa-arrow-left mr-1"></i> Edit input
             </a>
-            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20"
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20"
                     onclick="return confirm('Create the unskipped pages now?')">
                 <i class="fas fa-check mr-1.5 text-xs"></i> Create {{ $validCount }} page{{ $validCount === 1 ? '' : 's' }}
             </button>

@@ -70,7 +70,7 @@
                                     <span class="text-white/40 text-xs">— (entire pool)</span>
                                 @elseif($e->targetUser)
                                     <a href="{{ route('admin.users.show', $e->targetUser) }}"
-                                       class="text-violet-300 hover:text-violet-200">
+                                       class="text-blue-300 hover:text-blue-200">
                                         {{ $e->targetUser->name ?: $e->targetUser->email }}
                                     </a>
                                     @if($e->targetUser->email)

@@ -22,7 +22,7 @@
         'amber'  => ['bg' => 'rgba(245,158,11,0.10)', 'br' => 'rgba(245,158,11,0.25)', 'fg' => 'text-amber-400',  'glow' => 'rgba(245,158,11,0.10)'],
         'sky'    => ['bg' => 'rgba(56,189,248,0.10)', 'br' => 'rgba(56,189,248,0.25)', 'fg' => 'text-sky-400',    'glow' => 'rgba(56,189,248,0.10)'],
         'slate'  => ['bg' => 'rgba(148,163,184,0.10)','br' => 'rgba(148,163,184,0.25)','fg' => 'text-slate-300',  'glow' => 'rgba(148,163,184,0.08)'],
-        'violet' => ['bg' => 'rgba(124,58,237,0.10)', 'br' => 'rgba(124,58,237,0.25)', 'fg' => 'text-violet-400', 'glow' => 'rgba(124,58,237,0.12)'],
+        'violet' => ['bg' => 'rgba(61,107,255,0.10)', 'br' => 'rgba(61,107,255,0.25)', 'fg' => 'text-blue-400', 'glow' => 'rgba(61,107,255,0.12)'],
         'rose'   => ['bg' => 'rgba(244,63,94,0.10)',  'br' => 'rgba(244,63,94,0.25)',  'fg' => 'text-rose-400',   'glow' => 'rgba(244,63,94,0.10)'],
     ];
     $t = $tints[$p['tint']] ?? $tints['amber'];
@@ -82,8 +82,8 @@
 
             @if($nextOpen)
                 <div class="rounded-xl px-4 py-3 mb-6 text-left"
-                     style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);">
-                    <div class="text-[10px] uppercase tracking-wider text-violet-300/70 font-bold mb-0.5">Next opens</div>
+                     style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.2);">
+                    <div class="text-[10px] uppercase tracking-wider text-blue-300/70 font-bold mb-0.5">Next opens</div>
                     <div class="text-sm text-white font-medium">
                         {{ $nextOpen->isToday() ? 'Today at ' . $nextOpen->format('g:i A')
                            : ($nextOpen->isTomorrow() ? 'Tomorrow at ' . $nextOpen->format('g:i A')
@@ -94,7 +94,7 @@
             @endif
 
             <div class="text-xs text-white/30">
-                Powered by <a href="{{ url('/') }}" class="text-violet-400 hover:text-violet-300 font-medium">Sayzio</a>
+                Powered by <a href="{{ url('/') }}" class="text-blue-400 hover:text-blue-300 font-medium">Sayzio</a>
             </div>
         </div>
     </div>

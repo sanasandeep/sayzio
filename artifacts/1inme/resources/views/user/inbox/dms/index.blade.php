@@ -8,7 +8,7 @@
         'subtitle' => 'Conversations from biolink viewers',
         'icon'     => 'fa-comments',
         'chips'    => [
-            ['icon' => 'fa-envelope text-violet-400', 'text' => number_format($unreadTotal) . ' unread'],
+            ['icon' => 'fa-envelope text-blue-400', 'text' => number_format($unreadTotal) . ' unread'],
         ],
     ])
 

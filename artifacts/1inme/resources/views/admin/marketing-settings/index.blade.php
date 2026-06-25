@@ -11,7 +11,7 @@
     $whyForJs = !empty($why_comparison) ? $why_comparison : $defaultsWhy;
 @endphp
 <div class="max-w-4xl mx-auto space-y-6">
-    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-violet-400 hover:underline">
+    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-blue-400 hover:underline">
         <i class="fas fa-arrow-left mr-1"></i>Back to all pages
     </a>
 
@@ -125,7 +125,7 @@
                         <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
                     </button>
                     <button type="button" @click="if(trust.length<6) trust.push({value:'',label:'',icon:'fa-circle-check'})"
-                            class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                            class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add metric
                     </button>
                 </div>
@@ -150,7 +150,7 @@
                     <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                         <template x-for="(t,i) in trust" :key="'tp'+i">
                             <span class="flex items-center gap-2 text-gray-400">
-                                <i class="fas text-[13px] text-violet-300"
+                                <i class="fas text-[13px] text-blue-300"
                                    :class="(t.icon || 'fa-check').replace(/^fas?\s+/, '')"></i>
                                 <span class="font-bold text-white" x-text="t.value || '—'"></span>
                                 <span class="text-gray-500" x-text="t.label || ''"></span>
@@ -174,7 +174,7 @@
                         <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
                     </button>
                     <button type="button" @click="if(why.length<12) why.push({feature:'',ours:'Yes',theirs:''})"
-                            class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                            class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add row
                     </button>
                 </div>
@@ -242,7 +242,7 @@
         ])
 
         <div class="flex justify-end">
-            <button type="submit" class="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Save settings</button>
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save settings</button>
         </div>
     </form>
 </div>

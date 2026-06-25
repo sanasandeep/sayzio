@@ -51,7 +51,7 @@
                             @click="saveTheme()"
                             :disabled="!newName.trim() || saving"
                             class="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
-                            style="background: linear-gradient(135deg,#a78bfa,#67e8f9); color:#0a0612;">
+                            style="background: linear-gradient(135deg,#90acff,#67e8f9); color:#0a0612;">
                         <i class="fas fa-bookmark mr-1"></i>
                         <span x-text="saving ? 'Saving…' : 'Save as theme'"></span>
                     </button>
@@ -72,7 +72,7 @@
                                 <div class="text-[11px]" style="color: var(--text-faint);" x-text="'Saved ' + fmtDate(t.created_at)"></div>
                             </div>
                             <button type="button" @click="openSchedulePicker(t)" class="text-xs px-3 py-1.5 rounded-md font-semibold"
-                                    style="background: rgba(167,139,250,0.18); color: #a78bfa;">
+                                    style="background: rgba(144,172,255,0.18); color: #90acff;">
                                 <i class="fas fa-calendar-plus mr-1"></i>Schedule
                             </button>
                             <button type="button" @click="deleteTheme(t)" class="text-xs px-2 py-1.5 rounded-md"
@@ -86,14 +86,14 @@
 
             <!-- Schedule picker / editor (inline) -->
             <section x-show="picker.theme || picker.editingId" x-transition class="rounded-2xl p-5"
-                     style="background: var(--bg-glass-card); border: 1px solid rgba(167,139,250,0.4);">
+                     style="background: var(--bg-glass-card); border: 1px solid rgba(144,172,255,0.4);">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-base font-semibold" style="color: var(--text-primary);">
                         <template x-if="picker.editingId">
-                            <span>Edit window for <span class="text-violet-300" x-text="picker.theme?.name"></span></span>
+                            <span>Edit window for <span class="text-blue-300" x-text="picker.theme?.name"></span></span>
                         </template>
                         <template x-if="!picker.editingId">
-                            <span>Schedule <span class="text-violet-300" x-text="picker.theme?.name"></span></span>
+                            <span>Schedule <span class="text-blue-300" x-text="picker.theme?.name"></span></span>
                         </template>
                     </h2>
                     <button type="button" @click="resetPicker()" class="text-xs"
@@ -120,7 +120,7 @@
                 <div class="mt-3 flex justify-end">
                     <button type="button" @click="schedule()" :disabled="!canSchedule || scheduling"
                             class="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
-                            style="background: linear-gradient(135deg,#a78bfa,#67e8f9); color:#0a0612;">
+                            style="background: linear-gradient(135deg,#90acff,#67e8f9); color:#0a0612;">
                         <span x-text="scheduling ? 'Saving…' : (picker.editingId ? 'Save changes' : 'Schedule theme')"></span>
                     </button>
                 </div>
@@ -155,7 +155,7 @@
                             </div>
                             <template x-if="s.status === 'pending' && s.id !== activeId">
                                 <button type="button" @click="editSchedule(s)" class="text-xs px-3 py-1.5 rounded-md font-semibold"
-                                        style="background: rgba(167,139,250,0.18); color:#a78bfa;">
+                                        style="background: rgba(144,172,255,0.18); color:#90acff;">
                                     <i class="fas fa-pen mr-1"></i>Edit
                                 </button>
                             </template>

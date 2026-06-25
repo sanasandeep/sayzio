@@ -52,7 +52,7 @@
 
     @if($forms->isEmpty())
         <div class="card-premium p-12 text-center">
-            <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(139,92,246,0.18));">
+            <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(92,131,255,0.18));">
                 <i class="fas fa-wpforms text-3xl text-pink-400"></i>
             </div>
             <h3 class="text-xl font-bold mb-2" style="color: var(--text-primary);">No forms yet</h3>
@@ -73,7 +73,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             @foreach($forms as $form)
                 @php
-                    $accent = $form->design['accent'] ?? '#8b5cf6';
+                    $accent = $form->design['accent'] ?? '#5c83ff';
                 @endphp
                 <div class="card-premium p-5 group" style="--nav-tint: {{ $accent }};">
                     <div class="flex items-start justify-between gap-3 mb-4">

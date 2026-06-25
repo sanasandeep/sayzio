@@ -30,7 +30,7 @@
 @php
     $viewerNow = \App\Modules\Common\Services\ViewerSession::user();
 @endphp
-<body class="bg-gradient-to-br from-slate-50 via-white to-violet-50 min-h-screen">
+<body class="bg-gradient-to-br from-slate-50 via-white to-blue-50 min-h-screen">
 <div class="max-w-6xl mx-auto px-4 py-10">
     <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
         <div>
@@ -47,7 +47,7 @@
                 <button type="button" @click="$dispatch('open-viewer-login', {})" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold">Sign in</button>
             @endif
             @auth
-                <a href="{{ route('feed.index') }}" class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">My Feed</a>
+                <a href="{{ route('feed.index') }}" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">My Feed</a>
                 <a href="{{ route('user.dashboard') }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200">Dashboard</a>
             @endauth
         </div>
@@ -55,7 +55,7 @@
 
     <form method="GET" class="flex flex-wrap gap-2 mb-4">
         <input type="text" name="q" value="{{ $q }}" placeholder="Search name, handle, bio or #tag..."
-               class="flex-1 min-w-[240px] px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"/>
+               class="flex-1 min-w-[240px] px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
         <select name="sort" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
             <option value="trending"      {{ $sort === 'trending' ? 'selected' : '' }}>Trending (7d)</option>
             <option value="most_followed" {{ $sort === 'most_followed' ? 'selected' : '' }}>Most followed</option>
@@ -80,10 +80,10 @@
     {{-- Niche tag pills (Task #1211). --}}
     @if(!empty($popularTags))
         <div class="flex flex-wrap items-center gap-2 mb-6">
-            <a href="{{ route('creators.index') }}" class="text-[11px] px-2.5 py-1 rounded-full {{ $tag === '' ? 'bg-violet-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-violet-400' }}">All</a>
+            <a href="{{ route('creators.index') }}" class="text-[11px] px-2.5 py-1 rounded-full {{ $tag === '' ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-400' }}">All</a>
             @foreach($popularTags as $tagName => $cnt)
                 <a href="{{ route('creators.index', array_filter(['tag' => $tagName, 'sort' => $sort, 'tier' => $tier, 'q' => $q])) }}"
-                   class="text-[11px] px-2.5 py-1 rounded-full {{ $tag === $tagName ? 'bg-violet-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-violet-400' }}">
+                   class="text-[11px] px-2.5 py-1 rounded-full {{ $tag === $tagName ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-400' }}">
                     #{{ $tagName }} <span class="opacity-60">{{ $cnt }}</span>
                 </a>
             @endforeach
@@ -95,7 +95,7 @@
         <div class="mb-6">
             <div class="flex items-center justify-between mb-2">
                 <h2 class="text-sm font-bold text-slate-900 flex items-center gap-1.5"><i class="fas fa-fire text-orange-500"></i> Trending now</h2>
-                <a href="{{ route('creators.index', ['sort' => 'trending']) }}" class="text-[11px] text-violet-700 hover:underline">See all</a>
+                <a href="{{ route('creators.index', ['sort' => 'trending']) }}" class="text-[11px] text-blue-700 hover:underline">See all</a>
             </div>
             <div class="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 snap-x">
                 @foreach($trendingCarousel as $tc)
@@ -103,7 +103,7 @@
                         @if($tc->avatar)
                             <img src="{{ $tc->avatar }}" class="w-14 h-14 rounded-full mx-auto object-cover" alt=""/>
                         @else
-                            <div class="w-14 h-14 rounded-full mx-auto bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $tc->getInitials() }}</div>
+                            <div class="w-14 h-14 rounded-full mx-auto bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $tc->getInitials() }}</div>
                         @endif
                         <div class="mt-2 text-[13px] font-bold truncate">{{ $tc->name }}</div>
                         <div class="text-[11px] text-slate-500 truncate">&#64;{{ $tc->handle }}</div>
@@ -139,19 +139,19 @@
                     @if(!empty($creator->cover_image))
                         <a href="{{ $href }}" class="block h-20 bg-cover bg-center" style="background-image:url('{{ $creator->cover_image }}');"></a>
                     @else
-                        <a href="{{ $href }}" class="block h-20 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500"></a>
+                        <a href="{{ $href }}" class="block h-20 bg-gradient-to-br from-blue-500 via-fuchsia-500 to-indigo-500"></a>
                     @endif
                     <div class="p-5">
                     <div class="flex items-center gap-3 -mt-9">
                         @if($creator->avatar)
                             <img src="{{ $creator->avatar }}" class="w-14 h-14 rounded-full object-cover border-4 border-white bg-white" alt=""/>
                         @else
-                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-lg border-4 border-white">
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-lg border-4 border-white">
                                 {{ $creator->getInitials() }}
                             </div>
                         @endif
                         <div class="flex-1 min-w-0 mt-7">
-                            <a href="{{ $href }}" class="block font-bold text-slate-900 truncate hover:text-violet-700">{{ $creator->name }}</a>
+                            <a href="{{ $href }}" class="block font-bold text-slate-900 truncate hover:text-blue-700">{{ $creator->name }}</a>
                             @if($creator->handle)
                                 <p class="text-xs text-slate-500 truncate">&#64;{{ $creator->handle }}{{ $hasProfile ? '' : ' · Link in Bio' }}</p>
                             @endif
@@ -211,7 +211,7 @@
                                @focus="show()"
                                @blur="hide()"
                                @click="if (!tapped && window.matchMedia && window.matchMedia('(hover: none)').matches) { $event.preventDefault(); show(); tapped = true; setTimeout(() => { tapped = false; hide(); }, 4000); }"
-                               class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[11px] font-semibold max-w-full transition-colors"
+                               class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 text-[11px] font-semibold max-w-full transition-colors"
                                :aria-expanded="open ? 'true' : 'false'"
                                aria-describedby="buzz-preview-{{ $creator->id }}">
                                 <i class="fas {{ $buzz['icon'] }} text-[10px]"></i>
@@ -231,7 +231,7 @@
                                  }"
                                  class="absolute z-30 w-64 p-3 rounded-xl bg-white shadow-xl border border-slate-200 text-left pointer-events-none">
                                 <div class="flex items-start gap-2">
-                                    <div class="w-8 h-8 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center flex-shrink-0">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
                                         <i class="fas {{ $buzz['icon'] }} text-xs"></i>
                                     </div>
                                     <div class="flex-1 min-w-0">
@@ -242,7 +242,7 @@
                                         </p>
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-violet-600 font-semibold mt-2">Tap to view profile →</p>
+                                <p class="text-[10px] text-blue-600 font-semibold mt-2">Tap to view profile →</p>
                             </div>
                         </div>
                     @endif
@@ -282,14 +282,14 @@
                             @elseif($viewerNow)
                                 <button type="button" :disabled="busy"
                                         @click="busy=true; fetch('{{ route('viewer.follow.toggle', $creator->id) }}',{method:'POST',headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'}}).then(r=>r.json()).then(d=>{following=!!d.following; busy=false;}).catch(()=>busy=false)"
-                                        :class="following ? 'bg-slate-100 text-slate-700' : 'bg-violet-600 text-white'"
+                                        :class="following ? 'bg-slate-100 text-slate-700' : 'bg-blue-600 text-white'"
                                         class="px-3 py-1.5 rounded-lg text-xs font-bold">
                                     <span x-text="following ? 'Following' : 'Follow'"></span>
                                 </button>
                             @else
                                 <button type="button"
                                         @click="$dispatch('open-viewer-login', {creatorId: {{ (int)$creator->id }} })"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-bold bg-violet-600 text-white hover:bg-violet-700">
+                                        class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-700">
                                     + Follow
                                 </button>
                             @endif
@@ -328,7 +328,7 @@
                 <img :src="creator.avatar" class="w-10 h-10 rounded-full object-cover" alt=""/>
             </template>
             <template x-if="!creator.avatar">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-sm"
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-sm"
                      x-text="creator.initials || '?'"></div>
             </template>
             <div class="flex-1 min-w-0">

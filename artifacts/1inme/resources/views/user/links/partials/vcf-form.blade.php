@@ -15,7 +15,7 @@
     $birthday    = old('birthday',    $v?->birthday?->format('Y-m-d'));
     $anniversary = old('anniversary', $v?->anniversary?->format('Y-m-d'));
     $photoUrl    = $v?->photoUrl();
-    $inputCls    = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40';
+    $inputCls    = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40';
     $miniBtn     = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition';
 @endphp
 
@@ -32,7 +32,7 @@
 
     {{-- AVATAR --}}
     <div class="glass rounded-2xl p-6" x-data="{ removePhoto: false }">
-        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-image text-violet-400 mr-2"></i>Avatar</h2>
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-image text-blue-400 mr-2"></i>Avatar</h2>
         @include('user.partials.dropzone-input', [
             'name'        => 'photo',
             'policy'      => \App\Services\UploadPolicy::for('vcf.photo', auth()->user()),
@@ -54,7 +54,7 @@
 
     {{-- NAME --}}
     <div class="glass rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-user text-violet-400 mr-2"></i>Name</h2>
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-user text-blue-400 mr-2"></i>Name</h2>
         <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div>
                 <label class="block text-xs font-medium text-white/60 mb-1">Prefix</label>
@@ -86,7 +86,7 @@
 
     {{-- ORG --}}
     <div class="glass rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-building text-violet-400 mr-2"></i>Work</h2>
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-building text-blue-400 mr-2"></i>Work</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
                 <label class="block text-xs font-medium text-white/60 mb-1">Organization</label>
@@ -110,7 +110,7 @@
     {{-- EMAILS --}}
     <div class="glass rounded-2xl p-6">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white"><i class="fas fa-envelope text-violet-400 mr-2"></i>Emails</h2>
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-envelope text-blue-400 mr-2"></i>Emails</h2>
             <button type="button" @click="addEmail()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
         </div>
         <template x-for="(e, i) in emails" :key="'em-'+i">
@@ -127,7 +127,7 @@
     {{-- PHONES --}}
     <div class="glass rounded-2xl p-6">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white"><i class="fas fa-phone text-violet-400 mr-2"></i>Phones</h2>
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-phone text-blue-400 mr-2"></i>Phones</h2>
             <button type="button" @click="addPhone()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
         </div>
         <template x-for="(p, i) in phones" :key="'ph-'+i">
@@ -144,7 +144,7 @@
     {{-- URLs --}}
     <div class="glass rounded-2xl p-6">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white"><i class="fas fa-globe text-violet-400 mr-2"></i>Websites</h2>
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-globe text-blue-400 mr-2"></i>Websites</h2>
             <button type="button" @click="addUrl()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
         </div>
         <template x-for="(u, i) in urls" :key="'u-'+i">
@@ -161,7 +161,7 @@
     {{-- SOCIAL --}}
     <div class="glass rounded-2xl p-6">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white"><i class="fas fa-hashtag text-violet-400 mr-2"></i>Social Profiles</h2>
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-hashtag text-blue-400 mr-2"></i>Social Profiles</h2>
             <button type="button" @click="addSocial()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
         </div>
         <template x-for="(s, i) in socials" :key="'s-'+i">
@@ -179,7 +179,7 @@
     {{-- ADDRESSES --}}
     <div class="glass rounded-2xl p-6">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white"><i class="fas fa-map-marker-alt text-violet-400 mr-2"></i>Addresses</h2>
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-map-marker-alt text-blue-400 mr-2"></i>Addresses</h2>
             <button type="button" @click="addAddress()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
         </div>
         <template x-for="(a, i) in addrs" :key="'a-'+i">
@@ -204,7 +204,7 @@
 
     {{-- DATES + NOTES --}}
     <div class="glass rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-calendar text-violet-400 mr-2"></i>Dates &amp; Notes</h2>
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-calendar text-blue-400 mr-2"></i>Dates &amp; Notes</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
                 <label class="block text-xs font-medium text-white/60 mb-1">Birthday</label>
@@ -223,7 +223,7 @@
 
     {{-- LINK SETTINGS --}}
     <div class="glass rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-link text-violet-400 mr-2"></i>Link Settings</h2>
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-link text-blue-400 mr-2"></i>Link Settings</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
                 <label class="block text-xs font-medium text-white/60 mb-1">Custom Alias</label>

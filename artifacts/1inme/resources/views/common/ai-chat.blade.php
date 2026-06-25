@@ -2,7 +2,7 @@
     /** @var \App\Modules\User\Models\Link $link */
     $companion = $link->aiCompanion();
     $config    = $companion ? $companion->effectiveConfig() : [];
-    $accent    = $config['accent'] ?? '#7c3aed';
+    $accent    = $config['accent'] ?? '#3d6bff';
     $theme     = $config['theme'] ?? 'auto';
     $greeting  = $config['greeting'] ?? ($companion?->persona?->greeting);
     $starters  = array_values(array_filter((array) ($config['starters'] ?? [])));

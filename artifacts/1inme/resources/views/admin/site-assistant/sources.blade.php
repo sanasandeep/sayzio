@@ -75,7 +75,7 @@
                 </div>
             </div>
             <div>
-                <button class="px-4 py-2 rounded-xl bg-purple-500/30 hover:bg-purple-500/40 text-white text-sm">Add &amp; ingest</button>
+                <button class="px-4 py-2 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/40 text-white text-sm">Add &amp; ingest</button>
             </div>
         </form>
     </div>
@@ -95,7 +95,7 @@
             </thead>
             <tbody>
                 @forelse($sources as $s)
-                    <tr id="source-{{ $s->id }}" class="border-t border-white/5 align-top target:bg-purple-500/10">
+                    <tr id="source-{{ $s->id }}" class="border-t border-white/5 align-top target:bg-indigo-500/10">
                         <td class="p-3 text-white">
                             <div class="font-medium">{{ $s->title }}</div>
                             @if($s->type === 'link' && $s->url)
@@ -107,7 +107,7 @@
                         <td class="p-3 text-white/70">{{ $s->type === 'link' ? 'URL' : ($s->type === 'document' ? 'Document' : 'Text') }}</td>
                         <td class="p-3 text-white/70">
                             @if($s->page_pattern)
-                                <code class="text-purple-200">{{ $s->page_pattern }}</code>
+                                <code class="text-indigo-200">{{ $s->page_pattern }}</code>
                                 @if($s->assistant_surface)<div class="text-[10px] text-white/40 uppercase">{{ $s->assistant_surface }}</div>@endif
                             @else
                                 <span class="text-white/40">all pages</span>
@@ -124,7 +124,7 @@
                         <td class="p-3 text-right text-white/70">
                             @php $usedN = (int) ($usageThisMonth[$s->id] ?? 0); @endphp
                             @if($usedN > 0)
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-purple-500/15 text-purple-200" title="Used {{ $usedN }} time{{ $usedN === 1 ? '' : 's' }} this month">{{ $usedN }}</span>
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-indigo-500/15 text-indigo-200" title="Used {{ $usedN }} time{{ $usedN === 1 ? '' : 's' }} this month">{{ $usedN }}</span>
                             @else
                                 <span class="text-white/30 text-xs" title="Not cited yet this month">—</span>
                             @endif

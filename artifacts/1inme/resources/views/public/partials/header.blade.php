@@ -65,7 +65,7 @@
                         @mouseenter="openMenu='product'"
                         :aria-expanded="openMenu === 'product'"
                         class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors"
-                        :class="openMenu === 'product' ? 'text-violet-400' : 'text-gray-300 hover:text-violet-400'">
+                        :class="openMenu === 'product' ? 'text-blue-400' : 'text-gray-300 hover:text-blue-400'">
                     Product <i class="fas fa-chevron-down text-[10px] opacity-70 transition-transform" :class="openMenu === 'product' ? 'rotate-180' : ''"></i>
                 </button>
 
@@ -75,15 +75,15 @@
                         @mouseenter="openMenu='solutions'"
                         :aria-expanded="openMenu === 'solutions'"
                         class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors"
-                        :class="openMenu === 'solutions' ? 'text-violet-400' : 'text-gray-300 hover:text-violet-400'">
+                        :class="openMenu === 'solutions' ? 'text-blue-400' : 'text-gray-300 hover:text-blue-400'">
                     Solutions <i class="fas fa-chevron-down text-[10px] opacity-70 transition-transform" :class="openMenu === 'solutions' ? 'rotate-180' : ''"></i>
                 </button>
 
-                <a href="{{ route('site.features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Features</a>
-                <a href="{{ $pricingHref }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Pricing</a>
-                <a href="{{ route('site.premium-features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Premium</a>
-                <a href="{{ route('site.about') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">About</a>
-                <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Contact</a>
+                <a href="{{ route('site.features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Features</a>
+                <a href="{{ $pricingHref }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Pricing</a>
+                <a href="{{ route('site.premium-features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Premium</a>
+                <a href="{{ route('site.about') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">About</a>
+                <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Contact</a>
 
                 {{-- ============ Product mega panel ============ --}}
                 {{-- Outer wrapper has no visible chrome and a top padding "bridge" so
@@ -97,7 +97,7 @@
                      x-transition:enter-end="opacity-100 translate-y-0"
                      class="absolute left-0 right-0 mx-auto top-full w-[min(56rem,calc(100vw-2rem))] pt-3 z-[60]">
                     <div class="rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 overflow-hidden">
-                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500"></span>
+                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-blue-500 via-fuchsia-500 to-blue-500"></span>
                         <div class="grid grid-cols-[1.9fr_1fr_minmax(12rem,0.95fr)] gap-5 p-5">
                             {{-- Core product (two-up) --}}
                             <div>
@@ -105,7 +105,7 @@
                                 <div class="grid grid-cols-2 gap-1">
                                     @foreach($navProductCore as [$__href, $__icon, $__title, $__desc])
                                         <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300 transition-transform group-hover:scale-110">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
@@ -122,7 +122,7 @@
                                 <div class="space-y-0.5">
                                     @foreach($navProductAi as [$__href, $__icon, $__title, $__desc])
                                         <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300 transition-transform group-hover:scale-110">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
@@ -136,7 +136,7 @@
                                 <div class="space-y-0.5">
                                     @foreach($navProductCareer as [$__href, $__icon, $__title, $__desc])
                                         <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300 transition-transform group-hover:scale-110">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
@@ -148,14 +148,14 @@
                                 </div>
                             </div>
                             {{-- Featured --}}
-                            <div class="relative overflow-hidden rounded-xl border border-violet-400/30 bg-white/5 bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
-                                <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/25 blur-2xl"></span>
-                                <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-violet-300">
+                            <div class="relative overflow-hidden rounded-xl border border-blue-400/30 bg-white/5 bg-gradient-to-br from-blue-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
+                                <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-blue-500/25 blur-2xl"></span>
+                                <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-300">
                                     <i class="fas fa-sparkles"></i> What you can create
                                 </span>
                                 <span class="relative mt-2 block text-base font-bold leading-tight text-white">Everything in one link</span>
                                 <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Links, Link in Bio pages, QR codes, résumés and AI pages — all fully branded.</span>
-                                <a href="{{ route('site.features') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#7c3aed] px-4 py-2 text-xs font-bold text-white hover:bg-[#6d28d9] transition-colors">
+                                <a href="{{ route('site.features') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#3d6bff] px-4 py-2 text-xs font-bold text-white hover:bg-[#2342c7] transition-colors">
                                     Explore features <i class="fas fa-arrow-right text-[10px]"></i>
                                 </a>
                             </div>
@@ -214,7 +214,7 @@
                                 </span>
                                 <span class="relative mt-2 block text-base font-bold leading-tight text-white">One link for every goal</span>
                                 <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Built for creators, brands, agencies, coaches and local business.</span>
-                                <a href="{{ route('site.services') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#7c3aed] px-4 py-2 text-xs font-bold text-white hover:bg-[#6d28d9] transition-colors">
+                                <a href="{{ route('site.services') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#3d6bff] px-4 py-2 text-xs font-bold text-white hover:bg-[#2342c7] transition-colors">
                                     See use cases <i class="fas fa-arrow-right text-[10px]"></i>
                                 </a>
                             </div>
@@ -235,14 +235,14 @@
                     <i :class="light ? 'fas fa-sun' : 'fas fa-moon'" class="text-sm"></i>
                 </button>
                 @auth
-                    <a href="{{ route('user.dashboard') }}" class="px-6 py-2.5 bg-[#7c3aed] text-white rounded-full text-sm font-bold hover:bg-[#6d28d9]">Dashboard</a>
+                    <a href="{{ route('user.dashboard') }}" class="px-6 py-2.5 bg-[#3d6bff] text-white rounded-full text-sm font-bold hover:bg-[#2342c7]">Dashboard</a>
                 @else
                     @if($useModal)
                         <button type="button" @click="authTab='login'; authOpen=true" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white">Login</button>
-                        <button type="button" @click="authTab='register'; authOpen=true" class="px-6 py-2.5 bg-[#7c3aed] text-white rounded-full text-sm font-bold hover:bg-[#6d28d9]">Register</button>
+                        <button type="button" @click="authTab='register'; authOpen=true" class="px-6 py-2.5 bg-[#3d6bff] text-white rounded-full text-sm font-bold hover:bg-[#2342c7]">Register</button>
                     @else
                         <a href="{{ route('login.page') }}" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white">Login</a>
-                        <a href="{{ route('register.page') }}" class="px-6 py-2.5 bg-[#7c3aed] text-white rounded-full text-sm font-bold hover:bg-[#6d28d9]">Register</a>
+                        <a href="{{ route('register.page') }}" class="px-6 py-2.5 bg-[#3d6bff] text-white rounded-full text-sm font-bold hover:bg-[#2342c7]">Register</a>
                     @endif
                 @endauth
             </div>
@@ -274,14 +274,14 @@
                         @click="mobileGroup === 'm-product' ? mobileGroup=null : mobileGroup='m-product'"
                         :aria-expanded="mobileGroup === 'm-product'"
                         class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
-                        :class="mobileGroup === 'm-product' ? 'text-violet-400' : 'text-white'">
+                        :class="mobileGroup === 'm-product' ? 'text-blue-400' : 'text-white'">
                     <span>Product</span>
                     <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-product' ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="mobileGroup === 'm-product'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
                     @foreach(array_merge($navProductCore, $navProductAi, $navProductCareer) as [$__href, $__icon, $__title, $__desc])
                         <a href="{{ $__href }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
-                            <i class="fas {{ $__icon }} w-4 text-center text-violet-300 text-sm"></i>
+                            <i class="fas {{ $__icon }} w-4 text-center text-blue-300 text-sm"></i>
                             <span class="text-sm text-gray-300">{{ $__title }}</span>
                         </a>
                     @endforeach
@@ -294,7 +294,7 @@
                         @click="mobileGroup === 'm-solutions' ? mobileGroup=null : mobileGroup='m-solutions'"
                         :aria-expanded="mobileGroup === 'm-solutions'"
                         class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
-                        :class="mobileGroup === 'm-solutions' ? 'text-violet-400' : 'text-white'">
+                        :class="mobileGroup === 'm-solutions' ? 'text-blue-400' : 'text-white'">
                     <span>Solutions</span>
                     <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-solutions' ? 'rotate-180' : ''"></i>
                 </button>
@@ -321,29 +321,29 @@
                         @click="mobileGroup === 'm-company' ? mobileGroup=null : mobileGroup='m-company'"
                         :aria-expanded="mobileGroup === 'm-company'"
                         class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
-                        :class="mobileGroup === 'm-company' ? 'text-violet-400' : 'text-white'">
+                        :class="mobileGroup === 'm-company' ? 'text-blue-400' : 'text-white'">
                     <span>Company</span>
                     <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-company' ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="mobileGroup === 'm-company'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
-                    <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-tag w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">Pricing</span></a>
-                    <a href="{{ route('site.premium-features') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-crown w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">Premium features</span></a>
-                    <a href="{{ route('site.about') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-info w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">About</span></a>
-                    <a href="{{ route('site.contact') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-envelope w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">Contact</span></a>
-                    <a href="{{ route('site.faqs') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-question w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">FAQs</span></a>
+                    <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-tag w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Pricing</span></a>
+                    <a href="{{ route('site.premium-features') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-crown w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Premium features</span></a>
+                    <a href="{{ route('site.about') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-info w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">About</span></a>
+                    <a href="{{ route('site.contact') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-envelope w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Contact</span></a>
+                    <a href="{{ route('site.faqs') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-question w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">FAQs</span></a>
                 </div>
             </div>
 
             <div class="pt-3 border-t border-white/10 space-y-2">
                 @auth
-                    <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 bg-[#7c3aed] text-white rounded-lg text-sm font-bold text-center">Dashboard</a>
+                    <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 bg-[#3d6bff] text-white rounded-lg text-sm font-bold text-center">Dashboard</a>
                 @else
                     @if($useModal)
                         <button type="button" @click="authTab='login'; authOpen=true; mobileOpen=false" class="w-full text-left px-4 py-2 text-sm text-gray-300">Login</button>
-                        <button type="button" @click="authTab='register'; authOpen=true; mobileOpen=false" class="block w-full px-4 py-2.5 bg-[#7c3aed] text-white rounded-lg text-sm font-bold text-center">Register</button>
+                        <button type="button" @click="authTab='register'; authOpen=true; mobileOpen=false" class="block w-full px-4 py-2.5 bg-[#3d6bff] text-white rounded-lg text-sm font-bold text-center">Register</button>
                     @else
                         <a href="{{ route('login.page') }}" class="block px-4 py-2 text-sm text-gray-300">Login</a>
-                        <a href="{{ route('register.page') }}" class="block px-4 py-2.5 bg-[#7c3aed] text-white rounded-lg text-sm font-bold text-center">Register</a>
+                        <a href="{{ route('register.page') }}" class="block px-4 py-2.5 bg-[#3d6bff] text-white rounded-lg text-sm font-bold text-center">Register</a>
                     @endif
                 @endauth
             </div>

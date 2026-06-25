@@ -52,7 +52,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <a href="{{ route('user.ai-companions.index') }}" class="px-4 py-2 rounded-xl bg-white/5 text-white text-sm">Cancel</a>
-                <button class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm">Create Companion</button>
+                <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Create Companion</button>
             </div>
         </form>
     @endif
