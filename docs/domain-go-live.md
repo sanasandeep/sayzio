@@ -1,68 +1,112 @@
-# Domain go-live checklist — `1in.me` as the primary domain
+# Domain go-live checklist — `sayzio.app` as the primary domain
 
-`1in.me` is the single primary domain for the 1INME product. The Laravel app,
-mobile app, and browser extension all default to it. Every production-only value
-below is **config, not code** — the code already targets `1in.me` (directly or as
-the fallback), so going live is a matter of setting these on the live build/server.
+`sayzio.app` is the **primary** platform domain for the 1INME product, and
+`1in.me` remains a fully-working, selectable global domain (existing `1in.me`
+links keep resolving forever). Both appear in the in-app domain picker. The
+Laravel app and mobile app treat **both** as platform hosts; the canonical
+short-link prefix / base URL resolves to `sayzio.app` in production.
+
+Almost everything below is **config, not code** — the code already treats both
+brand domains as platform hosts and prefers `sayzio.app` as canonical whenever
+it is one of the live serving hosts. Going live is mostly a matter of pointing
+DNS at the deployment and setting the production env values.
 
 > The `1inme.com` **marketing site** (`artifacts/1inme-com`) is intentionally
 > untouched and is not part of this checklist.
 
-## 1. Laravel app (`artifacts/1inme`)
+## 0. DNS — point both brand domains at the deployment
 
-Set in the live server `.env` (the dev `.env` deliberately stays on
-`http://localhost:5000`):
+On your DNS provider, create records so both apex domains (and their `www.`
+hosts) resolve to the Replit deployment:
 
-- `APP_URL=https://1in.me`
-  - Drives all generated links, short URLs, QR-code targets, email links, and
-    OAuth/callback URLs. Everything that calls `url()` / `route()` / `config('app.url')`
-    follows it — including the global-domain `cname_target` fallback in the seeders.
+- `sayzio.app` — apex `A`/`ALIAS`/`ANAME` (or `CNAME` if your provider supports
+  CNAME-flattening at the apex) pointing at the deployment target Replit shows
+  in **Deployments → Settings → Custom domain**. Add the verification `TXT`
+  record Replit displays.
+- `www.sayzio.app` — `CNAME` to `sayzio.app` (or to the deployment target).
+- `1in.me` / `www.1in.me` — keep the existing records pointing at the same
+  deployment so legacy links keep resolving.
+
+After DNS propagates, finish verification in the Replit deployment UI for each
+custom domain. TLS certificates are issued automatically by the platform.
+
+## 1. Replit deployment — register the custom domains
+
+In **Deployments → Settings → Custom domains**, add (in this order of priority):
+
+1. `sayzio.app` (primary)
+2. `www.sayzio.app`
+3. `1in.me` (legacy, keep)
+4. `www.1in.me` (legacy, keep)
+
+Replit injects the verified domains into `REPLIT_DOMAINS` (comma-separated). The
+app's `PlatformHosts::primary()` automatically prefers the brand primary
+(`sayzio.app`) whenever it appears among the serving hosts, so the canonical
+base URL becomes `https://sayzio.app` once the custom domain is live — no code
+change required.
+
+## 2. Laravel app (`artifacts/1inme`)
+
+Set in the live server / deployment `.env` (the dev `.env` deliberately stays on
+`http://localhost:5000` so the Replit preview iframe keeps working):
+
+- `APP_URL=https://sayzio.app`
+  - Drives generated links, short URLs, QR-code targets, email links, and
+    OAuth/callback URLs. Everything that calls `url()` / `route()` /
+    `config('app.url')` follows it — including the global-domain `cname_target`
+    fallback in the seeders.
+  - `1in.me` links still resolve regardless of `APP_URL`: both brand domains are
+    treated as platform hosts in `PlatformHosts`, and alias resolution matches
+    the shared platform namespace (links with no domain, plus links bound to any
+    admin-global domain).
 - `APP_ENV=production`
 - `APP_DEBUG=false`
 - `SESSION_DOMAIN` — leave `null` unless you need cookies shared across
-  subdomains; if so set `.1in.me`.
-- `SANCTUM_STATEFUL_DOMAINS` — only needed if cookie-based SPA auth is used from a
-  browser origin; set to `1in.me,www.1in.me`. (The bearer-token REST API does not
-  require this.)
+  subdomains; if so set `.sayzio.app`.
+- `SANCTUM_STATEFUL_DOMAINS` — only needed if cookie-based SPA auth is used from
+  a browser origin; set to `sayzio.app,www.sayzio.app,1in.me,www.1in.me`. (The
+  bearer-token REST API does not require this.)
 - DB credentials: `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` /
   `DB_PASSWORD` for the production database.
 - Mail/SMTP: `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` /
-  `MAIL_ENCRYPTION` and `MAIL_FROM_ADDRESS` (sending identity left as-is — change
-  only if the user later asks).
+  `MAIL_ENCRYPTION` and `MAIL_FROM_ADDRESS`.
 
-Run migrations on deploy (`php artisan migrate --force`). This includes the new
-migration that marks `1in.me` as the primary global domain on databases that were
-seeded before the change. `sayzio.app` (and any admin-added domains) remain
-available as selectable non-primary global domains.
+Run migrations on deploy (`php artisan migrate --force`). This includes the
+migration that promotes `sayzio.app` to the **primary** global domain and marks
+both `sayzio.app` and `1in.me` as verified+active so they appear in the in-app
+domain picker. `1in.me` (and any admin-added domains) remain selectable
+non-primary global domains.
 
-## 2. Mobile app (`artifacts/1inme-mobile`)
+## 3. Mobile app (`artifacts/1inme-mobile`)
 
-The API base resolver falls back to `1in.me` when no env override is set, and the
-app-link hosts (iOS `associatedDomains`, Android `intentFilters`), the deep-link
-host allowlist, and the expo-router `origin` all point to `1in.me`. For a
-production build, set the EAS / build-time env:
+App-link hosts already cover both brand domains in `app.json`:
 
-- `EXPO_PUBLIC_API_BASE_URL=https://1in.me/api/v1`
-  **or** `EXPO_PUBLIC_DOMAIN=1in.me`
-  (Either one overrides the fallback. Leave both unset and the app still defaults
-  to `https://1in.me`.)
+- iOS `ios.associatedDomains`: `applinks:sayzio.app`, `applinks:www.sayzio.app`,
+  `applinks:1in.me`, `applinks:www.1in.me`.
+- Android `android.intentFilters`: `https` hosts `sayzio.app`, `www.sayzio.app`,
+  `1in.me`, `www.1in.me`.
 
-Universal-link / app-link verification on the live server:
+For a production build, set the EAS / build-time env to point the API at the
+primary domain:
 
-- iOS: host `https://1in.me/.well-known/apple-app-site-association` (and
-  `www.1in.me`) for `applinks` against bundle id `com.oneinme.app`.
-- Android: host `https://1in.me/.well-known/assetlinks.json` (and `www.1in.me`)
-  for package `com.oneinme.app`.
+- `EXPO_PUBLIC_API_BASE_URL=https://sayzio.app/api/v1`
+  **or** `EXPO_PUBLIC_DOMAIN=sayzio.app`
 
-## 3. Browser extension (`artifacts/1inme-extension`)
+> Note: the in-app fallback host (`lib/api.ts` `FALLBACK_HOST`) is intentionally
+> left as `1in.me` for now, since it is the guaranteed-live host during the
+> transition. Once `sayzio.app` is fully live and verified, either flip
+> `FALLBACK_HOST` to `sayzio.app` or (preferred) always set
+> `EXPO_PUBLIC_DOMAIN`/`EXPO_PUBLIC_API_BASE_URL` in the production build so the
+> fallback is never used.
 
-Defaults already point to `1in.me`:
+Universal-link / app-link verification on the live server (the
+`/.well-known/...` files are served host-agnostically, so they work for every
+host that resolves to the app):
 
-- Default API base: `https://1in.me/api/v1`
-- Default web base: `https://1in.me`
-- Popup "reset to default" restores the same two values.
-- Login handshake content script matches `https://1in.me/extension/handshake*`
-  in both the Chrome and Firefox manifests.
-
-Build and package as usual; no per-build env is required. (Users can still
-override the API/web base in the popup settings for local testing.)
+- iOS: `https://sayzio.app/.well-known/apple-app-site-association` (and
+  `www.sayzio.app`, `1in.me`, `www.1in.me`) for `applinks` against bundle id
+  `com.oneinme.app`.
+- Android: `https://sayzio.app/.well-known/assetlinks.json` (and the other three
+  hosts) for package `com.oneinme.app`. Android App Links require the
+  `ANDROID_SHA256_FINGERPRINTS` env to be set on the server to your release
+  signing certificate fingerprint(s).

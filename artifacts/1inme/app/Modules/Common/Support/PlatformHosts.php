@@ -6,6 +6,16 @@ use App\Modules\User\Models\Domain;
 
 class PlatformHosts
 {
+    /**
+     * Canonical brand platform domains, always recognised as "the platform"
+     * regardless of what APP_URL / Replit env happen to advertise. These are
+     * the public hosts the product is reachable on. `sayzio.app` is the
+     * current primary; `1in.me` is kept as a fully-working selectable domain.
+     *
+     * @var array<int,string>
+     */
+    public const PLATFORM_DOMAINS = ['sayzio.app', '1in.me'];
+
     /** @var array<string,string>|null cached parent-process env */
     private static ?array $parentEnvCache = null;
 
@@ -106,6 +116,34 @@ class PlatformHosts
     }
 
     /**
+     * The canonical brand platform domains (PLATFORM_DOMAINS), normalised.
+     *
+     * @return array<int,string>
+     */
+    public static function brandDomains(): array
+    {
+        $out = [];
+        foreach (self::PLATFORM_DOMAINS as $d) {
+            $n = self::normalize($d);
+            if ($n) $out[] = $n;
+        }
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * Every host that should be treated as "the platform": the canonical
+     * brand domains (sayzio.app, 1in.me) plus whatever APP_URL / Replit env
+     * advertise via configured(). Brand domains come first so the platform's
+     * primary host is preferred by any "first match" caller.
+     *
+     * @return array<int,string>
+     */
+    public static function platformDomains(): array
+    {
+        return array_values(array_unique(array_merge(self::brandDomains(), self::configured())));
+    }
+
+    /**
      * The normalised current request host, only when it is one of the
      * configured platform hosts. Returns null on CLI, when no request
      * is bound, or when the request is on a custom/unknown host.
@@ -139,6 +177,19 @@ class PlatformHosts
      */
     public static function primary(): string
     {
+        // Prefer a canonical brand domain (sayzio.app, then 1in.me) whenever it
+        // is actually one of the hosts serving this deployment — i.e. the
+        // deployment's custom domain is the brand domain. This makes the
+        // canonical short-link prefix the brand primary in production, while
+        // dev/preview (where no brand domain is served) keeps using the Replit
+        // dev host so the preview iframe and "copy link" stay on-host.
+        $serving = self::configured();
+        foreach (self::brandDomains() as $brand) {
+            if (in_array($brand, $serving, true)) {
+                return $brand;
+            }
+        }
+
         $deployed = self::readEnv('REPLIT_DOMAINS', '');
         if ($deployed !== '') {
             foreach (explode(',', $deployed) as $d) {
@@ -175,7 +226,7 @@ class PlatformHosts
     public static function others(?string $primary): array
     {
         $primary = self::normalize($primary);
-        return array_values(array_filter(self::configured(), fn ($h) => $h !== $primary));
+        return array_values(array_filter(self::platformDomains(), fn ($h) => $h !== $primary));
     }
 
     /**
@@ -200,7 +251,10 @@ class PlatformHosts
     {
         $normalized = self::normalize($host);
         if ($normalized === null) return true;
-        if (in_array($normalized, self::configured(), true)) return true;
+        // Canonical brand domains + env-configured hosts are always platform,
+        // even when a `domains` row also exists for them (the platform's own
+        // global domains are stored there too, but resolve as platform).
+        if (in_array($normalized, self::platformDomains(), true)) return true;
         return !Domain::where('domain', $normalized)
             ->where('is_active', true)
             ->where('is_verified', true)
@@ -217,6 +271,10 @@ class PlatformHosts
     {
         $normalized = self::normalize($host);
         if ($normalized === null) return false;
+        // A canonical platform host is never a "pending custom domain", even
+        // if its global `domains` row is briefly unverified during rollout —
+        // it must keep resolving as platform, not show "Domain not connected".
+        if (in_array($normalized, self::platformDomains(), true)) return false;
         return Domain::where('domain', $normalized)
             ->where(function ($q) {
                 $q->where('is_active', false)->orWhere('is_verified', false);

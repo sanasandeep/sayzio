@@ -211,8 +211,13 @@ protected $fillable = [
     public static function resolveByAlias(string $alias, ?string $host = null): ?self
     {
         // Host-aware resolution. Three cases:
-        //   1. Platform host (APP_URL, Replit dev domain, deployed Replit
-        //      URL, localhost) → fall back to links with domain_id IS NULL.
+        //   1. Platform host (any canonical brand domain — sayzio.app / 1in.me
+        //      — plus APP_URL, the Replit dev domain, deployed Replit URLs and
+        //      localhost) → resolve the shared platform namespace: links with
+        //      domain_id IS NULL *or* bound to any admin-global domain. This is
+        //      what lets a link created on sayzio.app also resolve on 1in.me
+        //      (and on the dev preview host) while pre-existing NULL-domain
+        //      links keep working everywhere.
         //   2. Verified+active row in the `domains` table → scope alias
         //      lookup to that domain_id so the same alias can live
         //      independently on different custom domains.
@@ -220,37 +225,53 @@ protected $fillable = [
         //      attempt but isn't registered/verified) → return null so
         //      the caller can serve "Domain not connected".
         $domainId = null;
+        $isPlatformHost = false;
         $normalizedHost = \App\Modules\Common\Support\PlatformHosts::normalize($host);
         if ($normalizedHost !== null) {
-            $domain = Domain::where('domain', $normalizedHost)->first();
-            if ($domain) {
-                if (!$domain->is_active || !$domain->is_verified) {
-                    // Host is registered as a custom domain but the user
-                    // hasn't completed verification/activation yet — the
-                    // caller should serve "Domain not connected" instead
-                    // of leaking the platform's no-domain links.
-                    return null;
+            if (in_array($normalizedHost, \App\Modules\Common\Support\PlatformHosts::platformDomains(), true)) {
+                // Canonical platform host (incl. the platform's own global
+                // domains, which also have a `domains` row). Resolve against
+                // the shared platform namespace, never a single domain_id.
+                $isPlatformHost = true;
+            } else {
+                $domain = Domain::where('domain', $normalizedHost)->first();
+                if ($domain) {
+                    if (!$domain->is_active || !$domain->is_verified) {
+                        // Host is registered as a custom domain but the user
+                        // hasn't completed verification/activation yet — the
+                        // caller should serve "Domain not connected" instead
+                        // of leaking the platform's no-domain links.
+                        return null;
+                    }
+                    $domainId = $domain->id;
                 }
-                $domainId = $domain->id;
+                // No row at all → fall through and treat as platform-NULL:
+                // match links with domain_id IS NULL just like before.
             }
-            // No row at all → fall through and treat as platform: match
-            // links with domain_id IS NULL just like APP_URL host does.
         }
+
+        $scope = function ($q) use ($domainId, $isPlatformHost) {
+            if ($isPlatformHost) {
+                $q->whereNull('domain_id');
+                $platformIds = Domain::platformDomainIds();
+                if (!empty($platformIds)) {
+                    $q->orWhereIn('domain_id', $platformIds);
+                }
+                return;
+            }
+            $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
+        };
 
         $query = static::where('alias', $alias);
         if ($host !== null) {
-            $query->where(function ($q) use ($domainId) {
-                $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
-            });
+            $query->where($scope);
         }
         $link = $query->first();
         if ($link) return $link;
 
         $extraQ = LinkAlias::where('alias', $alias);
         if ($host !== null) {
-            $extraQ->whereHas('link', function ($q) use ($domainId) {
-                $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
-            });
+            $extraQ->whereHas('link', $scope);
         }
         $extra = $extraQ->first();
         return $extra ? static::find($extra->link_id) : null;

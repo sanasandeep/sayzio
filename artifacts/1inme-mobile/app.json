@@ -17,6 +17,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.oneinme.app",
       "associatedDomains": [
+        "applinks:sayzio.app",
+        "applinks:www.sayzio.app",
         "applinks:1in.me",
         "applinks:www.1in.me"
       ],
@@ -46,6 +48,14 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
+            {
+              "scheme": "https",
+              "host": "sayzio.app"
+            },
+            {
+              "scheme": "https",
+              "host": "www.sayzio.app"
+            },
             {
               "scheme": "https",
               "host": "1in.me"

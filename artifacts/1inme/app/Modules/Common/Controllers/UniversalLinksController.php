@@ -13,6 +13,13 @@ use Illuminate\Http\Response;
  * automatically. The bundle/app IDs are read from config/services.php
  * so they can be overridden per environment via env vars without code
  * changes.
+ *
+ * These files are host-agnostic: they are served verbatim for whatever
+ * host requests `/.well-known/...`, so every platform brand domain
+ * (the primary sayzio.app and the legacy 1in.me, plus their www. hosts)
+ * is claimed automatically once that host is listed in the mobile app's
+ * `app.json` (ios.associatedDomains / android.intentFilters). No per-host
+ * code change is needed when adding a brand domain.
  */
 class UniversalLinksController extends Controller
 {

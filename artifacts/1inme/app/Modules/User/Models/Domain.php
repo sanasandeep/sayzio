@@ -17,6 +17,9 @@ class Domain extends Model
     /** Cache key for the marketing showcase list of global domains. */
     public const SHOWCASE_CACHE_KEY = 'marketing.global_domains.showcase';
 
+    /** Cache key for the set of admin-global (platform) domain ids. */
+    public const PLATFORM_IDS_CACHE_KEY = 'domains.platform_ids';
+
     /** Static branded fallback shown when no global domains are configured. */
     public const SHOWCASE_FALLBACK = ['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app'];
 
@@ -44,8 +47,31 @@ protected $fillable = [
     {
         try {
             Cache::forget(self::SHOWCASE_CACHE_KEY);
+            Cache::forget(self::PLATFORM_IDS_CACHE_KEY);
         } catch (\Throwable $e) {
             // Cache flushing must never break the write path.
+        }
+    }
+
+    /**
+     * Ids of every admin-global (platform-owned) domain — i.e. rows with no
+     * owning user, such as sayzio.app and 1in.me. Used by alias resolution so
+     * that a request on any platform host resolves links bound to *any* of
+     * the platform's global domains (plus the legacy domain_id IS NULL links),
+     * without leaking user-owned custom-domain links across hosts.
+     *
+     * Cached briefly and flushed on any domain write; falls back to a direct
+     * query so resolution never breaks if the cache store is unavailable.
+     *
+     * @return array<int,int>
+     */
+    public static function platformDomainIds(): array
+    {
+        $query = fn () => static::query()->whereNull('user_id')->pluck('id')->all();
+        try {
+            return Cache::remember(self::PLATFORM_IDS_CACHE_KEY, 600, $query);
+        } catch (\Throwable $e) {
+            return $query();
         }
     }
 
