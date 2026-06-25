@@ -194,6 +194,27 @@
                 <span style="color: var(--text-primary);">Total</span>
                 <span class="font-mono" style="color: var(--text-primary);">{{ $__fmtCents($submission->amount_cents ?? 0) }}</span>
             </div>
+
+            @if($submission->isPaid() || $submission->isRefunded())
+                @php $__amt = $__fmtCents($submission->amount_cents ?? 0); @endphp
+                <div class="flex items-center justify-between gap-3 flex-wrap mt-4 pt-4 border-t" style="border-color: var(--border-subtle);">
+                    <div class="text-xs" style="color: var(--text-faint);">
+                        @if($submission->isPaid())
+                            Charged{{ $submission->paid_at ? ' on ' . $submission->paid_at->format('M d, Y H:i') : '' }}
+                        @else
+                            Refunded{{ $submission->refunded_at ? ' on ' . $submission->refunded_at->format('M d, Y H:i') : '' }}
+                        @endif
+                    </div>
+                    @if($submission->isPaid() && $__can('inbox.delete'))
+                        <form method="POST" action="{{ route('user.forms.submissions.refund', [$form, $submission]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Refund this payment?', message: 'This refunds {{ $__amt }} to the customer. This cannot be undone.', confirmText: 'Refund', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5" style="background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.25); color: #fbbf24;">
+                                <i class="fas fa-rotate-left"></i> Refund payment
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            @endif
         </div>
     @endif
 

@@ -515,8 +515,51 @@ class MonetizationCheckout
             CreatorPaymentEvent::SOURCE_PPV     => $this->refundPpv($referenceId),
             CreatorPaymentEvent::SOURCE_SUB     => $this->refundSubscription($referenceId),
             CreatorPaymentEvent::SOURCE_PRODUCT => $this->refundProductOrder($referenceId),
+            CreatorPaymentEvent::SOURCE_FORM    => $this->refundFormSubmission($referenceId),
             default => false,
         };
+    }
+
+    /**
+     * Refund a paid form submission (Task #2322). Reverses the gateway
+     * charge (best-effort; works in preview mode), flips the submission's
+     * payment_status to `refunded`, and writes a negative TYPE_FORM_REFUNDED
+     * ledger row against the form owner. Idempotent: a second call on an
+     * already-refunded (or never-paid) submission is a no-op. Returns true
+     * on success.
+     */
+    public function refundFormSubmission(int $id): bool
+    {
+        $submission = \App\Modules\User\Models\FormSubmission::withoutGlobalScope('workspace')->find($id);
+        if (!$submission || !$submission->isRefundable()) {
+            return false;
+        }
+
+        try {
+            if ($submission->gateway && $submission->gateway_charge_id) {
+                PayoutProviderRegistry::adapter($submission->gateway)
+                    ->refundCharge($submission->gateway_charge_id, (int) $submission->amount_cents);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('refund.form.adapter_failed', ['submission' => $id, 'err' => $e->getMessage()]);
+        }
+
+        $submission->payment_status = 'refunded';
+        $submission->refunded_at    = now();
+        $submission->save();
+
+        $form    = \App\Modules\User\Models\Form::withoutGlobalScope('workspace')->find($submission->form_id);
+        $creator = $form?->user;
+
+        // Public form submitters are anonymous (no fan_user_id), so the
+        // ledger row records the owner-side refund only.
+        $this->logEvent(
+            $creator, null,
+            CreatorPaymentEvent::SOURCE_FORM, CreatorPaymentEvent::TYPE_FORM_REFUNDED,
+            $submission, -1 * (int) $submission->amount_cents, (string) ($submission->currency ?: 'USD'),
+        );
+
+        return true;
     }
 
     /**

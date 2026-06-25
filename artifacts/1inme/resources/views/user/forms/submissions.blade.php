@@ -115,7 +115,22 @@
                         <div class="text-[10px] text-right flex-shrink-0" style="color: var(--text-faint);">
                             {{ $s->created_at->diffForHumans() }}<br>
                             <span class="font-mono">{{ $s->ip ?? '' }}</span>
+                            @if($s->isPaid())
+                                <span class="inline-block mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold" style="background: rgba(16,185,129,0.15); color: #34d399;">
+                                    Paid {{ $s->amount_cents !== null ? strtoupper($s->currency ?? 'USD') . ' ' . number_format($s->amount_cents / 100, 2) : '' }}
+                                </span>
+                            @elseif($s->isRefunded())
+                                <span class="inline-block mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold" style="background: rgba(148,163,184,0.18); color: #94a3b8;">
+                                    Refunded
+                                </span>
+                            @endif
                         </div>
+                        @if($s->isRefundable() && $__can('inbox.delete'))
+                        <form method="POST" action="{{ route('user.forms.submissions.refund', [$form, $s]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Refund this payment?', message: 'This refunds {{ $s->amount_cents !== null ? strtoupper($s->currency ?? 'USD') . ' ' . number_format($s->amount_cents / 100, 2) : 'the charge' }} to the customer. This cannot be undone.', confirmText: 'Refund', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
+                            @csrf
+                            <button type="submit" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(245,158,11,0.12); color: #fbbf24;" title="Refund this payment"><i class="fas fa-rotate-left"></i></button>
+                        </form>
+                        @endif
                         @if($__can('inbox.delete'))
                         <form method="POST" action="{{ route('user.forms.submissions.destroy', [$form, $s]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this submission?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')

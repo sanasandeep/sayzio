@@ -571,6 +571,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/forms/{id}/payment',                 [FormController::class, 'updatePayment'])->whereNumber('id');
         Route::get('/forms/{id}/submissions',             [FormController::class, 'submissions'])->whereNumber('id');
         Route::get('/forms/{id}/submissions.csv',         [FormController::class, 'exportSubmissions'])->whereNumber('id');
+        Route::post('/forms/{id}/submissions/{submissionId}/refund', [FormController::class, 'refundSubmission'])->whereNumber('id')->whereNumber('submissionId');
 
         // Biolink AI Companions: list + persona lookup + create-on-the-spot
         // for the block editor's "AI" picker (richer editing lives on web).

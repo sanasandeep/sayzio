@@ -582,6 +582,26 @@ class FormController extends Controller
         return back()->with('success', 'Submission deleted.');
     }
 
+    /**
+     * Refund a paid form submission (Task #2322). Owner-only — reverses the
+     * gateway charge, flips payment_status to `refunded`, and writes a
+     * negative TYPE_FORM_REFUNDED ledger row via the monetization service.
+     */
+    public function refundSubmission(Request $request, Form $form, FormSubmission $submission)
+    {
+        $this->authorizeForm($request, $form);
+        abort_unless($submission->form_id === $form->id, 404);
+        abort_unless($submission->isRefundable(), 422, 'Only paid submissions can be refunded.');
+
+        $ok = app(\App\Services\Monetization\MonetizationCheckout::class)
+            ->refundFormSubmission($submission->id);
+
+        return back()->with(
+            $ok ? 'success' : 'error',
+            $ok ? 'Submission payment refunded.' : 'Could not refund this submission.',
+        );
+    }
+
     public function exportSubmissions(Request $request, Form $form): StreamedResponse
     {
         $this->authorizeForm($request, $form);

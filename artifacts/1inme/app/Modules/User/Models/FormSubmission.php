@@ -14,7 +14,7 @@ protected $fillable = [
         'form_id', 'data', 'files', 'ip', 'user_agent', 'referrer',
         'country', 'is_spam', 'spam_reason', 'is_read', 'is_starred',
         'payment_status', 'amount_cents', 'currency', 'gateway',
-        'gateway_charge_id', 'paid_at', 'line_items',
+        'gateway_charge_id', 'paid_at', 'line_items', 'refunded_at',
     ];
 
     protected function casts(): array
@@ -28,6 +28,7 @@ protected $fillable = [
             'amount_cents' => 'integer',
             'paid_at' => 'datetime',
             'line_items' => 'array',
+            'refunded_at' => 'datetime',
         ];
     }
 
@@ -35,6 +36,21 @@ protected $fillable = [
     public function isPaid(): bool
     {
         return $this->payment_status === 'paid';
+    }
+
+    /** A paid submission that has already been refunded. */
+    public function isRefunded(): bool
+    {
+        return $this->payment_status === 'refunded';
+    }
+
+    /**
+     * Only a still-paid submission (not pending, free, or already
+     * refunded) can be refunded by the owner.
+     */
+    public function isRefundable(): bool
+    {
+        return $this->isPaid();
     }
 
     /**

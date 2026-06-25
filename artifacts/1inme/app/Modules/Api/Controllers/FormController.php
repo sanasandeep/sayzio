@@ -208,6 +208,39 @@ class FormController extends Controller
         ]);
     }
 
+    /**
+     * Refund a paid form submission (Task #2322). Owner-only — mirrors the
+     * web FormController@refundSubmission: reverses the gateway charge,
+     * flips payment_status to `refunded`, and writes a negative
+     * TYPE_FORM_REFUNDED ledger row via the monetization service.
+     */
+    public function refundSubmission(Request $request, int $id, int $submissionId)
+    {
+        $f = Form::where('user_id', $request->user()->id)->find($id);
+        if (!$f) return $this->notFound('Form not found');
+
+        $submission = FormSubmission::where('form_id', $f->id)->find($submissionId);
+        if (!$submission) return $this->notFound('Submission not found');
+        if (!$submission->isRefundable()) {
+            return $this->fail('Only paid submissions can be refunded.', 422);
+        }
+
+        $ok = app(\App\Services\Monetization\MonetizationCheckout::class)
+            ->refundFormSubmission($submission->id);
+        if (!$ok) {
+            return $this->fail('Could not refund this submission.', 422);
+        }
+
+        $submission->refresh();
+        return $this->ok([
+            'id'             => $submission->id,
+            'payment_status' => $submission->payment_status ?? 'none',
+            'amount_cents'   => $submission->amount_cents !== null ? (int) $submission->amount_cents : null,
+            'currency'       => $submission->currency,
+            'refunded_at'    => optional($submission->refunded_at)->toIso8601String(),
+        ]);
+    }
+
     public function exportSubmissions(Request $request, int $id)
     {
         $f = Form::where('user_id', $request->user()->id)->find($id);

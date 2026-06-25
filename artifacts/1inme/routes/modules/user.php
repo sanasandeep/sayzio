@@ -626,6 +626,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('forms/{form}/submissions/{submission}', [FormController::class, 'showSubmission'])->middleware('workspace.can:inbox.view')->name('forms.submissions.show');
         Route::post('forms/{form}/submissions/{submission}/star', [FormController::class, 'toggleSubmissionStar'])->middleware('workspace.can:inbox.edit')->name('forms.submissions.star');
         Route::delete('forms/{form}/submissions/{submission}', [FormController::class, 'destroySubmission'])->middleware('workspace.can:inbox.delete')->name('forms.submissions.destroy');
+        Route::post('forms/{form}/submissions/{submission}/refund', [FormController::class, 'refundSubmission'])->middleware('workspace.can:inbox.delete')->name('forms.submissions.refund');
         Route::post('forms/{form}/submissions/erase-submitter', [FormController::class, 'eraseSubmitter'])->middleware('workspace.can:inbox.delete')->name('forms.submissions.erase-submitter');
 
         // Links: action-aware gating. Resource read endpoints (index/show/
