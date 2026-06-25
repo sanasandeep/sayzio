@@ -228,17 +228,34 @@ html.light-mode .placeholder-slate-400::placeholder,
 html.light-mode .placeholder-slate-500::placeholder { color: #9ca3af !important; }
 
 /* Translucent white text variants (text-white/40, /60, /80) */
-html.light-mode [class*="text-white\\/"] { color: rgba(15,23,42,0.55) !important; }
+html.light-mode [class*="text-white/"] { color: rgba(15,23,42,0.55) !important; }
 
-/* ---- Brighten muted accent colors so they show on white ---- */
-html.light-mode .text-violet-200,
-html.light-mode .text-violet-300 { color: #6d28d9 !important; }
-html.light-mode .text-fuchsia-300 { color: #a21caf !important; }
-html.light-mode .text-pink-300    { color: #be185d !important; }
-html.light-mode .text-emerald-300 { color: #047857 !important; }
-html.light-mode .text-amber-300   { color: #b45309 !important; }
-html.light-mode .text-sky-300     { color: #0369a1 !important; }
-html.light-mode .text-rose-300    { color: #be123c !important; }
+/* ---- Darken light accent text so it shows on white ----
+   The whole 100..400 accent range washes out on the near-white light-mode
+   surface (eyebrow badges, note boxes, status pills, inline icons). Darken
+   each family to the same deep accent tones the signed-in dashboard uses
+   (theme-styles.blade.php). Substring selectors also catch the `/NN` and
+   `/[0.x]` opacity variants (e.g. text-emerald-400/40) that marketing pages
+   use. Safe to darken: marketing accent text sits on soft same-hue tints,
+   never on saturated/gradient fills (those use .text-white, preserved below).
+   Always-dark islands (e.g. pricing .smart-banner) keep their own
+   higher-specificity carve-outs so their accent text stays LIGHT. */
+html.light-mode [class*="text-violet-100"],  html.light-mode [class*="text-violet-200"],  html.light-mode [class*="text-violet-300"],  html.light-mode [class*="text-violet-400"],
+html.light-mode [class*="text-purple-100"],  html.light-mode [class*="text-purple-200"],  html.light-mode [class*="text-purple-300"],  html.light-mode [class*="text-purple-400"] { color: #6d28d9 !important; }
+html.light-mode [class*="text-fuchsia-100"], html.light-mode [class*="text-fuchsia-200"], html.light-mode [class*="text-fuchsia-300"], html.light-mode [class*="text-fuchsia-400"] { color: #a21caf !important; }
+html.light-mode [class*="text-pink-100"],    html.light-mode [class*="text-pink-200"],    html.light-mode [class*="text-pink-300"],    html.light-mode [class*="text-pink-400"] { color: #be185d !important; }
+html.light-mode [class*="text-rose-100"],    html.light-mode [class*="text-rose-200"],    html.light-mode [class*="text-rose-300"],    html.light-mode [class*="text-rose-400"] { color: #be123c !important; }
+html.light-mode [class*="text-red-100"],     html.light-mode [class*="text-red-200"],     html.light-mode [class*="text-red-300"],     html.light-mode [class*="text-red-400"] { color: #b91c1c !important; }
+html.light-mode [class*="text-emerald-100"], html.light-mode [class*="text-emerald-200"], html.light-mode [class*="text-emerald-300"], html.light-mode [class*="text-emerald-400"],
+html.light-mode [class*="text-green-100"],   html.light-mode [class*="text-green-200"],   html.light-mode [class*="text-green-300"],   html.light-mode [class*="text-green-400"] { color: #047857 !important; }
+html.light-mode [class*="text-teal-100"],    html.light-mode [class*="text-teal-200"],    html.light-mode [class*="text-teal-300"],    html.light-mode [class*="text-teal-400"] { color: #0f766e !important; }
+html.light-mode [class*="text-amber-100"],   html.light-mode [class*="text-amber-200"],   html.light-mode [class*="text-amber-300"],   html.light-mode [class*="text-amber-400"],
+html.light-mode [class*="text-yellow-100"],  html.light-mode [class*="text-yellow-200"],  html.light-mode [class*="text-yellow-300"],  html.light-mode [class*="text-yellow-400"] { color: #b45309 !important; }
+html.light-mode [class*="text-orange-100"],  html.light-mode [class*="text-orange-200"],  html.light-mode [class*="text-orange-300"],  html.light-mode [class*="text-orange-400"] { color: #c2410c !important; }
+html.light-mode [class*="text-sky-100"],     html.light-mode [class*="text-sky-200"],     html.light-mode [class*="text-sky-300"],     html.light-mode [class*="text-sky-400"] { color: #0369a1 !important; }
+html.light-mode [class*="text-cyan-100"],    html.light-mode [class*="text-cyan-200"],    html.light-mode [class*="text-cyan-300"],    html.light-mode [class*="text-cyan-400"] { color: #0e7490 !important; }
+html.light-mode [class*="text-blue-100"],    html.light-mode [class*="text-blue-200"],    html.light-mode [class*="text-blue-300"],    html.light-mode [class*="text-blue-400"] { color: #1d4ed8 !important; }
+html.light-mode [class*="text-indigo-100"],  html.light-mode [class*="text-indigo-200"],  html.light-mode [class*="text-indigo-300"],  html.light-mode [class*="text-indigo-400"] { color: #4338ca !important; }
 
 /* ---- Preserve white text on saturated/gradient surfaces ---- */
 html.light-mode .bg-violet-500.text-white,
@@ -267,10 +284,10 @@ html.light-mode [class*="bg-gradient"] .text-white {
 /* Hero phone screen has its own dark wallpaper (--phone-bg) — keep white text */
 html.light-mode .hero-phone-screen,
 html.light-mode .hero-phone-screen .text-white,
-html.light-mode .hero-phone-screen [class*="text-white\\/"],
+html.light-mode .hero-phone-screen [class*="text-white/"],
 html.light-mode .hero-phone-content,
 html.light-mode .hero-phone-content .text-white,
-html.light-mode .hero-phone-content [class*="text-white\\/"],
+html.light-mode .hero-phone-content [class*="text-white/"],
 html.light-mode .stack-card,
 html.light-mode .stack-card .text-white,
 html.light-mode .stack-card .card-title,
