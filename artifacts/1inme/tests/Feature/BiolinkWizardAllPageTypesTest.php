@@ -88,7 +88,7 @@ class BiolinkWizardAllPageTypesTest extends TestCase
                 'url'      => 'https://example.com/' . str_replace('_', '-', $key),
                 'email'    => 'test@example.com',
                 'phone'    => '+1 555 0100',
-                'color'    => '#7c3aed',
+                'color'    => '#3d6bff',
                 'image'    => 'https://example.com/image.png',
                 'select'   => (string) (($q['options'][0]['v']) ?? ''),
                 'textarea' => "Sample copy for {$key}.\nA second line of detail.",

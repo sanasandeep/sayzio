@@ -374,7 +374,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                         $this->link('WhatsApp', 'https://wa.me/10000000000', 'fa-whatsapp'),
                         $this->link('Press kit', 'https://example.com', 'fa-file-lines'),
                     ]),
-                    $this->ctaButton('Send me a message', 'https://example.com', '#7c3aed', '#ffffff'),
+                    $this->ctaButton('Send me a message', 'https://example.com', '#3d6bff', '#ffffff'),
                     $this->socials(),
                 ], $pick(9)),
             ],
@@ -455,9 +455,9 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             $presets[] = [
                 'background_type'   => 'template',
                 'bg_template_id'    => $id,
-                'theme_color'       => '#7c3aed',
+                'theme_color'       => '#3d6bff',
                 'font_color'        => '#ffffff',
-                'button_color'      => '#7c3aed',
+                'button_color'      => '#3d6bff',
                 'button_text_color' => '#ffffff',
                 'button_style'      => 'rounded',
             ];
@@ -592,9 +592,9 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             $presets[] = [
                 'background_type'   => 'template',
                 'bg_template_id'    => $id,
-                'theme_color'       => '#7c3aed',
+                'theme_color'       => '#3d6bff',
                 'font_color'        => '#e0e7ff',
-                'button_color'      => '#7c3aed',
+                'button_color'      => '#3d6bff',
                 'button_text_color' => '#ffffff',
                 'button_style'      => 'pill',
             ];
@@ -602,9 +602,9 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             $presets[] = [
                 'background_type'    => 'gradient',
                 'background_gradient' => 'linear-gradient(180deg, #020617 0%, #1e1b4b 100%)',
-                'theme_color'        => '#7c3aed',
+                'theme_color'        => '#3d6bff',
                 'font_color'         => '#e0e7ff',
-                'button_color'       => '#7c3aed',
+                'button_color'       => '#3d6bff',
                 'button_text_color'  => '#ffffff',
                 'button_style'       => 'pill',
             ];
@@ -960,7 +960,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         ]);
     }
 
-    private function ctaButton(string $text, string $url, string $color = '#7c3aed', string $textColor = '#ffffff', string $size = 'lg'): array
+    private function ctaButton(string $text, string $url, string $color = '#3d6bff', string $textColor = '#ffffff', string $size = 'lg'): array
     {
         return $this->block('cta_button', [
             'text'       => $text,
@@ -1110,7 +1110,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         return $this->block('faq_v2', ['items' => array_values($items)]);
     }
 
-    private function badge(string $text, string $color = '#7c3aed', string $textColor = '#ffffff'): array
+    private function badge(string $text, string $color = '#3d6bff', string $textColor = '#ffffff'): array
     {
         return $this->block('badge', ['text' => $text, 'color' => $color, 'text_color' => $textColor]);
     }

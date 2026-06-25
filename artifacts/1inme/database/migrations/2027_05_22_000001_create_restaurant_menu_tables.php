@@ -26,7 +26,7 @@ return new class extends Migration {
                 // 'display' = read-only menu; 'order' = order-at-table.
                 $t->string('mode', 16)->default('display');
                 $t->string('currency', 3)->default('USD');
-                $t->string('accent_color', 16)->default('#7c3aed');
+                $t->string('accent_color', 16)->default('#3d6bff');
                 // Optional free-form config: ordering instructions, tax note,
                 // whether table is required, etc.
                 $t->json('settings')->nullable();

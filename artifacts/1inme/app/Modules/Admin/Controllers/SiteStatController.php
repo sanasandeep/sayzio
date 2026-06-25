@@ -60,7 +60,7 @@ class SiteStatController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:99999'],
         ]);
         $data['icon']       = $data['icon']       ?: 'fa-chart-line';
-        $data['color']      = $data['color']      ?: '#7c3aed';
+        $data['color']      = $data['color']      ?: '#3d6bff';
         $data['is_active']  = (bool) $request->input('is_active', false);
         $data['sort_order'] = $data['sort_order'] ?? 0;
         return $data;

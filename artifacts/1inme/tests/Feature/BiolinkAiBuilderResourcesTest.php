@@ -113,7 +113,7 @@ class BiolinkAiBuilderResourcesTest extends TestCase
     private function pageReferencingNothing(): string
     {
         return json_encode([
-            'page'   => ['theme_color' => '#7c3aed'],
+            'page'   => ['theme_color' => '#3d6bff'],
             'blocks' => [
                 ['type' => 'profile_card_v1', 'settings' => [
                     'name'  => 'Bob Bakes',
@@ -243,7 +243,7 @@ class BiolinkAiBuilderResourcesTest extends TestCase
 
         // The model wires up every supplied resource itself.
         $page = json_encode([
-            'page'   => ['theme_color' => '#7c3aed'],
+            'page'   => ['theme_color' => '#3d6bff'],
             'blocks' => [
                 ['type' => 'profile_card_v1', 'settings' => ['name' => 'Bob', 'title' => 'Baker', 'bio' => 'Hi.']],
                 ['type' => 'image',        'settings' => ['url' => $image, 'alt' => 'A photo']],

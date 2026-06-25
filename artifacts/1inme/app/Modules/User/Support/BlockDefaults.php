@@ -175,7 +175,7 @@ class BlockDefaults
 
         return match ($type) {
             'link' => ['url' => 'https://example.com', 'text' => 'My Link', 'icon' => '', 'thumbnail' => '', '_placeholder' => true],
-            'link_big' => ['url' => 'https://example.com', 'text' => 'My Featured Link', 'description' => 'A short blurb about where this goes.', 'icon' => '', 'thumbnail' => $imgSquareUrl, 'bg_color' => '#7c3aed', '_placeholder' => true],
+            'link_big' => ['url' => 'https://example.com', 'text' => 'My Featured Link', 'description' => 'A short blurb about where this goes.', 'icon' => '', 'thumbnail' => $imgSquareUrl, 'bg_color' => '#3d6bff', '_placeholder' => true],
             'heading' => ['text' => 'Hello, I\'m new here', 'size' => 'h2', 'align' => 'center', 'style' => 'plain', '_placeholder' => true],
             'heading_logo' => ['text' => 'Your Brand', 'logo_url' => $logoUrl, 'size' => 'h2', 'align' => 'center', '_placeholder' => true],
             'paragraph' => ['text' => 'Tell visitors a little about yourself or what this block is for.', 'align' => 'center', '_placeholder' => true],
@@ -197,7 +197,7 @@ class BlockDefaults
                 ['name' => 'Enterprise','description' => 'Custom limits + priority support','price' => '$99','period' => '/mo', 'included' => false, 'featured' => false],
             ], '_placeholder' => true],
             'alert' => ['text' => 'Heads up! Replace this with your own announcement.', 'type' => 'info', 'icon' => 'fa-info-circle', '_placeholder' => true],
-            'badge' => ['text' => 'New', 'color' => '#7c3aed', 'text_color' => '#ffffff', '_placeholder' => true],
+            'badge' => ['text' => 'New', 'color' => '#3d6bff', 'text_color' => '#ffffff', '_placeholder' => true],
 
             'image' => ['url' => $imgUrl, 'alt' => 'Placeholder image', 'link' => '', '_placeholder' => true],
             'image_grid' => ['images' => [
@@ -317,17 +317,17 @@ class BlockDefaults
 
             'countdown' => ['target_date' => date('Y-m-d', strtotime('+30 days')), 'title' => 'Coming soon — replace this', '_placeholder' => true],
             'progress' => ['items' => [
-                ['label' => 'Goal one', 'value' => 75, 'color' => '#7c3aed'],
+                ['label' => 'Goal one', 'value' => 75, 'color' => '#3d6bff'],
                 ['label' => 'Goal two', 'value' => 40, 'color' => '#22d3ee'],
             ], '_placeholder' => true],
             'chart_pie' => ['items' => [
-                ['label' => 'Segment A', 'value' => 50, 'color' => '#7c3aed'],
+                ['label' => 'Segment A', 'value' => 50, 'color' => '#3d6bff'],
                 ['label' => 'Segment B', 'value' => 30, 'color' => '#ec4899'],
                 ['label' => 'Segment C', 'value' => 20, 'color' => '#22d3ee'],
             ], '_placeholder' => true],
             'qr_code' => ['url' => 'https://example.com', 'size' => 200, '_placeholder' => true],
             'share' => ['text' => 'Share this page', 'platforms' => ['twitter', 'facebook', 'linkedin', 'whatsapp'], '_placeholder' => true],
-            'cta_button' => ['text' => 'Get started', 'url' => 'https://example.com', 'color' => '#7c3aed', 'text_color' => '#ffffff', 'size' => 'lg', '_placeholder' => true],
+            'cta_button' => ['text' => 'Get started', 'url' => 'https://example.com', 'color' => '#3d6bff', 'text_color' => '#ffffff', 'size' => 'lg', '_placeholder' => true],
             'notification' => ['text' => 'Replace this with your latest update or announcement.', 'type' => 'info', 'dismissible' => true, '_placeholder' => true],
             'social_proof' => ['social_proof_id' => null],
             'ai_companion' => ['companion_id' => null],
@@ -480,38 +480,38 @@ class BlockDefaults
                 '_placeholder' => true,
             ],
 
-            'menu_section' => ['name' => 'Mains', 'layout' => 'plain', 'accent_color' => '#7c3aed', 'items' => [
+            'menu_section' => ['name' => 'Mains', 'layout' => 'plain', 'accent_color' => '#3d6bff', 'items' => [
                 ['name' => 'Margherita pizza', 'price' => '$14', 'description' => 'San Marzano tomato, fior di latte, basil.'],
                 ['name' => 'Cacio e pepe', 'price' => '$16', 'description' => 'Fresh tonnarelli, pecorino romano, black pepper.'],
             ], '_placeholder' => true],
             'instagram' => ['mode' => 'post', 'handle' => 'instagram', 'post_url' => 'https://www.instagram.com/p/CkQ7-gDgF8B/', 'thumbnail' => $imgSquareUrl, 'caption' => 'Latest from your feed', '_placeholder' => true],
 
 
-            'file_list' => ['title' => 'Files', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'items' => [
+            'file_list' => ['title' => 'Files', 'layout' => 'compact', 'accent_color' => '#3d6bff', 'items' => [
                 ['name' => 'Placeholder document.pdf', 'url' => $pdfUrl, 'ext' => 'pdf', 'size' => 13312, 'description' => 'Replace with your own file.'],
             ], '_placeholder' => true],
-            'audio_list' => ['title' => 'Playlist', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'tracks' => [
+            'audio_list' => ['title' => 'Playlist', 'layout' => 'compact', 'accent_color' => '#3d6bff', 'tracks' => [
                 ['title' => 'Placeholder track', 'artist' => 'SoundHelix', 'url' => $audioUrl, 'cover' => $imgSquareUrl, 'duration' => '6:00'],
             ], '_placeholder' => true],
-            'link_tree_group' => ['title' => 'My Links', 'layout' => 'list', 'accent_color' => '#7c3aed', 'items' => [
+            'link_tree_group' => ['title' => 'My Links', 'layout' => 'list', 'accent_color' => '#3d6bff', 'items' => [
                 ['text' => 'My website', 'url' => 'https://example.com', 'icon' => 'fa-globe', 'description' => 'Where it all lives.'],
                 ['text' => 'Latest project', 'url' => 'https://example.com', 'icon' => 'fa-rocket', 'description' => 'What I\'m working on now.'],
                 ['text' => 'Contact me', 'url' => 'mailto:you@example.com', 'icon' => 'fa-envelope', 'description' => 'For collabs and questions.'],
             ], '_placeholder' => true],
-            'tabs' => ['layout' => 'tabs', 'accent_color' => '#7c3aed', 'tabs' => [
+            'tabs' => ['layout' => 'tabs', 'accent_color' => '#3d6bff', 'tabs' => [
                 ['label' => 'About', 'text' => 'A short intro about you or your project.'],
                 ['label' => 'Services', 'text' => 'Replace with what you offer.'],
                 ['label' => 'Contact', 'text' => 'How to get in touch.'],
             ], '_placeholder' => true],
-            'accordion' => ['layout' => 'plain', 'accent_color' => '#7c3aed', 'items' => [
+            'accordion' => ['layout' => 'plain', 'accent_color' => '#3d6bff', 'items' => [
                 ['title' => 'How does it work?', 'body' => 'Replace with your own answer.'],
                 ['title' => 'Where can I learn more?', 'body' => 'Replace with a real answer or a link to your docs.'],
             ], '_placeholder' => true],
-            'event_list' => ['title' => 'Upcoming Events', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'events' => [
+            'event_list' => ['title' => 'Upcoming Events', 'layout' => 'compact', 'accent_color' => '#3d6bff', 'events' => [
                 ['title' => 'Live Q&A on YouTube', 'date' => date('Y-m-d', strtotime('+7 days')), 'location' => 'Online', 'url' => 'https://example.com', 'description' => 'Replace with your real event.'],
                 ['title' => 'Pop-up workshop', 'date' => date('Y-m-d', strtotime('+21 days')), 'location' => 'Brooklyn, NY', 'url' => 'https://example.com', 'description' => 'A short blurb about what attendees will learn.'],
             ], '_placeholder' => true],
-            'menu' => ['title' => 'Today\'s Menu', 'layout' => 'classic', 'accent_color' => '#7c3aed', 'sections' => [
+            'menu' => ['title' => 'Today\'s Menu', 'layout' => 'classic', 'accent_color' => '#3d6bff', 'sections' => [
                 ['name' => 'Starters', 'items' => [
                     ['name' => 'House focaccia', 'price' => '$6', 'description' => 'With rosemary and flaky salt.', 'thumbnail' => $imgSquareUrl],
                     ['name' => 'Caesar salad', 'price' => '$11', 'description' => 'Romaine, anchovy dressing, parmesan.', 'thumbnail' => $imgSquareUrl],
@@ -520,20 +520,20 @@ class BlockDefaults
                     ['name' => 'Margherita pizza', 'price' => '$14', 'description' => 'San Marzano tomato, fior di latte, basil.', 'thumbnail' => $imgSquareUrl],
                 ]],
             ], '_placeholder' => true],
-            'testimonial_carousel' => ['layout' => 'carousel', 'accent_color' => '#7c3aed', 'items' => [
+            'testimonial_carousel' => ['layout' => 'carousel', 'accent_color' => '#3d6bff', 'items' => [
                 ['quote' => 'Genuinely the best service I\'ve used this year.', 'name' => 'Alex Carter', 'title' => 'Founder, Bright Studio', 'avatar' => $avatarUrl],
                 ['quote' => 'The whole team was a delight to work with.', 'name' => 'Sam Lopez', 'title' => 'Head of Marketing, Northwind', 'avatar' => $avatarUrl],
             ], '_placeholder' => true],
-            'stats' => ['title' => 'By the numbers', 'layout' => 'row', 'accent_color' => '#7c3aed', 'items' => [
+            'stats' => ['title' => 'By the numbers', 'layout' => 'row', 'accent_color' => '#3d6bff', 'items' => [
                 ['value' => '10k', 'label' => 'Followers', 'caption' => 'across socials'],
                 ['value' => '4.9', 'label' => 'Rating', 'caption' => 'from 230 reviews'],
                 ['value' => '120', 'label' => 'Projects', 'caption' => 'shipped to date'],
             ], '_placeholder' => true],
-            'affiliate_links' => ['title' => 'My Picks', 'layout' => 'compact', 'accent_color' => '#7c3aed', 'disclaimer' => 'Some links may earn a commission.', 'items' => [
+            'affiliate_links' => ['title' => 'My Picks', 'layout' => 'compact', 'accent_color' => '#3d6bff', 'disclaimer' => 'Some links may earn a commission.', 'items' => [
                 ['name' => 'Sample affiliate product', 'url' => 'https://example.com', 'price' => '$29', 'merchant' => 'Example Store', 'thumbnail' => $imgSquareUrl],
                 ['name' => 'Another favourite', 'url' => 'https://example.com', 'price' => '$59', 'merchant' => 'Example Store', 'thumbnail' => $imgSquareUrl],
             ], '_placeholder' => true],
-            'booking_slots' => ['title' => 'Book a slot', 'layout' => 'list', 'cta_text' => 'Book', 'accent_color' => '#7c3aed', 'slots' => [
+            'booking_slots' => ['title' => 'Book a slot', 'layout' => 'list', 'cta_text' => 'Book', 'accent_color' => '#3d6bff', 'slots' => [
                 ['start' => date('Y-m-d', strtotime('+1 day')) . ' 10:00', 'duration' => '30 min', 'url' => 'https://example.com', 'taken' => false],
                 ['start' => date('Y-m-d', strtotime('+1 day')) . ' 14:00', 'duration' => '30 min', 'url' => 'https://example.com', 'taken' => false],
                 ['start' => date('Y-m-d', strtotime('+2 day')) . ' 09:30', 'duration' => '60 min', 'url' => 'https://example.com', 'taken' => false],

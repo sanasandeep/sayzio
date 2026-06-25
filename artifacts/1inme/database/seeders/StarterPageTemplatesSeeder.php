@@ -253,7 +253,7 @@ class StarterPageTemplatesSeeder extends Seeder
                         ['title' => 'Surprise guest', 'description' => 'You\'ll want to be there for this one.', 'date' => '12:00 AM'],
                     ]),
                     $this->poll('Which set are you most excited for?', ['The opener', 'The headliner', 'The midnight surprise']),
-                    $this->ctaButton('RSVP now', 'https://example.com', '#7c3aed', '#ffffff'),
+                    $this->ctaButton('RSVP now', 'https://example.com', '#3d6bff', '#ffffff'),
                     $this->link('Add to calendar', 'https://example.com', 'fa-calendar-plus', $kits['event']),
                     $this->link('Venue & directions', 'https://maps.google.com', 'fa-map-marker-alt', $kits['event']),
                     $this->socials(),
@@ -504,14 +504,14 @@ class StarterPageTemplatesSeeder extends Seeder
                         ['quote' => 'One of the most exciting tools in the space.', 'name' => 'The Daily Review', 'title' => 'Feature'],
                         ['quote' => 'A polished, thoughtful product.', 'name' => 'Tech Weekly', 'title' => 'Review'],
                     ]),
-                    $this->ctaButton('Press enquiries', 'mailto:press@example.com', '#7c3aed', '#ffffff'),
+                    $this->ctaButton('Press enquiries', 'mailto:press@example.com', '#3d6bff', '#ffffff'),
                     $this->socials(),
                 ], [
                     'background_type'   => 'color',
                     'background_color'  => '#0f172a',
                     'theme_color'       => '#a78bfa',
                     'font_color'        => '#f8fafc',
-                    'button_color'      => '#7c3aed',
+                    'button_color'      => '#3d6bff',
                     'button_text_color' => '#ffffff',
                     'button_style'      => 'rounded',
                 ]),
@@ -742,7 +742,7 @@ class StarterPageTemplatesSeeder extends Seeder
         ]);
     }
 
-    private function ctaButton(string $text, string $url, string $color = '#7c3aed', string $textColor = '#ffffff', string $size = 'lg'): array
+    private function ctaButton(string $text, string $url, string $color = '#3d6bff', string $textColor = '#ffffff', string $size = 'lg'): array
     {
         return $this->block('cta_button', [
             'text'       => $text,
@@ -818,7 +818,7 @@ class StarterPageTemplatesSeeder extends Seeder
         return $this->block('faq_v2', ['items' => array_values($items)]);
     }
 
-    private function badge(string $text, string $color = '#7c3aed', string $textColor = '#ffffff'): array
+    private function badge(string $text, string $color = '#3d6bff', string $textColor = '#ffffff'): array
     {
         return $this->block('badge', ['text' => $text, 'color' => $color, 'text_color' => $textColor]);
     }

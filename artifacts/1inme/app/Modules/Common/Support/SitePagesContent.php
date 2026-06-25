@@ -929,7 +929,7 @@ class SitePagesContent
     public static function homeLinkTypesDefault(): array
     {
         return [
-            ['name' => 'Short Link',      'icon' => 'fa-link',                'color' => '#7c3aed', 'new' => false, 'desc' => 'Clean, branded short links you can repoint anytime — with click analytics and expiry controls.'],
+            ['name' => 'Short Link',      'icon' => 'fa-link',                'color' => '#3d6bff', 'new' => false, 'desc' => 'Clean, branded short links you can repoint anytime — with click analytics and expiry controls.'],
             ['name' => 'Link in Bio',     'icon' => 'fa-square-share-nodes',  'color' => '#1bd4d9', 'new' => false, 'desc' => 'A drag-and-drop one-link page with a deep block library, custom themes and a guided wizard.'],
             ['name' => 'Conversational',  'icon' => 'fa-comments',            'color' => '#34d399', 'new' => true,  'desc' => 'A chat-style page that greets visitors and guides them through your links one message at a time.'],
             ['name' => 'Slides',          'icon' => 'fa-images',              'color' => '#fbbf24', 'new' => true,  'desc' => 'A swipeable, story-style page that presents your content as full-screen slides.'],
@@ -965,7 +965,7 @@ class SitePagesContent
                 continue;
             }
             if (!preg_match('/^#[0-9a-f]{3,8}$/i', $color)) {
-                $color = '#7c3aed';
+                $color = '#3d6bff';
             }
             $out[] = [
                 'name'  => $name,

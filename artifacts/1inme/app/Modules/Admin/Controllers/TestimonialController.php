@@ -74,7 +74,7 @@ class TestimonialController extends Controller
             'is_active'    => ['nullable', 'boolean'],
             'sort_order'   => ['nullable', 'integer', 'min:0', 'max:99999'],
         ]);
-        $data['accent_color'] = $data['accent_color'] ?? '#7c3aed';
+        $data['accent_color'] = $data['accent_color'] ?? '#3d6bff';
         $data['rating']       = $data['rating']       ?? 5;
         $data['is_active']    = (bool) ($request->input('is_active', false));
         $data['sort_order']   = $data['sort_order']   ?? 0;

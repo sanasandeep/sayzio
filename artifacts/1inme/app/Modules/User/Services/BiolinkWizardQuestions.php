@@ -1133,7 +1133,7 @@ class BiolinkWizardQuestions
     {
         return [
             'creator'     => '#ec4899',
-            'business'    => '#7c3aed',
+            'business'    => '#3d6bff',
             'restaurant'  => '#f97316',
             'musician'    => '#a855f7',
             'real_estate' => '#0ea5e9',
@@ -1147,7 +1147,7 @@ class BiolinkWizardQuestions
             'travel_creator' => '#0284c7',
             'faith'       => '#6d28d9',
             'education'   => '#2563eb',
-        ][$category] ?? '#7c3aed';
+        ][$category] ?? '#3d6bff';
     }
 
     /**
@@ -1321,7 +1321,7 @@ class BiolinkWizardQuestions
                     break;
                 case 'color':
                     if (!preg_match('/^#[0-9a-f]{3,8}$/i', $val)) {
-                        $errors[$key] = "{$label} must be a hex colour (e.g. #7c3aed).";
+                        $errors[$key] = "{$label} must be a hex colour (e.g. #3d6bff).";
                     }
                     break;
                 case 'select':

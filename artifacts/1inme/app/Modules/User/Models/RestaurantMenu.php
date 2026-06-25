@@ -13,6 +13,14 @@ class RestaurantMenu extends Model
         'link_id', 'user_id', 'mode', 'currency', 'accent_color', 'settings',
     ];
 
+    /**
+     * New menus default to the brand blue accent (so the live default no
+     * longer depends on the historical migration column default of purple).
+     */
+    protected $attributes = [
+        'accent_color' => '#3d6bff',
+    ];
+
     protected function casts(): array
     {
         return [

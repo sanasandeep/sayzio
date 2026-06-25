@@ -159,7 +159,7 @@ class MarketingBlogPostsSeeder extends Seeder
     private function ensureCategories(): array
     {
         $defs = [
-            'biolinks'      => ['name' => 'Biolinks',          'color' => '#7c3aed', 'sort' => 1, 'desc' => 'Tips for building a high-converting link-in-bio page.'],
+            'biolinks'      => ['name' => 'Biolinks',          'color' => '#3d6bff', 'sort' => 1, 'desc' => 'Tips for building a high-converting link-in-bio page.'],
             'creator-growth' => ['name' => 'Creator Growth',    'color' => '#0ea5e9', 'sort' => 2, 'desc' => 'How creators grow their audience and turn it into income.'],
             'monetization'  => ['name' => 'Monetization',      'color' => '#16a34a', 'sort' => 3, 'desc' => 'Turning followers and visitors into customers and members.'],
             'analytics'     => ['name' => 'Analytics',         'color' => '#f59e0b', 'sort' => 4, 'desc' => 'Measuring what matters across links, pages and campaigns.'],

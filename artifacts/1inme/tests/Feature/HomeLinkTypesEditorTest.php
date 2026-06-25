@@ -93,7 +93,7 @@ class HomeLinkTypesEditorTest extends TestCase
         //  - a fully-blank row (no name, no desc) -> dropped
         //  - "new" as the string '1' -> coerced to bool true
         //  - "new" as '0' -> coerced to bool false
-        //  - an invalid accent colour -> defaulted to #7c3aed
+        //  - an invalid accent colour -> defaulted to #3d6bff
         //  - a blank icon -> defaulted to fa-link
         $payload = [
             'title'            => 'Your link, your page, your audience. All in one.',
@@ -112,7 +112,7 @@ class HomeLinkTypesEditorTest extends TestCase
                         'name'  => 'Apple Link',
                         'desc'  => 'Custom apple description that is unique.',
                         'icon'  => '', // blank -> fa-link
-                        'color' => 'red', // invalid -> #7c3aed
+                        'color' => 'red', // invalid -> #3d6bff
                         'new'   => '0',
                     ],
                     // Fully-blank row -> dropped.
@@ -143,7 +143,7 @@ class HomeLinkTypesEditorTest extends TestCase
 
         // Valid colour kept; invalid colour defaulted.
         $this->assertSame('#123abc', $stored[0]['color']);
-        $this->assertSame('#7c3aed', $stored[1]['color']);
+        $this->assertSame('#3d6bff', $stored[1]['color']);
 
         // Blank icon defaulted.
         $this->assertSame('fa-paw', $stored[0]['icon']);
