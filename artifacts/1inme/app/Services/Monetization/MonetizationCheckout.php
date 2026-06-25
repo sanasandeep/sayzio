@@ -241,6 +241,7 @@ class MonetizationCheckout
             'dm_msg'       => $this->confirmDmPayToMessage($payload),
             'dm_att'       => $this->confirmDmAttachmentUnlock($payload),
             'product'      => $this->confirmProductOrder($payload),
+            'form'         => $this->confirmFormPayment($payload),
             default        => null,
         };
     }
@@ -778,6 +779,123 @@ class MonetizationCheckout
         return ['url' => $thankYou, 'message' => 'Purchase complete — thank you!'];
     }
 
+    /**
+     * Start a paid-form checkout (Task #2319). The FormSubmission must
+     * already be persisted as pending by the caller — we attach a gateway,
+     * cache the reconciliation payload and return the provider URL. The
+     * platform takes 0%; funds flow to the form OWNER's connected gateway.
+     *
+     * Returns ['url' => string, 'submission' => FormSubmission].
+     */
+    public function startFormPayment(
+        \App\Modules\User\Models\Form $form,
+        \App\Modules\User\Models\FormSubmission $submission,
+        ?string $fanEmail = null
+    ): array {
+        $creator = $form->user;
+        $connection = $creator?->defaultPaymentConnection()
+            ?: new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $creator?->id]);
+
+        $amount   = $form->paymentAmountCents();
+        $currency = $form->paymentCurrency();
+
+        $submission->payment_status = 'pending';
+        $submission->amount_cents   = $amount;
+        $submission->currency       = $currency;
+        $submission->gateway        = $connection->provider;
+        $submission->save();
+
+        // Where the customer lands after a successful charge — the form's
+        // configured redirect, else back to the form page with a paid flag.
+        $settings   = array_merge(\App\Modules\User\Models\Form::defaultSettings(), $form->settings ?? []);
+        $successUrl = (($settings['success_action'] ?? 'message') === 'redirect' && !empty($settings['success_redirect']))
+            ? $settings['success_redirect']
+            : $form->getPublicUrl() . '?paid=1';
+
+        $token     = Str::random(32);
+        $reference = 'form_' . $submission->id;
+        cache()->put($this->cacheKey('form', $submission->id, $token), [
+            'submission_id' => $submission->id,
+            'form_id'       => $form->id,
+            'creator_id'    => $creator?->id,
+            'fan_id'        => auth()->id(),
+            'amount'        => $amount,
+            'currency'      => $currency,
+            'gateway'       => $connection->provider,
+            'success_url'   => $successUrl,
+        ], now()->addMinutes(30));
+
+        $url = PayoutProviderRegistry::adapter($connection->provider)->createOneTimeCheckout($connection, [
+            'kind'       => 'form',
+            'reference'  => $reference,
+            'token'      => $token,
+            'amount'     => $amount,
+            'currency'   => $currency,
+            'fan_email'  => $fanEmail,
+            'return_url' => route('checkout.return', ['kind' => 'form', 'reference' => $reference, 'token' => $token]),
+        ]);
+
+        return ['url' => $url, 'submission' => $submission];
+    }
+
+    /**
+     * Reconcile a paid-form submission: mark paid, log revenue, then fire
+     * the owner notifications / autoresponder / webhooks that were held
+     * back at submit time. Idempotent — a re-delivered return must not
+     * double-count or double-notify.
+     */
+    protected function confirmFormPayment(array $p): array
+    {
+        $submission = \App\Modules\User\Models\FormSubmission::withoutGlobalScope('workspace')
+            ->find($p['submission_id'] ?? 0);
+        $successUrl = $p['success_url'] ?? '/';
+        if (!$submission) {
+            return ['url' => $successUrl];
+        }
+
+        // Idempotent guard.
+        if ($submission->payment_status === 'paid') {
+            return ['url' => $successUrl, 'message' => 'Payment received — thank you!'];
+        }
+
+        $form = \App\Modules\User\Models\Form::withoutGlobalScope('workspace')->find($submission->form_id);
+
+        $submission->payment_status    = 'paid';
+        $submission->amount_cents      = (int) ($p['amount'] ?? $submission->amount_cents);
+        $submission->currency          = (string) ($p['currency'] ?? $submission->currency);
+        $submission->gateway           = (string) ($p['gateway'] ?? $submission->gateway ?? 'preview');
+        $submission->gateway_charge_id = $submission->gateway_charge_id ?: ('preview_form_' . Str::random(10));
+        $submission->paid_at           = now();
+        $submission->save();
+
+        if ($form) {
+            $form->increment('total_submissions');
+
+            $creator = $p['creator_id'] ? User::find($p['creator_id']) : $form->user;
+            $fan     = !empty($p['fan_id']) ? User::find($p['fan_id']) : null;
+            if ($creator) {
+                $this->logEvent(
+                    $creator, $fan,
+                    CreatorPaymentEvent::SOURCE_FORM, CreatorPaymentEvent::TYPE_FORM_PAID,
+                    $submission, (int) $submission->amount_cents, (string) $submission->currency,
+                );
+            }
+
+            // Fire owner notifications + forwarder now that the charge cleared
+            // (deliberately skipped at submit time for paid forms).
+            if (!$submission->is_spam) {
+                try {
+                    app(\App\Modules\User\Controllers\FormController::class)
+                        ->finalizePaidSubmission($form, $submission);
+                } catch (\Throwable $e) {
+                    Log::warning('form.confirm.notify_failed', ['submission' => $submission->id, 'err' => $e->getMessage()]);
+                }
+            }
+        }
+
+        return ['url' => $successUrl, 'message' => 'Payment received — thank you!'];
+    }
+
     protected function notifyCreatorOfProductSale(User $creator, ?User $buyer, ProductOrder $order): void
     {
         \App\Modules\User\Models\UserNotification::create([
@@ -933,6 +1051,10 @@ class MonetizationCheckout
         if ($kind === 'product' && count($parts) === 2) {
             // product_{orderId}
             return $this->cacheKey('product', (int) $parts[1], $token);
+        }
+        if ($kind === 'form' && count($parts) === 2) {
+            // form_{submissionId}
+            return $this->cacheKey('form', (int) $parts[1], $token);
         }
         return null;
     }

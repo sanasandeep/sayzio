@@ -566,6 +566,9 @@ Route::prefix('v1')->group(function () {
         Route::get ('/forms',                             [FormController::class, 'index']);
         Route::post('/forms',                             [FormController::class, 'store']);
         Route::get('/forms/{id}',                         [FormController::class, 'show'])->whereNumber('id');
+        Route::get('/forms/{id}/analytics',               [FormController::class, 'analytics'])->whereNumber('id');
+        Route::get('/forms/{id}/payment',                 [FormController::class, 'payment'])->whereNumber('id');
+        Route::put('/forms/{id}/payment',                 [FormController::class, 'updatePayment'])->whereNumber('id');
         Route::get('/forms/{id}/submissions',             [FormController::class, 'submissions'])->whereNumber('id');
         Route::get('/forms/{id}/submissions.csv',         [FormController::class, 'exportSubmissions'])->whereNumber('id');
 

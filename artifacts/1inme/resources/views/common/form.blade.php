@@ -285,12 +285,12 @@
                 <img src="{{ $cover }}" alt="" class="form-cover">
             @endif
 
-            @if(session('form_success'))
+            @if(session('form_success') || request('paid'))
                 <div class="form-card {{ $cover ? 'has-cover' : '' }}">
                     <div class="form-success">
                         <div class="form-success-icon"><i class="fas fa-check-circle"></i></div>
                         <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0 0 0.5rem;">All done!</h2>
-                        <p style="opacity: 0.75; margin: 0;">{{ session('form_success') }}</p>
+                        <p style="opacity: 0.75; margin: 0;">{{ session('form_success') ?: (request('paid') ? (session('success') ?: 'Payment received — your response has been recorded. Thank you!') : '') }}</p>
                         @if(($settings['allow_multiple'] ?? true))
                             <button type="button" onclick="window.location.reload()" class="form-button" style="margin-top: 1.5rem;">
                                 <i class="fas fa-redo text-xs"></i> Submit another response

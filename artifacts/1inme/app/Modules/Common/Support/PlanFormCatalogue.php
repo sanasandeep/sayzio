@@ -146,6 +146,8 @@ class PlanFormCatalogue
             ['key' => 'link_protection',      'type' => 'bool',   'module' => 'module_short_links'],
             ['key' => 'qr_customization',     'type' => 'bool',   'module' => 'module_short_links'],
             ['key' => 'custom_forms',         'type' => 'bool',   'module' => 'module_forms'],
+            ['key' => 'paid_forms',           'type' => 'bool',   'module' => 'module_forms'],
+            ['key' => 'form_analytics_advanced','type' => 'bool', 'module' => 'module_forms'],
             ['key' => 'contacts_google_sync', 'type' => 'bool',   'module' => 'module_contacts'],
             ['key' => 'custom_branding',      'type' => 'bool',   'module' => 'module_branding'],
             ['key' => 'remove_branding',      'type' => 'bool',   'module' => 'module_branding'],
@@ -219,6 +221,8 @@ class PlanFormCatalogue
     private static function localCopy(): array
     {
         return [
+            'paid_forms'            => ['name' => 'Paid forms',            'description' => 'Charge customers to submit a form, collected through the creator\'s own connected payment gateway (0% platform fee).'],
+            'form_analytics_advanced'=> ['name' => 'Advanced form analytics','description' => 'Submission trends over time, per-field completion / drop-off, device & geo breakdowns and per-form revenue.'],
             'buzz_popups'           => ['name' => 'Buzz pop-ups',          'description' => 'On-site notification pop-ups (recent activity, social proof, etc.).'],
             'splash_pages'          => ['name' => 'Splash pages',          'description' => 'Branded coming-soon / landing pages a user can publish.'],
             'files'                 => ['name' => 'File manager',          'description' => 'Lets the user upload and organise files in the in-app file manager.'],
@@ -327,7 +331,7 @@ class PlanFormCatalogue
             'module_restaurant_menu' => ['max_restaurant_menu'],
             'module_reviews'      => ['max_reviews'],
             'module_projects'     => ['max_projects'],
-            'module_forms'        => ['custom_forms', 'max_forms'],
+            'module_forms'        => ['custom_forms', 'max_forms', 'paid_forms', 'form_analytics_advanced'],
             'module_contacts'     => ['contacts_max', 'contacts_google_sync'],
             'module_teams'        => ['teams', 'max_workspaces', 'max_seats_per_workspace'],
             'module_ecommerce'    => ['ecommerce'],

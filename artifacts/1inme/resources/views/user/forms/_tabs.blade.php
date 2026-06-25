@@ -4,6 +4,7 @@
         'builder'      => ['icon' => 'fa-pen-ruler',  'label' => 'Build',        'route' => 'user.forms.builder'],
         'design'       => ['icon' => 'fa-palette',    'label' => 'Design',       'route' => 'user.forms.design'],
         'notifications'=> ['icon' => 'fa-bell',       'label' => 'Notifications','route' => 'user.forms.notifications'],
+        'payment'      => ['icon' => 'fa-credit-card','label' => 'Payments',     'route' => 'user.forms.payment'],
         'submissions'  => ['icon' => 'fa-inbox',      'label' => 'Submissions',  'route' => 'user.forms.submissions'],
         'embed'        => ['icon' => 'fa-code',       'label' => 'Share / Embed','route' => 'user.forms.embed'],
     ];

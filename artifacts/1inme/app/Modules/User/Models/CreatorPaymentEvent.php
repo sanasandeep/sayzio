@@ -16,6 +16,7 @@ class CreatorPaymentEvent extends Model
     public const SOURCE_PPV = 'ppv';
     public const SOURCE_TIP = 'tip';
     public const SOURCE_PRODUCT = 'product';
+    public const SOURCE_FORM = 'form';
 
     public const TYPE_SUB_CREATED   = 'sub.created';
     public const TYPE_SUB_RENEWED   = 'sub.renewed';
@@ -27,6 +28,8 @@ class CreatorPaymentEvent extends Model
     public const TYPE_TIP_REFUNDED  = 'tip.refunded';
     public const TYPE_PRODUCT_PURCHASED = 'product.purchased';
     public const TYPE_PRODUCT_REFUNDED  = 'product.refunded';
+    public const TYPE_FORM_PAID     = 'form.paid';
+    public const TYPE_FORM_REFUNDED = 'form.refunded';
 
     protected $fillable = [
         'creator_user_id', 'fan_user_id',
@@ -65,6 +68,8 @@ class CreatorPaymentEvent extends Model
             self::TYPE_TIP_REFUNDED => 'Tip refunded',
             self::TYPE_PRODUCT_PURCHASED => 'Product sale',
             self::TYPE_PRODUCT_REFUNDED  => 'Product refund',
+            self::TYPE_FORM_PAID     => 'Paid form submission',
+            self::TYPE_FORM_REFUNDED => 'Form payment refund',
             default                 => $this->type,
         };
     }

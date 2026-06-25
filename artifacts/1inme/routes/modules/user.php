@@ -617,6 +617,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put('forms/{form}/design', [FormController::class, 'updateDesign'])->middleware('workspace.can:inbox.edit')->name('forms.design.update');
         Route::get('forms/{form}/notifications', [FormController::class, 'notifications'])->middleware('workspace.can:inbox.view')->name('forms.notifications');
         Route::put('forms/{form}/notifications', [FormController::class, 'updateNotifications'])->middleware('workspace.can:inbox.edit')->name('forms.notifications.update');
+        Route::get('forms/{form}/payment', [FormController::class, 'payment'])->middleware('workspace.can:inbox.view')->name('forms.payment');
+        Route::put('forms/{form}/payment', [FormController::class, 'updatePayment'])->middleware('workspace.can:inbox.edit')->name('forms.payment.update');
         Route::get('forms/{form}/embed', [FormController::class, 'embed'])->middleware('workspace.can:inbox.view')->name('forms.embed');
         Route::put('forms/{form}/domain', [FormController::class, 'updateDomain'])->middleware('workspace.can:inbox.edit')->name('forms.domain.update');
         Route::get('forms/{form}/submissions', [FormController::class, 'submissions'])->middleware('workspace.can:inbox.view')->name('forms.submissions');

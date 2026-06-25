@@ -13,6 +13,8 @@ class FormSubmission extends Model
 protected $fillable = [
         'form_id', 'data', 'files', 'ip', 'user_agent', 'referrer',
         'country', 'is_spam', 'spam_reason', 'is_read', 'is_starred',
+        'payment_status', 'amount_cents', 'currency', 'gateway',
+        'gateway_charge_id', 'paid_at',
     ];
 
     protected function casts(): array
@@ -23,7 +25,34 @@ protected $fillable = [
             'is_spam' => 'boolean',
             'is_read' => 'boolean',
             'is_starred' => 'boolean',
+            'amount_cents' => 'integer',
+            'paid_at' => 'datetime',
         ];
+    }
+
+    /** A paid-form submission whose charge has cleared. */
+    public function isPaid(): bool
+    {
+        return $this->payment_status === 'paid';
+    }
+
+    /**
+     * "Completed" submissions for every owner-facing count and list. A paid
+     * form's 'pending' rows are unpaid / abandoned checkout attempts and must
+     * never be treated as real submissions. Free-form rows ('none' or a legacy
+     * NULL payment_status) are always included.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('payment_status')->orWhere('payment_status', '!=', 'pending');
+        });
+    }
+
+    /** A paid-form submission awaiting the customer's gateway return. */
+    public function isAwaitingPayment(): bool
+    {
+        return $this->payment_status === 'pending';
     }
 
     public function form()

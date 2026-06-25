@@ -1217,6 +1217,8 @@
                 'Monetization & teams' => [
                     ['ecommerce',                'Sell from your bio',      'bool'],
                     ['custom_forms',             'Custom forms',            'bool'],
+                    ['paid_forms',               'Paid forms',              'bool'],
+                    ['form_analytics_advanced',  'Advanced form analytics', 'bool'],
                     ['teams',                    'Team workspaces',         'bool'],
                     ['leads',                    'Leads capture',           'bool'],
                     ['vaults',                   'Credential vault',        'bool'],

@@ -106,19 +106,97 @@ class FormController extends Controller
         };
     }
 
+    /** Read the form's payment config (paid forms — Task #2319). */
+    public function payment(Request $request, int $id)
+    {
+        $f = Form::where('user_id', $request->user()->id)->find($id);
+        if (!$f) return $this->notFound('Form not found');
+
+        return $this->ok([
+            'payment'        => $f->paymentConfig(),
+            'can_paid_forms' => (bool) $request->user()->getPlanFeature('paid_forms', false),
+            'has_gateway'    => (bool) $request->user()->defaultPaymentConnection(),
+        ]);
+    }
+
+    /** Toggle / configure the form's fixed price (Pro and above). */
+    public function updatePayment(Request $request, int $id)
+    {
+        $f = Form::where('user_id', $request->user()->id)->find($id);
+        if (!$f) return $this->notFound('Form not found');
+
+        if (! $request->user()->getPlanFeature('paid_forms', false)) {
+            return $this->forbidden('Paid forms require a Pro plan or above.');
+        }
+
+        $data = $request->validate([
+            'enabled'  => 'sometimes|boolean',
+            'amount'   => 'nullable|numeric|min:0|max:100000',
+            'currency' => 'required|string|size:3',
+            'label'    => 'nullable|string|max:60',
+        ]);
+
+        $enabled     = (bool) ($data['enabled'] ?? false);
+        $amountCents = (int) round(((float) ($data['amount'] ?? 0)) * 100);
+        if ($enabled && $amountCents <= 0) {
+            return $this->fail('Set a price greater than zero to require payment.', 422);
+        }
+
+        if ($enabled && ! $request->user()->defaultPaymentConnection()) {
+            return $this->fail('Connect a payment gateway in Payouts before charging customers to submit this form.', 422);
+        }
+
+        $settings = array_merge(Form::defaultSettings(), $f->settings ?? []);
+        $settings['payment'] = array_merge(
+            Form::defaultSettings()['payment'],
+            (array) ($settings['payment'] ?? []),
+            [
+                'enabled'      => $enabled,
+                'mode'         => 'fixed',
+                'amount_cents' => $amountCents,
+                'currency'     => strtoupper($data['currency']),
+                'label'        => $data['label'] ?? null,
+            ]
+        );
+        $f->update(['settings' => $settings]);
+
+        return $this->ok(['payment' => $f->fresh()->paymentConfig()]);
+    }
+
+    /** Advanced form analytics (Pro and above) — mobile parity. */
+    public function analytics(Request $request, int $id)
+    {
+        $f = Form::where('user_id', $request->user()->id)->find($id);
+        if (!$f) return $this->notFound('Form not found');
+
+        if (! $request->user()->getPlanFeature('form_analytics_advanced', false)) {
+            return $this->forbidden('Advanced form analytics require a Pro plan or above.');
+        }
+
+        return $this->ok([
+            'analytics' => app(\App\Modules\User\Controllers\FormController::class)
+                ->buildAdvancedAnalyticsFor($f),
+        ]);
+    }
+
     public function submissions(Request $request, int $id)
     {
         $f = Form::where('user_id', $request->user()->id)->find($id);
         if (!$f) return $this->notFound('Form not found');
 
         $page = FormSubmission::where('form_id', $f->id)
+            ->completed()
             ->orderByDesc('id')
             ->paginate(min(100, max(1, (int) $request->input('per_page', 25))));
         return $this->ok([
             'items' => collect($page->items())->map(fn ($s) => [
-                'id'         => $s->id,
-                'data'       => $s->data ?? $s->payload ?? null,
-                'ip'         => $s->ip ?? null,
+                'id'             => $s->id,
+                'data'           => $s->data ?? $s->payload ?? null,
+                'ip'             => $s->ip ?? null,
+                'payment_status' => $s->payment_status ?? 'none',
+                'amount_cents'   => $s->amount_cents !== null ? (int) $s->amount_cents : null,
+                'currency'       => $s->currency,
+                'paid_at'        => optional($s->paid_at)->toIso8601String(),
                 'created_at' => optional($s->created_at)->toIso8601String(),
             ])->all(),
             'meta' => [

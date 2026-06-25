@@ -132,7 +132,53 @@ protected $fillable = [
             'require_login' => false,
             'close_after' => null, // ISO date or null
             'submission_limit' => null,
+            // Paid forms (Task #2319). Opt-in charge to submit, collected
+            // through the OWNER's connected payment gateway (0% platform fee).
+            // Stored as a structured map so per-field / variable pricing can
+            // layer on later (mode='per_field' with a fields[] breakdown)
+            // without a schema change — fixed mode just uses amount_cents.
+            'payment' => [
+                'enabled'      => false,
+                'mode'         => 'fixed',  // fixed | per_field (future)
+                'amount_cents' => 0,
+                'currency'     => 'USD',
+                'label'        => null,     // optional override for the pay button
+            ],
         ];
+    }
+
+    /** Payment settings merged over the defaults. */
+    public function paymentConfig(): array
+    {
+        $defaults = static::defaultSettings()['payment'];
+        $settings = $this->settings ?? [];
+        return array_merge($defaults, (array) ($settings['payment'] ?? []));
+    }
+
+    /**
+     * Whether this form charges to submit. Requires the toggle on, a
+     * positive computed amount, AND the owner's plan to still allow paid
+     * forms — so a downgrade silently reverts the form to free at submit
+     * time without us mutating stored settings.
+     */
+    public function isPaid(): bool
+    {
+        if (empty($this->paymentConfig()['enabled']) || $this->paymentAmountCents() <= 0) {
+            return false;
+        }
+        return (bool) ($this->user?->getPlanFeature('paid_forms', false));
+    }
+
+    /** Total charge in cents. Fixed mode today; extend for per-field later. */
+    public function paymentAmountCents(): int
+    {
+        return max(0, (int) ($this->paymentConfig()['amount_cents'] ?? 0));
+    }
+
+    public function paymentCurrency(): string
+    {
+        $cur = strtoupper((string) ($this->paymentConfig()['currency'] ?? 'USD'));
+        return $cur !== '' ? $cur : 'USD';
     }
 
     public static function defaultNotifications(): array

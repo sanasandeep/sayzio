@@ -43,6 +43,9 @@ class InboxThreadSync
 
         $rows = FormSubmission::query()->withoutGlobalScope('workspace')
             ->whereIn('form_id', $formIds)
+            // Don't thread unpaid / abandoned paid-form attempts; once a charge
+            // clears the row becomes 'paid' and the next sync picks it up.
+            ->completed()
             ->with('form:id,title')
             ->orderBy('id')
             ->get();

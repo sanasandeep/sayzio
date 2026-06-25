@@ -101,15 +101,132 @@ class FormController extends Controller
     {
         $this->authorizeForm($request, $form);
         $form->loadCount('submissions');
-        $recent = $form->submissions()->latest()->limit(5)->get();
+        $recent = $form->submissions()->completed()->latest()->limit(5)->get();
         $stats = [
-            'today' => $form->submissions()->whereDate('created_at', today())->count(),
-            'week'  => $form->submissions()->where('created_at', '>=', now()->subDays(7))->count(),
-            'month' => $form->submissions()->where('created_at', '>=', now()->subDays(30))->count(),
-            'unread' => $form->submissions()->where('is_read', false)->count(),
+            'today' => $form->submissions()->completed()->whereDate('created_at', today())->count(),
+            'week'  => $form->submissions()->completed()->where('created_at', '>=', now()->subDays(7))->count(),
+            'month' => $form->submissions()->completed()->where('created_at', '>=', now()->subDays(30))->count(),
+            'unread' => $form->submissions()->completed()->where('is_read', false)->count(),
             'conversion' => $form->total_views > 0 ? round(($form->total_submissions / $form->total_views) * 100, 1) : 0,
         ];
-        return view('user.forms.show', compact('form', 'recent', 'stats'));
+
+        // Advanced form analytics (Task #2319) — Pro-and-above only. Built
+        // from data already captured per submission; degrades gracefully
+        // where signals are missing (e.g. geo without a resolver).
+        $advancedAnalytics = (bool) (workspace_owner()?->getPlanFeature('form_analytics_advanced', false));
+        $analytics = $advancedAnalytics ? $this->buildAdvancedAnalytics($form) : null;
+
+        return view('user.forms.show', compact('form', 'recent', 'stats', 'advancedAnalytics', 'analytics'));
+    }
+
+    /**
+     * Deeper per-form analytics for the Overview tab: a 30-day submission
+     * trend, per-field completion / drop-off, device + geo breakdowns and
+     * paid-form revenue. All derived from already-stored submission rows.
+     */
+    /** Public entry point so the mobile API can reuse the same analytics. */
+    public function buildAdvancedAnalyticsFor(Form $form): array
+    {
+        return $this->buildAdvancedAnalytics($form);
+    }
+
+    protected function buildAdvancedAnalytics(Form $form): array
+    {
+        $submissions = $form->submissions()
+            ->where('is_spam', false)
+            // Paid forms: an unpaid / abandoned checkout is not a completed
+            // submission and must not inflate the trend, field, device or geo
+            // metrics. Free-form rows are always kept (see scopeCompleted).
+            ->completed()
+            ->orderBy('created_at')
+            ->get(['id', 'data', 'user_agent', 'country', 'payment_status', 'amount_cents', 'currency', 'created_at']);
+
+        // 30-day submission trend (daily buckets).
+        $trend = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $day = now()->subDays($i)->format('Y-m-d');
+            $trend[$day] = 0;
+        }
+        foreach ($submissions as $s) {
+            $day = optional($s->created_at)->format('Y-m-d');
+            if ($day !== null && array_key_exists($day, $trend)) {
+                $trend[$day]++;
+            }
+        }
+        $trendSeries = [];
+        foreach ($trend as $day => $count) {
+            $trendSeries[] = ['label' => \Illuminate\Support\Carbon::parse($day)->format('M j'), 'count' => $count];
+        }
+
+        // Per-field completion / drop-off across all submissions.
+        $total = $submissions->count();
+        $fieldStats = [];
+        foreach ($form->fields ?? [] as $field) {
+            $type = $field['type'] ?? 'text';
+            $id   = $field['id'] ?? null;
+            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section'], true)) {
+                continue;
+            }
+            $filled = 0;
+            foreach ($submissions as $s) {
+                $v = $s->data[$id] ?? null;
+                $has = is_array($v) ? count($v) > 0 : ($v !== null && $v !== '' && $v !== false);
+                if ($has) $filled++;
+            }
+            $fieldStats[] = [
+                'label' => $field['label'] ?? $id,
+                'filled' => $filled,
+                'rate' => $total > 0 ? round($filled / $total * 100) : 0,
+            ];
+        }
+
+        // Device breakdown from the user-agent string.
+        $devices = ['Desktop' => 0, 'Mobile' => 0, 'Tablet' => 0, 'Unknown' => 0];
+        foreach ($submissions as $s) {
+            $ua = strtolower((string) $s->user_agent);
+            if ($ua === '') { $devices['Unknown']++; continue; }
+            if (str_contains($ua, 'ipad') || (str_contains($ua, 'tablet') && !str_contains($ua, 'mobile'))) {
+                $devices['Tablet']++;
+            } elseif (str_contains($ua, 'mobi') || str_contains($ua, 'android') || str_contains($ua, 'iphone')) {
+                $devices['Mobile']++;
+            } else {
+                $devices['Desktop']++;
+            }
+        }
+        $devices = array_filter($devices, fn ($n) => $n > 0);
+
+        // Geo breakdown from the (best-effort) country column.
+        $geo = [];
+        foreach ($submissions as $s) {
+            $c = $s->country ? strtoupper($s->country) : null;
+            if (!$c) continue;
+            $geo[$c] = ($geo[$c] ?? 0) + 1;
+        }
+        arsort($geo);
+        $geo = array_slice($geo, 0, 8, true);
+
+        // Paid-form revenue.
+        $paid = $submissions->where('payment_status', 'paid');
+        $revenue = [
+            'paid_count'   => $paid->count(),
+            'gross_cents'  => (int) $paid->sum('amount_cents'),
+            'currency'     => strtoupper((string) ($paid->first()->currency ?? $form->paymentCurrency())),
+            'pending'      => $form->submissions()->where('payment_status', 'pending')->count(),
+        ];
+
+        $views = (int) ($form->total_views ?? 0);
+
+        return [
+            'trend'      => $trendSeries,
+            'fields'     => $fieldStats,
+            'devices'    => $devices,
+            'geo'        => $geo,
+            'revenue'    => $revenue,
+            'total'      => $total,
+            'views'      => $views,
+            'conversion' => $views > 0 ? round($total / $views * 100, 1) : 0.0,
+            'is_paid'    => $form->isPaid(),
+        ];
     }
 
     public function builder(Request $request, Form $form)
@@ -382,8 +499,13 @@ class FormController extends Controller
         $query = $form->submissions();
         if ($request->get('filter') === 'unread') $query->where('is_read', false);
         if ($request->get('filter') === 'starred') $query->where('is_starred', true);
-        if ($request->get('filter') === 'spam') $query->where('is_spam', true);
-        else $query->where('is_spam', false);
+        if ($request->get('filter') === 'spam') {
+            // The Spam tab is the one place unpaid attempts may surface (a paid
+            // form's spam is stored 'pending' and never charged).
+            $query->where('is_spam', true);
+        } else {
+            $query->where('is_spam', false)->completed();
+        }
         $submissions = $query->latest()->paginate(25)->withQueryString();
         return view('user.forms.submissions', compact('form', 'submissions'));
     }
@@ -445,7 +567,7 @@ class FormController extends Controller
         return response()->streamDownload(function () use ($form, $headers) {
             $h = fopen('php://output', 'w');
             fputcsv($h, array_merge(['submitted_at', 'ip'], $headers));
-            $form->submissions()->orderBy('id')->chunk(500, function ($rows) use ($h, $headers) {
+            $form->submissions()->completed()->orderBy('id')->chunk(500, function ($rows) use ($h, $headers) {
                 foreach ($rows as $row) {
                     $line = [$row->created_at?->toIso8601String(), $row->ip];
                     foreach ($headers as $key) {
@@ -577,6 +699,59 @@ class FormController extends Controller
     }
 
     /* ---------------------- public-side handlers ---------------------- */
+
+    public function payment(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+        $payment      = $form->paymentConfig();
+        $canPaidForms = (bool) (workspace_owner()?->getPlanFeature('paid_forms', false));
+        $connection   = $form->user?->defaultPaymentConnection();
+        $hasGateway   = (bool) $connection;
+        return view('user.forms.payment', compact('form', 'payment', 'canPaidForms', 'hasGateway', 'connection'));
+    }
+
+    public function updatePayment(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+
+        if (! workspace_owner()?->getPlanFeature('paid_forms', false)) {
+            return back()->with('error', 'Paid forms require a Pro plan or above.');
+        }
+
+        $data = $request->validate([
+            'enabled'  => 'sometimes|boolean',
+            'amount'   => 'nullable|numeric|min:0|max:100000',
+            'currency' => 'required|string|size:3',
+            'label'    => 'nullable|string|max:60',
+        ]);
+
+        $enabled     = $request->boolean('enabled');
+        $amountCents = (int) round(((float) ($data['amount'] ?? 0)) * 100);
+
+        if ($enabled && $amountCents <= 0) {
+            return back()->withInput()->with('error', 'Set a price greater than zero to require payment.');
+        }
+
+        if ($enabled && ! $form->user?->defaultPaymentConnection()) {
+            return back()->withInput()->with('error', 'Connect a payment gateway in Payouts before charging customers to submit this form.');
+        }
+
+        $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
+        $settings['payment'] = array_merge(
+            Form::defaultSettings()['payment'],
+            (array) ($settings['payment'] ?? []),
+            [
+                'enabled'      => $enabled,
+                'mode'         => 'fixed',
+                'amount_cents' => $amountCents,
+                'currency'     => strtoupper($data['currency']),
+                'label'        => $data['label'] ?? null,
+            ]
+        );
+        $form->update(['settings' => $settings]);
+
+        return back()->with('success', 'Payment settings saved.');
+    }
 
     public function publicShow(Request $request, string $slug)
     {
@@ -721,33 +896,104 @@ class FormController extends Controller
             'phone'    => $senderPhone,
         ]);
 
+        // A form only charges when it's flagged paid AND the owner actually has
+        // a connected gateway to receive the funds. If the gateway was removed
+        // after the form was set up, the submission degrades to a normal free
+        // submission rather than stranding the customer at a dead checkout.
+        $isPaid = $form->isPaid() && (bool) $form->user?->defaultPaymentConnection();
+
         $submission = $form->submissions()->create([
             'data' => $data,
             'files' => $files ?: null,
             'ip' => $request->ip(),
             'user_agent' => substr((string) $request->userAgent(), 0, 500),
             'referrer' => substr((string) $request->headers->get('referer', ''), 0, 500),
+            'country' => $this->resolveCountry($request->ip()),
             'is_spam' => $spamCheck['is_spam'],
             'spam_reason' => $spamCheck['is_spam'] ? $spamCheck['reason'] : null,
+            // Paid forms start every attempt (spam included) as 'pending' — an
+            // unpaid attempt that only becomes a real submission once its charge
+            // clears. Free forms are immediately 'none' (complete).
+            'payment_status' => $isPaid ? 'pending' : 'none',
         ]);
 
-        $form->increment('total_submissions');
-        // Don't fire owner notifications / autoresponders / webhooks for spam —
-        // the whole point of the Spam tab is to keep noise out of the inbox.
-        if (! $spamCheck['is_spam']) {
-            $this->fireNotifications($form, $submission);
+        // Paid form (Task #2319): hold the submission pending and send the
+        // customer to the OWNER's gateway. Counting + owner notifications
+        // happen only on a verified return (confirmFormPayment). Obvious spam
+        // is never charged — it's stored for review without a checkout.
+        if ($isPaid && ! $spamCheck['is_spam']) {
+            $checkout = app(\App\Services\Monetization\MonetizationCheckout::class)
+                ->startFormPayment($form, $submission, $senderEmail);
 
-            // Account-level forwarding rules — fan out to user's email/webhook
-            // destinations whose source filter matches form_submission.
-            try {
-                app(\App\Modules\User\Services\InboxForwarder::class)
-                    ->dispatchForFormSubmission($form->user_id, $submission);
-            } catch (\Throwable $e) {
-                logger()->warning('Inbox forwarder (form) failed: ' . $e->getMessage());
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'ok' => true,
+                    'payment_required' => true,
+                    'checkout_url' => $checkout['url'],
+                    'amount_cents' => $form->paymentAmountCents(),
+                    'currency' => $form->paymentCurrency(),
+                ]);
+            }
+            return redirect()->away($checkout['url']);
+        }
+
+        // Reaching here means a free-form submission or a paid-form spam attempt
+        // we store for review but never charge. Paid-form attempts (incl. spam)
+        // must not touch the completed-submission counter or fire owner
+        // notifications until — and unless — their charge clears.
+        if (! $isPaid) {
+            $form->increment('total_submissions');
+
+            // Don't fire owner notifications / autoresponders / webhooks for spam —
+            // the whole point of the Spam tab is to keep noise out of the inbox.
+            if (! $spamCheck['is_spam']) {
+                $this->fireNotifications($form, $submission);
+
+                // Account-level forwarding rules — fan out to user's email/webhook
+                // destinations whose source filter matches form_submission.
+                try {
+                    app(\App\Modules\User\Services\InboxForwarder::class)
+                        ->dispatchForFormSubmission($form->user_id, $submission);
+                } catch (\Throwable $e) {
+                    logger()->warning('Inbox forwarder (form) failed: ' . $e->getMessage());
+                }
             }
         }
 
         return $this->successResponse($request, $form, $spamCheck['is_spam'], $submission);
+    }
+
+    /**
+     * Fire owner notifications + account forwarding for a paid-form
+     * submission once its charge has cleared. Called by
+     * MonetizationCheckout::confirmFormPayment (outside the request cycle).
+     */
+    public function finalizePaidSubmission(Form $form, FormSubmission $submission): void
+    {
+        $this->fireNotifications($form, $submission);
+        try {
+            app(\App\Modules\User\Services\InboxForwarder::class)
+                ->dispatchForFormSubmission($form->user_id, $submission);
+        } catch (\Throwable $e) {
+            logger()->warning('Inbox forwarder (form) failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Best-effort ISO country for a submission's IP, reused by the advanced
+     * analytics geo breakdown. Returns null when no resolver is available
+     * (the column simply stays empty — the breakdown degrades gracefully).
+     */
+    protected function resolveCountry(?string $ip): ?string
+    {
+        if (!$ip) return null;
+        try {
+            $c = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($ip);
+            return $c ? strtoupper(substr($c, 0, 2)) : null;
+        } catch (\Throwable $e) {
+            // Resolver unavailable — leave geo empty; breakdown degrades.
+            return null;
+        }
     }
 
     protected function buildSubmissionRules(Form $form): array

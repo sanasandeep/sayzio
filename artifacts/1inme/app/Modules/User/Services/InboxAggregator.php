@@ -45,6 +45,7 @@ class InboxAggregator
                 ->whereIn('form_id', Form::where('user_id', $this->userId)->pluck('id'))
                 ->where('is_read', false)
                 ->where('is_spam', false)
+                ->completed()
                 ->count();
             $subs = Subscriber::where('user_id', $this->userId)
                 ->where('is_read', false)
@@ -83,7 +84,10 @@ class InboxAggregator
         if ($includeForms && !$linkId) {
             $q = FormSubmission::query()->whereIn('form_id', $formIds);
             if ($formId) $q->where('form_id', $formId);
-            if ($spamOnly) $q->where('is_spam', true); else $q->where('is_spam', false);
+            // Unpaid / abandoned paid-form attempts ('pending') are not real
+            // submissions and stay out of the inbox; the Spam tab is the only
+            // place a paid-form spam attempt may surface.
+            if ($spamOnly) $q->where('is_spam', true); else $q->where('is_spam', false)->completed();
             if ($unreadOnly) $q->where('is_read', false);
             if ($starredOnly) $q->where('is_starred', true);
             if ($dateFrom) $q->where('created_at', '>=', $dateFrom);
