@@ -80,20 +80,47 @@ place. The safe conversion is *create a partitioned twin → copy data → swap
 names*, which on a shared cross-region RDS with ~100M rows must happen in a
 planned maintenance window — never inside `migrate --force` on deploy.
 
+### Partitioning rules that the conversion must respect
+Postgres imposes two hard rules on a partitioned table that a plain table does
+not have, so a naive "copy + swap" is **not** enough:
+
+- The **PRIMARY KEY and every UNIQUE key must include the partition key column**
+  (`clicked_at` / `started_at`). So `link_clicks_pkey (id)` becomes
+  `(id, clicked_at)` and `page_sessions_pkey (id)` becomes `(id, started_at)`.
+- **Unique indexes cannot carry a partial (`WHERE`) predicate.** The
+  `event_id` idempotency index (`UNIQUE (event_id) WHERE event_id IS NOT NULL`)
+  becomes a non-partial `UNIQUE (event_id, clicked_at)`. This preserves the
+  intent: `insertOrIgnore` (`ON CONFLICT DO NOTHING`) still dedupes a
+  re-delivered job (same `event_id` + `clicked_at`), and `NULL` event_ids never
+  collide in a unique index anyway.
+
+`PartitionManager::convertToPartitioned()` handles both automatically — it
+introspects the live table and recreates the PK, unique keys, secondary indexes,
+foreign keys and the owning `id` sequence on the partitioned twin, injecting the
+partition key and dropping partial predicates where required.
+
 ### Conversion runbook
 1. Dry-run to print the exact SQL and current row count:
    ```
    php artisan tracking:setup-partitions link_clicks
    ```
-   (Empty or small tables can be converted directly with `--execute`; the command
-   refuses to auto-convert a large populated table and prints the runbook instead.)
-2. In a maintenance window, run the printed SQL: create the partitioned twin +
-   DEFAULT partition + the month partitions you need, `INSERT ... SELECT` (batch
-   for large tables), rename swap, recreate indexes/sequences, verify, then drop
-   the retained `*_old_plain` table.
+   Empty or small tables can be converted directly with `--execute`, which runs
+   the full faithful conversion (twin → DEFAULT partition + rolling month
+   partitions → copy → recreate PK/unique/secondary indexes/FKs/sequence → swap)
+   in one transaction and retains the original rows as `<table>_old_plain`. The
+   command refuses to auto-convert a large populated table and prints the runbook
+   instead.
+2. For a large table, in a maintenance window run the printed SQL: create the
+   partitioned twin + DEFAULT partition + the month partitions you need,
+   `INSERT ... SELECT` (batch for large tables), rename swap, then recreate the
+   keys/indexes/sequence **per the rules above** (PK/unique include the partition
+   key; no partial unique). Verify row counts, then drop the retained
+   `*_old_plain` table.
 3. Once partitioned, the scheduled `tracking:maintain-partitions` keeps a rolling
    buffer of future month partitions (`--months-ahead`, default 3) so inserts
-   always have a target.
+   always have a target. Historical rows whose month has no dedicated partition
+   land in the catch-all DEFAULT partition; `stats:prune-history` drops whole
+   expired month partitions (O(1)) and chunk-deletes any DEFAULT remainder.
 
 `tracking:maintain-partitions` and the partition-drop path in retention are both
 **no-ops** until a table is actually partitioned, so they are safe to schedule

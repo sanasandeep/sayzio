@@ -87,27 +87,21 @@ class SetupTrackingPartitions extends Command
      */
     private function convert(string $table, string $column, PartitionManager $partitions): void
     {
-        $twin = $table . '_partitioned';
+        $this->info("Converting '{$table}' → partitioned by {$column} (month).");
 
-        $this->info("Converting '{$table}' → partitioned by {$column} (month) via twin '{$twin}'.");
+        // The manager performs the full create-twin / copy / swap conversion in
+        // one transaction, faithfully recreating the primary key, unique keys,
+        // secondary indexes, foreign keys and owning sequence (injecting the
+        // partition key into PK/unique keys as Postgres requires).
+        $summary = $partitions->convertToPartitioned(
+            $table,
+            $column,
+            max(1, (int) $this->option('months-ahead'))
+        );
 
-        DB::transaction(function () use ($table, $twin, $column) {
-            // 1. Partitioned twin with the same structure (no indexes/constraints
-            //    copied automatically on a partitioned parent; recreate as needed).
-            DB::statement("CREATE TABLE {$twin} (LIKE {$table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS) PARTITION BY RANGE ({$column})");
-
-            // 2. A catch-all DEFAULT partition so any out-of-range row still lands.
-            DB::statement("CREATE TABLE {$table}_pdefault PARTITION OF {$twin} DEFAULT");
-
-            // 3. Move existing rows, then swap names.
-            DB::statement("INSERT INTO {$twin} SELECT * FROM {$table}");
-            DB::statement("ALTER TABLE {$table} RENAME TO {$table}_old_plain");
-            DB::statement("ALTER TABLE {$twin} RENAME TO {$table}");
-        });
-
-        $created = $partitions->ensureFuturePartitions($table, max(1, (int) $this->option('months-ahead')));
-        $this->info('Conversion complete. Future partitions: ' . (implode(', ', $created) ?: 'none needed'));
-        $this->warn("Original data retained as '{$table}_old_plain'. Verify, then DROP it manually.");
+        $this->info("Copied {$summary['rows']} row(s); recreated {$summary['indexes']} key/index(es).");
+        $this->info('Future partitions: ' . (implode(', ', $summary['partitions']) ?: 'none needed'));
+        $this->warn("Original data retained as '{$summary['old_table']}'. Verify, then DROP it manually.");
     }
 
     private function printRunbook(string $table, string $column, int $rowCount): void
@@ -124,7 +118,12 @@ class SetupTrackingPartitions extends Command
         $this->line("INSERT INTO {$twin} SELECT * FROM {$table};  -- batch this for large tables");
         $this->line("ALTER TABLE {$table} RENAME TO {$table}_old_plain;");
         $this->line("ALTER TABLE {$twin} RENAME TO {$table};");
-        $this->line("-- recreate indexes/sequences as required, verify, then:");
+        $this->line("-- Recreate keys/indexes. A partitioned table's PRIMARY KEY and UNIQUE keys");
+        $this->line("-- MUST include the partition key ({$column}); unique indexes cannot be partial:");
+        $this->line("--   ALTER TABLE {$table} ADD CONSTRAINT {$table}_pkey PRIMARY KEY (id, {$column});");
+        $this->line("--   CREATE UNIQUE INDEX <name> ON {$table} (<cols>, {$column});  -- drop any WHERE predicate");
+        $this->line("--   recreate the remaining secondary indexes + foreign keys, then reattach the id sequence.");
+        $this->line("-- Verify row counts match, then:");
         $this->line("-- DROP TABLE {$table}_old_plain;");
         $this->line("COMMIT;");
         $this->newLine();
