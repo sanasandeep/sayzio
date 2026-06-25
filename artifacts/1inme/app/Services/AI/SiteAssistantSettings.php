@@ -128,6 +128,9 @@ class SiteAssistantSettings
 
     public const DEFAULT_INPUT_PLACEHOLDER = 'Type a message…';
     public const DEFAULT_SEND_LABEL        = 'Send';
+    /** Fallback greeting bubble shown by the runtime widget when no
+     *  admin/session greeting is set (the admin cleared the field). */
+    public const DEFAULT_GREETING          = 'Hi! How can I help?';
     public const DEFAULT_SUBHEADING            = 'How can I help?';
     public const DEFAULT_TYPING                = 'Assistant is typing…';
     public const DEFAULT_HANDOFF_NOTE          = 'Our team will reply by email.';

@@ -511,7 +511,7 @@ window.__SA_CHROME = {
           s.messages.forEach(renderMessage);
         } else {
           // greeting
-          var g = (cfg&&cfg.greeting) || s.greeting || "Hi! How can I help?";
+          var g = (cfg&&cfg.greeting) || s.greeting || @json(\App\Services\AI\SiteAssistantSettings::DEFAULT_GREETING);
           renderMessage({role:'assistant', content: g, blocks:null});
         }
         // Page-aware suggestions sourced from admin page hints sit on

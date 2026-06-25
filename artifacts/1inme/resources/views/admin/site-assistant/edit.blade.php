@@ -49,6 +49,87 @@
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
             <h3 class="font-semibold text-white">Appearance</h3>
+
+            {{-- Live mock of the chat widget header + first message. Reflects the
+                 appearance fields below as the admin edits them, so the whole look
+                 can be confirmed without saving + reloading. Falls back to the same
+                 defaults the runtime widget uses when a field is left blank. --}}
+            <div>
+                <p class="text-xs text-white/60 mb-2">Live preview</p>
+                <div id="assistant_mock" style="width:320px;max-width:100%;background:#0f172a;color:#e2e8f0;border-radius:16px;border:1px solid rgba(255,255,255,.08);box-shadow:0 18px 40px rgba(0,0,0,.45);overflow:hidden;font-family:'Space Grotesk','system-ui',sans-serif">
+                    <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)">
+                        <img id="assistant_mock_avatar" src="{{ \App\Services\AI\SiteAssistantSettings::avatarUrlFor($cfg) }}" alt="" style="width:32px;height:32px;border-radius:10px;object-fit:contain;background:rgba(255,255,255,.08);padding:1px">
+                        <div style="min-width:0">
+                            <div id="assistant_mock_name" style="font-size:14px;font-weight:600;color:#fff;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ \App\Services\AI\SiteAssistantSettings::brandNameFor($cfg) }}</div>
+                            <div id="assistant_mock_sub" style="font-size:11px;opacity:.65"></div>
+                        </div>
+                        <span style="margin-left:auto;color:#94a3b8;font-size:18px;line-height:1">&times;</span>
+                    </div>
+                    <div style="padding:14px;min-height:78px;display:flex;flex-direction:column;gap:10px">
+                        <div id="assistant_mock_greeting" style="align-self:flex-start;max-width:85%;padding:10px 12px;border-radius:14px;border-bottom-left-radius:4px;background:rgba(255,255,255,.06);color:#e2e8f0;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word"></div>
+                    </div>
+                    <div style="display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)">
+                        <div id="assistant_mock_placeholder" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#94a3b8;padding:8px 10px;border-radius:10px;font-size:13px;min-height:36px;box-sizing:border-box;display:flex;align-items:center"></div>
+                        <button type="button" id="assistant_mock_send" disabled style="background:#7c3aed;border:0;color:#fff;padding:0 14px;border-radius:10px;font-size:14px;cursor:default"></button>
+                    </div>
+                </div>
+            </div>
+            <script>
+            (function () {
+                var mock = document.getElementById('assistant_mock');
+                if (!mock) return;
+                var DEFAULTS = {
+                    name:        @json(\App\Services\AI\SiteAssistantSettings::DEFAULT_BRAND_NAME),
+                    accent:      @json(\App\Services\AI\SiteAssistantSettings::defaults()['accent_color']),
+                    greeting:    @json(\App\Services\AI\SiteAssistantSettings::DEFAULT_GREETING),
+                    subheading:  @json(\App\Services\AI\SiteAssistantSettings::DEFAULT_SUBHEADING),
+                    placeholder: @json(\App\Services\AI\SiteAssistantSettings::DEFAULT_INPUT_PLACEHOLDER),
+                    send:        @json(\App\Services\AI\SiteAssistantSettings::DEFAULT_SEND_LABEL)
+                };
+                var fields = {
+                    name:        document.getElementById('assistant_brand_name'),
+                    accent:      document.getElementById('assistant_accent_color'),
+                    greeting:    document.getElementById('assistant_greeting'),
+                    subheading:  document.getElementById('assistant_subheading_input'),
+                    placeholder: document.getElementById('assistant_input_placeholder'),
+                    send:        document.getElementById('assistant_send_label')
+                };
+                var out = {
+                    name:        document.getElementById('assistant_mock_name'),
+                    sub:         document.getElementById('assistant_mock_sub'),
+                    greeting:    document.getElementById('assistant_mock_greeting'),
+                    placeholder: document.getElementById('assistant_mock_placeholder'),
+                    send:        document.getElementById('assistant_mock_send'),
+                    avatar:      document.getElementById('assistant_mock_avatar')
+                };
+                function val(key) {
+                    var f = fields[key];
+                    var v = f ? (f.value || '').trim() : '';
+                    return v !== '' ? v : DEFAULTS[key];
+                }
+                function render() {
+                    out.name.textContent = val('name');
+                    out.sub.textContent = val('subheading');
+                    out.greeting.textContent = val('greeting');
+                    out.placeholder.textContent = val('placeholder');
+                    out.send.textContent = val('send');
+                    out.send.style.background = val('accent');
+                }
+                Object.keys(fields).forEach(function (k) {
+                    if (fields[k]) fields[k].addEventListener('input', render);
+                });
+                // Mirror the avatar from the existing avatar preview (which already
+                // tracks file uploads + URL edits + the bundled-mascot fallback).
+                var srcAvatar = document.getElementById('assistant_avatar_preview');
+                if (srcAvatar) {
+                    var syncAvatar = function () { out.avatar.src = srcAvatar.src; };
+                    new MutationObserver(syncAvatar).observe(srcAvatar, { attributes: true, attributeFilter: ['src'] });
+                    syncAvatar();
+                }
+                render();
+            })();
+            </script>
+
             <div class="grid md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Position</label>
@@ -59,7 +140,7 @@
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Accent color</label>
-                    <input type="text" name="accent_color" value="{{ $cfg['accent_color'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="#3d6bff">
+                    <input type="text" name="accent_color" id="assistant_accent_color" value="{{ $cfg['accent_color'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="#3d6bff">
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Display name</label>
@@ -124,7 +205,7 @@
             </script>
             <div>
                 <label class="block text-xs text-white/60 mb-1">Greeting</label>
-                <input type="text" name="greeting" value="{{ $cfg['greeting'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                <input type="text" name="greeting" id="assistant_greeting" value="{{ $cfg['greeting'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
             </div>
             <div>
                 <label class="block text-xs text-white/60 mb-1">Starter prompts (one per line)</label>
@@ -145,17 +226,17 @@
             <div class="grid md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Input placeholder</label>
-                    <input type="text" maxlength="120" name="input_placeholder" value="{{ $cfg['input_placeholder'] ?? '' }}" placeholder="Type a message…" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <input type="text" maxlength="120" name="input_placeholder" id="assistant_input_placeholder" value="{{ $cfg['input_placeholder'] ?? '' }}" placeholder="Type a message…" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     <p class="text-xs text-white/40 mt-1">Shown inside the chat textarea. Leave blank to use the built-in <code>Type a message…</code>.</p>
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Send button label</label>
-                    <input type="text" maxlength="40" name="send_label" value="{{ $cfg['send_label'] ?? '' }}" placeholder="Send" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <input type="text" maxlength="40" name="send_label" id="assistant_send_label" value="{{ $cfg['send_label'] ?? '' }}" placeholder="Send" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     <p class="text-xs text-white/40 mt-1">Label on the message-send button. Leave blank to use the built-in <code>Send</code>.</p>
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Header subheading</label>
-                    <input type="text" maxlength="120" name="assistant_subheading" value="{{ $cfg['assistant_subheading'] ?? '' }}" placeholder="How can I help?" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <input type="text" maxlength="120" name="assistant_subheading" id="assistant_subheading_input" value="{{ $cfg['assistant_subheading'] ?? '' }}" placeholder="How can I help?" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     <p class="text-xs text-white/40 mt-1">Small line under the assistant name in the chat header. Leave blank to use <code>How can I help?</code>.</p>
                 </div>
                 <div>
