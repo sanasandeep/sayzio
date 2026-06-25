@@ -32,9 +32,24 @@ class PendingPaymentController extends Controller
             ->orderByDesc('created_at')
             ->limit(100)->get();
 
+        // Buyer-submitted UPI transaction reference / UTR per invoice (read
+        // from the offline attempt's raw_response) so the approver can match
+        // it against their bank/UPI statement and pre-fill the reference box.
+        $buyerRefs = [];
+        foreach ($invoices as $inv) {
+            foreach ($inv->paymentAttempts as $pa) {
+                $ref = $pa->raw_response['buyer_reference'] ?? null;
+                if (is_string($ref) && trim($ref) !== '') {
+                    $buyerRefs[$inv->id] = trim($ref);
+                    break;
+                }
+            }
+        }
+
         return view('admin.payments.pending', [
             'invoices'       => $invoices,
             'reviewAttempts' => $reviewAttempts,
+            'buyerRefs'      => $buyerRefs,
         ]);
     }
 

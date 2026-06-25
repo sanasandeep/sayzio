@@ -35,9 +35,15 @@
                             <span class="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-200">{{ $inv->status }}</span>
                         </td>
                         <td class="px-4 py-3">
+                            @php($buyerRef = $buyerRefs[$inv->id] ?? null)
+                            @if($buyerRef)
+                                <div class="mb-1 text-xs text-emerald-200/90" title="Buyer-submitted reference — verify against your bank/UPI statement">
+                                    <i class="fa-solid fa-user-check"></i> Buyer ref: <span class="font-mono">{{ $buyerRef }}</span>
+                                </div>
+                            @endif
                             <form method="POST" action="{{ route('admin.payments.mark-paid', $inv) }}" class="flex items-center gap-2" onsubmit="return window.themedConfirmSubmit(this, {title: 'Mark invoice {{ $inv->number }} as paid?', message: 'The subscription will be activated immediately.', confirmText: 'Mark paid', confirmIcon: 'fa-check', iconClass: 'fa-check'})">
                                 @csrf
-                                <input type="text" name="reference" placeholder="Reference #" class="px-2 py-1 rounded bg-white/5 border border-white/10 text-white text-xs w-32">
+                                <input type="text" name="reference" value="{{ $buyerRef }}" placeholder="Reference #" class="px-2 py-1 rounded bg-white/5 border border-white/10 text-white text-xs w-32">
                                 <button type="submit" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium">Mark paid</button>
                             </form>
                         </td>

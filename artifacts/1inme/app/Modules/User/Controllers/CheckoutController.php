@@ -181,4 +181,65 @@ class CheckoutController extends Controller
         }
         return redirect()->route('user.invoices.pdf', $invoice);
     }
+
+    /**
+     * Re-render the offline (manual bank/UPI) payment instructions page for
+     * an invoice the buyer already started checkout on. Side-effect free —
+     * used so the buyer can return to the page (and after submitting their
+     * UPI transaction reference).
+     */
+    public function offline(Request $request, Invoice $invoice, GatewayManager $gm)
+    {
+        $this->authorizeOfflineInvoice($request, $invoice);
+
+        $adapter = $gm->for('offline');
+        if (!$adapter instanceof \App\Services\Billing\Adapters\OfflineAdapter) {
+            abort(404);
+        }
+
+        return view('user.checkout.offline', $adapter->offlineViewData($invoice));
+    }
+
+    /**
+     * Persist the buyer-reported UPI transaction reference / UTR against the
+     * invoice's offline payment attempt. Optional and best-effort — there is
+     * no real-time validation; the admin matches it manually at approval.
+     */
+    public function offlineReference(Request $request, Invoice $invoice)
+    {
+        $this->authorizeOfflineInvoice($request, $invoice);
+
+        $data = $request->validate([
+            'upi_reference' => ['nullable', 'string', 'max:190'],
+        ]);
+        $reference = trim((string) ($data['upi_reference'] ?? ''));
+
+        $attempt = $invoice->paymentAttempts()
+            ->where('gateway', 'offline')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($attempt) {
+            $raw = (array) ($attempt->raw_response ?? []);
+            $raw['buyer_reference']    = $reference;
+            $raw['buyer_reference_at'] = now()->toIso8601String();
+            $attempt->update(['raw_response' => $raw]);
+        }
+
+        return redirect()->route('user.checkout.offline', $invoice)
+            ->with('success', $reference !== ''
+                ? 'Thanks — we recorded your transaction reference. Your plan activates once we confirm the payment.'
+                : 'Saved.');
+    }
+
+    /**
+     * Only the invoice owner may view/submit on the offline checkout page.
+     * The {invoice} route-model binding accepts any id, so guard ownership
+     * explicitly (workspace.owner only proves they own the workspace).
+     */
+    protected function authorizeOfflineInvoice(Request $request, Invoice $invoice): void
+    {
+        abort_unless((int) $invoice->user_id === (int) $request->user()?->id, 403);
+        abort_unless($invoice->gateway === 'offline', 404);
+    }
 }

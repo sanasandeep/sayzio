@@ -853,6 +853,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // Checkout: plan+addons cart, tax preview, gateway picker, handoff.
         Route::get('checkout', [\App\Modules\User\Controllers\CheckoutController::class, 'show'])->middleware('workspace.owner')->name('checkout.show');
         Route::post('checkout/handoff', [\App\Modules\User\Controllers\CheckoutController::class, 'handoff'])->middleware('workspace.owner')->name('checkout.handoff');
+        // Offline (manual bank/UPI) instructions page + buyer-submitted UPI reference.
+        Route::get('checkout/offline/{invoice}', [\App\Modules\User\Controllers\CheckoutController::class, 'offline'])->middleware('workspace.owner')->name('checkout.offline');
+        Route::post('checkout/offline/{invoice}/reference', [\App\Modules\User\Controllers\CheckoutController::class, 'offlineReference'])->middleware('workspace.owner')->name('checkout.offline.reference');
 
         // Billing dashboard (subscription lifecycle, invoices, refunds, credit notes).
         Route::get('billing', [\App\Modules\User\Controllers\BillingController::class, 'show'])->middleware('workspace.owner')->name('billing.show');

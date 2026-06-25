@@ -59,14 +59,67 @@ class OfflineAdapter extends AbstractAdapter
         return [
             'kind' => 'view',
             'view' => 'user.checkout.offline',
-            'data' => [
-                'invoice'      => $invoice,
-                'instructions' => (string) $this->cred('instructions', "Please transfer the amount to the account shown on your invoice.\nEmail the transaction reference to billing@1inme.com."),
-                'payee_name'   => (string) $this->cred('payee_name', config('billing.merchant.name')),
-                'bank_details' => (string) $this->cred('bank_details', ''),
-                'upi_id'       => (string) $this->cred('upi_id', ''),
-            ],
+            'data' => $this->offlineViewData($invoice),
         ];
+    }
+
+    /**
+     * Build the data the offline checkout page needs, including a standard
+     * `upi://pay` deep link + the values a browser QR engine encodes. This
+     * is side-effect free so it can be reused when re-rendering the page
+     * after a buyer submits their transaction reference.
+     */
+    public function offlineViewData(Invoice $invoice): array
+    {
+        $upiId     = trim((string) $this->cred('upi_id', ''));
+        $payeeName = (string) $this->cred('payee_name', config('billing.merchant.name'));
+        $amount    = number_format(((int) $invoice->grand_total_minor) / 100, 2, '.', '');
+        $currency  = (string) $invoice->currency;
+        $note      = 'Invoice ' . $invoice->number;
+
+        // upi://pay deep link — pa(payee VPA), pn(payee name), am(amount),
+        // cu(currency), tn(note). Only built when the admin set a UPI ID so
+        // the page degrades gracefully (no broken button/QR) otherwise.
+        $upiLink = '';
+        if ($upiId !== '') {
+            $upiLink = 'upi://pay?' . http_build_query([
+                'pa' => $upiId,
+                'pn' => $payeeName,
+                'am' => $amount,
+                'cu' => $currency,
+                'tn' => $note,
+            ], '', '&', PHP_QUERY_RFC3986);
+        }
+
+        return [
+            'invoice'         => $invoice,
+            'instructions'    => (string) $this->cred('instructions', "Please transfer the amount to the account shown on your invoice.\nEmail the transaction reference to billing@1inme.com."),
+            'payee_name'      => $payeeName,
+            'bank_details'    => (string) $this->cred('bank_details', ''),
+            'upi_id'          => $upiId,
+            'upi_link'        => $upiLink,
+            'upi_amount'      => $amount,
+            'upi_note'        => $note,
+            'buyer_reference' => self::buyerReferenceFor($invoice),
+        ];
+    }
+
+    /**
+     * The buyer-submitted UPI transaction reference / UTR, read from the
+     * most recent offline payment attempt's raw_response. Buyer-reported
+     * only — never validated against a real UPI ledger.
+     */
+    public static function buyerReferenceFor(Invoice $invoice): ?string
+    {
+        $attempt = $invoice->paymentAttempts()
+            ->where('gateway', 'offline')
+            ->orderByDesc('id')
+            ->first();
+
+        $ref = $attempt?->raw_response['buyer_reference'] ?? null;
+        $ref = is_string($ref) ? trim($ref) : '';
+
+        return $ref !== '' ? $ref : null;
     }
 
     public function verifyWebhook(Request $request): bool
