@@ -7,10 +7,43 @@
     // On the home page, "Pricing" should anchor-scroll to the in-page section.
     // On every other page, it should navigate to the dedicated /pricing page.
     $pricingHref = request()->routeIs('home') ? '#pricing' : route('site.pricing');
+
+    // Mega-menu link groups. [href, fa-icon, title, one-line description].
+    // Plain `&` in titles/descriptions — echoed via {{ }} so Blade escapes them.
+    $navProductCore = [
+        [route('site.features'),       'fa-bolt',         'Features',           'Everything 1INME can do'],
+        [route('site.how-it-works'),   'fa-play',         'How it works',       'Step-by-step setup'],
+        [route('site.analytics'),      'fa-chart-line',   'Analytics',          'Live geo, coach & cohorts'],
+        [route('site.audience'),       'fa-users',        'Audience',           'Followers, digest emails & directory'],
+        [route('site.integrations'),   'fa-plug',         'Integrations',       'One-click social connections'],
+        [route('site.domains'),        'fa-globe',        'Domains & aliases',  'Branded domains & custom slugs'],
+        [route('site.workspace-team'), 'fa-people-group', 'Workspace & Team',   'Roles, permissions, audit logs'],
+        [route('site.api-docs'),       'fa-code',         'API',                'Build with 1INME'],
+    ];
+    $navProductAi = [
+        [route('site.ai-chatbot'),         'fa-comments',        'AI Chatbot',         '24/7 chat on your biolink'],
+        [route('site.ai-agent'),           'fa-robot',           'AI Agent',           'Runs multi-step tasks for you'],
+        [route('site.ai-widget'),          'fa-window-restore',  'AI Widget',          'Embed on any website'],
+        [route('site.ai-voice-assistant'), 'fa-headset',         'AI Voice Assistant', 'Picks up calls in your voice'],
+    ];
+    $navProductCareer = [
+        [route('site.resume-builder'), 'fa-file-lines', 'Résumé & Portfolio', 'Build a CV & portfolio link in 5 min'],
+    ];
+    $navSolutions = [
+        [route('site.services'),                    'fa-bullseye',            'Use cases',              'For creators, brands, agencies & teams'],
+        [route('site.compare.index'),               'fa-scale-balanced',      'Compare 1INME',          'vs Linktree, Beacons, Bitly & more'],
+        [route('site.demos'),                       'fa-wand-magic-sparkles', 'See what you can build', 'Live demo of every link type'],
+        [route('site.discovery'),                   'fa-compass',             'Discover creators',      'Browse the public directory'],
+        [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping'],
+        [route('site.buzz'),                        'fa-bullhorn',            'Buzz',                   'News, press & love'],
+        [route('site.features').'#cat-events',      'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link'],
+        [route('site.features').'#cat-referrals',   'fa-gift',                'Referrals',              'Reward fans who spread the word'],
+    ];
+    $navUseCases = \App\Modules\Common\Support\SitePagesContent::useCaseMeta();
 @endphp
-<div x-data="{ mobileOpen:false, openMenu:null {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }"
+<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }"
      x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''"
-     @keydown.escape.window="openMenu=null; mobileOpen=false"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authOpen = true; mobileOpen = false"' : '' !!}>
+     @keydown.escape.window="openMenu=null; mobileOpen=false; mobileGroup=null"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authOpen = true; mobileOpen = false"' : '' !!}>
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5" style="top: var(--inme-anno-h, 0px);">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
@@ -20,142 +53,172 @@
             </a>
 
             {{-- Desktop nav --}}
-            <div class="hidden lg:flex items-center gap-x-1 xl:gap-x-2 min-w-0 flex-1 justify-center px-4"
-                 @click.outside="openMenu=null">
+            <div class="hidden lg:flex items-center gap-x-1 xl:gap-x-2 min-w-0 flex-1 justify-center px-4 relative"
+                 @click.outside="openMenu=null"
+                 @mouseleave="openMenu=null">
 
-                {{-- Product dropdown --}}
-                <div class="relative">
-                    <button type="button"
-                            @click="openMenu === 'product' ? openMenu=null : openMenu='product'"
-                            :aria-expanded="openMenu === 'product'"
-                            class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-violet-400 rounded-lg whitespace-nowrap">
-                        Product <i class="fas fa-chevron-down text-[10px] opacity-70" :class="openMenu === 'product' ? 'rotate-180' : ''"></i>
-                    </button>
-                    <div x-show="openMenu === 'product'" x-cloak
-                         x-transition:enter="transition ease-out duration-150"
-                         x-transition:enter-start="opacity-0 -translate-y-1"
-                         x-transition:enter-end="opacity-100 translate-y-0"
-                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 p-2 z-[60]">
-                        <a href="{{ route('site.features') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-bolt text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Features</span><span class="block text-xs text-gray-500">Everything 1INME can do</span></span>
-                        </a>
-                        <a href="{{ route('site.how-it-works') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-play text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">How it works</span><span class="block text-xs text-gray-500">Step-by-step setup</span></span>
-                        </a>
-                        <a href="{{ route('site.analytics') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-chart-line text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Analytics</span><span class="block text-xs text-gray-500">Live geo, coach &amp; cohorts</span></span>
-                        </a>
-                        <a href="{{ route('site.audience') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-users text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Audience</span><span class="block text-xs text-gray-500">Followers, digest emails &amp; directory</span></span>
-                        </a>
-                        <a href="{{ route('site.integrations') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-plug text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Integrations</span><span class="block text-xs text-gray-500">One-click social connections</span></span>
-                        </a>
-                        <a href="{{ route('site.domains') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-globe text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Domains &amp; aliases</span><span class="block text-xs text-gray-500">Branded domains &amp; custom slugs</span></span>
-                        </a>
-                        <a href="{{ route('site.workspace-team') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-people-group text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Workspace &amp; Team</span><span class="block text-xs text-gray-500">Roles, permissions, audit logs</span></span>
-                        </a>
-                        <a href="{{ route('site.api-docs') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-code text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">API</span><span class="block text-xs text-gray-500">Build with 1INME</span></span>
-                        </a>
-                        <div class="my-1 border-t border-white/5"></div>
-                        <div class="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">AI suite</div>
-                        <a href="{{ route('site.ai-chatbot') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-comments text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">AI Chatbot</span><span class="block text-xs text-gray-500">24/7 chat on your biolink</span></span>
-                        </a>
-                        <a href="{{ route('site.ai-agent') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-robot text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">AI Agent</span><span class="block text-xs text-gray-500">Runs multi-step tasks for you</span></span>
-                        </a>
-                        <a href="{{ route('site.ai-widget') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-window-restore text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">AI Widget</span><span class="block text-xs text-gray-500">Embed on any website</span></span>
-                        </a>
-                        <a href="{{ route('site.ai-voice-assistant') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-headset text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">AI Voice Assistant</span><span class="block text-xs text-gray-500">Picks up calls in your voice</span></span>
-                        </a>
-                        <div class="my-1 border-t border-white/5"></div>
-                        <div class="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Career</div>
-                        <a href="{{ route('site.resume-builder') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-file-lines text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Résumé &amp; Portfolio</span><span class="block text-xs text-gray-500">Build a CV &amp; portfolio link in 5 min</span></span>
-                        </a>
+                {{-- Product trigger --}}
+                <button type="button"
+                        @click="openMenu === 'product' ? openMenu=null : openMenu='product'"
+                        @mouseenter="openMenu='product'"
+                        :aria-expanded="openMenu === 'product'"
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors"
+                        :class="openMenu === 'product' ? 'text-violet-400' : 'text-gray-300 hover:text-violet-400'">
+                    Product <i class="fas fa-chevron-down text-[10px] opacity-70 transition-transform" :class="openMenu === 'product' ? 'rotate-180' : ''"></i>
+                </button>
+
+                {{-- Solutions trigger --}}
+                <button type="button"
+                        @click="openMenu === 'solutions' ? openMenu=null : openMenu='solutions'"
+                        @mouseenter="openMenu='solutions'"
+                        :aria-expanded="openMenu === 'solutions'"
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors"
+                        :class="openMenu === 'solutions' ? 'text-violet-400' : 'text-gray-300 hover:text-violet-400'">
+                    Solutions <i class="fas fa-chevron-down text-[10px] opacity-70 transition-transform" :class="openMenu === 'solutions' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <a href="{{ route('site.features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Features</a>
+                <a href="{{ $pricingHref }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Pricing</a>
+                <a href="{{ route('site.premium-features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Premium</a>
+                <a href="{{ route('site.about') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">About</a>
+                <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Contact</a>
+
+                {{-- ============ Product mega panel ============ --}}
+                {{-- Outer wrapper has no visible chrome and a top padding "bridge" so
+                     the cursor can travel from the trigger to the panel without
+                     crossing a dead zone (which would trip @mouseleave). Centered via
+                     left-0/right-0 + mx-auto so it never overflows the viewport edge.
+                     Enter-only x-transition (leave shorthand is buggy in this app). --}}
+                <div x-show="openMenu === 'product'" x-cloak
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute left-0 right-0 mx-auto top-full w-[min(56rem,calc(100vw-2rem))] pt-3 z-[60]">
+                    <div class="rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 overflow-hidden">
+                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500"></span>
+                        <div class="grid grid-cols-[1.9fr_1fr_minmax(12rem,0.95fr)] gap-5 p-5">
+                            {{-- Core product (two-up) --}}
+                            <div>
+                                <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Core product</div>
+                                <div class="grid grid-cols-2 gap-1">
+                                    @foreach($navProductCore as [$__href, $__icon, $__title, $__desc])
+                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300 transition-transform group-hover:scale-110">
+                                                <i class="fas {{ $__icon }} text-sm"></i>
+                                            </span>
+                                            <span class="min-w-0">
+                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                            {{-- AI suite + Career --}}
+                            <div>
+                                <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">AI suite</div>
+                                <div class="space-y-0.5">
+                                    @foreach($navProductAi as [$__href, $__icon, $__title, $__desc])
+                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300 transition-transform group-hover:scale-110">
+                                                <i class="fas {{ $__icon }} text-sm"></i>
+                                            </span>
+                                            <span class="min-w-0">
+                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                                <div class="px-1 pt-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Career</div>
+                                <div class="space-y-0.5">
+                                    @foreach($navProductCareer as [$__href, $__icon, $__title, $__desc])
+                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-300 transition-transform group-hover:scale-110">
+                                                <i class="fas {{ $__icon }} text-sm"></i>
+                                            </span>
+                                            <span class="min-w-0">
+                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                            {{-- Featured --}}
+                            <div class="relative overflow-hidden rounded-xl border border-violet-400/30 bg-white/5 bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
+                                <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/25 blur-2xl"></span>
+                                <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-violet-300">
+                                    <i class="fas fa-sparkles"></i> What you can create
+                                </span>
+                                <span class="relative mt-2 block text-base font-bold leading-tight text-white">Everything in one link</span>
+                                <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Links, biolinks, QR codes, résumés and AI pages — all fully branded.</span>
+                                <a href="{{ route('site.features') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#7c3aed] px-4 py-2 text-xs font-bold text-white hover:bg-[#6d28d9] transition-colors">
+                                    Explore features <i class="fas fa-arrow-right text-[10px]"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {{-- Solutions dropdown --}}
-                <div class="relative">
-                    <button type="button"
-                            @click="openMenu === 'solutions' ? openMenu=null : openMenu='solutions'"
-                            :aria-expanded="openMenu === 'solutions'"
-                            class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-300 hover:text-violet-400 rounded-lg whitespace-nowrap">
-                        Solutions <i class="fas fa-chevron-down text-[10px] opacity-70" :class="openMenu === 'solutions' ? 'rotate-180' : ''"></i>
-                    </button>
-                    <div x-show="openMenu === 'solutions'" x-cloak
-                         x-transition:enter="transition ease-out duration-150"
-                         x-transition:enter-start="opacity-0 -translate-y-1"
-                         x-transition:enter-end="opacity-100 translate-y-0"
-                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 p-2 z-[60]">
-                        <a href="{{ route('site.services') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-bullseye text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Use cases</span><span class="block text-xs text-gray-500">For creators, brands, agencies &amp; teams</span></span>
-                        </a>
-                        <a href="{{ route('site.compare.index') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-scale-balanced text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Compare 1INME</span><span class="block text-xs text-gray-500">vs Linktree, Beacons, Bitly &amp; more</span></span>
-                        </a>
-                        <a href="{{ route('site.demos') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-wand-magic-sparkles text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">See what you can build</span><span class="block text-xs text-gray-500">Live demo of every link type</span></span>
-                        </a>
-                        <a href="{{ route('site.discovery') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-compass text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Discover creators</span><span class="block text-xs text-gray-500">Browse the public directory</span></span>
-                        </a>
-                        <a href="{{ route('site.creators-feed') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-stream text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Creators feed</span><span class="block text-xs text-gray-500">What the community is shipping</span></span>
-                        </a>
-                        <a href="{{ route('site.buzz') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-bullhorn text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Buzz</span><span class="block text-xs text-gray-500">News, press &amp; love</span></span>
-                        </a>
-                        <a href="{{ route('site.features') }}#cat-events" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-calendar-day text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Events &amp; RSVPs</span><span class="block text-xs text-gray-500">Run launches with one link</span></span>
-                        </a>
-                        <a href="{{ route('site.features') }}#cat-referrals" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                            <i class="fas fa-gift text-pink-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Referrals</span><span class="block text-xs text-gray-500">Reward fans who spread the word</span></span>
-                        </a>
-                        <div class="my-1 border-t border-white/5"></div>
-                        <div class="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
-                        @foreach(\App\Modules\Common\Support\SitePagesContent::useCaseMeta() as $__ucSlug => $__ucMeta)
-                            <a href="{{ route('site.use-case', $__ucSlug) }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
-                                <i class="fas {{ $__ucMeta['icon'] }} text-pink-400 mt-1"></i>
-                                <span><span class="block text-sm font-semibold text-white">{{ $__ucMeta['eyebrow'] }}</span><span class="block text-xs text-gray-500">{{ $__ucMeta['nav_desc'] ?? $__ucMeta['tagline'] }}</span></span>
-                            </a>
-                        @endforeach
+                {{-- ============ Solutions mega panel ============ --}}
+                <div x-show="openMenu === 'solutions'" x-cloak
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute left-0 right-0 mx-auto top-full w-[min(56rem,calc(100vw-2rem))] pt-3 z-[60]">
+                    <div class="rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 overflow-hidden">
+                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-pink-500"></span>
+                        <div class="grid grid-cols-[1.9fr_1fr_minmax(12rem,0.95fr)] gap-5 p-5">
+                            {{-- Explore (two-up) --}}
+                            <div>
+                                <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Explore</div>
+                                <div class="grid grid-cols-2 gap-1">
+                                    @foreach($navSolutions as [$__href, $__icon, $__title, $__desc])
+                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110">
+                                                <i class="fas {{ $__icon }} text-sm"></i>
+                                            </span>
+                                            <span class="min-w-0">
+                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                            {{-- 1INME for… --}}
+                            <div>
+                                <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
+                                <div class="space-y-0.5">
+                                    @foreach($navUseCases as $__ucSlug => $__ucMeta)
+                                        <a href="{{ route('site.use-case', $__ucSlug) }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110">
+                                                <i class="fas {{ $__ucMeta['icon'] }} text-sm"></i>
+                                            </span>
+                                            <span class="min-w-0">
+                                                <span class="block text-sm font-semibold text-white">{{ $__ucMeta['eyebrow'] }}</span>
+                                                <span class="block text-xs leading-snug text-gray-500">{{ $__ucMeta['nav_desc'] ?? $__ucMeta['tagline'] }}</span>
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                            {{-- Featured --}}
+                            <div class="relative overflow-hidden rounded-xl border border-pink-400/30 bg-white/5 bg-gradient-to-br from-pink-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
+                                <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-pink-500/25 blur-2xl"></span>
+                                <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-pink-300">
+                                    <i class="fas fa-compass"></i> Not sure where to start?
+                                </span>
+                                <span class="relative mt-2 block text-base font-bold leading-tight text-white">One link for every goal</span>
+                                <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Built for creators, brands, agencies, coaches and local business.</span>
+                                <a href="{{ route('site.services') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#7c3aed] px-4 py-2 text-xs font-bold text-white hover:bg-[#6d28d9] transition-colors">
+                                    See use cases <i class="fas fa-arrow-right text-[10px]"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <a href="{{ route('site.features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Features</a>
-                <a href="{{ $pricingHref }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Pricing</a>
-                <a href="{{ route('site.premium-features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Premium</a>
-                <a href="{{ route('site.about') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">About</a>
-                <a href="{{ route('site.contact') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Contact</a>
             </div>
 
             {{-- Auth CTAs --}}
@@ -199,47 +262,75 @@
             </div>
         </div>
 
-        {{-- Mobile menu --}}
-        <div x-show="mobileOpen" x-cloak class="lg:hidden pb-4 border-t border-white/10 mt-2 pt-3 space-y-1 overflow-y-auto overscroll-contain"
+        {{-- Mobile menu — collapsible accordions (x-collapse plugin is bundled) --}}
+        <div x-show="mobileOpen" x-cloak class="lg:hidden pb-4 border-t border-white/10 mt-2 pt-3 space-y-2 overflow-y-auto overscroll-contain"
              style="max-height: calc(100dvh - var(--inme-anno-h, 0px) - 5rem); -webkit-overflow-scrolling: touch;">
-            <div class="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Product</div>
-            <a href="{{ route('site.features') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Features</a>
-            <a href="{{ route('site.how-it-works') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">How it works</a>
-            <a href="{{ route('site.analytics') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Analytics</a>
-            <a href="{{ route('site.audience') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Audience</a>
-            <a href="{{ route('site.integrations') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Integrations</a>
-            <a href="{{ route('site.domains') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Domains &amp; aliases</a>
-            <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Workspace &amp; Team</a>
-            <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
 
-            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">AI suite</div>
-            <a href="{{ route('site.ai-chatbot') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Chatbot</a>
-            <a href="{{ route('site.ai-agent') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Agent</a>
-            <a href="{{ route('site.ai-widget') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Widget</a>
-            <a href="{{ route('site.ai-voice-assistant') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Voice Assistant</a>
-            <a href="{{ route('site.resume-builder') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Résumé &amp; Portfolio</a>
+            {{-- Product --}}
+            <div class="rounded-xl border border-white/10 overflow-hidden">
+                <button type="button"
+                        @click="mobileGroup === 'm-product' ? mobileGroup=null : mobileGroup='m-product'"
+                        :aria-expanded="mobileGroup === 'm-product'"
+                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
+                        :class="mobileGroup === 'm-product' ? 'text-violet-400' : 'text-white'">
+                    <span>Product</span>
+                    <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-product' ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="mobileGroup === 'm-product'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
+                    @foreach(array_merge($navProductCore, $navProductAi, $navProductCareer) as [$__href, $__icon, $__title, $__desc])
+                        <a href="{{ $__href }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
+                            <i class="fas {{ $__icon }} w-4 text-center text-violet-300 text-sm"></i>
+                            <span class="text-sm text-gray-300">{{ $__title }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
 
-            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Solutions</div>
-            <a href="{{ route('site.services') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Use cases</a>
-            <a href="{{ route('site.compare.index') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Compare 1INME</a>
-            <a href="{{ route('site.demos') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">See what you can build</a>
-            <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Discover creators</a>
-            <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Creators feed</a>
-            <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Buzz</a>
-            <a href="{{ route('site.features') }}#cat-events" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Events &amp; RSVPs</a>
-            <a href="{{ route('site.features') }}#cat-referrals" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Referrals</a>
+            {{-- Solutions --}}
+            <div class="rounded-xl border border-white/10 overflow-hidden">
+                <button type="button"
+                        @click="mobileGroup === 'm-solutions' ? mobileGroup=null : mobileGroup='m-solutions'"
+                        :aria-expanded="mobileGroup === 'm-solutions'"
+                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
+                        :class="mobileGroup === 'm-solutions' ? 'text-violet-400' : 'text-white'">
+                    <span>Solutions</span>
+                    <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-solutions' ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="mobileGroup === 'm-solutions'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
+                    @foreach($navSolutions as [$__href, $__icon, $__title, $__desc])
+                        <a href="{{ $__href }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
+                            <i class="fas {{ $__icon }} w-4 text-center text-pink-300 text-sm"></i>
+                            <span class="text-sm text-gray-300">{{ $__title }}</span>
+                        </a>
+                    @endforeach
+                    <div class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
+                    @foreach($navUseCases as $__ucSlug => $__ucMeta)
+                        <a href="{{ route('site.use-case', $__ucSlug) }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
+                            <i class="fas {{ $__ucMeta['icon'] }} w-4 text-center text-pink-300 text-sm"></i>
+                            <span class="text-sm text-gray-300">{{ $__ucMeta['eyebrow'] }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
 
-            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
-            @foreach(\App\Modules\Common\Support\SitePagesContent::useCaseMeta() as $__ucSlug => $__ucMeta)
-                <a href="{{ route('site.use-case', $__ucSlug) }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">{{ $__ucMeta['eyebrow'] }}</a>
-            @endforeach
-
-            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Company</div>
-            <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
-            <a href="{{ route('site.premium-features') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Premium features</a>
-            <a href="{{ route('site.about') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">About</a>
-            <a href="{{ route('site.contact') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Contact</a>
-            <a href="{{ route('site.faqs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">FAQs</a>
+            {{-- Company --}}
+            <div class="rounded-xl border border-white/10 overflow-hidden">
+                <button type="button"
+                        @click="mobileGroup === 'm-company' ? mobileGroup=null : mobileGroup='m-company'"
+                        :aria-expanded="mobileGroup === 'm-company'"
+                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
+                        :class="mobileGroup === 'm-company' ? 'text-violet-400' : 'text-white'">
+                    <span>Company</span>
+                    <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-company' ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="mobileGroup === 'm-company'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
+                    <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-tag w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">Pricing</span></a>
+                    <a href="{{ route('site.premium-features') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-crown w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">Premium features</span></a>
+                    <a href="{{ route('site.about') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-info w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">About</span></a>
+                    <a href="{{ route('site.contact') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-envelope w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">Contact</span></a>
+                    <a href="{{ route('site.faqs') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-question w-4 text-center text-violet-300 text-sm"></i><span class="text-sm text-gray-300">FAQs</span></a>
+                </div>
+            </div>
 
             <div class="pt-3 border-t border-white/10 space-y-2">
                 @auth
