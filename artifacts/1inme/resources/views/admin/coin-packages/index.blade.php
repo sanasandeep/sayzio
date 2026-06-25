@@ -34,8 +34,10 @@
             @endif
             @php $pUsd = $pkg->prices->first(fn($p)=>$p->currency==='USD' && $p->billing_cycle==='monthly'); @endphp
             @php $pInr = $pkg->prices->first(fn($p)=>$p->currency==='INR' && $p->billing_cycle==='monthly'); @endphp
-            <div class="flex justify-between"><span class="text-white/40">Price USD</span><span class="font-semibold text-white">${{ number_format(($pUsd->amount_minor_units ?? 0)/100, 2) }}</span></div>
-            <div class="flex justify-between"><span class="text-white/40">Price INR</span><span class="font-semibold text-white">₹{{ number_format(($pInr->amount_minor_units ?? 0)/100, 2) }}</span></div>
+            @php $oUsd = $pkg->originalPriceDisplay('USD', (int)($pUsd->amount_minor_units ?? 0)); @endphp
+            @php $oInr = $pkg->originalPriceDisplay('INR', (int)($pInr->amount_minor_units ?? 0)); @endphp
+            <div class="flex justify-between"><span class="text-white/40">Price USD</span><span class="font-semibold text-white">@if($oUsd)<span class="text-white/30 line-through mr-1.5 font-normal">${{ number_format($oUsd['amount_minor']/100, 2) }}</span>@endif${{ number_format(($pUsd->amount_minor_units ?? 0)/100, 2) }}</span></div>
+            <div class="flex justify-between"><span class="text-white/40">Price INR</span><span class="font-semibold text-white">@if($oInr)<span class="text-white/30 line-through mr-1.5 font-normal">₹{{ number_format($oInr['amount_minor']/100, 2) }}</span>@endif₹{{ number_format(($pInr->amount_minor_units ?? 0)/100, 2) }}</span></div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">

@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class CoinPackage extends Model
 {
+    /**
+     * Billing-cycle slot used to store the optional "compare-at" / original
+     * (strike-off) price in the shared polymorphic `prices` table, alongside
+     * the live `monthly` slot used for the charged amount. Display-only: the
+     * checkout always charges the live price.
+     */
+    public const COMPARE_CYCLE = 'compare';
+
     protected $fillable = [
         'name', 'slug', 'description', 'coin_amount', 'bonus_coins',
         'status', 'is_archived', 'sort_order',
@@ -39,5 +47,47 @@ class CoinPackage extends Model
     public function totalCoins(): int
     {
         return (int) $this->coin_amount + (int) $this->bonus_coins;
+    }
+
+    /**
+     * Read the optional original ("compare-at") price for a currency, in
+     * MINOR units (cents/paise). Returns 0 when none is set. Uses the
+     * eager-loaded `prices` relation when available to avoid N+1, else
+     * issues a single targeted query.
+     */
+    public function originalPriceMinor(string $currency): int
+    {
+        if ($this->relationLoaded('prices')) {
+            $row = $this->prices->first(fn ($p) => $p->currency === $currency
+                && $p->billing_cycle === self::COMPARE_CYCLE
+                && (bool) $p->is_active);
+        } else {
+            $row = $this->prices()
+                ->where('currency', $currency)
+                ->where('billing_cycle', self::COMPARE_CYCLE)
+                ->where('is_active', true)
+                ->first();
+        }
+        return $row ? (int) $row->amount_minor_units : 0;
+    }
+
+    /**
+     * Shared "should we show a strikethrough?" rule for every surface. Given
+     * the live price (in minor units), returns the original-price display
+     * payload only when an original is set AND is strictly higher than the
+     * live price; otherwise null (render just the single price).
+     *
+     * @return array{amount_minor:int, formatted:string}|null
+     */
+    public function originalPriceDisplay(string $currency, int $currentMinor): ?array
+    {
+        $original = $this->originalPriceMinor($currency);
+        if ($original <= 0 || $original <= $currentMinor) {
+            return null;
+        }
+        return [
+            'amount_minor' => $original,
+            'formatted'    => \App\Services\PricingResolver::money($original, $currency),
+        ];
     }
 }

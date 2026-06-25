@@ -1,6 +1,8 @@
 @php
     $pUsd = $package->prices->first(fn($p)=>$p->currency==='USD' && $p->billing_cycle==='monthly');
     $pInr = $package->prices->first(fn($p)=>$p->currency==='INR' && $p->billing_cycle==='monthly');
+    $oUsd = $package->prices->first(fn($p)=>$p->currency==='USD' && $p->billing_cycle===\App\Modules\Admin\Models\CoinPackage::COMPARE_CYCLE);
+    $oInr = $package->prices->first(fn($p)=>$p->currency==='INR' && $p->billing_cycle===\App\Modules\Admin\Models\CoinPackage::COMPARE_CYCLE);
 @endphp
 
 <div class="space-y-5">
@@ -46,6 +48,23 @@
                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
         </div>
     </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs text-white/60 mb-1">Original price USD (cents) <span class="text-white/30">— optional</span></label>
+            <input type="number" name="original_price_usd" min="0"
+                   value="{{ old('original_price_usd', $oUsd->amount_minor_units ?? '') }}"
+                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
+            @error('original_price_usd')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+        </div>
+        <div>
+            <label class="block text-xs text-white/60 mb-1">Original price INR (paise) <span class="text-white/30">— optional</span></label>
+            <input type="number" name="original_price_inr" min="0"
+                   value="{{ old('original_price_inr', $oInr->amount_minor_units ?? '') }}"
+                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
+            @error('original_price_inr')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+        </div>
+    </div>
+    <p class="text-xs text-white/40 -mt-2">Set a higher original price to show it struck through next to the live price (the classic discount look). Leave blank or 0 to hide it. Display-only — checkout always charges the live price.</p>
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
         <select name="status" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white">

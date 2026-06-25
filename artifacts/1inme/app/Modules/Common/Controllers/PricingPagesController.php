@@ -88,9 +88,12 @@ class PricingPagesController extends Controller
                 $priced = [];
                 foreach ($currencies as $cur) {
                     $pc = PricingResolver::priceForCurrency($p, $cur, 'monthly');
+                    $current = (int) ($pc['amount_minor'] ?? 0);
+                    $orig = $p->originalPriceDisplay($cur, $current);
                     $priced[$cur] = [
-                        'amount_minor' => (int) ($pc['amount_minor'] ?? 0),
-                        'formatted'    => $pc['formatted'] ?? null,
+                        'amount_minor'       => $current,
+                        'formatted'          => $pc['formatted'] ?? null,
+                        'original_formatted' => $orig['formatted'] ?? null,
                     ];
                 }
                 return [

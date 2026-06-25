@@ -30,6 +30,17 @@ class CoinPackagesSeeder extends Seeder
                 'bonus_coins' => 0,
                 'sort_order' => 10,
                 'prices' => ['USD' => 199, 'INR' => 16900],
+                'original' => ['USD' => 249, 'INR' => 20900],
+            ],
+            [
+                'slug' => 'mini-pack',
+                'name' => 'Mini Pack',
+                'description' => 'A little more headroom for occasional boosts and small unlocks.',
+                'coin_amount' => 250,
+                'bonus_coins' => 15,
+                'sort_order' => 15,
+                'prices' => ['USD' => 449, 'INR' => 37900],
+                'original' => ['USD' => 549, 'INR' => 45900],
             ],
             [
                 'slug' => 'value-pack',
@@ -39,6 +50,7 @@ class CoinPackagesSeeder extends Seeder
                 'bonus_coins' => 50,
                 'sort_order' => 20,
                 'prices' => ['USD' => 899, 'INR' => 74900],
+                'original' => ['USD' => 1099, 'INR' => 89900],
             ],
             [
                 'slug' => 'creator-pack',
@@ -48,6 +60,17 @@ class CoinPackagesSeeder extends Seeder
                 'bonus_coins' => 200,
                 'sort_order' => 30,
                 'prices' => ['USD' => 1999, 'INR' => 169900],
+                'original' => ['USD' => 2499, 'INR' => 209900],
+            ],
+            [
+                'slug' => 'growth-pack',
+                'name' => 'Growth Pack',
+                'description' => 'Scaling up — a healthy reserve for sustained campaigns and AI credits.',
+                'coin_amount' => 2000,
+                'bonus_coins' => 350,
+                'sort_order' => 35,
+                'prices' => ['USD' => 2999, 'INR' => 249900],
+                'original' => ['USD' => 3699, 'INR' => 309900],
             ],
             [
                 'slug' => 'pro-pack',
@@ -57,6 +80,7 @@ class CoinPackagesSeeder extends Seeder
                 'bonus_coins' => 600,
                 'sort_order' => 40,
                 'prices' => ['USD' => 4499, 'INR' => 374900],
+                'original' => ['USD' => 5499, 'INR' => 459900],
             ],
             [
                 'slug' => 'mega-pack',
@@ -66,12 +90,24 @@ class CoinPackagesSeeder extends Seeder
                 'bonus_coins' => 2000,
                 'sort_order' => 50,
                 'prices' => ['USD' => 9999, 'INR' => 829900],
+                'original' => ['USD' => 12999, 'INR' => 1079900],
+            ],
+            [
+                'slug' => 'ultimate-pack',
+                'name' => 'Ultimate Pack',
+                'description' => 'For agencies and heavy automation — the deepest reserve and biggest savings.',
+                'coin_amount' => 20000,
+                'bonus_coins' => 6000,
+                'sort_order' => 60,
+                'prices' => ['USD' => 19999, 'INR' => 1659900],
+                'original' => ['USD' => 27999, 'INR' => 2299900],
             ],
         ];
 
         foreach ($packages as $row) {
             $prices = $row['prices'];
-            unset($row['prices']);
+            $original = $row['original'] ?? [];
+            unset($row['prices'], $row['original']);
 
             // firstOrCreate keeps this seeder idempotent — admin edits
             // to existing packages survive re-runs of `db:seed`.
@@ -81,8 +117,35 @@ class CoinPackagesSeeder extends Seeder
             );
 
             foreach ($prices as $currency => $minor) {
-                PricingResolver::upsertFromMinor($pkg, $currency, 'monthly', $minor);
+                $this->seedPriceIfMissing($pkg, $currency, 'monthly', $minor);
             }
+
+            // Sample original ("compare-at") prices so the strike-off
+            // discount look is visible on a fresh install. Stored under the
+            // dedicated `compare` slot; display-only (checkout charges the
+            // live price).
+            foreach ($original as $currency => $minor) {
+                $this->seedPriceIfMissing($pkg, $currency, CoinPackage::COMPARE_CYCLE, $minor);
+            }
+        }
+    }
+
+    /**
+     * Write a price row only when one does not already exist for this
+     * (currency, billing cycle). This keeps the seeder non-destructive:
+     * re-running `db:seed` tops up missing price rows but NEVER overwrites
+     * an amount an admin has since edited. (`upsertFromMinor` uses
+     * `updateOrCreate`, so calling it unconditionally would clobber edits —
+     * hence the existence guard here.)
+     */
+    private function seedPriceIfMissing(CoinPackage $pkg, string $currency, string $cycle, int $minor): void
+    {
+        $exists = $pkg->prices()
+            ->where('currency', $currency)
+            ->where('billing_cycle', $cycle)
+            ->exists();
+        if (!$exists) {
+            PricingResolver::upsertFromMinor($pkg, $currency, $cycle, $minor);
         }
     }
 }

@@ -71,17 +71,21 @@ class WalletController extends Controller
         $items = CoinPackage::active()->ordered()->with('prices')->get()
             ->map(function ($p) use ($currency) {
                 $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
+                $current = (int) ($priced['amount_minor'] ?? 0);
+                $orig = $p->originalPriceDisplay($currency, $current);
                 return [
-                    'id'           => $p->id,
-                    'slug'         => $p->slug,
-                    'name'         => $p->name,
-                    'description'  => $p->description,
-                    'coin_amount'  => (int) $p->coin_amount,
-                    'bonus_coins'  => (int) $p->bonus_coins,
-                    'total_coins'  => $p->totalCoins(),
-                    'currency'     => $currency,
-                    'amount_minor' => (int) ($priced['amount_minor'] ?? 0),
-                    'formatted'    => $priced['formatted'] ?? null,
+                    'id'                    => $p->id,
+                    'slug'                  => $p->slug,
+                    'name'                  => $p->name,
+                    'description'           => $p->description,
+                    'coin_amount'           => (int) $p->coin_amount,
+                    'bonus_coins'           => (int) $p->bonus_coins,
+                    'total_coins'           => $p->totalCoins(),
+                    'currency'              => $currency,
+                    'amount_minor'          => $current,
+                    'formatted'             => $priced['formatted'] ?? null,
+                    'original_amount_minor' => $orig ? (int) $orig['amount_minor'] : null,
+                    'original_formatted'    => $orig['formatted'] ?? null,
                 ];
             })->all();
         return $this->ok(['items' => $items, 'currency' => $currency]);

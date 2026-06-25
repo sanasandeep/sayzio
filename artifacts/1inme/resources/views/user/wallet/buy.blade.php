@@ -28,7 +28,11 @@
                 @if($pkg->bonus_coins > 0)
                     <p class="text-xs text-emerald-300 mt-1">+{{ number_format($pkg->bonus_coins) }} bonus coins</p>
                 @endif
-                <div class="my-4 text-2xl font-bold text-white">{{ $priced['formatted'] }}</div>
+                @php $orig = $pkg->originalPriceDisplay($currency, (int)($priced['amount_minor'] ?? 0)); @endphp
+                <div class="my-4 flex items-baseline gap-2">
+                    @if($orig)<span class="text-lg text-white/40 line-through">{{ $orig['formatted'] }}</span>@endif
+                    <span class="text-2xl font-bold text-white">{{ $priced['formatted'] }}</span>
+                </div>
 
                 <form method="POST" action="{{ route('user.wallet.buy.handoff') }}" class="space-y-2">
                     @csrf

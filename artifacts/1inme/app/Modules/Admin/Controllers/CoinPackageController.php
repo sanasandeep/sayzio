@@ -38,6 +38,7 @@ class CoinPackageController extends Controller
             'sort_order'  => $data['sort_order'] ?? 0,
         ]);
         $this->syncPrices($package, $minor);
+        $this->syncOriginalPrices($package, $this->extractOriginalMinor($data));
 
         return redirect()->route('admin.coin-packages.index')->with('success', 'Coin package created.');
     }
@@ -61,6 +62,7 @@ class CoinPackageController extends Controller
             'sort_order'  => $data['sort_order'] ?? 0,
         ]);
         $this->syncPrices($coinPackage, $minor);
+        $this->syncOriginalPrices($coinPackage, $this->extractOriginalMinor($data));
         return redirect()->route('admin.coin-packages.index')->with('success', 'Coin package updated.');
     }
 
@@ -89,6 +91,10 @@ class CoinPackageController extends Controller
             // Per-currency price in MINOR units (cents/paise).
             'price_usd'   => 'required|integer|min:0',
             'price_inr'   => 'required|integer|min:0',
+            // Optional original ("compare-at") price in MINOR units. Blank or
+            // zero clears the strike-off price for that currency.
+            'original_price_usd' => 'nullable|integer|min:0',
+            'original_price_inr' => 'nullable|integer|min:0',
         ]);
     }
 
@@ -100,12 +106,39 @@ class CoinPackageController extends Controller
         ];
     }
 
+    private function extractOriginalMinor(array $data): array
+    {
+        return [
+            'USD' => (int) ($data['original_price_usd'] ?? 0),
+            'INR' => (int) ($data['original_price_inr'] ?? 0),
+        ];
+    }
+
     private function syncPrices(CoinPackage $pkg, array $minor): void
     {
         // Coin packages are one-time purchases; we re-use the
         // 'monthly' billing cycle slot so PricingResolver finds them.
         foreach ($minor as $currency => $amount) {
             PricingResolver::upsertFromMinor($pkg, $currency, 'monthly', $amount);
+        }
+    }
+
+    /**
+     * Persist (or clear) the optional original/compare-at price per currency
+     * under the dedicated `compare` billing-cycle slot. A blank/zero amount
+     * removes the strike-off price for that currency.
+     */
+    private function syncOriginalPrices(CoinPackage $pkg, array $minor): void
+    {
+        foreach ($minor as $currency => $amount) {
+            if ($amount > 0) {
+                PricingResolver::upsertFromMinor($pkg, $currency, CoinPackage::COMPARE_CYCLE, $amount);
+            } else {
+                $pkg->prices()
+                    ->where('currency', $currency)
+                    ->where('billing_cycle', CoinPackage::COMPARE_CYCLE)
+                    ->delete();
+            }
         }
     }
 

@@ -459,6 +459,10 @@
             const p = prices[this.currency] || prices.USD || {};
             return p.formatted || '—';
         },
+        coinOriginal(prices){
+            const p = prices[this.currency] || prices.USD || {};
+            return p.original_formatted || '';
+        },
         switchCurrency(c){
             if (this.currency === c) return;
             this.currency = c;
@@ -1374,7 +1378,12 @@
                             @endif
 
                             <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-                                <span class="text-2xl font-bold text-white price-num" x-text="coinPrice(prices)">{{ $row['prices'][$currency]['formatted'] ?? '—' }}</span>
+                                <span class="flex items-baseline gap-2">
+                                    <span class="text-sm text-gray-500 line-through price-num"
+                                          x-text="coinOriginal(prices)"
+                                          x-show="coinOriginal(prices)">{{ $row['prices'][$currency]['original_formatted'] ?? '' }}</span>
+                                    <span class="text-2xl font-bold text-white price-num" x-text="coinPrice(prices)">{{ $row['prices'][$currency]['formatted'] ?? '—' }}</span>
+                                </span>
                                 @auth
                                     <a href="{{ route('user.wallet.buy') }}" class="px-4 py-2 bg-amber-400 text-[#1e2330] rounded-xl text-sm font-bold hover:bg-amber-300 transition shadow-lg shadow-amber-500/20">Buy now</a>
                                 @else
