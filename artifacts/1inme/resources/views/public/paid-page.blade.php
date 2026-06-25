@@ -19,6 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family={{ urlencode($template['font']) }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 <style>
     :root{

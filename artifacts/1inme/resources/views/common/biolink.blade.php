@@ -1150,6 +1150,7 @@
         @endif
     </div>
 
+    <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script src="{{ asset('js/vendor/alpine.min.js') }}" defer></script>
     <script>
     // Live poll component: posts the picked option to the JSON poll-vote
