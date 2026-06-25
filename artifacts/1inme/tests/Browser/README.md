@@ -44,6 +44,7 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   biolink-editor-palette-dnd.spec.ts \
   cookie-consent-footer-gap.spec.ts \
   cookie-consent-layout-styles.spec.ts \
+  cookie-consent-theme-match.spec.ts \
   voice-assistant-bridge.spec.ts
 ```
 
@@ -96,7 +97,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these six specs are gated (and not the whole suite)
+### Why these seven specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -117,6 +118,12 @@ The gate covers the specs that run reliably as an unattended check here:
 - `cookie-consent-layout-styles.spec.ts` — extends the footer-reserve
   guard across the corner / pill / modal / takeover consent layouts. No
   login/seeding.
+- `cookie-consent-theme-match.spec.ts` — pins the consent banner's `auto`
+  theme to the site's own light/dark mode (not the OS): asserts the banner
+  is light on a light page and dark on a dark page (the `.cc-is-dark` class
+  on `.cc-host` + the card colour), that toggling the site switch flips it
+  live, and that an explicit admin `light`/`dark` theme ignores the page
+  mode. No login/seeding (rewrites the `/pricing` consent config blob).
 - `voice-assistant-bridge.spec.ts` — self-bootstrapping: it turns on the
   Voice Assistant via `php artisan tinker` (no API key — the turn endpoint
   is mocked in the browser), logs in as the demo user, and drives the real
@@ -189,3 +196,12 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
   in-place "Customize" expansion grows the reserve in lockstep, and that
   a returning visitor (consent cookie present) gets no banner, no reserve,
   and a footer flush with the bottom of the document. No login needed.
+- `cookie-consent-theme-match.spec.ts` — gated. Guards that the consent
+  banner's `auto` theme follows the site's own light/dark mode rather than
+  the OS `prefers-color-scheme`. On `/pricing` (consent theme rewritten in
+  the server-rendered config blob) it asserts the banner is light on a
+  light page and dark on a dark page (the `.cc-is-dark` class on `.cc-host`
+  plus the resolved card background), that flipping the site light/dark
+  switch re-themes the open banner live via its MutationObserver, and that
+  explicit admin `light`/`dark` themes stay fixed regardless of the page
+  mode. No login/seeding.
