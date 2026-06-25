@@ -1,4 +1,1 @@
-@php
-    $page = \App\Modules\Common\Models\SitePage::resolveErrorPage('error-403');
-@endphp
-@include('errors._site-error', ['page' => $page, 'statusCode' => 403])
+@include('errors._render', ['statusCode' => 403, 'slug' => 'error-403'])

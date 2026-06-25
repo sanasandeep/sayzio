@@ -1,4 +1,1 @@
-@php
-    $page = \App\Modules\Common\Models\SitePage::resolveErrorPage('error-405');
-@endphp
-@include('errors._site-error', ['page' => $page, 'statusCode' => 405])
+@include('errors._render', ['statusCode' => 405, 'slug' => 'error-405'])

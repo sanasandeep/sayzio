@@ -93,6 +93,40 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
+                <h2 class="text-base font-semibold text-white">Visitor page style</h2>
+                <p class="text-xs text-white/50">Choose what the maintenance page looks like to visitors. The API 503 envelope is unaffected.</p>
+            </div>
+
+            @php $currentStyle = old('style', $style ?? 'standard'); @endphp
+            <div class="grid sm:grid-cols-2 gap-3">
+                <label class="flex items-start gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
+                    <input type="radio" name="style" value="standard"
+                           @checked($currentStyle !== 'upgrade')
+                           class="mt-1 w-4 h-4 accent-violet-500 cursor-pointer">
+                    <div class="flex-1 min-w-0">
+                        <span class="text-sm font-semibold text-white">Standard</span>
+                        <p class="text-xs text-white/50 mt-0.5">The default &ldquo;We&rsquo;ll be right back&rdquo; maintenance page.</p>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-4 rounded-xl border border-violet-400/30 bg-violet-500/[0.06] hover:bg-violet-500/[0.09] transition cursor-pointer">
+                    <input type="radio" name="style" value="upgrade"
+                           @checked($currentStyle === 'upgrade')
+                           class="mt-1 w-4 h-4 accent-violet-500 cursor-pointer">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-white">Upgrade &mdash; 1INME 2.0</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-violet-500/15 border border-violet-400/30 text-violet-300">On-brand</span>
+                        </div>
+                        <p class="text-xs text-white/50 mt-0.5">A polished &ldquo;1INME 2.0 is coming&rdquo; announcement teasing the new AI &ldquo;digital aging&rdquo; feature. Your message &amp; ETA below still show.</p>
+                    </div>
+                </label>
+            </div>
+            @error('style')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+        </div>
+
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
                 <h2 class="text-base font-semibold text-white">Visitor message</h2>
                 <p class="text-xs text-white/50">Shown on the 503 page and inside the API error envelope. Both fields are optional.</p>
             </div>

@@ -133,11 +133,14 @@ class MaintenanceMode
             ]);
         }
 
+        $style = (string) AppSetting::get('maintenance_style', 'standard');
+
         return response()->view('maintenance', [
             'area'    => $area,
             'label'   => self::AREA_LABELS[$area] ?? $area,
             'message' => $message,
             'eta'     => $eta,
+            'style'   => $style === 'upgrade' ? 'upgrade' : 'standard',
         ], 503, [
             'Retry-After' => '300',
         ]);

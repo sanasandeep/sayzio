@@ -31,6 +31,7 @@ class MaintenanceModeController extends Controller
             'adminOnly' => (bool) AppSetting::get('maintenance_admin_only_enabled', false),
             'message'   => (string) AppSetting::get('maintenance_message', ''),
             'eta'       => (string) AppSetting::get('maintenance_eta', ''),
+            'style'     => (string) AppSetting::get('maintenance_style', 'standard'),
         ]);
     }
 
@@ -40,6 +41,7 @@ class MaintenanceModeController extends Controller
             'admin_only' => ['nullable', 'boolean'],
             'message'    => ['nullable', 'string', 'max:500'],
             'eta'        => ['nullable', 'string', 'max:120'],
+            'style'      => ['nullable', 'string', 'in:standard,upgrade'],
         ];
         foreach (MaintenanceMode::AREAS as $area) {
             $rules['areas.' . $area] = ['nullable', 'boolean'];
@@ -54,6 +56,7 @@ class MaintenanceModeController extends Controller
         AppSetting::put('maintenance_admin_only_enabled', (bool) ($data['admin_only'] ?? false));
         AppSetting::put('maintenance_message', trim((string) ($data['message'] ?? '')));
         AppSetting::put('maintenance_eta', trim((string) ($data['eta'] ?? '')));
+        AppSetting::put('maintenance_style', ($data['style'] ?? 'standard') === 'upgrade' ? 'upgrade' : 'standard');
 
         return back()->with('success', 'Maintenance mode settings saved.');
     }

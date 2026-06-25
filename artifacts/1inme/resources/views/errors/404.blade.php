@@ -1,5 +1,4 @@
 @php
-    $page = \App\Modules\Common\Models\SitePage::resolveErrorPage('error-404');
     $suggestions = [];
     try {
         $suggester = app(\App\Modules\Common\Services\PathSuggester::class);
@@ -11,4 +10,4 @@
         $suggestions = [];
     }
 @endphp
-@include('errors._site-error', ['page' => $page, 'statusCode' => 404, 'suggestions' => $suggestions])
+@include('errors._render', ['statusCode' => 404, 'slug' => 'error-404', 'suggestions' => $suggestions])
