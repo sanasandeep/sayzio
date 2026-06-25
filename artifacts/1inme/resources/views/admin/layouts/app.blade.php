@@ -130,28 +130,88 @@
                     <button @click="mobileMenu = false" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                 </div>
                 <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+                    {{-- Overview --}}
+                    <div class="section-header pt-1 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Overview</div>
                     <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div><span>Dashboard</span></a>
+
+                    {{-- People & Access --}}
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">People &amp; Access</div>
                     <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') && ! request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div><span>Users</span></a>
+                    <a href="{{ route('admin.staff.index') }}" class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Staff</span></a>
+                    <a href="{{ route('admin.roles.index') }}" class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-key"></i></div><span>Roles &amp; Permissions</span></a>
+                    <a href="{{ route('admin.protected-accounts.index') }}" class="sidebar-link {{ request()->routeIs('admin.protected-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-shield-alt"></i></div><span>Protected accounts</span></a>
+                    <a href="{{ route('admin.users.activity-log.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.activity-log.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div><span>Activity log</span></a>
+                    <a href="{{ route('admin.privacy-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Privacy Requests</span></a>
                     @if(auth('admin')->user()?->isSuperAdmin())
                         <a href="{{ route('admin.users.role-audit-exports.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-csv"></i></div><span>Audit downloads</span></a>
                     @endif
-                    <a href="{{ route('admin.adult-moderation.index') }}" class="sidebar-link {{ request()->routeIs('admin.adult-moderation.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-fire"></i></div><span>18+ moderation</span></a>
-                    <a href="{{ route('admin.moderation-queue.index') }}" class="sidebar-link {{ request()->routeIs('admin.moderation-queue.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-flag"></i></div><span>Reports & DMCA</span></a>
-                    <a href="{{ route('admin.staff.index') }}" class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Staff</span></a>
-                    <a href="{{ route('admin.roles.index') }}" class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-key"></i></div><span>Roles</span></a>
+
+                    {{-- Content & Links --}}
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Content &amp; Links</div>
                     <a href="{{ route('admin.links.index') }}" class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div><span>All Links</span></a>
-                    <a href="{{ route('admin.referrals.index') }}" class="sidebar-link {{ request()->routeIs('admin.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div><span>Referrals</span></a>
-                    <a href="{{ route('admin.domains.index') }}" class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div><span>Domains</span></a>
+                    <a href="{{ route('admin.templates.index') }}" class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div><span>Templates</span></a>
+                    <a href="{{ route('admin.bg-templates.index') }}" class="sidebar-link {{ request()->routeIs('admin.bg-templates.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div><span>Background Templates</span></a>
+                    <a href="{{ route('admin.onboarding-slides.index') }}" class="sidebar-link {{ request()->routeIs('admin.onboarding-slides.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-mobile-screen"></i></div><span>Onboarding Slides</span></a>
+                    <a href="{{ route('admin.demo-content.index') }}" class="sidebar-link {{ request()->routeIs('admin.demo-content.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-seedling"></i></div><span>Demo Content</span></a>
+                    <a href="{{ route('admin.assets.index') }}" class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div><span>Asset Vault</span></a>
+                    <a href="{{ route('admin.site-pages.index') }}" class="sidebar-link {{ request()->routeIs('admin.site-pages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div><span>Site Pages</span></a>
+                    @if(auth('admin')->user() && auth('admin')->user()->hasAnyPermission(['blogs.view','blogs.manage','blogs.publish','blogs.comments.moderate']))
+                        <a href="{{ route('admin.blogs.posts.index') }}" class="sidebar-link {{ request()->routeIs('admin.blogs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-feather-pointed"></i></div><span>Blog</span></a>
+                    @endif
+
+                    {{-- Moderation & Safety --}}
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Moderation &amp; Safety</div>
+                    <a href="{{ route('admin.biolink-reports.index') }}" class="sidebar-link {{ request()->routeIs('admin.biolink-reports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-flag"></i></div><span>Link in Bio Reports</span></a>
+                    <a href="{{ route('admin.moderation-queue.index') }}" class="sidebar-link {{ request()->routeIs('admin.moderation-queue.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-flag"></i></div><span>Reports &amp; DMCA</span></a>
+                    <a href="{{ route('admin.adult-moderation.index') }}" class="sidebar-link {{ request()->routeIs('admin.adult-moderation.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-fire"></i></div><span>18+ moderation</span></a>
+                    <a href="{{ route('admin.spam-rules.index') }}" class="sidebar-link {{ request()->routeIs('admin.spam-rules.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-shield-halved"></i></div><span>Spam Rules</span></a>
+                    <a href="{{ route('admin.banned-names.index') }}" class="sidebar-link {{ request()->routeIs('admin.banned-names.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-ban"></i></div><span>Banned Names</span></a>
+                    <a href="{{ route('admin.file-scan-queue.index') }}" class="sidebar-link {{ request()->routeIs('admin.file-scan-queue.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-shield-virus"></i></div><span>File Scans</span></a>
+                    <a href="{{ route('admin.cookie-consent.edit') }}" class="sidebar-link {{ request()->routeIs('admin.cookie-consent.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cookie-bite"></i></div><span>Cookie Consent</span></a>
+
+                    {{-- Billing & Plans --}}
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Billing &amp; Plans</div>
                     <a href="{{ route('admin.plans.index') }}" class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-tags"></i></div><span>Plans</span></a>
-                    <a href="{{ route('admin.addons.index') }}" class="sidebar-link {{ request()->routeIs('admin.addons.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div><span>Addons</span></a>
                     <a href="{{ route('admin.coin-packages.index') }}" class="sidebar-link {{ request()->routeIs('admin.coin-packages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-coins"></i></div><span>Coin Packages</span></a>
                     <a href="{{ route('admin.wallet-settings.edit') }}" class="sidebar-link {{ request()->routeIs('admin.wallet-settings.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div><span>Wallet Settings</span></a>
+                    <a href="{{ route('admin.addons.index') }}" class="sidebar-link {{ request()->routeIs('admin.addons.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div><span>Addons</span></a>
+                    <a href="{{ route('admin.referrals.index') }}" class="sidebar-link {{ request()->routeIs('admin.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div><span>Referrals</span></a>
+                    <a href="{{ route('admin.starter-renewals.index') }}" class="sidebar-link {{ request()->routeIs('admin.starter-renewals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div><span>Renewal Reminders</span></a>
+
+                    {{-- AI --}}
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">AI</div>
                     <a href="{{ route('admin.ai-engine.edit') }}" class="sidebar-link {{ request()->routeIs('admin.ai-engine.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div><span>AI Engine</span></a>
                     <a href="{{ route('admin.ai-usage.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-usage.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-microchip"></i></div><span>AI Usage</span></a>
+                    <a href="{{ route('admin.ai-minds.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div><span>AI Minds</span></a>
                     <a href="{{ route('admin.ai-personas.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div><span>AI Personas</span></a>
+                    <a href="{{ route('admin.site-assistant.edit') }}" class="sidebar-link {{ request()->routeIs('admin.site-assistant.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div><span>Site Assistant</span></a>
                     <a href="{{ route('admin.ask-coach.index') }}" class="sidebar-link {{ request()->routeIs('admin.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div><span>Ask Coach</span></a>
                     <a href="{{ route('admin.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div><span>AI Companions</span></a>
-                    <a href="{{ route('admin.assets.index') }}" class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div><span>Asset Vault</span></a>
+                    <a href="{{ route('admin.coach-defaults.edit') }}" class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div><span>Score Presets</span></a>
+
+                    {{-- Marketing & Comms --}}
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing &amp; Comms</div>
+                    <a href="{{ route('admin.marketing-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div><span>Marketing</span></a>
+                    <a href="{{ route('admin.marketing-seo.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing-seo.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-magnifying-glass-chart"></i></div><span>Marketing SEO</span></a>
+                    <a href="{{ route('admin.marketing-events.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing-events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div><span>Marketing Events</span></a>
+                    <a href="{{ route('admin.site-stats.index') }}" class="sidebar-link {{ request()->routeIs('admin.site-stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div><span>Marketing Stats</span></a>
+                    <a href="{{ route('admin.testimonials.index') }}" class="sidebar-link {{ request()->routeIs('admin.testimonials.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-quote-right"></i></div><span>Testimonials</span></a>
+                    <a href="{{ route('admin.announcements.index') }}" class="sidebar-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div><span>Announcements</span></a>
+                    <a href="{{ route('admin.newsletter.index') }}" class="sidebar-link {{ request()->routeIs('admin.newsletter.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-envelope-open-text"></i></div><span>Newsletter</span></a>
+                    <a href="{{ route('admin.notifications.index') }}" class="sidebar-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div><span>Notifications</span></a>
+                    <a href="{{ route('admin.social-links.edit') }}" class="sidebar-link {{ request()->routeIs('admin.social-links.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div><span>Social Links</span></a>
+                    <a href="{{ route('admin.contact-inbox.index') }}" class="sidebar-link {{ request()->routeIs('admin.contact-inbox.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div><span>Contact Inbox</span></a>
+
+                    {{-- System --}}
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">System</div>
+                    <a href="{{ route('admin.domains.index') }}" class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div><span>Domains</span></a>
+                    <a href="{{ route('admin.integrations.index') }}" class="sidebar-link {{ request()->routeIs('admin.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div><span>Integrations</span></a>
+                    <a href="{{ route('admin.auth-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.auth-settings.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-right-to-bracket"></i></div><span>Login &amp; OTP</span></a>
+                    <a href="{{ route('admin.email-verification-reminders.index') }}" class="sidebar-link {{ request()->routeIs('admin.email-verification-reminders.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-envelope-circle-check"></i></div><span>Verify Reminders</span></a>
+                    <a href="{{ route('admin.maintenance.index') }}" class="sidebar-link {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-triangle-exclamation"></i></div><span>Maintenance Mode</span></a>
+                    <a href="{{ route('admin.cron-jobs.index') }}" class="sidebar-link {{ request()->routeIs('admin.cron-jobs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clock"></i></div><span>Cron Jobs</span></a>
+                    <a href="{{ route('admin.schema.repair-audits') }}" class="sidebar-link {{ request()->routeIs('admin.schema.repair-audits') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wrench"></i></div><span>Schema Repairs</span></a>
+                    <a href="{{ route('admin.branding.edit') }}" class="sidebar-link {{ request()->routeIs('admin.branding.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div><span>Branding</span></a>
                 </nav>
                 @if(!session('impersonate_user_id') && auth()->guard('admin')->user()?->hasUserAccount())
                 <div class="p-3" style="border-top: 1px solid var(--border-strong);">
