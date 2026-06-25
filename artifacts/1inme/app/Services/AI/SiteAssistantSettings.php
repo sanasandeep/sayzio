@@ -175,7 +175,14 @@ P;
     {
         $custom = trim((string) ($cfg['avatar_url'] ?? ''));
         if ($custom !== '') {
-            return $custom;
+            // Already-absolute URLs (admin-pasted) pass through untouched;
+            // relative paths (uploaded files stored under /branding) are
+            // promoted to an absolute URL so the cross-origin marketing
+            // widget can load them too.
+            if (preg_match('#^(https?:)?//#i', $custom) || str_starts_with($custom, 'data:')) {
+                return $custom;
+            }
+            return asset(ltrim($custom, '/'));
         }
         return asset(self::DEFAULT_AVATAR_PATH);
     }

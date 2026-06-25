@@ -29,7 +29,7 @@
         <a href="{{ route('admin.site-assistant.analytics') }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white">Analytics</a>
     </div>
 
-    <form method="POST" action="{{ route('admin.site-assistant.update') }}" class="space-y-6">
+    <form method="POST" action="{{ route('admin.site-assistant.update') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf @method('PUT')
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
@@ -62,8 +62,29 @@
                     <input type="text" name="accent_color" value="{{ $cfg['accent_color'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="#7c3aed">
                 </div>
                 <div>
-                    <label class="block text-xs text-white/60 mb-1">Avatar URL (optional)</label>
-                    <input type="text" name="avatar_url" value="{{ $cfg['avatar_url'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="https://…">
+                    <label class="block text-xs text-white/60 mb-1">Display name</label>
+                    <input type="text" maxlength="60" name="brand_name" value="{{ $cfg['brand_name'] ?? '' }}" placeholder="{{ \App\Services\AI\SiteAssistantSettings::DEFAULT_BRAND_NAME }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Name shown in the chat header. Leave blank to use <code>{{ \App\Services\AI\SiteAssistantSettings::DEFAULT_BRAND_NAME }}</code>.</p>
+                    @error('brand_name')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+            <div class="grid md:grid-cols-[88px,1fr] gap-4 items-start">
+                <div class="rounded-xl p-2 flex items-center justify-center" style="background:rgba(255,255,255,0.04); border:1px solid var(--border-glass); min-height:80px;">
+                    <img src="{{ \App\Services\AI\SiteAssistantSettings::avatarUrlFor($cfg) }}" alt="Assistant avatar preview" class="h-16 w-16 rounded-full object-cover">
+                </div>
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1">Upload avatar</label>
+                        <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/webp"
+                               class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700 file:cursor-pointer">
+                        <p class="text-xs text-white/40 mt-1">PNG, JPG or WebP, up to 2&nbsp;MB. Uploading replaces the URL below.</p>
+                        @error('avatar_file')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1">Avatar URL (optional)</label>
+                        <input type="text" name="avatar_url" value="{{ $cfg['avatar_url'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="https://…">
+                        <p class="text-xs text-white/40 mt-1">Clear both to fall back to the bundled mascot.</p>
+                    </div>
                 </div>
             </div>
             <div>

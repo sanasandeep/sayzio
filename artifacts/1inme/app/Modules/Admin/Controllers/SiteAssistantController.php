@@ -54,6 +54,8 @@ class SiteAssistantController extends Controller
             'launcher_position'        => 'nullable|in:bottom-right,bottom-left',
             'accent_color'             => 'nullable|string|max:16',
             'avatar_url'               => 'nullable|string|max:500',
+            'avatar_file'              => 'nullable|file|mimes:png,jpg,jpeg,webp|max:2048',
+            'brand_name'               => 'nullable|string|max:60',
             'greeting'                 => 'nullable|string|max:500',
             'system_prompt'            => 'nullable|string|max:8000',
             'model'                    => 'nullable|string|max:64',
@@ -136,7 +138,8 @@ class SiteAssistantController extends Controller
             'enabled_app'             => $request->boolean('enabled_app'),
             'launcher_position'       => $data['launcher_position']    ?? 'bottom-right',
             'accent_color'            => $data['accent_color']         ?? '#7c3aed',
-            'avatar_url'              => $data['avatar_url']           ?: null,
+            'avatar_url'              => $this->resolveAvatarUrl($request, $data['avatar_url'] ?? null),
+            'brand_name'             => mb_substr(trim((string) ($data['brand_name'] ?? '')), 0, 60),
             'greeting'                => $data['greeting']             ?? '',
             'system_prompt'           => $data['system_prompt']        ?? SiteAssistantSettings::defaultSystemPrompt(),
             'model'                   => trim((string) ($data['model'] ?? '')),
@@ -216,6 +219,43 @@ class SiteAssistantController extends Controller
         ];
         SiteAssistantSettings::update($payload);
         return redirect()->route('admin.site-assistant.edit')->with('success', 'Site Assistant settings saved.');
+    }
+
+    /**
+     * Resolve the assistant avatar URL to persist. A freshly uploaded
+     * image wins: it's moved into public/branding so it can be served
+     * directly (and as an absolute URL via avatarUrlFor for the
+     * cross-origin marketing widget). Otherwise the pasted URL is kept,
+     * and clearing both falls back to the bundled mascot (null).
+     */
+    protected function resolveAvatarUrl(Request $request, ?string $url): ?string
+    {
+        if ($request->hasFile('avatar_file')) {
+            $file = $request->file('avatar_file');
+            $publicDir = public_path('branding');
+            if (!\Illuminate\Support\Facades\File::isDirectory($publicDir)) {
+                \Illuminate\Support\Facades\File::makeDirectory($publicDir, 0755, true);
+            }
+            // Derive the extension from the server-detected MIME type
+            // (never the client-supplied filename) and map it through a
+            // strict allowlist so a spoofed name like avatar.php can't
+            // land an executable file in the web-served public dir.
+            $allowed = [
+                'image/png'  => 'png',
+                'image/jpeg' => 'jpg',
+                'image/webp' => 'webp',
+            ];
+            $mime = (string) $file->getMimeType();
+            $ext  = $allowed[$mime] ?? null;
+            if ($ext === null) {
+                return trim((string) $url) !== '' ? trim((string) $url) : null;
+            }
+            $name = 'assistant-avatar-' . \Illuminate\Support\Str::uuid()->toString() . '.' . $ext;
+            $file->move($publicDir, $name);
+            return '/branding/' . $name;
+        }
+        $url = trim((string) $url);
+        return $url !== '' ? $url : null;
     }
 
     /**
