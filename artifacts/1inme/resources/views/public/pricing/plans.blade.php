@@ -251,6 +251,22 @@
     .plan-card.is-accent  { background: radial-gradient(140% 80% at 50% -10%, rgba(124,58,237,.14), transparent 60%), rgba(124,58,237,.06); }
     .plan-card.is-current { background: radial-gradient(140% 80% at 50% -10%, rgba(16,185,129,.12), transparent 60%), rgba(16,185,129,.05); }
 
+    /* Header tier chip + name — a small gradient icon badge plus a crisp,
+       heavier name lift the previously plain name/description band into a
+       richer, more premium header. The chip tint mirrors the card emphasis
+       so all four tiers stay visually consistent. */
+    .plan-band-ico {
+        width: 2.5rem; height: 2.5rem; border-radius: .8rem;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: .95rem; color: #fff;
+        background: linear-gradient(135deg,#7c3aed,#a21caf);
+        box-shadow: 0 10px 22px -10px rgba(124,58,237,.8), inset 0 1px 0 rgba(255,255,255,.28);
+    }
+    .plan-band-ico.is-current { background: linear-gradient(135deg,#10b981,#34d399); box-shadow: 0 10px 22px -10px rgba(16,185,129,.8), inset 0 1px 0 rgba(255,255,255,.3); }
+    .plan-band-ico.is-accent  { background: linear-gradient(135deg,#7c3aed,#c026d3); box-shadow: 0 12px 26px -10px rgba(192,38,211,.75), inset 0 1px 0 rgba(255,255,255,.32); }
+    .plan-band-name { color: #fff; font-weight: 800; letter-spacing: -.01em; }
+    html.light-mode .plan-band-name { color: #0f172a !important; }
+
     /* Price block — a quiet inset panel so the headline number anchors
        the card body. A faint top sheen adds depth without distraction. */
     .plan-price {
@@ -295,7 +311,11 @@
     html.light-mode .plans-rail::after  { background: linear-gradient(270deg, #f7f7fb, transparent); }
     .plans-scroll {
         overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
-        scroll-snap-type: x proximity; padding: .25rem .25rem 1rem;
+        scroll-snap-type: x proximity;
+        /* Generous top room so the accent card (lifted -6px at rest, -10px on
+           hover) and any card's hover lift + gradient glow are never clipped
+           by this overflow container. */
+        padding: 1.5rem .25rem 1rem;
         scrollbar-width: thin; scrollbar-color: rgba(124,58,237,.55) transparent;
     }
     .plans-scroll::-webkit-scrollbar { height: 9px; }
@@ -312,14 +332,26 @@
     html.light-mode .grad-bar .text-white { color: #fff !important; }
 
     /* ── Cycle toggle (Monthly/Annual) ──────────────────────────────────
-       The knob is a solid violet gradient layer that slides under the
-       active label. In dark mode it pops against the dark track; in light
-       mode the track collapses to a near-white tint and the knob's lone
-       gradient looked washed-out, so the active state read as "barely
-       there". Give the light-mode knob a firmer surface + a violet ring &
-       drop-shadow so the active option is unmistakable, deepen the track a
-       touch for contrast, and bump the active label to bold white. */
-    .cycle-knob { background: linear-gradient(135deg,#7c3aed 0%,#9333ea 50%,#c026d3 100%); }
+       The knob is a violet gradient layer that slides under the active
+       label. In light mode the track collapses to a near-white tint, so the
+       knob gets a firmer surface + a violet ring & drop-shadow to stay
+       unmistakable. Label colours live on the custom .cycle-seg/.cycle-on
+       classes below so the global light-mode `.text-white` remap never
+       touches them.
+       Knob — deepen the gradient end-stop (the old magenta #c026d3 was light
+       enough that bold white text washed out on it). */
+    .cycle-knob {
+        background: linear-gradient(135deg,#6d28d9 0%,#7c3aed 50%,#a21caf 100%);
+        box-shadow: 0 8px 22px -8px rgba(124,58,237,.7);
+    }
+    /* Labels are driven entirely by these custom classes so the global
+       light-mode `.text-white` remap can't touch them. Inactive labels keep a
+       comfortable contrast against the track and brighten on hover; the active
+       label (`.cycle-on`) rides the violet knob in both modes with a soft
+       shadow so white stays crisp on the lighter magenta stop. */
+    .cycle-seg { color: #cbd5e1; transition: color .2s ease, text-shadow .2s ease; }
+    .cycle-seg:hover { color: #fff; }
+    .cycle-seg.cycle-on { color: #fff; font-weight: 700; text-shadow: 0 1px 8px rgba(76,29,149,.6); }
     html.light-mode .cycle-track {
         background-color: rgba(15,23,42,.06) !important;
         border-color: rgba(15,23,42,.12) !important;
@@ -328,15 +360,9 @@
         background: linear-gradient(135deg,#6d28d9 0%,#7c3aed 50%,#a21caf 100%) !important;
         box-shadow: 0 8px 22px -6px rgba(124,58,237,.85), 0 0 0 1.5px rgba(124,58,237,.6) !important;
     }
-    /* The active label uses the `.text-white` utility but sits on the violet
-       knob as a SIBLING (not a child of .grad-bar), so the global light-mode
-       remap darkens it to gray-on-violet — force it back to white. The
-       inactive label is a readable dark gray that darkens further on hover
-       (its `hover:text-white` would otherwise vanish on the light track).
-       Same reasoning for the currency segmented control's inactive buttons. */
-    html.light-mode .cycle-seg.text-white { color: #fff !important; }
-    html.light-mode .cycle-seg:not(.text-white) { color: #475569 !important; }
-    html.light-mode .cycle-seg:not(.text-white):hover { color: #111827 !important; }
+    html.light-mode .cycle-seg { color: #475569; }
+    html.light-mode .cycle-seg:hover { color: #111827; }
+    html.light-mode .cycle-seg.cycle-on { color: #fff !important; text-shadow: 0 1px 6px rgba(76,29,149,.5); }
     html.light-mode .seg:not(.seg-active):hover { color: #111827 !important; }
 
     /* ── Arbitrary white-opacity utilities the global remap misses ──
@@ -688,10 +714,10 @@
                 <span class="cycle-knob absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full grad-bar shadow-lg shadow-violet-900/30 transition-transform duration-300 ease-out motion-reduce:transition-none"
                       :class="cycle==='annual' ? 'translate-x-full' : 'translate-x-0'" aria-hidden="true"></span>
                 <button type="button" @click="cycle='monthly'"
-                    :class="cycle==='monthly' ? 'text-white font-bold' : 'text-gray-400 hover:text-white'"
+                    :class="cycle==='monthly' ? 'cycle-on' : ''"
                     class="cycle-seg relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors">Monthly</button>
                 <button type="button" @click="cycle='annual'"
-                    :class="cycle==='annual' ? 'text-white font-bold' : 'text-gray-400 hover:text-white'"
+                    :class="cycle==='annual' ? 'cycle-on' : ''"
                     class="cycle-seg relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5">
                     Annual
                 </button>
@@ -917,6 +943,14 @@
                                 : 'border-white/10'));
                     // Header-band tint mirrors the card emphasis.
                     $bandClass = $isCurrent ? 'is-current' : ($isAccent ? 'is-accent' : '');
+                    // Per-tier header chip icon — adds a visual accent to the
+                    // (otherwise plain) name/description band, picked by tier
+                    // emphasis so every card reads consistently.
+                    $isFreeTier = !empty($row['is_free']);
+                    $tierIcon = $isCurrent ? 'fa-circle-check'
+                        : ($isRecommended ? 'fa-wand-magic-sparkles'
+                        : ($isPopular ? 'fa-star'
+                        : ($isFreeTier ? 'fa-gift' : 'fa-gem')));
                 @endphp
                 <div
                     x-data='{ plan: @json($planJs) }'
@@ -924,8 +958,13 @@
 
                     {{-- ── Tinted header band: name + short description + badge ── --}}
                     <div class="plan-band {{ $bandClass }} px-5 sm:px-6 pt-5 pb-4">
-                        <div class="flex items-start justify-between gap-2">
-                            <h3 class="text-xl font-bold text-white leading-tight">{{ $plan->name }}</h3>
+                        <div class="flex items-start justify-between gap-2.5">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="plan-band-ico {{ $bandClass }} shrink-0" aria-hidden="true">
+                                    <i class="fas {{ $tierIcon }}"></i>
+                                </span>
+                                <h3 class="plan-band-name text-xl leading-tight truncate">{{ $plan->name }}</h3>
+                            </div>
                             @if($isCurrent)
                                 <span class="shrink-0 inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
                                     <i class="fas fa-circle-check"></i> Your plan
