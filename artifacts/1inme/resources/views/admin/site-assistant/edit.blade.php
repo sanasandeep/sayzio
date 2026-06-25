@@ -70,7 +70,7 @@
                     </div>
                     <div style="display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)">
                         <div id="assistant_mock_placeholder" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#94a3b8;padding:8px 10px;border-radius:10px;font-size:13px;min-height:36px;box-sizing:border-box;display:flex;align-items:center"></div>
-                        <button type="button" id="assistant_mock_send" disabled style="background:#7c3aed;border:0;color:#fff;padding:0 14px;border-radius:10px;font-size:14px;cursor:default"></button>
+                        <button type="button" id="assistant_mock_send" disabled style="background:#2342c7;border:0;color:#fff;padding:0 14px;border-radius:10px;font-size:14px;cursor:default"></button>
                     </div>
                 </div>
             </div>
@@ -158,7 +158,7 @@
                     <div>
                         <label class="block text-xs text-white/60 mb-1">Upload avatar</label>
                         <input type="file" name="avatar_file" id="assistant_avatar_file" accept="image/png,image/jpeg,image/webp"
-                               class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700 file:cursor-pointer">
+                               class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-primary-600 file:text-white hover:file:bg-primary-700 file:cursor-pointer">
                         <p class="text-xs text-white/40 mt-1">PNG, JPG or WebP, up to 2&nbsp;MB. Uploading replaces the URL below.</p>
                         @error('avatar_file')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                     </div>

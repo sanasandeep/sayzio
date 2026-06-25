@@ -193,7 +193,7 @@
                         + '</label>';
                 }).join('');
                 var btn = p.is_open
-                    ? '<button type="button" class="poll-vote-btn mt-2 px-3 py-1 text-xs rounded bg-purple-500/30 hover:bg-purple-500/50" data-poll-id="' + p.id + '">Vote</button>'
+                    ? '<button type="button" class="poll-vote-btn mt-2 px-3 py-1 text-xs rounded bg-primary-500/30 hover:bg-primary-500/50" data-poll-id="' + p.id + '">Vote</button>'
                     : '<div class="text-[10px] opacity-50 mt-1">Poll closed</div>';
                 return '<div class="poll glass-block rounded-xl p-3" data-poll-id="' + p.id + '">'
                     + '<div class="font-medium text-sm mb-2">' + escapeHtml(p.question || '') + '</div>'
