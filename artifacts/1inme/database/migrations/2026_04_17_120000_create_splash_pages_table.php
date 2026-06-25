@@ -8,32 +8,38 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('splash_pages', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $t->foreignId('project_id')->nullable()->constrained()->nullOnDelete();
-            $t->string('name', 120);
-            $t->string('title', 160)->nullable();
-            $t->text('description')->nullable();
-            $t->string('cta_label', 60)->nullable();
-            $t->string('cta_url', 2000)->nullable();
-            $t->boolean('auto_redirect')->default(false);
-            $t->unsignedSmallInteger('countdown')->default(5);
-            $t->string('logo', 500)->nullable();
-            $t->string('favicon', 500)->nullable();
-            $t->string('og_image', 500)->nullable();
-            $t->text('custom_css')->nullable();
-            $t->text('custom_js')->nullable();
-            $t->unsignedInteger('usage_count')->default(0);
-            $t->timestamps();
-            $t->index(['user_id', 'created_at']);
-            $t->index('project_id');
-        });
+        if (!Schema::hasTable('splash_pages')) {
+            Schema::create('splash_pages', function (Blueprint $t) {
+                $t->id();
+                $t->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $t->foreignId('project_id')->nullable()->constrained()->nullOnDelete();
+                $t->string('name', 120);
+                $t->string('title', 160)->nullable();
+                $t->text('description')->nullable();
+                $t->string('cta_label', 60)->nullable();
+                $t->string('cta_url', 2000)->nullable();
+                $t->boolean('auto_redirect')->default(false);
+                $t->unsignedSmallInteger('countdown')->default(5);
+                $t->string('logo', 500)->nullable();
+                $t->string('favicon', 500)->nullable();
+                $t->string('og_image', 500)->nullable();
+                $t->text('custom_css')->nullable();
+                $t->text('custom_js')->nullable();
+                $t->unsignedInteger('usage_count')->default(0);
+                $t->timestamps();
+                $t->index(['user_id', 'created_at']);
+                $t->index('project_id');
+            });
+        }
 
         Schema::table('links', function (Blueprint $t) {
-            $t->foreignId('splash_page_id')->nullable()->after('project_id')->constrained('splash_pages')->nullOnDelete();
-            $t->boolean('splash_enabled')->default(false)->after('splash_page_id');
-            $t->index('splash_page_id');
+            if (!Schema::hasColumn('links', 'splash_page_id')) {
+                $t->foreignId('splash_page_id')->nullable()->after('project_id')->constrained('splash_pages')->nullOnDelete();
+                $t->index('splash_page_id');
+            }
+            if (!Schema::hasColumn('links', 'splash_enabled')) {
+                $t->boolean('splash_enabled')->default(false)->after('splash_page_id');
+            }
         });
 
         // ----- Migrate existing per-link splash JSON into standalone splash_pages -----

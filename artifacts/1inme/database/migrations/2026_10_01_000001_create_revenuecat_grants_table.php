@@ -16,23 +16,25 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('revenuecat_grants', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->constrained();
-            $table->string('cycle', 16);
-            $table->string('app_user_id', 190);
-            $table->string('entitlement', 190);
-            $table->string('product_identifier', 190)->nullable();
-            $table->string('original_transaction_id', 190);
-            $table->string('store', 32)->nullable();
-            $table->timestamp('purchased_at')->nullable();
-            $table->timestamp('expires_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('revenuecat_grants')) {
+            Schema::create('revenuecat_grants', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('plan_id')->constrained();
+                $table->string('cycle', 16);
+                $table->string('app_user_id', 190);
+                $table->string('entitlement', 190);
+                $table->string('product_identifier', 190)->nullable();
+                $table->string('original_transaction_id', 190);
+                $table->string('store', 32)->nullable();
+                $table->timestamp('purchased_at')->nullable();
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamps();
 
-            $table->unique('original_transaction_id');
-            $table->index(['user_id', 'entitlement']);
-        });
+                $table->unique('original_transaction_id');
+                $table->index(['user_id', 'entitlement']);
+            });
+        }
     }
 
     public function down(): void

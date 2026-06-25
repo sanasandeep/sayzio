@@ -19,15 +19,17 @@ return new class extends Migration
             return;
         }
 
-        Schema::create('email_verification_reminder_sends', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->timestamp('sent_at');
-            $table->timestamps();
+        if (!Schema::hasTable('email_verification_reminder_sends')) {
+            Schema::create('email_verification_reminder_sends', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('user_id');
+                $table->timestamp('sent_at');
+                $table->timestamps();
 
-            $table->index('user_id');
-            $table->index('sent_at');
-        });
+                $table->index('user_id');
+                $table->index('sent_at');
+            });
+        }
     }
 
     public function down(): void

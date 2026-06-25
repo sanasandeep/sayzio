@@ -12,19 +12,21 @@ return new class extends Migration {
         // to the handoff. Also records the closing assignee when a
         // thread is archived/resolved so we can answer "who handled
         // this conversation?" after the fact.
-        Schema::create('inbox_thread_assignments', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('thread_id')->constrained('inbox_threads')->cascadeOnDelete();
-            $t->unsignedBigInteger('from_user_id')->nullable();
-            $t->unsignedBigInteger('to_user_id')->nullable();
-            $t->unsignedBigInteger('actor_user_id')->nullable();
-            $t->string('action', 16); // assign|unassign|reassign|resolved
-            $t->text('note')->nullable();
-            $t->timestamp('created_at')->nullable();
+        if (!Schema::hasTable('inbox_thread_assignments')) {
+            Schema::create('inbox_thread_assignments', function (Blueprint $t) {
+                $t->id();
+                $t->foreignId('thread_id')->constrained('inbox_threads')->cascadeOnDelete();
+                $t->unsignedBigInteger('from_user_id')->nullable();
+                $t->unsignedBigInteger('to_user_id')->nullable();
+                $t->unsignedBigInteger('actor_user_id')->nullable();
+                $t->string('action', 16); // assign|unassign|reassign|resolved
+                $t->text('note')->nullable();
+                $t->timestamp('created_at')->nullable();
 
-            $t->index(['thread_id', 'created_at']);
-            $t->index(['to_user_id', 'created_at']);
-        });
+                $t->index(['thread_id', 'created_at']);
+                $t->index(['to_user_id', 'created_at']);
+            });
+        }
     }
 
     public function down(): void

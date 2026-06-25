@@ -25,28 +25,30 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('login_events', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('channel', 32);
-            $table->string('ip', 45)->nullable();
-            $table->string('country_code', 2)->nullable();
-            $table->string('platform', 32)->nullable();
-            $table->string('browser', 64)->nullable();
-            $table->string('device_label', 120)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->unsignedBigInteger('personal_access_token_id')->nullable();
-            $table->string('session_id', 191)->nullable();
-            $table->boolean('is_new')->default(false);
-            $table->json('new_reasons')->nullable();
-            $table->boolean('alert_sent')->default(false);
-            $table->timestamp('revoked_at')->nullable();
-            $table->string('revoke_token', 64)->unique();
-            $table->timestamps();
+        if (!Schema::hasTable('login_events')) {
+            Schema::create('login_events', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->string('channel', 32);
+                $table->string('ip', 45)->nullable();
+                $table->string('country_code', 2)->nullable();
+                $table->string('platform', 32)->nullable();
+                $table->string('browser', 64)->nullable();
+                $table->string('device_label', 120)->nullable();
+                $table->text('user_agent')->nullable();
+                $table->unsignedBigInteger('personal_access_token_id')->nullable();
+                $table->string('session_id', 191)->nullable();
+                $table->boolean('is_new')->default(false);
+                $table->json('new_reasons')->nullable();
+                $table->boolean('alert_sent')->default(false);
+                $table->timestamp('revoked_at')->nullable();
+                $table->string('revoke_token', 64)->unique();
+                $table->timestamps();
 
-            $table->index(['user_id', 'created_at']);
-            $table->index(['user_id', 'country_code']);
-        });
+                $table->index(['user_id', 'created_at']);
+                $table->index(['user_id', 'country_code']);
+            });
+        }
     }
 
     public function down(): void

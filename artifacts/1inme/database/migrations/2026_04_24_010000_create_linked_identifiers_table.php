@@ -18,37 +18,39 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('linked_identifiers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+        if (!Schema::hasTable('linked_identifiers')) {
+            Schema::create('linked_identifiers', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-            // 'email' | 'phone' | 'social'
-            $table->string('kind', 16);
+                // 'email' | 'phone' | 'social'
+                $table->string('kind', 16);
 
-            // For email/phone this holds the address/number.
-            // For social this holds a stable composite "<provider>:<external_id>"
-            // (or "<provider>:<handle>" if no external_id) so the unique
-            // constraint prevents the same provider account being linked twice.
-            $table->string('value');
+                // For email/phone this holds the address/number.
+                // For social this holds a stable composite "<provider>:<external_id>"
+                // (or "<provider>:<handle>" if no external_id) so the unique
+                // constraint prevents the same provider account being linked twice.
+                $table->string('value');
 
-            // Social-only: provider name (instagram, facebook, twitter, ...).
-            $table->string('provider', 32)->nullable();
+                // Social-only: provider name (instagram, facebook, twitter, ...).
+                $table->string('provider', 32)->nullable();
 
-            // Social-only: provider's stable external id.
-            $table->string('external_id')->nullable();
+                // Social-only: provider's stable external id.
+                $table->string('external_id')->nullable();
 
-            // When the user proved control of this identifier.
-            $table->timestamp('verified_at')->nullable();
+                // When the user proved control of this identifier.
+                $table->timestamp('verified_at')->nullable();
 
-            // Exactly one identifier per user is the primary.
-            $table->boolean('is_primary')->default(false);
+                // Exactly one identifier per user is the primary.
+                $table->boolean('is_primary')->default(false);
 
-            $table->timestamps();
+                $table->timestamps();
 
-            // A verified identifier can only be attached to one live account.
-            $table->unique(['kind', 'value']);
-            $table->index(['user_id', 'kind']);
-        });
+                // A verified identifier can only be attached to one live account.
+                $table->unique(['kind', 'value']);
+                $table->index(['user_id', 'kind']);
+            });
+        }
 
         // Backfill existing users.
         $now = now();

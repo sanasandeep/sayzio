@@ -25,11 +25,13 @@ return new class extends Migration
         // Backfill: every pre-existing row is a user-owned, active domain.
         DB::table('domains')->update(['is_active' => true]);
 
-        Schema::create('domain_plan', function (Blueprint $table) {
-            $table->foreignId('domain_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
-            $table->primary(['domain_id', 'plan_id']);
-        });
+        if (!Schema::hasTable('domain_plan')) {
+            Schema::create('domain_plan', function (Blueprint $table) {
+                $table->foreignId('domain_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
+                $table->primary(['domain_id', 'plan_id']);
+            });
+        }
     }
 
     public function down(): void

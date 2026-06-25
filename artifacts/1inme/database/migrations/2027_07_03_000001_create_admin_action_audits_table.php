@@ -25,35 +25,37 @@ return new class extends Migration
             return;
         }
 
-        Schema::create('admin_action_audits', function (Blueprint $table) {
-            $table->bigIncrements('id');
+        if (!Schema::hasTable('admin_action_audits')) {
+            Schema::create('admin_action_audits', function (Blueprint $table) {
+                $table->bigIncrements('id');
 
-            // Operator (admin guard). Nullable + name/email snapshot so a
-            // CLI/system action or a later-deleted admin still reads cleanly.
-            $table->unsignedBigInteger('admin_id')->nullable();
-            $table->string('admin_name', 191)->nullable();
-            $table->string('admin_email', 191)->nullable();
+                // Operator (admin guard). Nullable + name/email snapshot so a
+                // CLI/system action or a later-deleted admin still reads cleanly.
+                $table->unsignedBigInteger('admin_id')->nullable();
+                $table->string('admin_name', 191)->nullable();
+                $table->string('admin_email', 191)->nullable();
 
-            // Affected user. Nullable for actions not tied to a single user.
-            $table->unsignedBigInteger('target_user_id')->nullable();
-            $table->string('target_name', 191)->nullable();
-            $table->string('target_email', 191)->nullable();
+                // Affected user. Nullable for actions not tied to a single user.
+                $table->unsignedBigInteger('target_user_id')->nullable();
+                $table->string('target_name', 191)->nullable();
+                $table->string('target_email', 191)->nullable();
 
-            // e.g. plan.assigned, coins.granted, coins.deducted,
-            // account.created, account.suspended, account.reactivated.
-            $table->string('action', 48);
+                // e.g. plan.assigned, coins.granted, coins.deducted,
+                // account.created, account.suspended, account.reactivated.
+                $table->string('action', 48);
 
-            // Free-form structured payload describing the change.
-            $table->json('details')->nullable();
+                // Free-form structured payload describing the change.
+                $table->json('details')->nullable();
 
-            $table->string('ip', 64)->nullable();
+                $table->string('ip', 64)->nullable();
 
-            $table->timestamp('created_at')->useCurrent();
+                $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['target_user_id', 'created_at'], 'aaa_target_created_idx');
-            $table->index(['admin_id', 'created_at'], 'aaa_admin_created_idx');
-            $table->index(['action', 'created_at'], 'aaa_action_created_idx');
-        });
+                $table->index(['target_user_id', 'created_at'], 'aaa_target_created_idx');
+                $table->index(['admin_id', 'created_at'], 'aaa_admin_created_idx');
+                $table->index(['action', 'created_at'], 'aaa_action_created_idx');
+            });
+        }
     }
 
     public function down(): void

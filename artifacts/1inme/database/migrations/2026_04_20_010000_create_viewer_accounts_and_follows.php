@@ -18,46 +18,54 @@ return new class extends Migration {
             if (!Schema::hasColumn('users', 'allow_followers')) $table->boolean('allow_followers')->default(true);
         });
 
-        Schema::create('follows', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('follower_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('creator_id')->constrained('users')->cascadeOnDelete();
-            $table->timestamp('created_at')->useCurrent();
-            $table->unique(['follower_id', 'creator_id']);
-            $table->index(['creator_id', 'created_at']);
-        });
+        if (!Schema::hasTable('follows')) {
+            Schema::create('follows', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('follower_id')->constrained('users')->cascadeOnDelete();
+                $table->foreignId('creator_id')->constrained('users')->cascadeOnDelete();
+                $table->timestamp('created_at')->useCurrent();
+                $table->unique(['follower_id', 'creator_id']);
+                $table->index(['creator_id', 'created_at']);
+            });
+        }
 
-        Schema::create('creator_posts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('title')->nullable();
-            $table->text('body');
-            $table->string('image')->nullable();
-            $table->timestamps();
-            $table->index(['user_id', 'created_at']);
-        });
+        if (!Schema::hasTable('creator_posts')) {
+            Schema::create('creator_posts', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('title')->nullable();
+                $table->text('body');
+                $table->string('image')->nullable();
+                $table->timestamps();
+                $table->index(['user_id', 'created_at']);
+            });
+        }
 
-        Schema::create('user_notifications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('type', 60);
-            $table->json('data')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-            $table->index(['user_id', 'read_at', 'created_at']);
-        });
+        if (!Schema::hasTable('user_notifications')) {
+            Schema::create('user_notifications', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('type', 60);
+                $table->json('data')->nullable();
+                $table->timestamp('read_at')->nullable();
+                $table->timestamp('created_at')->useCurrent();
+                $table->index(['user_id', 'read_at', 'created_at']);
+            });
+        }
 
-        Schema::create('feed_events', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('type', 60); // post|publish|new_block|profile_update
-            $table->unsignedBigInteger('subject_id')->nullable();
-            $table->string('subject_type', 60)->nullable();
-            $table->json('data')->nullable();
-            $table->timestamp('occurred_at')->useCurrent();
-            $table->index(['user_id', 'occurred_at']);
-            $table->index('occurred_at');
-        });
+        if (!Schema::hasTable('feed_events')) {
+            Schema::create('feed_events', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('type', 60); // post|publish|new_block|profile_update
+                $table->unsignedBigInteger('subject_id')->nullable();
+                $table->string('subject_type', 60)->nullable();
+                $table->json('data')->nullable();
+                $table->timestamp('occurred_at')->useCurrent();
+                $table->index(['user_id', 'occurred_at']);
+                $table->index('occurred_at');
+            });
+        }
 
         Schema::table('link_clicks', function (Blueprint $table) {
             if (!Schema::hasColumn('link_clicks', 'viewer_user_id')) {

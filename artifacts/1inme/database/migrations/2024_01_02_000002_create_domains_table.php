@@ -8,18 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('domains', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('domain')->unique();
-            $table->string('type')->default('redirect');
-            $table->boolean('is_verified')->default(false);
-            $table->string('verification_token')->nullable();
-            $table->timestamp('verified_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('domains')) {
+            Schema::create('domains', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->string('domain')->unique();
+                $table->string('type')->default('redirect');
+                $table->boolean('is_verified')->default(false);
+                $table->string('verification_token')->nullable();
+                $table->timestamp('verified_at')->nullable();
+                $table->timestamps();
 
-            $table->index(['user_id']);
-        });
+                $table->index(['user_id']);
+            });
+        }
     }
 
     public function down(): void

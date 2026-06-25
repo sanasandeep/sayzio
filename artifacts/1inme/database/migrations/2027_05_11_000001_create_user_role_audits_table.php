@@ -23,41 +23,43 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('user_role_audits', function (Blueprint $table) {
-            $table->bigIncrements('id');
+        if (!Schema::hasTable('user_role_audits')) {
+            Schema::create('user_role_audits', function (Blueprint $table) {
+                $table->bigIncrements('id');
 
-            // Either actor_user_id (web guard) or actor_admin_id
-            // (admin guard) is set; both null means a system /
-            // CLI action.
-            $table->unsignedBigInteger('actor_user_id')->nullable();
-            $table->unsignedBigInteger('actor_admin_id')->nullable();
-            $table->string('actor_guard', 16)->nullable();
-            $table->string('actor_name', 191)->nullable();
-            $table->string('actor_email', 191)->nullable();
+                // Either actor_user_id (web guard) or actor_admin_id
+                // (admin guard) is set; both null means a system /
+                // CLI action.
+                $table->unsignedBigInteger('actor_user_id')->nullable();
+                $table->unsignedBigInteger('actor_admin_id')->nullable();
+                $table->string('actor_guard', 16)->nullable();
+                $table->string('actor_name', 191)->nullable();
+                $table->string('actor_email', 191)->nullable();
 
-            $table->unsignedBigInteger('target_user_id');
+                $table->unsignedBigInteger('target_user_id');
 
-            // Role may be deleted later; snapshot slug/name so the
-            // log stays human-readable.
-            $table->unsignedBigInteger('role_id')->nullable();
-            $table->string('role_slug', 191);
-            $table->string('role_name', 191)->nullable();
+                // Role may be deleted later; snapshot slug/name so the
+                // log stays human-readable.
+                $table->unsignedBigInteger('role_id')->nullable();
+                $table->string('role_slug', 191);
+                $table->string('role_name', 191)->nullable();
 
-            // 'attached' or 'detached'.
-            $table->string('action', 16);
+                // 'attached' or 'detached'.
+                $table->string('action', 16);
 
-            // Which surface the change came from, e.g.
-            // 'user_access' or 'admin'.
-            $table->string('source', 32)->nullable();
+                // Which surface the change came from, e.g.
+                // 'user_access' or 'admin'.
+                $table->string('source', 32)->nullable();
 
-            $table->string('ip', 64)->nullable();
+                $table->string('ip', 64)->nullable();
 
-            $table->timestamp('created_at')->useCurrent();
+                $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['target_user_id', 'created_at'], 'ura_target_created_idx');
-            $table->index(['actor_user_id', 'created_at'], 'ura_actor_user_created_idx');
-            $table->index(['actor_admin_id', 'created_at'], 'ura_actor_admin_created_idx');
-        });
+                $table->index(['target_user_id', 'created_at'], 'ura_target_created_idx');
+                $table->index(['actor_user_id', 'created_at'], 'ura_actor_user_created_idx');
+                $table->index(['actor_admin_id', 'created_at'], 'ura_actor_admin_created_idx');
+            });
+        }
     }
 
     public function down(): void

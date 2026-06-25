@@ -16,15 +16,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('banned_names', function (Blueprint $table) {
-            $table->id();
-            $table->string('name', 100);
-            $table->string('note', 500)->nullable();
-            $table->unsignedBigInteger('created_by')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('banned_names')) {
+            Schema::create('banned_names', function (Blueprint $table) {
+                $table->id();
+                $table->string('name', 100);
+                $table->string('note', 500)->nullable();
+                $table->unsignedBigInteger('created_by')->nullable();
+                $table->timestamps();
+            });
+        }
 
-        DB::statement('CREATE UNIQUE INDEX banned_names_name_lower_unique ON banned_names (LOWER(name))');
+        DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS banned_names_name_lower_unique ON banned_names (LOWER(name))');
     }
 
     public function down(): void

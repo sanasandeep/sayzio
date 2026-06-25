@@ -9,43 +9,49 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('workspaces', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('owner_user_id');
-            $table->string('name');
-            $table->string('slug')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('workspaces')) {
+            Schema::create('workspaces', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('owner_user_id');
+                $table->string('name');
+                $table->string('slug')->nullable();
+                $table->timestamps();
 
-            $table->index('owner_user_id');
-        });
+                $table->index('owner_user_id');
+            });
+        }
 
-        Schema::create('workspace_members', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('workspace_id');
-            $table->unsignedBigInteger('user_id');
-            $table->string('role')->default('viewer'); // admin/editor/replier/analyst/viewer/custom
-            $table->json('permissions')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('workspace_members')) {
+            Schema::create('workspace_members', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('workspace_id');
+                $table->unsignedBigInteger('user_id');
+                $table->string('role')->default('viewer'); // admin/editor/replier/analyst/viewer/custom
+                $table->json('permissions')->nullable();
+                $table->timestamps();
 
-            $table->unique(['workspace_id', 'user_id']);
-            $table->index('user_id');
-        });
+                $table->unique(['workspace_id', 'user_id']);
+                $table->index('user_id');
+            });
+        }
 
-        Schema::create('workspace_invites', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('workspace_id');
-            $table->unsignedBigInteger('inviter_user_id');
-            $table->string('email');
-            $table->string('role')->default('viewer');
-            $table->json('permissions')->nullable();
-            $table->string('token', 80)->unique();
-            $table->timestamp('expires_at')->nullable();
-            $table->timestamp('accepted_at')->nullable();
-            $table->timestamp('revoked_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('workspace_invites')) {
+            Schema::create('workspace_invites', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('workspace_id');
+                $table->unsignedBigInteger('inviter_user_id');
+                $table->string('email');
+                $table->string('role')->default('viewer');
+                $table->json('permissions')->nullable();
+                $table->string('token', 80)->unique();
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamp('accepted_at')->nullable();
+                $table->timestamp('revoked_at')->nullable();
+                $table->timestamps();
 
-            $table->index(['workspace_id', 'email']);
-        });
+                $table->index(['workspace_id', 'email']);
+            });
+        }
 
         // Add workspace_id (and a created_by_user_id where attribution makes
         // sense) to every user-scoped resource table. We keep `user_id` on

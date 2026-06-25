@@ -8,16 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('projects', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('name');
-            $table->string('color', 7)->default('#6366f1');
-            $table->text('description')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('projects')) {
+            Schema::create('projects', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->string('name');
+                $table->string('color', 7)->default('#6366f1');
+                $table->text('description')->nullable();
+                $table->timestamps();
 
-            $table->index(['user_id', 'created_at']);
-        });
+                $table->index(['user_id', 'created_at']);
+            });
+        }
     }
 
     public function down(): void

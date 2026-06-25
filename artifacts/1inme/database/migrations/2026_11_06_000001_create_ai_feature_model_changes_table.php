@@ -15,18 +15,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('ai_feature_model_changes', function (Blueprint $table) {
-            $table->id();
-            $table->string('feature', 32);
-            $table->string('old_model', 64)->nullable();
-            $table->string('new_model', 64)->nullable();
-            $table->unsignedBigInteger('admin_id')->nullable();
-            $table->string('admin_name', 120)->nullable();
-            $table->timestamp('created_at')->useCurrent();
+        if (!Schema::hasTable('ai_feature_model_changes')) {
+            Schema::create('ai_feature_model_changes', function (Blueprint $table) {
+                $table->id();
+                $table->string('feature', 32);
+                $table->string('old_model', 64)->nullable();
+                $table->string('new_model', 64)->nullable();
+                $table->unsignedBigInteger('admin_id')->nullable();
+                $table->string('admin_name', 120)->nullable();
+                $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['feature', 'created_at']);
-            $table->index('created_at');
-        });
+                $table->index(['feature', 'created_at']);
+                $table->index('created_at');
+            });
+        }
     }
 
     public function down(): void

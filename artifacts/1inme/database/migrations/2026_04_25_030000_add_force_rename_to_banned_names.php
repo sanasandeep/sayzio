@@ -19,18 +19,20 @@ return new class extends Migration
             $table->boolean('force_rename_on_login')->default(false)->after('note');
         });
 
-        Schema::create('banned_name_acknowledgements', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('banned_name_id');
-            $table->string('conflict_type', 16); // user | link | extra
-            $table->unsignedBigInteger('conflict_id');
-            $table->unsignedBigInteger('acknowledged_by')->nullable();
-            $table->timestamp('acknowledged_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('banned_name_acknowledgements')) {
+            Schema::create('banned_name_acknowledgements', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('banned_name_id');
+                $table->string('conflict_type', 16); // user | link | extra
+                $table->unsignedBigInteger('conflict_id');
+                $table->unsignedBigInteger('acknowledged_by')->nullable();
+                $table->timestamp('acknowledged_at')->nullable();
+                $table->timestamps();
 
-            $table->unique(['banned_name_id', 'conflict_type', 'conflict_id'], 'banned_name_ack_unique');
-            $table->index('banned_name_id');
-        });
+                $table->unique(['banned_name_id', 'conflict_type', 'conflict_id'], 'banned_name_ack_unique');
+                $table->index('banned_name_id');
+            });
+        }
     }
 
     public function down(): void

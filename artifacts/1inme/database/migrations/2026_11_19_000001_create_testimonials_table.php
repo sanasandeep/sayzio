@@ -8,20 +8,22 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('testimonials', function (Blueprint $table) {
-            $table->id();
-            $table->text('quote');
-            $table->string('author_name', 120);
-            $table->string('author_role', 160)->nullable();
-            $table->string('accent_color', 16)->default('#7c3aed');
-            $table->unsignedTinyInteger('rating')->default(5);
-            $table->enum('row', ['top', 'bottom'])->default('top');
-            $table->boolean('is_active')->default(true);
-            $table->unsignedInteger('sort_order')->default(0);
-            $table->timestamps();
+        if (!Schema::hasTable('testimonials')) {
+            Schema::create('testimonials', function (Blueprint $table) {
+                $table->id();
+                $table->text('quote');
+                $table->string('author_name', 120);
+                $table->string('author_role', 160)->nullable();
+                $table->string('accent_color', 16)->default('#7c3aed');
+                $table->unsignedTinyInteger('rating')->default(5);
+                $table->enum('row', ['top', 'bottom'])->default('top');
+                $table->boolean('is_active')->default(true);
+                $table->unsignedInteger('sort_order')->default(0);
+                $table->timestamps();
 
-            $table->index(['is_active', 'row', 'sort_order']);
-        });
+                $table->index(['is_active', 'row', 'sort_order']);
+            });
+        }
 
         $this->seedDefaults();
     }

@@ -8,21 +8,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('otps', function (Blueprint $table) {
-            $table->id();
-            $table->string('identifier');
-            $table->string('type')->default('email');
-            $table->string('code', 6);
-            $table->string('purpose')->default('login');
-            $table->string('guard')->default('web');
-            $table->timestamp('expires_at');
-            $table->boolean('used')->default(false);
-            $table->timestamps();
-            $table->index(['identifier', 'type', 'purpose', 'guard']);
-        });
+        if (!Schema::hasTable('otps')) {
+            Schema::create('otps', function (Blueprint $table) {
+                $table->id();
+                $table->string('identifier');
+                $table->string('type')->default('email');
+                $table->string('code', 6);
+                $table->string('purpose')->default('login');
+                $table->string('guard')->default('web');
+                $table->timestamp('expires_at');
+                $table->boolean('used')->default(false);
+                $table->timestamps();
+                $table->index(['identifier', 'type', 'purpose', 'guard']);
+            });
+        }
 
         Schema::table('users', function (Blueprint $table) {
-            $table->string('mobile')->nullable()->after('email');
+            if (!Schema::hasColumn('users', 'mobile')) {
+                $table->string('mobile')->nullable()->after('email');
+            }
         });
     }
 

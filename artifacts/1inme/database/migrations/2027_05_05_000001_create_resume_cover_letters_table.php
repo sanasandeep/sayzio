@@ -19,48 +19,50 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('resume_cover_letters', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('resume_id')->constrained()->cascadeOnDelete();
-            $table->unsignedInteger('resume_revision')->default(0);
+        if (!Schema::hasTable('resume_cover_letters')) {
+            Schema::create('resume_cover_letters', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('resume_id')->constrained()->cascadeOnDelete();
+                $table->unsignedInteger('resume_revision')->default(0);
 
-            // Display label — defaults to "Cover letter for <company>"
-            // when we can extract one, otherwise the first 80 chars of
-            // the JD. Editable by the creator from the panel.
-            $table->string('title', 200);
+                // Display label — defaults to "Cover letter for <company>"
+                // when we can extract one, otherwise the first 80 chars of
+                // the JD. Editable by the creator from the panel.
+                $table->string('title', 200);
 
-            // Tone preset chosen at generation time. Mirrored on the UI
-            // chip so the creator can see at a glance how each saved
-            // letter was written.
-            $table->string('tone', 32)->default('professional');
+                // Tone preset chosen at generation time. Mirrored on the UI
+                // chip so the creator can see at a glance how each saved
+                // letter was written.
+                $table->string('tone', 32)->default('professional');
 
-            // Full job description text the creator pasted, plus the
-            // short excerpt we surface in the history list.
-            $table->mediumText('jd_text');
-            $table->string('jd_excerpt', 240)->nullable();
+                // Full job description text the creator pasted, plus the
+                // short excerpt we surface in the history list.
+                $table->mediumText('jd_text');
+                $table->string('jd_excerpt', 240)->nullable();
 
-            // Two-letter ISO language code (mirrors the resume's). Kept
-            // explicit so cross-language regenerates don't silently
-            // change the language under the creator.
-            $table->string('language', 8)->default('en');
+                // Two-letter ISO language code (mirrors the resume's). Kept
+                // explicit so cross-language regenerates don't silently
+                // change the language under the creator.
+                $table->string('language', 8)->default('en');
 
-            // Structured letter body so per-section regenerate /
-            // inline-edit can target greeting | body[] | sign_off
-            // independently. Shape:
-            //   { greeting: string, body: string[], sign_off: string }
-            $table->json('content');
+                // Structured letter body so per-section regenerate /
+                // inline-edit can target greeting | body[] | sign_off
+                // independently. Shape:
+                //   { greeting: string, body: string[], sign_off: string }
+                $table->json('content');
 
-            // Bookkeeping for the generation that produced this row —
-            // model name + total credits charged. Per-section regenerates
-            // bump credits_spent so the creator sees the running total.
-            $table->string('model', 64)->nullable();
-            $table->unsignedInteger('credits_spent')->default(0);
+                // Bookkeeping for the generation that produced this row —
+                // model name + total credits charged. Per-section regenerates
+                // bump credits_spent so the creator sees the running total.
+                $table->string('model', 64)->nullable();
+                $table->unsignedInteger('credits_spent')->default(0);
 
-            $table->timestamps();
+                $table->timestamps();
 
-            $table->index(['user_id', 'resume_id', 'created_at']);
-        });
+                $table->index(['user_id', 'resume_id', 'created_at']);
+            });
+        }
     }
 
     public function down(): void

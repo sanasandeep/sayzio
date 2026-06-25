@@ -8,17 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('newsletter_issue_unsubscribes', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('subscriber_id');
-            $table->unsignedBigInteger('issue_id');
-            $table->timestamp('unsubscribed_at');
-            $table->timestamps();
+        if (!Schema::hasTable('newsletter_issue_unsubscribes')) {
+            Schema::create('newsletter_issue_unsubscribes', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('subscriber_id');
+                $table->unsignedBigInteger('issue_id');
+                $table->timestamp('unsubscribed_at');
+                $table->timestamps();
 
-            $table->unique(['subscriber_id', 'issue_id']);
-            $table->index('issue_id');
-            $table->index('subscriber_id');
-        });
+                $table->unique(['subscriber_id', 'issue_id']);
+                $table->index('issue_id');
+                $table->index('subscriber_id');
+            });
+        }
     }
 
     public function down(): void

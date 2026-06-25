@@ -18,17 +18,19 @@ return new class extends Migration {
         // Tombstones for deletions we still need to propagate to Google.
         // We can't keep them on `contacts` (the row is gone), so we park
         // them here and the sync pass drains them with retries.
-        Schema::create('contact_deletion_tombstones', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('google_contacts_account_id')->constrained()->cascadeOnDelete();
-            $table->string('google_resource_name', 191);
-            $table->unsignedTinyInteger('attempts')->default(0);
-            $table->text('last_error')->nullable();
-            $table->timestamps();
-            $table->index(['user_id']);
-            $table->index(['google_contacts_account_id']);
-        });
+        if (!Schema::hasTable('contact_deletion_tombstones')) {
+            Schema::create('contact_deletion_tombstones', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('google_contacts_account_id')->constrained()->cascadeOnDelete();
+                $table->string('google_resource_name', 191);
+                $table->unsignedTinyInteger('attempts')->default(0);
+                $table->text('last_error')->nullable();
+                $table->timestamps();
+                $table->index(['user_id']);
+                $table->index(['google_contacts_account_id']);
+            });
+        }
     }
 
     public function down(): void

@@ -21,18 +21,20 @@ return new class extends Migration {
             return;
         }
 
-        Schema::create('counter_deltas', function (Blueprint $table) {
-            $table->id();
-            // 'link' -> links.total_clicks/unique_clicks; 'block' -> biolink_blocks.click_count
-            $table->string('entity_type', 16);
-            $table->unsignedBigInteger('entity_id');
-            $table->integer('total_delta')->default(0);
-            $table->integer('unique_delta')->default(0);
-            $table->timestamp('created_at')->nullable();
+        if (!Schema::hasTable('counter_deltas')) {
+            Schema::create('counter_deltas', function (Blueprint $table) {
+                $table->id();
+                // 'link' -> links.total_clicks/unique_clicks; 'block' -> biolink_blocks.click_count
+                $table->string('entity_type', 16);
+                $table->unsignedBigInteger('entity_id');
+                $table->integer('total_delta')->default(0);
+                $table->integer('unique_delta')->default(0);
+                $table->timestamp('created_at')->nullable();
 
-            // The flusher folds by (entity_type, entity_id); index it.
-            $table->index(['entity_type', 'entity_id'], 'counter_deltas_entity_idx');
-        });
+                // The flusher folds by (entity_type, entity_id); index it.
+                $table->index(['entity_type', 'entity_id'], 'counter_deltas_entity_idx');
+            });
+        }
     }
 
     public function down(): void

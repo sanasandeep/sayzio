@@ -58,75 +58,81 @@ return new class extends Migration {
             }
         });
 
-        Schema::create('user_blocks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('blocker_user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('blocked_user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('reason', 60)->nullable();
-            $table->timestamps();
-            $table->unique(['blocker_user_id', 'blocked_user_id'], 'user_blocks_pair_unique');
-            $table->index(['blocked_user_id']);
-        });
+        if (!Schema::hasTable('user_blocks')) {
+            Schema::create('user_blocks', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('blocker_user_id')->constrained('users')->cascadeOnDelete();
+                $table->foreignId('blocked_user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('reason', 60)->nullable();
+                $table->timestamps();
+                $table->unique(['blocker_user_id', 'blocked_user_id'], 'user_blocks_pair_unique');
+                $table->index(['blocked_user_id']);
+            });
+        }
 
-        Schema::create('user_reports', function (Blueprint $table) {
-            $table->id();
-            // Polymorphic target — one of:
-            //   'user'    → target_id = users.id
-            //   'comment' → target_id = creator_post_comments.id
-            //   'message' → target_id = inbox_messages.id
-            //   'post'    → target_id = creator_posts.id
-            $table->string('target_type', 16);
-            $table->unsignedBigInteger('target_id');
+        if (!Schema::hasTable('user_reports')) {
+            Schema::create('user_reports', function (Blueprint $table) {
+                $table->id();
+                // Polymorphic target — one of:
+                //   'user'    → target_id = users.id
+                //   'comment' → target_id = creator_post_comments.id
+                //   'message' → target_id = inbox_messages.id
+                //   'post'    → target_id = creator_posts.id
+                $table->string('target_type', 16);
+                $table->unsignedBigInteger('target_id');
 
-            $table->foreignId('reporter_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->string('reporter_ip', 45)->nullable();
+                $table->foreignId('reporter_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->string('reporter_ip', 45)->nullable();
 
-            $table->string('reason', 32);
-            $table->text('comment')->nullable();
+                $table->string('reason', 32);
+                $table->text('comment')->nullable();
 
-            $table->string('status', 16)->default('pending');   // pending|dismissed|warned|removed|escalated|suspended
-            $table->unsignedInteger('coalesced_count')->default(1);
+                $table->string('status', 16)->default('pending');   // pending|dismissed|warned|removed|escalated|suspended
+                $table->unsignedInteger('coalesced_count')->default(1);
 
-            $table->text('admin_note')->nullable();
-            $table->timestamp('actioned_at')->nullable();
-            $table->foreignId('actioned_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->text('admin_note')->nullable();
+                $table->timestamp('actioned_at')->nullable();
+                $table->foreignId('actioned_by_user_id')->nullable()->constrained('users')->nullOnDelete();
 
-            $table->timestamps();
+                $table->timestamps();
 
-            $table->index(['status', 'target_type', 'created_at'], 'ur_status_type_idx');
-            $table->index(['target_type', 'target_id'], 'ur_target_idx');
-        });
+                $table->index(['status', 'target_type', 'created_at'], 'ur_status_type_idx');
+                $table->index(['target_type', 'target_id'], 'ur_target_idx');
+            });
+        }
 
-        Schema::create('dmca_takedowns', function (Blueprint $table) {
-            $table->id();
-            // Public form — reporter is anonymous unless signed in.
-            $table->foreignId('reporter_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->string('reporter_name', 200);
-            $table->string('reporter_email', 200);
-            $table->string('reporter_address', 500)->nullable();
-            $table->string('rights_holder', 200)->nullable();
+        if (!Schema::hasTable('dmca_takedowns')) {
+            Schema::create('dmca_takedowns', function (Blueprint $table) {
+                $table->id();
+                // Public form — reporter is anonymous unless signed in.
+                $table->foreignId('reporter_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->string('reporter_name', 200);
+                $table->string('reporter_email', 200);
+                $table->string('reporter_address', 500)->nullable();
+                $table->string('rights_holder', 200)->nullable();
 
-            $table->text('original_work_url');     // canonical URL of the original
-            $table->text('infringing_url');        // 1inme URL alleged to infringe
+                $table->text('original_work_url');     // canonical URL of the original
+                $table->text('infringing_url');        // 1inme URL alleged to infringe
 
-            // Optional pointer to internal records when the form maps cleanly
-            // — speeds up the admin "Hide post" / "Suspend creator" actions.
-            $table->foreignId('target_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('target_post_id')->nullable()->constrained('creator_posts')->nullOnDelete();
+                // Optional pointer to internal records when the form maps cleanly
+                // — speeds up the admin "Hide post" / "Suspend creator" actions.
+                $table->foreignId('target_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignId('target_post_id')->nullable()->constrained('creator_posts')->nullOnDelete();
 
-            $table->boolean('good_faith_acknowledged')->default(false);
-            $table->boolean('penalty_of_perjury_acknowledged')->default(false);
-            $table->string('signature', 200);
+                $table->boolean('good_faith_acknowledged')->default(false);
+                $table->boolean('penalty_of_perjury_acknowledged')->default(false);
+                $table->string('signature', 200);
 
-            $table->string('status', 16)->default('pending');   // pending|valid|invalid|removed|counter
-            $table->text('admin_note')->nullable();
-            $table->timestamp('actioned_at')->nullable();
-            $table->foreignId('actioned_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->string('status', 16)->default('pending');   // pending|valid|invalid|removed|counter
+                $table->text('admin_note')->nullable();
+                $table->timestamp('actioned_at')->nullable();
+                $table->foreignId('actioned_by_user_id')->nullable()->constrained('users')->nullOnDelete();
 
-            $table->string('reporter_ip', 45)->nullable();
-            $table->timestamps();
-            $table->index(['status', 'created_at']);
-        });
+                $table->string('reporter_ip', 45)->nullable();
+                $table->timestamps();
+                $table->index(['status', 'created_at']);
+            });
+        }
     }
 
     public function down(): void

@@ -8,17 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('marketing_events', function (Blueprint $table) {
-            $table->id();
-            $table->string('source', 64);
-            $table->string('target', 64);
-            $table->string('ip_address', 45)->nullable();
-            $table->string('referrer', 1024)->nullable();
-            $table->timestamp('occurred_at')->index();
-            $table->timestamps();
+        if (!Schema::hasTable('marketing_events')) {
+            Schema::create('marketing_events', function (Blueprint $table) {
+                $table->id();
+                $table->string('source', 64);
+                $table->string('target', 64);
+                $table->string('ip_address', 45)->nullable();
+                $table->string('referrer', 1024)->nullable();
+                $table->timestamp('occurred_at')->index();
+                $table->timestamps();
 
-            $table->index(['source', 'target', 'occurred_at']);
-        });
+                $table->index(['source', 'target', 'occurred_at']);
+            });
+        }
     }
 
     public function down(): void

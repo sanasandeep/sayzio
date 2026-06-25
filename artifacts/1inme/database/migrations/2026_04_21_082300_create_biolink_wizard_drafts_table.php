@@ -16,22 +16,24 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('biolink_wizard_drafts', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');           // workspace owner (workspace_owner_id())
-            $table->unsignedBigInteger('actor_user_id');     // who actually filled in the wizard (audit)
-            $table->unsignedBigInteger('workspace_id')->nullable();
-            $table->string('category', 64)->nullable();
-            $table->string('page_type', 64)->nullable();
-            $table->string('industry', 64)->nullable();
-            $table->unsignedSmallInteger('step')->default(0);
-            $table->json('answers')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('biolink_wizard_drafts')) {
+            Schema::create('biolink_wizard_drafts', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('user_id');           // workspace owner (workspace_owner_id())
+                $table->unsignedBigInteger('actor_user_id');     // who actually filled in the wizard (audit)
+                $table->unsignedBigInteger('workspace_id')->nullable();
+                $table->string('category', 64)->nullable();
+                $table->string('page_type', 64)->nullable();
+                $table->string('industry', 64)->nullable();
+                $table->unsignedSmallInteger('step')->default(0);
+                $table->json('answers')->nullable();
+                $table->timestamps();
 
-            $table->index('user_id');
-            $table->index(['user_id', 'workspace_id']);
-            $table->index('actor_user_id');
-        });
+                $table->index('user_id');
+                $table->index(['user_id', 'workspace_id']);
+                $table->index('actor_user_id');
+            });
+        }
     }
 
     public function down(): void

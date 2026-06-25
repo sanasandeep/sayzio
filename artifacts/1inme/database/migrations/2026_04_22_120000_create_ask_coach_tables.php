@@ -21,35 +21,39 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('ask_coach_threads', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->unsignedBigInteger('workspace_id')->nullable();
-            $table->string('title', 160)->default('New chat');
-            $table->timestamp('last_message_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('ask_coach_threads')) {
+            Schema::create('ask_coach_threads', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->unsignedBigInteger('workspace_id')->nullable();
+                $table->string('title', 160)->default('New chat');
+                $table->timestamp('last_message_at')->nullable();
+                $table->timestamps();
 
-            $table->index(['user_id', 'workspace_id', 'last_message_at']);
-        });
+                $table->index(['user_id', 'workspace_id', 'last_message_at']);
+            });
+        }
 
-        Schema::create('ask_coach_messages', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('thread_id')->constrained('ask_coach_threads')->cascadeOnDelete();
-            // 'user' | 'assistant'
-            $table->string('role', 16);
-            $table->text('content');
-            // meta is the kitchen sink: credits_spent, model, tools_used,
-            // citations[], insights[], actions[], etc. Keeping it JSON
-            // lets us evolve the renderer without schema churn.
-            $table->json('meta')->nullable();
-            // Quality-loop signal: 'up' / 'down' / null on assistant turns.
-            $table->string('feedback', 8)->nullable();
-            $table->string('feedback_note', 500)->nullable();
-            $table->timestamp('created_at')->useCurrent();
+        if (!Schema::hasTable('ask_coach_messages')) {
+            Schema::create('ask_coach_messages', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('thread_id')->constrained('ask_coach_threads')->cascadeOnDelete();
+                // 'user' | 'assistant'
+                $table->string('role', 16);
+                $table->text('content');
+                // meta is the kitchen sink: credits_spent, model, tools_used,
+                // citations[], insights[], actions[], etc. Keeping it JSON
+                // lets us evolve the renderer without schema churn.
+                $table->json('meta')->nullable();
+                // Quality-loop signal: 'up' / 'down' / null on assistant turns.
+                $table->string('feedback', 8)->nullable();
+                $table->string('feedback_note', 500)->nullable();
+                $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['thread_id', 'id']);
-            $table->index(['feedback']);
-        });
+                $table->index(['thread_id', 'id']);
+                $table->index(['feedback']);
+            });
+        }
     }
 
     public function down(): void

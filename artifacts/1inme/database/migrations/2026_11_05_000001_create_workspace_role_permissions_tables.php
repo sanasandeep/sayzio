@@ -8,24 +8,28 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('workspace_role_permissions', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('workspace_id');
-            $table->json('matrix');
-            $table->timestamps();
+        if (!Schema::hasTable('workspace_role_permissions')) {
+            Schema::create('workspace_role_permissions', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('workspace_id');
+                $table->json('matrix');
+                $table->timestamps();
 
-            $table->unique('workspace_id');
-        });
+                $table->unique('workspace_id');
+            });
+        }
 
-        Schema::create('workspace_role_permission_audits', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('workspace_id');
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->json('changes');
-            $table->timestamp('created_at')->nullable();
+        if (!Schema::hasTable('workspace_role_permission_audits')) {
+            Schema::create('workspace_role_permission_audits', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('workspace_id');
+                $table->unsignedBigInteger('user_id')->nullable();
+                $table->json('changes');
+                $table->timestamp('created_at')->nullable();
 
-            $table->index(['workspace_id', 'created_at']);
-        });
+                $table->index(['workspace_id', 'created_at']);
+            });
+        }
     }
 
     public function down(): void

@@ -8,20 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('biolink_blocks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('link_id')->constrained('links')->cascadeOnDelete();
-            $table->string('type', 50);
-            $table->jsonb('settings')->default('{}');
-            $table->integer('sort_order')->default(0);
-            $table->boolean('is_active')->default(true);
-            $table->timestamp('start_date')->nullable();
-            $table->timestamp('end_date')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('biolink_blocks')) {
+            Schema::create('biolink_blocks', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('link_id')->constrained('links')->cascadeOnDelete();
+                $table->string('type', 50);
+                $table->jsonb('settings')->default('{}');
+                $table->integer('sort_order')->default(0);
+                $table->boolean('is_active')->default(true);
+                $table->timestamp('start_date')->nullable();
+                $table->timestamp('end_date')->nullable();
+                $table->timestamps();
 
-            $table->index(['link_id', 'sort_order']);
-            $table->index(['link_id', 'is_active']);
-        });
+                $table->index(['link_id', 'sort_order']);
+                $table->index(['link_id', 'is_active']);
+            });
+        }
     }
 
     public function down(): void

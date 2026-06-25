@@ -8,19 +8,21 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('site_stats', function (Blueprint $table) {
-            $table->id();
-            $table->string('label', 160);
-            $table->string('value', 32);
-            $table->string('suffix', 16)->nullable();
-            $table->string('icon', 64)->default('fa-chart-line');
-            $table->string('color', 16)->default('#7c3aed');
-            $table->boolean('is_active')->default(true);
-            $table->unsignedInteger('sort_order')->default(0);
-            $table->timestamps();
+        if (!Schema::hasTable('site_stats')) {
+            Schema::create('site_stats', function (Blueprint $table) {
+                $table->id();
+                $table->string('label', 160);
+                $table->string('value', 32);
+                $table->string('suffix', 16)->nullable();
+                $table->string('icon', 64)->default('fa-chart-line');
+                $table->string('color', 16)->default('#7c3aed');
+                $table->boolean('is_active')->default(true);
+                $table->unsignedInteger('sort_order')->default(0);
+                $table->timestamps();
 
-            $table->index(['is_active', 'sort_order']);
-        });
+                $table->index(['is_active', 'sort_order']);
+            });
+        }
 
         $now = now();
         DB::table('site_stats')->insert([

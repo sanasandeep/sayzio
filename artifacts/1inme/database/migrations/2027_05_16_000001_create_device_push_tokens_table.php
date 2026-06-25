@@ -17,16 +17,18 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('device_push_tokens', function (Blueprint $t) {
-            $t->id();
-            $t->unsignedBigInteger('user_id')->index();
-            // Expo push token, e.g. ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx].
-            $t->string('token')->unique();
-            $t->string('platform', 16)->nullable(); // ios | android | web
-            $t->string('device_name')->nullable();
-            $t->timestamp('last_used_at')->nullable();
-            $t->timestamps();
-        });
+        if (!Schema::hasTable('device_push_tokens')) {
+            Schema::create('device_push_tokens', function (Blueprint $t) {
+                $t->id();
+                $t->unsignedBigInteger('user_id')->index();
+                // Expo push token, e.g. ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx].
+                $t->string('token')->unique();
+                $t->string('platform', 16)->nullable(); // ios | android | web
+                $t->string('device_name')->nullable();
+                $t->timestamp('last_used_at')->nullable();
+                $t->timestamps();
+            });
+        }
     }
 
     public function down(): void

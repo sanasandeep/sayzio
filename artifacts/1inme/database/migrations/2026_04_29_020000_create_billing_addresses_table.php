@@ -18,20 +18,22 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('billing_addresses', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
-            $table->string('country', 2);
-            $table->string('region', 8)->nullable();   // IN state code, EU not needed
-            $table->string('postal_code', 16)->nullable();
-            $table->string('city', 100)->nullable();
-            $table->string('line1')->nullable();
-            $table->string('line2')->nullable();
-            $table->string('business_name')->nullable();
-            $table->string('tax_id', 32)->nullable();
-            $table->string('tax_id_kind', 16)->nullable(); // GSTIN | VATIN | NONE
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('billing_addresses')) {
+            Schema::create('billing_addresses', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
+                $table->string('country', 2);
+                $table->string('region', 8)->nullable();   // IN state code, EU not needed
+                $table->string('postal_code', 16)->nullable();
+                $table->string('city', 100)->nullable();
+                $table->string('line1')->nullable();
+                $table->string('line2')->nullable();
+                $table->string('business_name')->nullable();
+                $table->string('tax_id', 32)->nullable();
+                $table->string('tax_id_kind', 16)->nullable(); // GSTIN | VATIN | NONE
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

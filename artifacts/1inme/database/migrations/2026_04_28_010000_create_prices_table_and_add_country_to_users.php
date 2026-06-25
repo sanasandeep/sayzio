@@ -26,29 +26,33 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('prices', function (Blueprint $t) {
-            $t->id();
-            $t->string('priceable_type');
-            $t->unsignedBigInteger('priceable_id');
-            $t->string('currency', 3);              // 'USD' | 'INR' (extensible)
-            $t->string('billing_cycle', 16);        // 'monthly' | 'annual'
-            $t->unsignedBigInteger('amount_minor_units')->default(0);
-            $t->boolean('is_active')->default(true);
-            $t->timestamps();
+        if (!Schema::hasTable('prices')) {
+            Schema::create('prices', function (Blueprint $t) {
+                $t->id();
+                $t->string('priceable_type');
+                $t->unsignedBigInteger('priceable_id');
+                $t->string('currency', 3);              // 'USD' | 'INR' (extensible)
+                $t->string('billing_cycle', 16);        // 'monthly' | 'annual'
+                $t->unsignedBigInteger('amount_minor_units')->default(0);
+                $t->boolean('is_active')->default(true);
+                $t->timestamps();
 
-            $t->unique(
-                ['priceable_type', 'priceable_id', 'currency', 'billing_cycle'],
-                'prices_priceable_currency_cycle_unique'
-            );
-            $t->index(['priceable_type', 'priceable_id'], 'prices_priceable_idx');
-        });
+                $t->unique(
+                    ['priceable_type', 'priceable_id', 'currency', 'billing_cycle'],
+                    'prices_priceable_currency_cycle_unique'
+                );
+                $t->index(['priceable_type', 'priceable_id'], 'prices_priceable_idx');
+            });
+        }
 
         Schema::table('users', function (Blueprint $t) {
             // ISO 3166-1 alpha-2. Nullable: existing users haven't been
             // asked yet. The PricingResolver treats null as "USD by
             // default with optional anonymous switcher". This is the
             // BILLING country only — not a shipping address.
-            $t->string('country', 2)->nullable()->after('language');
+            if (!Schema::hasColumn('users', 'country')) {
+                $t->string('country', 2)->nullable()->after('language');
+            }
         });
 
         $this->backfill(Plan::class, 'plans');

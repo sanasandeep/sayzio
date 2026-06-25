@@ -30,26 +30,28 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('card_scans', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('workspace_id')->nullable();
-            $table->unsignedBigInteger('actor_user_id');
-            $table->unsignedBigInteger('source_file_id')->nullable();
-            $table->string('status', 16)->default('pending');
-            $table->string('error', 500)->nullable();
-            $table->json('raw_response')->nullable();
-            $table->json('extracted')->nullable();
-            $table->unsignedInteger('credits_spent')->default(0);
-            $table->unsignedBigInteger('contact_id')->nullable();
-            $table->unsignedBigInteger('wizard_draft_id')->nullable();
-            $table->string('idempotency_key', 96)->nullable()->unique();
-            $table->timestamps();
+        if (!Schema::hasTable('card_scans')) {
+            Schema::create('card_scans', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('user_id');
+                $table->unsignedBigInteger('workspace_id')->nullable();
+                $table->unsignedBigInteger('actor_user_id');
+                $table->unsignedBigInteger('source_file_id')->nullable();
+                $table->string('status', 16)->default('pending');
+                $table->string('error', 500)->nullable();
+                $table->json('raw_response')->nullable();
+                $table->json('extracted')->nullable();
+                $table->unsignedInteger('credits_spent')->default(0);
+                $table->unsignedBigInteger('contact_id')->nullable();
+                $table->unsignedBigInteger('wizard_draft_id')->nullable();
+                $table->string('idempotency_key', 96)->nullable()->unique();
+                $table->timestamps();
 
-            $table->index(['user_id', 'created_at']);
-            $table->index(['user_id', 'status']);
-            $table->index('actor_user_id');
-        });
+                $table->index(['user_id', 'created_at']);
+                $table->index(['user_id', 'status']);
+                $table->index('actor_user_id');
+            });
+        }
     }
 
     public function down(): void

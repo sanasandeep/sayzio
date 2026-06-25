@@ -40,21 +40,23 @@ return new class extends Migration
             $table->longText('description_html')->nullable()->after('description');
         });
 
-        Schema::create('task_attachments', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('workspace_id');
-            $table->unsignedBigInteger('card_id');
-            $table->unsignedBigInteger('uploaded_by_user_id')->nullable();
-            $table->string('original_name');
-            $table->string('mime', 120)->nullable();
-            $table->unsignedInteger('size_bytes')->default(0);
-            $table->string('disk', 32)->default('public');
-            $table->string('path', 1024);
-            $table->timestamps();
+        if (!Schema::hasTable('task_attachments')) {
+            Schema::create('task_attachments', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('workspace_id');
+                $table->unsignedBigInteger('card_id');
+                $table->unsignedBigInteger('uploaded_by_user_id')->nullable();
+                $table->string('original_name');
+                $table->string('mime', 120)->nullable();
+                $table->unsignedInteger('size_bytes')->default(0);
+                $table->string('disk', 32)->default('public');
+                $table->string('path', 1024);
+                $table->timestamps();
 
-            $table->index(['card_id', 'created_at']);
-            $table->index('workspace_id');
-        });
+                $table->index(['card_id', 'created_at']);
+                $table->index('workspace_id');
+            });
+        }
 
         // Backfill workspace_id for the new columns by joining through
         // task_cards (the source of truth for workspace ownership). Written

@@ -34,26 +34,28 @@ return new class extends Migration
             $table->unsignedBigInteger('billed_column_id')->nullable()->after('description');
         });
 
-        Schema::create('task_time_entries', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('workspace_id');
-            $table->unsignedBigInteger('card_id');
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->timestamp('started_at')->nullable();
-            // Null while the timer is still running.
-            $table->timestamp('ended_at')->nullable();
-            $table->unsignedInteger('minutes')->default(0);
-            $table->string('note', 240)->nullable();
-            // 'timer' = clocked via start/stop, 'manual' = entered by hand.
-            $table->string('source', 8)->default('timer');
-            $table->unsignedBigInteger('client_invoice_id')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('task_time_entries')) {
+            Schema::create('task_time_entries', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('workspace_id');
+                $table->unsignedBigInteger('card_id');
+                $table->unsignedBigInteger('user_id')->nullable();
+                $table->timestamp('started_at')->nullable();
+                // Null while the timer is still running.
+                $table->timestamp('ended_at')->nullable();
+                $table->unsignedInteger('minutes')->default(0);
+                $table->string('note', 240)->nullable();
+                // 'timer' = clocked via start/stop, 'manual' = entered by hand.
+                $table->string('source', 8)->default('timer');
+                $table->unsignedBigInteger('client_invoice_id')->nullable();
+                $table->timestamps();
 
-            $table->index(['card_id', 'started_at']);
-            $table->index(['workspace_id', 'card_id']);
-            $table->index(['card_id', 'ended_at']);
-            $table->index('client_invoice_id');
-        });
+                $table->index(['card_id', 'started_at']);
+                $table->index(['workspace_id', 'card_id']);
+                $table->index(['card_id', 'ended_at']);
+                $table->index('client_invoice_id');
+            });
+        }
 
         Schema::table('invoices', function (Blueprint $table) {
             // 'subscription' (existing rows) or 'client' (new client invoices).
@@ -70,15 +72,17 @@ return new class extends Migration
             $table->index(['workspace_id', 'kind']);
         });
 
-        Schema::create('client_invoice_cards', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('invoice_id');
-            $table->unsignedBigInteger('card_id');
-            $table->timestamps();
+        if (!Schema::hasTable('client_invoice_cards')) {
+            Schema::create('client_invoice_cards', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('invoice_id');
+                $table->unsignedBigInteger('card_id');
+                $table->timestamps();
 
-            $table->unique(['invoice_id', 'card_id']);
-            $table->index('card_id');
-        });
+                $table->unique(['invoice_id', 'card_id']);
+                $table->index('card_id');
+            });
+        }
     }
 
     public function down(): void

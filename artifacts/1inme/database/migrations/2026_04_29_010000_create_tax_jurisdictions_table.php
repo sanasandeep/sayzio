@@ -25,21 +25,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('tax_jurisdictions', function (Blueprint $table) {
-            $table->id();
-            $table->string('country', 2)->index();
-            $table->string('region', 8)->nullable()->index();
-            $table->string('kind', 16); // GST_INTRA | GST_INTER | VAT | SALES | NONE
-            $table->string('label')->nullable();
-            $table->decimal('rate_percent', 6, 3); // e.g. 18.000, 9.000, 20.000
-            $table->boolean('b2b_reverse_charge')->default(false);
-            $table->date('effective_from')->nullable();
-            $table->date('effective_to')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
+        if (!Schema::hasTable('tax_jurisdictions')) {
+            Schema::create('tax_jurisdictions', function (Blueprint $table) {
+                $table->id();
+                $table->string('country', 2)->index();
+                $table->string('region', 8)->nullable()->index();
+                $table->string('kind', 16); // GST_INTRA | GST_INTER | VAT | SALES | NONE
+                $table->string('label')->nullable();
+                $table->decimal('rate_percent', 6, 3); // e.g. 18.000, 9.000, 20.000
+                $table->boolean('b2b_reverse_charge')->default(false);
+                $table->date('effective_from')->nullable();
+                $table->date('effective_to')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
 
-            $table->index(['country', 'region', 'kind', 'is_active'], 'tax_juris_lookup_idx');
-        });
+                $table->index(['country', 'region', 'kind', 'is_active'], 'tax_juris_lookup_idx');
+            });
+        }
     }
 
     public function down(): void

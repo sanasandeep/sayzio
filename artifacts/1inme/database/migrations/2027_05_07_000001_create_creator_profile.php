@@ -63,33 +63,37 @@ return new class extends Migration {
             }
         });
 
-        Schema::create('creator_post_comments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('post_id')->constrained('creator_posts')->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('creator_post_comments')->cascadeOnDelete();
-            // Author is always a registered viewer (ViewerSession) — anonymous
-            // comments are not allowed on the new surface.
-            $table->foreignId('viewer_user_id')->constrained('users')->cascadeOnDelete();
-            $table->text('body');
-            $table->string('status', 16)->default('visible'); // visible|hidden|deleted
-            $table->timestamps();
-            $table->index(['post_id', 'parent_id', 'created_at'], 'cpc_post_parent_idx');
-            $table->index(['viewer_user_id']);
-        });
+        if (!Schema::hasTable('creator_post_comments')) {
+            Schema::create('creator_post_comments', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('post_id')->constrained('creator_posts')->cascadeOnDelete();
+                $table->foreignId('parent_id')->nullable()->constrained('creator_post_comments')->cascadeOnDelete();
+                // Author is always a registered viewer (ViewerSession) — anonymous
+                // comments are not allowed on the new surface.
+                $table->foreignId('viewer_user_id')->constrained('users')->cascadeOnDelete();
+                $table->text('body');
+                $table->string('status', 16)->default('visible'); // visible|hidden|deleted
+                $table->timestamps();
+                $table->index(['post_id', 'parent_id', 'created_at'], 'cpc_post_parent_idx');
+                $table->index(['viewer_user_id']);
+            });
+        }
 
-        Schema::create('creator_post_reactions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('post_id')->constrained('creator_posts')->cascadeOnDelete();
-            $table->foreignId('viewer_user_id')->constrained('users')->cascadeOnDelete();
-            // Branded reaction key — see CreatorPostReaction::REACTIONS.
-            $table->string('reaction', 24);
-            $table->timestamp('created_at')->useCurrent();
+        if (!Schema::hasTable('creator_post_reactions')) {
+            Schema::create('creator_post_reactions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('post_id')->constrained('creator_posts')->cascadeOnDelete();
+                $table->foreignId('viewer_user_id')->constrained('users')->cascadeOnDelete();
+                // Branded reaction key — see CreatorPostReaction::REACTIONS.
+                $table->string('reaction', 24);
+                $table->timestamp('created_at')->useCurrent();
 
-            // One viewer can pick at most one reaction per post (toggling
-            // swaps the row server-side).
-            $table->unique(['post_id', 'viewer_user_id'], 'cpr_post_viewer_unique');
-            $table->index(['post_id', 'reaction']);
-        });
+                // One viewer can pick at most one reaction per post (toggling
+                // swaps the row server-side).
+                $table->unique(['post_id', 'viewer_user_id'], 'cpr_post_viewer_unique');
+                $table->index(['post_id', 'reaction']);
+            });
+        }
     }
 
     public function down(): void

@@ -20,43 +20,45 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('creator_payment_connections', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            // Provider slug — see PayoutProviderRegistry::PROVIDERS.
-            $table->string('provider', 32);
-            // Returned by the provider's onboarding handoff.
-            $table->string('account_id', 191)->nullable();
-            // Two-letter ISO country the creator selected on onboarding.
-            $table->string('country', 2)->nullable();
-            // pending|active|restricted|disabled (free-form, mirrored
-            // from each provider's vocabulary).
-            $table->string('status', 32)->default('pending');
-            // Provider-supplied human-readable reason shown on hover.
-            $table->string('status_reason', 500)->nullable();
-            // Whether payouts can currently land. Used by the UI badge
-            // colour without forcing the consumer to know provider terms.
-            $table->boolean('payouts_enabled')->default(false);
-            // Whether the creator has finished provider KYC + onboarding.
-            $table->boolean('charges_enabled')->default(false);
-            // Marks the active default for routing future paid features.
-            // The repo enforces "exactly one default per user" via the
-            // service layer rather than a partial unique index, since
-            // SQLite (used in tests) doesn't accept WHERE on UNIQUE.
-            $table->boolean('is_default')->default(false);
-            // Flag that this provider is one of the adult-friendly set
-            // (CCBill, Segpay) — denormalised so the UI can filter
-            // without re-importing the provider registry on every read.
-            $table->boolean('adult_friendly')->default(false);
-            // Last successful sync from the provider (used to surface a
-            // "verified moments ago" signal under each connection card).
-            $table->timestamp('last_sync_at')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('creator_payment_connections')) {
+            Schema::create('creator_payment_connections', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                // Provider slug — see PayoutProviderRegistry::PROVIDERS.
+                $table->string('provider', 32);
+                // Returned by the provider's onboarding handoff.
+                $table->string('account_id', 191)->nullable();
+                // Two-letter ISO country the creator selected on onboarding.
+                $table->string('country', 2)->nullable();
+                // pending|active|restricted|disabled (free-form, mirrored
+                // from each provider's vocabulary).
+                $table->string('status', 32)->default('pending');
+                // Provider-supplied human-readable reason shown on hover.
+                $table->string('status_reason', 500)->nullable();
+                // Whether payouts can currently land. Used by the UI badge
+                // colour without forcing the consumer to know provider terms.
+                $table->boolean('payouts_enabled')->default(false);
+                // Whether the creator has finished provider KYC + onboarding.
+                $table->boolean('charges_enabled')->default(false);
+                // Marks the active default for routing future paid features.
+                // The repo enforces "exactly one default per user" via the
+                // service layer rather than a partial unique index, since
+                // SQLite (used in tests) doesn't accept WHERE on UNIQUE.
+                $table->boolean('is_default')->default(false);
+                // Flag that this provider is one of the adult-friendly set
+                // (CCBill, Segpay) — denormalised so the UI can filter
+                // without re-importing the provider registry on every read.
+                $table->boolean('adult_friendly')->default(false);
+                // Last successful sync from the provider (used to surface a
+                // "verified moments ago" signal under each connection card).
+                $table->timestamp('last_sync_at')->nullable();
+                $table->json('metadata')->nullable();
+                $table->timestamps();
 
-            $table->index(['user_id', 'is_default']);
-            $table->unique(['user_id', 'provider']);
-        });
+                $table->index(['user_id', 'is_default']);
+                $table->unique(['user_id', 'provider']);
+            });
+        }
 
         Schema::table('users', function (Blueprint $table) {
             if (!Schema::hasColumn('users', 'adult_content_enabled')) {

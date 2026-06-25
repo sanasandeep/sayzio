@@ -25,37 +25,39 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('schema_repair_audits', function (Blueprint $table) {
-            $table->bigIncrements('id');
+        if (!Schema::hasTable('schema_repair_audits')) {
+            Schema::create('schema_repair_audits', function (Blueprint $table) {
+                $table->bigIncrements('id');
 
-            // Either actor_admin_id (admin guard) or actor_user_id (web
-            // guard) is set; both null means a system / CLI invocation.
-            $table->unsignedBigInteger('actor_admin_id')->nullable();
-            $table->unsignedBigInteger('actor_user_id')->nullable();
-            $table->string('actor_guard', 16)->nullable();
-            $table->string('actor_name', 191)->nullable();
-            $table->string('actor_email', 191)->nullable();
+                // Either actor_admin_id (admin guard) or actor_user_id (web
+                // guard) is set; both null means a system / CLI invocation.
+                $table->unsignedBigInteger('actor_admin_id')->nullable();
+                $table->unsignedBigInteger('actor_user_id')->nullable();
+                $table->string('actor_guard', 16)->nullable();
+                $table->string('actor_name', 191)->nullable();
+                $table->string('actor_email', 191)->nullable();
 
-            // Schema-level outcome only. `added` is a JSON map of
-            // table => [columns added/backfilled]; `unrepairable` is a
-            // JSON list of whole-missing table names the repair could not
-            // recreate (they still need `migrate --force`).
-            $table->json('added')->nullable();
-            $table->json('unrepairable')->nullable();
+                // Schema-level outcome only. `added` is a JSON map of
+                // table => [columns added/backfilled]; `unrepairable` is a
+                // JSON list of whole-missing table names the repair could not
+                // recreate (they still need `migrate --force`).
+                $table->json('added')->nullable();
+                $table->json('unrepairable')->nullable();
 
-            // Denormalised counts so the index/list view doesn't have to
-            // decode the JSON to show a summary.
-            $table->unsignedInteger('added_columns_count')->default(0);
-            $table->unsignedInteger('added_tables_count')->default(0);
-            $table->unsignedInteger('unrepairable_count')->default(0);
+                // Denormalised counts so the index/list view doesn't have to
+                // decode the JSON to show a summary.
+                $table->unsignedInteger('added_columns_count')->default(0);
+                $table->unsignedInteger('added_tables_count')->default(0);
+                $table->unsignedInteger('unrepairable_count')->default(0);
 
-            $table->string('ip', 64)->nullable();
+                $table->string('ip', 64)->nullable();
 
-            $table->timestamp('created_at')->useCurrent();
+                $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['created_at'], 'schema_repair_audits_created_idx');
-            $table->index(['actor_admin_id', 'created_at'], 'schema_repair_audits_actor_idx');
-        });
+                $table->index(['created_at'], 'schema_repair_audits_created_idx');
+                $table->index(['actor_admin_id', 'created_at'], 'schema_repair_audits_actor_idx');
+            });
+        }
     }
 
     public function down(): void

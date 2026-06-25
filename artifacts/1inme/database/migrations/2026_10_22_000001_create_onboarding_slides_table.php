@@ -15,18 +15,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('onboarding_slides', function (Blueprint $table) {
-            $table->id();
-            $table->string('slug')->unique();
-            $table->string('category', 80);
-            $table->string('title');
-            $table->text('body')->nullable();
-            $table->string('image_path')->nullable();
-            $table->string('status', 20)->default('active');
-            $table->unsignedInteger('sort_order')->default(0);
-            $table->timestamps();
-            $table->index(['status', 'sort_order']);
-        });
+        if (!Schema::hasTable('onboarding_slides')) {
+            Schema::create('onboarding_slides', function (Blueprint $table) {
+                $table->id();
+                $table->string('slug')->unique();
+                $table->string('category', 80);
+                $table->string('title');
+                $table->text('body')->nullable();
+                $table->string('image_path')->nullable();
+                $table->string('status', 20)->default('active');
+                $table->unsignedInteger('sort_order')->default(0);
+                $table->timestamps();
+                $table->index(['status', 'sort_order']);
+            });
+        }
     }
 
     public function down(): void

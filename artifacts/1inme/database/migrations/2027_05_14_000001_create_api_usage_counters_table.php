@@ -17,19 +17,21 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('api_usage_counters', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('user_id')->constrained()->cascadeOnDelete();
-            // Calendar month bucket, e.g. "2026-06".
-            $t->string('period', 7);
-            $t->unsignedBigInteger('calls_used')->default(0);
-            $t->unsignedBigInteger('overage_calls')->default(0);
-            $t->unsignedBigInteger('coins_spent')->default(0);
-            $t->unsignedBigInteger('prepaid_overage_remaining')->default(0);
-            $t->timestamps();
+        if (!Schema::hasTable('api_usage_counters')) {
+            Schema::create('api_usage_counters', function (Blueprint $t) {
+                $t->id();
+                $t->foreignId('user_id')->constrained()->cascadeOnDelete();
+                // Calendar month bucket, e.g. "2026-06".
+                $t->string('period', 7);
+                $t->unsignedBigInteger('calls_used')->default(0);
+                $t->unsignedBigInteger('overage_calls')->default(0);
+                $t->unsignedBigInteger('coins_spent')->default(0);
+                $t->unsignedBigInteger('prepaid_overage_remaining')->default(0);
+                $t->timestamps();
 
-            $t->unique(['user_id', 'period']);
-        });
+                $t->unique(['user_id', 'period']);
+            });
+        }
     }
 
     public function down(): void

@@ -26,169 +26,181 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('subscription_tiers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('name', 80);
-            // url-safe slug used to deep-link from the profile to a tier.
-            $table->string('slug', 80);
-            // Always exactly one row per creator with is_free=true. Free
-            // tiers price stays at 0 and yearly is hidden.
-            $table->boolean('is_free')->default(false);
-            $table->boolean('is_active')->default(true);
-            $table->unsignedInteger('sort_order')->default(0);
-            // Monthly price in the smallest currency unit (cents).
-            $table->unsignedInteger('price_monthly_cents')->default(0);
-            // Optional yearly price; when null the UI hides the toggle.
-            $table->unsignedInteger('price_yearly_cents')->nullable();
-            $table->string('currency', 3)->default('USD');
-            // Display copy (perks list, lines of bullet text). Stored
-            // as an array of strings so the UI can render bullet rows.
-            $table->json('perks')->nullable();
-            // Tailwind-friendly colour token for the badge / accent.
-            $table->string('color', 16)->default('violet');
-            // 0–N badge emoji / icon fragment surfaced next to the tier
-            // name in lists and feeds (e.g. "💎", "fas fa-crown").
-            $table->string('badge', 32)->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('subscription_tiers')) {
+            Schema::create('subscription_tiers', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('name', 80);
+                // url-safe slug used to deep-link from the profile to a tier.
+                $table->string('slug', 80);
+                // Always exactly one row per creator with is_free=true. Free
+                // tiers price stays at 0 and yearly is hidden.
+                $table->boolean('is_free')->default(false);
+                $table->boolean('is_active')->default(true);
+                $table->unsignedInteger('sort_order')->default(0);
+                // Monthly price in the smallest currency unit (cents).
+                $table->unsignedInteger('price_monthly_cents')->default(0);
+                // Optional yearly price; when null the UI hides the toggle.
+                $table->unsignedInteger('price_yearly_cents')->nullable();
+                $table->string('currency', 3)->default('USD');
+                // Display copy (perks list, lines of bullet text). Stored
+                // as an array of strings so the UI can render bullet rows.
+                $table->json('perks')->nullable();
+                // Tailwind-friendly colour token for the badge / accent.
+                $table->string('color', 16)->default('violet');
+                // 0–N badge emoji / icon fragment surfaced next to the tier
+                // name in lists and feeds (e.g. "💎", "fas fa-crown").
+                $table->string('badge', 32)->nullable();
+                $table->timestamps();
 
-            $table->unique(['user_id', 'slug']);
-            $table->index(['user_id', 'sort_order']);
-            $table->index(['user_id', 'is_active']);
-        });
+                $table->unique(['user_id', 'slug']);
+                $table->index(['user_id', 'sort_order']);
+                $table->index(['user_id', 'is_active']);
+            });
+        }
 
-        Schema::create('subscription_promo_codes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            // Case-insensitive, unique per creator (we lowercase on save).
-            $table->string('code', 40);
-            $table->string('label', 120)->nullable();
-            // percent | amount | months_free | founder | lifetime
-            //   percent       — % off recurring, value=0–100
-            //   amount        — flat cents off recurring, value=cents
-            //   months_free   — N months free, value=count
-            //   founder       — flat cents off, never expires for that fan
-            //   lifetime      — one-off lifetime grant (no recurring)
-            $table->string('kind', 20);
-            $table->unsignedInteger('value')->default(0);
-            // Restrict promo to a subset of tiers (null = applies to all).
-            $table->json('applies_to_tier_ids')->nullable();
-            // Accept only N redemptions globally; null = unlimited.
-            $table->unsignedInteger('max_redemptions')->nullable();
-            $table->unsignedInteger('redemptions_count')->default(0);
-            $table->timestamp('expires_at')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
+        if (!Schema::hasTable('subscription_promo_codes')) {
+            Schema::create('subscription_promo_codes', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                // Case-insensitive, unique per creator (we lowercase on save).
+                $table->string('code', 40);
+                $table->string('label', 120)->nullable();
+                // percent | amount | months_free | founder | lifetime
+                //   percent       — % off recurring, value=0–100
+                //   amount        — flat cents off recurring, value=cents
+                //   months_free   — N months free, value=count
+                //   founder       — flat cents off, never expires for that fan
+                //   lifetime      — one-off lifetime grant (no recurring)
+                $table->string('kind', 20);
+                $table->unsignedInteger('value')->default(0);
+                // Restrict promo to a subset of tiers (null = applies to all).
+                $table->json('applies_to_tier_ids')->nullable();
+                // Accept only N redemptions globally; null = unlimited.
+                $table->unsignedInteger('max_redemptions')->nullable();
+                $table->unsignedInteger('redemptions_count')->default(0);
+                $table->timestamp('expires_at')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
 
-            $table->unique(['user_id', 'code']);
-            $table->index(['user_id', 'is_active']);
-        });
+                $table->unique(['user_id', 'code']);
+                $table->index(['user_id', 'is_active']);
+            });
+        }
 
-        Schema::create('creator_subscriptions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('fan_user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('tier_id')->constrained('subscription_tiers')->cascadeOnDelete();
-            // monthly | yearly. Free tiers always store 'monthly' for
-            // bookkeeping; price_cents stays at 0.
-            $table->string('billing_cycle', 16)->default('monthly');
-            // active | trialing | past_due | canceled | paused
-            $table->string('status', 20)->default('active');
-            $table->unsignedInteger('price_cents')->default(0);
-            $table->string('currency', 3)->default('USD');
-            $table->timestamp('started_at')->nullable();
-            $table->timestamp('current_period_start')->nullable();
-            $table->timestamp('current_period_end')->nullable();
-            $table->timestamp('canceled_at')->nullable();
-            // When set, status stays 'active' until current_period_end
-            // is reached (downgrades, fan-initiated cancel-at-period-end).
-            $table->boolean('cancel_at_period_end')->default(false);
-            $table->timestamp('last_payment_at')->nullable();
-            // Provider routing — copied from the creator's default
-            // CreatorPaymentConnection at checkout time so the row is
-            // self-describing even if the creator switches providers.
-            $table->string('gateway', 32)->nullable();
-            $table->string('gateway_subscription_id', 191)->nullable();
-            $table->foreignId('promo_code_id')->nullable()->constrained('subscription_promo_codes')->nullOnDelete();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('creator_subscriptions')) {
+            Schema::create('creator_subscriptions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('fan_user_id')->constrained('users')->cascadeOnDelete();
+                $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
+                $table->foreignId('tier_id')->constrained('subscription_tiers')->cascadeOnDelete();
+                // monthly | yearly. Free tiers always store 'monthly' for
+                // bookkeeping; price_cents stays at 0.
+                $table->string('billing_cycle', 16)->default('monthly');
+                // active | trialing | past_due | canceled | paused
+                $table->string('status', 20)->default('active');
+                $table->unsignedInteger('price_cents')->default(0);
+                $table->string('currency', 3)->default('USD');
+                $table->timestamp('started_at')->nullable();
+                $table->timestamp('current_period_start')->nullable();
+                $table->timestamp('current_period_end')->nullable();
+                $table->timestamp('canceled_at')->nullable();
+                // When set, status stays 'active' until current_period_end
+                // is reached (downgrades, fan-initiated cancel-at-period-end).
+                $table->boolean('cancel_at_period_end')->default(false);
+                $table->timestamp('last_payment_at')->nullable();
+                // Provider routing — copied from the creator's default
+                // CreatorPaymentConnection at checkout time so the row is
+                // self-describing even if the creator switches providers.
+                $table->string('gateway', 32)->nullable();
+                $table->string('gateway_subscription_id', 191)->nullable();
+                $table->foreignId('promo_code_id')->nullable()->constrained('subscription_promo_codes')->nullOnDelete();
+                $table->json('metadata')->nullable();
+                $table->timestamps();
 
-            $table->index(['creator_user_id', 'status']);
-            $table->index(['fan_user_id', 'status']);
-            $table->unique(['fan_user_id', 'creator_user_id'], 'creator_sub_fan_creator_unique');
-        });
+                $table->index(['creator_user_id', 'status']);
+                $table->index(['fan_user_id', 'status']);
+                $table->unique(['fan_user_id', 'creator_user_id'], 'creator_sub_fan_creator_unique');
+            });
+        }
 
-        Schema::create('post_unlocks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('post_id')->constrained('creator_posts')->cascadeOnDelete();
-            $table->foreignId('fan_user_id')->constrained('users')->cascadeOnDelete();
-            $table->unsignedInteger('price_cents')->default(0);
-            $table->string('currency', 3)->default('USD');
-            $table->string('gateway', 32)->nullable();
-            $table->string('gateway_charge_id', 191)->nullable();
-            $table->timestamp('unlocked_at')->useCurrent();
-            // Set when a refund webhook reverses the unlock — keeping the
-            // row preserves history / dashboards but revokes access.
-            $table->timestamp('refunded_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('post_unlocks')) {
+            Schema::create('post_unlocks', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('post_id')->constrained('creator_posts')->cascadeOnDelete();
+                $table->foreignId('fan_user_id')->constrained('users')->cascadeOnDelete();
+                $table->unsignedInteger('price_cents')->default(0);
+                $table->string('currency', 3)->default('USD');
+                $table->string('gateway', 32)->nullable();
+                $table->string('gateway_charge_id', 191)->nullable();
+                $table->timestamp('unlocked_at')->useCurrent();
+                // Set when a refund webhook reverses the unlock — keeping the
+                // row preserves history / dashboards but revokes access.
+                $table->timestamp('refunded_at')->nullable();
+                $table->timestamps();
 
-            $table->unique(['post_id', 'fan_user_id']);
-            $table->index(['fan_user_id', 'unlocked_at']);
-        });
+                $table->unique(['post_id', 'fan_user_id']);
+                $table->index(['fan_user_id', 'unlocked_at']);
+            });
+        }
 
-        Schema::create('creator_tips', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
-            // Nullable so a guest could in theory tip without an account
-            // (we still require viewer auth in this task — kept nullable
-            // for the next iteration that allows guest tipping).
-            $table->foreignId('fan_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('post_id')->nullable()->constrained('creator_posts')->nullOnDelete();
-            $table->unsignedInteger('amount_cents');
-            $table->string('currency', 3)->default('USD');
-            $table->string('note', 280)->nullable();
-            $table->boolean('anonymous')->default(false);
-            // succeeded | refunded | failed
-            $table->string('status', 16)->default('succeeded');
-            $table->string('gateway', 32)->nullable();
-            $table->string('gateway_charge_id', 191)->nullable();
-            $table->timestamp('refunded_at')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('creator_tips')) {
+            Schema::create('creator_tips', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
+                // Nullable so a guest could in theory tip without an account
+                // (we still require viewer auth in this task — kept nullable
+                // for the next iteration that allows guest tipping).
+                $table->foreignId('fan_user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignId('post_id')->nullable()->constrained('creator_posts')->nullOnDelete();
+                $table->unsignedInteger('amount_cents');
+                $table->string('currency', 3)->default('USD');
+                $table->string('note', 280)->nullable();
+                $table->boolean('anonymous')->default(false);
+                // succeeded | refunded | failed
+                $table->string('status', 16)->default('succeeded');
+                $table->string('gateway', 32)->nullable();
+                $table->string('gateway_charge_id', 191)->nullable();
+                $table->timestamp('refunded_at')->nullable();
+                $table->timestamps();
 
-            $table->index(['creator_user_id', 'created_at']);
-            $table->index(['post_id']);
-        });
+                $table->index(['creator_user_id', 'created_at']);
+                $table->index(['post_id']);
+            });
+        }
 
         // Unified event log so the Earnings / Payments dashboards can
         // render a single chronological feed without unioning four
         // tables on every page load. Each money-moving action also
         // writes a row here.
-        Schema::create('creator_payment_events', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('fan_user_id')->nullable()->constrained('users')->nullOnDelete();
-            // sub | ppv | tip
-            $table->string('source', 8);
-            // sub.created | sub.renewed | sub.canceled | sub.refunded
-            // ppv.unlocked | ppv.refunded
-            // tip.received | tip.refunded
-            $table->string('type', 32);
-            // Optional polymorphic pointer back to the originating row.
-            $table->string('reference_type', 64)->nullable();
-            $table->unsignedBigInteger('reference_id')->nullable();
-            // Signed cents — refunds are negative.
-            $table->integer('amount_cents')->default(0);
-            $table->string('currency', 3)->default('USD');
-            $table->string('gateway', 32)->nullable();
-            $table->string('gateway_event_id', 191)->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamp('occurred_at')->useCurrent();
-            $table->timestamps();
+        if (!Schema::hasTable('creator_payment_events')) {
+            Schema::create('creator_payment_events', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('creator_user_id')->constrained('users')->cascadeOnDelete();
+                $table->foreignId('fan_user_id')->nullable()->constrained('users')->nullOnDelete();
+                // sub | ppv | tip
+                $table->string('source', 8);
+                // sub.created | sub.renewed | sub.canceled | sub.refunded
+                // ppv.unlocked | ppv.refunded
+                // tip.received | tip.refunded
+                $table->string('type', 32);
+                // Optional polymorphic pointer back to the originating row.
+                $table->string('reference_type', 64)->nullable();
+                $table->unsignedBigInteger('reference_id')->nullable();
+                // Signed cents — refunds are negative.
+                $table->integer('amount_cents')->default(0);
+                $table->string('currency', 3)->default('USD');
+                $table->string('gateway', 32)->nullable();
+                $table->string('gateway_event_id', 191)->nullable();
+                $table->json('metadata')->nullable();
+                $table->timestamp('occurred_at')->useCurrent();
+                $table->timestamps();
 
-            $table->index(['creator_user_id', 'occurred_at']);
-            $table->index(['creator_user_id', 'source']);
-            $table->index(['gateway', 'gateway_event_id']);
-        });
+                $table->index(['creator_user_id', 'occurred_at']);
+                $table->index(['creator_user_id', 'source']);
+                $table->index(['gateway', 'gateway_event_id']);
+            });
+        }
 
         Schema::table('creator_posts', function (Blueprint $table) {
             // free | tier | ppv  — drives the renderer + access policy.

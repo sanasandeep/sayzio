@@ -29,63 +29,79 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('subscriptions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->constrained('plans');
-            $table->string('status', 32)->default('pending'); // pending|active|cancelled|expired
-            $table->string('billing_cycle', 16)->default('monthly');
-            $table->timestamp('current_period_start')->nullable();
-            $table->timestamp('current_period_end')->nullable();
-            $table->timestamp('cancel_at')->nullable();
-            $table->string('gateway', 32)->nullable();
-            $table->string('gateway_subscription_id', 190)->nullable();
-            $table->string('currency', 3);
-            $table->timestamps();
-            $table->index(['user_id', 'status']);
-            $table->index(['gateway', 'gateway_subscription_id']);
-        });
+        if (!Schema::hasTable('subscriptions')) {
+            Schema::create('subscriptions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('plan_id')->constrained('plans');
+                $table->string('status', 32)->default('pending'); // pending|active|cancelled|expired
+                $table->string('billing_cycle', 16)->default('monthly');
+                $table->timestamp('current_period_start')->nullable();
+                $table->timestamp('current_period_end')->nullable();
+                $table->timestamp('cancel_at')->nullable();
+                $table->string('gateway', 32)->nullable();
+                $table->string('gateway_subscription_id', 190)->nullable();
+                $table->string('currency', 3);
+                $table->timestamps();
+                $table->index(['user_id', 'status']);
+                $table->index(['gateway', 'gateway_subscription_id']);
+            });
+        }
 
-        Schema::create('subscription_addons', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('subscription_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('addon_id')->constrained('addons');
-            $table->unsignedInteger('qty')->default(1);
-            $table->timestamps();
-            $table->unique(['subscription_id', 'addon_id']);
-        });
+        if (!Schema::hasTable('subscription_addons')) {
+            Schema::create('subscription_addons', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('subscription_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('addon_id')->constrained('addons');
+                $table->unsignedInteger('qty')->default(1);
+                $table->timestamps();
+                $table->unique(['subscription_id', 'addon_id']);
+            });
+        }
 
         Schema::table('invoices', function (Blueprint $table) {
-            $table->foreignId('subscription_id')->nullable()->after('user_id')->constrained('subscriptions')->nullOnDelete();
-            $table->string('gateway', 32)->nullable()->after('subscription_id');
-            $table->string('status', 32)->default('paid')->after('gateway');
-            $table->timestamp('paid_at')->nullable()->after('status');
-            $table->index(['status']);
+            if (!Schema::hasColumn('invoices', 'subscription_id')) {
+                $table->foreignId('subscription_id')->nullable()->after('user_id')->constrained('subscriptions')->nullOnDelete();
+            }
+            if (!Schema::hasColumn('invoices', 'gateway')) {
+                $table->string('gateway', 32)->nullable()->after('subscription_id');
+            }
+            if (!Schema::hasColumn('invoices', 'status')) {
+                $table->string('status', 32)->default('paid')->after('gateway');
+                $table->index(['status']);
+            }
+            if (!Schema::hasColumn('invoices', 'paid_at')) {
+                $table->timestamp('paid_at')->nullable()->after('status');
+            }
         });
 
-        Schema::create('payment_attempts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
-            $table->string('gateway', 32);
-            $table->string('gateway_ref', 190)->nullable();
-            $table->string('status', 32)->default('initiated'); // initiated|pending|succeeded|failed|requires_review
-            $table->json('raw_response')->nullable();
-            $table->timestamp('signature_verified_at')->nullable();
-            $table->timestamps();
-            $table->unique(['gateway', 'gateway_ref']);
-            $table->index(['status']);
-        });
+        if (!Schema::hasTable('payment_attempts')) {
+            Schema::create('payment_attempts', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
+                $table->string('gateway', 32);
+                $table->string('gateway_ref', 190)->nullable();
+                $table->string('status', 32)->default('initiated'); // initiated|pending|succeeded|failed|requires_review
+                $table->json('raw_response')->nullable();
+                $table->timestamp('signature_verified_at')->nullable();
+                $table->timestamps();
+                $table->unique(['gateway', 'gateway_ref']);
+                $table->index(['status']);
+            });
+        }
 
-        Schema::create('gateway_settings', function (Blueprint $table) {
-            $table->id();
-            $table->string('gateway_slug', 32)->unique();
-            $table->string('display_name');
-            $table->string('mode', 16)->default('test'); // test|live
-            $table->text('credentials_encrypted')->nullable();
-            $table->boolean('is_enabled')->default(false);
-            $table->unsignedInteger('sort_order')->default(0);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('gateway_settings')) {
+            Schema::create('gateway_settings', function (Blueprint $table) {
+                $table->id();
+                $table->string('gateway_slug', 32)->unique();
+                $table->string('display_name');
+                $table->string('mode', 16)->default('test'); // test|live
+                $table->text('credentials_encrypted')->nullable();
+                $table->boolean('is_enabled')->default(false);
+                $table->unsignedInteger('sort_order')->default(0);
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

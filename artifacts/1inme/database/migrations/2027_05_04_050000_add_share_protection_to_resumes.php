@@ -28,25 +28,27 @@ return new class extends Migration {
             $table->unsignedInteger('share_revision')->default(0)->after('expires_at');
         });
 
-        Schema::create('resume_views', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('resume_id')->constrained()->cascadeOnDelete();
-            // When the visitor was logged into a Sayzio viewer-session
-            // we capture both id and the (then-current) handle so the
-            // log stays meaningful even if the user later renames.
-            $table->unsignedBigInteger('viewer_user_id')->nullable();
-            $table->string('viewer_handle', 64)->nullable();
-            $table->string('country_code', 2)->nullable();
-            $table->string('referrer', 512)->nullable();
-            $table->string('user_agent', 255)->nullable();
-            // SHA-1 of the client IP — never the raw IP — so owners
-            // can dedupe distinct visitors without us hoarding PII.
-            $table->string('ip_hash', 40)->nullable();
-            $table->timestamp('viewed_at')->useCurrent();
+        if (!Schema::hasTable('resume_views')) {
+            Schema::create('resume_views', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('resume_id')->constrained()->cascadeOnDelete();
+                // When the visitor was logged into a Sayzio viewer-session
+                // we capture both id and the (then-current) handle so the
+                // log stays meaningful even if the user later renames.
+                $table->unsignedBigInteger('viewer_user_id')->nullable();
+                $table->string('viewer_handle', 64)->nullable();
+                $table->string('country_code', 2)->nullable();
+                $table->string('referrer', 512)->nullable();
+                $table->string('user_agent', 255)->nullable();
+                // SHA-1 of the client IP — never the raw IP — so owners
+                // can dedupe distinct visitors without us hoarding PII.
+                $table->string('ip_hash', 40)->nullable();
+                $table->timestamp('viewed_at')->useCurrent();
 
-            $table->index(['resume_id', 'viewed_at']);
-            $table->index(['resume_id', 'ip_hash']);
-        });
+                $table->index(['resume_id', 'viewed_at']);
+                $table->index(['resume_id', 'ip_hash']);
+            });
+        }
     }
 
     public function down(): void
