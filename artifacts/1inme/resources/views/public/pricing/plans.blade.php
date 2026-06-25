@@ -1158,6 +1158,9 @@
                     ['max_files',         'Files',                'number'],
                     ['max_forms',         'Forms',                'number'],
                 ],
+                'Content blocks' => [
+                    ['block_types_allowed', 'Biolink block types',  'blocks'],
+                ],
                 'Link types' => [
                     ['max_conversational',   'Conversational pages',  'number'],
                     ['max_slides',           'Slides pages',          'number'],
@@ -1209,12 +1212,38 @@
             // uniformly; the matrix scroll box handles overflow when the
             // combined width exceeds the container.
             $colTpl = '220px repeat(' . count($plans) . ', 160px)';
-            $renderCell = function ($plan, $key, $kind) {
+            $renderCell = function ($plan, $key, $kind) use ($blockLabel) {
                 $features = $plan->features ?? [];
                 if (!array_key_exists($key, $features) && $kind !== 'analytics') {
                     return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
                 }
                 $val = $features[$key] ?? null;
+                if ($kind === 'blocks') {
+                    if ($val === '*') {
+                        return '<span class="text-emerald-300 font-semibold">All blocks</span>';
+                    }
+                    if (is_array($val) && count($val) > 0) {
+                        $labels = [];
+                        foreach ($val as $slug) {
+                            if (!is_string($slug) || $slug === '') continue;
+                            $labels[$blockLabel($slug)] = true;
+                        }
+                        $labels = array_keys($labels);
+                        sort($labels, SORT_NATURAL | SORT_FLAG_CASE);
+                        $count = count($labels);
+                        if ($count === 0) {
+                            return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
+                        }
+                        return '<span x-data="{ open: false }" class="inline-flex flex-col items-center gap-1">'
+                             . '<button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-white font-semibold hover:text-violet-200 transition" '
+                             . ':aria-expanded="open" aria-label="' . e($count . ' blocks') . '">'
+                             . $count . ' blocks <i class="fas fa-chevron-down text-[8px]" :class="open ? \'rotate-180\' : \'\'"></i>'
+                             . '</button>'
+                             . '<span x-show="open" x-cloak class="block text-[11px] text-gray-400 leading-snug">' . e(implode(', ', $labels)) . '</span>'
+                             . '</span>';
+                    }
+                    return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
+                }
                 if ($kind === 'number') {
                     if ((int) $val === -1) return '<span class="text-emerald-300 font-semibold">Unlimited</span>';
                     if ((int) $val === 0)  return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
