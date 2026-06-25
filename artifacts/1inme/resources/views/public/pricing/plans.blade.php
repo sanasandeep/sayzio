@@ -789,25 +789,17 @@
                 ['key' => 'api_access',         'group' => 'Developer',        'icon' => 'fa-code',                       'type' => 'api'],
             ];
 
-            // Resolve a biolink block-type slug to a human-readable label.
-            // Friendly names come from the live block registry (the full TYPES
-            // map, including consolidated "_alias" entries like `paragraph`),
-            // so allowlists normalized to real types read straight from the
-            // registry. Any genuinely unknown slug degrades to a humanized
-            // version rather than a raw token.
-            $blockTypes = \App\Modules\User\Models\BiolinkBlock::TYPES;
-            $blockLabel = function (string $slug) use ($blockTypes) {
-                $label = $blockTypes[$slug]['label'] ?? null;
-                if ($label) return $label;
-                $clean = preg_replace('/_v\d+$/', '', $slug);
-                return \Illuminate\Support\Str::title(str_replace(['_', '-'], ' ', $clean));
-            };
+            // Biolink block-type slug → human-readable label resolution (and
+            // canonicalization of friendly/legacy allowlist slugs to real
+            // block types, so labels match what editor gating enforces) lives
+            // in the shared PlanBlockLabels helper so this page and the in-app
+            // /user/upgrade page stay in sync.
 
             // Evaluate a single catalogue entry against a features blob.
             // Returns null when the feature isn't present/enabled, or an
             // array with a numeric weight (for delta comparison), a bold
             // name, and a description line.
-            $evalFeature = function (array $features, array $e) use ($blockLabel) {
+            $evalFeature = function (array $features, array $e) {
                 $type = $e['type'];
                 $key  = $e['key'];
 
@@ -829,23 +821,12 @@
                 }
                 if ($type === 'blocks') {
                     $val = $features[$key] ?? null;
-                    if ($val === '*') return ['num' => PHP_INT_MAX, 'name' => 'All biolink blocks', 'desc' => $e['desc'], 'blocks' => null];
-                    if (is_array($val) && count($val) > 0) {
-                        // Resolve friendly / legacy allowlist slugs to canonical
-                        // block types first, so labels come straight from the
-                        // registry and match exactly what editor gating enforces.
-                        $val = \App\Modules\User\Support\BlockTypeRegistry::canonicalizeAllowlist($val);
-                        $labels = [];
-                        foreach ($val as $slug) {
-                            if (!is_string($slug) || $slug === '') continue;
-                            $labels[$blockLabel($slug)] = true;
-                        }
-                        $labels = array_keys($labels);
-                        sort($labels, SORT_NATURAL | SORT_FLAG_CASE);
-                        if (count($labels) === 0) return null;
-                        return ['num' => count($labels), 'name' => count($labels) . ' biolink blocks', 'desc' => $e['desc'], 'blocks' => $labels];
+                    if (\App\Modules\Common\Support\PlanBlockLabels::isAll($val)) {
+                        return ['num' => PHP_INT_MAX, 'name' => 'All biolink blocks', 'desc' => $e['desc'], 'blocks' => null];
                     }
-                    return null;
+                    $labels = \App\Modules\Common\Support\PlanBlockLabels::labelsFor($val);
+                    if (!$labels) return null;
+                    return ['num' => count($labels), 'name' => count($labels) . ' biolink blocks', 'desc' => $e['desc'], 'blocks' => $labels];
                 }
                 if ($type === 'analytics') {
                     $val = $features[$key] ?? null;

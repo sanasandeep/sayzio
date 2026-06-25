@@ -239,10 +239,31 @@
                             <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>{{ $label }}</span></li>
                         @endif
                     @endforeach
-                    @if(($features['block_types_allowed'] ?? null) === '*')
+                    @php $blockVal = $features['block_types_allowed'] ?? null; @endphp
+                    @if(\App\Modules\Common\Support\PlanBlockLabels::isAll($blockVal))
                         <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>All biolink block types</span></li>
-                    @elseif(is_array($features['block_types_allowed'] ?? null))
-                        <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ count($features['block_types_allowed']) }} biolink block types</span></li>
+                    @else
+                        @php $blockNames = \App\Modules\Common\Support\PlanBlockLabels::labelsFor($blockVal); @endphp
+                        @if($blockNames)
+                            @php $blockPreview = array_slice($blockNames, 0, 6); $blockExtra = count($blockNames) - count($blockPreview); @endphp
+                            <li class="flex items-start gap-2">
+                                <span class="text-violet-400">•</span>
+                                <span class="min-w-0">
+                                    <span class="block">{{ count($blockNames) }} biolink block types</span>
+                                    <span x-data="{ open: false }" class="block mt-1">
+                                        <span class="block text-xs text-white/45 leading-snug" x-show="!open">{{ implode(', ', $blockPreview) }}@if($blockExtra > 0)<span class="text-white/60"> &amp; {{ $blockExtra }} more</span>@endif</span>
+                                        <span class="block text-xs text-white/45 leading-snug" x-show="open" x-cloak>{{ implode(', ', $blockNames) }}</span>
+                                        @if($blockExtra > 0)
+                                            <button type="button" @click="open = !open" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-300 hover:text-violet-200 transition">
+                                                <span x-show="!open">Show all {{ count($blockNames) }} blocks</span>
+                                                <span x-show="open" x-cloak>Show fewer</span>
+                                                <i class="fas fa-chevron-down text-[8px]" :class="open ? 'rotate-180' : ''"></i>
+                                            </button>
+                                        @endif
+                                    </span>
+                                </span>
+                            </li>
+                        @endif
                     @endif
                     @if(!empty($features['api_access']))
                         @php
