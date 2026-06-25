@@ -29,6 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             '*/track/session',
             '*/track/heartbeat',
             'sp/*/track',
+            // Public Buzz (Social Proof) email capture — cross-origin embeds
+            // POST from arbitrary sites; gating is server-side (notification
+            // must resolve to an active capture-type notification + spam check).
+            'sp/*/subscribe',
             // Anonymous landing-page CTA tracking — endpoint is allow-listed
             // server-side (see MarketingEventController::ALLOWED).
             'marketing-events/track',

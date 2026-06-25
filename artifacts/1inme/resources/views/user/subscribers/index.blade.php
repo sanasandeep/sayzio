@@ -142,7 +142,15 @@
                             </span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-xs" style="color: var(--text-muted);">{{ $sub->source ?? '—' }}</td>
+                        <td class="px-4 py-3 text-xs" style="color: var(--text-muted);">
+                            @if(data_get($sub->metadata, 'origin') === 'buzz')
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium" style="background: rgba(245,158,11,0.15); color: #f59e0b;" title="Captured by a Buzz popup">
+                                <i class="fas fa-bolt text-[10px]"></i>{{ data_get($sub->metadata, 'campaign') ?: 'Buzz' }}
+                            </span>
+                            @else
+                            {{ $sub->source ?? '—' }}
+                            @endif
+                        </td>
                         <td class="px-4 py-3">
                             @if($sub->status === 'active')
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style="background: rgba(34,197,94,0.15); color: #4ade80;">

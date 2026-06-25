@@ -318,6 +318,18 @@
     } catch (e) {}
   }
 
+  // Persist a captured email (from email_signup / exit_offer) as a Subscriber
+  // for the campaign owner. Fire-and-forget: failures never block the widget's
+  // success UX or the separate conversion track call.
+  function subscribeEmail(cfg, n, email) {
+    if (cfg.preview) return; // editor preview never captures
+    var url = cfg.subscribeUrl || ('/sp/' + cfg.uuid + '/subscribe');
+    try {
+      var body = JSON.stringify({email: email, page_url: location.href, notification_id: n && n.id});
+      fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:body,credentials:'omit'});
+    } catch (e) {}
+  }
+
   function showFor(container, durationMs, onClose) {
     requestAnimationFrame(function () { container.classList.add('__sp_in'); });
     var timer = durationMs > 0 ? setTimeout(close, Math.max(2000, durationMs)) : null;
@@ -523,6 +535,7 @@
     withCloseButton(card, design, closer);
     btn.addEventListener('click', function () {
       if (!input.value || input.value.indexOf('@') === -1) { input.focus(); return; }
+      subscribeEmail(cfg, n, input.value.trim());
       track(cfg, n, 'conversion');
       btn.textContent = '✓ Subscribed'; btn.disabled = true; input.disabled = true;
       setTimeout(closer, 1500);
@@ -530,13 +543,32 @@
   };
 
   RENDERERS.exit_offer = function (cfg, config, n, design, s, dur) {
-    var html = '<div class="__sp_body" style="padding:6px 4px">'
-      + '<p class="__sp_title" style="font-size:15px">' + escapeHtml(s.title || '') + '</p>'
-      + '<p class="__sp_text" style="white-space:normal;margin:6px 0 10px">' + escapeHtml(s.body || '') + '</p>'
-      + '<a href="' + escapeHtml(s.cta_url || '#') + '" class="__sp_btn" target="_blank" rel="noopener">' + escapeHtml(s.cta || 'Claim') + '</a>'
-      + '</div>';
-    var r = basicCard(cfg, n, design, html, { duration: 0 });
-    r.card.querySelector('a.__sp_btn').addEventListener('click', function () { track(cfg, n, 'conversion'); });
+    var card = document.createElement('div'); card.className = '__sp_card';
+    card.style.flexDirection = 'column'; card.style.alignItems = 'stretch'; card.style.cursor = 'default';
+    var title = document.createElement('p'); title.className = '__sp_title'; title.style.fontSize = '15px'; title.textContent = s.title || '';
+    var text  = document.createElement('p'); text.className  = '__sp_text';  text.style.whiteSpace = 'normal'; text.style.margin = '6px 0 10px'; text.textContent = s.body || '';
+    var row   = document.createElement('div'); row.style.display = 'flex'; row.style.gap = '6px';
+    var input = document.createElement('input'); input.type = 'email'; input.placeholder = 'you@example.com'; input.className = '__sp_input';
+    var btn   = document.createElement('button'); btn.className = '__sp_btn'; btn.textContent = s.cta || 'Claim';
+    row.appendChild(input); row.appendChild(btn);
+    card.appendChild(title); if (s.body) card.appendChild(text); card.appendChild(row);
+    var cont = makeContainer(cfg.uuid, design);
+    cont.appendChild(card); mountWidget(cont, cfg);
+    track(cfg, n, 'impression');
+    var closer = showFor(cont, 0);
+    withCloseButton(card, design, closer);
+    btn.addEventListener('click', function () {
+      var email = (input.value || '').trim();
+      var hasEmail = email && email.indexOf('@') !== -1;
+      // Capture the email when provided; if the offer is a pure CTA link with
+      // no email entered, just proceed to the link so the offer isn't blocked.
+      if (hasEmail) { subscribeEmail(cfg, n, email); }
+      else if (!s.cta_url) { input.focus(); return; }
+      track(cfg, n, 'conversion');
+      if (s.cta_url) { try { window.open(s.cta_url, '_blank', 'noopener'); } catch (e) {} }
+      btn.textContent = hasEmail ? '✓ Claimed' : 'Opened'; btn.disabled = true; input.disabled = true;
+      setTimeout(closer, 1500);
+    });
   };
 
   RENDERERS.feedback_thumbs = function (cfg, config, n, design, s, dur) {
