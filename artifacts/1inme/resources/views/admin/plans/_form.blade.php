@@ -195,10 +195,35 @@
             $introLabel = (string) ($introCfg['label'] ?? '');
         @endphp
         <section id="sec-intro" class="glass rounded-2xl border border-white/10 p-6"
-                 x-data="{ enabled: {{ $introEnabled ? 'true' : 'false' }}, type: '{{ $introType }}' }">
+                 x-data="{
+                     enabled: {{ $introEnabled ? 'true' : 'false' }},
+                     type: '{{ $introType }}',
+                     percent: {{ $introPercent }},
+                     fixedUsd: {{ $introFixedUsd }},
+                     fixedInr: {{ $introFixedInr }},
+                     cycles: [{{ implode(',', array_map(fn ($c) => "'" . $c . "'", array_values($introCycles))) }}],
+                     base: { USD: { monthly: {{ (int) $mp }}, annual: {{ (int) $ap }} }, INR: { monthly: {{ (int) $ms }}, annual: {{ (int) $as }} } },
+                     sym(c){ return c === 'USD' ? '$' : '₹'; },
+                     fmt(c, minor){ return this.sym(c) + (Math.max(0, Math.round(minor)) / 100).toFixed(2); },
+                     off(c){ return c === 'USD' ? (parseInt(this.fixedUsd) || 0) : (parseInt(this.fixedInr) || 0); },
+                     discounted(c, cyc){
+                         const b = this.base[c][cyc] || 0;
+                         if (this.type === 'percent') { const p = Math.min(100, Math.max(0, parseInt(this.percent) || 0)); return Math.round(b * (1 - p / 100)); }
+                         return Math.max(0, b - this.off(c));
+                     },
+                     pctOff(c, cyc){ const b = this.base[c][cyc] || 0; if (b <= 0) return 0; return Math.round((b - this.discounted(c, cyc)) / b * 100); },
+                     appliesTo(cyc){ return !this.cycles || this.cycles.length === 0 || this.cycles.includes(cyc); },
+                     hasAny(c){ return (this.appliesTo('monthly') && this.base[c].monthly > 0) || (this.appliesTo('annual') && this.base[c].annual > 0); },
+                     syncBase(){
+                         const f = this.$el.closest('form'); if (!f) return;
+                         const v = (n) => { const el = f.querySelector('[name=\'' + n + '\']'); return el ? (parseInt(el.value || '0', 10) || 0) : 0; };
+                         this.base = { USD: { monthly: v('monthly_price'), annual: v('annual_price') }, INR: { monthly: v('monthly_price_secondary'), annual: v('annual_price_secondary') } };
+                     }
+                 }"
+                 x-init="syncBase(); $el.closest('form')?.addEventListener('input', () => syncBase())">
             <header class="mb-4">
                 <h2 class="text-base font-semibold text-white">First-term intro discount</h2>
-                <p class="text-xs text-white/40">A one-time discount applied to the <strong>first billing term only</strong> of a brand-new subscription. Renewals and upgrades always charge the normal price. This is the only automatic discount — it never stacks with promo codes.</p>
+                <p class="text-xs text-white/40">A one-time discount applied to the <strong>first billing term only</strong> of a brand-new subscription. Renewals and upgrades always charge the normal price. This is the only automatic discount — it never stacks with promo codes. The <strong>normal price shows struck through</strong> and the discounted first-term price becomes the headline buyers see.</p>
             </header>
 
             {{-- Off switch (always submits a value so unchecking persists) --}}
@@ -228,7 +253,7 @@
                 {{-- Percentage --}}
                 <div x-show="type === 'percent'" x-cloak>
                     <label class="block text-xs text-white/40 mb-1">Percent off (1–100)</label>
-                    <input type="number" name="intro_discount[percent]" value="{{ $introPercent }}" min="0" max="100" step="1"
+                    <input type="number" name="intro_discount[percent]" value="{{ $introPercent }}" min="0" max="100" step="1" x-model="percent"
                            class="w-40 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                 </div>
 
@@ -237,13 +262,13 @@
                     <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
                         <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD off</div>
                         <label class="block text-xs text-white/40 mb-1">Amount (USD, cents)</label>
-                        <input type="number" name="intro_discount[fixed][USD]" value="{{ $introFixedUsd }}" min="0" step="1"
+                        <input type="number" name="intro_discount[fixed][USD]" value="{{ $introFixedUsd }}" min="0" step="1" x-model="fixedUsd"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                     </div>
                     <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
                         <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR off</div>
                         <label class="block text-xs text-white/40 mb-1">Amount (INR, paise)</label>
-                        <input type="number" name="intro_discount[fixed][INR]" value="{{ $introFixedInr }}" min="0" step="1"
+                        <input type="number" name="intro_discount[fixed][INR]" value="{{ $introFixedInr }}" min="0" step="1" x-model="fixedInr"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                     </div>
                 </div>
@@ -253,12 +278,12 @@
                     <label class="block text-xs text-white/40 mb-1.5">Applies to billing cycles</label>
                     <div class="flex gap-4">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="intro_discount[cycles][]" value="monthly" {{ in_array('monthly', $introCycles, true) ? 'checked' : '' }}
+                            <input type="checkbox" name="intro_discount[cycles][]" value="monthly" x-model="cycles" {{ in_array('monthly', $introCycles, true) ? 'checked' : '' }}
                                    class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
                             <span class="text-sm text-white/70">Monthly</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="intro_discount[cycles][]" value="annual" {{ in_array('annual', $introCycles, true) ? 'checked' : '' }}
+                            <input type="checkbox" name="intro_discount[cycles][]" value="annual" x-model="cycles" {{ in_array('annual', $introCycles, true) ? 'checked' : '' }}
                                    class="w-4 h-4 rounded bg-white/5 border-white/20 text-violet-500 focus:ring-violet-500/40">
                             <span class="text-sm text-white/70">Annual</span>
                         </label>
@@ -271,6 +296,35 @@
                     <label class="block text-xs text-white/40 mb-1">Badge label <span class="text-white/30">(optional, max 120 chars)</span></label>
                     <input type="text" name="intro_discount[label]" value="{{ $introLabel }}" maxlength="120" placeholder="e.g. Launch offer — 50% off your first month"
                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                </div>
+
+                {{-- Live preview: resulting normal vs. discounted first-term price.
+                     Reads the base price inputs above (kept in sync on every form
+                     edit) and the discount settings, so admins see exactly what the
+                     pricing page will show without saving + reloading. --}}
+                <div class="rounded-xl border border-violet-400/20 bg-violet-500/[0.06] p-4">
+                    <div class="text-xs font-semibold text-white/80 mb-1 flex items-center gap-1.5">
+                        <i class="fas fa-eye text-violet-300"></i> Live preview — normal vs. discounted first term
+                    </div>
+                    <p class="text-[11px] text-white/40 mb-3">Buyers see the struck-through normal price with the discounted first-term price as the headline. Renewals always charge the normal price.</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <template x-for="c in ['USD','INR']" :key="c">
+                            <div class="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                                <div class="text-[10px] uppercase tracking-wider text-white/40 mb-2" x-text="c"></div>
+                                <template x-for="cyc in ['monthly','annual']" :key="cyc">
+                                    <div x-show="appliesTo(cyc) && base[c][cyc] > 0" class="flex items-center justify-between gap-2 py-1">
+                                        <span class="text-white/50 capitalize text-xs" x-text="cyc"></span>
+                                        <span class="flex items-baseline gap-2 text-sm">
+                                            <span class="text-white/40 line-through" x-text="fmt(c, base[c][cyc])"></span>
+                                            <span class="font-semibold text-emerald-300" x-text="fmt(c, discounted(c, cyc))"></span>
+                                            <span class="text-[10px] font-bold text-emerald-400/80" x-text="'-' + pctOff(c, cyc) + '%'"></span>
+                                        </span>
+                                    </div>
+                                </template>
+                                <div x-show="!hasAny(c)" class="text-[11px] text-white/30">Enter a base price to preview.</div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
         </section>

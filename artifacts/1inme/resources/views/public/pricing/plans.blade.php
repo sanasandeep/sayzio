@@ -311,13 +311,30 @@
     html.light-mode .grad-bar.text-white,
     html.light-mode .grad-bar .text-white { color: #fff !important; }
 
-    /* Cycle toggle (Monthly/Annual): the active label uses the `.text-white`
-       utility but sits on the violet knob as a SIBLING (not a child of
-       .grad-bar), so the global light-mode remap darkens it to gray-on-violet.
-       Force it back to white. The inactive label's `hover:text-white` would
-       also turn invisible on the light track, so darken it on hover instead.
+    /* ── Cycle toggle (Monthly/Annual) ──────────────────────────────────
+       The knob is a solid violet gradient layer that slides under the
+       active label. In dark mode it pops against the dark track; in light
+       mode the track collapses to a near-white tint and the knob's lone
+       gradient looked washed-out, so the active state read as "barely
+       there". Give the light-mode knob a firmer surface + a violet ring &
+       drop-shadow so the active option is unmistakable, deepen the track a
+       touch for contrast, and bump the active label to bold white. */
+    .cycle-knob { background: linear-gradient(135deg,#7c3aed 0%,#9333ea 50%,#c026d3 100%); }
+    html.light-mode .cycle-track {
+        background-color: rgba(15,23,42,.06) !important;
+        border-color: rgba(15,23,42,.12) !important;
+    }
+    html.light-mode .cycle-knob {
+        box-shadow: 0 6px 18px -6px rgba(124,58,237,.75), 0 0 0 1px rgba(124,58,237,.45) !important;
+    }
+    /* The active label uses the `.text-white` utility but sits on the violet
+       knob as a SIBLING (not a child of .grad-bar), so the global light-mode
+       remap darkens it to gray-on-violet — force it back to white. The
+       inactive label is a readable dark gray that darkens further on hover
+       (its `hover:text-white` would otherwise vanish on the light track).
        Same reasoning for the currency segmented control's inactive buttons. */
     html.light-mode .cycle-seg.text-white { color: #fff !important; }
+    html.light-mode .cycle-seg:not(.text-white) { color: #475569 !important; }
     html.light-mode .cycle-seg:not(.text-white):hover { color: #111827 !important; }
     html.light-mode .seg:not(.seg-active):hover { color: #111827 !important; }
 
@@ -652,15 +669,15 @@
              slides under the active label (transition disabled under
              reduced-motion via the motion-reduce utilities). --}}
         <div class="flex flex-col items-center justify-center gap-2.5 mt-10" data-anim="fade-up">
-            <div class="relative inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20">
+            <div class="cycle-track relative inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20">
                 {{-- Sliding knob --}}
-                <span class="absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full grad-bar shadow-lg shadow-violet-900/30 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                <span class="cycle-knob absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full grad-bar shadow-lg shadow-violet-900/30 transition-transform duration-300 ease-out motion-reduce:transition-none"
                       :class="cycle==='annual' ? 'translate-x-full' : 'translate-x-0'" aria-hidden="true"></span>
                 <button type="button" @click="cycle='monthly'"
-                    :class="cycle==='monthly' ? 'text-white' : 'text-gray-400 hover:text-white'"
+                    :class="cycle==='monthly' ? 'text-white font-bold' : 'text-gray-400 hover:text-white'"
                     class="cycle-seg relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors">Monthly</button>
                 <button type="button" @click="cycle='annual'"
-                    :class="cycle==='annual' ? 'text-white' : 'text-gray-400 hover:text-white'"
+                    :class="cycle==='annual' ? 'text-white font-bold' : 'text-gray-400 hover:text-white'"
                     class="cycle-seg relative z-10 w-28 px-5 py-2 text-sm font-semibold rounded-full transition-colors inline-flex items-center justify-center gap-1.5">
                     Annual
                 </button>
@@ -702,6 +719,21 @@
             // Re-index so each card can reach the plan before it for the
             // Linktree-style "Everything in {previous}, plus:" delta list.
             $plansArr = $plans->values();
+
+            // Does ANY plan carry a first-term intro discount (any currency ×
+            // cycle)? When one does, every card reserves the intro badge +
+            // "was/renews" slots so the headline price, billing note and the
+            // CTA below stay on the same baseline whether or not a given card
+            // shows an offer for the active currency/cycle. When none do, the
+            // reservation is dropped so the price block stays tight.
+            $anyIntro = $plansArr->contains(function ($r) {
+                foreach (($r['prices'] ?? []) as $byCycle) {
+                    foreach ((array) $byCycle as $p) {
+                        if (!empty($p['intro'])) return true;
+                    }
+                }
+                return false;
+            });
 
             // ── Feature display catalogue ──────────────────────────────
             // Maps the plan `features` blob into Linktree-style grouped,
@@ -900,65 +932,85 @@
                                 : ($initialLen >= 9 ? 'price-sm'
                                 : ($initialLen >= 7 ? 'price-md' : ''));
                         @endphp
-                        <div class="plan-price px-4 py-4">
-                            {{-- First-term intro badge: only when a discount applies for
-                                 the active currency × cycle. --}}
-                            <template x-if="intro(plan)">
-                                <div class="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-300/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
-                                    <i class="fas fa-bolt"></i>
-                                    <span x-text="(intro(plan)?.label) || ('Save ' + intro(plan)?.percent_off + '% first ' + (cycle==='annual' ? 'year' : 'month'))"></span>
-                                </div>
-                            </template>
-                            <div class="flex items-baseline gap-1.5 min-w-0 flex-wrap">
-                                {{-- Struck-through normal price when intro is active --}}
+                        <div class="plan-price px-4 py-4 flex flex-col">
+                            {{-- Intro badge slot. Reserved (when any plan runs an
+                                 intro offer) so the headline price — and everything
+                                 below it — keeps the same baseline across cards even
+                                 when only some show a badge for the active cur/cycle. --}}
+                            <div class="{{ $anyIntro ? 'min-h-[1.75rem] mb-2' : '' }}">
                                 <template x-if="intro(plan)">
-                                    <span class="text-base font-semibold text-gray-500 line-through decoration-2" x-text="intro(plan)?.normal_formatted"></span>
+                                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-300/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+                                        <i class="fas fa-bolt"></i>
+                                        <span x-text="(intro(plan)?.label) || ('Save ' + intro(plan)?.percent_off + '% first ' + (cycle==='annual' ? 'year' : 'month'))"></span>
+                                    </div>
                                 </template>
+                            </div>
+
+                            {{-- Headline price — the discounted first-term amount when
+                                 an intro applies, otherwise the normal price. A fixed
+                                 row height keeps it from nudging the CTA when the price
+                                 steps down a size for long currency strings. --}}
+                            <div class="flex items-end gap-1.5 min-w-0 flex-wrap min-h-[3.25rem]">
                                 <span class="price-num font-bold text-white tracking-tight price-pop {{ $initialPriceSize }}"
                                       :class="{ 'price-md': priceSize(plan) === 'price-md', 'price-sm': priceSize(plan) === 'price-sm', 'price-xs': priceSize(plan) === 'price-xs' }"
                                       :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
                                       x-text="intro(plan) ? intro(plan).first_formatted : money(plan, cycle)">{{ $initialFormatted }}</span>
                                 @unless(!empty($row['is_free']))
-                                    <span class="price-suffix shrink-0 text-sm font-medium text-gray-500">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
+                                    <span class="price-suffix shrink-0 text-sm font-medium text-gray-500 pb-1">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
                                 @endunless
                             </div>
 
-                            {{-- Intro fineprint: makes the revert-to-normal explicit --}}
-                            <template x-if="intro(plan)">
-                                <div class="text-[11px] text-emerald-300/90 mt-1.5">
-                                    First <span x-text="cycle==='annual' ? 'year' : 'month'"></span> only — renews at <span x-text="intro(plan)?.normal_formatted"></span>/<span x-text="cycle==='annual' ? 'yr' : 'mo'"></span>
-                                </div>
-                            </template>
-
-                            {{-- Billing note (Linktree fineprint under the price) --}}
-                            @if(!empty($row['is_free']))
-                                <div class="text-xs text-gray-400 mt-1.5 min-h-[2.5rem]">Free forever — no card required</div>
-                            @else
-                                <div class="text-xs text-gray-400 mt-1.5 min-h-[2.5rem]" x-text="billingNote(plan)"></div>
-                            @endif
-
-                            {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
-                                 Both currencies are pre-rendered so the instant switcher stays
-                                 accurate for signed-in buyers with a billing address. --}}
-                            @foreach(['USD','INR'] as $cur)
-                                @foreach(['monthly','annual'] as $c)
-                                    @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
-                                    @if(($row['prices'][$cur][$c]['amount_minor'] ?? 0) > 0)
-                                        <div x-show="currency==='{{ $cur }}' && cycle==='{{ $c }}'" x-cloak>
-                                            @if(!empty($taxBlock) && !empty($taxBlock['tax_breakdown']))
-                                                <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
-                                                    @foreach($taxBlock['tax_breakdown'] as $line)
-                                                        <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
-                                                    @endforeach
-                                                    <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $taxBlock['grand_total_minor'], $cur) }}</span></div>
-                                                </div>
-                                            @else
-                                                <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
-                                            @endif
+                            {{-- Strike "was" line + renew fineprint. The struck normal
+                                 price reads as clearly secondary to the discounted
+                                 headline above; the slot is reserved (when any plan runs
+                                 an intro) so the billing note + CTA stay aligned. --}}
+                            <div class="{{ $anyIntro ? 'min-h-[2.5rem] mt-1.5' : '' }}">
+                                <template x-if="intro(plan)">
+                                    <div>
+                                        <div class="flex items-baseline gap-1.5 text-sm leading-tight">
+                                            <span class="text-gray-500 font-medium">Was</span>
+                                            <span class="font-semibold text-gray-500 line-through decoration-2 decoration-gray-400/60" x-text="intro(plan)?.normal_formatted"></span>
                                         </div>
-                                    @endif
+                                        <div class="text-[11px] text-emerald-300/90 mt-0.5">
+                                            First <span x-text="cycle==='annual' ? 'year' : 'month'"></span> only — renews at <span x-text="intro(plan)?.normal_formatted"></span>/<span x-text="cycle==='annual' ? 'yr' : 'mo'"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            {{-- Billing note + tax pinned to the foot of the price block
+                                 so the CTA beneath sits on a consistent line. --}}
+                            <div class="mt-auto pt-2">
+                                {{-- Billing note (Linktree fineprint under the price) --}}
+                                @if(!empty($row['is_free']))
+                                    <div class="text-xs text-gray-400 min-h-[2.5rem]">Free forever — no card required</div>
+                                @else
+                                    <div class="text-xs text-gray-400 min-h-[2.5rem]" x-text="billingNote(plan)"></div>
+                                @endif
+
+                                {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
+                                     Both currencies are pre-rendered so the instant switcher stays
+                                     accurate for signed-in buyers with a billing address. --}}
+                                @foreach(['USD','INR'] as $cur)
+                                    @foreach(['monthly','annual'] as $c)
+                                        @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
+                                        @if(($row['prices'][$cur][$c]['amount_minor'] ?? 0) > 0)
+                                            <div x-show="currency==='{{ $cur }}' && cycle==='{{ $c }}'" x-cloak>
+                                                @if(!empty($taxBlock) && !empty($taxBlock['tax_breakdown']))
+                                                    <div class="mt-2 text-[11px] text-gray-400 space-y-0.5 border-t border-white/5 pt-2">
+                                                        @foreach($taxBlock['tax_breakdown'] as $line)
+                                                            <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $cur) }}</span></div>
+                                                        @endforeach
+                                                        <div class="flex justify-between font-medium text-white pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $taxBlock['grand_total_minor'], $cur) }}</span></div>
+                                                    </div>
+                                                @else
+                                                    <div class="mt-2 text-[11px] text-gray-500">+ taxes as applicable (shown at checkout)</div>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    @endforeach
                                 @endforeach
-                            @endforeach
+                            </div>
                         </div>
 
                         {{-- Full-width CTA --}}
