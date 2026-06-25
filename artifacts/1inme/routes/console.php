@@ -382,11 +382,39 @@ Schedule::command('privacy:maintenance')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every minute: fold append-only click counter_deltas into the links /
+// biolink_blocks running totals. A single scheduled worker owns the fold, so
+// high-frequency clicks never contend on hot counter rows (the redirect path
+// only appends a delta). RecountLinkStats remains the periodic backstop.
+Schedule::command('analytics:flush-counters')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Daily: finalize the previous day(s) into the link_click_daily rollup tables
+// and re-roll a short trailing lookback for late-arriving clicks. Dashboard
+// reads serve finalized days from the rollup and only the current day from raw,
+// keeping analytics fast as link_clicks grows into the 100M-row range.
+Schedule::command('analytics:rollup-daily')
+    ->dailyAt('03:45')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Monthly: provision future month partitions for the tracking tables so insert
+// targets always exist ahead of time. No-op until the tables are converted to
+// partitioned (see tracking:setup-partitions), so it is safe to always schedule.
+Schedule::command('tracking:maintain-partitions')
+    ->monthlyOn(1, '02:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Daily: prune raw click & visitor-session history older than the largest
 // stats-retention window across all active plans, so the analytics tables
 // don't grow without bound. No-op while any active plan keeps history forever
-// (retention = -1), since global pruning must never delete data a user is
-// still entitled to view. Runs off-peak and is chunked to bound DB load.
+// (retention = -1) UNLESS a hard physical cap (stats.hard_max_days) is set;
+// either way it surfaces table growth and alerts admins on unbounded growth.
+// Drops whole expired partitions when the tables are partitioned. Runs off-peak
+// and is chunked to bound DB load.
 Schedule::command('stats:prune-history')
     ->dailyAt('04:05')
     ->withoutOverlapping()

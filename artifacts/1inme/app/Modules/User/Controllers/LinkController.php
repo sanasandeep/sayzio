@@ -2725,6 +2725,20 @@ class LinkController extends Controller
                 \DB::table('block_views')->where('link_id', $link->id)->delete();
                 \DB::table('page_sessions')->where('link_id', $link->id)->delete();
                 \DB::table('link_clicks')->where('link_id', $link->id)->delete();
+
+                // Finalized-day analytics is served from the daily rollups
+                // (AnalyticsRollupReader, used by the mobile API). Clearing only
+                // raw rows would leave the rollups intact, so the API analytics
+                // endpoint would keep returning pre-reset by_day/by_dimension
+                // values — clear this link's rollup rows too for cross-surface
+                // parity. (Alias-scoped resets above stay partial: rollups are
+                // link/day aggregates and can't be alias-decomposed.)
+                if (\Schema::hasTable('link_click_daily_dimensions')) {
+                    \DB::table('link_click_daily_dimensions')->where('link_id', $link->id)->delete();
+                }
+                if (\Schema::hasTable('link_click_daily')) {
+                    \DB::table('link_click_daily')->where('link_id', $link->id)->delete();
+                }
             });
             $msg = 'All analytics data for this link has been reset.';
         }

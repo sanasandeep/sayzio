@@ -12,10 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 use App\Modules\Common\Services\ChannelClassifier;
+use App\Modules\Common\Support\PendingClick;
+use Illuminate\Support\Str;
 
 class LinkTrackingService
 {
-    public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): ?LinkClick
+    public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): ?PendingClick
     {
         $userAgent = $this->resolveUserAgent($request);
         $detector = app(BotDetector::class);
@@ -47,16 +49,23 @@ class LinkTrackingService
             }
         }
 
-        $geoService = app(GeoIpService::class);
-        $geo = $geoService->detectGeo($request->ip());
-
         // Per-biolink privacy: when the owner has flipped off referrer
         // logging, we drop the Referer header before persistence. Storing
         // null (rather than the actual URL) means the value never lands
         // in analytics, exports, or webhook payloads downstream.
         $logReferrer = $this->shouldLogReferrer($link);
 
-        $click = LinkClick::create([
+        // Hot-path ends here. Everything above MUST run synchronously because it
+        // gates the redirect (blocked-family bots leave no trace; throttled hits
+        // are flagged). The slow/contended work — geo lookup, the link_clicks
+        // insert, the hot-row counter writes, uniqueness detection, and event
+        // dispatch — is deferred to PersistLinkClicksJob via the request-scoped
+        // ClickWriteBuffer, which flushes once after the visitor's redirect
+        // response has already been sent (app terminating callback). Bots are
+        // still recorded (so the "blocked attempts" badge works) but the job
+        // excludes them from human counters, preserving the old semantics.
+        return app(ClickWriteBuffer::class)->push([
+            'event_id' => (string) Str::uuid(),
             'link_id' => $link->id,
             'alias' => $usedAlias ?: $link->alias,
             'viewer_user_id' => \App\Modules\Common\Services\ViewerSession::id() ?? auth()->id(),
@@ -71,41 +80,10 @@ class LinkTrackingService
             'is_bot' => $isBot,
             'is_throttled' => $isThrottled,
             'language' => $this->detectLanguage($request),
-            'country_code' => $geo['country_code'] ?? null,
-            'city' => $geo['city'] ?? null,
-            'latitude' => $geo['latitude'] ?? null,
-            'longitude' => $geo['longitude'] ?? null,
             'utm_params' => $this->extractUtmParams($request),
-            'clicked_at' => now(),
+            'clicked_at' => now()->toDateTimeString(),
+            'block_counter_pending' => false,
         ]);
-
-        // Skip incrementing the cached counters for obvious bot/scraper hits
-        // so creator-facing totals and unique-visitor stats reflect real humans.
-        // We also short-circuit BEFORE firing the LinkClicked event — that
-        // event is the entry point for outbound click webhooks and "new
-        // visitor" notifications, and creators should never be paged for
-        // a scraper.
-        if ($isBot) {
-            return $click;
-        }
-
-        $link->increment('total_clicks');
-
-        $isUnique = !LinkClick::where('link_id', $link->id)
-            ->where('ip_address', $request->ip())
-            ->where('clicked_at', '>=', now()->subDay())
-            ->where('id', '!=', $click->id)
-            ->exists();
-
-        if ($isUnique) {
-            $link->increment('unique_clicks');
-        }
-
-        // Broadcast to downstream listeners (webhooks, notifications,
-        // realtime push). Reaching this line guarantees `is_bot = false`.
-        \App\Events\LinkClicked::dispatch($link, $click);
-
-        return $click;
     }
 
     /**
@@ -190,7 +168,7 @@ class LinkTrackingService
         return substr($lang, 0, 2);
     }
 
-    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): ?LinkClick
+    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): ?PendingClick
     {
         $userAgent = $this->resolveUserAgent($request);
         $detector = app(BotDetector::class);
@@ -249,10 +227,18 @@ class LinkTrackingService
             $reserved = false;
         }
 
-        $geoService = app(GeoIpService::class);
-        $geo = $geoService->detectGeo($request->ip());
-
-        $click = LinkClick::create([
+        // Hot-path ends here. The atomic cap reservation above already bumped
+        // click_count synchronously for capped blocks that won the race (it has
+        // to, to enforce scarcity before we commit to the redirect). Everything
+        // else — geo lookup, the link_clicks insert, link counters, uniqueness,
+        // the uncapped per-block counter bump, and event dispatch — is deferred
+        // to PersistLinkClicksJob via the request-scoped ClickWriteBuffer.
+        //
+        // block_counter_pending tells the job to bump click_count itself, but
+        // ONLY for real (non-bot) uncapped blocks: capped blocks were already
+        // bumped by the reservation above, and bots never count toward a block.
+        return app(ClickWriteBuffer::class)->push([
+            'event_id' => (string) Str::uuid(),
             'link_id' => $link->id,
             'alias' => $usedAlias ?: $link->alias,
             'viewer_user_id' => \App\Modules\Common\Services\ViewerSession::id() ?? auth()->id(),
@@ -270,49 +256,10 @@ class LinkTrackingService
             'is_bot' => $isBot,
             'is_throttled' => $isThrottled,
             'language' => $this->detectLanguage($request),
-            'country_code' => $geo['country_code'] ?? null,
-            'city' => $geo['city'] ?? null,
-            'latitude' => $geo['latitude'] ?? null,
-            'longitude' => $geo['longitude'] ?? null,
             'utm_params' => $this->extractUtmParams($request),
-            'clicked_at' => now(),
+            'clicked_at' => now()->toDateTimeString(),
+            'block_counter_pending' => (!$isBot && !$reserved),
         ]);
-
-        // Bot/scraper hits are recorded but excluded from the cached counters
-        // so creator dashboards reflect real humans. We also bail BEFORE
-        // dispatching BlockClicked so webhooks / "new visitor" notifications
-        // never fire on scraper traffic.
-        if ($isBot) {
-            return $click;
-        }
-
-        $link->increment('total_clicks');
-
-        $isUnique = !LinkClick::where('link_id', $link->id)
-            ->where('ip_address', $request->ip())
-            ->where('clicked_at', '>=', now()->subDay())
-            ->where('id', '!=', $click->id)
-            ->exists();
-
-        if ($isUnique) {
-            $link->increment('unique_clicks');
-        }
-
-        // Per-block counter was already bumped above as part of the
-        // atomic cap-reservation step (or skipped entirely for capped
-        // blocks that lost the race). For uncapped blocks we still need
-        // a counter bump so the dashboard "remaining/clicks" badge
-        // reflects reality. `$reserved` is true only when the
-        // conditional cap update fired.
-        if (!$reserved) {
-            BiolinkBlock::where('id', $block->id)->increment('click_count');
-        }
-
-        // Broadcast to downstream listeners. Reaching this line guarantees
-        // `is_bot = false`.
-        \App\Events\BlockClicked::dispatch($link, $block, $click, $destinationUrl);
-
-        return $click;
     }
 
     /**

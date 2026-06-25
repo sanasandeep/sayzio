@@ -26,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
             // Microsoft + CalDAV drivers will register here once implemented.
             return $r;
         });
+
+        // One click-write buffer per request: every track()/trackBlockClick()
+        // call in a request shares it and a single PersistLinkClicksJob is
+        // dispatched at request termination, keeping persistence off the hot path.
+        $this->app->singleton(\App\Modules\Common\Services\ClickWriteBuffer::class);
     }
 
     public function boot(): void

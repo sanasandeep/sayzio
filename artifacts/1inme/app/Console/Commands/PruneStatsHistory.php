@@ -2,29 +2,47 @@
 
 namespace App\Console\Commands;
 
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Services\NotificationService;
+use App\Modules\Common\Support\PartitionManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Delete raw analytics history (link_clicks + page_sessions) older than the
- * largest stats-retention window across all active plans. Without this sweep
- * the click/session tables grow forever even though no plan can ever view
- * history beyond its retention window.
+ * stats-retention window, with a hard physical safety cap so the tables can
+ * never grow unbounded silently.
  *
- * Retention is intentionally pruned by the GLOBAL maximum across plans (not
- * per-user): the tables aren't partitioned by plan, so deleting anything newer
- * than the most generous plan's window could destroy data a paying user is
- * still entitled to see. If ANY active plan keeps history forever
- * (stats_retention_days = -1) the command is a safe no-op.
+ * Retention precedence:
+ *   1. Plan retention — the GLOBAL maximum stats_retention_days across active
+ *      plans (never per-user; the tables aren't partitioned by plan). If any
+ *      active plan keeps history forever (-1) or has no retention configured,
+ *      plan-based pruning is a safe no-op (never delete entitled data).
+ *   2. Hard physical cap — operator-set AppSetting `stats.hard_max_days`. When
+ *      present it bounds storage even when plan retention is unlimited: data
+ *      older than the cap is pruned regardless, and admins are alerted that the
+ *      cap (not plan policy) is doing the deleting.
+ *
+ * Visibility: every run records its outcome to AppSetting `stats.prune.last_run`
+ * and, when a table's estimated size crosses `stats.alert_row_threshold`, raises
+ * a (deduped) admin system alert — so "keep forever, no hard cap" growth is
+ * surfaced rather than silently ignored.
+ *
+ * Partitioned tables drop whole expired month partitions (O(1) metadata) before
+ * falling back to chunked row deletes for anything left (e.g. a DEFAULT partition
+ * or a non-partitioned table).
  */
 class PruneStatsHistory extends Command
 {
     protected $signature = 'stats:prune-history
         {--chunk=1000 : Rows to delete per batch (keeps each statement small)}
-        {--max-batches=5000 : Safety cap on batches per table per run}';
+        {--max-batches=5000 : Safety cap on batches per table per run}
+        {--hard-max-days= : Override the configured hard physical cap for this run}
+        {--dry-run : Report what would happen without deleting}';
 
-    protected $description = 'Delete click/session history older than the largest stats-retention window across all active plans.';
+    protected $description = 'Prune click/session history by plan retention with a hard physical safety cap and growth visibility.';
 
     /** Tables to prune, keyed by their "created" timestamp column. */
     private const TABLES = [
@@ -32,51 +50,170 @@ class PruneStatsHistory extends Command
         'page_sessions' => 'started_at',
     ];
 
-    public function handle(): int
+    /** Default estimated-row threshold above which we raise an admin alert. */
+    private const DEFAULT_ALERT_THRESHOLD = 50_000_000;
+
+    public function handle(PartitionManager $partitions): int
     {
-        $retention = $this->largestRetentionDays();
-
-        if ($retention === -1) {
-            $this->info('At least one active plan retains stats history forever (-1); nothing to prune.');
-            return self::SUCCESS;
-        }
-
-        $cutoff     = now()->subDays($retention);
+        $dry        = (bool) $this->option('dry-run');
         $chunk      = max(1, (int) $this->option('chunk'));
         $maxBatches = max(1, (int) $this->option('max-batches'));
 
-        $this->info("Pruning stats history older than {$retention} day(s) (before {$cutoff->toDateTimeString()}).");
+        $planRetention = $this->largestRetentionDays();
+        $hardMax       = $this->hardMaxDays();
 
-        foreach (self::TABLES as $table => $column) {
-            $deleted = $this->pruneTable($table, $column, $cutoff, $chunk, $maxBatches);
-            $this->info("  {$table}: removed {$deleted} row(s).");
+        [$effectiveDays, $reason] = $this->effectiveRetention($planRetention, $hardMax);
+
+        $report = [
+            'ran_at'          => now()->toDateTimeString(),
+            'plan_retention'  => $planRetention,
+            'hard_max_days'   => $hardMax,
+            'effective_days'  => $effectiveDays,
+            'reason'          => $reason,
+            'dry_run'         => $dry,
+            'tables'          => [],
+        ];
+
+        // Always surface table sizes (visibility) and alert on unbounded growth.
+        $this->reportSizesAndAlert($report, $effectiveDays, $hardMax);
+
+        if ($effectiveDays === null) {
+            $this->warn("No pruning: {$reason}. Set a hard cap via AppSetting 'stats.hard_max_days' to bound storage.");
+            $report['action'] = 'noop';
+            AppSetting::put('stats.prune.last_run', $report);
+            return self::SUCCESS;
         }
 
+        $cutoff = now()->subDays($effectiveDays);
+        $this->info("Pruning stats older than {$effectiveDays} day(s) before {$cutoff->toDateTimeString()} ({$reason}).");
+
+        foreach (self::TABLES as $table => $column) {
+            if (!Schema::hasTable($table)) {
+                continue;
+            }
+
+            $droppedPartitions = [];
+            $rowsDeleted       = 0;
+
+            if ($partitions->isPartitioned($table)) {
+                if ($dry) {
+                    $this->line("  {$table}: partitioned — would drop month partitions ending on/before cutoff.");
+                } else {
+                    $droppedPartitions = $partitions->dropPartitionsBefore($table, $cutoff);
+                    $this->info("  {$table}: dropped " . (count($droppedPartitions) ?: 0) . ' partition(s).');
+                }
+            }
+
+            // Chunked row deletes mop up anything not covered by a dropped
+            // partition (DEFAULT partition rows, or a non-partitioned table).
+            if (!$dry) {
+                $rowsDeleted = $this->pruneTable($table, $column, $cutoff, $chunk, $maxBatches);
+                $this->info("  {$table}: removed {$rowsDeleted} row(s).");
+            } else {
+                $remaining = $this->estimateOlderThan($table, $column, $cutoff);
+                $this->line("  {$table}: ~{$remaining} row(s) older than cutoff would be deleted.");
+            }
+
+            $report['tables'][$table]['dropped_partitions'] = $droppedPartitions;
+            $report['tables'][$table]['rows_deleted']       = $rowsDeleted;
+        }
+
+        if ($hardMax !== null && $planRetention === -1) {
+            // We pruned under unlimited plan retention purely because of the
+            // operator hard cap — make that explicit to admins.
+            $this->raiseAlert(
+                'Stats hard cap pruned unlimited-retention history',
+                "A plan retains stats forever (-1) but the hard physical cap (stats.hard_max_days={$hardMax}) deleted data older than {$effectiveDays} days to bound storage.",
+                ['effective_days' => $effectiveDays, 'cutoff' => $cutoff->toDateTimeString()],
+                'warning'
+            );
+        }
+
+        $report['action'] = 'pruned';
+        AppSetting::put('stats.prune.last_run', $report);
         return self::SUCCESS;
     }
 
     /**
-     * Largest stats_retention_days across active plans. Returns -1 ("unlimited
-     * — do not prune") when any active plan is explicitly unlimited OR has no
-     * retention configured yet. Defaulting an un-configured plan to "keep
-     * forever" (rather than the 30-day floor) is deliberate: this is the
-     * destructive path, so it must never delete data on a plan whose retention
-     * hasn't been seeded/saved. Only when EVERY active plan has an explicit
-     * finite window do we compute the max and prune beyond it.
+     * Resolve the effective prune window (days) and a human reason.
+     * Returns [null, reason] when nothing should be pruned.
+     *
+     * @return array{0:?int,1:string}
+     */
+    private function effectiveRetention(int $planRetention, ?int $hardMax): array
+    {
+        if ($planRetention === -1) {
+            if ($hardMax !== null && $hardMax > 0) {
+                return [$hardMax, 'unlimited plan retention bounded by hard cap'];
+            }
+            return [null, 'a plan retains stats forever and no hard cap is set'];
+        }
+
+        if ($hardMax !== null && $hardMax > 0) {
+            return [min($planRetention, $hardMax), 'min(plan retention, hard cap)'];
+        }
+
+        return [$planRetention, 'plan retention'];
+    }
+
+    private function hardMaxDays(): ?int
+    {
+        $override = $this->option('hard-max-days');
+        if ($override !== null && $override !== '') {
+            return max(1, (int) $override);
+        }
+        $configured = AppSetting::get('stats.hard_max_days');
+        if ($configured === null || $configured === '') {
+            return null;
+        }
+        $days = (int) $configured;
+        return $days > 0 ? $days : null;
+    }
+
+    /**
+     * Estimate each table's size (fast — uses planner stats, not count(*)) and
+     * raise a deduped admin alert when growth crosses the threshold while no
+     * effective pruning will reclaim it.
+     */
+    private function reportSizesAndAlert(array &$report, ?int $effectiveDays, ?int $hardMax): void
+    {
+        $threshold = (int) (AppSetting::get('stats.alert_row_threshold') ?? self::DEFAULT_ALERT_THRESHOLD);
+
+        foreach (self::TABLES as $table => $column) {
+            if (!Schema::hasTable($table)) {
+                continue;
+            }
+            $estRows = $this->estimateRows($table);
+            $report['tables'][$table]['estimated_rows'] = $estRows;
+
+            $this->line("  {$table}: ~" . number_format($estRows) . ' rows (estimated).');
+
+            // Unbounded-growth alarm: large AND nothing will trim it this run.
+            if ($estRows >= $threshold && $effectiveDays === null) {
+                $this->alertOncePerDay(
+                    "stats_growth_{$table}",
+                    'Analytics table growing unbounded: ' . $table,
+                    "{$table} holds ~" . number_format($estRows) . " rows and no retention or hard cap will prune it. "
+                        . "Set a finite plan stats_retention_days or AppSetting 'stats.hard_max_days' to bound storage.",
+                    ['table' => $table, 'estimated_rows' => $estRows, 'threshold' => $threshold]
+                );
+            }
+        }
+    }
+
+    /**
+     * Largest stats_retention_days across active plans. Returns -1 ("unlimited")
+     * when any active plan is explicitly unlimited OR has no retention configured
+     * yet (deliberate: never delete data on a plan whose retention isn't seeded).
      */
     private function largestRetentionDays(): int
     {
         $plans = Plan::where('status', 'active')->get(['features']);
-
-        // No active plans at all is a misconfiguration; treat it as "unlimited"
-        // (no-op) rather than falling through to the 30-day floor and deleting
-        // history nobody asked to prune.
         if ($plans->isEmpty()) {
             return -1;
         }
 
         $max = 30;
-
         foreach ($plans as $plan) {
             $raw = $plan->features['stats_retention_days'] ?? null;
             if ($raw === null) {
@@ -93,20 +230,17 @@ class PruneStatsHistory extends Command
                 $max = $days;
             }
         }
-
         return $max;
     }
 
     /**
      * Delete rows older than $cutoff in id-keyed chunks. Postgres has no
      * `DELETE ... LIMIT`, so we select a batch of ids first and delete those.
-     * Uses the raw query builder to bypass model global scopes (e.g. the
-     * is_bot scope on link_clicks) and Eloquent timestamps.
+     * Bypasses model global scopes and Eloquent timestamps via the query builder.
      */
     private function pruneTable(string $table, string $column, \DateTimeInterface $cutoff, int $chunk, int $maxBatches): int
     {
         $total = 0;
-
         for ($batch = 0; $batch < $maxBatches; $batch++) {
             $ids = DB::table($table)
                 ->where($column, '<', $cutoff)
@@ -118,14 +252,56 @@ class PruneStatsHistory extends Command
             if (empty($ids)) {
                 break;
             }
-
             $total += DB::table($table)->whereIn('id', $ids)->delete();
-
             if (count($ids) < $chunk) {
                 break;
             }
         }
-
         return $total;
+    }
+
+    /** Fast row estimate from planner statistics (avoids count(*) on huge tables). */
+    private function estimateRows(string $table): int
+    {
+        try {
+            $row = DB::selectOne(
+                'SELECT reltuples::bigint AS n FROM pg_class WHERE relname = ? LIMIT 1',
+                [$table]
+            );
+            $n = $row ? (int) $row->n : 0;
+            return $n < 0 ? 0 : $n;
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    private function estimateOlderThan(string $table, string $column, \DateTimeInterface $cutoff): int
+    {
+        try {
+            return (int) DB::table($table)->where($column, '<', $cutoff)->limit(1_000_001)->count();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    private function raiseAlert(string $title, string $body, array $context = [], string $level = 'warning'): void
+    {
+        try {
+            app(NotificationService::class)->systemAlert($title, $body, $level, $context, 'analytics');
+        } catch (\Throwable $e) {
+            $this->warn('Admin alert failed: ' . $e->getMessage());
+        }
+    }
+
+    /** Raise an alert at most once per calendar day per key (dedupe via AppSetting). */
+    private function alertOncePerDay(string $key, string $title, string $body, array $context = []): void
+    {
+        $stateKey = "stats.alert.{$key}";
+        $today    = now()->toDateString();
+        if (AppSetting::get($stateKey) === $today) {
+            return;
+        }
+        $this->raiseAlert($title, $body, $context, 'warning');
+        AppSetting::put($stateKey, $today);
     }
 }

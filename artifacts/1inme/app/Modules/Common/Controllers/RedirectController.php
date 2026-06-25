@@ -281,16 +281,13 @@ class RedirectController extends Controller
             $smartCookie = $abCookie ?? $smartCookie;
         }
 
-        // Stamp the matched smart-link rule id onto the click row so the
-        // per-rule analytics breakdown can attribute hits. Best-effort —
-        // schema may pre-date the matched_rule_id column on older installs.
-        if ($trackedClick && !empty($smart['rule']['id'])
-            && \Schema::hasColumn('link_clicks', 'matched_rule_id')) {
-            try {
-                \DB::table('link_clicks')
-                    ->where('id', $trackedClick->id)
-                    ->update(['matched_rule_id' => (string) $smart['rule']['id']]);
-            } catch (\Throwable $e) { /* swallow — analytics row, not the redirect */ }
+        // Stamp the matched smart-link rule id onto the buffered click so the
+        // per-rule analytics breakdown can attribute hits. The click row hasn't
+        // been written yet (PersistLinkClicksJob does that after the response),
+        // so we mutate the still-buffered payload through the PendingClick handle;
+        // the job persists matched_rule_id only when the column exists.
+        if ($trackedClick && !empty($smart['rule']['id'])) {
+            $trackedClick->setMatchedRuleId((string) $smart['rule']['id']);
         }
 
         // Link Insurance — when every destination is down and the

@@ -239,6 +239,17 @@ class LinkController extends Controller
             if (Schema::hasTable('link_clicks')) {
                 DB::table('link_clicks')->where('link_id', $link->id)->delete();
             }
+
+            // Analytics now reads finalized days from the daily rollups (see
+            // AnalyticsRollupReader), so a reset must clear that link's rollup
+            // rows too — otherwise by_day/by_country/by_device/by_source would
+            // keep returning pre-reset values from the surviving rollup rows.
+            if (Schema::hasTable('link_click_daily_dimensions')) {
+                DB::table('link_click_daily_dimensions')->where('link_id', $link->id)->delete();
+            }
+            if (Schema::hasTable('link_click_daily')) {
+                DB::table('link_click_daily')->where('link_id', $link->id)->delete();
+            }
         });
 
         return $this->ok(['link' => LinkResource::toArray($link->fresh())]);
@@ -334,24 +345,27 @@ class LinkController extends Controller
             'by_source'   => [],
         ];
 
-        if (\Schema::hasTable('click_events')) {
-            $base = \DB::table('click_events')
-                ->where('link_id', $link->id)
-                ->whereBetween('created_at', [$from, $to]);
+        // by_day / by_country / by_referrer / by_device are served by the
+        // AnalyticsRollupReader: pre-aggregated link_click_daily rows for
+        // finalised days unioned with the small raw tail (today + late clicks).
+        // This bounds the scanned row count for long windows while matching a
+        // full raw aggregate exactly. (Historically these read a phantom
+        // `click_events` table that was never populated, so they returned empty.)
+        $reader = app(\App\Modules\Common\Services\AnalyticsRollupReader::class);
 
-            $payload['by_day'] = (clone $base)
-                ->selectRaw("to_char(created_at, 'YYYY-MM-DD') as day, count(*) as clicks")
-                ->groupBy('day')->orderBy('day')->get()->all();
-            $payload['by_country'] = (clone $base)
-                ->selectRaw('country, count(*) as clicks')
-                ->groupBy('country')->orderByDesc('clicks')->limit(50)->get()->all();
-            $payload['by_referrer'] = (clone $base)
-                ->selectRaw('referrer_host, count(*) as clicks')
-                ->groupBy('referrer_host')->orderByDesc('clicks')->limit(50)->get()->all();
-            $payload['by_device'] = (clone $base)
-                ->selectRaw('device_type, count(*) as clicks')
-                ->groupBy('device_type')->orderByDesc('clicks')->get()->all();
-        }
+        $payload['by_day'] = $reader->byDay($link->id, $from, $to);
+        $payload['by_country'] = array_map(
+            fn ($r) => ['country' => $r['value'], 'clicks' => $r['clicks']],
+            $reader->byDimension($link->id, $from, $to, 'country', 50)
+        );
+        $payload['by_referrer'] = array_map(
+            fn ($r) => ['referrer_host' => $r['value'], 'clicks' => $r['clicks']],
+            $reader->byDimension($link->id, $from, $to, 'referrer', 50)
+        );
+        $payload['by_device'] = array_map(
+            fn ($r) => ['device_type' => $r['value'], 'clicks' => $r['clicks']],
+            $reader->byDimension($link->id, $from, $to, 'device', 50)
+        );
 
         // Per-block click summary — list of every block that received clicks
         // in the window with title/type so the mobile app can render a
