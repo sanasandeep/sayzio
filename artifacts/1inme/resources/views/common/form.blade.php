@@ -167,6 +167,25 @@
         .form-radio-group label:hover, .form-check-group label:hover { background: {{ $theme === 'light' ? '#f1f5f9' : 'rgba(255,255,255,0.04)' }}; }
         .form-radio-group input, .form-check-group input { accent-color: var(--form-accent); }
 
+        .form-pricing { display: flex; flex-direction: column; gap: 0.85rem; }
+        .form-pricing-options { display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-pricing-option { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; cursor: pointer; padding: 0.75rem 0.9rem; border-radius: var(--form-radius-sm); border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}; transition: all 0.15s; }
+        .form-pricing-option:hover { border-color: var(--form-accent); }
+        .form-pricing-option.is-selected { border-color: var(--form-accent); background: {{ $theme === 'light' ? 'rgba(99,102,241,0.06)' : 'rgba(124,58,237,0.12)' }}; }
+        .form-pricing-option-main { display: flex; align-items: center; gap: 0.55rem; }
+        .form-pricing-option input, .form-pricing-addon input { accent-color: var(--form-accent); }
+        .form-pricing-option-price { font-weight: 700; white-space: nowrap; }
+        .form-pricing-addons { display: flex; flex-direction: column; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px dashed {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}; }
+        .form-pricing-addons-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; font-weight: 700; }
+        .form-pricing-addon { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; cursor: pointer; padding: 0.45rem 0.6rem; border-radius: var(--form-radius-sm); }
+        .form-pricing-addon:hover { background: {{ $theme === 'light' ? '#f1f5f9' : 'rgba(255,255,255,0.04)' }}; }
+        .form-pricing-addon-main { display: flex; align-items: center; gap: 0.55rem; }
+        .form-pricing-addon-price { white-space: nowrap; opacity: 0.8; }
+        .form-pricing-subtotal { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.85rem; padding-top: 0.5rem; border-top: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}; }
+        .form-pricing-grand { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--form-radius-sm); background: {{ $theme === 'light' ? 'rgba(99,102,241,0.06)' : 'rgba(124,58,237,0.12)' }}; border: 1px solid var(--form-accent); font-size: 1rem; }
+        .form-pricing-grand strong { font-size: 1.15rem; }
+        .form-pricing-grand.oneq-total { margin-top: 0; }
+
         .rating-stars { display: flex; gap: 0.4rem; font-size: 1.6rem; }
         .rating-stars label { cursor: pointer; color: {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.15)' }}; transition: color 0.15s; }
         .rating-stars input { display: none; }
@@ -454,7 +473,7 @@
                                     @php $f = $s['field']; @endphp
                                     <div class="oneq-slide" x-show="slide === {{ $idx }}" x-cloak>
                                         <div class="oneq-slide-counter">{{ $idx }} / {{ $slideCount - 1 }}</div>
-                                        @include('common.form-field', ['field' => $f, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency])
+                                        @include('common.form-field', ['field' => $f, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency, 'formCurrency' => $form->paymentCurrency()])
                                     </div>
                                 @endif
                             @endforeach
@@ -474,6 +493,12 @@
                             <button type="button" x-show="slide < {{ $slideCount - 1 }}" @click="next()" class="form-button">
                                 <span x-text="slide === 0 ? 'Start' : 'Next'"></span> <i class="fas fa-arrow-right text-xs"></i>
                             </button>
+                            @if($form->hasPricingFields())
+                                <span class="form-pricing-grand oneq-total" x-data x-show="$store.formPricing.grand > 0" x-cloak>
+                                    <span>Total due</span>
+                                    <strong x-text="$store.formPricing.fmt($store.formPricing.grand)"></strong>
+                                </span>
+                            @endif
                             <button type="submit" x-show="slide === {{ $slideCount - 1 }}" class="form-button">
                                 {{ $btnLabel }} <i class="fas fa-arrow-right text-xs"></i>
                             </button>
@@ -546,7 +571,7 @@
                                             @foreach(($childrenBySection[$field['id']] ?? []) as $child)
                                                 @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [4,6,8,12], true)) $cw = 12; @endphp
                                                 <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
-                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency])
+                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency, 'formCurrency' => $form->paymentCurrency()])
                                                 </div>
                                             @endforeach
                                         </div>
@@ -554,7 +579,7 @@
                                 @else
                                     @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
                                     <div class="form-grid-cell" style="grid-column: span {{ $w }};">
-                                        @include('common.form-field', ['field' => $field, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency])
+                                        @include('common.form-field', ['field' => $field, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency, 'formCurrency' => $form->paymentCurrency()])
                                     </div>
                                 @endif
                             @endforeach
@@ -565,6 +590,12 @@
                         <div class="form-order-total" data-base-cents="{{ $baseFeeCents }}" data-currency="{{ $payCurrency }}">
                             <span>Order total</span>
                             <strong id="orderTotal">{{ number_format($baseFeeCents / 100, 2) }} {{ $payCurrency }}</strong>
+                        </div>
+                    @endif
+                    @if($form->hasPricingFields())
+                        <div class="form-pricing-grand" x-data x-show="$store.formPricing.grand > 0" x-cloak>
+                            <span>Total due</span>
+                            <strong x-text="$store.formPricing.fmt($store.formPricing.grand)"></strong>
                         </div>
                     @endif
 
@@ -596,6 +627,51 @@
     </div>
 
     <script>
+        function formatMoney(cents, currency) {
+            try {
+                return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'USD' }).format((cents || 0) / 100);
+            } catch (e) {
+                return ((cents || 0) / 100).toFixed(2) + ' ' + (currency || '');
+            }
+        }
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('formPricing', {
+                totals: {},
+                currency: 'USD',
+                set(id, cents) { this.totals[id] = cents; },
+                get grand() { return Object.values(this.totals).reduce((a, b) => a + (b || 0), 0); },
+                fmt(cents) { return formatMoney(cents, this.currency); },
+            });
+        });
+
+        function pricingField(cfg) {
+            return {
+                id: cfg.id,
+                currency: cfg.currency || 'USD',
+                opts: cfg.opts || [],
+                addonList: cfg.addons || [],
+                selected: (cfg.selected === null || cfg.selected === undefined) ? null : Number(cfg.selected),
+                addons: cfg.selectedAddons || [],
+                init() {
+                    if (this.$store.formPricing) this.$store.formPricing.currency = this.currency;
+                    this.publish();
+                    this.$watch('selected', () => this.publish());
+                    this.$watch('addons', () => this.publish());
+                },
+                get subtotal() {
+                    let s = 0;
+                    if (this.selected !== null && this.opts[this.selected]) s += this.opts[this.selected].cents;
+                    (this.addons || []).forEach(i => { if (this.addonList[i]) s += this.addonList[i].cents; });
+                    return s;
+                },
+                publish() {
+                    if (this.$store.formPricing) this.$store.formPricing.set(this.id, this.subtotal);
+                },
+                fmt(cents) { return formatMoney(cents, this.currency); },
+            };
+        }
+
         function formRunner(pageCount) {
             return {
                 page: 0,

@@ -233,12 +233,18 @@ class FormController extends Controller
     {
         $this->authorizeForm($request, $form);
         $fieldTypes = Form::fieldTypes();
-        // Per-field pricing UI is Pro+ gated; the editor only renders price
-        // inputs when the owner's plan allows paid forms.
-        $canPrice = (bool) (workspace_owner()?->getPlanFeature('paid_forms', false));
-        $payment = $form->paymentConfig();
-        $priceCurrency = $form->paymentCurrency();
-        return view('user.forms.builder', compact('form', 'fieldTypes', 'canPrice', 'payment', 'priceCurrency'));
+        // Pricing editor context for BOTH per-field pricing (Task #2321) and the
+        // Pricing / Package field (Task #2333). canPrice/payment/priceCurrency
+        // drive the per-field price inputs; paymentCurrency/canPaidForms/
+        // hasGateway drive the pricing-field panel + its "captured but won't
+        // charge" note (plan allows paid forms AND a gateway is connected).
+        $canPrice        = (bool) (workspace_owner()?->getPlanFeature('paid_forms', false));
+        $payment         = $form->paymentConfig();
+        $priceCurrency   = $form->paymentCurrency();
+        $paymentCurrency = $priceCurrency;
+        $canPaidForms    = $canPrice;
+        $hasGateway      = (bool) $form->user?->defaultPaymentConnection();
+        return view('user.forms.builder', compact('form', 'fieldTypes', 'canPrice', 'payment', 'priceCurrency', 'paymentCurrency', 'canPaidForms', 'hasGateway'));
     }
 
     public function updateBuilder(Request $request, Form $form)
@@ -304,6 +310,13 @@ class FormController extends Controller
                     }
                     if ($op) $row['option_prices'] = $op;
                 }
+            }
+            // Pricing / Package (Task #2333): option list (radio) + addon list
+            // (checkboxes). Each entry is {label, price} with the price stored as
+            // a dollar amount; empty-label rows are dropped and prices clamped.
+            if ($type === 'pricing') {
+                $row['price_options'] = $this->cleanPriceList($f['price_options'] ?? []);
+                $row['addons']        = $this->cleanPriceList($f['addons'] ?? []);
             }
             $clean[] = $row;
         }
@@ -616,7 +629,20 @@ class FormController extends Controller
                     $line = [$row->created_at?->toIso8601String(), $row->ip];
                     foreach ($headers as $key) {
                         $val = $row->data[$key] ?? '';
-                        if (is_array($val)) $val = implode(', ', $val);
+                        if (is_array($val) && !empty($val['_pricing'])) {
+                            // Flatten a pricing-field breakdown into a single human-
+                            // readable cell: "Option + Addon, Addon = TOTAL CUR".
+                            $cur   = $val['currency'] ?? 'USD';
+                            $parts = [];
+                            if (!empty($val['option']['label'])) $parts[] = $val['option']['label'];
+                            foreach (($val['addons'] ?? []) as $ad) {
+                                if (!empty($ad['label'])) $parts[] = $ad['label'];
+                            }
+                            $total = number_format(((int) ($val['total_cents'] ?? 0)) / 100, 2);
+                            $val   = implode(' + ', $parts) . ' = ' . $total . ' ' . $cur;
+                        } elseif (is_array($val)) {
+                            $val = implode(', ', $val);
+                        }
                         $val = (string) $val;
                         // Mitigate CSV formula injection — prefix risky leading chars with apostrophe
                         if ($val !== '' && in_array($val[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
@@ -858,7 +884,9 @@ class FormController extends Controller
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
-            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section'])) continue;
+            // Pricing fields are handled below from the computed breakdown so the
+            // stored value is the readable line-items, not a raw option index.
+            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section', 'pricing'])) continue;
 
             if ($type === 'file' && $request->hasFile($id)) {
                 // Vault submissions under the form OWNER's quota — visitors are
@@ -907,6 +935,15 @@ class FormController extends Controller
             }
         }
 
+        // Pricing / Package selection — compute the per-field breakdown (chosen
+        // option + ticked addons) and store it under each pricing field's id so
+        // the owner sees a readable line-item summary. The grand total drives the
+        // charge below (selectable-pricing path).
+        $selection = $form->computeSelectionBreakdown($request);
+        foreach ($selection['by_field'] as $fid => $breakdown) {
+            $data[$fid] = $breakdown;
+        }
+
         // Spam heuristics — honeypot, link count, blocked keywords, per-IP rate
         // limit. Matches are stored with is_spam=true so they're hidden from
         // the default inbox view but reviewable in the Spam tab.
@@ -948,19 +985,25 @@ class FormController extends Controller
             'phone'    => $senderPhone,
         ]);
 
-        // A form only charges when it's flagged paid AND the owner actually has
-        // a connected gateway to receive the funds. If the gateway was removed
-        // after the form was set up, the submission degrades to a normal free
-        // submission rather than stranding the customer at a dead checkout.
-        //
-        // Variable pricing (Task #2321): the total is recomputed server-side
-        // from the submitted data — never trusted from the client. In per_field
-        // mode a submission that selects no priced fields (and has no base fee)
-        // computes to 0 and is treated as a normal free submission.
-        $canCharge   = $form->isPaid() && (bool) $form->user?->defaultPaymentConnection();
-        $amountCents = $canCharge ? $form->computeAmountCents($data) : 0;
-        $lineItems   = $canCharge ? $form->priceLineItems($data) : [];
-        $isPaid      = $canCharge && $amountCents > 0;
+        // Resolve the charge. Two pricing subsystems can each contribute to one
+        // total, both recomputed server-side and never trusted from the client:
+        //   - Fixed / per-field pricing (Task #2321): computeAmountCents($data)
+        //     plus its itemised priceLineItems($data) breakdown. Only counts
+        //     when the Payments toggle is enabled (its plan/source gate).
+        //   - Pricing / Package fields (Task #2333): the selection breakdown
+        //     ($selection) computed from the chosen option + ticked addons above.
+        // A form only charges when it's flagged paid (plan allows), the owner has
+        // a connected gateway to receive the funds, AND the combined total is
+        // positive. If the gateway was removed after setup — or nothing priced
+        // was selected — the submission degrades to a normal free submission
+        // rather than stranding the customer at a dead checkout.
+        $canCharge      = $form->isPaid() && (bool) $form->user?->defaultPaymentConnection();
+        $paymentEnabled = !empty($form->paymentConfig()['enabled']);
+        $perFieldCents  = ($canCharge && $paymentEnabled) ? $form->computeAmountCents($data) : 0;
+        $lineItems      = ($canCharge && $paymentEnabled) ? $form->priceLineItems($data) : [];
+        $chargeCents    = $canCharge ? ($perFieldCents + (int) $selection['amount_cents']) : 0;
+        $chargeCurrency = $form->paymentCurrency();
+        $isPaid         = $canCharge && $chargeCents > 0;
 
         $submission = $form->submissions()->create([
             'data' => $data,
@@ -987,15 +1030,15 @@ class FormController extends Controller
         // review without a checkout.
         if ($isPaid && ! $spamCheck['is_spam']) {
             $checkout = app(\App\Services\Monetization\MonetizationCheckout::class)
-                ->startFormPayment($form, $submission, $senderEmail, $amountCents, $lineItems);
+                ->startFormPayment($form, $submission, $senderEmail, $chargeCents, $lineItems, $chargeCurrency);
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'ok' => true,
                     'payment_required' => true,
                     'checkout_url' => $checkout['url'],
-                    'amount_cents' => $amountCents,
-                    'currency' => $form->paymentCurrency(),
+                    'amount_cents' => $chargeCents,
+                    'currency' => $chargeCurrency,
                 ]);
             }
             return redirect()->away($checkout['url']);
@@ -1113,6 +1156,19 @@ class FormController extends Controller
                 case 'checkbox':
                     $stack = $req ? ['required', 'array', 'min:1'] : ['nullable', 'array'];
                     break;
+                case 'pricing':
+                    // The chosen option is a 0-based index into price_options;
+                    // ticked addons arrive under "{id}_addons" as index values.
+                    $optCount   = count($field['price_options'] ?? []);
+                    $addonCount = count($field['addons'] ?? []);
+                    $stack = [$req ? 'required' : 'nullable', 'integer', 'min:0'];
+                    if ($optCount > 0) $stack[] = 'max:' . ($optCount - 1);
+                    $rules["{$id}_addons"] = ['nullable', 'array'];
+                    if ($addonCount > 0) {
+                        $rules["{$id}_addons.*"] = ['integer', 'min:0', 'max:' . ($addonCount - 1)];
+                    }
+                    if ($req) $messages["$id.required"] = $field['error_message'] ?? 'Please choose an option.';
+                    break;
                 case 'textarea':
                     $stack[] = 'string';
                     $stack[] = 'max:' . ($maxL ?: 10000);
@@ -1167,6 +1223,31 @@ class FormController extends Controller
     protected array $customMessages = [];
 
     /**
+     * Normalise a builder-submitted pricing list (options or addons) into
+     * stored shape: an array of {label, price} where label is non-empty and
+     * price is a clamped dollar amount (0–1,000,000). Caps the row count so a
+     * malicious payload can't bloat the stored field.
+     *
+     * @return list<array{label:string,price:float}>
+     */
+    protected function cleanPriceList($raw): array
+    {
+        if (!is_array($raw)) return [];
+        $out = [];
+        foreach ($raw as $entry) {
+            if (!is_array($entry)) continue;
+            $label = trim((string) ($entry['label'] ?? ''));
+            if ($label === '') continue;
+            $label = mb_substr($label, 0, 120);
+            $price = is_numeric($entry['price'] ?? null) ? (float) $entry['price'] : 0.0;
+            $price = max(0.0, min(1000000.0, round($price, 2)));
+            $out[] = ['label' => $label, 'price' => $price];
+            if (count($out) >= 50) break;
+        }
+        return $out;
+    }
+
+    /**
      * Sanitize a user-supplied regex pattern.
      * Returns null if the pattern is unsafe, too long, or fails to compile.
      * Defends against catastrophic-backtracking by rejecting nested unbounded quantifiers.
@@ -1212,7 +1293,19 @@ class FormController extends Controller
             if (!empty($n['email']['enabled']) && !empty($n['email']['to'])) {
                 $body = "New submission on {$form->title}\n\n";
                 foreach ($submission->data as $k => $v) {
-                    $body .= ucfirst(str_replace('_', ' ', $k)) . ': ' . (is_array($v) ? implode(', ', $v) : (string) $v) . "\n";
+                    if (is_array($v) && !empty($v['_pricing'])) {
+                        $cur   = $v['currency'] ?? 'USD';
+                        $parts = [];
+                        if (!empty($v['option']['label'])) $parts[] = $v['option']['label'];
+                        foreach (($v['addons'] ?? []) as $ad) {
+                            if (!empty($ad['label'])) $parts[] = $ad['label'];
+                        }
+                        $line = implode(' + ', $parts) . ' = '
+                            . number_format(((int) ($v['total_cents'] ?? 0)) / 100, 2) . ' ' . $cur;
+                    } else {
+                        $line = is_array($v) ? implode(', ', $v) : (string) $v;
+                    }
+                    $body .= ucfirst(str_replace('_', ' ', $k)) . ': ' . $line . "\n";
                 }
                 $replyToRaw = $submission->data[$n['email']['reply_to_field']] ?? null;
                 // Strip newlines to prevent header injection, then validate

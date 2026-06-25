@@ -68,6 +68,59 @@
             </div>
             @break
 
+        @case('pricing')
+            @php
+                $cur  = $formCurrency ?? 'USD';
+                $opts = array_values($field['price_options'] ?? []);
+                $adds = array_values($field['addons'] ?? []);
+                $moneyFmt = function ($cents) use ($cur) {
+                    $amount  = number_format($cents / 100, 2);
+                    $symbols = ['USD' => '$', 'EUR' => '€', 'GBP' => '£', 'INR' => '₹', 'AUD' => 'A$', 'CAD' => 'C$', 'JPY' => '¥', 'BRL' => 'R$'];
+                    $sym = $symbols[$cur] ?? null;
+                    return $sym ? $sym . $amount : $cur . ' ' . $amount;
+                };
+                $pricingCfg = [
+                    'id'             => $id,
+                    'currency'       => $cur,
+                    'opts'           => array_map(fn ($o) => ['cents' => \App\Modules\User\Models\Form::priceToCents($o['price'] ?? 0)], $opts),
+                    'addons'         => array_map(fn ($a) => ['cents' => \App\Modules\User\Models\Form::priceToCents($a['price'] ?? 0)], $adds),
+                    'selected'       => ($oldVal !== null && $oldVal !== '') ? (int) $oldVal : null,
+                    'selectedAddons' => array_map('intval', (array) old($id . '_addons', [])),
+                ];
+            @endphp
+            <div class="form-pricing" x-data="pricingField(@js($pricingCfg))" x-init="init()">
+                <div class="form-pricing-options">
+                    @foreach($opts as $oi => $opt)
+                        <label class="form-pricing-option" :class="{ 'is-selected': selected === {{ $oi }} }">
+                            <span class="form-pricing-option-main">
+                                <input type="radio" name="{{ $id }}" value="{{ $oi }}" x-model.number="selected" @if($required && $oi === 0) required @endif>
+                                <span class="form-pricing-option-label">{{ $opt['label'] ?? '' }}</span>
+                            </span>
+                            <span class="form-pricing-option-price">{{ $moneyFmt($pricingCfg['opts'][$oi]['cents']) }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                @if(count($adds))
+                    <div class="form-pricing-addons">
+                        <div class="form-pricing-addons-title">Add-ons</div>
+                        @foreach($adds as $ai => $ad)
+                            <label class="form-pricing-addon">
+                                <span class="form-pricing-addon-main">
+                                    <input type="checkbox" name="{{ $id }}_addons[]" value="{{ $ai }}" x-model.number="addons">
+                                    <span class="form-pricing-addon-label">{{ $ad['label'] ?? '' }}</span>
+                                </span>
+                                <span class="form-pricing-addon-price">+{{ $moneyFmt($pricingCfg['addons'][$ai]['cents']) }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
+                <div class="form-pricing-subtotal">
+                    <span>Subtotal</span>
+                    <strong x-text="fmt(subtotal)"></strong>
+                </div>
+            </div>
+            @break
+
         @case('rating')
             @php $max = (int) ($field['max'] ?? 5); @endphp
             <div class="rating-stars" x-data="{ value: parseInt(@js($oldVal ?: 0)), hover: 0 }">

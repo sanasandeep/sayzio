@@ -72,8 +72,31 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 py-3 border-b" style="border-color: var(--border-subtle);">
                     <dt class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-faint);">{{ str_replace('_', ' ', $k) }}</dt>
                     <dd class="sm:col-span-2 text-sm" style="color: var(--text-primary);">
-                        @if(is_array($v))
-                            <ul class="list-disc pl-4">@foreach($v as $vv)<li>{{ $vv }}</li>@endforeach</ul>
+                        @if(is_array($v) && !empty($v['_pricing']))
+                            @php
+                                $pcur = $v['currency'] ?? 'USD';
+                                $fmtCents = fn ($c) => number_format(((int) $c) / 100, 2) . ' ' . $pcur;
+                            @endphp
+                            <div class="space-y-1">
+                                @if(!empty($v['option']))
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span>{{ $v['option']['label'] ?? '—' }}</span>
+                                        <span style="color: var(--text-muted);">{{ $fmtCents($v['option']['price_cents'] ?? 0) }}</span>
+                                    </div>
+                                @endif
+                                @foreach(($v['addons'] ?? []) as $ad)
+                                    <div class="flex items-center justify-between gap-3 text-xs" style="color: var(--text-muted);">
+                                        <span>+ {{ $ad['label'] ?? '—' }}</span>
+                                        <span>{{ $fmtCents($ad['price_cents'] ?? 0) }}</span>
+                                    </div>
+                                @endforeach
+                                <div class="flex items-center justify-between gap-3 pt-1 mt-1 border-t font-bold" style="border-color: var(--border-subtle);">
+                                    <span>Total</span>
+                                    <span>{{ $fmtCents($v['total_cents'] ?? 0) }}</span>
+                                </div>
+                            </div>
+                        @elseif(is_array($v))
+                            <ul class="list-disc pl-4">@foreach($v as $vv)<li>{{ is_array($vv) ? json_encode($vv) : $vv }}</li>@endforeach</ul>
                         @elseif(is_bool($v))
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $v ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400' }}">{{ $v ? 'Yes' : 'No' }}</span>
                         @elseif(filter_var($v, FILTER_VALIDATE_EMAIL))

@@ -835,17 +835,22 @@ class MonetizationCheckout
         \App\Modules\User\Models\FormSubmission $submission,
         ?string $fanEmail = null,
         ?int $amountCents = null,
-        ?array $lineItems = null
+        ?array $lineItems = null,
+        ?string $currencyOverride = null
     ): array {
         $creator = $form->user;
         $connection = $creator?->defaultPaymentConnection()
             ?: new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $creator?->id]);
 
-        // Variable pricing (Task #2321): the caller computes the per-submission
-        // total from the submitted data; fall back to the form's flat price when
-        // not supplied (fixed-mode callers / legacy paths).
+        // Variable pricing (Tasks #2321 / #2333): the caller computes the
+        // per-submission total from the submitted data; fall back to the form's
+        // flat price when not supplied (fixed-mode / legacy callers). The
+        // currency override lets the selectable-pricing path pass the form
+        // currency explicitly.
         $amount   = $amountCents !== null ? max(0, $amountCents) : $form->paymentAmountCents();
-        $currency = $form->paymentCurrency();
+        $currency = $currencyOverride !== null && $currencyOverride !== ''
+            ? strtoupper($currencyOverride)
+            : $form->paymentCurrency();
 
         $submission->payment_status = 'pending';
         $submission->amount_cents   = $amount;

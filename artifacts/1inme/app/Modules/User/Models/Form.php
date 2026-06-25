@@ -156,36 +156,41 @@ protected $fillable = [
     }
 
     /**
-     * Field types that can carry a price (Task #2321). add-ons (consent),
+     * Field types that can carry a price (Task #2321): add-ons (consent),
      * tiers (select/radio/checkbox per-option) and quantity (number ×
      * per-unit). Anything else is informational and never priced.
      */
     public const PRICED_FIELD_TYPES = ['number', 'select', 'radio', 'checkbox', 'consent'];
 
     /**
-     * Whether this form charges to submit. Requires the toggle on, a
-     * pricing SOURCE (a fixed amount, or — in per_field mode — at least one
-     * priced field), AND the owner's plan to still allow paid forms — so a
-     * downgrade silently reverts the form to free at submit time without us
-     * mutating stored settings.
-     *
-     * Note: in per_field mode the actual charge depends on what the visitor
-     * selects, so a positive *total* is only known per submission via
-     * computeAmountCents(); isPaid() just reports that the form is capable
-     * of charging.
+     * Whether this form is *capable* of charging to submit, gated by the
+     * owner's plan (a downgrade silently reverts the form to free at submit
+     * time without us mutating stored settings). A form can charge when:
+     *   - Fixed mode (Task #2319): the Payments toggle is on with a positive
+     *     amount.
+     *   - Per-field mode (Task #2321): the Payments toggle is on and a priced
+     *     field carries a price (or there's a positive base fee).
+     *   - Pricing / Package fields (Task #2333): the form has one or more
+     *     pricing fields, whose charge is computed per submission from the
+     *     submitter's selection.
+     * In every variable case the actual charge is only known per submission
+     * (a zero computed total ⇒ free submit), so isPaid() just reports the form
+     * is capable of charging.
      */
     public function isPaid(): bool
     {
-        if (empty($this->paymentConfig()['enabled'])) {
+        if (! (bool) ($this->user?->getPlanFeature('paid_forms', false))) {
             return false;
         }
-        $hasSource = $this->paymentMode() === 'per_field'
-            ? ($this->paymentAmountCents() > 0 || $this->hasPricedFields())
-            : $this->paymentAmountCents() > 0;
-        if (!$hasSource) {
-            return false;
+        if (!empty($this->paymentConfig()['enabled'])) {
+            $hasSource = $this->paymentMode() === 'per_field'
+                ? ($this->paymentAmountCents() > 0 || $this->hasPricedFields())
+                : $this->paymentAmountCents() > 0;
+            if ($hasSource) {
+                return true;
+            }
         }
-        return (bool) ($this->user?->getPlanFeature('paid_forms', false));
+        return $this->hasPricingFields();
     }
 
     /** Pricing mode: 'fixed' (one price) or 'per_field' (priced fields). */
@@ -203,6 +208,90 @@ protected $fillable = [
     public function paymentAmountCents(): int
     {
         return max(0, (int) ($this->paymentConfig()['amount_cents'] ?? 0));
+    }
+
+    /** Pricing / Package fields defined on this form (selectable pricing). */
+    public function pricingFields(): array
+    {
+        return array_values(array_filter(
+            $this->fields ?? [],
+            fn ($f) => is_array($f) && ($f['type'] ?? null) === 'pricing'
+        ));
+    }
+
+    public function hasPricingFields(): bool
+    {
+        return count($this->pricingFields()) > 0;
+    }
+
+    /** Convert a dollar (or numeric string) price into whole cents. */
+    public static function priceToCents($price): int
+    {
+        return max(0, (int) round(((float) $price) * 100));
+    }
+
+    /**
+     * Compute the charge amount + a per-field line-item breakdown from a
+     * submitter's selection. Returns:
+     *   ['amount_cents' => int, 'currency' => string, 'by_field' => [id => [...]]].
+     * Each by_field entry carries the chosen option + ticked addons as
+     * structured data so the owner can see exactly what produced the charge.
+     * Unknown / out-of-range indices are ignored (defensive — never trust
+     * the submitter's raw indices).
+     */
+    public function computeSelectionBreakdown(\Illuminate\Http\Request $request): array
+    {
+        $currency = $this->paymentCurrency();
+        $byField  = [];
+        $total    = 0;
+
+        foreach ($this->pricingFields() as $field) {
+            $id = $field['id'] ?? null;
+            if (!$id) continue;
+
+            $opts   = array_values($field['price_options'] ?? []);
+            $addons = array_values($field['addons'] ?? []);
+
+            $option = null;
+            $chosen = $request->input($id);
+            if ($chosen !== null && $chosen !== '' && ctype_digit((string) $chosen) && isset($opts[(int) $chosen])) {
+                $o = $opts[(int) $chosen];
+                $option = [
+                    'label'       => (string) ($o['label'] ?? ''),
+                    'price_cents' => self::priceToCents($o['price'] ?? 0),
+                ];
+            }
+
+            $selectedAddons = [];
+            foreach ((array) $request->input($id . '_addons', []) as $ai) {
+                if (ctype_digit((string) $ai) && isset($addons[(int) $ai])) {
+                    $a = $addons[(int) $ai];
+                    $selectedAddons[] = [
+                        'label'       => (string) ($a['label'] ?? ''),
+                        'price_cents' => self::priceToCents($a['price'] ?? 0),
+                    ];
+                }
+            }
+
+            if ($option === null && empty($selectedAddons)) {
+                continue; // nothing chosen for this pricing field
+            }
+
+            $fieldTotal = ($option['price_cents'] ?? 0)
+                + array_sum(array_column($selectedAddons, 'price_cents'));
+            $total += $fieldTotal;
+
+            $byField[$id] = [
+                '_pricing'    => true,
+                'label'       => (string) ($field['label'] ?? 'Pricing'),
+                'option'      => $option,
+                'addons'      => $selectedAddons,
+                'currency'    => $currency,
+                'total_cents' => $fieldTotal,
+            ];
+        }
+
+        return ['amount_cents' => $total, 'currency' => $currency, 'by_field' => $byField];
     }
 
     public function paymentCurrency(): string
@@ -363,6 +452,7 @@ protected $fillable = [
             'checkbox'  => ['label' => 'Checkboxes',  'icon' => 'fa-check-square'],
             'rating'    => ['label' => 'Star Rating', 'icon' => 'fa-star'],
             'scale'     => ['label' => 'Linear Scale','icon' => 'fa-sliders-h'],
+            'pricing'   => ['label' => 'Pricing / Package', 'icon' => 'fa-tags'],
             'file'      => ['label' => 'File Upload', 'icon' => 'fa-paperclip'],
             'signature' => ['label' => 'Signature',   'icon' => 'fa-signature'],
             'consent'   => ['label' => 'Consent / Terms', 'icon' => 'fa-shield-alt'],

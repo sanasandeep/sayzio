@@ -65,6 +65,19 @@
                         </template>
                     </div>
                 </template>
+                {{-- Pricing / Package field: option list (radio) + addon list (checkboxes). --}}
+                <template x-for="(po, j) in (f.price_options || [])" :key="`${f.id}-po-${j}`">
+                    <span>
+                        <input type="hidden" :name="`fields[${i}][price_options][${j}][label]`" :value="po.label || ''">
+                        <input type="hidden" :name="`fields[${i}][price_options][${j}][price]`" :value="po.price ?? 0">
+                    </span>
+                </template>
+                <template x-for="(ad, j) in (f.addons || [])" :key="`${f.id}-ad-${j}`">
+                    <span>
+                        <input type="hidden" :name="`fields[${i}][addons][${j}][label]`" :value="ad.label || ''">
+                        <input type="hidden" :name="`fields[${i}][addons][${j}][price]`" :value="ad.price ?? 0">
+                    </span>
+                </template>
             </div>
         </template>
 
@@ -294,6 +307,48 @@
                                     @input="fields[selectedIndex].options = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
                                     x-text="(fields[selectedIndex].options || []).join('\n')"></textarea>
                             </div>
+
+                            {{-- Pricing / Package editor --}}
+                            <div x-show="fields[selectedIndex].type === 'pricing'" class="space-y-3">
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Pricing options <span class="text-[10px]" style="color: var(--text-faint);">— pick one (radio)</span></label>
+                                        <button type="button" @click="addPriceOption()" class="text-[11px] font-semibold text-violet-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <template x-for="(po, j) in (fields[selectedIndex].price_options || [])" :key="`po-${j}`">
+                                            <div class="flex items-center gap-1.5">
+                                                <input type="text" x-model="po.label" placeholder="Label" class="theme-input flex-1 text-xs">
+                                                <input type="number" min="0" step="0.01" x-model.number="po.price" placeholder="0.00" class="theme-input w-20 text-xs">
+                                                <button type="button" @click="removePriceOption(j)" class="text-rose-400 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Add-on services <span class="text-[10px]" style="color: var(--text-faint);">— optional (checkboxes)</span></label>
+                                        <button type="button" @click="addAddon()" class="text-[11px] font-semibold text-violet-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <template x-for="(ad, j) in (fields[selectedIndex].addons || [])" :key="`ad-${j}`">
+                                            <div class="flex items-center gap-1.5">
+                                                <input type="text" x-model="ad.label" placeholder="Label" class="theme-input flex-1 text-xs">
+                                                <input type="number" min="0" step="0.01" x-model.number="ad.price" placeholder="0.00" class="theme-input w-20 text-xs">
+                                                <button type="button" @click="removeAddon(j)" class="text-rose-400 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] leading-relaxed" style="color: var(--text-faint);">
+                                    Prices are in <strong>{{ $paymentCurrency }}</strong> (set on the Payments tab). The submitter's chosen option + add-ons are totalled and charged at submit.
+                                    @if(!$canPaidForms)
+                                        <span class="block mt-1 text-amber-400"><i class="fas fa-triangle-exclamation mr-0.5"></i> Your plan doesn't include paid forms, so selections are captured but not charged.</span>
+                                    @elseif(!$hasGateway)
+                                        <span class="block mt-1 text-amber-400"><i class="fas fa-triangle-exclamation mr-0.5"></i> Connect a payment gateway in Payouts to actually collect — until then selections are captured but not charged.</span>
+                                    @endif
+                                </p>
+                            </div>
                             <label class="flex items-center gap-2 text-xs cursor-pointer mt-2" style="color: var(--text-secondary);" x-show="!['heading','paragraph','divider','page_break','section'].includes(fields[selectedIndex].type)">
                                 <input type="checkbox" x-model="fields[selectedIndex].required" class="rounded text-violet-500">
                                 Required field
@@ -495,9 +550,32 @@ function formBuilder(initial) {
             if (type === 'page_break') f.label = 'Next page';
             if (type === 'signature') f.label = 'Your Signature';
             if (type === 'file') { f.file_max_kb = 10240; }
+            if (type === 'pricing') {
+                f.label = 'Choose a package';
+                f.price_options = [{ label: 'Standard', price: 9.99 }];
+                f.addons = [];
+            }
             this.fields.push(f);
             this.selectedIndex = this.fields.length - 1;
             this.$nextTick(() => this.initSortable());
+        },
+        addPriceOption() {
+            const f = this.fields[this.selectedIndex];
+            if (!f.price_options) f.price_options = [];
+            f.price_options.push({ label: 'Option ' + (f.price_options.length + 1), price: 0 });
+        },
+        removePriceOption(j) {
+            const f = this.fields[this.selectedIndex];
+            if (f.price_options) f.price_options.splice(j, 1);
+        },
+        addAddon() {
+            const f = this.fields[this.selectedIndex];
+            if (!f.addons) f.addons = [];
+            f.addons.push({ label: 'Add-on ' + (f.addons.length + 1), price: 0 });
+        },
+        removeAddon(j) {
+            const f = this.fields[this.selectedIndex];
+            if (f.addons) f.addons.splice(j, 1);
         },
         removeField(i) {
             this.fields.splice(i, 1);
