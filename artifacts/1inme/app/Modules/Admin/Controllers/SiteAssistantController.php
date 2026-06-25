@@ -230,6 +230,11 @@ class SiteAssistantController extends Controller
      */
     protected function resolveAvatarUrl(Request $request, ?string $url): ?string
     {
+        // Remember the currently stored avatar so we can delete its file
+        // if this save replaces or clears a previously uploaded image.
+        $previous = (string) (SiteAssistantSettings::get()['avatar_url'] ?? '');
+
+        $resolved = null;
         if ($request->hasFile('avatar_file')) {
             $file = $request->file('avatar_file');
             $publicDir = public_path('branding');
@@ -248,14 +253,40 @@ class SiteAssistantController extends Controller
             $mime = (string) $file->getMimeType();
             $ext  = $allowed[$mime] ?? null;
             if ($ext === null) {
-                return trim((string) $url) !== '' ? trim((string) $url) : null;
+                $resolved = trim((string) $url) !== '' ? trim((string) $url) : null;
+            } else {
+                $name = 'assistant-avatar-' . \Illuminate\Support\Str::uuid()->toString() . '.' . $ext;
+                $file->move($publicDir, $name);
+                $resolved = '/branding/' . $name;
             }
-            $name = 'assistant-avatar-' . \Illuminate\Support\Str::uuid()->toString() . '.' . $ext;
-            $file->move($publicDir, $name);
-            return '/branding/' . $name;
+        } else {
+            $url = trim((string) $url);
+            $resolved = $url !== '' ? $url : null;
         }
-        $url = trim((string) $url);
-        return $url !== '' ? $url : null;
+
+        $this->pruneReplacedAvatar($previous, $resolved);
+        return $resolved;
+    }
+
+    /**
+     * Delete a previously uploaded assistant avatar file once it is no
+     * longer referenced. Only managed uploads under
+     * /branding/assistant-avatar-* are touched — admin-pasted external
+     * URLs and the bundled mascot (null) are left alone.
+     */
+    protected function pruneReplacedAvatar(string $previous, ?string $current): void
+    {
+        $previous = trim($previous);
+        if ($previous === '' || $previous === $current) {
+            return;
+        }
+        if (!preg_match('#^/branding/assistant-avatar-[^/]+$#', $previous)) {
+            return;
+        }
+        $path = public_path(ltrim($previous, '/'));
+        if (\Illuminate\Support\Facades\File::isFile($path)) {
+            \Illuminate\Support\Facades\File::delete($path);
+        }
     }
 
     /**
