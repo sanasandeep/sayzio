@@ -14,6 +14,7 @@ use App\Modules\User\Controllers\VcfLinkController;
 use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Controllers\BiolinkWizardController;
+use App\Modules\User\Controllers\BulkBiolinkController;
 use App\Modules\User\Controllers\CalendarAccountController;
 use App\Modules\User\Controllers\RsvpController;
 use App\Modules\User\Controllers\PollVoteController;
@@ -654,6 +655,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-url/bulk/preview', [LinkController::class, 'bulkPreviewUrl'])->middleware('workspace.can:links.create')->name('links.url.bulk.preview');
         Route::post('links-url/bulk', [LinkController::class, 'bulkStoreUrl'])->middleware('workspace.can:links.create')->name('links.url.bulk.store');
         Route::get('links-biolink/create', [LinkController::class, 'createBiolink'])->middleware('workspace.can:links.create')->name('links.biolink.create');
+        Route::get('links-biolink/bulk', [BulkBiolinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.biolink.bulk');
+        Route::post('links-biolink/bulk/preview', [BulkBiolinkController::class, 'preview'])->middleware('workspace.can:links.create')->name('links.biolink.bulk.preview');
+        Route::post('links-biolink/bulk/sample', [BulkBiolinkController::class, 'sampleSheet'])->middleware('workspace.can:links.create')->name('links.biolink.bulk.sample');
+        Route::post('links-biolink/bulk', [BulkBiolinkController::class, 'store'])->middleware('workspace.can:links.create')->name('links.biolink.bulk.store');
         Route::post('links', [LinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.store');
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.toggle-active');
         Route::post('links/{link}/duplicate', [LinkController::class, 'duplicate'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.duplicate');

@@ -85,3 +85,4 @@
 - [Stats CSV export gating](stats-csv-export-gating.md) — analytics_export gates link/follower/slide + creator-stats dashboard + mobile Stats export; mobile reads capabilities.analytics_export; /api/v1/stats is an unimplemented stub.
 - [Per-plan AI features](per-plan-ai-features.md) — AiPlanAccess is the single gate for 8 AI features; quantity caps + availability bools fall back to global caps/legacy allow-lists when plan key absent; voice DISPLAY-only (runtime still voiceAllowedFor).
 - [Block allowlist gating vs aliases](block-allowlist-vs-aliases.md) — gating matches RAW block-type strings; never use BlockTypeRegistry::canonical() (collapses cta_button→link); use ALLOWLIST_ALIASES for the 4 non-type synonyms only.
+- [Bulk biolink mail-merge](bulk-biolink-mailmerge.md) — sheet→pages via {{token}} sub; batch gate checks BOTH max_links AND max_biolinks; locked-template by Plan.sort_order; entry points mirror bulk-URL (create hub + index).
