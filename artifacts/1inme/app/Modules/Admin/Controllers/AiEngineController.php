@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\OpenAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -202,5 +203,27 @@ class AiEngineController extends Controller
 
         return redirect()->route('admin.ai-engine.edit')
             ->with('success', 'AI Engine settings saved.');
+    }
+
+    /**
+     * Unmetered "Test connection" action for the AI Engine page. Pings
+     * OpenAI with a tiny 1-token chat call using either the key just typed
+     * into the form (preferred) or the stored key, and reports the result
+     * as JSON for inline rendering. No coins are charged and the AI Engine
+     * does not need to be enabled.
+     */
+    public function testConnection(Request $request, OpenAiService $openai)
+    {
+        $typed = trim((string) $request->input('openai_api_key', ''));
+
+        // Ping an enabled chat model when one exists so the test mirrors
+        // real usage; otherwise fall back to the default feature model.
+        $enabledChat = collect(AiEngineSettings::models())
+            ->first(fn ($m) => ($m['kind'] ?? 'chat') === 'chat' && !empty($m['enabled']));
+        $model = $enabledChat['name'] ?? AiEngineSettings::DEFAULT_FEATURE_MODEL;
+
+        return response()->json(
+            $openai->testKey($typed !== '' ? $typed : null, $model)
+        );
     }
 }

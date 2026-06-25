@@ -22,16 +22,18 @@
     <a href="{{ route('admin.ai-engine.edit') }}" class="text-xs text-violet-300 hover:underline ml-auto">AI Engine settings →</a>
 </form>
 
-<div class="grid grid-cols-3 gap-3 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
     @foreach([
-        ['Spent',     $totals['spent'],     'text-red-300'],
-        ['Refunded',  $totals['refunded'],  'text-violet-300'],
-        ['Adjusted',  $totals['adjusted'],  'text-amber-300'],
+        ['Spent',         $totals['spent'],      'text-red-300',     'coins'],
+        ['Refunded',      $totals['refunded'],   'text-violet-300',  'coins'],
+        ['Adjusted',      $totals['adjusted'],   'text-amber-300',   'coins'],
+        ['Input tokens',  $totals['tokens_in'],  'text-sky-300',     'prompt tokens'],
+        ['Output tokens', $totals['tokens_out'], 'text-emerald-300', 'completion tokens'],
     ] as $card)
         <div class="glass rounded-2xl border border-white/10 p-4">
             <p class="text-[10px] uppercase tracking-wider text-white/40">{{ $card[0] }}</p>
             <p class="text-2xl font-bold {{ $card[2] }}">{{ number_format($card[1]) }}</p>
-            <p class="text-[10px] text-white/30 mt-1">coins</p>
+            <p class="text-[10px] text-white/30 mt-1">{{ $card[3] }}</p>
         </div>
     @endforeach
 </div>

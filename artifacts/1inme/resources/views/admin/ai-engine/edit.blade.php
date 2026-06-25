@@ -45,6 +45,28 @@
             @endif
             <p class="text-[11px] text-white/30 mt-1">Encrypted at rest with the application key. Never displayed back.</p>
         </div>
+
+        <div class="pt-4 border-t border-white/10 space-y-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="button" onclick="testOpenAiConnection(this)"
+                        class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-lg text-xs font-medium">
+                    <i class="fas fa-plug mr-1"></i> Test connection
+                </button>
+                <span id="openai-test-result" class="text-xs text-white/50"></span>
+            </div>
+            <p class="text-[11px] text-white/30">Sends a tiny 1-token request to OpenAI to confirm the key works. No coins are charged. Tests the key typed above, or the stored key when the field is blank.</p>
+
+            <div class="flex flex-wrap items-center gap-4 pt-1">
+                <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-violet-300 hover:underline">
+                    <i class="fas fa-chart-line mr-1"></i> View AI usage
+                </a>
+                <a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener"
+                   class="text-xs text-violet-300 hover:underline">
+                    <i class="fas fa-arrow-up-right-from-square mr-1"></i> Check OpenAI balance
+                </a>
+            </div>
+            <p class="text-[11px] text-white/30">Live USD balance lives on OpenAI's side — open their billing dashboard to check it. Internal token &amp; coin consumption is in the AI usage report.</p>
+        </div>
     </div>
 
     {{-- Models with per-1k coin rates --}}
@@ -309,6 +331,38 @@
 </form>
 
 <script>
+async function testOpenAiConnection(btn) {
+    const result = document.getElementById('openai-test-result');
+    if (!result) return;
+    const keyField = document.querySelector('input[name="openai_api_key"]');
+    const tokenField = document.querySelector('input[name="_token"]');
+    result.className = 'text-xs text-white/50';
+    result.textContent = 'Testing…';
+    btn.disabled = true;
+    try {
+        const res = await fetch(@json(route('admin.ai-engine.test')), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': tokenField ? tokenField.value : '',
+            },
+            body: JSON.stringify({ openai_api_key: keyField ? keyField.value : '' }),
+        });
+        const data = await res.json().catch(function () {
+            return { ok: false, message: 'Unexpected response from server.' };
+        });
+        result.className = 'text-xs ' + (data.ok ? 'text-emerald-300' : 'text-red-300');
+        result.innerHTML = '<i class="fas ' + (data.ok ? 'fa-circle-check' : 'fa-circle-xmark') + ' mr-1"></i>';
+        result.appendChild(document.createTextNode(data.message || (data.ok ? 'Connection OK.' : 'Connection failed.')));
+    } catch (e) {
+        result.className = 'text-xs text-red-300';
+        result.textContent = 'Request failed: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 function addModelRow() {
     const tb = document.getElementById('models-tbody');
     const i = tb.children.length;

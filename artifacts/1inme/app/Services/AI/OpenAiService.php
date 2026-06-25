@@ -358,6 +358,57 @@ class OpenAiService
         ];
     }
 
+    /**
+     * Lightweight, UNMETERED connectivity check for the admin AI Engine
+     * page. Makes a tiny 1-token chat completion against $model using the
+     * supplied key (or the stored key when null) purely to confirm the
+     * credential works and the model is reachable. It never touches the
+     * coin wallet and never requires the AI Engine to be enabled, so an
+     * admin can validate a key before flipping the master switch.
+     *
+     * @return array{ok:bool,model?:string,message:string,status?:int}
+     */
+    public function testKey(?string $key = null, ?string $model = null): array
+    {
+        $key = ($key !== null && trim($key) !== '') ? trim($key) : AiEngineSettings::openAiKey();
+        if (!$key) {
+            return ['ok' => false, 'message' => 'No OpenAI API key is configured. Paste a key above (or save one) and try again.'];
+        }
+
+        $model = ($model !== null && trim($model) !== '') ? trim($model) : AiEngineSettings::DEFAULT_FEATURE_MODEL;
+
+        try {
+            $res = Http::withToken($key)
+                ->acceptJson()
+                ->timeout(20)
+                ->post(self::BASE_URL . '/chat/completions', [
+                    'model'      => $model,
+                    'messages'   => [['role' => 'user', 'content' => 'ping']],
+                    'max_tokens' => 1,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('OpenAI test connection threw: ' . $e->getMessage());
+            return ['ok' => false, 'message' => 'Network error reaching OpenAI: ' . Str::limit($e->getMessage(), 160)];
+        }
+
+        if ($res->successful()) {
+            $echoed = (string) ($res->json('model') ?: $model);
+            return ['ok' => true, 'model' => $echoed, 'message' => "Success — OpenAI responded using model \"{$echoed}\"."];
+        }
+
+        $status = $res->status();
+        $apiMsg = (string) ($res->json('error.message') ?? '');
+        $message = match (true) {
+            $status === 401 => 'Invalid API key — OpenAI rejected it (401 Unauthorized).',
+            $status === 403 => 'Key lacks access (403). Check the project/org and model permissions.',
+            $status === 404 => "Model \"{$model}\" is not accessible to this key (404 Not Found).",
+            $status === 429 => 'Rate limited or quota exhausted (429). The key works but is out of credit/limit.',
+            default => "OpenAI returned HTTP {$status}" . ($apiMsg !== '' ? ': ' . Str::limit($apiMsg, 160) : '.'),
+        };
+
+        return ['ok' => false, 'status' => $status, 'message' => $message];
+    }
+
     /** Returns the validated model config or throws. */
     protected function guard(string $model, string $expectedKind): array
     {

@@ -462,6 +462,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('ai-engine')->name('ai-engine.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\AiEngineController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('/', [\App\Modules\Admin\Controllers\AiEngineController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('test', [\App\Modules\Admin\Controllers\AiEngineController::class, 'testConnection'])->middleware(CheckPermission::class . ':settings.manage')->name('test');
         });
         // API Keys & Plugins hub: WhatsApp Cloud API credentials and
         // internal alert webhooks (Slack/Discord), plus a read-only
