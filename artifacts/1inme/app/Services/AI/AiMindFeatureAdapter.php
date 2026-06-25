@@ -5,7 +5,7 @@ namespace App\Services\AI;
 use App\Modules\User\Models\User;
 
 /**
- * Live snapshots of a user's 1INME data, exposed as compact text the
+ * Live snapshots of a user's Sayzio data, exposed as compact text the
  * agent can reason over. Centralised here so the Persona task and the
  * Coach task both read from the same surface.
  *
@@ -119,7 +119,7 @@ class AiMindFeatureAdapter
         $currencies = ['USD', 'INR'];
 
         $plans = \App\Modules\Admin\Models\Plan::active()->public()->with('prices')->ordered()->get();
-        $lines = ['Live 1INME plans (current public pricing, matches the /pricing page):'];
+        $lines = ['Live Sayzio plans (current public pricing, matches the /pricing page):'];
         foreach ($plans as $plan) {
             $priceBits = [];
             foreach ($currencies as $cur) {
@@ -177,7 +177,7 @@ class AiMindFeatureAdapter
             $byGroup[$entry['group']][] = $entry;
         }
 
-        $lines = ['Live 1INME feature catalog (matches the /features page):'];
+        $lines = ['Live Sayzio feature catalog (matches the /features page):'];
         foreach ($byGroup as $group => $entries) {
             $lines[] = '';
             $lines[] = $group . ':';

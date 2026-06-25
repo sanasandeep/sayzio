@@ -28,7 +28,7 @@
                 <span class="text-[10px] uppercase tracking-wider text-white/40">Testimonial <span x-text="i+1"></span></span>
                 <button type="button" @click="{{ $modelKey }}.splice(i,1)" class="text-red-400 hover:text-red-300 text-xs"><i class="fas fa-trash"></i></button>
             </div>
-            <textarea :name="'{{ $fieldName }}['+i+'][quote]'" x-model="t.quote" rows="3" placeholder="What they said about 1INME…"
+            <textarea :name="'{{ $fieldName }}['+i+'][quote]'" x-model="t.quote" rows="3" placeholder="What they said about Sayzio…"
                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
             <div class="grid sm:grid-cols-3 gap-2">
                 <input type="text" :name="'{{ $fieldName }}['+i+'][name]'" x-model="t.name" placeholder="Name"

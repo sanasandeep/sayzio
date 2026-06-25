@@ -46,7 +46,7 @@
                 <div>
                     <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Nav / cross-sell description</label>
                     <input type="text" name="extra[use_case][nav_desc]" value="{{ $uc['nav_desc'] ?? '' }}" maxlength="160" placeholder="Monetise your audience from one link" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
-                    <p class="mt-1 text-[11px] text-white/40">Used on the "more ways to use 1INME" cards.</p>
+                    <p class="mt-1 text-[11px] text-white/40">Used on the "more ways to use Sayzio" cards.</p>
                 </div>
             </div>
         </div>

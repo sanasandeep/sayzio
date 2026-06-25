@@ -9,7 +9,7 @@ class BiolinkAttachResolver
 {
     /**
      * Look up each phone on the contact in linked_identifiers. If a verified
-     * 1INME user owns one of the numbers AND the owner of the contact has
+     * Sayzio user owns one of the numbers AND the owner of the contact has
      * not previously detached that biolink, attach silently.
      *
      * Re-evaluated on every contact create/update and on each Google sync.

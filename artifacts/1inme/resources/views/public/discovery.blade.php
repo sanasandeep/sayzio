@@ -36,7 +36,7 @@
         </div>
         <div data-anim="fade-left" data-tilt="6" class="relative">
             <div class="img-frame img-tilt aspect-[5/4]">
-                <img src="{{ asset('images/marketing/discovery/hero.png') }}" alt="Public 1INME creator profiles">
+                <img src="{{ asset('images/marketing/discovery/hero.png') }}" alt="Public Sayzio creator profiles">
             </div>
             <div class="absolute -bottom-5 -left-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>

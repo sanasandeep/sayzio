@@ -27,7 +27,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>{{ $title }} &mdash; 1INME</title>
+    <title>{{ $title }} &mdash; Sayzio</title>
     <style>
         :root { color-scheme: dark; }
         * { box-sizing: border-box; }
@@ -71,12 +71,12 @@
 </head>
 <body>
     <div class="card">
-        <div class="logo">1INME</div>
+        <div class="logo">Sayzio</div>
         <span class="badge">Error {{ $sc }}</span>
         <h1>{{ $title }}</h1>
         <p>{{ $body }}</p>
         <a class="cta" href="/">Back to home</a>
-        <div class="meta">1INME</div>
+        <div class="meta">Sayzio</div>
     </div>
 </body>
 </html>

@@ -15,7 +15,7 @@ export default function Faq() {
   return (
     <PageLayout
       title="FAQ"
-      description="Answers to common questions about 1INME — getting started, Link in Bio pages, short links, QR codes, analytics, teams, billing, domains, security, integrations and more."
+      description="Answers to common questions about Sayzio — getting started, Link in Bio pages, short links, QR codes, analytics, teams, billing, domains, security, integrations and more."
     >
       <section className="py-20 lg:py-28">
         <div className="container mx-auto px-6">

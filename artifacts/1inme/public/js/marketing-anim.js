@@ -1,5 +1,5 @@
 /* =====================================================================
-   1INME · Marketing animation runtime
+   Sayzio · Marketing animation runtime
    - IntersectionObserver toggles `.in-view` on [data-anim] elements
    - Count-up animation for [data-count="123"] when revealed
    - Parallax for [data-parallax="0.15"] (translateY by scroll)

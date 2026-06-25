@@ -165,7 +165,7 @@ class VoiceToolRegistry
                 'category'    => 'read',
                 'role'        => 'user',
                 'destructive' => false,
-                'description' => 'Explain what a given 1INME link type is and what it is best for.',
+                'description' => 'Explain what a given Sayzio link type is and what it is best for.',
                 'parameters'  => [
                     'type'       => 'object',
                     'properties' => [

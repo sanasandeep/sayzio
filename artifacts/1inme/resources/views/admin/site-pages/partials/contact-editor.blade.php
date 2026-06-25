@@ -457,7 +457,7 @@
             popupAnchor: [0, -40]
         });
 
-        var marker = L.marker([readLat(), readLng()], { icon: icon, draggable: true, title: readLabel() || '1INME' }).addTo(map);
+        var marker = L.marker([readLat(), readLng()], { icon: icon, draggable: true, title: readLabel() || 'Sayzio' }).addTo(map);
 
         var suppressInputSync = false;
         var suppressMapSync = false;
@@ -493,7 +493,7 @@
         });
         if (labelI) {
             labelI.addEventListener('input', function(){
-                var t = readLabel() || '1INME';
+                var t = readLabel() || 'Sayzio';
                 try {
                     var el2 = marker.getElement();
                     if (el2) el2.setAttribute('title', t);

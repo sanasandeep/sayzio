@@ -8,7 +8,7 @@
 @section('title', $pageTitle)
 
 @push('head')
-    <link rel="alternate" type="application/rss+xml" title="1INME Blog" href="{{ route('site.blogs.rss') }}">
+    <link rel="alternate" type="application/rss+xml" title="Sayzio Blog" href="{{ route('site.blogs.rss') }}">
 @endpush
 
 @section('content')
@@ -80,7 +80,7 @@
 </section>
 
 @include('public.partials.subscribe-block', [
-    'heading' => 'Never miss a 1INME post.',
+    'heading' => 'Never miss a Sayzio post.',
     'subtext' => 'Get new articles your way — email, WhatsApp Channel, or DM. Once-a-month round-ups, no spam.',
     'source'  => 'blogs-index',
 ])

@@ -5,7 +5,7 @@ export default function BacklinksScreen() {
     <WebFeatureRedirect
       title="Backlinks"
       iconName="link"
-      blurb="See which sites are linking back to your 1INME profile and short links."
+      blurb="See which sites are linking back to your Sayzio profile and short links."
       webPath="/user/backlinks"
     />
   );

@@ -158,7 +158,7 @@ class SendStarterFreeWindowReminders extends Command
                     ['user' => $user, 'renewUrl' => $renewUrl, 'endsAt' => $endsAt],
                     function ($message) use ($user) {
                         $message->to($user->email);
-                        $message->subject('Keep your free 1INME Starter plan — renew for another year');
+                        $message->subject('Keep your free Sayzio Starter plan — renew for another year');
                     }
                 );
                 $delivered = true;

@@ -64,7 +64,7 @@ import {
 
 const VISIBILITY_OPTIONS: { value: ResumeVisibility; label: string; hint: string }[] = [
   { value: "public",      label: "Public",       hint: "Anyone with the link" },
-  { value: "registered",  label: "Members",      hint: "Signed-in 1INME users" },
+  { value: "registered",  label: "Members",      hint: "Signed-in Sayzio users" },
   { value: "followers",   label: "Followers",    hint: "People who follow you" },
   { value: "subscribers", label: "Subscribers",  hint: "Paying subscribers only" },
   { value: "password",    label: "Password",     hint: "Anyone with the password" },

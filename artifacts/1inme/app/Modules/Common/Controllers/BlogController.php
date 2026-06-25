@@ -203,7 +203,7 @@ class BlogController extends Controller
             'excerpt'     => (string) ($p->excerpt ?? ''),
             'date'        => $date ? $date->toDateString() : null,
             'readingTime' => max(1, (int) $p->reading_time_min) . ' min read',
-            'author'      => (string) ($p->author?->name ?? 'The 1INME Team'),
+            'author'      => (string) ($p->author?->name ?? 'The Sayzio Team'),
             'category'    => (string) ($p->category?->name ?? 'General'),
             'coverImage'  => $this->absoluteUrl($p->cover_image),
         ];

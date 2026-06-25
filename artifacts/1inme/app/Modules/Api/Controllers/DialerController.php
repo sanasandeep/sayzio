@@ -48,7 +48,7 @@ class DialerController extends Controller
             $matchedPhone = $cp?->value_e164;
         }
 
-        // Caller-ID: resolve a 1INME biolink owner from the contact or by
+        // Caller-ID: resolve a Sayzio biolink owner from the contact or by
         // phone identity lookup, even when the number isn't saved.
         $matchedUser = $contact?->biolinkUser;
         if (!$matchedUser) {
@@ -93,7 +93,7 @@ class DialerController extends Controller
     }
 
     /**
-     * Rich Identity Profile for a number / contact: matched 1INME user,
+     * Rich Identity Profile for a number / contact: matched Sayzio user,
      * auto-pulled socials / locations / channels from their biolink, the
      * owner's manual additions, and a shareable Export-vCard URL.
      */

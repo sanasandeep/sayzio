@@ -1,6 +1,6 @@
 # Coin Purchase & AI Credit Metering Audit
 
-This document records the audit of two money-handling flows in 1INME and
+This document records the audit of two money-handling flows in Sayzio and
 the by-design exceptions found. Both flows were verified by tracing the
 code paths end-to-end; **no defects were found**, so no remediation was
 required beyond surfacing AI-credit usage on the pricing/upgrade pages.

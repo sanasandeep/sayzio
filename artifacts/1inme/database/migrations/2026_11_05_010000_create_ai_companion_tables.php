@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
  * and expose it as one of three "surfaces":
  *
  *   biolink — rendered as a floating launcher / inline chat block on
- *             the user's own 1INME biolink page.
+ *             the user's own Sayzio biolink page.
  *   embed   — embedded on a third-party website via the public
  *             /embed/companion.js bundle (origin-allow-listed).
  *   inbox   — auto-reply bot inside the unified Inbox; opt-in per

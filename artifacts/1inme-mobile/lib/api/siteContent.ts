@@ -111,7 +111,7 @@ export async function fetchAboutContent(): Promise<AboutContent | null> {
       if (eefind.heading === "" && eefind.body === "") return null;
 
       const content: AboutContent = {
-        title: (data.title ?? "").trim() || "About 1INME",
+        title: (data.title ?? "").trim() || "About Sayzio",
         sections,
         eefind,
       };

@@ -112,7 +112,7 @@ class AiCompanion extends Model
             'position'           => 'bottom-right',  // bottom-right|bottom-left
             'greeting_bubble'    => null,            // pop-up text shown by closed launcher
             'placeholder'        => 'Ask me anything…',
-            'show_branding'      => true,            // "Powered by 1INME"
+            'show_branding'      => true,            // "Powered by Sayzio"
             'auto_open_after_ms' => 0,               // 0 = never auto open
             'inline'             => false,           // biolink only — render inline instead of floating
             'auto_send_inbox'    => false,           // inbox only — auto-send draft instead of staging
@@ -127,7 +127,7 @@ class AiCompanion extends Model
     /**
      * Returns true when `$origin` (a scheme://host[:port]) is allowed
      * to call the public endpoint for this companion. Same-origin
-     * 1INME requests bypass this check at the controller layer.
+     * Sayzio requests bypass this check at the controller layer.
      */
     public function originAllowed(?string $origin): bool
     {

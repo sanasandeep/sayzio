@@ -30,12 +30,12 @@ export default function ApiDocs() {
   return (
     <PageLayout
       title="Developer API"
-      description="Build on top of 1INME — a clean REST API with bearer-token auth, webhooks, usage metering and full mobile parity."
+      description="Build on top of Sayzio — a clean REST API with bearer-token auth, webhooks, usage metering and full mobile parity."
     >
       <MarketingHero
         eyebrow="Developers"
         title="Build on top of"
-        highlight="1INME."
+        highlight="Sayzio."
         subtitle="A clean, predictable REST API with bearer-token auth, webhooks and usage metering — everything the apps can do, your code can do too."
         primary={{ label: "Get an API key", href: SIGNUP_URL }}
         secondary={{ label: "See pricing", href: PRICING_URL }}
@@ -58,7 +58,7 @@ export default function ApiDocs() {
       </section>
 
       <CTABand
-        title="Ship something on 1INME."
+        title="Ship something on Sayzio."
         subtitle="Free forever to start. Generate a key and make your first call in minutes."
         primary={{ label: "Get an API key", href: SIGNUP_URL }}
         secondary={{ label: "Compare all plans", href: PRICING_URL }}

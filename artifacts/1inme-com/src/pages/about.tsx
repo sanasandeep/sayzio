@@ -34,7 +34,7 @@ export default function About() {
       date: "Apr 2023",
       title: "Idea on a whiteboard",
       description:
-        "An offhand conversation about how messy social bios are turns into the first sketch of 1INME.",
+        "An offhand conversation about how messy social bios are turns into the first sketch of Sayzio.",
     },
     {
       date: "Sep 2023",
@@ -46,13 +46,13 @@ export default function About() {
       date: "Mar 2024",
       title: "Crossed 10,000 users",
       description:
-        "Word spreads. Creators across India and South-East Asia start moving their link-in-bio to 1INME.",
+        "Word spreads. Creators across India and South-East Asia start moving their link-in-bio to Sayzio.",
     },
     {
       date: "Nov 2024",
       title: "Analytics & QR codes",
       description:
-        "Live analytics, the Performance Coach and dynamic QR codes ship — turning 1INME into a real growth tool.",
+        "Live analytics, the Performance Coach and dynamic QR codes ship — turning Sayzio into a real growth tool.",
     },
     {
       date: "Jun 2025",
@@ -64,13 +64,13 @@ export default function About() {
       date: "Feb 2026",
       title: "Hello, world",
       description:
-        "1INME crosses 100k creators across more than 60 countries. We're just getting started.",
+        "Sayzio crosses 100k creators across more than 60 countries. We're just getting started.",
     },
   ];
 
   return (
     <PageLayout
-      title="About 1INME"
+      title="About Sayzio"
       description="We help creators, freelancers, agencies and small businesses turn one link into a complete online presence."
     >
       <section className="py-20 lg:py-32">
@@ -87,7 +87,7 @@ export default function About() {
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
               One link should do everything: show your work, capture leads, sell,
-              message and tell your story. We started 1INME because juggling ten
+              message and tell your story. We started Sayzio because juggling ten
               different tools to do that felt absurd, and the existing Link in Bio
               tools stopped at a list of buttons.
             </p>
@@ -145,16 +145,16 @@ export default function About() {
                 Our story
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                1INME started in 2023 in a tiny workspace in Hyderabad. Our
+                Sayzio started in 2023 in a tiny workspace in Hyderabad. Our
                 founder kept watching small businesses and creators juggle five
                 different tools to do one simple thing: share their work and
                 capture leads. We thought there was a better way.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                We shipped the first version of 1INME — just Link in Bio pages and short
+                We shipped the first version of Sayzio — just Link in Bio pages and short
                 links — to a handful of friends. They loved it, broke it, told us
                 what was missing, and we kept iterating. Today, thousands of
-                creators across the world use 1INME to run their online presence
+                creators across the world use Sayzio to run their online presence
                 from one URL.
               </p>
             </div>
@@ -179,12 +179,12 @@ export default function About() {
               Built by EEFind Private Limited
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              1INME is a brand and product of EEFIND PVT LTD (EEFind Private
+              Sayzio is a brand and product of EEFIND PVT LTD (EEFind Private
               Limited) — an aggregator marketplace on a mission to be "The All in
               One App for everything essential." From groceries home-delivered by
               neighbourhood stores to trusted home help like carpentry, plumbing
               and home cleaning, EEFind brings everyday essentials together in one
-              place. Their promise sums up the philosophy 1INME is built on: "We
+              place. Their promise sums up the philosophy Sayzio is built on: "We
               are not in a hurry to deliver in 10 mins. We drive safe."
             </p>
             <div className="grid grid-cols-3 gap-4 mb-8">
@@ -250,10 +250,10 @@ export default function About() {
             <h2 className="text-2xl font-bold mb-1">Sandeep Sana</h2>
             <p className="text-muted-foreground mb-6">Founder &amp; CEO</p>
             <p className="text-muted-foreground leading-relaxed">
-              Guided by this belief, Sandeep Sana, Founder &amp; CEO of 1INME, has
+              Guided by this belief, Sandeep Sana, Founder &amp; CEO of Sayzio, has
               dedicated more than 16 years to building digital products that
               empower businesses and creators. His journey from developer to
-              entrepreneur led to the creation of 1INME, an all-in-one platform
+              entrepreneur led to the creation of Sayzio, an all-in-one platform
               that helps users build their digital identity, engage audiences, and
               unlock new growth opportunities. Through innovation and a relentless
               focus on user needs, he continues to shape solutions that make online
@@ -305,7 +305,7 @@ export default function About() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="rounded-full h-14 px-8 text-base">
                 <a href={SIGNUP_URL}>
-                  Try 1INME free <ArrowRight className="ml-2 w-5 h-5" />
+                  Try Sayzio free <ArrowRight className="ml-2 w-5 h-5" />
                 </a>
               </Button>
               <Button

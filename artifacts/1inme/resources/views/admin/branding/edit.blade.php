@@ -72,7 +72,7 @@
 
     <div class="glass rounded-2xl p-6">
         <h3 class="text-sm font-semibold text-white mb-1">Reset to defaults</h3>
-        <p class="text-xs text-white/50 mb-3">Restores the bundled 1INME logos.</p>
+        <p class="text-xs text-white/50 mb-3">Restores the bundled Sayzio logos.</p>
         <form method="POST" action="{{ route('admin.branding.reset') }}">
             @csrf
             <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); color: var(--text-muted);">

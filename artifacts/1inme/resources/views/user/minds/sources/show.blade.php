@@ -159,7 +159,7 @@
 
             @case(AiMindSource::TYPE_FEATURE)
                 <p class="text-sm text-white/60">
-                    Live 1INME feature snapshot
+                    Live Sayzio feature snapshot
                     @if($source->feature_key)
                         <span class="text-white/40">— <code>{{ $source->feature_key }}</code></span>
                     @endif

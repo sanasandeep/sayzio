@@ -102,7 +102,7 @@
         class="gsm-backdrop fixed inset-0 z-[120] flex items-start justify-center px-4 pt-[12vh] pb-8 overflow-y-auto"
         role="dialog"
         aria-modal="true"
-        aria-label="Search 1INME"
+        aria-label="Search Sayzio"
     >
         <div
             x-show="isOpen"
@@ -122,7 +122,7 @@
                     @keydown.up.prevent="moveSelection(-1)"
                     @keydown.enter.prevent="goToSelection()"
                     type="text"
-                    placeholder="{{ $__isLoggedIn ? 'Search your workspace…' : 'Search 1INME…' }}"
+                    placeholder="{{ $__isLoggedIn ? 'Search your workspace…' : 'Search Sayzio…' }}"
                     class="gsm-search-input flex-1 bg-transparent border-0 outline-none text-sm"
                     autocomplete="off"
                     spellcheck="false"

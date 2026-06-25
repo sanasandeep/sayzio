@@ -141,7 +141,7 @@ class MarketingBlogPostsSeeder extends Seeder
         return Admin::firstOrCreate(
             ['email' => 'content@1inme.com'],
             [
-                'name' => '1INME Content',
+                'name' => 'Sayzio Content',
                 'password' => Hash::make(Str::random(40)),
                 'role_id' => $role->id,
                 'status' => 'active',
@@ -165,7 +165,7 @@ class MarketingBlogPostsSeeder extends Seeder
             'analytics'     => ['name' => 'Analytics',         'color' => '#f59e0b', 'sort' => 4, 'desc' => 'Measuring what matters across links, pages and campaigns.'],
             'seo'           => ['name' => 'SEO for Creators',  'color' => '#ef4444', 'sort' => 5, 'desc' => 'Search-engine playbooks aimed at creators and small brands.'],
             'audience'      => ['name' => 'Audience Building', 'color' => '#ec4899', 'sort' => 6, 'desc' => 'Building a loyal audience across newsletter, social and beyond.'],
-            'product'       => ['name' => 'Product & Updates', 'color' => '#64748b', 'sort' => 7, 'desc' => 'How 1INME is evolving and how to get the most out of it.'],
+            'product'       => ['name' => 'Product & Updates', 'color' => '#64748b', 'sort' => 7, 'desc' => 'How Sayzio is evolving and how to get the most out of it.'],
         ];
 
         $out = [];
@@ -261,7 +261,7 @@ class MarketingBlogPostsSeeder extends Seeder
             '15-link-in-bio-mistakes-that-kill-conversions' => [
                 ['heading' => 'How to prioritise the fixes', 'paragraphs' => [
                     'You don\'t have to fix all fifteen this week. Start with the three mistakes that affect the largest number of visitors — usually the buried CTA, the generic button labels, and the missing proof — because each of those is in the path of every single visitor. The bottom-of-page CTA, image weight, and UTM hygiene can wait until next week.',
-                    'A useful rule: every fix you make should be measurable in your 1INME analytics within two weeks. If you can\'t imagine how you\'d see the impact, the fix is probably not worth the time.',
+                    'A useful rule: every fix you make should be measurable in your Sayzio analytics within two weeks. If you can\'t imagine how you\'d see the impact, the fix is probably not worth the time.',
                 ]],
             ],
             'designing-a-biolink-that-looks-like-your-brand' => [
@@ -401,7 +401,7 @@ class MarketingBlogPostsSeeder extends Seeder
             ],
             'whats-new-in-1inme-smarter-biolinks-cleaner-analytics' => [
                 ['heading' => 'How to stay in the loop', 'paragraphs' => [
-                    'We post a roundup like this every six weeks or so. Subscribe to the 1INME newsletter from the footer of any page, and follow @1inme on your social platform of choice — the most-discussed updates usually start as a single post asking what creators want to see next. Your reply genuinely makes its way into the roadmap.',
+                    'We post a roundup like this every six weeks or so. Subscribe to the Sayzio newsletter from the footer of any page, and follow @1inme on your social platform of choice — the most-discussed updates usually start as a single post asking what creators want to see next. Your reply genuinely makes its way into the roadmap.',
                 ]],
             ],
         ];
@@ -466,7 +466,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'What\'s the single most important fix to make first?' => 'Verb-led button labels. They cost nothing, take five minutes, and consistently produce the largest single-change improvement in tap-through rates we measure.',
             ]),
             'designing-a-biolink-that-looks-like-your-brand' => $mk([
-                'Do I need custom fonts?' => 'No. The default fonts in 1INME\'s themes look great. Custom fonts are a tax on page load and rarely move the needle on conversion. Spend the energy on accent colour and photo selection instead.',
+                'Do I need custom fonts?' => 'No. The default fonts in Sayzio\'s themes look great. Custom fonts are a tax on page load and rarely move the needle on conversion. Spend the energy on accent colour and photo selection instead.',
                 'How important is dark mode?' => 'Match whichever mode dominates your existing brand surfaces. Inconsistency between channels is more jarring than picking the "wrong" mode.',
                 'Should I show my logo on the biolink?' => 'Only if your audience already recognises it. Otherwise a clean photo of you outperforms any logo, because faces build trust faster than marks.',
             ]),
@@ -587,7 +587,7 @@ class MarketingBlogPostsSeeder extends Seeder
             ]),
             'whats-new-in-1inme-smarter-biolinks-cleaner-analytics' => $mk([
                 'Where can I see all changes?' => 'The full changelog lives in the dashboard footer. We summarise the highlights here every six weeks; the changelog is updated in real time.',
-                'How do I request a feature?' => 'Reply to any 1INME newsletter or message us through the in-app chat. The most-requested features get prioritised in the roadmap discussion every month.',
+                'How do I request a feature?' => 'Reply to any Sayzio newsletter or message us through the in-app chat. The most-requested features get prioritised in the roadmap discussion every month.',
                 'Will any of these changes break existing pages?' => 'No — we treat backwards compatibility seriously. Existing biolinks, short links, and analytics keep working exactly as they did.',
             ]),
         ];
@@ -607,7 +607,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'tags' => ['biolinks', 'conversion', 'design'],
                 'excerpt' => 'A walkthrough of the building blocks that turn a tap on your bio link into followers, sales, and signups.',
                 'meta_description' => 'The seven blocks every creator biolink needs — and how to order them so visitors actually take the action you want.',
-                'intro' => 'Most link-in-bio pages get a tap and lose the visitor inside three seconds. The pages that don\'t — the ones that quietly turn followers into customers — almost always share the same skeleton. After reviewing thousands of creator pages on 1INME, we keep seeing the same handful of building blocks in the same order. Here is what that skeleton looks like, why each piece exists, and how to assemble it on your own page in an afternoon.',
+                'intro' => 'Most link-in-bio pages get a tap and lose the visitor inside three seconds. The pages that don\'t — the ones that quietly turn followers into customers — almost always share the same skeleton. After reviewing thousands of creator pages on Sayzio, we keep seeing the same handful of building blocks in the same order. Here is what that skeleton looks like, why each piece exists, and how to assemble it on your own page in an afternoon.',
                 'sections' => [
                     ['heading' => 'Start with a one-line promise', 'paragraphs' => [
                         'Your bio name and tagline are the first thing a visitor reads, and the only thing many of them will read at all. Make the tagline a promise, not a job title. "Helping new parents sleep through the night" beats "Sleep coach" every time, because it tells the visitor what they get if they stay on the page. Job titles describe you; promises describe what changes for them, and that is the only frame visitors care about in the first three seconds of a visit.',
@@ -629,7 +629,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'Only after the proof should you add the wider menu of secondary links: socials, recent content, podcast episodes, contact form. These are the long tail of your page. They matter, but they are not what you are optimising for, so they belong below the fold.',
                     ]],
                     ['heading' => 'Track everything from day one', 'paragraphs' => [
-                        '1INME counts taps on every block, so you can see which links earn their place and which deserve to be retired. Review it monthly. The biggest gains usually come from removing links, not adding them — every extra block lowers the conversion rate of every other block on the page by giving visitors more places to look.',
+                        'Sayzio counts taps on every block, so you can see which links earn their place and which deserve to be retired. Review it monthly. The biggest gains usually come from removing links, not adding them — every extra block lowers the conversion rate of every other block on the page by giving visitors more places to look.',
                         'Set yourself a soft cap of seven blocks. Anything past seven needs to either earn its keep in the analytics or get cut. Discipline beats decoration.',
                     ]],
                 ],
@@ -641,7 +641,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'category' => 'biolinks',
                 'tags' => ['biolinks', 'conversion', 'creator-tips'],
                 'excerpt' => 'The unforced errors we see on creator biolinks every week — and the quick fixes that recover the lost taps.',
-                'intro' => 'After reviewing thousands of creator biolinks on 1INME, the same handful of mistakes show up again and again. None of them are catastrophic on their own, but stacked together they can halve the conversion rate of an otherwise great page. The good news: every one of them is fixable in minutes, with no design skill, no copywriter, and no rebuild. Read through, find the three or four that apply to you, and ship the fixes the same afternoon.',
+                'intro' => 'After reviewing thousands of creator biolinks on Sayzio, the same handful of mistakes show up again and again. None of them are catastrophic on their own, but stacked together they can halve the conversion rate of an otherwise great page. The good news: every one of them is fixable in minutes, with no design skill, no copywriter, and no rebuild. Read through, find the three or four that apply to you, and ship the fixes the same afternoon.',
                 'sections' => [
                     ['heading' => 'The fifteen most common offenders', 'list_type' => 'ol', 'list' => [
                         'Burying the most important link under a wall of social icons that visitors tap reflexively.',
@@ -665,7 +665,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'Your competitors\' pages have most of these mistakes too. Fixing yours is one of the highest-leverage hours of work you can do this week, and you don\'t need anyone\'s help to do it.',
                     ]],
                     ['heading' => 'How to fix them in an hour', 'paragraphs' => [
-                        'Open your 1INME analytics, sort blocks by tap-through rate, and start with the worst three. Re-label, re-order, or remove them. Then preview on a real phone — not just the desktop preview pane — because tap target spacing and font sizes only show up as problems on a real device.',
+                        'Open your Sayzio analytics, sort blocks by tap-through rate, and start with the worst three. Re-label, re-order, or remove them. Then preview on a real phone — not just the desktop preview pane — because tap target spacing and font sizes only show up as problems on a real device.',
                         'You don\'t need a redesign. Most pages claw back 20–40% conversion just by fixing the cheap mistakes above. Set a monthly calendar reminder to do this audit again, because the page drifts as you add new things.',
                     ]],
                 ],
@@ -691,7 +691,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'If your YouTube thumbnails are bold sans-serif, your biolink should not be a thin elegant serif. Visitors arrive in motion from another channel — keep the visual handoff seamless so they don\'t feel like they landed in the wrong place. The same applies to spacing: tight, dense channels should have a tight, dense biolink. Airy, minimal channels should have an airy, minimal biolink.',
                     ]],
                     ['heading' => 'Custom block icons over generic chevrons', 'paragraphs' => [
-                        '1INME lets you set icons per block. A small icon that matches the destination — a podcast mic for the podcast link, a Spotify glyph for the streaming link, a calendar for the booking link — raises tap-through rate by giving the eye a fast hook. Visitors don\'t read button labels carefully; they pattern-match icons. Make the pattern matching work in your favour.',
+                        'Sayzio lets you set icons per block. A small icon that matches the destination — a podcast mic for the podcast link, a Spotify glyph for the streaming link, a calendar for the booking link — raises tap-through rate by giving the eye a fast hook. Visitors don\'t read button labels carefully; they pattern-match icons. Make the pattern matching work in your favour.',
                     ]],
                     ['heading' => 'Spacing is the cheapest design upgrade', 'paragraphs' => [
                         'The single biggest visual upgrade most creator pages can make costs nothing: more vertical space between blocks. Templates ship with tight spacing because it makes the page look "full" in a screenshot, but in real use a little more air makes the page feel premium and reduces the cognitive load on the visitor.',
@@ -709,7 +709,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'sections' => [
                     ['heading' => 'The two-week change loop', 'list_type' => 'ol', 'list' => [
                         'Pick one block to change — usually the primary CTA label, the order of the top three blocks, or the hero photo.',
-                        'Note the current tap-through rate from your 1INME analytics for the affected block(s). Write it down somewhere outside the dashboard.',
+                        'Note the current tap-through rate from your Sayzio analytics for the affected block(s). Write it down somewhere outside the dashboard.',
                         'Make a single change. Resist the urge to also "tidy up" three other things at the same time, because then you cannot attribute the result.',
                         'Wait two weeks. Don\'t look daily. Daily noise is bigger than weekly signal at small traffic levels and will make you reverse decisions you should have left alone.',
                         'Compare. Keep what won. Revert what lost. Move on to the next test.',
@@ -749,12 +749,12 @@ class MarketingBlogPostsSeeder extends Seeder
                         'Re-engagement: send returning visitors to a "welcome back" page, new visitors to your homepage. The returning audience does not need the elevator pitch again.',
                         'Time-bound launches: route to a countdown page before launch, the live offer during launch, and a "join the waitlist" page after.',
                     ]],
-                    ['heading' => 'How to set one up in 1INME', 'paragraphs' => [
+                    ['heading' => 'How to set one up in Sayzio', 'paragraphs' => [
                         'Create a new link, pick "Smart routing", and add destinations one by one with the rules. Each rule is a tiny if/then: "if device is iOS, send to apple.com/...". Always set a fallback destination at the bottom of the rule list, because someone will eventually visit from a device or country you didn\'t anticipate, and you do not want them to see an error page.',
                         'Test each rule from the right device — or use your phone\'s VPN — before sharing the link publicly. The most common mistake is forgetting the fallback and discovering it the day a Brazilian magazine writes you up.',
                     ]],
                     ['heading' => 'Common pitfalls', 'paragraphs' => [
-                        'Smart links break analytics if you don\'t carry UTMs through to each destination. Use 1INME\'s "preserve UTMs" toggle so the original campaign tag survives the redirect and shows up correctly in whichever analytics tool the destination is using.',
+                        'Smart links break analytics if you don\'t carry UTMs through to each destination. Use Sayzio\'s "preserve UTMs" toggle so the original campaign tag survives the redirect and shows up correctly in whichever analytics tool the destination is using.',
                         'Don\'t over-segment. A smart link with three destinations is easy to reason about; a smart link with eleven destinations and overlapping rules is a maintenance nightmare. If you find yourself adding rule number six, ask whether you actually need a separate landing page instead.',
                     ]],
                 ],
@@ -769,7 +769,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'intro' => 'A thousand engaged followers is the inflection point for most creators — it is the threshold where audience builds itself, sponsors start replying, and your work starts earning. Below it, every post feels like shouting into an empty room. Above it, the same effort starts to compound. Here is the cadence we see work, week by week, for creators who get to a thousand in roughly ninety days without paid ads, gimmicks, or burning out by week five.',
                 'sections' => [
                     ['heading' => 'Weeks 1–4: niche and rhythm', 'paragraphs' => [
-                        'Pick one topic and one format. Post twice a week. The goal in the first month is not virality — it is finding a voice and proving to yourself you can show up. Use 1INME on day one to track which posts drive taps to your bio, because taps to bio are a much better early signal than likes.',
+                        'Pick one topic and one format. Post twice a week. The goal in the first month is not virality — it is finding a voice and proving to yourself you can show up. Use Sayzio on day one to track which posts drive taps to your bio, because taps to bio are a much better early signal than likes.',
                         'Your first month of content will be your worst content. That is fine. Future-you will look back and cringe; present-you will have learned more in four weeks than in four months of "preparing".',
                     ]],
                     ['heading' => 'Weeks 5–8: collaborations', 'paragraphs' => [
@@ -829,7 +829,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'sections' => [
                     ['heading' => 'Pin a CTA on every post', 'paragraphs' => [
                         'A pinned reply with a friendly call-to-action — "Get the full guide on my biolink" — earns more taps than the same CTA spoken in the video itself. People scroll comments to see the conversation; meet them there. The first comment under every post should always be yours, and it should always either deepen the topic or point to your biolink.',
-                        'Use a 1INME short link in the pinned comment so you can measure exactly how much traffic each post drives, and which kinds of posts convert best in comments.',
+                        'Use a Sayzio short link in the pinned comment so you can measure exactly how much traffic each post drives, and which kinds of posts convert best in comments.',
                     ]],
                     ['heading' => 'Reply within the first hour', 'paragraphs' => [
                         'Most platforms reward early engagement on a post. Block 20 minutes after each post goes live to reply to the first wave of comments. This single habit is responsible for the highest-engagement creators we see, because every reply you write is an extra little signal to the algorithm that this post is worth showing to more people.',
@@ -868,7 +868,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'One pinned biolink block linking to the source asset.',
                     ]],
                     ['heading' => 'Schedule it across the week', 'paragraphs' => [
-                        'Stagger the outputs so visitors who follow you on multiple platforms get variety, not repetition. Use 1INME UTMs on each link so you can see which atom drove the most biolink taps, and double down on that format next week. After eight weeks of doing this you will know exactly which formats your audience prefers — and which ones you can stop making.',
+                        'Stagger the outputs so visitors who follow you on multiple platforms get variety, not repetition. Use Sayzio UTMs on each link so you can see which atom drove the most biolink taps, and double down on that format next week. After eight weeks of doing this you will know exactly which formats your audience prefers — and which ones you can stop making.',
                     ]],
                     ['heading' => 'The mindset shift', 'paragraphs' => [
                         'Most creators feel guilty repurposing because they assume the audience will notice. They will not. Each platform reaches a different slice of your audience at a different time, in a different mood, scrolling in a different rhythm. The same idea genuinely lands differently in each format. You are not being lazy — you are being respectful of how people consume.',
@@ -942,7 +942,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'A featured "Members get…" block on your biolink is the single highest-converting promotion for membership tiers. Include three concrete benefits, not adjectives. "Weekly bonus essay, monthly Q&A, member-only Discord" outperforms "exclusive content and community" by a wide margin, because concrete claims are easier to evaluate.',
                     ]],
                     ['heading' => 'Watch retention more than signups', 'paragraphs' => [
-                        'Recurring revenue businesses live or die on month-3 retention. Use 1INME analytics to track which signup channels produce members who stay and which produce members who churn after the first billing cycle. Those are the channels worth investing more time in (and the ones worth quietly pulling back from).',
+                        'Recurring revenue businesses live or die on month-3 retention. Use Sayzio analytics to track which signup channels produce members who stay and which produce members who churn after the first billing cycle. Those are the channels worth investing more time in (and the ones worth quietly pulling back from).',
                         'A useful framing: if your annualised churn is below 30%, focus on signups. If it is above 30%, fix the experience first — every new signup is fighting against the leaky bucket.',
                     ]],
                     ['heading' => 'Annual plans change the maths', 'paragraphs' => [
@@ -964,7 +964,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'A pitch that says "I have 3,000 highly-engaged subscribers in [niche], here is a recent post that drove 800 site visits to a competitor of yours, would you like to talk about a collaboration?" outperforms a glossy media kit every time. Brands want signal, not pageantry.',
                     ]],
                     ['heading' => 'Use a dedicated tracking link', 'paragraphs' => [
-                        '1INME short links with custom UTMs give you clean, sharable analytics for the brand. Send the dashboard view at the end of every campaign. Brands rebook the creators who make their job easy — and proving results in numbers makes the renewal conversation a formality, not a negotiation.',
+                        'Sayzio short links with custom UTMs give you clean, sharable analytics for the brand. Send the dashboard view at the end of every campaign. Brands rebook the creators who make their job easy — and proving results in numbers makes the renewal conversation a formality, not a negotiation.',
                         'Always include a dedicated link, even if the brand also gives you a discount code. Codes get shared in unrelated places and contaminate attribution; your link does not.',
                     ]],
                     ['heading' => 'Price by results, not by follower count', 'paragraphs' => [
@@ -991,8 +991,8 @@ class MarketingBlogPostsSeeder extends Seeder
                         'Returning visitors — proxy for whether content is actually sticking.',
                         'Revenue per visitor — the only number that pays the bills.',
                     ]],
-                    ['heading' => 'How to set up the dashboard in 1INME', 'paragraphs' => [
-                        'Pin those five tiles to the top of your 1INME workspace dashboard. Glance at them on Friday afternoon for ten minutes. If three or more are flat for four weeks running, change something — the content cadence, the offer, the page itself. Flatness is a quiet failure mode that creeps up on you because nothing is breaking; it is just not growing.',
+                    ['heading' => 'How to set up the dashboard in Sayzio', 'paragraphs' => [
+                        'Pin those five tiles to the top of your Sayzio workspace dashboard. Glance at them on Friday afternoon for ten minutes. If three or more are flat for four weeks running, change something — the content cadence, the offer, the page itself. Flatness is a quiet failure mode that creeps up on you because nothing is breaking; it is just not growing.',
                         'Compare each number to the same week one quarter ago, not just last week. Week-to-week swings are mostly noise; quarter-to-quarter trends are the real story.',
                     ]],
                     ['heading' => 'What to ignore', 'paragraphs' => [
@@ -1020,7 +1020,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'utm_medium = the placement (bio, story, video-description, email).',
                         'utm_campaign = a short slug for the post or push (eg. spring-launch, free-guide-2026).',
                     ]],
-                    ['heading' => 'Let 1INME apply them automatically', 'paragraphs' => [
+                    ['heading' => 'Let Sayzio apply them automatically', 'paragraphs' => [
                         'Set per-channel default UTMs on your short links so you don\'t have to remember them every time you publish. Override on a per-link basis only when a campaign needs a unique tag. Defaults eliminate the human error that silently breaks attribution for most creators within a week of trying to do this manually.',
                         'Use lowercase everywhere. Analytics tools treat "Instagram" and "instagram" as different sources, which silently splits your data and makes you think Instagram drives less traffic than it actually does.',
                     ]],
@@ -1031,7 +1031,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'Resist the urge to put UTMs on internal links (links between pages on your own site). They overwrite the original campaign source and make every visitor look like they came from your own site. UTMs belong on links into your site, not within it.',
                     ]],
                 ],
-                'outro' => 'A consistent UTM convention is one of those small disciplines that pays back forever. Set it up once, automate the defaults in 1INME, and you will never again have to wonder which post drove which signup.',
+                'outro' => 'A consistent UTM convention is one of those small disciplines that pays back forever. Set it up once, automate the defaults in Sayzio, and you will never again have to wonder which post drove which signup.',
             ],
             [
                 'title' => 'Reading Your Biolink Heatmap: What the Taps Are Trying to Tell You',
@@ -1039,7 +1039,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'category' => 'analytics',
                 'tags' => ['analytics', 'biolinks', 'heatmaps'],
                 'excerpt' => 'The biolink heatmap is the closest thing creators have to a focus group. Here is how to read it.',
-                'intro' => 'Heatmaps make it visually obvious which blocks earn attention and which collect dust. The patterns repeat across every page we look at on 1INME — and once you can recognise them, decisions about what to keep, what to cut, and what to promote become easier and less emotional. Here is the short reading guide.',
+                'intro' => 'Heatmaps make it visually obvious which blocks earn attention and which collect dust. The patterns repeat across every page we look at on Sayzio — and once you can recognise them, decisions about what to keep, what to cut, and what to promote become easier and less emotional. Here is the short reading guide.',
                 'sections' => [
                     ['heading' => 'The five common patterns', 'list_type' => 'ol', 'list' => [
                         'Top-heavy: visitors tap the first block then leave. Strengthen the top CTA, demote the rest, and consider a more compelling secondary action.',
@@ -1069,11 +1069,11 @@ class MarketingBlogPostsSeeder extends Seeder
                 'intro' => 'Most SEO advice is written for marketers managing million-page sites with serious technical infrastructure. Creators have different leverage and a much smaller surface area. Do these five things and you will outperform 90% of creator pages on search, without ever once installing a plugin you don\'t understand or paying for an SEO tool subscription.',
                 'sections' => [
                     ['heading' => 'The five things', 'list_type' => 'ol', 'list' => [
-                        'Set a unique meta title and description on every post and page. 1INME\'s blog editor exposes both fields directly in the form.',
+                        'Set a unique meta title and description on every post and page. Sayzio\'s blog editor exposes both fields directly in the form.',
                         'Use one H1 per page that matches what someone would type into Google to find that page.',
                         'Link your biolink and blog from your social profiles — these are some of your strongest backlinks and they cost nothing.',
                         'Compress images before uploading. Page speed is an underrated ranking factor on mobile and a serious one for users.',
-                        'Submit your sitemap.xml to Google Search Console. 1INME generates one automatically at /sitemap.xml — you just paste the URL into the Search Console form.',
+                        'Submit your sitemap.xml to Google Search Console. Sayzio generates one automatically at /sitemap.xml — you just paste the URL into the Search Console form.',
                     ]],
                     ['heading' => 'What to ignore', 'paragraphs' => [
                         'Keyword density, meta keywords, and link-buying schemes. They either don\'t work or actively hurt. Focus on writing the page a real human would actually want to read, with a title that says what the page is about, and the technical side of SEO mostly takes care of itself.',
@@ -1177,7 +1177,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'category' => 'audience',
                 'tags' => ['newsletter', 'audience-building', 'cadence'],
                 'excerpt' => 'The honest tradeoffs between weekly and biweekly newsletters — and why "when inspired" almost never works.',
-                'intro' => 'Cadence is the most argued-about question in newsletter circles. The honest answer is that there is no universally correct cadence — but there are clear tradeoffs, and one option that almost always fails. Here is the no-nonsense view after watching hundreds of creator lists grow (and stall) on 1INME.',
+                'intro' => 'Cadence is the most argued-about question in newsletter circles. The honest answer is that there is no universally correct cadence — but there are clear tradeoffs, and one option that almost always fails. Here is the no-nonsense view after watching hundreds of creator lists grow (and stall) on Sayzio.',
                 'sections' => [
                     ['heading' => 'Weekly: high commitment, high compounding', 'paragraphs' => [
                         'Weekly builds reading habit fastest. Subscribers expect you in their inbox on the same day, which raises open rates over time as they learn to recognise your sender name and subject line patterns. The risk is burnout — only commit to weekly if you have a content engine that supports it (a podcast, a YouTube channel, a daily journaling habit). Without a constant input of raw material, the weekly cadence eats you alive by month four.',
@@ -1210,7 +1210,7 @@ class MarketingBlogPostsSeeder extends Seeder
                     ['heading' => 'How to make it work', 'list' => [
                         'Adjacent niche, not identical — the audiences should overlap but not duplicate. A copywriter and a brand designer cross-promote well; two copywriters do not.',
                         'Personal recommendation, not a generic ad — the open and click rates depend on it. "I genuinely read X every week and you would love it" outperforms "check out X" by a factor of three or more.',
-                        'Track with a unique 1INME short link per partner so you can compare results and reciprocate fairly in the next round.',
+                        'Track with a unique Sayzio short link per partner so you can compare results and reciprocate fairly in the next round.',
                         'Set expectations on volume up front — agree how many subscribers each list has and roughly how many clicks the swap should produce.',
                     ]],
                     ['heading' => 'When to graduate', 'paragraphs' => [
@@ -1235,7 +1235,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'A useful framing: would you make this referral if your friend asked you why? If the only honest answer is "to get a free coffee", the reward is too thin. If the answer is "because I genuinely think you\'d love it AND I get a free month", the reward is doing the work it needs to.',
                     ]],
                     ['heading' => 'Keep the share flow stupid simple', 'paragraphs' => [
-                        'A unique 1INME short link per referrer is enough. Don\'t make people fill in forms, copy long URLs, or sign up to a separate referral platform. The drop-off at every extra click is brutal — every additional step probably halves participation.',
+                        'A unique Sayzio short link per referrer is enough. Don\'t make people fill in forms, copy long URLs, or sign up to a separate referral platform. The drop-off at every extra click is brutal — every additional step probably halves participation.',
                         'The best share flow is: see your referral link in your account, copy it with one tap, paste it into a DM. Anything more complex is a step too many.',
                     ]],
                     ['heading' => 'Show progress', 'paragraphs' => [
@@ -1256,7 +1256,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'intro' => 'The single most useful productivity habit for creators is also the most boring: schedule your content in batches instead of writing it the morning of. The creators who do this seem oddly unflustered; the creators who don\'t are perpetually stressed and post unevenly. Here is what a calm weekly cadence looks like, and how to ease into it without rebuilding your whole workflow at once.',
                 'sections' => [
                     ['heading' => 'The Sunday block', 'paragraphs' => [
-                        'Spend two hours every Sunday drafting and queuing the week\'s posts. Use 1INME\'s scheduling to set the publish times. The next six days are then consumed by reply, engagement, and actual creative work — not by writing under pressure with thirty minutes to publish. The mental relief alone is worth the habit; the consistency boost is the bonus.',
+                        'Spend two hours every Sunday drafting and queuing the week\'s posts. Use Sayzio\'s scheduling to set the publish times. The next six days are then consumed by reply, engagement, and actual creative work — not by writing under pressure with thirty minutes to publish. The mental relief alone is worth the habit; the consistency boost is the bonus.',
                         'If two hours sounds like too much for one sitting, split it into two one-hour Sunday and Wednesday sessions. The point is to detach the act of writing from the act of publishing.',
                     ]],
                     ['heading' => 'Buffer two weeks ahead', 'paragraphs' => [
@@ -1266,8 +1266,8 @@ class MarketingBlogPostsSeeder extends Seeder
                     ['heading' => 'Leave 20% room for reactive posts', 'paragraphs' => [
                         'You still want to react to what\'s happening in your niche — a news beat, a viral conversation, a launch. Schedule four out of five posts; leave one slot per week for something that wasn\'t in the plan. This balances the calmness of scheduling with the relevance of being current.',
                     ]],
-                    ['heading' => 'The 1INME scheduling toolkit', 'paragraphs' => [
-                        'Use 1INME to schedule both your publish-to-platform CTAs and the campaign-specific short links you reference in posts. Pre-create UTM-tagged links so the right tracking fires the moment a post goes live. The combination of scheduled posts and pre-tagged links is the calmest creator workflow we have ever seen.',
+                    ['heading' => 'The Sayzio scheduling toolkit', 'paragraphs' => [
+                        'Use Sayzio to schedule both your publish-to-platform CTAs and the campaign-specific short links you reference in posts. Pre-create UTM-tagged links so the right tracking fires the moment a post goes live. The combination of scheduled posts and pre-tagged links is the calmest creator workflow we have ever seen.',
                     ]],
                 ],
                 'outro' => 'Consistency is not a personality trait. It is a workflow. Build the workflow, and the personality trait shows up automatically.',
@@ -1278,7 +1278,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'category' => 'biolinks',
                 'tags' => ['biolinks', 'social-proof', 'conversion'],
                 'excerpt' => 'Testimonials, follower counts, press logos — the proof formats that lift conversion and the ones that quietly tank it.',
-                'intro' => 'Social proof is one of the highest-impact things you can add to a biolink. It is also one of the easiest to overdo, and certain proof formats actively hurt conversion in ways most creators don\'t notice. Here is the short field guide, based on hundreds of biolinks we have looked at on 1INME.',
+                'intro' => 'Social proof is one of the highest-impact things you can add to a biolink. It is also one of the easiest to overdo, and certain proof formats actively hurt conversion in ways most creators don\'t notice. Here is the short field guide, based on hundreds of biolinks we have looked at on Sayzio.',
                 'sections' => [
                     ['heading' => 'What works', 'list' => [
                         'A single specific testimonial with a real name and photo, ideally with a measurable outcome ("dropped my course completion time from 12 weeks to 7").',
@@ -1329,7 +1329,7 @@ class MarketingBlogPostsSeeder extends Seeder
                 'outro' => 'A welcome sequence is one of those things that takes an afternoon to set up and pays back forever. Set it up before you focus on growing the list any further — the difference in lifetime value per subscriber is significant and starts immediately.',
             ],
             [
-                'title' => 'What\'s New in 1INME: Smarter Biolinks, Cleaner Analytics',
+                'title' => 'What\'s New in Sayzio: Smarter Biolinks, Cleaner Analytics',
                 'slug'  => 'whats-new-in-1inme-smarter-biolinks-cleaner-analytics',
                 'category' => 'product',
                 'tags' => ['product-updates', 'biolinks', 'analytics'],
@@ -1352,7 +1352,7 @@ class MarketingBlogPostsSeeder extends Seeder
                         'A redesign of the contacts module, deeper newsletter integrations, and a long-overdue refresh of the public blog template you are reading right now. We are also exploring native scheduling for cross-platform posts so you can run your whole social rhythm from one queue. Stay tuned.',
                     ]],
                 ],
-                'outro' => 'We ship updates like these every few weeks. If there is something you wish 1INME did and it doesn\'t yet, hit reply on any of our newsletter issues — most of the changes above started life as a single piece of customer feedback.',
+                'outro' => 'We ship updates like these every few weeks. If there is something you wish Sayzio did and it doesn\'t yet, hit reply on any of our newsletter issues — most of the changes above started life as a single piece of customer feedback.',
             ],
         ];
     }

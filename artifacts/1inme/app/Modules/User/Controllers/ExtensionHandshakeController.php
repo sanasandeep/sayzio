@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Sign-in handshake page for the 1INME browser extension.
+ * Sign-in handshake page for the Sayzio browser extension.
  *
  * The extension opens https://1inme.com/extension/handshake in a new
  * tab. If the user isn't signed in, they're sent through the normal

@@ -269,7 +269,7 @@ class UserFileController extends Controller
                 CURLOPT_FOLLOWLOCATION => false,
                 CURLOPT_TIMEOUT        => 20,
                 CURLOPT_CONNECTTIMEOUT => 8,
-                CURLOPT_USERAGENT      => '1INME-VaultImporter/1.0',
+                CURLOPT_USERAGENT      => 'Sayzio-VaultImporter/1.0',
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
                 CURLOPT_BUFFERSIZE     => 65536,

@@ -4,11 +4,11 @@ export default function HowNfcWorks() {
   return (
     <InfoPage
       title="How NFC works"
-      intro="NFC (Near Field Communication) lets nearby devices exchange small amounts of data with a tap. 1INME uses NFC to write your profile URL onto inexpensive stickers, cards, and wristbands so anyone can open your 1INME with a single tap of their phone."
+      intro="NFC (Near Field Communication) lets nearby devices exchange small amounts of data with a tap. Sayzio uses NFC to write your profile URL onto inexpensive stickers, cards, and wristbands so anyone can open your Sayzio with a single tap of their phone."
       sections={[
         {
           heading: "What gets written",
-          body: "We only write a public URL pointing to your 1INME profile (for example, https://1inme.com/yourhandle). No private data, contacts, or tokens leave your device.",
+          body: "We only write a public URL pointing to your Sayzio profile (for example, https://1inme.com/yourhandle). No private data, contacts, or tokens leave your device.",
         },
         {
           heading: "Compatible tags",
@@ -16,7 +16,7 @@ export default function HowNfcWorks() {
         },
         {
           heading: "Reading is universal",
-          body: "Almost every modern smartphone reads NFC tags by default. Your audience does not need the 1INME app — tapping the tag simply opens their browser to your profile.",
+          body: "Almost every modern smartphone reads NFC tags by default. Your audience does not need the Sayzio app — tapping the tag simply opens their browser to your profile.",
         },
         {
           heading: "Re-writing and locking",

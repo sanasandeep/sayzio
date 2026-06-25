@@ -256,7 +256,7 @@ class User extends Authenticatable
                 $user->forceFill(['starter_free_window_ends_at' => now()->addYear()])->saveQuietly();
             }
             \App\Modules\User\Services\PersonalTaskBoardProvisioner::ensureFor($user);
-            // Make sure the platform-managed "1INME Default Mind"
+            // Make sure the platform-managed "Sayzio Default Mind"
             // exists so the new account immediately has access to a
             // Mind with product knowledge in it. Per-user "My Mind" is
             // created lazily the first time they open the dashboard.

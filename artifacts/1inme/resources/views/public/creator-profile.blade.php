@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ $creator->name }} (&#64;{{ $creator->handle }}) - {{ config('app.name') }}</title>
-<meta name="description" content="{{ Str::limit($creator->tagline ?: $creator->bio ?: ($creator->name . ' on 1INME'), 180) }}">
+<meta name="description" content="{{ Str::limit($creator->tagline ?: $creator->bio ?: ($creator->name . ' on Sayzio'), 180) }}">
 <meta property="og:title" content="{{ $creator->name }} (&#64;{{ $creator->handle }})">
-<meta property="og:description" content="{{ Str::limit($creator->tagline ?: $creator->bio ?: ('Follow ' . $creator->name . ' on 1INME'), 180) }}">
+<meta property="og:description" content="{{ Str::limit($creator->tagline ?: $creator->bio ?: ('Follow ' . $creator->name . ' on Sayzio'), 180) }}">
 <meta property="og:type" content="profile">
 {{-- Single canonical URL for the profile: always the @-prefixed form,
      so the bare /handle and /@handle entry points are treated as one

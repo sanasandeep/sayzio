@@ -19,7 +19,7 @@
             <div>
                 <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Times written to NFC</p>
                 <p class="text-3xl font-extrabold mt-1" style="color: var(--text-primary);">{{ number_format($nfcCount ?? 0) }}</p>
-                <p class="text-xs mt-1" style="color: var(--text-muted);">From the 1INME mobile app's NFC writer.</p>
+                <p class="text-xs mt-1" style="color: var(--text-muted);">From the Sayzio mobile app's NFC writer.</p>
             </div>
             <a href="{{ route('user.links.nfc-writes', $link) }}" class="text-sm px-3 py-1.5 rounded-lg border font-semibold" style="border-color: var(--border-soft); color: var(--text-primary);">View full history →</a>
         </div>

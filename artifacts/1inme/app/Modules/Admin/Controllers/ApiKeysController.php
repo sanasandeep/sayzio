@@ -170,7 +170,7 @@ class ApiKeysController extends Controller
         $res = InternalAlertDispatcher::sendTest(
             $data['channel'],
             $url,
-            '1INME internal alert test',
+            'Sayzio internal alert test',
             'This is a test alert from the API Keys & Plugins hub. If you can read this, the webhook works.',
             ['sent_by' => optional($request->user())->email ?? 'admin', 'time' => now()->toDateTimeString()],
         );

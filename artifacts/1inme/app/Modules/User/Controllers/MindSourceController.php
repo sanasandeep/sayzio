@@ -205,17 +205,17 @@ class MindSourceController extends Controller
         ]);
         $key = $data['feature_key'];
         if (!AiMindFeatureAdapter::isFeature($key)) {
-            return 'Unknown 1INME feature.';
+            return 'Unknown Sayzio feature.';
         }
         // Avoid duplicate feature attachments — same feature twice
         // would just recompute the same snapshot.
         if ($mind->sources()->where('type', AiMindSource::TYPE_FEATURE)->where('feature_key', $key)->exists()) {
-            return 'This 1INME feature is already attached to the Mind.';
+            return 'This Sayzio feature is already attached to the Mind.';
         }
         return AiMindSource::create([
             'mind_id'     => $mind->id,
             'type'        => AiMindSource::TYPE_FEATURE,
-            'title'       => '1INME — ' . AiMindFeatureAdapter::label($key),
+            'title'       => 'Sayzio — ' . AiMindFeatureAdapter::label($key),
             'feature_key' => $key,
             'status'      => AiMindSource::STATUS_QUEUED,
         ]);

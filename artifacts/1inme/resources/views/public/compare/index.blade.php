@@ -1,5 +1,5 @@
 @extends('public.layouts.site')
-@section('title', 'Compare 1INME')
+@section('title', 'Compare Sayzio')
 
 @section('content')
 @php
@@ -18,7 +18,7 @@
             <i class="fas fa-scale-balanced text-[10px]" style="color:var(--c4)"></i> Honest comparisons
         </span>
         <h1 data-anim="fade-up" class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
-            How 1INME compares to <span class="grad-text">the tools you know</span>.
+            How Sayzio compares to <span class="grad-text">the tools you know</span>.
         </h1>
         <p data-anim="fade-up" class="mt-5 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Already using another link-in-bio or short-link tool? Pick it below for a full,
@@ -51,16 +51,16 @@
                             <i class="fas {{ $c['icon'] }}"></i>
                         </span>
                         <div>
-                            <div class="text-lg font-bold text-white leading-none">1INME <span class="text-gray-500 font-normal">vs</span> {{ $c['name'] }}</div>
+                            <div class="text-lg font-bold text-white leading-none">Sayzio <span class="text-gray-500 font-normal">vs</span> {{ $c['name'] }}</div>
                             <div class="text-xs text-gray-400 mt-1">{{ $c['tagline'] }}</div>
                         </div>
                     </div>
                     <div class="relative flex items-center gap-2 mb-4">
-                        <span class="cmp-badge cmp-badge-ours text-[11px]"><i class="fas fa-bolt"></i> 1INME {{ $c['our_score'] }}/{{ $c['total'] }}</span>
+                        <span class="cmp-badge cmp-badge-ours text-[11px]"><i class="fas fa-bolt"></i> Sayzio {{ $c['our_score'] }}/{{ $c['total'] }}</span>
                         <span class="cmp-badge text-[11px]">{{ $c['name'] }} {{ $c['rival_score'] }}/{{ $c['total'] }}</span>
                     </div>
                     <p class="relative text-sm text-gray-300 leading-relaxed">
-                        1INME leads on <span class="grad-text font-bold">{{ $c['wins'] }}</span> more features.
+                        Sayzio leads on <span class="grad-text font-bold">{{ $c['wins'] }}</span> more features.
                     </p>
                     <div class="relative mt-4 inline-flex items-center gap-1.5 text-sm font-semibold" style="color: {{ $c['accent'] }};">
                         See the full comparison
@@ -82,7 +82,7 @@
             <div class="mesh-bg opacity-50" aria-hidden="true"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">One link. <span class="grad-text">The whole stack.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Stop paying for four tools that each do one thing. Build your free 1INME and bring everything under one link.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Stop paying for four tools that each do one thing. Build your free Sayzio and bring everything under one link.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ url('/register') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Start free</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>

@@ -35,11 +35,11 @@
             </p>
 
             <p style="font-size:13px; color:#64748b; line-height:1.6; margin:0;">
-                Reconnecting takes about 10 seconds — you'll be redirected to {{ $providerLabel }} to re-grant access, then back to your 1INME dashboard.
+                Reconnecting takes about 10 seconds — you'll be redirected to {{ $providerLabel }} to re-grant access, then back to your Sayzio dashboard.
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving this because a cloud account you connected to 1INME stopped responding. We send at most one of these per connection per week.
+                You're receiving this because a cloud account you connected to Sayzio stopped responding. We send at most one of these per connection per week.
             </p>
         </div>
     </div>

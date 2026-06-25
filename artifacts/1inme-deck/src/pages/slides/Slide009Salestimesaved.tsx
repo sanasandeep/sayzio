@@ -5,14 +5,14 @@ export default function Slide009Salestimesaved() {
     <div className="w-screen h-screen overflow-hidden relative bg-[#0a0a14] text-slate-100 font-body">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,58,237,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.12),transparent_55%)]" />
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400"></span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
         <div className="grid grid-cols-12 gap-[2.5vw] flex-1">
           <div className="col-span-5 flex flex-col justify-center">
             <h2 className="font-display text-[3.2vw] font-bold leading-[1.04] tracking-tight">Where the hours come back.</h2>
-            <p className="mt-[2vh] text-[1.25vw] text-slate-300 max-w-[26vw]">Time saved per week by switching to 1INME.</p>
+            <p className="mt-[2vh] text-[1.25vw] text-slate-300 max-w-[26vw]">Time saved per week by switching to Sayzio.</p>
             <ul className="mt-[3vh] space-y-[1vh] text-[1.05vw] text-slate-300"><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Bio + link updates: 1.5h → 10 minutes</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Lead capture + entry: 2h → automated</span></li><li className="flex gap-[0.6vw]"><span className="text-fuchsia-300">&bull;</span><span>Cross-posting: 3h → 30 minutes</span></li></ul>
           </div>
           <div className="col-span-7 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-[1.6vw] flex flex-col">

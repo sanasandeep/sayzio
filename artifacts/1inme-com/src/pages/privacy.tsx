@@ -4,7 +4,7 @@ export default function Privacy() {
   return (
     <LegalPage
       metaTitle="Privacy Policy"
-      metaDescription="How 1INME collects, uses, stores and protects your personal data — and the rights you have over it."
+      metaDescription="How Sayzio collects, uses, stores and protects your personal data — and the rights you have over it."
       titleLead="Privacy"
       titleHighlight="Policy"
       sections={[

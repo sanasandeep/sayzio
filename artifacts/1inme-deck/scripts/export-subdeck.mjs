@@ -29,7 +29,7 @@ const SECTION_META = {
   sales: { name: "Sales Presentation", desc: "Problem, pitch, ROI, pricing, next steps." },
   product: { name: "Product Presentation", desc: "Web, mobile, API, journeys, integrations." },
   features: { name: "Feature Deep-Dives", desc: "Module mini-decks for buyer questions." },
-  personas: { name: "Persona Decks", desc: "How 1INME helps each role we sell into." },
+  personas: { name: "Persona Decks", desc: "How Sayzio helps each role we sell into." },
   investor: { name: "Investor Pitch", desc: "Vision, market, model, team, ask." },
   roadmap: { name: "Future Roadmap", desc: "Now / Next / Later across every area." },
 };
@@ -100,7 +100,7 @@ function chrome({ eyebrow, pos, total, body, bgClass, gradient }) {
     `<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,58,237,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.12),transparent_55%)]" />`;
   return `      ${grad}
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={\`\${base}logo-1inme-dark.png\`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={\`\${base}logo-1inme-dark.png\`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400">${esc(eyebrow ?? "")}</span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
@@ -129,7 +129,7 @@ function renderSubCover({ titleA, titleB, titleC, eyebrow, subtitle }, pos, tota
           <p className="mt-[3vh] text-[1.6vw] text-slate-300 max-w-[60vw] leading-snug">${esc(subtitle)}</p>
         </div>`;
   const inner = chrome({
-    eyebrow: "1INME",
+    eyebrow: "Sayzio",
     pos,
     total,
     body,
@@ -201,7 +201,7 @@ fs.mkdirSync(subdeckManifestDir, { recursive: true });
 const coverTsx = renderSubCover(
   {
     eyebrow: `Sub-deck · ${sectionLabels}`,
-    titleA: "1INME.",
+    titleA: "Sayzio.",
     titleB: `For ${audience}.`,
     titleC: "One platform.",
     subtitle: `A trimmed deck containing only: ${sectionLabels}.`,
@@ -228,7 +228,7 @@ const newManifest = [
     id: randomUUID(),
     position: 1,
     filepath: `src/pages/subdecks/${name}/Cover.tsx`,
-    title: `1INME · ${sectionLabels}`,
+    title: `Sayzio · ${sectionLabels}`,
     description: `Sub-deck cover for ${sectionLabels}.`,
     speakerNotes: `Open the sub-deck. Frame it for ${audience} only — fewer slides, sharper focus.`,
     section: "intro",

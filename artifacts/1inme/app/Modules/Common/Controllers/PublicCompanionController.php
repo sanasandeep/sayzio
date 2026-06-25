@@ -34,13 +34,13 @@ class PublicCompanionController
         }
 
         // Origin gate — only enforced for `embed` placement. Biolink &
-        // inbox always run from a 1INME-owned origin so we don't want
+        // inbox always run from a Sayzio-owned origin so we don't want
         // to second-guess them here (the biolink block + inbox UI are
         // the access controls in those flows).
         //
         // The iframe-fallback path posts same-origin (the iframe is
-        // served by 1INME) so the browser-supplied Origin header is
-        // 1INME, not the embedding site. To keep the allow-list
+        // served by Sayzio) so the browser-supplied Origin header is
+        // Sayzio, not the embedding site. To keep the allow-list
         // honest in that case we accept an HMAC-signed handshake
         // token (`iframe_token`) that the iframe controller stamps
         // after validating the parent Referer against the allow-list.

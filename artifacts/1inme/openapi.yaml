@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: 1INME Mobile API
+  title: Sayzio Mobile API
   version: '1.0.0'
   description: |
-    JSON HTTP API used by the 1INME Expo mobile app (iOS + Android) and any
+    JSON HTTP API used by the Sayzio Expo mobile app (iOS + Android) and any
     third-party integrations. All endpoints are under `/api/v1` and use
     Laravel Sanctum bearer tokens for authentication unless explicitly marked
     as public.
@@ -281,7 +281,7 @@ components:
     TrustedContact:
       type: object
       description: |
-        A 1INME user nominated as a recovery contact. The `status` reflects
+        A Sayzio user nominated as a recovery contact. The `status` reflects
         the invitation lifecycle: `pending` (waiting for the contact to
         accept), `active` (accepted, eligible to confirm recovery requests),
         or `revoked` (removed by either party).
@@ -709,7 +709,7 @@ paths:
                     properties:
                       items: { type: array, items: { $ref: '#/components/schemas/TrustedContact' } }
     post:
-      summary: Nominate another 1INME user as a trusted contact
+      summary: Nominate another Sayzio user as a trusted contact
       description: |
         The contact receives an in-app prompt and must accept before the
         nomination becomes `active`. Self-nomination is rejected and the

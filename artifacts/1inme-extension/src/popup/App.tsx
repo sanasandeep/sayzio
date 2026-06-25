@@ -546,7 +546,7 @@ function Header({
     <>
       <div className="header">
         <div>
-          <h1>1INME</h1>
+          <h1>Sayzio</h1>
           {settings.user && <div className="who">{settings.user.name || settings.user.email}</div>}
         </div>
         <button className="btn-link" style={{ color: "white" }} onClick={() => onTabChange(view === "settings" ? "main" : "settings")} title="Settings">⚙</button>
@@ -604,7 +604,7 @@ function OnboardingView({ onDone }: { onDone: () => void }) {
     <div className="body">
       <h2 style={{ margin: 0, fontSize: 16 }}>📡 Backlink radar</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        Scan pages you visit for links back to your 1INME properties (short links, your bio-link, your custom domains).
+        Scan pages you visit for links back to your Sayzio properties (short links, your bio-link, your custom domains).
         The full page never leaves your browser — only the matched URLs, when you choose to save them.
       </p>
       <ul className="muted" style={{ paddingLeft: 18, margin: 0 }}>
@@ -2124,8 +2124,8 @@ function LoginView({ settings, onAuthed, showToast }: { settings: ExtSettings; o
 
   return (
     <div className="body">
-      <p className="muted">Sign in to your 1INME account to start shortening links and creating bio-link pages from any tab.</p>
-      <button className="btn-primary" onClick={startSso}>Sign in with 1INME</button>
+      <p className="muted">Sign in to your Sayzio account to start shortening links and creating bio-link pages from any tab.</p>
+      <button className="btn-primary" onClick={startSso}>Sign in with Sayzio</button>
       <div className="muted" style={{ textAlign: "center" }}>or use email + password</div>
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div className="field">
@@ -2532,7 +2532,7 @@ function SettingsView({
       <h3 className="section-h">Backlink radar</h3>
       <label className="toggle-row">
         <input type="checkbox" checked={!!settings.radarEnabled} onChange={(e) => toggleRadar(e.target.checked)} />
-        <span>Scan pages I visit for links to my 1INME properties</span>
+        <span>Scan pages I visit for links to my Sayzio properties</span>
       </label>
       <div className="muted">Page content never leaves your browser. Only matched URLs you choose to save are sent.</div>
 

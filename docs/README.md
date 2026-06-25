@@ -1,6 +1,6 @@
-# 1INME Monorepo Documentation
+# Sayzio Monorepo Documentation
 
-This is the technical documentation for the **1INME** project — a pnpm-workspace
+This is the technical documentation for the **Sayzio** project — a pnpm-workspace
 monorepo for a link-management SaaS platform (links, biolinks/mini-sites, QR codes,
 forms, analytics, and more).
 
@@ -28,11 +28,11 @@ The monorepo contains several deployable **artifacts** plus shared **libs**:
 
 | Artifact | Path | Kind | Stack | Route |
 | --- | --- | --- | --- | --- |
-| **1INME** | `artifacts/1inme/` | web | PHP 8.4 / Laravel (HMVC) | `/` |
+| **Sayzio** | `artifacts/1inme/` | web | PHP 8.4 / Laravel (HMVC) | `/` |
 | **API Server** | `artifacts/api-server/` | api | Node.js 24 / Express 5 / TypeScript | `/api` |
-| **1INME Mobile** | `artifacts/1inme-mobile/` | mobile | Expo / React Native (expo-router) | `/mobile/` |
-| **1INME Extension** | `artifacts/1inme-extension/` | (build-only) | Vite browser extension (Chrome/Firefox/Edge) | n/a |
-| **1INME Product Deck** | `artifacts/1inme-deck/` | slides | Vite + React | `/1inme-deck/` |
+| **Sayzio Mobile** | `artifacts/1inme-mobile/` | mobile | Expo / React Native (expo-router) | `/mobile/` |
+| **Sayzio Extension** | `artifacts/1inme-extension/` | (build-only) | Vite browser extension (Chrome/Firefox/Edge) | n/a |
+| **Sayzio Product Deck** | `artifacts/1inme-deck/` | slides | Vite + React | `/1inme-deck/` |
 | **Canvas** | `artifacts/mockup-sandbox/` | design | Vite component preview | `/__mockup` |
 
 | Lib | Path | Purpose |
@@ -57,7 +57,7 @@ extension are clients.
             │ "/"                            │ "/api"                          │ "/mobile/", "/1inme-deck/", "/__mockup"
             ▼                                ▼                                 ▼
    ┌──────────────────┐          ┌────────────────────┐          ┌────────────────────────┐
-   │  1INME (Laravel) │          │  API Server (Node) │          │  Mobile / Deck / Canvas │
+   │  Sayzio (Laravel) │          │  API Server (Node) │          │  Mobile / Deck / Canvas │
    │  artifacts/1inme │          │ artifacts/api-server│         │  (React / Expo / Vite)  │
    │  :5000           │          │  :8080             │          │                         │
    │                  │          │                    │          │                         │

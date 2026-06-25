@@ -33,7 +33,7 @@ export default function UseCase() {
 
       <section className="py-12">
         <div className="container mx-auto px-6">
-          <SectionHeading eyebrow="Why 1INME" title="Everything this job needs, in one link." />
+          <SectionHeading eyebrow="Why Sayzio" title="Everything this job needs, in one link." />
           <FeatureGrid
             items={useCase.sections.map((s) => ({ name: s.heading, description: s.body }))}
           />
@@ -66,7 +66,7 @@ export default function UseCase() {
 
       <section className="py-12">
         <div className="container mx-auto px-6">
-          <SectionHeading eyebrow="More use cases" title="1INME works for every kind of work." />
+          <SectionHeading eyebrow="More use cases" title="Sayzio works for every kind of work." />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {others.map((u) => (
               <Link

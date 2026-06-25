@@ -14,7 +14,7 @@
 --}}
 @php
     $__sbSource   = $source ?? 'page';
-    $__sbHeading  = $heading ?? 'Stay in the loop with 1INME';
+    $__sbHeading  = $heading ?? 'Stay in the loop with Sayzio';
     $__sbSubtext  = $subtext ?? 'Pick the channel that fits you. Product updates, growth playbooks, and the occasional template — no spam, opt out any time.';
     $__sbSubmitSource = 'subscribe-block:' . $__sbSource;
     $__sbFlashKey = 'newsletter_success_' . $__sbSource;

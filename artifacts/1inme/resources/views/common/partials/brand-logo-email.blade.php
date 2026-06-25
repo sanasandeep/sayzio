@@ -14,7 +14,7 @@
 @php
     $__brand  = \App\Modules\Common\Support\DomainBranding::logos();
     $__height = $height ?? 28;
-    $__alt    = $alt ?? config('app.name', '1INME');
+    $__alt    = $alt ?? config('app.name', 'Sayzio');
 
     $__raw = trim((string) ($__brand['logo_light'] ?? ''));
     $__src = $__raw === ''

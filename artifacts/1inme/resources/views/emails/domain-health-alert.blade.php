@@ -16,14 +16,14 @@
                     {{ $domain->domain }} has been unverified
                 </h1>
                 <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                    DNS for <strong>{{ $domain->domain }}</strong> has stopped pointing at 1INME for more than {{ $payload['grace_hours'] ?? 168 }} hours, so we've automatically unverified the domain. Short links and Link in Bio pages bound to it will stop being served on this host until you fix DNS and re-verify.
+                    DNS for <strong>{{ $domain->domain }}</strong> has stopped pointing at Sayzio for more than {{ $payload['grace_hours'] ?? 168 }} hours, so we've automatically unverified the domain. Short links and Link in Bio pages bound to it will stop being served on this host until you fix DNS and re-verify.
                 </p>
                 <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                    The domain is still locked to your account on 1INME, so no one else can claim it while you sort out DNS.
+                    The domain is still locked to your account on Sayzio, so no one else can claim it while you sort out DNS.
                 </p>
             @else
                 <h1 style="font-size:20px; color:#1e293b; margin:0 0 12px 0;">
-                    DNS for {{ $domain->domain }} stopped pointing at 1INME
+                    DNS for {{ $domain->domain }} stopped pointing at Sayzio
                 </h1>
                 <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
                     Our background check noticed that <strong>{{ $domain->domain }}</strong> no longer resolves to our infrastructure. If this isn't fixed within {{ $payload['grace_hours'] ?? 168 }} hours of the first drift event, we'll automatically unverify the domain so you can recover it later — but in the meantime, traffic to this host may not resolve correctly.
@@ -53,7 +53,7 @@
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving this because you're the owner of a custom domain on 1INME. We send at most one of these per domain per 24 hours while DNS is broken. Manage notification preferences in your profile settings.
+                You're receiving this because you're the owner of a custom domain on Sayzio. We send at most one of these per domain per 24 hours while DNS is broken. Manage notification preferences in your profile settings.
             </p>
         </div>
     </div>

@@ -4,7 +4,7 @@
 @section('content')
 <div class="max-w-3xl">
     <h1 class="text-2xl font-bold text-white mb-2">Linked identifiers</h1>
-    <p class="text-sm text-white/60 mb-6">Every email, phone number, and social account that can sign in to this 1INME account.</p>
+    <p class="text-sm text-white/60 mb-6">Every email, phone number, and social account that can sign in to this Sayzio account.</p>
 
     @if (session('success'))<div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm">{{ session('success') }}</div>@endif
     @if (session('error'))<div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm">{{ session('error') }}</div>@endif

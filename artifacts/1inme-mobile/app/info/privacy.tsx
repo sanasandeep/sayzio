@@ -4,7 +4,7 @@ export default function Privacy() {
   return (
     <InfoPage
       title="Privacy"
-      intro="Your privacy is part of the product. This is a plain-language summary of how 1INME handles data on mobile."
+      intro="Your privacy is part of the product. This is a plain-language summary of how Sayzio handles data on mobile."
       sections={[
         {
           heading: "Account data",

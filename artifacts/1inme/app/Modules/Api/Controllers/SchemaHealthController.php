@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Bearer-token parity for the admin one-click schema-column repair so a
  * super admin can spot and fix edited-after-applied column drift from the
- * 1INME Mobile app while troubleshooting on the go.
+ * Sayzio Mobile app while troubleshooting on the go.
  *
  * This is the mobile counterpart of the web dashboard banner +
  * {@see \App\Modules\Admin\Controllers\DashboardController::repairExpectedColumns()}.
@@ -59,7 +59,7 @@ class SchemaHealthController extends Controller
      * Read-only, paginated timeline of past one-click schema repair runs —
      * who ran each repair, when, and which columns/tables it touched. Mirrors
      * the web admin repair-audit page so a reviewer can audit this
-     * destructive-adjacent action from the 1INME Mobile app. Only schema
+     * destructive-adjacent action from the Sayzio Mobile app. Only schema
      * metadata is returned (added columns per table + whole-missing tables it
      * could not recreate), never row data.
      */

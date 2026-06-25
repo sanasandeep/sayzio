@@ -1038,7 +1038,7 @@ class DemoContentSeeder extends Seeder
                 'alias'       => "demo-{$c->handle}",
                 'title'       => $c->name,
                 'heading'     => $c->name,
-                'paragraph'   => $c->bio ?? 'Creator on 1INME.',
+                'paragraph'   => $c->bio ?? 'Creator on Sayzio.',
                 'visibility'  => $vis,
                 'links'       => [
                     ['Latest on Instagram',  'https://www.instagram.com', 'fa-instagram'],

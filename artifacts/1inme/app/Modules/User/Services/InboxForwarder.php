@@ -66,7 +66,7 @@ class InboxForwarder
             'fields'      => [
                 'name'    => 'Test Sender',
                 'email'   => 'test@example.com',
-                'message' => 'This is a test forward from your 1INME inbox forwarding rule.',
+                'message' => 'This is a test forward from your Sayzio inbox forwarding rule.',
             ],
             'files'       => [],
         ];
@@ -184,7 +184,7 @@ class InboxForwarder
         }
         $payload = $delivery->payload_snapshot ?? [];
         $sourceLabel = InboxAggregator::sourceLabels()[$delivery->source_type] ?? $delivery->source_type;
-        $subject = "[1INME Inbox] New {$sourceLabel}";
+        $subject = "[Sayzio Inbox] New {$sourceLabel}";
         $lines = ["New {$sourceLabel} received.", ''];
         foreach ((array) ($payload['fields'] ?? []) as $k => $v) {
             $lines[] = ucfirst(str_replace('_', ' ', (string) $k)) . ': ' . (is_scalar($v) ? (string) $v : json_encode($v));
@@ -213,8 +213,8 @@ class InboxForwarder
         if ($dest->secret) {
             $headers['X-1INME-Signature'] = 'sha256=' . hash_hmac('sha256', $body, $dest->secret);
         }
-        $headers['X-1INME-Event']    = $delivery->source_type;
-        $headers['X-1INME-Delivery'] = (string) $delivery->id;
+        $headers['X-Sayzio-Event']    = $delivery->source_type;
+        $headers['X-Sayzio-Delivery'] = (string) $delivery->id;
 
         $method = strtolower($dest->method ?: 'POST');
         if (!in_array($method, ['post', 'put', 'get'], true)) $method = 'post';

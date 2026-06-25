@@ -115,10 +115,10 @@
                            class="mt-1 w-4 h-4 accent-violet-500 cursor-pointer">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold text-white">Upgrade &mdash; 1INME 2.0</span>
+                            <span class="text-sm font-semibold text-white">Upgrade &mdash; Sayzio 2.0</span>
                             <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-violet-500/15 border border-violet-400/30 text-violet-300">On-brand</span>
                         </div>
-                        <p class="text-xs text-white/50 mt-0.5">A polished &ldquo;1INME 2.0 is coming&rdquo; announcement teasing the new AI &ldquo;digital aging&rdquo; feature. Your message &amp; ETA below still show.</p>
+                        <p class="text-xs text-white/50 mt-0.5">A polished &ldquo;Sayzio 2.0 is coming&rdquo; announcement teasing the new AI &ldquo;digital aging&rdquo; feature. Your message &amp; ETA below still show.</p>
                     </div>
                 </label>
             </div>

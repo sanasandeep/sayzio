@@ -54,7 +54,7 @@ class FeaturesSitePageEditorTest extends TestCase
         // category-structured shape returned by SitePagesContent.
         $page = SitePage::firstOrNew(['slug' => 'features']);
         $page->fill([
-            'title'            => 'Everything you can do with 1INME',
+            'title'            => 'Everything you can do with Sayzio',
             'meta_description' => 'Seeded features page.',
             'sections'         => SitePagesContent::featuresCategoriesDefault(),
         ])->save();
@@ -68,7 +68,7 @@ class FeaturesSitePageEditorTest extends TestCase
     private function payload(array $categories, array $overrides = []): array
     {
         return array_replace([
-            'title'            => 'Everything you can do with 1INME',
+            'title'            => 'Everything you can do with Sayzio',
             'meta_description' => 'Updated features description.',
             'categories'       => $categories,
         ], $overrides);
@@ -88,7 +88,7 @@ class FeaturesSitePageEditorTest extends TestCase
                 'id'       => '  ai-suite  ',
                 'icon'     => '  fa-robot  ',
                 'heading'  => '  AI suite  ',
-                'intro'    => '  A set of AI products that plug into your 1INME.  ',
+                'intro'    => '  A set of AI products that plug into your Sayzio.  ',
                 'features' => [
                     [
                         'name'        => '  AI Chatbot  ',
@@ -135,7 +135,7 @@ class FeaturesSitePageEditorTest extends TestCase
         $this->assertSame('ai-suite',                                      $first['id']);
         $this->assertSame('fa-robot',                                      $first['icon']);
         $this->assertSame('AI suite',                                      $first['heading']);
-        $this->assertSame('A set of AI products that plug into your 1INME.', $first['intro']);
+        $this->assertSame('A set of AI products that plug into your Sayzio.', $first['intro']);
         $this->assertCount(2, $first['features']);
         $this->assertSame(
             ['name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your biolink.', 'link' => '/ai-chatbot'],

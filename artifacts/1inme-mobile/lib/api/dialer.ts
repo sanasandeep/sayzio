@@ -84,7 +84,7 @@ export type DialerHistory = {
 
 /**
  * Caller-ID lookup. Records the call against the server (cross-device
- * history) and returns the resolved contact, any 1INME biolink owner
+ * history) and returns the resolved contact, any Sayzio biolink owner
  * (even for unsaved numbers), per-user spam/block flags, favorite state
  * and recent activity for the number.
  *
@@ -250,7 +250,7 @@ export type DialerProfile = {
 };
 
 /**
- * Rich Identity Profile for a number / contact: matched 1INME user,
+ * Rich Identity Profile for a number / contact: matched Sayzio user,
  * auto-pulled socials / locations / reachable channels from their biolink,
  * the owner's manual additions, and a shareable Export-vCard URL.
  */

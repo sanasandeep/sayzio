@@ -157,7 +157,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Stay in the loop, <span class="grad-text">on your terms.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free 1INME, set your notification preferences once, and let the right alerts find you on the right channel.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, set your notification preferences once, and let the right alerts find you on the right channel.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Get started free</a>
                     <a href="{{ route('login.page') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Log in</a>
@@ -170,7 +170,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Product updates, the moment they ship.',
-    'subtext' => 'Once-a-month notes on what is new on 1INME — email, WhatsApp Channel, or DM, your call.',
+    'subtext' => 'Once-a-month notes on what is new on Sayzio — email, WhatsApp Channel, or DM, your call.',
     'source'  => 'notifications',
 ])
 @endsection

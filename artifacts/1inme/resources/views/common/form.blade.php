@@ -553,7 +553,7 @@
                             </button>
                             <span class="oneq-hint" x-show="slide < {{ $slideCount - 1 }}">press <strong>Enter</strong> ↵</span>
                             @if($design['show_branding'] ?? true)
-                                <span x-show="slide === {{ $slideCount - 1 }}" class="oneq-hint">Powered by <a href="{{ url('/') }}" target="_blank" style="color: inherit;">1INME</a></span>
+                                <span x-show="slide === {{ $slideCount - 1 }}" class="oneq-hint">Powered by <a href="{{ url('/') }}" target="_blank" style="color: inherit;">Sayzio</a></span>
                             @endif
                         </div>
                     </form>
@@ -672,7 +672,7 @@
                     </div>
 
                     @if($design['show_branding'] ?? true)
-                        <div class="branding">Powered by <a href="{{ url('/') }}" target="_blank">1INME</a></div>
+                        <div class="branding">Powered by <a href="{{ url('/') }}" target="_blank">Sayzio</a></div>
                     @endif
                 </form>
                 @endif

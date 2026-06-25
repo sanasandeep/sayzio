@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Public DMCA / IP takedown intake (Task #1211). The form lives at
  * /legal/dmca and is intentionally dead simple: name, email, the
- * URL of the original work, and the URL on 1INME alleged to
+ * URL of the original work, and the URL on Sayzio alleged to
  * infringe, with the two statutory acknowledgements.
  *
  * Admins triage these from the new ModerationQueue, where every

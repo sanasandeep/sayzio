@@ -132,7 +132,7 @@ class CheckTemplateDesignHealth extends Command
             $lines[] = '… and ' . ($count - 10) . ' more.';
         }
 
-        $body = "{$count} active 1INME template(s) have saved snapshots that no longer validate. "
+        $body = "{$count} active Sayzio template(s) have saved snapshots that no longer validate. "
               . "A later code change (a removed block type or a retired design-variant key) has invalidated them, "
               . "so they would render with stripped styling or a blank/unknown block on the public page. "
               . "Review and re-save them from the Templates admin.\n\n"
@@ -159,7 +159,7 @@ class CheckTemplateDesignHealth extends Command
         $admins  = $this->admins();
         $url     = $this->templatesUrl();
         $subject = 'Template design issues resolved';
-        $body    = "Good news — all active 1INME templates validate again"
+        $body    = "Good news — all active Sayzio templates validate again"
                  . ($previousCount > 0 ? " (was {$previousCount} broken)." : '.')
                  . ' No further action needed.';
 

@@ -72,7 +72,7 @@
                     <div x-show="importTab === 'biolink'" class="resume-import-pane">
                         <p class="resume-import-help">
                             Pull your name, social links, posts (as portfolio projects) and Link in Bio blocks from your
-                            existing 1INME profile.
+                            existing Sayzio profile.
                         </p>
                         <div class="resume-import-actions">
                             <button type="button" class="resume-add-btn" :disabled="importBusy" @click="runImportBiolink()">

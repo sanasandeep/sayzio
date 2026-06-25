@@ -18,7 +18,7 @@ export default function Blog() {
   return (
     <PageLayout
       title="Blog"
-      description="Stories, product thinking, and tips from the 1INME team on Link in Bio pages, analytics, and growing your audience."
+      description="Stories, product thinking, and tips from the Sayzio team on Link in Bio pages, analytics, and growing your audience."
     >
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-6">
@@ -33,7 +33,7 @@ export default function Blog() {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Tips, product news and creator deep-dives — fresh from the 1INME
+              Tips, product news and creator deep-dives — fresh from the Sayzio
               team.
             </p>
           </div>

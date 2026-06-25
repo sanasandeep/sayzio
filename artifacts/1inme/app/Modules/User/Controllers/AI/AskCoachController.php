@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * Differs from Companion in three ways:
  *   1. Each user turn fans out to the {@see AskCoachToolRegistry} so the
- *      reply is grounded in the asker's live 1INME data (biolinks,
+ *      reply is grounded in the asker's live Sayzio data (biolinks,
  *      links, analytics, payments, audience, account).
  *   2. Snapshots, citations, deep-link actions and inline charts/
  *      tables are persisted in `meta` so the renderer can show the

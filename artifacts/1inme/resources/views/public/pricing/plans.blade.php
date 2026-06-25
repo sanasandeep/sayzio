@@ -788,7 +788,7 @@
                 ['key' => 'max_files',          'group' => 'Link in bio',      'icon' => 'fa-folder-open',                'type' => 'number',    'noun' => 'hosted files',       'desc' => 'Upload & share downloadable files'],
                 ['key' => 'block_types_allowed','group' => 'Link in bio',      'icon' => 'fa-table-cells',                'type' => 'blocks',                                    'desc' => 'Content block types for your pages'],
                 ['key' => 'custom_domains',     'group' => 'Link in bio',      'icon' => 'fa-globe',                      'type' => 'bool',      'name' => 'Custom domains',     'desc' => 'Use your own branded domain'],
-                ['key' => 'white_label',        'group' => 'Link in bio',      'icon' => 'fa-tag',                        'type' => 'bool',      'name' => 'Remove 1INME branding','desc' => 'White-label your public pages'],
+                ['key' => 'white_label',        'group' => 'Link in bio',      'icon' => 'fa-tag',                        'type' => 'bool',      'name' => 'Remove Sayzio branding','desc' => 'White-label your public pages'],
 
                 ['key' => 'analytics',          'group' => 'Analytics & SEO',  'icon' => 'fa-chart-line',                 'type' => 'analytics'],
                 ['key' => 'pixels',             'group' => 'Analytics & SEO',  'icon' => 'fa-bullseye',                   'type' => 'bool',      'name' => 'Marketing pixels',   'desc' => 'FB, GA, TikTok, LinkedIn & more'],
@@ -1344,7 +1344,7 @@
                 </div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Out of API calls? Just grab some coins.</h2>
                 <p class="text-gray-400 mt-2">
-                    Coins are 1INME's pay-as-you-go top-up currency — one flexible balance
+                    Coins are Sayzio's pay-as-you-go top-up currency — one flexible balance
                     you keep on hand and only spend when you need more than your plan includes.
                     No overage bills, no hard stops, no jumping to a bigger plan just for a busy week.
                 </p>

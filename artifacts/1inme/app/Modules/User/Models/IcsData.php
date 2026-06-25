@@ -181,7 +181,7 @@ class IcsData extends Model
 
         $ics  = "BEGIN:VCALENDAR\r\n";
         $ics .= "VERSION:2.0\r\n";
-        $ics .= "PRODID:-//1INME//Link Manager//EN\r\n";
+        $ics .= "PRODID:-//Sayzio//Link Manager//EN\r\n";
         $ics .= "CALSCALE:GREGORIAN\r\n";
         $ics .= "METHOD:PUBLISH\r\n";
 

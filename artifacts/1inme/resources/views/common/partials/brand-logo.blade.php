@@ -1,5 +1,5 @@
 {{--
-    Brand logo partial — renders the 1INME wordmark image with light/dark
+    Brand logo partial — renders the Sayzio wordmark image with light/dark
     variants and an optional fallback wordmark when no image is configured.
 
     Variables:
@@ -12,7 +12,7 @@
     $variant = $variant ?? 'wordmark';
     $height  = $height  ?? 'h-7';
     $href    = $href    ?? null;
-    $alt     = $alt     ?? config('app.name', '1INME');
+    $alt     = $alt     ?? config('app.name', 'Sayzio');
 
     // Host-aware: on a non-primary global domain these resolve to that
     // domain's own logos; everywhere else they are the platform logos.

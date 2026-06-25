@@ -5,7 +5,7 @@
 <div class="max-w-6xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI · Ask Coach',
-        'title'    => 'Ask Coach about your 1INME',
+        'title'    => 'Ask Coach about your Sayzio',
         'subtitle' => 'Read-only self-support — Coach pulls from your live links, audience, payments and account to answer.',
         'balance'  => $balance,
     ])
@@ -230,7 +230,7 @@
                     @csrf
                     <input type="text" name="message" required maxlength="2000" autofocus
                            data-coach-input
-                           placeholder="Ask Coach about your 1INME data…"
+                           placeholder="Ask Coach about your Sayzio data…"
                            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                     <button data-coach-send class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
                         Send
@@ -360,7 +360,7 @@
                 </script>
             @else
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
-                    <p class="text-white/60 text-sm">Start a chat to ask Coach about your 1INME.</p>
+                    <p class="text-white/60 text-sm">Start a chat to ask Coach about your Sayzio.</p>
                     <form method="POST" action="{{ route('user.ai.ask-coach.store') }}" class="mt-4">
                         @csrf
                         <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">

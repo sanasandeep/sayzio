@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>Setup required &mdash; 1INME</title>
+    <title>Setup required &mdash; Sayzio</title>
     <style>
         :root { color-scheme: dark; }
         * { box-sizing: border-box; }
@@ -57,7 +57,7 @@
         <span class="badge"><span class="dot"></span> Setup required</span>
         <h1>Your database needs migrating.</h1>
         <p>
-            1INME is up and running, but the database is missing core tables, so
+            Sayzio is up and running, but the database is missing core tables, so
             pages can&rsquo;t load yet. This usually means migrations haven&rsquo;t
             been run in this environment.
         </p>

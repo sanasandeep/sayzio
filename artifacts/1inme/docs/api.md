@@ -1,4 +1,4 @@
-# 1INME REST API (v1)
+# Sayzio REST API (v1)
 
 Base URL: `/api/v1` &nbsp;·&nbsp; Auth: `Authorization: Bearer <token>` (Sanctum personal access token)
 
@@ -72,7 +72,7 @@ Used mainly by the mobile app for passwordless and native sign-in.
 | POST   | `/auth/otp/send`      | —    | Send a one-time code to an email/phone. Throttle: `otp-send`.         |
 | POST   | `/auth/otp/verify`    | —    | Verify a code; returns user + token for an existing account. Throttle: `otp-verify`. |
 | POST   | `/auth/otp/register`  | —    | Verify a code and create a new account. Throttle: `auth-register`.    |
-| POST   | `/auth/social`        | —    | Exchange a native Apple/Google identity token for a 1INME token. Throttle: 20/min. |
+| POST   | `/auth/social`        | —    | Exchange a native Apple/Google identity token for a Sayzio token. Throttle: 20/min. |
 | POST   | `/auth/demo`          | —    | Demo login (non-prod). Mirrors the web "Try as Demo" button. Throttle: 20/min. |
 
 ## Sessions & security
@@ -290,7 +290,7 @@ the Reviews page (or the biolink hosting the `reviews_wall` block).
   "data": {
     "reviews": [
       {
-        "id": "n12", "source": "native", "source_label": "1INME",
+        "id": "n12", "source": "native", "source_label": "Sayzio",
         "author_name": "Jane", "author_avatar": null, "rating": 5,
         "body": "Loved it!", "reply": "Thank you!", "source_url": null,
         "pinned": true, "created_at": "2026-06-15T10:00:00+00:00",

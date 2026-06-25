@@ -3,7 +3,7 @@
 namespace App\Services\ReviewProviders;
 
 /**
- * Static registry describing every 3rd-party review provider 1INME can pull
+ * Static registry describing every 3rd-party review provider Sayzio can pull
  * reviews from. Each entry is a thin descriptor; the live API call lives in
  * the matching adapter. When a provider's credentials (env keys) are absent
  * the adapter runs in a transparent "preview" mode so the connect/sync flow

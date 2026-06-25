@@ -9,4 +9,4 @@ your review by clicking the link below. Your review won't be published until you
 
 If you didn't write this review, you can safely ignore this email.
 
-— Sent automatically by 1INME
+— Sent automatically by Sayzio

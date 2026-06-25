@@ -2519,14 +2519,14 @@
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(src, 0, 0, w, h);
 
-        // Branded overlay (bottom-left) with 1INME wordmark + period label.
+        // Branded overlay (bottom-left) with Sayzio wordmark + period label.
         const dpr = Math.max(1, w / src.clientWidth || 1);
         const padX = 22 * dpr, padY = 18 * dpr;
         const boxX = 18 * dpr, boxY = h - 18 * dpr;
         const titleSize = 26 * dpr, subSize = 14 * dpr;
 
         ctx.font = `800 ${titleSize}px Inter, system-ui, -apple-system, sans-serif`;
-        const title = '1INME';
+        const title = 'Sayzio';
         const sub = (heatmapPeriod || '').toString();
         const slug = (heatmapLinkSlug || '').toString();
         const tWidth = ctx.measureText(title).width;
@@ -2633,7 +2633,7 @@
     }
 
     function shareCaption(slug) {
-        const base = 'Check out where my link traffic is coming from on 1INME';
+        const base = 'Check out where my link traffic is coming from on Sayzio';
         return slug ? `${base} (/${slug})` : base;
     }
 
@@ -2656,7 +2656,7 @@
                 try {
                     const file = new File([blob], fileName, { type: 'image/png' });
                     if (navigator.canShare({ files: [file] })) {
-                        await navigator.share({ files: [file], title: '1INME Heatmap', text: caption });
+                        await navigator.share({ files: [file], title: 'Sayzio Heatmap', text: caption });
                         return;
                     }
                 } catch (e) {

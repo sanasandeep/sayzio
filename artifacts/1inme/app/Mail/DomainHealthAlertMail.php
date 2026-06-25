@@ -36,7 +36,7 @@ class DomainHealthAlertMail extends Mailable
         $host = $this->domain->domain;
         $subject = $this->type === 'custom_domain_unverified'
             ? "Action required: {$host} has been unverified"
-            : "Heads up: DNS for {$host} stopped pointing at 1INME";
+            : "Heads up: DNS for {$host} stopped pointing at Sayzio";
 
         return $this
             ->subject($subject)

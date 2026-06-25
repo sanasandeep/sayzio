@@ -360,7 +360,7 @@ export default function AiChatEditorScreen() {
             </View>
           </View>
           <RowSwitch
-            label='Show "Powered by 1INME"'
+            label='Show "Powered by Sayzio"'
             value={showBranding}
             onValueChange={setShowBranding}
           />

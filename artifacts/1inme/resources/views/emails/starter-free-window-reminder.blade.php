@@ -9,7 +9,7 @@
         <h2 style="font-size: 18px; color: #334155; margin-bottom: 20px;">Keep your free Starter plan</h2>
         <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
             Hi {{ $user->name }},<br><br>
-            Your free year on the 1INME <strong>Starter</strong> plan
+            Your free year on the Sayzio <strong>Starter</strong> plan
             @if($endsAt)
                 wraps up on <strong>{{ $endsAt->format('F j, Y') }}</strong>.
             @else

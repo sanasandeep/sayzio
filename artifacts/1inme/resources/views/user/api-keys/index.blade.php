@@ -6,7 +6,7 @@
 <div class="max-w-4xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'API keys',
-        'subtitle' => 'Generate keys to call the 1INME REST API programmatically. Each call counts against your monthly allowance — overage is paid with coins.',
+        'subtitle' => 'Generate keys to call the Sayzio REST API programmatically. Each call counts against your monthly allowance — overage is paid with coins.',
         'icon' => 'fa-key',
         'chips' => [
             ['icon' => 'fa-plug text-violet-400', 'text' => count($keys) . ' active'],

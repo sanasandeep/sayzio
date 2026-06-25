@@ -20,7 +20,7 @@ class ChannelClassifierTest extends TestCase
             'null UA'                => [ChannelClassifier::KEY_UNKNOWN, null],
             'empty UA'               => [ChannelClassifier::KEY_UNKNOWN, '   '],
 
-            '1INME mobile shell'     => [ChannelClassifier::KEY_1INME_APP, '1INMEMobileApp/1.4.2 (ios; expo) ExpoGo/2.31.0'],
+            'Sayzio mobile shell'     => [ChannelClassifier::KEY_1INME_APP, '1INMEMobileApp/1.4.2 (ios; expo) ExpoGo/2.31.0'],
 
             'Instagram iOS'          => [ChannelClassifier::KEY_INSTAGRAM, 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 314.0.0.20.119'],
             'TikTok webview'         => [ChannelClassifier::KEY_TIKTOK, 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/103 Mobile Safari/537.36 musical_ly_30.5.0 JsSdk/2.0 NetType/WIFI Channel/googleplay AppName/musical_ly app_version/30.5.0 BytedanceWebview/d8a21c6'],
@@ -48,7 +48,7 @@ class ChannelClassifierTest extends TestCase
 
     public function test_label_for_returns_human_label(): void
     {
-        $this->assertSame('1INME app', ChannelClassifier::labelFor(ChannelClassifier::KEY_1INME_APP));
+        $this->assertSame('Sayzio app', ChannelClassifier::labelFor(ChannelClassifier::KEY_1INME_APP));
         $this->assertSame('Unknown', ChannelClassifier::labelFor(null));
         $this->assertSame('Unknown', ChannelClassifier::labelFor('not-a-real-key'));
     }

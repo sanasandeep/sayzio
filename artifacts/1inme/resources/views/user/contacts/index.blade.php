@@ -7,7 +7,7 @@
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Contacts',
-        'subtitle' => 'Your address book — synced two-way with Google Contacts and silently linked to 1INME Link in Bio pages.',
+        'subtitle' => 'Your address book — synced two-way with Google Contacts and silently linked to Sayzio Link in Bio pages.',
         'icon' => 'fa-address-book',
         'chips' => [
             ['icon' => 'fa-database text-cyan-400', 'text' => $stats['total'] . ' contacts'],
@@ -206,7 +206,7 @@
                                         <div class="flex-1 min-w-0">
                                             <a href="{{ route('user.contacts.show', $c) }}" class="text-sm font-semibold truncate block" style="color:var(--text-primary);">
                                                 {{ $c->nameForDisplay() }}
-                                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">1INME</span>
+                                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>
                                             </a>
                                             <div class="text-xs truncate" style="color:var(--text-muted);">
                                                 {{ $c->phones->first()?->value ?? $c->emails->first()?->value ?? '—' }}
@@ -249,7 +249,7 @@
                                         <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">
                                             {{ $c->nameForDisplay() }}
                                             @if($c->biolink_user_id)
-                                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">1INME</span>
+                                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>
                                             @endif
                                         </div>
                                         <div class="text-xs truncate" style="color:var(--text-muted);">

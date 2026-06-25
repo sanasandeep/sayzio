@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "1INME",
+    "name": "Sayzio",
     "slug": "1inme-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,11 +23,11 @@
         "applinks:www.1in.me"
       ],
       "infoPlist": {
-        "NSContactsUsageDescription": "1INME can read your contacts so you can save someone you just met as a contact card from their 1INME profile.",
-        "NSLocationWhenInUseUsageDescription": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned. This is optional and only used while the app is open.",
-        "NFCReaderUsageDescription": "1INME writes your short link to NFC tags so a tap opens your profile.",
-        "NSFaceIDUsageDescription": "1INME uses Face ID so you can unlock the app without re-entering your code.",
-        "NSMicrophoneUsageDescription": "1INME records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
+        "NSContactsUsageDescription": "Sayzio can read your contacts so you can save someone you just met as a contact card from their Sayzio profile.",
+        "NSLocationWhenInUseUsageDescription": "Sayzio records the approximate location of NFC tag writes so you can see where each tag was provisioned. This is optional and only used while the app is open.",
+        "NFCReaderUsageDescription": "Sayzio writes your short link to NFC tags so a tap opens your profile.",
+        "NSFaceIDUsageDescription": "Sayzio uses Face ID so you can unlock the app without re-entering your code.",
+        "NSMicrophoneUsageDescription": "Sayzio records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
       }
     },
     "android": {
@@ -101,33 +101,33 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "1INME uses Face ID so you can unlock the app without re-entering your code."
+          "faceIDPermission": "Sayzio uses Face ID so you can unlock the app without re-entering your code."
         }
       ],
       "react-native-nfc-manager",
       [
         "expo-contacts",
         {
-          "contactsPermission": "1INME can read your contacts so you can save someone you just met as a contact card."
+          "contactsPermission": "Sayzio can read your contacts so you can save someone you just met as a contact card."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned."
+          "locationWhenInUsePermission": "Sayzio records the approximate location of NFC tag writes so you can see where each tag was provisioned."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "1INME records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
+          "microphonePermission": "Sayzio records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "1INME accesses your photo library so you can attach photos or videos to a review.",
-          "cameraPermission": "1INME uses your camera so you can capture a photo or video for a review."
+          "photosPermission": "Sayzio accesses your photo library so you can attach photos or videos to a review.",
+          "cameraPermission": "Sayzio uses your camera so you can capture a photo or video for a review."
         }
       ]
     ],

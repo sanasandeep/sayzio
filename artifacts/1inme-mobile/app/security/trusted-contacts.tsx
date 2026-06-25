@@ -131,7 +131,7 @@ export default function TrustedContactsScreen() {
       <Stack.Screen options={{ title: "Trusted contacts" }} />
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18, paddingBottom: 40 }}>
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-          Pick up to {max} 1INME friends who can vouch for you if you ever lose
+          Pick up to {max} Sayzio friends who can vouch for you if you ever lose
           access. {required} of them need to confirm during recovery.
         </Text>
 

@@ -54,14 +54,14 @@ class PremiumFeatures
             ['key' => 'custom_forms', 'group' => 'Forms & lead capture', 'name' => 'Custom forms', 'description' => 'Build branded lead-capture forms inside your Link in Bio pages, route submissions to your inbox or a webhook, and export them.'],
 
             // ---- Contacts & CRM ----
-            ['key' => 'contacts_google_sync', 'group' => 'Contacts & CRM', 'name' => 'Google Contacts sync', 'description' => 'Two-way sync your 1INME contacts with your Google Contacts account so you can call and message them from your phone.'],
+            ['key' => 'contacts_google_sync', 'group' => 'Contacts & CRM', 'name' => 'Google Contacts sync', 'description' => 'Two-way sync your Sayzio contacts with your Google Contacts account so you can call and message them from your phone.'],
 
             // ---- Team & collaboration ----
             ['key' => 'teams', 'group' => 'Team & collaboration', 'name' => 'Team workspaces', 'description' => 'Invite teammates to collaborate on the same links, Link in Bio pages and inbox with role-based permissions.'],
 
             // ---- Branding ----
-            ['key' => 'custom_branding', 'group' => 'Branding', 'name' => 'White-label branding', 'description' => 'Replace 1INME branding with your own colors, logo and footer attribution on every public page.'],
-            ['key' => 'remove_branding', 'group' => 'Branding', 'name' => 'Remove "powered by" badge', 'description' => 'Hide the small "powered by 1INME" wordmark from the bottom of your public Link in Bio pages.'],
+            ['key' => 'custom_branding', 'group' => 'Branding', 'name' => 'White-label branding', 'description' => 'Replace Sayzio branding with your own colors, logo and footer attribution on every public page.'],
+            ['key' => 'remove_branding', 'group' => 'Branding', 'name' => 'Remove "powered by" badge', 'description' => 'Hide the small "powered by Sayzio" wordmark from the bottom of your public Link in Bio pages.'],
             ['key' => 'custom_favicon', 'group' => 'Branding', 'name' => 'Custom favicon', 'description' => 'Use your own favicon (browser tab icon) on every public page served from your account or custom domain.'],
             ['key' => 'custom_code', 'group' => 'Branding', 'name' => 'Custom HTML / JS', 'description' => 'Drop in custom <head> snippets, scripts and CSS overrides for advanced theming and integrations.'],
 
@@ -73,7 +73,7 @@ class PremiumFeatures
             ['key' => 'ai_agent', 'group' => 'AI suite', 'name' => 'AI Agent', 'description' => 'A multi-step AI agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own.'],
             ['key' => 'ai_widget', 'group' => 'AI suite', 'name' => 'AI Widget', 'description' => 'Embed an AI assistant on any external site with a single snippet — answers questions and captures leads into your unified inbox.'],
             ['key' => 'ai_voice_assistant', 'group' => 'AI suite', 'name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls to your number, qualifies callers and books or routes them — no missed leads.'],
-            ['key' => 'max_minds', 'group' => 'AI suite', 'name' => 'AI Minds', 'description' => 'Labelled knowledge bases your AI personas and coach can draw on — add text, FAQs, documents, links or live 1INME data.', 'unit' => 'minds'],
+            ['key' => 'max_minds', 'group' => 'AI suite', 'name' => 'AI Minds', 'description' => 'Labelled knowledge bases your AI personas and coach can draw on — add text, FAQs, documents, links or live Sayzio data.', 'unit' => 'minds'],
             ['key' => 'max_personas', 'group' => 'AI suite', 'name' => 'AI Personas', 'description' => 'Configurable AI agents that combine a system prompt, tone and the Minds you choose.', 'unit' => 'personas'],
             ['key' => 'max_companions', 'group' => 'AI suite', 'name' => 'AI Companions', 'description' => 'Deploy a Persona as a Link in Bio chatbot, an external website embed, or an inbox auto-reply bot.', 'unit' => 'companions'],
             ['key' => 'ask_coach', 'group' => 'AI suite', 'name' => 'Ask Coach', 'description' => 'A built-in AI performance coach that turns your analytics into one-tap, plain-English fixes.'],

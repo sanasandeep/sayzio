@@ -7,7 +7,7 @@
         <title>{{ $link->seo_title }}</title>
         <meta property="og:title" content="{{ $link->seo_title }}">
     @else
-        <title>{{ $link->title ?: 'Download File' }} - 1INME</title>
+        <title>{{ $link->title ?: 'Download File' }} - Sayzio</title>
     @endif
     @if($link->seo_description)
         <meta name="description" content="{{ $link->seo_description }}">

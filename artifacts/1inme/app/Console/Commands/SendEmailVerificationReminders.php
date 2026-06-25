@@ -162,7 +162,7 @@ class SendEmailVerificationReminders extends Command
                 ['user' => $user, 'verificationUrl' => $verificationUrl, 'unsubscribeUrl' => $unsubscribeUrl],
                 function ($message) use ($user, $unsubscribeUrl) {
                     $message->to($user->email);
-                    $message->subject('Reminder: verify your 1INME email');
+                    $message->subject('Reminder: verify your Sayzio email');
                     $message->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
                     $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
                 }

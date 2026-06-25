@@ -29,7 +29,7 @@ class SubscriptionsController extends Controller
         return view('public.subscriptions.manage', [
             'page' => (object) [
                 'title'            => 'Manage subscriptions',
-                'meta_description' => 'Unsubscribe from the 1INME newsletter, WhatsApp Channel, or WhatsApp DMs.',
+                'meta_description' => 'Unsubscribe from the Sayzio newsletter, WhatsApp Channel, or WhatsApp DMs.',
             ],
             'whatsappChannelUrl' => trim((string) AppSetting::get('marketing_whatsapp_channel_url', '')),
             'whatsappNumber'     => trim((string) AppSetting::get('marketing_whatsapp_number', '')),

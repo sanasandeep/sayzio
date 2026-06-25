@@ -7,8 +7,8 @@ export default function Slide001Cover() {
       <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(10,10,20,0.95)_0%,rgba(20,9,31,0.78)_45%,rgba(10,10,20,0.55)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(236,72,153,0.25),transparent_55%)]" />
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
-        <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400">1INME</span>
+        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
+        <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400">Sayzio</span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
         <div className="flex-1 flex flex-col justify-center max-w-[80vw]">

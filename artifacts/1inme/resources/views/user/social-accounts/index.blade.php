@@ -31,7 +31,7 @@
     ])
 
     {{-- Inline "merge accounts?" offer — raised when a Connect flow found
-         the provider identity already bound to a different 1INME account.
+         the provider identity already bound to a different Sayzio account.
          The OAuth round-trip already proved ownership, so "Merge" jumps
          straight to the merge preview. --}}
     @if(session('social_merge_offer'))
@@ -41,7 +41,7 @@
             <i class="fas fa-code-merge mt-0.5" style="color:#7c3aed;"></i>
             <div class="flex-1 min-w-0">
                 <div class="font-semibold" style="color:#7c3aed;">
-                    That {{ \App\Modules\User\Models\SocialAccountConnection::platformLabel($__mergeOffer['provider'] ?? '') }} account already belongs to another 1INME account
+                    That {{ \App\Modules\User\Models\SocialAccountConnection::platformLabel($__mergeOffer['provider'] ?? '') }} account already belongs to another Sayzio account
                 </div>
                 <div class="text-xs mt-0.5" style="color: var(--text-muted);">
                     It's linked to <span class="font-semibold">{{ $__mergeOffer['label'] ?? 'another account' }}</span>.

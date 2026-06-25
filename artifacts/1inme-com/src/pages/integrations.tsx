@@ -53,7 +53,7 @@ export default function Integrations() {
       </section>
 
       <CTABand
-        title="Plug 1INME into your whole stack."
+        title="Plug Sayzio into your whole stack."
         subtitle="Free forever, no credit card. Connect your networks and tools in seconds."
         primary={{ label: "Get started free", href: SIGNUP_URL }}
         secondary={{ label: "Compare all plans", href: PRICING_URL }}

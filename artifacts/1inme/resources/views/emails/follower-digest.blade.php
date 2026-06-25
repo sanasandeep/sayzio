@@ -107,7 +107,7 @@
             @endforeach
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving the daily digest from 1INME. To switch to instant emails or turn this off, visit your profile notification settings.
+                You're receiving the daily digest from Sayzio. To switch to instant emails or turn this off, visit your profile notification settings.
             </p>
         </div>
     </div>

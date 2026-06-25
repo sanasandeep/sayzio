@@ -133,7 +133,7 @@ export default function FollowersScreen() {
               body={
                 tab === "followers"
                   ? "Share your Link in Bio to grow your audience."
-                  : "Find creators to follow on 1INME."
+                  : "Find creators to follow on Sayzio."
               }
             />
           }

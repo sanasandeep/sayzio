@@ -796,7 +796,7 @@ class RedirectController extends Controller
         $categories = !empty($m['categories']) ? array_map('trim', explode(',', $m['categories'])) : [];
 
         $manifest = [
-            'name' => $m['name'] ?? $link->title ?? '1INME Bio',
+            'name' => $m['name'] ?? $link->title ?? 'Sayzio Bio',
             'short_name' => $m['short_name'] ?? \Illuminate\Support\Str::limit($link->title ?? 'Bio', 12, ''),
             'description' => $m['description'] ?? '',
             'start_url' => $startUrl,

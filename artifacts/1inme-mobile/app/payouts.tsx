@@ -97,7 +97,7 @@ export default function PayoutsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60, gap: 12 }}>
         <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 18 }}>
           Connect a payout provider to receive subscriptions, tips, and per-post unlocks.
-          1INME takes 0% — the fee shown next to each provider is theirs.
+          Sayzio takes 0% — the fee shown next to each provider is theirs.
         </Text>
 
         {sellLocked ? (

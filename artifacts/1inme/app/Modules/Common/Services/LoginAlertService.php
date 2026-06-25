@@ -222,7 +222,7 @@ class LoginAlertService
     private function parseBrowser(string $ua): ?string
     {
         if ($ua === '') return null;
-        if (str_contains($ua, '1INMEMobileApp')) return '1INME app';
+        if (str_contains($ua, '1INMEMobileApp')) return 'Sayzio app';
         // Edge/OPR/Brave must be checked before Chrome since they
         // include "Chrome" in their UA strings.
         if (str_contains($ua, 'Edg/'))                              return 'Edge';

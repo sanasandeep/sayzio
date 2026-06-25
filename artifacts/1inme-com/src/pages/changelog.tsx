@@ -117,7 +117,7 @@ export default function Changelog() {
   return (
     <PageLayout
       title="Changelog"
-      description="Everything new in 1INME — features, improvements, and fixes shipped week after week."
+      description="Everything new in Sayzio — features, improvements, and fixes shipped week after week."
     >
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-6">

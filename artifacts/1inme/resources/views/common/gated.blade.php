@@ -46,7 +46,7 @@
                 </a>
             @endif
         </div>
-        <p class="text-[11px] mt-4 text-white/30">Powered by 1INME</p>
+        <p class="text-[11px] mt-4 text-white/30">Powered by Sayzio</p>
     </main>
 </body>
 </html>

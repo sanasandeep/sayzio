@@ -3,8 +3,8 @@
     "id": "7a49908b-5a45-4fa0-a021-1f222b70fed4",
     "position": 1,
     "filepath": "src/pages/slides/Slide001Cover.tsx",
-    "title": "1INME — Sectioned Deck",
-    "description": "Master cover for the 1INME multi-section deck.",
+    "title": "Sayzio — Sectioned Deck",
+    "description": "Master cover for the Sayzio multi-section deck.",
     "speakerNotes": "Open the deck. One identity, one platform — that's the whole pitch in a sentence. Tell the room which section you'll spend most of the time in, then jump straight there from the table of contents.",
     "section": "intro"
   },
@@ -48,17 +48,17 @@
     "id": "fea7f91d-3d7e-4d69-ade1-3cbf9e27c732",
     "position": 6,
     "filepath": "src/pages/slides/Slide006Salespitch.tsx",
-    "title": "1INME — the everything platform.",
+    "title": "Sayzio — the everything platform.",
     "description": "Identity, links, AI, productivity, and analytics in one place.",
-    "speakerNotes": "Pivot to the 1INME answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
+    "speakerNotes": "Pivot to the Sayzio answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
     "section": "sales"
   },
   {
     "id": "58aba459-a273-4338-b68e-e51c5386e61c",
     "position": 7,
     "filepath": "src/pages/slides/Slide007Salesdifferentiators.tsx",
-    "title": "Why 1INME, not the next bundle.",
-    "description": "Why 1INME, not the next bundle.",
+    "title": "Why Sayzio, not the next bundle.",
+    "description": "Why Sayzio, not the next bundle.",
     "speakerNotes": "Pre-empt the 'why not just use a bundle?' objection. Native, beautiful, open, fair — these are the four things bundles structurally can't fake. Mention a competitor by name only if the buyer brings them up.",
     "section": "sales"
   },
@@ -66,8 +66,8 @@
     "id": "6973e222-5b6f-4c2a-8466-cd7ee18be876",
     "position": 8,
     "filepath": "src/pages/slides/Slide008Salesroi.tsx",
-    "title": "ROI of consolidating onto 1INME.",
-    "description": "ROI of consolidating onto 1INME.",
+    "title": "ROI of consolidating onto Sayzio.",
+    "description": "ROI of consolidating onto Sayzio.",
     "speakerNotes": "Make the ROI math obvious: about $1,400 saved annually, six hours back per week, conversion lift, single invoice. Anchor the buyer to a payback window measured in weeks, not quarters.",
     "section": "sales"
   },
@@ -76,7 +76,7 @@
     "position": 9,
     "filepath": "src/pages/slides/Slide009Salestimesaved.tsx",
     "title": "Where the hours come back.",
-    "description": "Time saved per week by switching to 1INME.",
+    "description": "Time saved per week by switching to Sayzio.",
     "speakerNotes": "Walk the time-savings table left to right. Bio maintenance, lead capture, cross-posting, reporting — call out the biggest win for the buyer's role first. Land the seven-hours-per-week footer total.",
     "section": "sales"
   },
@@ -129,8 +129,8 @@
     "id": "2bf300d8-d039-4c37-9b9e-9668a28abf38",
     "position": 15,
     "filepath": "src/pages/slides/Slide015Salescompetitors.tsx",
-    "title": "How 1INME compares.",
-    "description": "How 1INME compares.",
+    "title": "How Sayzio compares.",
+    "description": "How Sayzio compares.",
     "speakerNotes": "Position relative to the specific tool the buyer mentioned in discovery. We're additive to most of these and replacing one or two — be honest about which is which.",
     "section": "sales"
   },
@@ -219,7 +219,7 @@
     "id": "7e110bd5-1150-4708-bca5-9b278bb24628",
     "position": 25,
     "filepath": "src/pages/slides/Slide025Productoverview.tsx",
-    "title": "What 1INME is, end to end.",
+    "title": "What Sayzio is, end to end.",
     "description": "One identity, three surfaces, eleven modules — wired together by AI and analytics.",
     "speakerNotes": "Set up the product walkthrough. Three surfaces, eleven modules, identity + vault + AI as the spine. Audience leaves this slide knowing the shape of the platform.",
     "section": "product"
@@ -230,7 +230,7 @@
     "filepath": "src/pages/slides/SlideWhatYouCanCreate.tsx",
     "title": "What you can create.",
     "description": "All 12 link types grouped into 4 categories — Everyday links, Pages & mini-sites, Business & monetization, and AI-powered.",
-    "speakerNotes": "Show the full menu of what a 1INME link can be. Twelve types in four groups — everyday share links, full mini-site pages, monetization surfaces, and AI-driven pages. Point the buyer to the group that matches their goal, then jump into that module.",
+    "speakerNotes": "Show the full menu of what a Sayzio link can be. Twelve types in four groups — everyday share links, full mini-site pages, monetization surfaces, and AI-driven pages. Point the buyer to the group that matches their goal, then jump into that module.",
     "section": "product"
   },
   {
@@ -310,8 +310,8 @@
     "position": 35,
     "filepath": "src/pages/slides/Slide034Productintegrationsmap.tsx",
     "title": "Integrations map.",
-    "description": "1INME plugs into the tools you already use.",
-    "speakerNotes": "Eight categories, top-of-mind tools per category. The point: 1INME doesn't pretend to be your CRM if you already have HubSpot — it sits beside it, two-way synced.",
+    "description": "Sayzio plugs into the tools you already use.",
+    "speakerNotes": "Eight categories, top-of-mind tools per category. The point: Sayzio doesn't pretend to be your CRM if you already have HubSpot — it sits beside it, two-way synced.",
     "section": "product"
   },
   {
@@ -823,7 +823,7 @@
     "position": 92,
     "filepath": "src/pages/slides/Slide091Personasdivider.tsx",
     "title": "Appendix · Persona decks.",
-    "description": "How 1INME shows up for each role we sell into.",
+    "description": "How Sayzio shows up for each role we sell into.",
     "speakerNotes": "Open the persona decks. Twelve roles, each with pains, stack, day in the life, and outcomes. Pick the one closest to the room; the others are there for follow-up sends.",
     "section": "personas"
   },
@@ -831,7 +831,7 @@
     "id": "4b394b87-035a-4b99-90fd-1726030a4dc3",
     "position": 93,
     "filepath": "src/pages/slides/Slide092Creatorsartistsdivider.tsx",
-    "title": "How 1INME helps a artists.",
+    "title": "How Sayzio helps a artists.",
     "description": "Creators · 4 slides + this divider.",
     "speakerNotes": "Open the artists mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when artists are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -849,7 +849,7 @@
     "id": "59f602d5-853b-4dd5-85b8-fa12bea92608",
     "position": 95,
     "filepath": "src/pages/slides/Slide094Creatorsartistsstack.tsx",
-    "title": "The 1INME stack for a artists.",
+    "title": "The Sayzio stack for a artists.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for artists. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -859,8 +859,8 @@
     "position": 96,
     "filepath": "src/pages/slides/Slide095Creatorsartistsday.tsx",
     "title": "A day in the life — artists.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 22:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 8:00 to 22:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -876,7 +876,7 @@
     "id": "9a059013-7096-477f-bd3b-7e2a40e45030",
     "position": 98,
     "filepath": "src/pages/slides/Slide097Creatorsmusiciansdivider.tsx",
-    "title": "How 1INME helps a musicians.",
+    "title": "How Sayzio helps a musicians.",
     "description": "Creators · 4 slides + this divider.",
     "speakerNotes": "Open the musicians mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when musicians are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -894,7 +894,7 @@
     "id": "c36c4177-903a-448c-a863-cf83cb2376ed",
     "position": 100,
     "filepath": "src/pages/slides/Slide099Creatorsmusiciansstack.tsx",
-    "title": "The 1INME stack for a musicians.",
+    "title": "The Sayzio stack for a musicians.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for musicians. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -904,8 +904,8 @@
     "position": 101,
     "filepath": "src/pages/slides/Slide100Creatorsmusiciansday.tsx",
     "title": "A day in the life — musicians.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 9:00 to 23:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 9:00 to 23:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -921,7 +921,7 @@
     "id": "e4bf051d-fb82-4714-854b-372d58f09a23",
     "position": 103,
     "filepath": "src/pages/slides/Slide102Creatorspodcastersdivider.tsx",
-    "title": "How 1INME helps a podcasters.",
+    "title": "How Sayzio helps a podcasters.",
     "description": "Creators · 4 slides + this divider.",
     "speakerNotes": "Open the podcasters mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when podcasters are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -939,7 +939,7 @@
     "id": "b8a8834b-8469-49c1-b60b-f0a77b9958ce",
     "position": 105,
     "filepath": "src/pages/slides/Slide104Creatorspodcastersstack.tsx",
-    "title": "The 1INME stack for a podcasters.",
+    "title": "The Sayzio stack for a podcasters.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for podcasters. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -949,8 +949,8 @@
     "position": 106,
     "filepath": "src/pages/slides/Slide105Creatorspodcastersday.tsx",
     "title": "A day in the life — podcasters.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 7:30 to 21:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 7:30 to 21:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -966,7 +966,7 @@
     "id": "a2f8a5db-e218-47ee-a9b9-9d5bda455a8f",
     "position": 108,
     "filepath": "src/pages/slides/Slide107Creatorsstreamersdivider.tsx",
-    "title": "How 1INME helps a streamers.",
+    "title": "How Sayzio helps a streamers.",
     "description": "Creators · 4 slides + this divider.",
     "speakerNotes": "Open the streamers mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when streamers are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -984,7 +984,7 @@
     "id": "bbd88daa-55a6-4618-9ec5-cfc471f36d6d",
     "position": 110,
     "filepath": "src/pages/slides/Slide109Creatorsstreamersstack.tsx",
-    "title": "The 1INME stack for a streamers.",
+    "title": "The Sayzio stack for a streamers.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for streamers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -994,8 +994,8 @@
     "position": 111,
     "filepath": "src/pages/slides/Slide110Creatorsstreamersday.tsx",
     "title": "A day in the life — streamers.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 12:00 to 01:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 12:00 to 01:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -1011,7 +1011,7 @@
     "id": "8eadfa3b-e976-4df7-ae16-f17c41d94daf",
     "position": 113,
     "filepath": "src/pages/slides/Slide112Creatorsinfluencersdivider.tsx",
-    "title": "How 1INME helps a influencers.",
+    "title": "How Sayzio helps a influencers.",
     "description": "Creators · 4 slides + this divider.",
     "speakerNotes": "Open the influencers mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when influencers are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -1029,7 +1029,7 @@
     "id": "1a085375-1a5b-44af-b5c8-a0f08f187c11",
     "position": 115,
     "filepath": "src/pages/slides/Slide114Creatorsinfluencersstack.tsx",
-    "title": "The 1INME stack for a influencers.",
+    "title": "The Sayzio stack for a influencers.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for influencers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -1039,8 +1039,8 @@
     "position": 116,
     "filepath": "src/pages/slides/Slide115Creatorsinfluencersday.tsx",
     "title": "A day in the life — influencers.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 21:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 8:00 to 21:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -1056,7 +1056,7 @@
     "id": "a3c74f41-f90f-4f43-a68a-5a46c805ee9a",
     "position": 118,
     "filepath": "src/pages/slides/Slide117Coachesexpertscoachesdivider.tsx",
-    "title": "How 1INME helps a coaches.",
+    "title": "How Sayzio helps a coaches.",
     "description": "Coaches & Experts · 4 slides + this divider.",
     "speakerNotes": "Open the coaches mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when coaches are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -1074,7 +1074,7 @@
     "id": "d099cc61-2a80-4257-897f-64c792b2c941",
     "position": 120,
     "filepath": "src/pages/slides/Slide119Coachesexpertscoachesstack.tsx",
-    "title": "The 1INME stack for a coaches.",
+    "title": "The Sayzio stack for a coaches.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for coaches. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -1084,8 +1084,8 @@
     "position": 121,
     "filepath": "src/pages/slides/Slide120Coachesexpertscoachesday.tsx",
     "title": "A day in the life — coaches.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -1101,7 +1101,7 @@
     "id": "07119bd3-0aab-415b-a8f4-84c3261246af",
     "position": 123,
     "filepath": "src/pages/slides/Slide122Coachesexpertseducatorsdivid.tsx",
-    "title": "How 1INME helps a educators.",
+    "title": "How Sayzio helps a educators.",
     "description": "Coaches & Experts · 4 slides + this divider.",
     "speakerNotes": "Open the educators mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when educators are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -1119,7 +1119,7 @@
     "id": "b3d5dfc9-c20e-4232-b322-75d9e1bf8026",
     "position": 125,
     "filepath": "src/pages/slides/Slide124Coachesexpertseducatorsstack.tsx",
-    "title": "The 1INME stack for a educators.",
+    "title": "The Sayzio stack for a educators.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for educators. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -1129,8 +1129,8 @@
     "position": 126,
     "filepath": "src/pages/slides/Slide125Coachesexpertseducatorsday.tsx",
     "title": "A day in the life — educators.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -1146,7 +1146,7 @@
     "id": "fd9e3b32-e5e2-4741-aa45-66095ec4a327",
     "position": 128,
     "filepath": "src/pages/slides/Slide127Coachesexpertsfitnesstrainer.tsx",
-    "title": "How 1INME helps a fitness trainers.",
+    "title": "How Sayzio helps a fitness trainers.",
     "description": "Coaches & Experts · 4 slides + this divider.",
     "speakerNotes": "Open the fitness trainers mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when fitness trainers are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -1164,7 +1164,7 @@
     "id": "6a1c1247-66ad-4433-affa-760f6cd3f085",
     "position": 130,
     "filepath": "src/pages/slides/Slide129Coachesexpertsfitnesstrainer.tsx",
-    "title": "The 1INME stack for a fitness trainers.",
+    "title": "The Sayzio stack for a fitness trainers.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for fitness trainers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -1174,8 +1174,8 @@
     "position": 131,
     "filepath": "src/pages/slides/Slide130Coachesexpertsfitnesstrainer.tsx",
     "title": "A day in the life — fitness trainers.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 6:00 to 18:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 6:00 to 18:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -1191,7 +1191,7 @@
     "id": "4bcde17a-b562-42c8-9220-624cd5456012",
     "position": 133,
     "filepath": "src/pages/slides/Slide132Salesfieldprosrealtorsdivide.tsx",
-    "title": "How 1INME helps a realtors.",
+    "title": "How Sayzio helps a realtors.",
     "description": "Sales & Field Pros · 4 slides + this divider.",
     "speakerNotes": "Open the realtors mini-deck (Sales & Field Pros). Pains, stack, day in the life, outcomes — four slides. Use this when realtors are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -1209,7 +1209,7 @@
     "id": "a50ac8b5-935b-4b36-a578-c6022d069b89",
     "position": 135,
     "filepath": "src/pages/slides/Slide134Salesfieldprosrealtorsstack.tsx",
-    "title": "The 1INME stack for a realtors.",
+    "title": "The Sayzio stack for a realtors.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for realtors. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -1219,8 +1219,8 @@
     "position": 136,
     "filepath": "src/pages/slides/Slide135Salesfieldprosrealtorsday.tsx",
     "title": "A day in the life — realtors.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -1236,7 +1236,7 @@
     "id": "f83353ca-6cd4-48cc-949e-ed8f005bc94a",
     "position": 138,
     "filepath": "src/pages/slides/Slide137Salesfieldprosbusinessdevelo.tsx",
-    "title": "How 1INME helps a business developers.",
+    "title": "How Sayzio helps a business developers.",
     "description": "Sales & Field Pros · 4 slides + this divider.",
     "speakerNotes": "Open the business developers mini-deck (Sales & Field Pros). Pains, stack, day in the life, outcomes — four slides. Use this when business developers are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -1254,7 +1254,7 @@
     "id": "4e79e406-a513-4f32-a754-1ce795624b95",
     "position": 140,
     "filepath": "src/pages/slides/Slide139Salesfieldprosbusinessdevelo.tsx",
-    "title": "The 1INME stack for a business developers.",
+    "title": "The Sayzio stack for a business developers.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for business developers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -1264,8 +1264,8 @@
     "position": 141,
     "filepath": "src/pages/slides/Slide140Salesfieldprosbusinessdevelo.tsx",
     "title": "A day in the life — business developers.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {
@@ -1281,7 +1281,7 @@
     "id": "fae416e1-77e2-4f52-9f5e-4e9fbf366fa6",
     "position": 143,
     "filepath": "src/pages/slides/Slide142Teamsagenciesteamsagenciesdi.tsx",
-    "title": "How 1INME helps a teams & agencies.",
+    "title": "How Sayzio helps a teams & agencies.",
     "description": "Teams & Agencies · 4 slides + this divider.",
     "speakerNotes": "Open the teams & agencies mini-deck (Teams & Agencies). Pains, stack, day in the life, outcomes — four slides. Use this when teams & agencies are in the room or you're tailoring an outbound for that audience.",
     "section": "personas"
@@ -1299,7 +1299,7 @@
     "id": "0fd63f47-81f8-4807-8dfb-5be418e7d3ad",
     "position": 145,
     "filepath": "src/pages/slides/Slide144Teamsagenciesteamsagenciesst.tsx",
-    "title": "The 1INME stack for a teams & agencies.",
+    "title": "The Sayzio stack for a teams & agencies.",
     "description": "The 4–5 modules that matter most for this persona.",
     "speakerNotes": "These are the 5 modules that matter most for teams & agencies. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
     "section": "personas"
@@ -1309,8 +1309,8 @@
     "position": 146,
     "filepath": "src/pages/slides/Slide145Teamsagenciesteamsagenciesda.tsx",
     "title": "A day in the life — teams & agencies.",
-    "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "description": "Time, module, action — all happening inside Sayzio.",
+    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.",
     "section": "personas"
   },
   {

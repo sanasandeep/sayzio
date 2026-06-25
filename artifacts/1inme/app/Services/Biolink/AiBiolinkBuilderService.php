@@ -203,7 +203,7 @@ class AiBiolinkBuilderService
         $schemaHint .= "- Aim for a complete, well-ordered page of roughly 5-12 blocks. Group related links inside a card when it improves layout.\n"
             . "- Use empty strings/arrays rather than null.";
 
-        $system = "You are an expert link-in-bio page designer for the 1INME platform. "
+        $system = "You are an expert link-in-bio page designer for the Sayzio platform. "
             . "You assemble a complete, attractive biolink page from the user's description using ONLY the "
             . "supported block types provided. Be tasteful and concrete.\n\n"
             . "ALLOWED BLOCK TYPES:\n" . implode("\n", $catalogLines) . "\n\n"

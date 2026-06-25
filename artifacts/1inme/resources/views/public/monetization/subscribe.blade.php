@@ -16,7 +16,7 @@
         <div class="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full text-xs"
              style="background: rgba(16,185,129,0.12); color: #10b981;">
             <i class="fas fa-shield-check"></i>
-            100% goes to {{ $creator->name }} — 1INME takes 0%
+            100% goes to {{ $creator->name }} — Sayzio takes 0%
         </div>
     </div>
 

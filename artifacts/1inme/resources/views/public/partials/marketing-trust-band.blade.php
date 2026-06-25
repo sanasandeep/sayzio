@@ -17,7 +17,7 @@
     }
 @endphp
 @if($__heroStats->isNotEmpty())
-<section class="py-8 sm:py-10 relative overflow-hidden" aria-label="1INME at a glance">
+<section class="py-8 sm:py-10 relative overflow-hidden" aria-label="Sayzio at a glance">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-2xl sm:rounded-3xl border border-white/10 px-4 py-5 sm:px-8 sm:py-6">
             <div class="flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-8">

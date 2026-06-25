@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Connecting 1INME extension…</title>
+    <title>Connecting Sayzio extension…</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
@@ -26,7 +26,7 @@
 <body>
     <div class="card">
         <h1><span class="pulse"></span>Connecting…</h1>
-        <p>Linking your 1INME account to the browser extension.</p>
+        <p>Linking your Sayzio account to the browser extension.</p>
         <p>You can close this tab once it disappears automatically.</p>
     </div>
 

@@ -49,7 +49,7 @@
             @endforeach
 
             <p style="font-size:12px; color:#94a3b8; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:16px;">
-                You're receiving this weekly digest because the 1INME backlink radar found new mentions of your properties.
+                You're receiving this weekly digest because the Sayzio backlink radar found new mentions of your properties.
                 Don't want these emails? <a href="{{ $unsubscribeUrl }}" style="color:#2563eb;">Unsubscribe in one click</a>
                 or change your preferences in your notification settings.
             </p>

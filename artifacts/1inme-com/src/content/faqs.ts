@@ -16,7 +16,7 @@ export const faqCategories: FaqCategory[] = [
       { question: "Can I have more than one Link in Bio page?", answer: "Yes — make as many as your plan allows. Use one per brand, project or campaign and switch between them in a click." },
       { question: "Will my page work on mobile?", answer: "Yes. Every page is mobile-first, with optional desktop-tuned layouts and per-block visibility for either device." },
       { question: "Can I preview my page before publishing?", answer: "Yes — the live preview updates as you edit, and an unpublished page is only visible to you and your team." },
-      { question: "Is 1INME suitable for non-creators?", answer: "Absolutely — it is designed for creators, freelancers, agencies, restaurants, coaches, networking pros and small businesses alike." },
+      { question: "Is Sayzio suitable for non-creators?", answer: "Absolutely — it is designed for creators, freelancers, agencies, restaurants, coaches, networking pros and small businesses alike." },
     ],
   },
   {
@@ -141,7 +141,7 @@ export const faqCategories: FaqCategory[] = [
       { question: "Stripe integration?", answer: "Yes — connect your Stripe account to take payments for products, tips, and donations." },
       { question: "Mailchimp / Klaviyo?", answer: "Yes — sync new contacts and form submissions into either platform with a one-click integration." },
       { question: "Google Sheets?", answer: "Yes — append form submissions or new contacts to a Google Sheet in real time." },
-      { question: "Is there a Zapier app?", answer: "Yes — trigger Zaps from any 1INME event and call any 1INME action from a Zap." },
+      { question: "Is there a Zapier app?", answer: "Yes — trigger Zaps from any Sayzio event and call any Sayzio action from a Zap." },
       { question: "Facebook / Google pixels?", answer: "Yes — drop your pixel ID in once and it loads on every page or short link." },
       { question: "Webhooks for clicks?", answer: "Yes — receive a signed payload within seconds of clicks or form submissions." },
       { question: "CRM integration?", answer: "Yes — sync contacts to HubSpot, Pipedrive or Salesforce via native integrations or Zapier." },

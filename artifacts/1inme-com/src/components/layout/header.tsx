@@ -73,7 +73,7 @@ const productGroup: MegaGroup = {
   label: "Product",
   blurb: "Everything you need to build, brand and track your links.",
   items: [
-    { href: "/features", label: "All features", desc: "The complete 1INME toolkit", icon: LayoutGrid },
+    { href: "/features", label: "All features", desc: "The complete Sayzio toolkit", icon: LayoutGrid },
     { href: "/how-it-works", label: "How it works", desc: "Live in under 2 minutes", icon: Rocket },
     { href: "/analytics", label: "Analytics", desc: "Live maps, heatmaps & AI coach", icon: BarChart3 },
     { href: "/integrations", label: "Integrations", desc: "Connect every network", icon: Boxes },
@@ -138,7 +138,7 @@ const solutionsGroup: MegaGroup = {
       desc: useCase.navDesc,
       icon: useCaseIcons[useCase.slug] ?? Sparkles,
     })),
-    { href: "/discovery", label: "Discovery", desc: "Find creators on 1INME", icon: Compass },
+    { href: "/discovery", label: "Discovery", desc: "Find creators on Sayzio", icon: Compass },
     { href: "/creators-feed", label: "Creators feed", desc: "Fresh posts from creators", icon: Rss },
   ],
   featured: {
@@ -333,7 +333,7 @@ export function Header() {
     >
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center" aria-label="1INME home">
+          <Link href="/" className="flex items-center" aria-label="Sayzio home">
             <BrandLogo imgHeight={28} textClassName="text-xl font-bold tracking-tight text-primary" />
           </Link>
 

@@ -7,7 +7,7 @@
 
     <div>
         <h1 class="text-2xl font-bold text-white">Create a Mind</h1>
-        <p class="text-sm text-white/50 mt-1">Give your knowledge base a name. You'll add sources (text, FAQs, documents, links, 1INME data) on the next page.</p>
+        <p class="text-sm text-white/50 mt-1">Give your knowledge base a name. You'll add sources (text, FAQs, documents, links, Sayzio data) on the next page.</p>
     </div>
 
     <form method="POST" action="{{ route('user.minds.store') }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">

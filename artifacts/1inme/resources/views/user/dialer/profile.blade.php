@@ -41,7 +41,7 @@
                 </h1>
                 <div class="text-sm font-mono" style="color:var(--text-muted);">{{ $number }}</div>
                 @if(!$contact && $matchedUser)
-                    <p class="text-xs mt-1" style="color:#f472b6;"><i class="fas fa-id-badge mr-1"></i> Identified via 1INME Link in Bio</p>
+                    <p class="text-xs mt-1" style="color:#f472b6;"><i class="fas fa-id-badge mr-1"></i> Identified via Sayzio Link in Bio</p>
                 @elseif($contact && $contact->organization)
                     <p class="text-xs mt-1" style="color:var(--text-muted);">{{ $contact->organization }}</p>
                 @endif
@@ -138,7 +138,7 @@
         <div class="card-premium p-6" style="border:1px solid rgba(236,72,153,.30);">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <div class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color:#f472b6;"><i class="fas fa-link mr-1"></i> 1INME Link in Bio</div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color:#f472b6;"><i class="fas fa-link mr-1"></i> Sayzio Link in Bio</div>
                     <h2 class="text-lg font-bold mb-1" style="color:var(--text-primary);">{{ $payload['biolink']['name'] }}</h2>
                     <p class="text-sm mb-4" style="color:var(--text-muted);">&commat;{{ $payload['biolink']['handle'] }}</p>
                     @if($payload['biolink']['url'])
@@ -147,7 +147,7 @@
                                 Open Link in Bio <i class="fas fa-external-link-alt ml-1 text-xs"></i>
                             </a>
                             @if($number)
-                                <a href="sms:{{ $number }}?body={{ rawurlencode(($contact?->nameForDisplay() ? 'Hey ' . $contact->nameForDisplay() . ', ' : 'Hey, ') . "here's my 1INME page: " . $payload['biolink']['url']) }}"
+                                <a href="sms:{{ $number }}?body={{ rawurlencode(($contact?->nameForDisplay() ? 'Hey ' . $contact->nameForDisplay() . ', ' : 'Hey, ') . "here's my Sayzio page: " . $payload['biolink']['url']) }}"
                                    class="inline-block px-4 py-2 rounded-xl text-sm font-semibold"
                                    style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)">
                                     <i class="fas fa-comment-sms mr-1"></i> Text Link in Bio
@@ -182,7 +182,7 @@
     @else
         <div class="card-premium p-6 text-center">
             <i class="fas fa-circle-info text-2xl mb-2" style="color:var(--text-faint);"></i>
-            <p class="text-sm mb-3" style="color:var(--text-muted);">No 1INME Link in Bio found for this number.</p>
+            <p class="text-sm mb-3" style="color:var(--text-muted);">No Sayzio Link in Bio found for this number.</p>
             @if($contact)
                 <form method="POST" action="{{ route('user.contacts.biolink.attach', $contact) }}">
                     @csrf

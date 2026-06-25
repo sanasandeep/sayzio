@@ -27,7 +27,7 @@
         </div>
         <div data-anim="fade-left" data-tilt="5">
             <div class="img-frame img-tilt aspect-[5/4]">
-                <img src="{{ asset('images/marketing/creators-feed/hero.png') }}" alt="Creators sharing posts on 1INME">
+                <img src="{{ asset('images/marketing/creators-feed/hero.png') }}" alt="Creators sharing posts on Sayzio">
             </div>
         </div>
     </div>

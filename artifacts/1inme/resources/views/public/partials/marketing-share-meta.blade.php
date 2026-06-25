@@ -6,7 +6,7 @@
     canonical URL, and 'website' type.
 --}}
 @php
-    $__appName = config('app.name', '1INME');
+    $__appName = config('app.name', 'Sayzio');
     // OG/Twitter reuse the centrally-resolved SEO title + description so the
     // admin override (or seeded default) drives social cards too. $__seo is
     // set by the site layout head (and the home/creators standalone heads);

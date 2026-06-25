@@ -23,7 +23,7 @@ export const useCases: UseCase[] = [
     eyebrow: "For creators",
     tagline: "One link that turns followers into a living.",
     navDesc: "Grow, sell and own your audience",
-    title: "1INME for Creators",
+    title: "Sayzio for Creators",
     description:
       "The link-in-bio built for creators — sell products, take tips, grow followers you own, and see what actually lands.",
     features: [
@@ -33,7 +33,7 @@ export const useCases: UseCase[] = [
       "Sell products & take tips",
     ],
     sections: [
-      { heading: "One link for every platform", body: "Drop a single 1INME link in every bio and point fans to whatever matters this week — a drop, a video, a tip jar or your latest release." },
+      { heading: "One link for every platform", body: "Drop a single Sayzio link in every bio and point fans to whatever matters this week — a drop, a video, a tip jar or your latest release." },
       { heading: "Built to convert, not just list", body: "Rich blocks for products, tips, embeds and forms turn casual visitors into buyers, subscribers and superfans." },
       { heading: "Own your audience", body: "Build a follower list no algorithm can throttle — reach them by digest email, push, and your own creators feed." },
       { heading: "Get paid your way", body: "Sell digital products, take tips and run memberships with low fees and fast payouts." },
@@ -51,7 +51,7 @@ export const useCases: UseCase[] = [
     eyebrow: "For agencies",
     tagline: "Run every client from one tidy dashboard.",
     navDesc: "Workspaces, roles and clean reporting",
-    title: "1INME for Agencies",
+    title: "Sayzio for Agencies",
     description:
       "Manage every client from one dashboard — separate workspaces, real roles, reporting clients read, and an API to fit your stack.",
     features: [
@@ -66,7 +66,7 @@ export const useCases: UseCase[] = [
       { heading: "Reporting clients actually read", body: "Share a styled, read-only analytics snapshot or invite the client in as a Viewer — no screenshots." },
       { heading: "Onboard in minutes", body: "One-click social connections with auto-retry mean less plumbing and more shipping." },
       { heading: "Bill the way you work", body: "Per-workspace plans and invoices let you bill each client separately and cleanly." },
-      { heading: "An API to fit your stack", body: "A documented REST API and webhooks slot 1INME into the tools you already run." },
+      { heading: "An API to fit your stack", body: "A documented REST API and webhooks slot Sayzio into the tools you already run." },
     ],
     faqs: [
       { question: "Are clients fully separated?", answer: "Yes — each workspace is an isolated container for content, links, contacts and billing." },
@@ -80,7 +80,7 @@ export const useCases: UseCase[] = [
     eyebrow: "For coaches",
     tagline: "Fill your calendar while you focus on clients.",
     navDesc: "Booking, lead capture and follow-ups",
-    title: "1INME for Coaches",
+    title: "Sayzio for Coaches",
     description:
       "Turn your bio into a booking machine — capture leads, fill your calendar, follow up automatically and look like the expert.",
     features: [
@@ -108,7 +108,7 @@ export const useCases: UseCase[] = [
     eyebrow: "For musicians",
     tagline: "Every release, every platform, one smart link.",
     navDesc: "Smart links, drops and fan growth",
-    title: "1INME for Musicians",
+    title: "Sayzio for Musicians",
     description:
       "Send fans to every platform from one smart link — drop releases on cue, sell out the room and grow a fanbase you own.",
     features: [
@@ -136,7 +136,7 @@ export const useCases: UseCase[] = [
     eyebrow: "For small business",
     tagline: "Your whole storefront behind one link.",
     navDesc: "Storefront, QR and customer capture",
-    title: "1INME for Small Business",
+    title: "Sayzio for Small Business",
     description:
       "Your whole storefront behind one link — take orders, bridge offline to online with QR, and build trust fast. Free to start.",
     features: [

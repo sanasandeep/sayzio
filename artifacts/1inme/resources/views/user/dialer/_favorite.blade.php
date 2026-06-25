@@ -7,7 +7,7 @@
     <a href="{{ $profileUrl }}" class="flex flex-col items-center w-full">
         <div class="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold text-white mb-1" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">{{ $f['initials'] }}</div>
         <div class="text-[11px] font-semibold truncate w-full" style="color:var(--text-primary);">{{ $f['label'] }}</div>
-        @if($f['biolink'])<span class="text-[8px] font-bold" style="color:#f472b6;">1INME</span>@endif
+        @if($f['biolink'])<span class="text-[8px] font-bold" style="color:#f472b6;">Sayzio</span>@endif
     </a>
     <button type="button" onclick="removeFavorite(event, {{ $f['id'] }})" title="Remove favorite"
             class="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition"

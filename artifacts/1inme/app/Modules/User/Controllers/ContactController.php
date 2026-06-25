@@ -211,7 +211,7 @@ class ContactController extends Controller
             $contact->forceFill(['detached_biolink_user_ids' => $list])->save();
         }
         $this->resolver->resolveFor($contact->fresh('phones'));
-        return back()->with('success', 'Link in Bio reattached if a matching 1INME user was found.');
+        return back()->with('success', 'Link in Bio reattached if a matching Sayzio user was found.');
     }
 
     // ---- bulk import ------------------------------------------------------
@@ -587,7 +587,7 @@ class ContactController extends Controller
     }
 
     /**
-     * Send the contact's matched 1INME biolink URL to one of their phone
+     * Send the contact's matched Sayzio biolink URL to one of their phone
      * numbers via a configured SMS gateway (Twilio today; other providers are
      * audit-logged until their HTTP transports are wired up). The Blade views
      * already provide a one-tap `sms:` deeplink for mobile devices — this
@@ -639,7 +639,7 @@ class ContactController extends Controller
         }
 
         $name    = $contact->nameForDisplay();
-        $message = "Hey " . ($name ?: 'there') . ", here's my 1INME page: " . $preview['url'];
+        $message = "Hey " . ($name ?: 'there') . ", here's my Sayzio page: " . $preview['url'];
 
         try {
             $this->dispatchBiolinkSms($config, $toClean, $message);

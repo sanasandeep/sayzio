@@ -341,7 +341,7 @@
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed">
-                    Whoever you are, 1INME is the <strong class="text-white">all-in-one</strong> link, monetization &amp; growth stack: drag-and-drop Link in Bio pages, branded short links, dynamic QR codes, NFC tags, built-in DMs, an AI Performance Coach and a native mobile app — <strong class="text-white">free forever</strong>, no card required.
+                    Whoever you are, Sayzio is the <strong class="text-white">all-in-one</strong> link, monetization &amp; growth stack: drag-and-drop Link in Bio pages, branded short links, dynamic QR codes, NFC tags, built-in DMs, an AI Performance Coach and a native mobile app — <strong class="text-white">free forever</strong>, no card required.
                 </p>
 
                 <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 justify-center lg:justify-start">

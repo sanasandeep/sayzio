@@ -20,7 +20,7 @@ class SitePagesContent
         return [
             'features' => [
                 'title' => 'Features',
-                'meta_description' => 'Everything you get with 1INME — all 10 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
+                'meta_description' => 'Everything you get with Sayzio — all 10 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
                 'sections' => [
                     ['heading' => 'A drag & drop Link in Bio page', 'body' => "Stack blocks for text, images, video, audio, embeds, products, donations and forms. Reorder by dragging, swap themes in a click, and publish a polished page in minutes — no design skills needed."],
                     ['heading' => 'Branded short links', 'body' => "Turn long URLs into clean, on-brand short links you can repoint at any time. Add UTMs automatically, password-protect sensitive links, expire them on a date or after N clicks, and route visitors by country, device or language."],
@@ -29,7 +29,7 @@ class SitePagesContent
                     ['heading' => 'Forms & contact capture', 'body' => "Build forms with conditional logic, embed them anywhere, and pipe submissions straight into your contact list. Tag, segment and export contacts to power broadcasts, the dialer or your favourite CRM."],
                     ['heading' => 'Broadcasts & follow-ups', 'body' => "Send email and SMS broadcasts to segmented audiences, schedule follow-ups, and track delivery, opens and replies — all from the same dashboard that already holds your audience."],
                     ['heading' => 'Workspaces & team roles', 'body' => "Create a workspace per brand or client, invite teammates with the right role (Owner, Admin, Editor, Viewer), and keep billing, analytics and contacts cleanly separated. Every action is attributed."],
-                    ['heading' => 'Open API & integrations', 'body' => "Plug 1INME into the rest of your stack. A clean REST API, webhooks for every important event, and native integrations for Stripe, Mailchimp, Google Sheets, Zapier and more."],
+                    ['heading' => 'Open API & integrations', 'body' => "Plug Sayzio into the rest of your stack. A clean REST API, webhooks for every important event, and native integrations for Stripe, Mailchimp, Google Sheets, Zapier and more."],
                 ],
             ],
             'how-it-works' => [
@@ -46,10 +46,10 @@ class SitePagesContent
                 ],
             ],
             'about' => [
-                'title' => 'About 1INME',
+                'title' => 'About Sayzio',
                 'meta_description' => 'We help creators, freelancers, agencies and small businesses turn one link into a complete online presence.',
                 'sections' => [
-                    ['heading' => 'Our mission', 'body' => "One link should do everything: show your work, capture leads, sell, message and tell your story. We started 1INME because juggling ten different tools to do that felt absurd, and the existing Link in Bio tools stopped at a list of buttons."],
+                    ['heading' => 'Our mission', 'body' => "One link should do everything: show your work, capture leads, sell, message and tell your story. We started Sayzio because juggling ten different tools to do that felt absurd, and the existing Link in Bio tools stopped at a list of buttons."],
                     ['heading' => 'Built for the people doing the work', 'body' => "We build for creators, coaches, freelancers, agencies and small businesses — the people who don't have a marketing team and need every minute back. Every feature is judged by whether it helps you ship faster and earn more."],
                     ['heading' => 'Opinionated, not bloated', 'body' => "We say no to feature creep. Each addition has to earn its place by making the core loop — capture attention, convert it, follow up — measurably better. If it doesn't, it doesn't ship."],
                     ['heading' => 'Privacy by default', 'body' => "We don't sell your data, we don't run third-party ad trackers on your pages, and we keep analytics aggregated and respectful. Your audience is yours."],
@@ -59,38 +59,38 @@ class SitePagesContent
             ],
             'contact' => [
                 'title' => 'Contact us',
-                'meta_description' => 'Get in touch with the 1INME team — sales, support, partnerships and press. We usually reply within one business day.',
+                'meta_description' => 'Get in touch with the Sayzio team — sales, support, partnerships and press. We usually reply within one business day.',
                 'sections' => [
                     ['heading' => 'We love hearing from you', 'body' => "Whether you have a question, hit a snag, want to suggest a feature or are exploring a partnership, drop us a note using the form below. A real person on our team will read it and reply, usually within one business day."],
                     ['heading' => 'Support', 'body' => "Stuck on something? Include your account email, the page or link you were on, and a screenshot if you can. The more detail you share, the faster we can help."],
-                    ['heading' => 'Sales & teams', 'body' => "Looking at 1INME for a team, an agency, or a larger rollout? Tell us how many seats you need and the workflows you care about — we'll set up a tailored walkthrough."],
-                    ['heading' => 'Press & partnerships', 'body' => "If you're writing about 1INME, building something on top of our API, or proposing a partnership, send us the details and we'll route you to the right person."],
+                    ['heading' => 'Sales & teams', 'body' => "Looking at Sayzio for a team, an agency, or a larger rollout? Tell us how many seats you need and the workflows you care about — we'll set up a tailored walkthrough."],
+                    ['heading' => 'Press & partnerships', 'body' => "If you're writing about Sayzio, building something on top of our API, or proposing a partnership, send us the details and we'll route you to the right person."],
                 ],
             ],
             'faqs' => [
                 'title' => 'Frequently asked questions',
-                'meta_description' => 'Answers to the most common questions about 1INME, plans, billing, custom domains and getting started.',
+                'meta_description' => 'Answers to the most common questions about Sayzio, plans, billing, custom domains and getting started.',
                 'sections' => [
                     ['heading' => 'Quick answers, in one place', 'body' => "We've gathered the questions people ask most often about plans, billing, custom domains, team access and the day-to-day of running your Link in Bio. Browse the list below — and if your question isn't here, our support team is one message away."],
                 ],
             ],
             'terms' => [
                 'title' => 'Terms & Conditions',
-                'meta_description' => 'The terms governing your use of 1INME — your account, what you can publish, billing, intellectual property and how we end the relationship.',
+                'meta_description' => 'The terms governing your use of Sayzio — your account, what you can publish, billing, intellectual property and how we end the relationship.',
                 'sections' => [
-                    ['heading' => '1. Acceptance', 'body' => "By creating an account or using 1INME you agree to these terms. If you are using the service on behalf of a company you confirm you have authority to bind that company. If you do not agree, please do not use the service."],
+                    ['heading' => '1. Acceptance', 'body' => "By creating an account or using Sayzio you agree to these terms. If you are using the service on behalf of a company you confirm you have authority to bind that company. If you do not agree, please do not use the service."],
                     ['heading' => '2. Your account', 'body' => "You are responsible for everything that happens under your account, including the actions of teammates you invite. Keep your sign-in details safe, use a strong unique password, and tell us straight away if you suspect unauthorised access."],
-                    ['heading' => '3. Acceptable use', 'body' => "You must not use 1INME to host or distribute illegal content, run scams or phishing, send unsolicited bulk messages, infringe other people's intellectual property, or harass other users. We reserve the right to remove content and suspend accounts that break these rules."],
+                    ['heading' => '3. Acceptable use', 'body' => "You must not use Sayzio to host or distribute illegal content, run scams or phishing, send unsolicited bulk messages, infringe other people's intellectual property, or harass other users. We reserve the right to remove content and suspend accounts that break these rules."],
                     ['heading' => '4. Your content', 'body' => "You keep ownership of everything you upload or publish. You grant us the limited licence we need to host, display and back up your content so the service can run. You are responsible for making sure you have the right to publish what you upload."],
                     ['heading' => '5. Plans, billing and renewals', 'body' => "Paid plans renew automatically at the end of each billing period using the payment method on file. You can cancel or downgrade at any time from your account — changes take effect at the next renewal. See the Refunds Policy for refund eligibility."],
-                    ['heading' => '6. Service availability', 'body' => "We work hard to keep 1INME fast and available, but we cannot guarantee 100% uptime. Planned maintenance is announced in advance where possible. The service is provided \"as is\" without implied warranties to the extent permitted by law."],
+                    ['heading' => '6. Service availability', 'body' => "We work hard to keep Sayzio fast and available, but we cannot guarantee 100% uptime. Planned maintenance is announced in advance where possible. The service is provided \"as is\" without implied warranties to the extent permitted by law."],
                     ['heading' => '7. Termination', 'body' => "You can close your account at any time from your settings. We may suspend or close accounts that violate these terms, with notice where reasonable. On termination, your published pages stop resolving and your data is removed within a reasonable period."],
                     ['heading' => '8. Changes to these terms', 'body' => "We may update these terms when the service changes or the law requires. Material changes are announced by email and inside the dashboard at least 14 days before they take effect."],
                 ],
             ],
             'refunds' => [
                 'title' => 'Refunds Policy',
-                'meta_description' => 'How refunds work for 1INME paid plans — eligibility, timing, exceptions and how to request one.',
+                'meta_description' => 'How refunds work for Sayzio paid plans — eligibility, timing, exceptions and how to request one.',
                 'sections' => [
                     ['heading' => '7-day refund window', 'body' => "You can request a full refund within 7 days of any new paid plan purchase, no questions asked. The refund covers the most recent charge only — earlier billing periods are not refundable."],
                     ['heading' => 'Renewals', 'body' => "Renewals (monthly or yearly) are not automatically refundable. We send a reminder before each renewal so you can downgrade or cancel beforehand. If a renewal slipped past you and you didn't use the service in the new period, contact us — we look at these case by case."],
@@ -101,7 +101,7 @@ class SitePagesContent
             ],
             'privacy' => [
                 'title' => 'Privacy Policy',
-                'meta_description' => 'How 1INME collects, uses, stores and protects your personal data — and the rights you have over it.',
+                'meta_description' => 'How Sayzio collects, uses, stores and protects your personal data — and the rights you have over it.',
                 'sections' => [
                     ['heading' => 'What we collect', 'body' => "We collect three kinds of information: account details you give us (name, email, billing address), the content you publish or upload (pages, blocks, files, contacts), and basic usage data needed to run the service (IP address, browser, pages visited)."],
                     ['heading' => 'How we use it', 'body' => "We use your data to provide the service, support you, send essential service emails, prevent abuse, and improve the product. We do not sell your personal data, and we do not run third-party advertising trackers on the pages you publish."],
@@ -117,40 +117,40 @@ class SitePagesContent
                 'meta_description' => 'Our compliance with the EU General Data Protection Regulation, including lawful bases, your rights and international data transfers.',
                 'sections' => [
                     ['heading' => 'Who this applies to', 'body' => "This policy explains how we comply with the EU General Data Protection Regulation (GDPR) and the UK GDPR. It applies whenever we process personal data of users, teammates or visitors located in the EU/EEA or the UK."],
-                    ['heading' => 'Roles', 'body' => "For your account information you are the data subject and we are the data controller. For the personal data of your visitors and contacts that you collect through 1INME (form submissions, leads, followers), you are the data controller and we act as your data processor."],
+                    ['heading' => 'Roles', 'body' => "For your account information you are the data subject and we are the data controller. For the personal data of your visitors and contacts that you collect through Sayzio (form submissions, leads, followers), you are the data controller and we act as your data processor."],
                     ['heading' => 'Lawful bases for processing', 'body' => "We process personal data on the basis of contract performance (running the service for you), legitimate interest (security, fraud prevention, product improvement), legal obligation (tax records, abuse reports), and your consent where required (optional analytics, marketing emails)."],
                     ['heading' => 'Your rights under GDPR', 'body' => "You can request access to your data, correction of inaccurate data, deletion (\"right to be forgotten\"), restriction of processing, data portability, and you can object to processing based on legitimate interest. Most of these are self-serve from your account; for the rest, contact us."],
                     ['heading' => 'International data transfers', 'body' => "Where personal data is transferred outside the EU/EEA or UK, we rely on the European Commission's Standard Contractual Clauses (and the UK addendum where applicable) with each sub-processor to provide an adequate level of protection."],
                     ['heading' => 'Breach notification', 'body' => "In the unlikely event of a personal data breach that is likely to result in a risk to your rights and freedoms, we will notify the relevant supervisory authority within 72 hours and inform affected users without undue delay."],
-                    ['heading' => 'Data Processing Agreement', 'body' => "If you process personal data of EU/EEA or UK residents through 1INME on behalf of your own users, you can request our standard Data Processing Agreement (DPA) — we'll countersign it and send it back."],
+                    ['heading' => 'Data Processing Agreement', 'body' => "If you process personal data of EU/EEA or UK residents through Sayzio on behalf of your own users, you can request our standard Data Processing Agreement (DPA) — we'll countersign it and send it back."],
                 ],
             ],
             'cookies' => [
                 'title' => 'Cookie Policy',
-                'meta_description' => 'What cookies and similar technologies 1INME uses, why we use them, and how you can control them.',
+                'meta_description' => 'What cookies and similar technologies Sayzio uses, why we use them, and how you can control them.',
                 'sections' => [
                     ['heading' => 'What cookies are', 'body' => "Cookies are small text files a website places on your device to remember information between visits. We also use comparable technologies — local storage, session storage and pixel tags — for the same purposes; \"cookies\" in this policy covers all of them."],
                     ['heading' => 'Strictly necessary cookies', 'body' => "These keep you signed in, remember your workspace selection, protect form submissions from CSRF attacks and load-balance requests. The service cannot work without them and they cannot be disabled separately from disabling cookies entirely in your browser."],
                     ['heading' => 'Functional cookies', 'body' => "These remember your preferences — sidebar collapsed/expanded state, theme, language and recently viewed items — so the dashboard feels familiar between visits."],
                     ['heading' => 'Analytics cookies', 'body' => "We use first-party analytics to understand which features are used and where people get stuck, so we can improve the product. The data is aggregated and never sold. Where required by law we ask for your consent before setting these."],
-                    ['heading' => 'Cookies on your published pages', 'body' => "Pages you publish on 1INME set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers."],
+                    ['heading' => 'Cookies on your published pages', 'body' => "Pages you publish on Sayzio set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers."],
                     ['heading' => 'How to control cookies', 'body' => "You can clear and block cookies from your browser settings at any time. Disabling strictly necessary cookies will sign you out and break parts of the dashboard; disabling functional or analytics cookies is safe but may make the experience less convenient."],
                 ],
             ],
             'discovery' => [
                 'title' => 'Discover Link in Bio pages',
-                'meta_description' => 'Browse public 1INME Link in Bio pages — find creators, brands and businesses sharing their work.',
+                'meta_description' => 'Browse public Sayzio Link in Bio pages — find creators, brands and businesses sharing their work.',
                 'sections' => [
-                    ['heading' => 'Find your next favourite link', 'body' => "Browse the latest public Link in Bio pages on 1INME. Search by name, handle or topic, tap any card to open the page, and follow the creators whose work you love so you never miss a new post or drop."],
+                    ['heading' => 'Find your next favourite link', 'body' => "Browse the latest public Link in Bio pages on Sayzio. Search by name, handle or topic, tap any card to open the page, and follow the creators whose work you love so you never miss a new post or drop."],
                     ['heading' => 'Curated, not crowded', 'body' => "Only pages whose creators have opted in to be discoverable show up here. That keeps the directory genuine — the people listed actually want new visitors and are actively keeping their pages fresh."],
                     ['heading' => 'Want to be listed?', 'body' => "Toggle \"Show me in Discover\" from your profile settings and your public Link in Bio will appear here within a few minutes. You stay in control: turn it off any time and you disappear from the directory."],
                 ],
             ],
             'creators-feed' => [
                 'title' => 'Creators feed',
-                'meta_description' => 'The latest posts from creators on 1INME — updates, drops, news and behind-the-scenes from people building in public.',
+                'meta_description' => 'The latest posts from creators on Sayzio — updates, drops, news and behind-the-scenes from people building in public.',
                 'sections' => [
-                    ['heading' => 'Fresh from the community', 'body' => "See what creators on 1INME are posting right now — product drops, behind-the-scenes notes, announcements and updates from people building their audience here. Scroll, discover and follow your favourites in one tap."],
+                    ['heading' => 'Fresh from the community', 'body' => "See what creators on Sayzio are posting right now — product drops, behind-the-scenes notes, announcements and updates from people building their audience here. Scroll, discover and follow your favourites in one tap."],
                     ['heading' => 'How posts get here', 'body' => "Any creator with a public Link in Bio can publish posts and have them surface in this feed. Pinned posts from staff or partners may appear at the top; everything else is ordered newest-first so you always see what just dropped."],
                     ['heading' => 'Build your following', 'body' => "Posting from your Link in Bio is the easiest way to keep your audience warm between launches. Visitors can follow you straight from the post and they'll see your next one in their feed."],
                 ],
@@ -181,16 +181,16 @@ class SitePagesContent
             ],
             'about' => [
                 ['heading' => 'Our mission', 'body' => 'One link should do everything — show your work, capture leads, sell, and tell your story. We make that easy.'],
-                ['heading' => 'Built for creators', 'body' => 'Whether you are a creator, coach, freelancer or small business, 1INME gives you the tools to grow without juggling ten apps.'],
+                ['heading' => 'Built for creators', 'body' => 'Whether you are a creator, coach, freelancer or small business, Sayzio gives you the tools to grow without juggling ten apps.'],
             ],
             'contact' => [
                 ['heading' => 'We love hearing from you', 'body' => 'Have a question, a suggestion, or need help getting set up? Send us a note and we will get back to you within one business day.'],
             ],
             'faqs' => [],
             'terms' => [
-                ['heading' => '1. Acceptance', 'body' => 'By accessing or using 1INME you agree to these terms. If you do not agree, please do not use the service.'],
+                ['heading' => '1. Acceptance', 'body' => 'By accessing or using Sayzio you agree to these terms. If you do not agree, please do not use the service.'],
                 ['heading' => '2. Your account', 'body' => 'You are responsible for all activity under your account. Keep your sign-in details safe.'],
-                ['heading' => '3. Acceptable use', 'body' => 'Do not use 1INME to host illegal content, send spam, or abuse other users.'],
+                ['heading' => '3. Acceptable use', 'body' => 'Do not use Sayzio to host illegal content, send spam, or abuse other users.'],
                 ['heading' => '4. Termination', 'body' => 'We may suspend or close accounts that violate these terms.'],
             ],
             'refunds' => [
@@ -212,10 +212,10 @@ class SitePagesContent
                 ['heading' => 'Managing cookies', 'body' => 'You can disable non-essential cookies from your browser settings at any time.'],
             ],
             'discovery' => [
-                ['heading' => 'Find your next favourite link', 'body' => 'Browse the latest public Link in Bio pages on 1INME. Search by name, handle or topic and tap any card to open the page.'],
+                ['heading' => 'Find your next favourite link', 'body' => 'Browse the latest public Link in Bio pages on Sayzio. Search by name, handle or topic and tap any card to open the page.'],
             ],
             'creators-feed' => [
-                ['heading' => 'Fresh from the community', 'body' => 'See what creators on 1INME are posting right now. Follow your favourites from their Link in Bio page to never miss an update.'],
+                ['heading' => 'Fresh from the community', 'body' => 'See what creators on Sayzio are posting right now. Follow your favourites from their Link in Bio page to never miss an update.'],
             ],
         ];
     }
@@ -291,34 +291,34 @@ class SitePagesContent
         return [
             'terms' => [
                 'title' => 'Terms of Service',
-                'meta_description' => 'The terms governing your use of 1INME — your account, what you can publish, billing, intellectual property and how the relationship can end.',
-                'intro' => 'These Terms of Service ("Terms") govern your access to and use of the 1INME website, dashboard, APIs and related services (the "Service"). Please read them carefully — by creating an account or using the Service you agree to be bound by them.',
+                'meta_description' => 'The terms governing your use of Sayzio — your account, what you can publish, billing, intellectual property and how the relationship can end.',
+                'intro' => 'These Terms of Service ("Terms") govern your access to and use of the Sayzio website, dashboard, APIs and related services (the "Service"). Please read them carefully — by creating an account or using the Service you agree to be bound by them.',
                 'last_updated_at' => $today,
                 'sections' => [
                     ['id' => 'acceptance', 'heading' => '1. Acceptance of these terms', 'body' => "By creating an account, accessing or otherwise using the Service you confirm that you have read, understood and agree to be bound by these Terms and our Privacy Policy. If you are entering into these Terms on behalf of a company or other legal entity, you represent that you have the authority to bind that entity, in which case \"you\" and \"your\" refer to that entity. If you do not agree, you must not use the Service."],
                     ['id' => 'eligibility-accounts', 'heading' => '2. Eligibility and accounts', 'body' => "You must be at least 16 years old (or the age of digital consent in your jurisdiction, whichever is higher) to create an account. You agree to provide accurate, current and complete information during registration and to keep it up to date. You are responsible for safeguarding your credentials, for all activity under your account, and for any actions taken by teammates or collaborators you invite. Notify us immediately of any unauthorised access."],
-                    ['id' => 'description-of-service', 'heading' => '3. Description of the service', 'body' => "1INME is a link-in-bio and short-link platform that lets you publish public profile pages, shorten URLs, generate dynamic QR codes, capture leads through forms, manage contacts, send broadcasts, view analytics and run related workflows. Features evolve over time and we may add, change or remove functionality. Material changes are announced inside the dashboard or by email."],
+                    ['id' => 'description-of-service', 'heading' => '3. Description of the service', 'body' => "Sayzio is a link-in-bio and short-link platform that lets you publish public profile pages, shorten URLs, generate dynamic QR codes, capture leads through forms, manage contacts, send broadcasts, view analytics and run related workflows. Features evolve over time and we may add, change or remove functionality. Material changes are announced inside the dashboard or by email."],
                     ['id' => 'acceptable-use', 'heading' => '4. Acceptable use', 'body' => "You agree not to use the Service to: (a) violate any law, regulation or third-party right; (b) host, link to or distribute illegal, harmful, defamatory, obscene, hateful, fraudulent, deceptive or infringing content; (c) operate phishing, malware, scams, pyramid or unauthorised affiliate schemes; (d) send unsolicited bulk messages or spam through any channel; (e) interfere with, disrupt or attempt to gain unauthorised access to the Service, other accounts or our infrastructure; (f) reverse engineer, scrape or rate-abuse the Service; or (g) impersonate any person or misrepresent your affiliation. We may remove content and suspend or terminate accounts that breach this section."],
-                    ['id' => 'user-content', 'heading' => '5. Your content and licence to us', 'body' => "You retain all ownership of the content you upload, publish or transmit through the Service (\"User Content\"). You grant 1INME a worldwide, non-exclusive, royalty-free licence to host, store, reproduce, modify (for technical purposes such as resizing or formatting), display and distribute your User Content solely as needed to operate, provide, improve and promote the Service. You represent and warrant that you have all rights necessary to grant this licence and that your User Content does not infringe any third-party rights."],
-                    ['id' => 'intellectual-property', 'heading' => '6. Intellectual property', 'body' => "The Service, including its software, design, templates, logos, trademarks and documentation, is owned by 1INME or its licensors and is protected by intellectual property laws. Subject to your compliance with these Terms, we grant you a limited, non-exclusive, non-transferable, revocable licence to access and use the Service for its intended purpose. You may not copy, modify, distribute, sell or create derivative works of the Service except as expressly permitted."],
+                    ['id' => 'user-content', 'heading' => '5. Your content and licence to us', 'body' => "You retain all ownership of the content you upload, publish or transmit through the Service (\"User Content\"). You grant Sayzio a worldwide, non-exclusive, royalty-free licence to host, store, reproduce, modify (for technical purposes such as resizing or formatting), display and distribute your User Content solely as needed to operate, provide, improve and promote the Service. You represent and warrant that you have all rights necessary to grant this licence and that your User Content does not infringe any third-party rights."],
+                    ['id' => 'intellectual-property', 'heading' => '6. Intellectual property', 'body' => "The Service, including its software, design, templates, logos, trademarks and documentation, is owned by Sayzio or its licensors and is protected by intellectual property laws. Subject to your compliance with these Terms, we grant you a limited, non-exclusive, non-transferable, revocable licence to access and use the Service for its intended purpose. You may not copy, modify, distribute, sell or create derivative works of the Service except as expressly permitted."],
                     ['id' => 'paid-plans-billing', 'heading' => '7. Paid plans, billing and renewals', 'body' => "Paid plans are billed in advance on a monthly or yearly cycle and renew automatically using the payment method on file until cancelled. Prices are listed on our pricing page and may change with at least 30 days' notice for new billing periods. Taxes may apply based on your billing address. You authorise us (and our payment processors) to charge the applicable fees, taxes and any usage-based add-ons to your payment method. Failed payments may result in downgrade or suspension after a grace period."],
                     ['id' => 'free-trials', 'heading' => '8. Free trials and promotional offers', 'body' => "We may from time to time offer free trials or promotional pricing. Unless explicitly stated otherwise, at the end of any trial your account will automatically convert to the relevant paid plan and the payment method on file will be charged. You can cancel before the trial ends to avoid being billed. Promotional offers are limited to one per customer and may not be combined with other offers."],
                     ['id' => 'cancellation', 'heading' => '9. Cancellation and downgrade', 'body' => "You can cancel or downgrade your paid plan at any time from your account settings. Cancellation takes effect at the end of the current billing period — you keep paid features until then and are not billed again. Downgrades may reduce limits and disable certain features immediately or at renewal. See the Refunds Policy for refund eligibility."],
                     ['id' => 'third-party-services', 'heading' => '10. Third-party services and integrations', 'body' => "The Service may integrate with third-party platforms (e.g. payment processors, email providers, analytics, social networks, CRMs). Your use of those services is governed by their own terms and privacy policies, and we are not responsible for their availability, accuracy or actions. You are responsible for the configuration of any integrations you enable."],
                     ['id' => 'disclaimers', 'heading' => '11. Disclaimers', 'body' => "The Service is provided \"as is\" and \"as available\" without warranties of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, non-infringement and accuracy. We do not warrant that the Service will be uninterrupted, error-free, secure or that defects will be corrected. Some jurisdictions do not allow the exclusion of certain warranties, in which case those exclusions may not apply to you."],
-                    ['id' => 'limitation-of-liability', 'heading' => '12. Limitation of liability', 'body' => "To the maximum extent permitted by law, in no event will 1INME, its affiliates, officers, directors, employees or agents be liable for any indirect, incidental, special, consequential, exemplary or punitive damages, or for any loss of profits, revenue, data, goodwill or other intangible losses, arising out of or in connection with your use of the Service. Our aggregate liability for any direct damages will not exceed the greater of (a) the amounts you paid us for the Service in the twelve months preceding the event giving rise to liability, or (b) USD 100."],
-                    ['id' => 'indemnification', 'heading' => '13. Indemnification', 'body' => "You agree to defend, indemnify and hold harmless 1INME and its affiliates from and against any claims, liabilities, damages, losses and expenses (including reasonable attorneys' fees) arising out of or in any way connected with: (a) your User Content; (b) your use of the Service; (c) your violation of these Terms; or (d) your violation of any third-party right, including intellectual property or privacy rights."],
+                    ['id' => 'limitation-of-liability', 'heading' => '12. Limitation of liability', 'body' => "To the maximum extent permitted by law, in no event will Sayzio, its affiliates, officers, directors, employees or agents be liable for any indirect, incidental, special, consequential, exemplary or punitive damages, or for any loss of profits, revenue, data, goodwill or other intangible losses, arising out of or in connection with your use of the Service. Our aggregate liability for any direct damages will not exceed the greater of (a) the amounts you paid us for the Service in the twelve months preceding the event giving rise to liability, or (b) USD 100."],
+                    ['id' => 'indemnification', 'heading' => '13. Indemnification', 'body' => "You agree to defend, indemnify and hold harmless Sayzio and its affiliates from and against any claims, liabilities, damages, losses and expenses (including reasonable attorneys' fees) arising out of or in any way connected with: (a) your User Content; (b) your use of the Service; (c) your violation of these Terms; or (d) your violation of any third-party right, including intellectual property or privacy rights."],
                     ['id' => 'termination', 'heading' => '14. Termination', 'body' => "You may close your account at any time from your settings. We may suspend or terminate your access to the Service, in whole or in part, if you breach these Terms, if required by law, or to protect the security or integrity of the Service or other users. We will give reasonable notice where appropriate. Upon termination, your right to use the Service stops, your published pages will no longer resolve, and your data will be deleted in accordance with our Privacy Policy and retention schedule."],
-                    ['id' => 'governing-law', 'heading' => '15. Governing law', 'body' => "These Terms and any dispute arising out of or in connection with them are governed by the laws of the jurisdiction in which 1INME is established, without regard to its conflict-of-law principles. Mandatory consumer protection laws of your country of residence are not affected."],
-                    ['id' => 'dispute-resolution', 'heading' => '16. Dispute resolution', 'body' => "Before filing any formal claim, you agree to first contact us at the address in Section 18 and try to resolve the dispute informally for at least 30 days. If we cannot resolve it, the dispute will be submitted to the exclusive jurisdiction of the courts of the place where 1INME is established, except where mandatory law assigns jurisdiction to another court (such as your local consumer court)."],
+                    ['id' => 'governing-law', 'heading' => '15. Governing law', 'body' => "These Terms and any dispute arising out of or in connection with them are governed by the laws of the jurisdiction in which Sayzio is established, without regard to its conflict-of-law principles. Mandatory consumer protection laws of your country of residence are not affected."],
+                    ['id' => 'dispute-resolution', 'heading' => '16. Dispute resolution', 'body' => "Before filing any formal claim, you agree to first contact us at the address in Section 18 and try to resolve the dispute informally for at least 30 days. If we cannot resolve it, the dispute will be submitted to the exclusive jurisdiction of the courts of the place where Sayzio is established, except where mandatory law assigns jurisdiction to another court (such as your local consumer court)."],
                     ['id' => 'changes-to-terms', 'heading' => '17. Changes to these terms', 'body' => "We may update these Terms from time to time. When we make material changes, we will notify you by email or inside the dashboard at least 14 days before they take effect, and we will update the \"Last updated\" date above. Your continued use of the Service after the changes take effect constitutes your acceptance of the updated Terms."],
                     ['id' => 'contact', 'heading' => '18. Contact us', 'body' => "If you have any questions about these Terms, please contact us through the [contact page](/contact)."],
                 ],
             ],
             'privacy' => [
                 'title' => 'Privacy Policy',
-                'meta_description' => 'How 1INME collects, uses, shares, retains and protects your personal data — and the rights you have over it.',
-                'intro' => 'This Privacy Policy explains what personal data 1INME collects when you use our website, dashboard, APIs and related services, why we collect it, how we use and share it, how long we keep it, and the rights you have. We are committed to handling your data lawfully, transparently and with care.',
+                'meta_description' => 'How Sayzio collects, uses, shares, retains and protects your personal data — and the rights you have over it.',
+                'intro' => 'This Privacy Policy explains what personal data Sayzio collects when you use our website, dashboard, APIs and related services, why we collect it, how we use and share it, how long we keep it, and the rights you have. We are committed to handling your data lawfully, transparently and with care.',
                 'last_updated_at' => $today,
                 'sections' => [
                     ['id' => 'data-we-collect', 'heading' => '1. What data we collect', 'body' => "We collect data in three broad categories:\n\n- **Account data** you give us — name, email address, phone number, password (hashed), billing address, profile handle and avatar.\n- **Profile and content data** — pages, blocks, links, files, images, forms, messages, contacts, posts and other content you create or upload.\n- **Payment data** — billing details handled by our payment processors. We never see or store full card numbers; we only retain the last four digits, brand and expiry for receipts.\n- **Usage and analytics data** — pages visited inside the dashboard, features used, clicks on your public pages, referrers and conversion events.\n- **Device, log and cookie data** — IP address, browser, operating system, language, time zone, device identifiers, and cookies/local storage entries necessary to keep you signed in and to remember preferences."],
@@ -337,8 +337,8 @@ class SitePagesContent
             ],
             'refunds' => [
                 'title' => 'Refunds Policy',
-                'meta_description' => 'How refunds work for 1INME paid plans and add-ons — eligibility, timing, exceptions and how to request one.',
-                'intro' => 'We want you to be happy with 1INME. This Refunds Policy explains when you can get a refund on a paid plan or add-on, how to request one, and how long the process takes.',
+                'meta_description' => 'How refunds work for Sayzio paid plans and add-ons — eligibility, timing, exceptions and how to request one.',
+                'intro' => 'We want you to be happy with Sayzio. This Refunds Policy explains when you can get a refund on a paid plan or add-on, how to request one, and how long the process takes.',
                 'last_updated_at' => $today,
                 'sections' => [
                     ['id' => 'eligibility-window', 'heading' => '1. Eligibility window', 'body' => "You may request a full refund within **7 days** of the original purchase of any new paid plan, no questions asked. The 7-day window starts on the date of the first successful charge for the plan. The refund covers the most recent charge only — earlier billing periods are not refundable. Renewals are governed by Section 3 below."],
@@ -353,30 +353,30 @@ class SitePagesContent
             ],
             'cookies' => [
                 'title' => 'Cookie Policy',
-                'meta_description' => 'What cookies and similar technologies 1INME uses, why we use them, and how you can control them.',
-                'intro' => 'This Cookie Policy explains what cookies and similar technologies 1INME uses on its website and dashboard, why we use them, and the choices you have. It complements our Privacy Policy.',
+                'meta_description' => 'What cookies and similar technologies Sayzio uses, why we use them, and how you can control them.',
+                'intro' => 'This Cookie Policy explains what cookies and similar technologies Sayzio uses on its website and dashboard, why we use them, and the choices you have. It complements our Privacy Policy.',
                 'last_updated_at' => $today,
                 'sections' => [
                     ['id' => 'what-are-cookies', 'heading' => '1. What cookies are', 'body' => "Cookies are small text files that a website places on your device to remember information about you between visits. We also use comparable technologies — local storage, session storage, web beacons and pixel tags — for similar purposes. In this policy we refer to all of these collectively as \"cookies\"."],
                     ['id' => 'categories', 'heading' => '2. Categories of cookies we use', 'body' => "We group cookies into the following categories:\n\n- **Strictly necessary** — required to operate the Service (sign-in, security, load balancing).\n- **Functional** — remember your preferences (theme, sidebar state, language) so the Service feels familiar.\n- **Analytics** — help us understand how the product is used so we can improve it. The data is aggregated and not used for advertising.\n- **Marketing** — used only on our marketing pages, and only with your consent where required, to measure the effectiveness of campaigns and to show relevant content."],
-                    ['id' => 'cookies-table', 'heading' => '3. Specific cookies we set', 'body' => "The list below describes the main cookies we use. The exact set may vary slightly over time as the product evolves. Format: **name** — purpose — duration — provider.\n\n- **XSRF-TOKEN** — protects forms against cross-site request forgery — session — 1INME.\n- **1inme_session** — keeps you signed in and remembers your workspace — 2 weeks — 1INME.\n- **theme** — remembers your light/dark theme preference — 1 year — 1INME.\n- **sidebar** — remembers whether the dashboard sidebar is collapsed — 1 year — 1INME.\n- **_pa** — first-party product analytics — 13 months — 1INME.\n- **cookie_consent** — remembers your cookie consent choice — 1 year — 1INME."],
-                    ['id' => 'pages-you-publish', 'heading' => '4. Cookies on the pages you publish', 'body' => "Pages you publish on 1INME set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers."],
+                    ['id' => 'cookies-table', 'heading' => '3. Specific cookies we set', 'body' => "The list below describes the main cookies we use. The exact set may vary slightly over time as the product evolves. Format: **name** — purpose — duration — provider.\n\n- **XSRF-TOKEN** — protects forms against cross-site request forgery — session — Sayzio.\n- **1inme_session** — keeps you signed in and remembers your workspace — 2 weeks — Sayzio.\n- **theme** — remembers your light/dark theme preference — 1 year — Sayzio.\n- **sidebar** — remembers whether the dashboard sidebar is collapsed — 1 year — Sayzio.\n- **_pa** — first-party product analytics — 13 months — Sayzio.\n- **cookie_consent** — remembers your cookie consent choice — 1 year — Sayzio."],
+                    ['id' => 'pages-you-publish', 'heading' => '4. Cookies on the pages you publish', 'body' => "Pages you publish on Sayzio set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers."],
                     ['id' => 'how-to-control', 'heading' => '5. How to control cookies', 'body' => "You can clear and block cookies at any time from your browser's settings. Most browsers also let you block third-party cookies by default. Disabling **strictly necessary** cookies will sign you out and break parts of the dashboard; disabling **functional** or **analytics** cookies is safe but may make the experience less convenient.\n\nUseful links for the most common browsers: [Chrome](https://support.google.com/chrome/answer/95647), [Firefox](https://support.mozilla.org/kb/cookies-information-websites-store-on-your-computer), [Safari](https://support.apple.com/guide/safari/manage-cookies-sfri11471/), [Edge](https://support.microsoft.com/microsoft-edge)."],
                     ['id' => 'changes', 'heading' => '6. Changes to this policy', 'body' => "We may update this Cookie Policy when we add or remove cookies, or when the law requires. We will update the \"Last updated\" date above when we do."],
-                    ['id' => 'contact', 'heading' => '7. Contact us', 'body' => "Questions about cookies on 1INME? Get in touch via the [contact page](/contact)."],
+                    ['id' => 'contact', 'heading' => '7. Contact us', 'body' => "Questions about cookies on Sayzio? Get in touch via the [contact page](/contact)."],
                 ],
             ],
             'gdpr' => [
                 'title' => 'GDPR Statement',
                 'meta_description' => 'Our compliance with the EU General Data Protection Regulation, including lawful bases, your rights, sub-processors and international data transfers.',
-                'intro' => 'This GDPR Statement explains how 1INME complies with the EU General Data Protection Regulation (GDPR) and the UK GDPR, including the lawful bases on which we process personal data, the rights you have as a data subject, our sub-processor arrangements and how you can contact us with any concerns.',
+                'intro' => 'This GDPR Statement explains how Sayzio complies with the EU General Data Protection Regulation (GDPR) and the UK GDPR, including the lawful bases on which we process personal data, the rights you have as a data subject, our sub-processor arrangements and how you can contact us with any concerns.',
                 'last_updated_at' => $today,
                 'sections' => [
-                    ['id' => 'who-we-are', 'heading' => '1. Who we are (controller information)', 'body' => "1INME is the legal entity operating the Service described in our Terms. For your account information, you are the data subject and 1INME is the data controller. For personal data of your visitors and contacts that you collect through 1INME (e.g. form submissions, leads, followers), you are the data controller and 1INME acts as your data processor under a Data Processing Agreement (\"DPA\")."],
+                    ['id' => 'who-we-are', 'heading' => '1. Who we are (controller information)', 'body' => "Sayzio is the legal entity operating the Service described in our Terms. For your account information, you are the data subject and Sayzio is the data controller. For personal data of your visitors and contacts that you collect through Sayzio (e.g. form submissions, leads, followers), you are the data controller and Sayzio acts as your data processor under a Data Processing Agreement (\"DPA\")."],
                     ['id' => 'lawful-bases', 'heading' => '2. Lawful bases', 'body' => "We process personal data on the following lawful bases under Article 6 GDPR:\n\n- **Performance of a contract (Art. 6(1)(b))** — to provide the Service to you.\n- **Legitimate interests (Art. 6(1)(f))** — to secure the Service, prevent abuse and improve our product, balanced against your rights and interests.\n- **Legal obligation (Art. 6(1)(c))** — to keep records required by tax, accounting and abuse-reporting laws.\n- **Consent (Art. 6(1)(a))** — for optional marketing communications and non-essential cookies, which you can withdraw at any time."],
-                    ['id' => 'data-subjects', 'heading' => '3. Data subjects and categories of data', 'body' => "We process personal data of:\n\n- 1INME account holders and the teammates they invite;\n- visitors to our marketing site and to public pages published on 1INME;\n- contacts captured by account holders through forms, follows and other engagement features.\n\nThe categories of personal data processed are described in our Privacy Policy."],
+                    ['id' => 'data-subjects', 'heading' => '3. Data subjects and categories of data', 'body' => "We process personal data of:\n\n- Sayzio account holders and the teammates they invite;\n- visitors to our marketing site and to public pages published on Sayzio;\n- contacts captured by account holders through forms, follows and other engagement features.\n\nThe categories of personal data processed are described in our Privacy Policy."],
                     ['id' => 'your-rights', 'heading' => '4. Your rights as a data subject', 'body' => "Under the GDPR you have the right to:\n\n- **Access** — request a copy of the personal data we hold about you (Art. 15).\n- **Rectification** — request that we correct inaccurate or incomplete data (Art. 16).\n- **Erasure** — request that we delete your data, subject to legal exceptions (Art. 17).\n- **Restriction** — request that we limit how we process your data (Art. 18).\n- **Portability** — receive your data in a structured, commonly used, machine-readable format (Art. 20).\n- **Objection** — object to processing based on legitimate interest, including profiling (Art. 21).\n- **Withdraw consent** — at any time, where consent is the lawful basis (Art. 7(3)).\n- **Lodge a complaint** with your supervisory authority (Art. 77)."],
-                    ['id' => 'how-to-exercise', 'heading' => '5. How to exercise your rights', 'body' => "Most rights are self-service from your account settings (export, delete, correct). For the rest, contact us through the [contact page](/contact) from the email address on your account, or — if the data we hold about you was collected by another 1INME customer (e.g. you submitted their form) — contact that customer directly. We respond to verified requests within 30 days, extendable by a further two months for complex requests."],
+                    ['id' => 'how-to-exercise', 'heading' => '5. How to exercise your rights', 'body' => "Most rights are self-service from your account settings (export, delete, correct). For the rest, contact us through the [contact page](/contact) from the email address on your account, or — if the data we hold about you was collected by another Sayzio customer (e.g. you submitted their form) — contact that customer directly. We respond to verified requests within 30 days, extendable by a further two months for complex requests."],
                     ['id' => 'transfers', 'heading' => '6. International transfers and SCCs', 'body' => "Where personal data is transferred outside the EU/EEA or the UK, we rely on the European Commission's Standard Contractual Clauses (Module 2 or 3 as applicable) and the UK International Data Transfer Addendum with each sub-processor. Where additional supplementary measures are required by local law, we apply them."],
                     ['id' => 'sub-processors', 'heading' => '7. Sub-processors', 'body' => "We engage trusted sub-processors to help us deliver the Service (cloud hosting, transactional email, SMS, payments, analytics, support tooling, error monitoring). Each sub-processor is bound by a written data-processing agreement that imposes obligations equivalent to those we accept under our DPA. The current list of sub-processors is available on request."],
                     ['id' => 'breach-notification', 'heading' => '8. Personal data breach notification', 'body' => "In the unlikely event of a personal data breach that is likely to result in a risk to the rights and freedoms of natural persons, we will notify the competent supervisory authority within **72 hours** of becoming aware of it, in accordance with Article 33 GDPR, and we will inform affected users without undue delay where required by Article 34."],
@@ -536,7 +536,7 @@ class SitePagesContent
                     ['heading' => 'One snippet, any site', 'body' => "Paste a one-line embed snippet on your WordPress, Shopify, Webflow, Squarespace or custom site and the AI widget pops up in the corner — ready to chat with every visitor."],
                     ['heading' => 'Looks like part of your brand', 'body' => 'Match colours, font, position, avatar and greeting so the widget feels native to your site. Light, dark and glass themes ship out of the box, with full CSS overrides for advanced theming.'],
                     ['heading' => 'Trained on your content', 'body' => "Point it at any number of pages, upload product sheets and PDFs, and the widget answers from your real material — no hallucinated specs, no off-topic chatter."],
-                    ['heading' => 'Captures leads in context', 'body' => "When a visitor shows intent, the widget asks for the right info, drops the contact straight into your 1INME inbox, and tags the thread with the page they were on so you have full context."],
+                    ['heading' => 'Captures leads in context', 'body' => "When a visitor shows intent, the widget asks for the right info, drops the contact straight into your Sayzio inbox, and tags the thread with the page they were on so you have full context."],
                     ['heading' => 'Multi-language out of the box', 'body' => "The widget detects the visitor's language and replies in kind — English, Spanish, French, German, Portuguese, Italian, Arabic, Hindi and more — so you can serve a global audience without spinning up extra setups."],
                     ['heading' => 'Privacy-first analytics', 'body' => "See conversation volume, top intents, conversion to lead and drop-off — without logging anything you don't need. Visitors can clear their session in one tap, and you control retention windows."],
                 ],
@@ -574,7 +574,7 @@ class SitePagesContent
         ];
         $extra = [
             'ai-chatbot' => [
-                ['q' => 'Where does the chatbot show up?', 'a' => 'It lives directly on your 1INME Link in Bio as a chat bubble visitors can open from any device — no separate page or login required.'],
+                ['q' => 'Where does the chatbot show up?', 'a' => 'It lives directly on your Sayzio Link in Bio as a chat bubble visitors can open from any device — no separate page or login required.'],
             ],
             'ai-agent' => [
                 ['q' => 'What kind of tasks can the agent run?', 'a' => 'Multi-step playbooks like qualifying inbound leads, drafting follow-up sequences, updating contact fields, and scheduling calls — chained together without you in the loop.'],
@@ -590,7 +590,7 @@ class SitePagesContent
     }
 
     /**
-     * The persona slugs that power the dedicated "1INME for X" use-case
+     * The persona slugs that power the dedicated "Sayzio for X" use-case
      * landing pages mounted at /for/{persona}. The SitePage row for each
      * persona is stored under "for-{slug}" (see useCasesDefault) so it
      * never collides with other page slugs like "creators-feed".
@@ -680,7 +680,7 @@ class SitePagesContent
     }
 
     /**
-     * Editable default content for each "1INME for X" landing page. Keyed
+     * Editable default content for each "Sayzio for X" landing page. Keyed
      * by the SitePage slug ("for-{persona}") so the seeder and migration
      * can iterate it. Each entry follows the standard SitePage shape
      * (title, meta_description, sections, cta_label, cta_url); the hero
@@ -690,21 +690,21 @@ class SitePagesContent
     {
         return [
             'for-creators' => [
-                'title' => '1INME for Creators',
+                'title' => 'Sayzio for Creators',
                 'meta_description' => 'The link-in-bio built for creators — a drag-and-drop page, live audience analytics, a followers feed, and built-in ways to sell, tip and grow. Free forever.',
                 'cta_label' => 'Start my creator page free',
                 'cta_url' => '/register',
                 'sections' => [
-                    ['heading' => 'One link for every platform', 'body' => "Drop a single 1INME link in your Instagram, TikTok, YouTube and X bios. Send fans to your latest video, your shop, your newsletter and your DMs from one beautiful page — and repoint it the moment your priorities change."],
+                    ['heading' => 'One link for every platform', 'body' => "Drop a single Sayzio link in your Instagram, TikTok, YouTube and X bios. Send fans to your latest video, your shop, your newsletter and your DMs from one beautiful page — and repoint it the moment your priorities change."],
                     ['heading' => 'Built to convert, not just list links', 'body' => "Stack blocks for video, music, products, tips, donations and forms. Pin your latest drop to the top, schedule blocks to appear for a launch, and let the Performance Coach flag the dead links quietly killing your clicks."],
                     ['heading' => 'Own your audience', 'body' => "Turn anonymous visitors into followers and contacts you actually control — no algorithm in the middle. Post updates to your followers feed, capture emails with a form, and reach everyone again whenever you want."],
-                    ['heading' => 'Get paid for what you make', 'body' => "Sell digital products, take tips, accept donations and link your store right inside your page. Money goes straight to you — 1INME takes a 0% platform fee, you only ever pay your processor."],
+                    ['heading' => 'Get paid for what you make', 'body' => "Sell digital products, take tips, accept donations and link your store right inside your page. Money goes straight to you — Sayzio takes a 0% platform fee, you only ever pay your processor."],
                     ['heading' => 'See what actually lands', 'body' => "Live analytics show which posts, links and platforms drive real engagement, with a map of where your fans are. Walk into every brand deal with proof, not a hunch."],
                     ['heading' => 'Free forever, upgrade when you blow up', 'body' => "Start on a genuinely useful free plan with no credit card. When your audience takes off, unlock custom domains, deeper analytics, and the AI suite that answers fans for you 24/7."],
                 ],
             ],
             'for-agencies' => [
-                'title' => '1INME for Agencies',
+                'title' => 'Sayzio for Agencies',
                 'meta_description' => 'Manage every client from one dashboard — isolated workspaces, granular roles, per-link analytics and white-glove reporting. The link platform agencies run on.',
                 'cta_label' => 'Set up my agency workspace',
                 'cta_url' => '/register',
@@ -714,11 +714,11 @@ class SitePagesContent
                     ['heading' => 'Reporting clients actually read', 'body' => "Per-link and per-workspace analytics make monthly reporting trivial. Export clean CSVs, show a live map of clicks, and prove the value of every campaign without stitching together five tools."],
                     ['heading' => 'Onboard a client in minutes', 'body' => "One-click social integrations, ready-made templates and bulk link tools get a new client live the same afternoon. Expired tokens reconnect themselves, so you spend time on strategy, not plumbing."],
                     ['heading' => 'Bill the way you work', 'body' => "Each workspace carries its own plan, invoices and payment method, so you can bill clients separately or roll everything into one. Upgrade only the workspaces that need more."],
-                    ['heading' => 'An API to fit your stack', 'body' => "A clean REST API and webhooks for every important event let you wire 1INME into the dashboards and automations your agency already runs."],
+                    ['heading' => 'An API to fit your stack', 'body' => "A clean REST API and webhooks for every important event let you wire Sayzio into the dashboards and automations your agency already runs."],
                 ],
             ],
             'for-coaches' => [
-                'title' => '1INME for Coaches',
+                'title' => 'Sayzio for Coaches',
                 'meta_description' => 'Turn your bio into a booking machine — capture leads with forms, share booking links, and follow up automatically. The link-in-bio for coaches and consultants.',
                 'cta_label' => 'Build my coaching page free',
                 'cta_url' => '/register',
@@ -727,17 +727,17 @@ class SitePagesContent
                     ['heading' => 'Capture every lead', 'body' => "Embed forms with conditional logic right on your page — discovery calls, intake questionnaires, waitlists. Every submission lands in your contacts, tagged and ready, so no enquiry slips through the cracks."],
                     ['heading' => 'Follow up without the busywork', 'body' => "Send email and SMS follow-ups to the right segment, schedule nurture sequences, and reach past clients when a new cohort opens — all from the same place your contacts already live."],
                     ['heading' => 'Look like the expert you are', 'body' => "Add testimonials, results, an about block and your best content so first-time visitors trust you fast. Light and dark themes keep it polished on every device."],
-                    ['heading' => 'Sell programs and sessions', 'body' => "Offer paid sessions, packages and digital resources straight from your page. Take payment up front, with 1INME charging a 0% platform fee — you only pay your processor."],
+                    ['heading' => 'Sell programs and sessions', 'body' => "Offer paid sessions, packages and digital resources straight from your page. Take payment up front, with Sayzio charging a 0% platform fee — you only pay your processor."],
                     ['heading' => 'Let AI handle the first reply', 'body' => "On paid plans, an AI chatbot trained on your services answers common questions, qualifies leads and books calls for you — even while you're in a session."],
                 ],
             ],
             'for-musicians' => [
-                'title' => '1INME for Musicians',
+                'title' => 'Sayzio for Musicians',
                 'meta_description' => 'Send fans to every platform with one smart link — stream the new single, watch the video, grab tickets and join the list. The link-in-bio built for artists.',
                 'cta_label' => 'Make my artist link free',
                 'cta_url' => '/register',
                 'sections' => [
-                    ['heading' => 'Every platform, one smart link', 'body' => "Stop choosing which streaming service to link. One 1INME page sends each fan to Spotify, Apple Music, YouTube, SoundCloud and the rest — plus your store, your tour dates and your socials."],
+                    ['heading' => 'Every platform, one smart link', 'body' => "Stop choosing which streaming service to link. One Sayzio page sends each fan to Spotify, Apple Music, YouTube, SoundCloud and the rest — plus your store, your tour dates and your socials."],
                     ['heading' => 'Drop releases on cue', 'body' => "Schedule blocks to go live the exact minute your single, album or video lands — hands-free, across every time zone. Pin the new release to the top and let older drops slide down."],
                     ['heading' => 'Sell out the room', 'body' => "List shows with RSVPs, ticket links and automatic reminders so fans actually turn up. Sell merch, vinyl and digital downloads from the same page."],
                     ['heading' => 'Turn listeners into a fanbase', 'body' => "Collect followers and emails you own, post updates to your feed, and message everyone when the next drop is coming — no algorithm deciding who hears about it."],
@@ -746,13 +746,13 @@ class SitePagesContent
                 ],
             ],
             'for-small-business' => [
-                'title' => '1INME for Small Business',
+                'title' => 'Sayzio for Small Business',
                 'meta_description' => 'Your whole storefront behind one link — show products, take payments and bookings, capture leads and collect reviews. The link-in-bio for small businesses.',
                 'cta_label' => 'Create my business page free',
                 'cta_url' => '/register',
                 'sections' => [
                     ['heading' => 'A storefront without the website headache', 'body' => "Get a clean, professional page with your products, services, hours, location and contact details in minutes — no developers, no hosting bills, no monthly maintenance."],
-                    ['heading' => 'Take orders, payments and bookings', 'body' => "Sell products, accept payments and tips, and let customers book appointments right from your page. 1INME charges a 0% platform fee, so you only ever pay your processor."],
+                    ['heading' => 'Take orders, payments and bookings', 'body' => "Sell products, accept payments and tips, and let customers book appointments right from your page. Sayzio charges a 0% platform fee, so you only ever pay your processor."],
                     ['heading' => 'Bridge offline to online', 'body' => "Put a dynamic QR code on your window, menu, packaging or flyers. Because the destination is editable, the same printed code can point to a new offer any time — no reprinting."],
                     ['heading' => 'Capture and keep customers', 'body' => "Collect emails and phone numbers with forms, store them in your contacts, and send offers and updates with email and SMS broadcasts to bring people back."],
                     ['heading' => 'Build trust fast', 'body' => "Show reviews, testimonials and live social proof so first-time visitors feel confident buying or booking with you."],
@@ -778,24 +778,24 @@ class SitePagesContent
         ];
         $extra = [
             'creators' => [
-                ['q' => 'How do I get paid?', 'a' => 'Sell products, take tips and accept donations directly from your page. 1INME charges a 0% platform fee — payments go straight to you through your connected processor, so you only pay their fee.'],
-                ['q' => 'Can I keep my followers if I leave a platform?', 'a' => 'Yes. Followers and email contacts you capture on 1INME are yours — you can post to them and export them any time, no algorithm in the middle.'],
+                ['q' => 'How do I get paid?', 'a' => 'Sell products, take tips and accept donations directly from your page. Sayzio charges a 0% platform fee — payments go straight to you through your connected processor, so you only pay their fee.'],
+                ['q' => 'Can I keep my followers if I leave a platform?', 'a' => 'Yes. Followers and email contacts you capture on Sayzio are yours — you can post to them and export them any time, no algorithm in the middle.'],
             ],
             'agencies' => [
                 ['q' => 'Can I keep clients separated?', 'a' => 'Yes. Each client gets an isolated workspace with its own pages, analytics, contacts and billing. Teammates only see the workspaces you add them to.'],
                 ['q' => 'Can I bill clients separately?', 'a' => 'Yes. Every workspace carries its own plan, invoices and payment method, so you can bill each client directly or consolidate — your call.'],
-                ['q' => 'Is there an API for our own tooling?', 'a' => 'Yes. A clean REST API plus webhooks for every important event let you plug 1INME into the dashboards and automations your agency already runs.'],
+                ['q' => 'Is there an API for our own tooling?', 'a' => 'Yes. A clean REST API plus webhooks for every important event let you plug Sayzio into the dashboards and automations your agency already runs.'],
             ],
             'coaches' => [
                 ['q' => 'Can clients book a call from my page?', 'a' => 'Yes. Add a booking link and visitors can grab a real slot straight from your page. Forms capture intake details into your contacts so you arrive prepared.'],
-                ['q' => 'Can I follow up automatically?', 'a' => 'Yes. Send email and SMS follow-ups to segmented contacts and schedule nurture sequences without leaving 1INME.'],
+                ['q' => 'Can I follow up automatically?', 'a' => 'Yes. Send email and SMS follow-ups to segmented contacts and schedule nurture sequences without leaving Sayzio.'],
             ],
             'musicians' => [
                 ['q' => 'Does it link to every streaming service?', 'a' => 'Yes. Add Spotify, Apple Music, YouTube, SoundCloud, Tidal and more so each fan lands on the platform they already use — from one link.'],
                 ['q' => 'Can I schedule a release to go live automatically?', 'a' => 'Yes. Schedule blocks to appear at the exact minute your single, album or video drops, across every time zone, hands-free.'],
             ],
             'small-business' => [
-                ['q' => 'Can customers pay or book directly?', 'a' => 'Yes. Sell products, take payments and tips, and let customers book appointments right from your page. 1INME charges a 0% platform fee — you only pay your processor.'],
+                ['q' => 'Can customers pay or book directly?', 'a' => 'Yes. Sell products, take payments and tips, and let customers book appointments right from your page. Sayzio charges a 0% platform fee — you only pay your processor.'],
                 ['q' => 'Can I reuse a printed QR code?', 'a' => 'Yes. Your QR code is dynamic — point it at a new offer or page any time without reprinting the flyer, menu or packaging.'],
             ],
         ];
@@ -908,7 +908,7 @@ class SitePagesContent
             'id' => 'ai-suite',
             'icon' => 'fa-robot',
             'heading' => 'AI suite',
-            'intro' => 'A set of AI products that plug into your 1INME — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.',
+            'intro' => 'A set of AI products that plug into your Sayzio — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.',
             'features' => [
                 ['name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your Link in Bio that answers in your voice, captures leads and hands off to a human when needed.', 'link' => '/ai-chatbot'],
                 ['name' => 'AI Agent', 'description' => 'A multi-step agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own.', 'link' => '/ai-agent'],
@@ -1106,7 +1106,7 @@ class SitePagesContent
                 'id' => 'inbox',
                 'icon' => 'fa-inbox',
                 'heading' => 'Inbox & messaging',
-                'intro' => 'Every conversation that reaches you through 1INME lands in one place so nothing slips through the cracks.',
+                'intro' => 'Every conversation that reaches you through Sayzio lands in one place so nothing slips through the cracks.',
                 'features' => [
                     ['name' => 'Unified inbox', 'description' => 'A single inbox that pulls together every visitor message, form reply, and follow-up across all your links.'],
                     ['name' => 'Direct messages from visitors', 'description' => 'Visitors can message you straight from your Link in Bio and you reply right inside the inbox.'],
@@ -1163,7 +1163,7 @@ class SitePagesContent
                 'id' => 'vault',
                 'icon' => 'fa-vault',
                 'heading' => 'Vault',
-                'intro' => 'Store sensitive client information securely inside 1INME instead of scattering it across notes apps and chats.',
+                'intro' => 'Store sensitive client information securely inside Sayzio instead of scattering it across notes apps and chats.',
                 'features' => [
                     ['name' => 'Encrypted credential storage', 'description' => 'Save logins, API keys, and secret notes encrypted at rest so only authorised members can decrypt them.'],
                     ['name' => 'Audit logging on reveal', 'description' => 'Every time a credential is revealed it gets logged with the user and timestamp for full accountability.'],
@@ -1175,7 +1175,7 @@ class SitePagesContent
                 'id' => 'kanban',
                 'icon' => 'fa-clipboard-check',
                 'heading' => 'Kanban task boards',
-                'intro' => 'Manage work without leaving 1INME using flexible boards that fit how your team actually operates.',
+                'intro' => 'Manage work without leaving Sayzio using flexible boards that fit how your team actually operates.',
                 'features' => [
                     ['name' => 'Boards with columns', 'description' => 'Spin up boards with custom columns to track work through any stage you define.'],
                     ['name' => 'Subtasks', 'description' => 'Break a card into subtasks and tick them off as the work progresses.'],
@@ -1194,7 +1194,7 @@ class SitePagesContent
                     ['name' => 'Contacts address book', 'description' => 'A central directory of every person you talk to, with rich profile details.'],
                     ['name' => 'Import contacts', 'description' => "Bring contacts in from CSV files so you don't have to retype anything."],
                     ['name' => 'Export contacts', 'description' => 'Download your full contact list as CSV for backups or other tools.'],
-                    ['name' => 'Built-in dialer', 'description' => 'Tap a contact to call them directly from inside 1INME without copy-pasting numbers.'],
+                    ['name' => 'Built-in dialer', 'description' => 'Tap a contact to call them directly from inside Sayzio without copy-pasting numbers.'],
                     ['name' => 'Google Contacts sync', 'description' => 'Two-way sync with your Google Contacts so changes flow between both sides automatically.'],
                 ],
             ],
@@ -1204,7 +1204,7 @@ class SitePagesContent
                 'heading' => 'Calendar sync',
                 'intro' => 'Keep your real calendars in the loop whenever someone books with you or RSVPs to your event link.',
                 'features' => [
-                    ['name' => 'Google Calendar sync', 'description' => 'Connect a Google Calendar so 1INME events appear and update in your day-to-day schedule.'],
+                    ['name' => 'Google Calendar sync', 'description' => 'Connect a Google Calendar so Sayzio events appear and update in your day-to-day schedule.'],
                     ['name' => 'Microsoft / Outlook sync', 'description' => 'Sync with Microsoft 365 or Outlook calendars for full visibility on the Microsoft side.'],
                     ['name' => 'CalDAV sync', 'description' => 'Use CalDAV to sync with Apple Calendar, Fastmail, and other standards-based calendars.'],
                     ['name' => 'RSVPs for event links', 'description' => 'Create event links visitors can RSVP to, with their response captured against the event.'],
@@ -1239,7 +1239,7 @@ class SitePagesContent
                 'id' => 'referrals',
                 'icon' => 'fa-gift',
                 'heading' => 'Referral program',
-                'intro' => 'Reward the people who tell their network about 1INME with a built-in referral system.',
+                'intro' => 'Reward the people who tell their network about Sayzio with a built-in referral system.',
                 'features' => [
                     ['name' => 'Referral tracking', 'description' => 'Every signup that comes from your referral link is tracked back to you automatically.'],
                     ['name' => 'Custom referral codes', 'description' => "Pick a memorable referral code instead of a long URL so it's easy to share by voice or in a story."],
@@ -1249,11 +1249,11 @@ class SitePagesContent
                 'id' => 'public-surfaces',
                 'icon' => 'fa-globe',
                 'heading' => 'Public marketing surfaces',
-                'intro' => 'Discoverability features that bring new visitors to creators on 1INME without extra work.',
+                'intro' => 'Discoverability features that bring new visitors to creators on Sayzio without extra work.',
                 'features' => [
                     ['name' => 'Discovery directory', 'description' => 'A public directory where creators with opted-in profiles can be found by category and interest.'],
                     ['name' => 'Creators Feed page', 'description' => 'A site-wide feed of recent creator posts that surfaces fresh activity to new visitors.'],
-                    ['name' => 'API documentation page', 'description' => 'Public API docs that show developers exactly how to build on top of the 1INME platform.'],
+                    ['name' => 'API documentation page', 'description' => 'Public API docs that show developers exactly how to build on top of the Sayzio platform.'],
                 ],
             ],
             [
@@ -1375,8 +1375,8 @@ class SitePagesContent
     public static function aboutSectionsDefault(): array
     {
         return [
-            ['heading' => 'About 1INME', 'body' => "We're building the simplest way for creators, freelancers and small businesses to turn one link into a complete online presence — Link in Bio pages, short links, QR codes, analytics, and more, all in one tidy place."],
-            ['heading' => 'Our story', 'body' => "1INME started in 2023 in a tiny workspace in Hyderabad. Our founder kept watching small businesses and creators juggle five different tools to do one simple thing: share their work and capture leads. We thought there was a better way.\n\nWe shipped the first version of 1INME — just Link in Bio pages and short links — to a handful of friends. They loved it, broke it, told us what was missing, and we kept iterating. Today, thousands of creators across the world use 1INME to run their online presence from one URL."],
+            ['heading' => 'About Sayzio', 'body' => "We're building the simplest way for creators, freelancers and small businesses to turn one link into a complete online presence — Link in Bio pages, short links, QR codes, analytics, and more, all in one tidy place."],
+            ['heading' => 'Our story', 'body' => "Sayzio started in 2023 in a tiny workspace in Hyderabad. Our founder kept watching small businesses and creators juggle five different tools to do one simple thing: share their work and capture leads. We thought there was a better way.\n\nWe shipped the first version of Sayzio — just Link in Bio pages and short links — to a handful of friends. They loved it, broke it, told us what was missing, and we kept iterating. Today, thousands of creators across the world use Sayzio to run their online presence from one URL."],
             ['heading' => 'What we believe', 'body' => "Software should respect your time and your audience. We don't sell your data, we don't bolt on features that don't earn their keep, and we ship every week. If something's broken or unclear, our team is one message away."],
         ];
     }
@@ -1393,8 +1393,8 @@ class SitePagesContent
 
     /**
      * Default "About EEFind" parent-company block for the public /about
-     * page. 1INME is a brand/product of EEFIND PVT LTD (EEFind Private
-     * Limited); this section tells visitors who builds 1INME using the
+     * page. Sayzio is a brand/product of EEFIND PVT LTD (EEFind Private
+     * Limited); this section tells visitors who builds Sayzio using the
      * real company details sourced from eefind.com. Editable like every
      * other /about group; all copy lives here as the single source of
      * truth for the literal fallbacks the Blade view uses.
@@ -1404,7 +1404,7 @@ class SitePagesContent
         return [
             'eyebrow'     => 'Part of EEFind',
             'heading'     => 'Built by EEFind Private Limited',
-            'body'        => '1INME is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy 1INME is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
+            'body'        => 'Sayzio is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy Sayzio is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
             'stats' => [
                 ['value' => '4000', 'suffix' => '+', 'label' => 'Products'],
                 ['value' => '2000', 'suffix' => '+', 'label' => 'Merchants'],
@@ -1431,7 +1431,7 @@ class SitePagesContent
                 'badge_label'      => 'About',
                 'badge_icon'       => 'fa-heart',
                 'side_image'       => '',
-                'side_image_alt'   => 'The 1INME studio in Hyderabad',
+                'side_image_alt'   => 'The Sayzio studio in Hyderabad',
                 'location_title'   => 'Hyderabad · India',
                 'location_subtitle'=> 'Remote-friendly',
                 'location_icon'    => 'fa-location-dot',
@@ -1453,8 +1453,8 @@ class SitePagesContent
             ],
             'story_images' => [
                 'office'    => ['url' => '', 'alt' => 'Our office'],
-                'values'    => ['url' => '', 'alt' => 'Working at 1INME'],
-                'team_band' => ['url' => '', 'alt' => 'The 1INME team'],
+                'values'    => ['url' => '', 'alt' => 'Working at Sayzio'],
+                'team_band' => ['url' => '', 'alt' => 'The Sayzio team'],
             ],
             'section_titles' => [
                 'founder'            => 'Meet the founder',
@@ -1466,7 +1466,7 @@ class SitePagesContent
             'cta' => [
                 'heading'         => 'Want to build with us?',
                 'body'            => 'Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.',
-                'primary_label'   => 'Try 1INME free',
+                'primary_label'   => 'Try Sayzio free',
                 'primary_url'     => '',
                 'secondary_label' => 'Say hello',
                 'secondary_url'   => '',
@@ -1475,17 +1475,17 @@ class SitePagesContent
                 'name'   => 'Sandeep Sana',
                 'role'   => 'Founder & CEO',
                 'photo'  => '',
-                'bio'    => "Guided by this belief, Sandeep Sana, Founder & CEO of 1INME, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of 1INME, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
+                'bio'    => "Guided by this belief, Sandeep Sana, Founder & CEO of Sayzio, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of Sayzio, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
                 'links'  => ['twitter' => '', 'linkedin' => ''],
             ],
             'eefind' => self::aboutEefindDefault(),
             'milestones' => [
-                ['date' => '2023-04', 'title' => 'Idea on a whiteboard', 'description' => "An offhand conversation about how messy social bios are turns into the first sketch of 1INME."],
+                ['date' => '2023-04', 'title' => 'Idea on a whiteboard', 'description' => "An offhand conversation about how messy social bios are turns into the first sketch of Sayzio."],
                 ['date' => '2023-09', 'title' => 'First public beta',    'description' => "We open the doors to a handful of friends and creators. Link in Bio pages and short links only — but it works."],
-                ['date' => '2024-03', 'title' => 'Crossed 10,000 users', 'description' => "Word spreads. Creators across India and South-East Asia start moving their link-in-bio to 1INME."],
-                ['date' => '2024-11', 'title' => 'Analytics & QR codes', 'description' => "Live analytics, the Performance Coach and dynamic QR codes ship — turning 1INME into a real growth tool."],
+                ['date' => '2024-03', 'title' => 'Crossed 10,000 users', 'description' => "Word spreads. Creators across India and South-East Asia start moving their link-in-bio to Sayzio."],
+                ['date' => '2024-11', 'title' => 'Analytics & QR codes', 'description' => "Live analytics, the Performance Coach and dynamic QR codes ship — turning Sayzio into a real growth tool."],
                 ['date' => '2025-06', 'title' => 'Workspaces for teams', 'description' => "Agencies and small teams get proper workspaces, roles and per-workspace billing."],
-                ['date' => '2026-02', 'title' => 'Hello, world',         'description' => "1INME crosses 100k creators across more than 60 countries. We're just getting started."],
+                ['date' => '2026-02', 'title' => 'Hello, world',         'description' => "Sayzio crosses 100k creators across more than 60 countries. We're just getting started."],
             ],
         ];
     }
@@ -1508,7 +1508,7 @@ class SitePagesContent
     public static function contactExtraDefault(): array
     {
         return [
-            'address' => "1INME Technologies Pvt Ltd\n4th Floor, Cyber Heights\nHITEC City, Madhapur\nHyderabad 500081, India",
+            'address' => "Sayzio Technologies Pvt Ltd\n4th Floor, Cyber Heights\nHITEC City, Madhapur\nHyderabad 500081, India",
             'email'   => 'hello@1inme.example',
             'phone'   => '+91 40 1234 5678',
             'hours'   => "Mon–Fri · 10:00 – 18:00 IST\nClosed on public holidays",
@@ -1538,7 +1538,7 @@ class SitePagesContent
                 'availability_icon'  => '',
                 'languages'          => 'EN · हिन्दी',
                 'side_image'         => '/images/marketing/contact/hero.png',
-                'side_image_alt'     => 'The 1INME support team',
+                'side_image_alt'     => 'The Sayzio support team',
                 'floating_card' => [
                     'title'    => 'Friendly humans',
                     'subtitle' => 'Behind every reply',
@@ -1964,7 +1964,7 @@ class SitePagesContent
     {
         return [
             [
-                'quote' => '1INME replaced three different tools for me. The drag-and-drop Link in Bio and the live analytics map are honestly addictive.',
+                'quote' => 'Sayzio replaced three different tools for me. The drag-and-drop Link in Bio and the live analytics map are honestly addictive.',
                 'name'  => 'Maya R.',
                 'role'  => 'Content creator · 240k followers',
                 'photo' => '',
@@ -2008,8 +2008,8 @@ class SitePagesContent
     }
 
     /**
-     * Default "Why 1INME" comparison rows shown on the landing page just
-     * before pricing. Each row pairs a feature label with what 1INME offers
+     * Default "Why Sayzio" comparison rows shown on the landing page just
+     * before pricing. Each row pairs a feature label with what Sayzio offers
      * versus a typical competitor.
      */
     public static function whyComparisonDefault(): array
@@ -2065,7 +2065,7 @@ class SitePagesContent
                 ['Can I have more than one Link in Bio page?', 'Yes — make as many as your plan allows. Use one per brand, project or campaign and switch between them in a click.'],
                 ['Will my page work on mobile?', 'Yes. Every page is mobile-first, with optional desktop-tuned layouts and per-block visibility for either device.'],
                 ['Can I preview my page before publishing?', 'Yes — the live preview updates as you edit, and an unpublished page is only visible to you and your team.'],
-                ['Is 1INME suitable for non-creators (small business, freelancers)?', 'Absolutely — it is designed for creators, freelancers, agencies, restaurants, coaches, networking pros and small businesses alike.'],
+                ['Is Sayzio suitable for non-creators (small business, freelancers)?', 'Absolutely — it is designed for creators, freelancers, agencies, restaurants, coaches, networking pros and small businesses alike.'],
             ],
             'Link in Bio' => [
                 ['What blocks can I add to a Link in Bio?', 'Text, images, video, audio, products, donation buttons, social icons, embeds, forms, NFTs, calendars, maps, lead magnets and more.'],
@@ -2175,16 +2175,16 @@ class SitePagesContent
                 ['Do you integrate with Stripe?', 'Yes — connect your Stripe account to take payments for products, tips, donations and paid links.'],
                 ['Do you integrate with Mailchimp / Klaviyo?', 'Yes — sync new contacts and form submissions into either platform with a one-click integration.'],
                 ['Do you integrate with Google Sheets?', 'Yes — append form submissions or new contacts to a Google Sheet in real time.'],
-                ['Is there a Zapier app?', 'Yes — trigger Zaps from any 1INME event and call any 1INME action from a Zap.'],
+                ['Is there a Zapier app?', 'Yes — trigger Zaps from any Sayzio event and call any Sayzio action from a Zap.'],
                 ['Can I add a Facebook or Google Analytics pixel?', 'Yes — drop your pixel ID in once and it loads on every page or short link in the workspace.'],
                 ['Do you support webhooks for clicks and form submissions?', 'Yes — point a URL at any of our webhook events and receive a signed payload within seconds of the event.'],
-                ['Can I use 1INME with my CRM?', 'Yes — sync contacts to HubSpot, Pipedrive or Salesforce via native integrations or Zapier.'],
+                ['Can I use Sayzio with my CRM?', 'Yes — sync contacts to HubSpot, Pipedrive or Salesforce via native integrations or Zapier.'],
                 ['Can I disable integrations per workspace?', 'Yes — each workspace has its own integration settings and credentials.'],
             ],
             'Audience, events & referrals' => [
                 ['How do followers receive my updates?', 'Followers get a clean daily digest email with thumbnails of your latest posts. They can also opt into push notifications and see fresh content in your live creators-feed entries.'],
                 ['Can I export my follower list?', 'Yes — paid plans get a Top Followers CSV export with engagement stats so you can run outreach, sponsorships, gifting or paid ads lookalikes.'],
-                ['How is this different from a newsletter?', 'A newsletter is one channel; followers on 1INME flow across the digest email, your live page, the directory, the creators feed and any social blocks at once — all from a single follow.'],
+                ['How is this different from a newsletter?', 'A newsletter is one channel; followers on Sayzio flow across the digest email, your live page, the directory, the creators feed and any social blocks at once — all from a single follow.'],
                 ['Can I schedule blocks to publish later?', 'Yes — every block can have a publish-at and an expire-at date and time, in your timezone, so seasonal content swaps in and out automatically.'],
                 ['Do you send reminders before an event?', 'Yes — anyone who RSVPs to an event block gets an automatic reminder before it starts, plus a one-click "add to calendar" link.'],
                 ['Can I limit how many people RSVP?', 'Yes — set a capacity cap and any further RSVPs roll onto a waitlist that promotes automatically when a spot opens.'],

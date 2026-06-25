@@ -14,12 +14,12 @@ use Illuminate\Support\Str;
 /**
  * Bidirectional sync engine.
  *
- * Pull (external → 1INME): mirrors every event in the lookahead window as a
+ * Pull (external → Sayzio): mirrors every event in the lookahead window as a
  * type=ics Link with IcsData. Mirrored links are tagged via calendar_event_mirror
  * so subsequent updates/deletes propagate. Users may "detach" a mirrored link
  * to stop overwriting it.
  *
- * Push (1INME → external): created on demand by IcsLinkController when the user
+ * Push (Sayzio → external): created on demand by IcsLinkController when the user
  * picks a "save to my calendar" account on save.
  */
 class CalendarSyncService

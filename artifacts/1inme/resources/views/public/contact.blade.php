@@ -58,7 +58,7 @@
     $heroAvailabilityIcon  = trim((string) ($hero['availability_icon'] ?? ''));
     $heroLanguages         = trim((string) ($hero['languages']         ?? 'EN · हिन्दी'));
     $heroSideImage         = $or($hero['side_image']         ?? '', asset('images/marketing/contact/hero.png'));
-    $heroSideImageAlt      = $or($hero['side_image_alt']     ?? '', 'The 1INME support team');
+    $heroSideImageAlt      = $or($hero['side_image_alt']     ?? '', 'The Sayzio support team');
     $floatingCardTitle     = trim((string) ($floatingCard['title']    ?? 'Friendly humans'));
     $floatingCardSubtitle  = trim((string) ($floatingCard['subtitle'] ?? 'Behind every reply'));
     $floatingCardIcon      = $or($floatingCard['icon']        ?? '', 'fa-headset');
@@ -543,13 +543,13 @@
             popupAnchor: [0, -42]
         });
 
-        var marker = L.marker([lat, lng], { icon: icon, title: label || '1INME' }).addTo(map);
+        var marker = L.marker([lat, lng], { icon: icon, title: label || 'Sayzio' }).addTo(map);
         if (label) {
             var safeLabel = label.replace(/[<>&]/g, function(c){
                 return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];
             });
             marker.bindPopup(
-                '<span class="bp-eyebrow"><i class="fas fa-location-dot"></i> 1INME</span>' +
+                '<span class="bp-eyebrow"><i class="fas fa-location-dot"></i> Sayzio</span>' +
                 '<strong>' + safeLabel + '</strong>',
                 { className: 'brand-popup' }
             ).openPopup();

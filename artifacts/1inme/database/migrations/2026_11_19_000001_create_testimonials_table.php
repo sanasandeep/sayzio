@@ -37,7 +37,7 @@ return new class extends Migration {
 
         // 10 testimonials for the top marquee row
         $top = [
-            ['1INME made it stupidly easy to put my podcast, shop and templates on one page.', 'Jane Doe', 'Creator', '#1bd4d9'],
+            ['Sayzio made it stupidly easy to put my podcast, shop and templates on one page.', 'Jane Doe', 'Creator', '#1bd4d9'],
             ['The QR codes paid for the plan in a week — I changed the destination 3 times without reprinting.', 'Marco P.', 'Café owner', '#e94e8c'],
             ['Finally I can see where my audience actually lives. Game changer.', 'Aisha K.', 'Travel writer', '#ffc845'],
             ['The Performance Coach is like having a growth marketer on speed-dial.', 'Devon S.', 'Indie founder', '#7c3aed'],
@@ -66,7 +66,7 @@ return new class extends Migration {
             ['Coach told me which CTA to swap and I closed two sponsorships that week.', 'Theo R.', 'Cycling creator', '#e94e8c'],
             ['Built-in analytics + revenue in one dashboard means no more tab juggling.', 'Olivia P.', 'Newsletter writer', '#ffc845'],
             ['Their tip jar takes Stripe AND PayPal. Took me 2 minutes to set up.', 'Ben H.', 'Indie musician', '#ff8a3c'],
-            ['I run my agency’s lead-gen entirely from one 1INME page.', 'Carla S.', 'Agency owner', '#7c3aed'],
+            ['I run my agency’s lead-gen entirely from one Sayzio page.', 'Carla S.', 'Agency owner', '#7c3aed'],
             ['File sales (PDFs + photo packs) just… work. No Gumroad fees.', 'Sasha I.', 'Photographer', '#1bd4d9'],
             ['Their NFC dynamic redirect is the killer feature for restaurants.', 'Gio P.', 'Restaurateur', '#e94e8c'],
             ['Switched our whole studio link strategy in one afternoon.', 'Rae M.', 'Studio director', '#ffc845'],

@@ -58,7 +58,7 @@
                 More features. <span class="grad-text">Better deal.</span>
             </h2>
             <p data-anim="fade-up" class="text-gray-400">
-                Pick any tool you already use — see exactly what 1INME adds on top, across
+                Pick any tool you already use — see exactly what Sayzio adds on top, across
                 <span class="text-white font-semibold">{{ $__cmpTotal }} features</span> and
                 <span class="text-white font-semibold">{{ count($__cmpCompetitors) - 1 }} competitors</span>.
             </p>
@@ -110,7 +110,7 @@
             {{-- Rival selector chips (hidden when locked to a single rival) --}}
             @unless($__cmpOnlyKey)
             <div class="cmp-tabs flex flex-wrap items-center justify-center gap-2 mb-6">
-                <span class="text-xs font-bold uppercase tracking-wider text-gray-500 mr-1">Compare 1INME vs</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-500 mr-1">Compare Sayzio vs</span>
                 @foreach(array_slice($__cmpCompetitors, 1) as $c)
                     <button
                         type="button"
@@ -130,7 +130,7 @@
                 {{-- Our card --}}
                 <div class="cmp-vs-card cmp-vs-ours rounded-2xl p-4 sm:p-5">
                     <div class="cmp-vs-name">
-                        <i class="fas fa-bolt"></i> 1INME
+                        <i class="fas fa-bolt"></i> Sayzio
                     </div>
                     <div class="cmp-vs-tagline">The whole growth stack</div>
                     <div class="cmp-vs-meta">
@@ -172,7 +172,7 @@
                     <div class="text-sm">
                         <div class="text-gray-400 text-xs uppercase tracking-wider font-bold">Head-to-head</div>
                         <div class="text-white font-semibold">
-                            1INME wins
+                            Sayzio wins
                             <span class="grad-text font-extrabold text-lg" x-text="winsAnim">0</span>
                             more features than
                             <span class="text-white" x-text="rivalName()"></span>
@@ -180,7 +180,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 text-xs">
-                    <span class="cmp-badge cmp-badge-ours"><i class="fas fa-bolt"></i> 1INME · <span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span>/{{ $__cmpTotal }}</span>
+                    <span class="cmp-badge cmp-badge-ours"><i class="fas fa-bolt"></i> Sayzio · <span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span>/{{ $__cmpTotal }}</span>
                     <span class="cmp-badge"><span x-text="rivalName()"></span> · <span x-text="rivalAnim">{{ $__cmpScores['linktree'] }}</span>/{{ $__cmpTotal }}</span>
                 </div>
             </div>
@@ -192,7 +192,7 @@
                      style="grid-template-columns: minmax(0,1fr) 110px 110px;">
                     <div>Feature</div>
                     <div class="text-center">
-                        <span class="cmp-brand-ours text-[11px]"><i class="fas fa-bolt"></i> 1INME</span>
+                        <span class="cmp-brand-ours text-[11px]"><i class="fas fa-bolt"></i> Sayzio</span>
                     </div>
                     <div class="text-center text-gray-300 normal-case tracking-normal text-sm font-semibold" x-text="rivalName()">Linktree</div>
                 </div>
@@ -248,7 +248,7 @@
                     {{-- Locked single-rival page: link out to the full index. --}}
                     <a href="{{ url('/compare') }}" class="cmp-cta">
                         <i class="fas fa-table-cells-large"></i>
-                        Compare 1INME against every other tool
+                        Compare Sayzio against every other tool
                         <i class="fas fa-arrow-right text-xs"></i>
                     </a>
                 @elseif($compact)
@@ -262,7 +262,7 @@
                         <template x-if="rival === '{{ $c['key'] }}'">
                             <a href="{{ url('/compare/' . $c['key']) }}" class="cmp-cta">
                                 <i class="fas fa-arrow-up-right-from-square text-xs"></i>
-                                Read the full 1INME vs {{ $c['name'] }} page
+                                Read the full Sayzio vs {{ $c['name'] }} page
                             </a>
                         </template>
                     @endforeach
@@ -276,7 +276,7 @@
                         <template x-if="rival === '{{ $c['key'] }}'">
                             <a href="{{ url('/compare/' . $c['key']) }}" class="cmp-cta">
                                 <i class="fas fa-arrow-up-right-from-square text-xs"></i>
-                                Full 1INME vs {{ $c['name'] }} page
+                                Full Sayzio vs {{ $c['name'] }} page
                             </a>
                         </template>
                     @endforeach
@@ -291,7 +291,7 @@
                     <div class="cmp-wrap grad-border rounded-3xl overflow-hidden relative">
                         <div class="cmp-matrix-scroll">
                             <div class="cmp-matrix" style="grid-template-columns: minmax(220px, 1.6fr) repeat({{ count($__cmpCompetitors) }}, minmax(96px, 1fr));">
-                                {{-- Highlighted column band over 1INME (col index 1) --}}
+                                {{-- Highlighted column band over Sayzio (col index 1) --}}
                                 <div class="cmp-ours-band cmp-ours-band-grid" aria-hidden="true"></div>
 
                                 {{-- Header --}}

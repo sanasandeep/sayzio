@@ -109,7 +109,7 @@ const FEATURE_CATEGORIES = [
         { label: "Instagram", value: "scheduled · Thu 9am" },
         { label: "TikTok", value: "scheduled · Thu 9am" },
         { label: "X / Twitter", value: "scheduled · Thu 9am" },
-        { label: "1INME feed", value: "scheduled · Thu 9am" },
+        { label: "Sayzio feed", value: "scheduled · Thu 9am" },
       ],
       footer: "Per-network previews, hashtag swaps, and best-time picks.",
     },
@@ -357,7 +357,7 @@ const PERSONAS = [
       { time: "8:00", module: "Forms", action: "New brand inquiry hits the inbox + CRM." },
       { time: "11:00", module: "Smart Links", action: "Builds a campaign URL with deep tracking." },
       { time: "14:00", module: "Analytics", action: "Brand-shareable report auto-generated." },
-      { time: "18:00", module: "Creator Feed", action: "Posts the sponsored content to 1INME audience." },
+      { time: "18:00", module: "Creator Feed", action: "Posts the sponsored content to Sayzio audience." },
       { time: "21:00", module: "CRM", action: "Logs the next follow-up with the brand manager." },
     ],
     outcomes: [
@@ -484,14 +484,14 @@ const spec = [];
 spec.push({
   layout: "cover",
   slug: "Cover",
-  title: "1INME — Sectioned Deck",
-  description: "Master cover for the 1INME multi-section deck.",
+  title: "Sayzio — Sectioned Deck",
+  description: "Master cover for the Sayzio multi-section deck.",
   eyebrow: "Sectioned Deck · 2026",
   titleA: "One link.",
   titleB: "One identity.",
   titleC: "One platform.",
   subtitle: "A single deck for sales, product, features, personas, investors, and roadmap. Jump to the section you need.",
-  headerLabel: "1INME",
+  headerLabel: "Sayzio",
 });
 
 // 2. TOC
@@ -504,7 +504,7 @@ spec.push({
     { name: "Sales Presentation", desc: "Problem, pitch, ROI, pricing, next steps.", range: "3 – 23" },
     { name: "Product Presentation", desc: "Web, mobile, API, journeys, integrations.", range: "24 – 44" },
     { name: "Feature Deep-Dives", desc: "9 module mini-decks for buyer questions.", range: "45 – 80" },
-    { name: "Persona Decks", desc: "How 1INME helps each role we sell into.", range: "81 – 135" },
+    { name: "Persona Decks", desc: "How Sayzio helps each role we sell into.", range: "81 – 135" },
     { name: "Investor Pitch", desc: "Vision, market, model, team, ask.", range: "136 – 156" },
     { name: "Future Roadmap", desc: "Now / Next / Later across every area.", range: "157 – 177" },
   ],
@@ -533,7 +533,7 @@ const sales = [
       { value: "37%", label: "Of features ever used" },
       { value: "2.4h", label: "Daily context switching" },
     ],
-    note: "Internal 1INME research, n = 1,200. Stacks vary by role.",
+    note: "Internal Sayzio research, n = 1,200. Stacks vary by role.",
   },
   {
     layout: "bullets",
@@ -549,7 +549,7 @@ const sales = [
   {
     layout: "cards",
     slug: "SalesPitch",
-    title: "1INME — the everything platform.",
+    title: "Sayzio — the everything platform.",
     subtitle: "Identity, links, AI, productivity, and analytics in one place.",
     cards: [
       { tag: "Identity", title: "One handle, one home", body: "1inme.com/you replaces every link in bio." },
@@ -561,7 +561,7 @@ const sales = [
   {
     layout: "cards",
     slug: "SalesDifferentiators",
-    title: "Why 1INME, not the next bundle.",
+    title: "Why Sayzio, not the next bundle.",
     cols: 4,
     cards: [
       { tag: "Native", title: "Built together", body: "Modules share identity, vault, and AI by default." },
@@ -573,7 +573,7 @@ const sales = [
   {
     layout: "metrics",
     slug: "SalesRoi",
-    title: "ROI of consolidating onto 1INME.",
+    title: "ROI of consolidating onto Sayzio.",
     metrics: [
       { value: "−$1,400", label: "annual stack savings (avg)" },
       { value: "+6h", label: "weekly time saved" },
@@ -586,7 +586,7 @@ const sales = [
     layout: "mockup",
     slug: "SalesTimeSaved",
     title: "Where the hours come back.",
-    subtitle: "Time saved per week by switching to 1INME.",
+    subtitle: "Time saved per week by switching to Sayzio.",
     bullets: [
       "Bio + link updates: 1.5h → 10 minutes",
       "Lead capture + entry: 2h → automated",
@@ -640,7 +640,7 @@ const sales = [
     subtitle: "Pick the plan that matches the team you have today.",
     tiers: [
       { name: "Free", price: "$0", cadence: "forever", features: ["1 Link in Bio", "5 short links", "Basic AI Coach", "Vault: 25 secrets"] },
-      { name: "Pro", price: "$12", cadence: "per month", features: ["Unlimited links", "5,000 AI credits", "1 custom domain", "No 1INME branding"] },
+      { name: "Pro", price: "$12", cadence: "per month", features: ["Unlimited links", "5,000 AI credits", "1 custom domain", "No Sayzio branding"] },
       { name: "Studio", price: "$29", cadence: "per month", popular: true, features: ["3 workspaces · 5 seats", "20,000 AI credits", "3 domains", "Bookings + payments"] },
       { name: "Business", price: "$99", cadence: "per month", features: ["Unlimited workspaces", "White label, SSO", "SCIM + SOC 2 evidence", "Priority SLA"] },
     ],
@@ -661,7 +661,7 @@ const sales = [
   {
     layout: "cards",
     slug: "SalesCompetitors",
-    title: "How 1INME compares.",
+    title: "How Sayzio compares.",
     cols: 4,
     cards: [
       { tag: "vs Linktree", title: "Bio + everything else", body: "Links are the doorway, not the product." },
@@ -716,7 +716,7 @@ const sales = [
     bullets: [
       { title: "Week 1 — Setup", body: "Workspace created, brand kit applied, two integrations live." },
       { title: "Week 2 — Migrate", body: "Imports finished, redirects in place, team trained." },
-      { title: "Week 3 — Launch", body: "First campaign on 1INME with shareable analytics." },
+      { title: "Week 3 — Launch", body: "First campaign on Sayzio with shareable analytics." },
       { title: "Week 4 — Review", body: "ROI snapshot delivered to the buying committee." },
     ],
   },
@@ -783,7 +783,7 @@ const product = [
   {
     layout: "cards",
     slug: "ProductOverview",
-    title: "What 1INME is, end to end.",
+    title: "What Sayzio is, end to end.",
     subtitle: "One identity, three surfaces, eleven modules — wired together by AI and analytics.",
     cards: [
       { tag: "Surfaces", title: "Web, mobile, API", body: "Same data, same identity, same brand." },
@@ -811,7 +811,7 @@ const product = [
     title: "The mobile app.",
     subtitle: "A native companion for iOS and Android.",
     bullets: ["NFC tap-to-share", "Smart dialer + CRM", "Voice capture between meetings"],
-    mockTitle: "1INME — iOS / Android",
+    mockTitle: "Sayzio — iOS / Android",
     mock: [
       { label: "Home", value: "Today · CRM · Bio quick-edit" },
       { label: "Quick action", value: "Tap card · Voice · Scan" },
@@ -900,7 +900,7 @@ const product = [
     layout: "cards",
     slug: "ProductIntegrationsMap",
     title: "Integrations map.",
-    subtitle: "1INME plugs into the tools you already use.",
+    subtitle: "Sayzio plugs into the tools you already use.",
     cols: 4,
     cards: [
       { tag: "CRM", title: "HubSpot · Salesforce", body: "Two-way contact + deal sync." },
@@ -1114,7 +1114,7 @@ spec.push({
   layout: "divider",
   slug: "PersonasDivider",
   title: "Appendix · Persona decks.",
-  subtitle: "How 1INME shows up for each role we sell into.",
+  subtitle: "How Sayzio shows up for each role we sell into.",
   eyebrow: "Section 04",
   range: "Slides 82 – 135",
 });
@@ -1125,7 +1125,7 @@ for (const p of PERSONAS) {
   spec.push({
     layout: "divider",
     slug: `${ns}Divider`,
-    title: `How 1INME helps a ${lower}.`,
+    title: `How Sayzio helps a ${lower}.`,
     subtitle: `${p.group} · 4 slides + this divider.`,
     eyebrow: "Persona appendix",
     range: "4 slides",
@@ -1147,7 +1147,7 @@ for (const p of PERSONAS) {
   spec.push({
     layout: "cards",
     slug: `${ns}Stack`,
-    title: `The 1INME stack for a ${lower}.`,
+    title: `The Sayzio stack for a ${lower}.`,
     subtitle: "The 4–5 modules that matter most for this persona.",
     cols: Math.min(p.modules.length, 5),
     cards: p.modules.map((m) => ({ tag: "Module", title: m, body: "" })),
@@ -1157,9 +1157,9 @@ for (const p of PERSONAS) {
     layout: "dayInLife",
     slug: `${ns}Day`,
     title: `A day in the life — ${lower}.`,
-    subtitle: "Time, module, action — all happening inside 1INME.",
+    subtitle: "Time, module, action — all happening inside Sayzio.",
     steps: p.day,
-    notes: `Walk this day chronologically from ${p.day[0].time} to ${p.day[p.day.length - 1].time}. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.`,
+    notes: `Walk this day chronologically from ${p.day[0].time} to ${p.day[p.day.length - 1].time}. Hammer the point: every step happens inside Sayzio — no app switching, no copy-paste, no lost context.`,
   });
   spec.push({
     layout: "metrics",
@@ -1189,7 +1189,7 @@ const investor = [
     title: "Investor cover",
     description: "Investor deck cover slide.",
     eyebrow: "Investor pitch · 2026",
-    titleA: "1INME.",
+    titleA: "Sayzio.",
     titleB: "The everything platform",
     titleC: "for the creator economy.",
     subtitle: "Series A teaser · placeholder figures throughout.",
@@ -1690,7 +1690,7 @@ const NOTES = {
   SalesCost:
     "Translate the numbers into business cost. Hours, data, brand, revenue — frame each as something the buyer's team will feel this quarter, not abstractly someday. Pause after 'lost revenue' and ask which one stings most.",
   SalesPitch:
-    "Pivot to the 1INME answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
+    "Pivot to the Sayzio answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
   SalesDifferentiators:
     "Pre-empt the 'why not just use a bundle?' objection. Native, beautiful, open, fair — these are the four things bundles structurally can't fake. Mention a competitor by name only if the buyer brings them up.",
   SalesRoi:
@@ -1746,7 +1746,7 @@ const NOTES = {
   ProductAdminWorkspace:
     "Show the admin surface. Workspaces per brand or client, role-based access on every module, white label per workspace, plan and seat management in one place.",
   ProductIntegrationsMap:
-    "Eight categories, top-of-mind tools per category. The point: 1INME doesn't pretend to be your CRM if you already have HubSpot — it sits beside it, two-way synced.",
+    "Eight categories, top-of-mind tools per category. The point: Sayzio doesn't pretend to be your CRM if you already have HubSpot — it sits beside it, two-way synced.",
   ProductOnboardingFlow:
     "Detect, import, wire, launch. Time-to-value measured in hours, not weeks. We bring the data so day one is real, not a blank workspace.",
   ProductBioModule:

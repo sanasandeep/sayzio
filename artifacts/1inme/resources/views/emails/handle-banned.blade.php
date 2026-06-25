@@ -16,7 +16,7 @@
             </h1>
 
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                Your current 1INME handle <strong>&#64;{{ $handle }}</strong> is no longer available
+                Your current Sayzio handle <strong>&#64;{{ $handle }}</strong> is no longer available
                 because it now matches an entry on our reserved/banned names list. To keep your
                 profile working, please choose a new handle in your profile settings.
             </p>

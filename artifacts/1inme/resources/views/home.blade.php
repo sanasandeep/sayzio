@@ -7,7 +7,7 @@
     @php
         $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'home']);
     @endphp
-    <title>{{ $__seo['title'] }} — {{ config('app.name', '1INME') }}</title>
+    <title>{{ $__seo['title'] }} — {{ config('app.name', 'Sayzio') }}</title>
     <meta name="description" content="{{ $__seo['description'] }}">
     @if(($__seo['keywords'] ?? '') !== '')
         <meta name="keywords" content="{{ $__seo['keywords'] }}">
@@ -2973,7 +2973,7 @@
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Share</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Share your 1INME<br><span class="grad-text">anywhere you like.</span>
+                Share your Sayzio<br><span class="grad-text">anywhere you like.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere.</p>
         </div>
@@ -3734,7 +3734,7 @@
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Workspace &amp; Team</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Run 1INME with <span class="grad-text">your whole team.</span>
+                Run Sayzio with <span class="grad-text">your whole team.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
                 Multiple workspaces, real teammates with real roles, fine-grained permissions and per-workspace billing — built for agencies, founders and busy creators.
@@ -3921,7 +3921,7 @@
                 Show visitors <span class="grad-text">real momentum.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Buzz is the social-proof widget already wired into every 1INME Link in Bio. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
+                Buzz is the social-proof widget already wired into every Sayzio Link in Bio. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
             </p>
         </div>
 
@@ -4194,7 +4194,7 @@
             <div>
                 <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">From the blog</div>
                 <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Featured <span class="grad-text">stories.</span></h2>
-                <p class="reveal rd-2 text-gray-400 max-w-xl">Tips, product news and creator deep-dives — fresh from the 1INME team.</p>
+                <p class="reveal rd-2 text-gray-400 max-w-xl">Tips, product news and creator deep-dives — fresh from the Sayzio team.</p>
             </div>
             <a href="{{ route('site.blogs.index') }}" class="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-violet-300 hover:text-violet-200 transition">
                 Browse all posts
@@ -4279,12 +4279,12 @@
     // Legacy inline arrays kept commented out — replaced by shared partial above.
     /*
     $__cmpCompetitors = [
-        ['key' => 'ours',     'name' => '1INME',         'badge' => 'Better deal',           'isOurs' => true],
+        ['key' => 'ours',     'name' => 'Sayzio',         'badge' => 'Better deal',           'isOurs' => true],
         ['key' => 'linktree', 'name' => 'Linktree',      'badge' => 'Half the cost',         'isOurs' => false],
         ['key' => 'bitly',    'name' => 'Bitly',         'badge' => 'More features included', 'isOurs' => false],
         ['key' => 'beacons',  'name' => 'Beacons',       'badge' => 'Up to 1/10th the price','isOurs' => false],
     ];
-    // 10 features. Order chosen to front-load 1INME-only wins.
+    // 10 features. Order chosen to front-load Sayzio-only wins.
     $__cmpFeatures = [
         ['Link in Bio pages',             ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
         ['Branded short links',       ['ours' => true, 'linktree' => false, 'bitly' => true,  'beacons' => false]],
@@ -4308,13 +4308,13 @@
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
                 More features. <span class="grad-text">Better deal.</span>
             </h2>
-            <p data-anim="fade-up" class="text-gray-400">See how 1INME stacks up against the link-in-bio tools you already know — and why creators are switching.</p>
+            <p data-anim="fade-up" class="text-gray-400">See how Sayzio stacks up against the link-in-bio tools you already know — and why creators are switching.</p>
         </div>
 
         {{-- ===== Desktop / tablet matrix ===== --}}
         <div data-anim="fade-up" class="hidden md:block cmp-wrap">
             <div class="grad-border rounded-3xl overflow-hidden relative">
-                {{-- Highlighted column band overlays the 1INME column (col 2 of 5: feature col + 4 brand cols) --}}
+                {{-- Highlighted column band overlays the Sayzio column (col 2 of 5: feature col + 4 brand cols) --}}
                 <div class="cmp-ours-band" style="left: 40%; width: calc(60% / 4);"></div>
 
                 {{-- Header --}}
@@ -4464,7 +4464,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid md:grid-cols-6 gap-8 mb-12">
             <div class="md:col-span-2">
-                <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="1INME home">
+                <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="Sayzio home">
                     @include('common.partials.brand-logo', ['height' => 'h-9'])
                 </a>
                 <p class="text-sm text-gray-500 mt-3 leading-relaxed max-w-sm">The all-in-one link platform: build a drag-and-drop Link in Bio, share it everywhere, and grow with live analytics and a built-in Performance Coach.</p>
@@ -4514,7 +4514,7 @@
             @include('common.partials.shortcut-hint')
         </div>
         <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <p class="text-sm text-gray-600">&copy; {{ date('Y') }} 1INME. All rights reserved.</p>
+            <p class="text-sm text-gray-600">&copy; {{ date('Y') }} Sayzio. All rights reserved.</p>
             <div class="flex items-center gap-3 text-xs text-gray-600">
                 @php
                     $__ccCfgHome = \App\Modules\Common\Support\CookieConsentConfig::shouldRender('site')

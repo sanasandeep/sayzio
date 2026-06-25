@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 
 /**
  * Backfill the already-deployed `about` site page row with the new
- * "About EEFind" parent-company section. 1INME is a brand/product of
+ * "About EEFind" parent-company section. Sayzio is a brand/product of
  * EEFIND PVT LTD (EEFind Private Limited); the public /about page renders
  * the lower sections from this row's `extra` override (which wins over the
  * code defaults), so without this backfill the live page would not carry

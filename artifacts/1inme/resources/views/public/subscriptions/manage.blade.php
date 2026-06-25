@@ -13,7 +13,7 @@
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/15 border border-violet-400/30 text-[11px] font-bold uppercase tracking-wider text-violet-200 mb-3">
             <i class="fas fa-sliders"></i> Subscription Center
         </div>
-        <h1 class="text-3xl sm:text-4xl font-bold text-white">Manage your 1INME subscriptions</h1>
+        <h1 class="text-3xl sm:text-4xl font-bold text-white">Manage your Sayzio subscriptions</h1>
         <p class="mt-3 text-gray-400 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
             Each channel is opt-in and independent — unsubscribing from one won't touch the others. Pick the channel you'd like to stop and follow the steps below.
         </p>

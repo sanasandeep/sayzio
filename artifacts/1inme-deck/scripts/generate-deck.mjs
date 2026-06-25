@@ -39,7 +39,7 @@ export default function ${name}() {
     <div className="w-screen h-screen overflow-hidden relative ${bgClass ?? "bg-[#0a0a14]"} text-slate-100 font-body">
       ${grad}
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={\`\${base}logo-1inme-dark.png\`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={\`\${base}logo-1inme-dark.png\`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400">${esc(eyebrow ?? "")}</span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
@@ -194,7 +194,7 @@ function renderMockup(s, pos, total) {
           <div className="col-span-7 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-[1.6vw] flex flex-col">
             <div className="flex items-center gap-[0.5vw] pb-[1vh] border-b border-white/10">
               <span className="h-[0.9vw] w-[0.9vw] rounded-full bg-rose-400/70" /><span className="h-[0.9vw] w-[0.9vw] rounded-full bg-amber-300/70" /><span className="h-[0.9vw] w-[0.9vw] rounded-full bg-emerald-400/70" />
-              <span className="ml-[1vw] text-[0.9vw] text-slate-400 font-mono">${esc(s.mockTitle ?? "1INME")}</span>
+              <span className="ml-[1vw] text-[0.9vw] text-slate-400 font-mono">${esc(s.mockTitle ?? "Sayzio")}</span>
             </div>
             <div className="mt-[1.5vh] flex flex-col gap-[0.7vh]">
 ${items}
@@ -390,7 +390,7 @@ const noteFor = (s) => {
   const sub = s.subtitle ?? s.description ?? "";
   switch (s.layout) {
     case "cover":
-      return `Open the deck. Introduce 1INME as one identity, one platform. ${sub}`.trim();
+      return `Open the deck. Introduce Sayzio as one identity, one platform. ${sub}`.trim();
     case "toc":
       return `Walk the audience through the six sections. Each section is appendix-separated by a divider — jump to the divider you need.`;
     case "divider":
@@ -412,7 +412,7 @@ const noteFor = (s) => {
     case "quote":
       return `Read the quote out loud, then attribute. Let it breathe before clicking next.`;
     case "dayInLife":
-      return `Walk the day chronologically for "${t}". Emphasise that every step happens inside 1INME — no app switching.`;
+      return `Walk the day chronologically for "${t}". Emphasise that every step happens inside Sayzio — no app switching.`;
     case "closing":
       return `Close the section. Name the contacts on screen and the single next step you want from the room. ${sub}`.trim();
     default:

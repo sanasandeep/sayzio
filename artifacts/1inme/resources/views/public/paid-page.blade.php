@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ $link->title ?: $creator->name }} (&#64;{{ $creator->handle }}) - {{ config('app.name') }}</title>
-<meta name="description" content="{{ Str::limit($link->description ?: $creator->tagline ?: $creator->bio ?: ($creator->name . ' on 1INME'), 180) }}">
+<meta name="description" content="{{ Str::limit($link->description ?: $creator->tagline ?: $creator->bio ?: ($creator->name . ' on Sayzio'), 180) }}">
 <meta property="og:title" content="{{ $link->title ?: $creator->name }}">
-<meta property="og:description" content="{{ Str::limit($link->description ?: $creator->tagline ?: ('Follow ' . $creator->name . ' on 1INME'), 180) }}">
+<meta property="og:description" content="{{ Str::limit($link->description ?: $creator->tagline ?: ('Follow ' . $creator->name . ' on Sayzio'), 180) }}">
 <meta property="og:type" content="profile">
 @if($creator->cover_image)
     <meta property="og:image" content="{{ $creator->cover_image }}">

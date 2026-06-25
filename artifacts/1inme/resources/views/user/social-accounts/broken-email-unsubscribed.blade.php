@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Unsubscribed — 1INME</title>
+    <title>Unsubscribed — Sayzio</title>
     <style>
         body { margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background:#f8fafc; color:#0f172a; }
         .wrap { max-width: 520px; margin: 64px auto; padding: 0 16px; }
@@ -18,7 +18,7 @@
 <body>
     <div class="wrap">
         <div class="card">
-            <div class="brand">1INME</div>
+            <div class="brand">Sayzio</div>
             <h1>You're unsubscribed</h1>
             <p>
                 {{ $user->name ? $user->name . ', we' : 'We' }}'ve turned off broken-connection emails for your account.

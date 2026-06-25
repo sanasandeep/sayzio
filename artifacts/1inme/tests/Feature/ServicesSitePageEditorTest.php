@@ -48,10 +48,10 @@ class ServicesSitePageEditorTest extends TestCase
         // its content here so each test starts from a known shape.
         $page = SitePage::firstOrNew(['slug' => 'services']);
         $page->fill([
-            'title'            => 'What you can do with 1INME',
+            'title'            => 'What you can do with Sayzio',
             'meta_description' => 'Seeded services page.',
             'sections'         => SitePagesSeeder::servicesDefaultSections(),
-            'cta_label'        => 'Create your 1INME',
+            'cta_label'        => 'Create your Sayzio',
             'cta_url'          => '/register',
         ])->save();
         return $page;
@@ -64,10 +64,10 @@ class ServicesSitePageEditorTest extends TestCase
     private function payload(array $sections, array $overrides = []): array
     {
         return array_replace([
-            'title'            => 'What you can do with 1INME',
+            'title'            => 'What you can do with Sayzio',
             'meta_description' => 'Updated services description.',
             'sections'         => $sections,
-            'cta_label'        => 'Create your 1INME',
+            'cta_label'        => 'Create your Sayzio',
             'cta_url'          => '/register',
         ], $overrides);
     }

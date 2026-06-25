@@ -260,7 +260,7 @@ class GoogleCalendarProvider implements CalendarProvider
             $body['end']   = ['dateTime' => $end->toRfc3339String(),   'timeZone' => $tz];
         }
         if (!empty($event['url'])) {
-            $body['source'] = ['title' => '1INME', 'url' => $event['url']];
+            $body['source'] = ['title' => 'Sayzio', 'url' => $event['url']];
         }
         return array_filter($body, fn($v) => $v !== null);
     }

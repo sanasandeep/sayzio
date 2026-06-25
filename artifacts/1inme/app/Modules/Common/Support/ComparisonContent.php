@@ -18,14 +18,14 @@ use Illuminate\Support\Str;
 class ComparisonContent
 {
     /**
-     * Ordered competitor columns. "ours" (1INME) is always first.
+     * Ordered competitor columns. "ours" (Sayzio) is always first.
      *
      * @return array<int, array{key:string,name:string,tagline:string,badge:string,isOurs:bool}>
      */
     public static function competitors(): array
     {
         return [
-            ['key' => 'ours',     'name' => '1INME',    'tagline' => 'The whole growth stack', 'badge' => 'All-in-one',        'isOurs' => true],
+            ['key' => 'ours',     'name' => 'Sayzio',    'tagline' => 'The whole growth stack', 'badge' => 'All-in-one',        'isOurs' => true],
             ['key' => 'linktree', 'name' => 'Linktree', 'tagline' => 'Link in Bio page',          'badge' => 'Half the cost',     'isOurs' => false],
             ['key' => 'bitly',    'name' => 'Bitly',    'tagline' => 'Short links & QR',       'badge' => 'More features',     'isOurs' => false],
             ['key' => 'beacons',  'name' => 'Beacons',  'tagline' => 'Creator bio',            'badge' => 'Lower price',       'isOurs' => false],
@@ -163,7 +163,7 @@ class ComparisonContent
                 'accent'   => '#39e09b',
                 'icon'     => 'fa-tree',
                 'headline' => 'A Link in Bio is the start, not the finish.',
-                'intro'    => "Linktree popularised the link-in-bio and does that one job cleanly. But once you need branded short links, deep analytics, a built-in CRM, broadcasts and AI growth tools, you end up bolting on three or four more subscriptions. 1INME folds the whole stack into one link — for less.",
+                'intro'    => "Linktree popularised the link-in-bio and does that one job cleanly. But once you need branded short links, deep analytics, a built-in CRM, broadcasts and AI growth tools, you end up bolting on three or four more subscriptions. Sayzio folds the whole stack into one link — for less.",
                 'they_win' => [
                     'The most recognised name in link-in-bio, with a huge template gallery.',
                     'A large marketplace of one-tap app integrations.',
@@ -176,16 +176,16 @@ class ComparisonContent
                     'Coin/wallet rewards and richer monetisation on top of tips and products.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Can I move my Linktree to 1INME?', 'a' => 'Yes. Recreate your page in minutes with the drag-and-drop builder, or bulk-import your existing links. Your audience just sees a better page at the same link.'],
-                    ['q' => 'Will my QR codes still work after switching?', 'a' => 'Point your custom domain or Link in Bio at 1INME and the destination updates everywhere — including any printed QR codes you generate here, which stay editable forever.'],
-                    ['q' => 'Is 1INME cheaper than Linktree?', 'a' => 'Our paid tiers are designed to undercut a stack of single-purpose tools while bundling far more. Compare the free plans first — 1INME gives you short links, QR codes and analytics with no credit card.'],
+                    ['q' => 'Can I move my Linktree to Sayzio?', 'a' => 'Yes. Recreate your page in minutes with the drag-and-drop builder, or bulk-import your existing links. Your audience just sees a better page at the same link.'],
+                    ['q' => 'Will my QR codes still work after switching?', 'a' => 'Point your custom domain or Link in Bio at Sayzio and the destination updates everywhere — including any printed QR codes you generate here, which stay editable forever.'],
+                    ['q' => 'Is Sayzio cheaper than Linktree?', 'a' => 'Our paid tiers are designed to undercut a stack of single-purpose tools while bundling far more. Compare the free plans first — Sayzio gives you short links, QR codes and analytics with no credit card.'],
                 ],
             ],
             'bitly' => [
                 'accent'   => '#ee6123',
                 'icon'     => 'fa-link',
                 'headline' => 'Short links plus everything that happens after the click.',
-                'intro'    => "Bitly is a serious link-management tool, but it stops at the link. 1INME gives you the same branded short links, QR codes and UTM tooling, then adds a full Link in Bio page, audience CRM, monetisation and growth AI — so the click actually turns into a follower or a sale.",
+                'intro'    => "Bitly is a serious link-management tool, but it stops at the link. Sayzio gives you the same branded short links, QR codes and UTM tooling, then adds a full Link in Bio page, audience CRM, monetisation and growth AI — so the click actually turns into a follower or a sale.",
                 'they_win' => [
                     'Enterprise-grade link management built to operate at massive scale.',
                     'A long-established API and integration ecosystem.',
@@ -198,16 +198,16 @@ class ComparisonContent
                     'AI Performance Coach that tells you what to fix next.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Does 1INME do branded short links like Bitly?', 'a' => 'Yes — branded short links, custom domains, bulk import, UTM builder and dynamic QR codes are all included, alongside the rest of the growth stack.'],
-                    ['q' => 'Can I keep my existing short links?', 'a' => 'Point your custom domain at 1INME and rebuild your key links here. New links get the full analytics and Link in Bio toolkit automatically.'],
-                    ['q' => 'What does 1INME add that Bitly does not?', 'a' => 'A complete Link in Bio builder, audience CRM, forms, broadcasts, monetisation, team roles and an AI coach — the things you do after someone clicks.'],
+                    ['q' => 'Does Sayzio do branded short links like Bitly?', 'a' => 'Yes — branded short links, custom domains, bulk import, UTM builder and dynamic QR codes are all included, alongside the rest of the growth stack.'],
+                    ['q' => 'Can I keep my existing short links?', 'a' => 'Point your custom domain at Sayzio and rebuild your key links here. New links get the full analytics and Link in Bio toolkit automatically.'],
+                    ['q' => 'What does Sayzio add that Bitly does not?', 'a' => 'A complete Link in Bio builder, audience CRM, forms, broadcasts, monetisation, team roles and an AI coach — the things you do after someone clicks.'],
                 ],
             ],
             'beacons' => [
                 'accent'   => '#7c5cff',
                 'icon'     => 'fa-store',
                 'headline' => 'Creator tools, without giving up the marketing stack.',
-                'intro'    => "Beacons is a strong creator store with a media kit and email built in. 1INME matches the creator essentials — store, tips, scheduled posts — and adds branded short links, a QR Studio, live geo analytics and team workspaces, so you can run a brand or an agency from the same place.",
+                'intro'    => "Beacons is a strong creator store with a media kit and email built in. Sayzio matches the creator essentials — store, tips, scheduled posts — and adds branded short links, a QR Studio, live geo analytics and team workspaces, so you can run a brand or an agency from the same place.",
                 'they_win' => [
                     'A polished, creator-first store and media-kit experience.',
                     'Email marketing aimed squarely at creators.',
@@ -220,16 +220,16 @@ class ComparisonContent
                     'Coin/wallet rewards plus tips and digital products.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Can I sell products on 1INME like on Beacons?', 'a' => 'Yes — sell digital products, take tips and donations, and reward fans with coins, all from your Link in Bio.'],
-                    ['q' => 'Does 1INME schedule posts?', 'a' => 'Scheduled posts are built in, alongside an AI Performance Coach that flags what to improve before you publish.'],
-                    ['q' => 'I run more than just a creator page — is 1INME overkill?', 'a' => 'No. The same account scales from a single creator page to multi-brand team workspaces with roles and permissions.'],
+                    ['q' => 'Can I sell products on Sayzio like on Beacons?', 'a' => 'Yes — sell digital products, take tips and donations, and reward fans with coins, all from your Link in Bio.'],
+                    ['q' => 'Does Sayzio schedule posts?', 'a' => 'Scheduled posts are built in, alongside an AI Performance Coach that flags what to improve before you publish.'],
+                    ['q' => 'I run more than just a creator page — is Sayzio overkill?', 'a' => 'No. The same account scales from a single creator page to multi-brand team workspaces with roles and permissions.'],
                 ],
             ],
             'carrd' => [
                 'accent'   => '#2f9bff',
                 'icon'     => 'fa-file-lines',
                 'headline' => 'Beyond a static one-page site.',
-                'intro'    => "Carrd is brilliant for cheap, simple one-page sites. But it is a website builder, not a growth platform — there are no branded short links, no QR analytics, no CRM and no monetisation rewards. 1INME gives you a page that also captures, tracks and converts your audience.",
+                'intro'    => "Carrd is brilliant for cheap, simple one-page sites. But it is a website builder, not a growth platform — there are no branded short links, no QR analytics, no CRM and no monetisation rewards. Sayzio gives you a page that also captures, tracks and converts your audience.",
                 'they_win' => [
                     'Dead-simple, very low-cost one-page websites.',
                     'Pixel-level layout control for static landing pages.',
@@ -242,8 +242,8 @@ class ComparisonContent
                     'Native mobile app and an AI Performance Coach.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Is 1INME as flexible as Carrd for layout?', 'a' => 'You get drag-and-drop blocks, custom themes, fonts and even custom CSS/JS on higher plans — with growth tooling Carrd does not offer.'],
-                    ['q' => 'Does 1INME have analytics?', 'a' => 'Far more than a static site: live visitor map, click heatmaps, UTM tracking and an AI coach, all built in.'],
+                    ['q' => 'Is Sayzio as flexible as Carrd for layout?', 'a' => 'You get drag-and-drop blocks, custom themes, fonts and even custom CSS/JS on higher plans — with growth tooling Carrd does not offer.'],
+                    ['q' => 'Does Sayzio have analytics?', 'a' => 'Far more than a static site: live visitor map, click heatmaps, UTM tracking and an AI coach, all built in.'],
                     ['q' => 'Can I still keep things simple?', 'a' => 'Absolutely — start with one page and a template, then turn on extra tools only when you need them.'],
                 ],
             ],
@@ -251,7 +251,7 @@ class ComparisonContent
                 'accent'   => '#19c3a6',
                 'icon'     => 'fa-mobile-screen',
                 'headline' => 'More than an Instagram micro-landing.',
-                'intro'    => "Taplink does a tidy Instagram landing page. 1INME covers the same micro-landing use case and then keeps going — branded short links, a QR Studio, live geo analytics, a CRM and team workspaces — so your Link in Bio grows with you instead of capping out.",
+                'intro'    => "Taplink does a tidy Instagram landing page. Sayzio covers the same micro-landing use case and then keeps going — branded short links, a QR Studio, live geo analytics, a CRM and team workspaces — so your Link in Bio grows with you instead of capping out.",
                 'they_win' => [
                     'Purpose-built, fast Instagram micro-landing pages.',
                     'Simple, low-cost entry point for a single social profile.',
@@ -264,7 +264,7 @@ class ComparisonContent
                     'Coin/wallet rewards and an AI Performance Coach.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Is 1INME good for an Instagram Link in Bio?', 'a' => 'Yes — build a fast, mobile-first micro-landing in minutes, then add short links, QR codes and analytics as you grow.'],
+                    ['q' => 'Is Sayzio good for an Instagram Link in Bio?', 'a' => 'Yes — build a fast, mobile-first micro-landing in minutes, then add short links, QR codes and analytics as you grow.'],
                     ['q' => 'Can I capture leads from my page?', 'a' => 'Embed forms, collect contacts into a built-in CRM, and follow up with broadcasts — all without extra tools.'],
                     ['q' => 'Will it stay simple?', 'a' => 'Start minimal with a template; the heavier tools only appear when you choose to switch them on.'],
                 ],
@@ -273,7 +273,7 @@ class ComparisonContent
                 'accent'   => '#ff5c8a',
                 'icon'     => 'fa-graduation-cap',
                 'headline' => 'A creator store that also markets for you.',
-                'intro'    => "Stan is a neat all-in-one for selling courses and digital products. 1INME matches the store and adds the marketing layer Stan lacks — branded short links, a QR Studio, live geo analytics, a CRM, team workspaces and a genuinely free plan — so selling and growing live in one place.",
+                'intro'    => "Stan is a neat all-in-one for selling courses and digital products. Sayzio matches the store and adds the marketing layer Stan lacks — branded short links, a QR Studio, live geo analytics, a CRM, team workspaces and a genuinely free plan — so selling and growing live in one place.",
                 'they_win' => [
                     'A streamlined storefront for courses and digital products.',
                     'Simple, opinionated all-in-one for course sellers.',
@@ -286,9 +286,9 @@ class ComparisonContent
                     'Team workspaces, roles, direct messaging and coin rewards.',
                 ],
                 'faqs'     => [
-                    ['q' => 'Can I sell digital products on 1INME?', 'a' => 'Yes — sell digital products, take tips and donations, and reward buyers with coins, straight from your Link in Bio.'],
-                    ['q' => 'Does 1INME have a free plan?', 'a' => 'Yes, a genuinely free-forever plan including Link in Bio pages, short links and QR codes — no credit card needed.'],
-                    ['q' => 'What does 1INME add over a pure creator store?', 'a' => 'Branded short links, QR analytics, a CRM, broadcasts, team workspaces and an AI coach — the marketing layer that drives traffic to the store.'],
+                    ['q' => 'Can I sell digital products on Sayzio?', 'a' => 'Yes — sell digital products, take tips and donations, and reward buyers with coins, straight from your Link in Bio.'],
+                    ['q' => 'Does Sayzio have a free plan?', 'a' => 'Yes, a genuinely free-forever plan including Link in Bio pages, short links and QR codes — no credit card needed.'],
+                    ['q' => 'What does Sayzio add over a pure creator store?', 'a' => 'Branded short links, QR analytics, a CRM, broadcasts, team workspaces and an AI coach — the marketing layer that drives traffic to the store.'],
                 ],
             ],
         ];
@@ -322,7 +322,7 @@ class ComparisonContent
         return array_merge($meta, [
             'accent'      => $extra['accent']   ?? '#7c3aed',
             'icon'        => $extra['icon']     ?? 'fa-circle-nodes',
-            'headline'    => $extra['headline'] ?? ('Why creators switch to 1INME from ' . $meta['name'] . '.'),
+            'headline'    => $extra['headline'] ?? ('Why creators switch to Sayzio from ' . $meta['name'] . '.'),
             'intro'       => $extra['intro']    ?? '',
             'they_win'    => array_values($extra['they_win'] ?? []),
             'we_win'      => array_values($extra['we_win'] ?? []),
@@ -355,14 +355,14 @@ class ComparisonContent
     /** SEO/share title for a competitor page. */
     public static function shareTitle(array $competitor): string
     {
-        return '1INME vs ' . $competitor['name'] . ' — full feature & value comparison';
+        return 'Sayzio vs ' . $competitor['name'] . ' — full feature & value comparison';
     }
 
     /** SEO/share description for a competitor page. */
     public static function shareDescription(array $competitor): string
     {
-        return '1INME vs ' . $competitor['name'] . ': compare '
-            . $competitor['total'] . ' features side by side. 1INME leads on '
+        return 'Sayzio vs ' . $competitor['name'] . ': compare '
+            . $competitor['total'] . ' features side by side. Sayzio leads on '
             . $competitor['wins'] . ' of them, with the whole growth stack in one link. '
             . 'See where each tool wins and how to switch.';
     }

@@ -22,7 +22,7 @@ class ChannelClassifier
     public const KEY_UNKNOWN          = 'unknown';
 
     public const LABELS = [
-        self::KEY_1INME_APP       => '1INME app',
+        self::KEY_1INME_APP       => 'Sayzio app',
         self::KEY_INSTAGRAM       => 'Instagram',
         self::KEY_TIKTOK          => 'TikTok',
         self::KEY_FACEBOOK        => 'Facebook',
@@ -52,7 +52,7 @@ class ChannelClassifier
 
     /**
      * Map a raw user-agent string to a normalized channel key.
-     * Order matters — the 1INME app token is checked first so it doesn't
+     * Order matters — the Sayzio app token is checked first so it doesn't
      * fall through to one of the generic webview heuristics, and bots are
      * matched before browsers because many crawlers also pose as Chrome.
      */

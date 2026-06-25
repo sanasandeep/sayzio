@@ -7,7 +7,7 @@
     $__canManageAi = $__adminAccount && $__adminAccount->hasPermission('settings.manage');
     $__impersonating = session()->has('impersonate_user_id');
     $__supportEmail = config('billing.support_email') ?: config('mail.from.address');
-    $__appName = config('app.name', '1INME');
+    $__appName = config('app.name', 'Sayzio');
 
     // Admins who already have an OpenAI key configured can flip the master
     // switch on right here — no detour through the settings screen.

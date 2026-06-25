@@ -152,7 +152,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your audience. <span class="grad-text">Your line to them.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free 1INME, switch on followers, and start growing an audience no algorithm can take from you.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, switch on followers, and start growing an audience no algorithm can take from you.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Get started free</a>
                     <a href="{{ route('site.discovery') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Browse the creators directory</a>
@@ -164,7 +164,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Audience-growth playbooks, when we ship them.',
-    'subtext' => 'Once-a-month notes on what is helping creators on 1INME grow — email, WhatsApp Channel, or DM, your call.',
+    'subtext' => 'Once-a-month notes on what is helping creators on Sayzio grow — email, WhatsApp Channel, or DM, your call.',
     'source'  => 'audience',
 ])
 @endsection

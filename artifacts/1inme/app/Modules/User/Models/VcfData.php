@@ -132,7 +132,7 @@ class VcfData extends Model
         $out = [];
         $out[] = 'BEGIN:VCARD';
         $out[] = 'VERSION:3.0';
-        $out[] = 'PRODID:-//1INME//Link Manager//EN';
+        $out[] = 'PRODID:-//Sayzio//Link Manager//EN';
 
         // N:Last;First;Middle;Prefix;Suffix
         $out[] = 'N:' . self::esc($this->last_name) . ';' . self::esc($this->first_name) . ';' . self::esc($this->middle_name) . ';' . self::esc($this->prefix) . ';' . self::esc($this->suffix);

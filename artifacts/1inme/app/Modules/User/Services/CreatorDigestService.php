@@ -66,7 +66,7 @@ class CreatorDigestService
         $totalSignal = $newFollowers + $posts->count() + $newSubs + $unlocks->count();
         if ($totalSignal === 0 && !$isSample) return null;
 
-        $subject = "Your week on 1INME: +{$newFollowers} followers, {$posts->count()} posts";
+        $subject = "Your week on Sayzio: +{$newFollowers} followers, {$posts->count()} posts";
 
         return [
             'subject'  => $subject,

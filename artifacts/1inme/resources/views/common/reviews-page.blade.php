@@ -198,7 +198,7 @@
     </div>
     @endif
 
-    <div class="foot"><a href="https://1in.me" target="_blank" rel="noopener">Powered by 1INME</a></div>
+    <div class="foot"><a href="https://1in.me" target="_blank" rel="noopener">Powered by Sayzio</a></div>
 </div>
 
 @if($allowSub)

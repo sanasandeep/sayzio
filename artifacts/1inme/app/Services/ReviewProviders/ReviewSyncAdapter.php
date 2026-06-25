@@ -7,7 +7,7 @@ use App\Modules\User\Models\ReviewProvider;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Per-provider adapter for pulling 3rd-party reviews into 1INME.
+ * Per-provider adapter for pulling 3rd-party reviews into Sayzio.
  *
  * Contract:
  *   - fetch($connection): array

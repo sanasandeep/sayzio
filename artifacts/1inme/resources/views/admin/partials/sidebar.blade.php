@@ -19,7 +19,7 @@
                   style="background: rgba(124,58,237,0.12); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.2);">Admin</span>
         </a>
         <template x-if="sidebarMode === 'icons'">
-            <a href="{{ route('admin.dashboard') }}" class="group" title="1INME Admin">
+            <a href="{{ route('admin.dashboard') }}" class="group" title="Sayzio Admin">
                 <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
                     <span class="text-white text-sm font-bold">1</span>
                 </div>

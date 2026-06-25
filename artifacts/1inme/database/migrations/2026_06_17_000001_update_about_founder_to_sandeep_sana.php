@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 
 /**
  * Refresh the featured founder on the already-deployed `about` site page
- * row to the real founder, Sandeep Sana (Founder & CEO of 1INME). The
+ * row to the real founder, Sandeep Sana (Founder & CEO of Sayzio). The
  * public /about page renders from this row's `extra.founder` override,
  * which wins over the code defaults, so the live page would keep showing
  * the old placeholder ("Aarav Reddy") without this backfill.

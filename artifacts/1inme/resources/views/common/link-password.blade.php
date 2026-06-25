@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Required - 1INME</title>
+    <title>Password Required - Sayzio</title>
     @include('common.partials.default-icons')
     @if(isset($link) && $link->favicon)
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">

@@ -79,7 +79,7 @@ export default function ResumeBuilder() {
 
       <section className="py-12">
         <div className="container mx-auto px-6">
-          <SectionHeading eyebrow="Why 1INME" title="The old way vs. the 1INME way." />
+          <SectionHeading eyebrow="Why Sayzio" title="The old way vs. the Sayzio way." />
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -104,7 +104,7 @@ export default function ResumeBuilder() {
               transition={{ delay: 0.1 }}
               className="glass-card rounded-3xl p-8 border-primary/30"
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-4">The 1INME way</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-4">The Sayzio way</div>
               <ul className="space-y-3">
                 {newWay.map((item) => (
                   <li key={item} className="flex items-start gap-2.5 text-sm">

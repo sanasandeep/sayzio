@@ -337,7 +337,7 @@ export default function MailSettingsScreen() {
                 label="From name"
                 value={form.fromName}
                 onChangeText={(t) => set("fromName", t)}
-                placeholder="1INME"
+                placeholder="Sayzio"
               />
 
               <Button

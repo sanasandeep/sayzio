@@ -111,7 +111,7 @@ export default function SecurityHub() {
       href: "/security/trusted-contacts",
       icon: "users",
       title: "Trusted contacts",
-      body: "Pick up to a few 1INME friends who can vouch for you if you ever lose access.",
+      body: "Pick up to a few Sayzio friends who can vouch for you if you ever lose access.",
       badge:
         pendingActions > 0
           ? `${pendingActions} need you`
@@ -135,7 +135,7 @@ export default function SecurityHub() {
       href: "/account-merge",
       icon: "git-merge",
       title: "Merge another account",
-      body: "Have a second 1INME account? Pull its links, content and sign-in methods into this one, then delete it.",
+      body: "Have a second Sayzio account? Pull its links, content and sign-in methods into this one, then delete it.",
       badge: null,
     },
   ];

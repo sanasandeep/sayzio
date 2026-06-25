@@ -259,9 +259,9 @@
 <section class="py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#22c55e">Why 1INME</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#22c55e">Why Sayzio</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-                The old way vs. <span class="grad-text">the 1INME way.</span>
+                The old way vs. <span class="grad-text">the Sayzio way.</span>
             </h2>
         </div>
         <div class="rbp-cmp">
@@ -276,7 +276,7 @@
                 </ul>
             </div>
             <div class="col good reveal rd-2">
-                <div class="relative text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-3">The 1INME way</div>
+                <div class="relative text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-3">The Sayzio way</div>
                 <ul class="relative space-y-3 text-sm text-white">
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>Drag, drop, done &mdash; live preview, no save button</span></li>
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>20+ templates, all free, all ATS-clean</span></li>

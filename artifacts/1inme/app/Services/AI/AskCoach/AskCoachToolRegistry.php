@@ -11,14 +11,14 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Read-only data tools the AI Coach can call to ground every answer in
- * the asking user's live 1INME data. Each tool:
+ * the asking user's live Sayzio data. Each tool:
  *
  *   - is scoped to a single user (the workspace owner of the asker, so
  *     a viewer chatting in a workspace sees the workspace's data, not
  *     their personal links);
  *   - returns a small structured payload — `summary` text the LLM can
  *     splice into its prompt, `data` for the inline chart/table
- *     renderer, optional `actions[]` deep-links into the right 1INME
+ *     renderer, optional `actions[]` deep-links into the right Sayzio
  *     page, and `citation` so each answer can show what it leaned on.
  *
  * The registry is deliberately a thin layer on top of Eloquent — these

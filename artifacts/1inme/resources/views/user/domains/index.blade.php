@@ -76,7 +76,7 @@
                             </div>
                         @elseif($d->is_verified && $__status === \App\Modules\User\Models\Domain::DNS_STATUS_DRIFTING)
                             <div class="text-amber-300">
-                                DNS for this domain stopped pointing at 1INME
+                                DNS for this domain stopped pointing at Sayzio
                                 @if($d->dns_drift_started_at) ({{ $d->dns_drift_started_at->diffForHumans() }})@endif.
                                 Restore the CNAME below or this domain will be auto-unverified after {{ \App\Modules\Common\Services\DomainHealthChecker::graceHours() }}h.
                             </div>

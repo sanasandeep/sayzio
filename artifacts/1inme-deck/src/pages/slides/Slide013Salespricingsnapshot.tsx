@@ -5,7 +5,7 @@ export default function Slide013Salespricingsnapshot() {
     <div className="w-screen h-screen overflow-hidden relative bg-[#0a0a14] text-slate-100 font-body">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,58,237,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.12),transparent_55%)]" />
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400">Pricing</span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
@@ -22,7 +22,7 @@ export default function Slide013Salespricingsnapshot() {
             <div className="flex items-center justify-between"><div className="font-display text-[1.5vw] font-semibold ">Pro</div></div>
             <div className="mt-[0.5vh] font-display text-[2.8vw] font-bold leading-none">$12</div>
             <div className="text-[0.95vw] text-slate-400">per month</div>
-            <div className="mt-[2vh] flex flex-col gap-[0.5vh] text-[0.95vw] text-slate-200"><div>&middot; Unlimited links</div><div>&middot; 5,000 AI credits</div><div>&middot; 1 custom domain</div><div>&middot; No 1INME branding</div></div>
+            <div className="mt-[2vh] flex flex-col gap-[0.5vh] text-[0.95vw] text-slate-200"><div>&middot; Unlimited links</div><div>&middot; 5,000 AI credits</div><div>&middot; 1 custom domain</div><div>&middot; No Sayzio branding</div></div>
           </div>
           <div className="rounded-2xl border border-fuchsia-400/50 bg-gradient-to-br from-fuchsia-500/15 to-violet-500/10 p-[1.6vw] flex flex-col">
             <div className="flex items-center justify-between"><div className="font-display text-[1.5vw] font-semibold text-fuchsia-200">Studio</div><div className="px-[0.6vw] py-[0.2vh] text-[0.8vw] rounded bg-fuchsia-500/30 text-fuchsia-100">popular</div></div>

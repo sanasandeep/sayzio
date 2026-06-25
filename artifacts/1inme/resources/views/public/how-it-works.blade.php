@@ -82,7 +82,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10]">
-                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="Diagram of the 1INME setup flow">
+                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="Diagram of the Sayzio setup flow">
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
@@ -192,9 +192,9 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your link in <span class="grad-text">two minutes</span>.</h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">No card, no commitment. Spin up your 1INME, drop in a few links, and start tracking what works.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">No card, no commitment. Spin up your Sayzio, drop in a few links, and start tracking what works.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Create my 1INME</a>
+                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Create my Sayzio</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>
@@ -206,7 +206,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Get tips and templates the way you like them.',
-    'subtext' => 'Once-a-month notes on what is working for creators on 1INME — pick email, WhatsApp Channel, or 1:1 DM. Actionable, no fluff, opt out any time.',
+    'subtext' => 'Once-a-month notes on what is working for creators on Sayzio — pick email, WhatsApp Channel, or 1:1 DM. Actionable, no fluff, opt out any time.',
     'source'  => 'how-it-works',
 ])
 @endsection

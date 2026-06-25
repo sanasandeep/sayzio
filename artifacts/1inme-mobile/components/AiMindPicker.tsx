@@ -310,7 +310,7 @@ export function AiMindPickerScreen({
                       {minds.platform.name}
                     </Text>
                     <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-                      Opt in to the 1INME default knowledge base.
+                      Opt in to the Sayzio default knowledge base.
                     </Text>
                   </View>
                 </Pressable>

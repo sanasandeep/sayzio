@@ -18,7 +18,7 @@
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
                 We tried to refresh your <strong>{{ $platformLabel }}</strong> connection
                 @if($handle) (<span style="color:#475569;">&#64;{{ $handle }}</span>) @endif
-                and {{ $platformLabel }} rejected the request. Until you reconnect, the Follow button on your 1INME page won't update follower counts and may stop working for visitors.
+                and {{ $platformLabel }} rejected the request. Until you reconnect, the Follow button on your Sayzio page won't update follower counts and may stop working for visitors.
             </p>
 
             @if(!empty($reason))
@@ -35,11 +35,11 @@
             </p>
 
             <p style="font-size:13px; color:#64748b; line-height:1.6; margin:0;">
-                Reconnecting takes about 10 seconds — you'll be redirected to {{ $platformLabel }} to re-grant access, then back to your 1INME dashboard.
+                Reconnecting takes about 10 seconds — you'll be redirected to {{ $platformLabel }} to re-grant access, then back to your Sayzio dashboard.
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving this because a social account you connected to 1INME stopped responding. We send at most one of these per connection per week.
+                You're receiving this because a social account you connected to Sayzio stopped responding. We send at most one of these per connection per week.
                 @if(!empty($unsubscribeUrl))
                     <a href="{{ $unsubscribeUrl }}" style="color:#64748b; text-decoration:underline;">Unsubscribe from broken-connection emails</a>
                     in one click, or manage all notification preferences in your profile settings.

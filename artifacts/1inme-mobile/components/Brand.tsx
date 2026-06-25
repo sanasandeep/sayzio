@@ -56,7 +56,7 @@ export function BrandWordmark({
         source={source}
         style={{ width, height }}
         resizeMode="contain"
-        accessibilityLabel="1INME"
+        accessibilityLabel="Sayzio"
       />
     </View>
   );

@@ -46,7 +46,7 @@
         <button id="s" type="submit">Send</button>
     </form>
     @if(!empty($config['show_branding']))
-        <div class="foot">Powered by 1INME AI Companion</div>
+        <div class="foot">Powered by Sayzio AI Companion</div>
     @endif
 </div>
 <script>

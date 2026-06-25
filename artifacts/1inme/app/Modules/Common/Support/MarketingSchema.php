@@ -28,7 +28,7 @@ class MarketingSchema
     /** Organization node identifying the brand. */
     public static function organization(): array
     {
-        $appName = config('app.name', '1INME');
+        $appName = config('app.name', 'Sayzio');
         $home = self::homeUrl();
 
         $node = [
@@ -55,7 +55,7 @@ class MarketingSchema
     /** WebSite node with a SearchAction that powers the sitelinks search box. */
     public static function website(): array
     {
-        $appName = config('app.name', '1INME');
+        $appName = config('app.name', 'Sayzio');
         $home = self::homeUrl();
 
         return [
@@ -134,7 +134,7 @@ class MarketingSchema
      */
     public static function pricingProducts(Collection $plans, string $currency = 'USD'): array
     {
-        $appName = config('app.name', '1INME');
+        $appName = config('app.name', 'Sayzio');
         $currency = in_array($currency, ['USD', 'INR'], true) ? $currency : 'USD';
         $pricingUrl = rtrim(url('/pricing'), '/');
 

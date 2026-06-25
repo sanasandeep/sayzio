@@ -4,7 +4,7 @@
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;">
 
     <div style="padding:20px 24px;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;">
-        <div style="font-size:11px;letter-spacing:.12em;opacity:.85;text-transform:uppercase;">{{ $isSample ? 'Sample preview' : 'Your week on 1INME' }}</div>
+        <div style="font-size:11px;letter-spacing:.12em;opacity:.85;text-transform:uppercase;">{{ $isSample ? 'Sample preview' : 'Your week on Sayzio' }}</div>
         <div style="font-size:22px;font-weight:800;margin-top:4px;">Hi {{ $creator->name }},</div>
         <div style="font-size:13px;opacity:.9;margin-top:2px;">{{ $periodStart }} – {{ $periodEnd }}</div>
     </div>

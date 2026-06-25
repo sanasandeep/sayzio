@@ -29,7 +29,7 @@
 <ul>
     <li>Embedded video provider footprint (YouTube/Vimeo handle their own).</li>
     <li>Email send footprint (digest, newsletter).</li>
-    <li>1INME's own platform footprint — this is creator-funded only.</li>
+    <li>Sayzio's own platform footprint — this is creator-funded only.</li>
 </ul>
 
 <h2>Auto-offset</h2>

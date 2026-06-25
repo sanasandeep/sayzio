@@ -20,7 +20,7 @@ class SitePagesSeeder extends Seeder
             [
                 'slug' => 'home',
                 'title' => 'Your link, your page, your audience. All in one.',
-                'meta_description' => '1INME is the all-in-one link platform: drag-and-drop biolinks, short links, dynamic QR codes, live analytics, and more.',
+                'meta_description' => 'Sayzio is the all-in-one link platform: drag-and-drop biolinks, short links, dynamic QR codes, live analytics, and more.',
                 'sections' => [
                     ['heading' => 'Hero tagline', 'body' => 'Build a beautiful biolink page, share it with short links and QR codes, and grow with live analytics.'],
                 ],
@@ -28,7 +28,7 @@ class SitePagesSeeder extends Seeder
             [
                 'slug' => 'workspace-team',
                 'title' => 'Workspaces & Team',
-                'meta_description' => 'Run 1INME with your whole team — multiple workspaces, members, roles, granular permissions and per-workspace billing.',
+                'meta_description' => 'Run Sayzio with your whole team — multiple workspaces, members, roles, granular permissions and per-workspace billing.',
                 'sections' => [
                     ['heading' => 'A workspace for every brand or client', 'body' => "Spin up as many workspaces as you need — one per brand, client or side project. Switch between them in a click. Each workspace has its own biolinks, short links, analytics, contacts and settings, fully isolated from the rest."],
                     ['heading' => 'Invite the people who matter', 'body' => "Invite teammates, freelancers or clients by email. They join with their own account, see only the workspaces they belong to, and can be removed at any time. No more shared logins or password sharing."],
@@ -43,10 +43,10 @@ class SitePagesSeeder extends Seeder
             [
                 'slug' => 'buzz',
                 'title' => 'Buzz — social proof for your biolink',
-                'meta_description' => 'Buzz shows live signups, visits and purchases on your 1INME biolink page so visitors see real momentum and are more likely to act.',
+                'meta_description' => 'Buzz shows live signups, visits and purchases on your Sayzio biolink page so visitors see real momentum and are more likely to act.',
                 'sections' => [
                     ['heading' => 'Real activity, in real time', 'body' => "Buzz pops up tasteful little notifications on your biolink page when something happens — a new follower, a recent visit, a purchase, a form submission. Visitors instantly see that other people are engaging, which builds trust and lifts conversion."],
-                    ['heading' => 'Already wired into your biolink', 'body' => "Buzz is built into every 1INME biolink page. Turn it on from your dashboard, pick the events you want to surface, and it starts showing up on your page — no code, no embed, no extra setup."],
+                    ['heading' => 'Already wired into your biolink', 'body' => "Buzz is built into every Sayzio biolink page. Turn it on from your dashboard, pick the events you want to surface, and it starts showing up on your page — no code, no embed, no extra setup."],
                     ['heading' => 'You decide what gets shown', 'body' => "Choose which events count as social proof: signups, follows, page views, purchases, form submissions or custom events. Hide the ones you don't want and reorder priorities to highlight what matters most for your goal."],
                     ['heading' => 'Privacy-respecting by default', 'body' => "Names are masked or anonymised, locations are coarse, and visitors can dismiss popups. You stay compliant with privacy expectations while still getting the conversion lift."],
                     ['heading' => 'Style it to match your page', 'body' => "Pick the position, animation, and accent colour so Buzz feels native to your biolink theme. Light, dark, glass — it adapts."],
@@ -57,10 +57,10 @@ class SitePagesSeeder extends Seeder
             ],
             [
                 'slug' => 'services',
-                'title' => 'What you can do with 1INME',
-                'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use 1INME as their link-in-bio, portfolio, and audience hub.',
+                'title' => 'What you can do with Sayzio',
+                'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use Sayzio as their link-in-bio, portfolio, and audience hub.',
                 'sections' => self::servicesDefaultSections(),
-                'cta_label' => 'Create your 1INME',
+                'cta_label' => 'Create your Sayzio',
                 'cta_url' => '/register',
             ],
             [
@@ -195,7 +195,7 @@ class SitePagesSeeder extends Seeder
             }
         }
 
-        // "1INME for X" use-case landing pages. Title/meta/sections/cta follow
+        // "Sayzio for X" use-case landing pages. Title/meta/sections/cta follow
         // the usual seed defaults, but the editable hero chrome, featured
         // features and FAQ (extra.use_case) are only seeded when missing so
         // admin edits are never clobbered on a re-seed.

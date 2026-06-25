@@ -17,7 +17,7 @@
 
 @include('user.partials.page-hero', [
     'title'    => 'Backlinks',
-    'subtitle' => "Pages around the web that link back to your 1INME properties (collected by the browser extension).",
+    'subtitle' => "Pages around the web that link back to your Sayzio properties (collected by the browser extension).",
     'icon'     => 'fa-bullseye',
     'chips'    => [
         ['icon' => 'fa-layer-group', 'text' => number_format($totalAll) . ' total'],
@@ -80,7 +80,7 @@
             </div>
             <p class="text-sm mb-1 font-bold" style="color: var(--text-muted);">No backlinks yet</p>
             <p class="text-xs mb-1" style="color: var(--text-dimmed);">
-                Install the 1INME browser extension to start collecting pages that link to your properties.
+                Install the Sayzio browser extension to start collecting pages that link to your properties.
             </p>
         </div>
     @else

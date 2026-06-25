@@ -9,7 +9,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white">AI Minds</h1>
-            <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI personas and coach can draw on. Add text, FAQs, documents, links, or live 1INME data.</p>
+            <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI personas and coach can draw on. Add text, FAQs, documents, links, or live Sayzio data.</p>
         </div>
         <div class="flex items-center gap-2">
             <span class="text-xs text-white/40">{{ $usedMinds }} / {{ $caps['max_minds_per_user'] == -1 ? '∞' : $caps['max_minds_per_user'] }} minds</span>
@@ -32,7 +32,7 @@
                         <div class="flex items-start justify-between gap-2">
                             <div>
                                 <p class="text-white font-semibold">{{ $m->name }} <span class="ml-1 text-[10px] uppercase tracking-wider text-cyan-300/80">Default</span></p>
-                                <p class="text-xs text-white/50 mt-1">{{ $m->description ?: '1INME product knowledge available to every persona.' }}</p>
+                                <p class="text-xs text-white/50 mt-1">{{ $m->description ?: 'Sayzio product knowledge available to every persona.' }}</p>
                             </div>
                             <i class="fas fa-network-wired text-cyan-400/60"></i>
                         </div>

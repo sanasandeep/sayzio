@@ -341,7 +341,7 @@ class SocialOAuthController extends Controller
                 }
                 return redirect()->route('user.social-accounts.index')
                     ->with('error', 'That ' . SocialAccountConnection::platformLabel($provider)
-                        . ' identity is already linked to another 1INME account. Use Account Settings → "Merge another account into this one" to combine them.');
+                        . ' identity is already linked to another Sayzio account. Use Account Settings → "Merge another account into this one" to combine them.');
             }
             return redirect()->route('user.social-accounts.index')
                 ->with('error', 'Connect failed: ' . $e->getMessage());

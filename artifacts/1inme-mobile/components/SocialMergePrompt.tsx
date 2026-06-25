@@ -20,7 +20,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 /**
  * Inline "merge accounts?" prompt raised when a social sign-in finds the
- * provider identity (or its email) already bound to a different 1INME
+ * provider identity (or its email) already bound to a different Sayzio
  * account — the backend returns HTTP 409 `identity_taken`.
  *
  * Merging is completed natively (Task #2174): the in-app merge flow at
@@ -62,7 +62,7 @@ export function SocialMergePrompt({
         </Text>
       </View>
       <Text style={[styles.body, { color: colors.mutedForeground }]}>
-        That {label} account already belongs to another 1INME account. You can
+        That {label} account already belongs to another Sayzio account. You can
         merge them here — we&apos;ll send a code to the other account to confirm
         it&apos;s yours, then move everything across. This can&apos;t be undone.
       </Text>

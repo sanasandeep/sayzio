@@ -206,7 +206,7 @@
                 <label class="flex items-center gap-2 text-xs mt-5 cursor-pointer" style="color: var(--text-secondary);">
                     <input type="hidden" name="show_branding" value="0">
                     <input type="checkbox" name="show_branding" value="1" x-model="showBranding" class="rounded text-violet-500">
-                    Show "Powered by 1INME" branding
+                    Show "Powered by Sayzio" branding
                 </label>
             </div>
 
@@ -243,7 +243,7 @@
                                   : (buttonStyle === 'outline' ? `background: transparent; color: ${accent}; border: 2px solid ${accent}; border-radius: ${Math.max(4, radius/2)}px; padding: 0.7rem 1.5rem; font-weight: 700; font-size: 0.85rem;`
                                   : `background: ${accent}; color: white; border-radius: ${Math.max(4, radius/2)}px; padding: 0.7rem 1.5rem; font-weight: 700; font-size: 0.85rem;`)"
                                 x-text="buttonLabel"></button>
-                        <div x-show="showBranding" class="text-[10px] mt-4 opacity-50" :style="`color: ${theme === 'light' ? text : 'white'};`">Powered by 1INME</div>
+                        <div x-show="showBranding" class="text-[10px] mt-4 opacity-50" :style="`color: ${theme === 'light' ? text : 'white'};`">Powered by Sayzio</div>
                         </div>{{-- /relative inner --}}
                     </div>
                 </div>

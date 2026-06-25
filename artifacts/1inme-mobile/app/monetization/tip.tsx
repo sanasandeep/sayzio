@@ -65,7 +65,7 @@ export default function TipScreen() {
           Send a tip{name ? ` to ${name}` : ""}
         </Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
-          100% goes to the creator. 1INME takes 0%.
+          100% goes to the creator. Sayzio takes 0%.
         </Text>
 
         <View style={styles.grid}>

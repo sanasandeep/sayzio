@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>{{ $cfg['display_name'] }} · AR Card · 1INME</title>
+<title>{{ $cfg['display_name'] }} · AR Card · Sayzio</title>
 <meta name="theme-color" content="{{ $cfg['accent_color'] }}">
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <style>
@@ -101,7 +101,7 @@
 </noscript>
 <div class="wrap">
     <div class="topbar">
-        <span class="brand">1INME · AR Card</span>
+        <span class="brand">Sayzio · AR Card</span>
         <span class="badge" id="capBadge">Detecting…</span>
     </div>
 
@@ -121,7 +121,7 @@
             banner becomes a tappable CTA into the standard biolink. --}}
     <model-viewer id="card"
         src="{{ $glbUrl }}"
-        ios-src="{{ $usdzUrl }}#callToAction=Open%20biolink&checkoutTitle=1INME&link={{ urlencode($biolinkUrl . '?source=ar') }}"
+        ios-src="{{ $usdzUrl }}#callToAction=Open%20biolink&checkoutTitle=Sayzio&link={{ urlencode($biolinkUrl . '?source=ar') }}"
         alt="AR business card for {{ $cfg['display_name'] }}"
         ar
         ar-modes="webxr scene-viewer quick-look"
@@ -206,7 +206,7 @@
     <div id="toast" class="toast" hidden></div>
 
     <div class="footer">
-        Powered by <a href="{{ url('/') }}">1INME</a> · AR experiences for Link in Bio pages
+        Powered by <a href="{{ url('/') }}">Sayzio</a> · AR experiences for Link in Bio pages
     </div>
 </div>
 

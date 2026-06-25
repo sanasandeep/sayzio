@@ -121,7 +121,7 @@ class AuthController extends Controller
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
                 return $redirect;
             }
-            return redirect()->route('user.dashboard')->with('success', 'Account created. Welcome to 1INME!');
+            return redirect()->route('user.dashboard')->with('success', 'Account created. Welcome to Sayzio!');
         }
 
         // Send a login OTP and route the new user through verification.
@@ -585,7 +585,7 @@ class AuthController extends Controller
 
             Mail::send('emails.verify-email', ['verificationUrl' => $verificationUrl, 'user' => $user], function ($message) use ($user) {
                 $message->to($user->email);
-                $message->subject('Verify Your Email - 1INME');
+                $message->subject('Verify Your Email - Sayzio');
             });
         } catch (\Exception $e) {
             \Log::warning('Verification email resend failed: ' . $e->getMessage());
@@ -673,7 +673,7 @@ class AuthController extends Controller
 
         $user->renewStarterFreeWindow();
 
-        return back()->with('success', 'Your free Starter plan is renewed for another year. Thanks for staying with 1INME!');
+        return back()->with('success', 'Your free Starter plan is renewed for another year. Thanks for staying with Sayzio!');
     }
 
     /**
@@ -687,7 +687,7 @@ class AuthController extends Controller
     {
         if ($user->onDefaultPlan()) {
             $user->renewStarterFreeWindow();
-            $message = 'Your free Starter plan is renewed for another year. Thanks for staying with 1INME!';
+            $message = 'Your free Starter plan is renewed for another year. Thanks for staying with Sayzio!';
         } else {
             $message = 'You are on a paid plan — no free renewal needed.';
         }

@@ -122,7 +122,7 @@
             <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile);">
                 <div class="h-[60px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center" aria-label="{{ config('app.name', '1INME') }} admin">
+                        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center" aria-label="{{ config('app.name', 'Sayzio') }} admin">
                             @include('common.partials.brand-logo', ['height' => 'h-7'])
                         </a>
                         <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(124,58,237,0.1); color: var(--accent-light);">Admin</span>
@@ -256,7 +256,7 @@
                 <footer class="mt-10 pt-5 pb-2 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3"
                         style="border-top: 1px solid var(--border-glass); color: var(--text-dimmed);">
                     <div class="flex items-center gap-2">
-                        <span>&copy; {{ date('Y') }} <span style="color: var(--text-muted); font-weight: 600;">1INME</span></span>
+                        <span>&copy; {{ date('Y') }} <span style="color: var(--text-muted); font-weight: 600;">Sayzio</span></span>
                         <span style="color: var(--border-glass-light);">•</span>
                         <span>Admin</span>
                     </div>

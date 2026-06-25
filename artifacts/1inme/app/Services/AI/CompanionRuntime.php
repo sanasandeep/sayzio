@@ -212,7 +212,7 @@ class CompanionRuntime
      * controller after it has validated `Referer` against the
      * companion's allow-list, then echoed back by the iframe's JS on
      * each /message POST so the endpoint can trust the request even
-     * though the browser-supplied Origin is the 1INME server itself.
+     * though the browser-supplied Origin is the Sayzio server itself.
      *
      * Token shape: base64url("{exp}.{originHost}.{publicId}") + "." + sig
      * where sig = HMAC-SHA256(payload, app.key).

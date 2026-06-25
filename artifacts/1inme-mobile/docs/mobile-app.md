@@ -1,7 +1,7 @@
-# 1INME Mobile App
+# Sayzio Mobile App
 
-The 1INME mobile app is the native (iOS / Android / web) companion to the
-[1INME Laravel platform](../../1inme/). It is an [Expo](https://expo.dev) /
+The Sayzio mobile app is the native (iOS / Android / web) companion to the
+[Sayzio Laravel platform](../../1inme/). It is an [Expo](https://expo.dev) /
 React Native app that talks to the same `/api/v1` REST API the web app exposes,
 so a creator can manage links, biolinks, QR codes, payouts, contacts, AI, and
 monetization from their phone.
@@ -82,7 +82,7 @@ Key env vars:
 | `PORT`                     | Port the Expo packager binds (assigned by the workflow).    |
 
 Because `EXPO_PUBLIC_DOMAIN` defaults to the Replit dev domain, the app talks to
-the **same repl's** 1INME backend in development. Point `EXPO_PUBLIC_API_BASE_URL`
+the **same repl's** Sayzio backend in development. Point `EXPO_PUBLIC_API_BASE_URL`
 at production (`https://1inme.com/api/v1`) to test against live data.
 
 Type-check the app with `pnpm --filter @workspace/1inme-mobile run typecheck`.

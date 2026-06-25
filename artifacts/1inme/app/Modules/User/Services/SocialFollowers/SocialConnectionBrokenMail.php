@@ -55,7 +55,7 @@ class SocialConnectionBrokenMail
 
         $platformLabel = SocialAccountConnection::platformLabel($connection->platform);
         $handle        = $connection->handle;
-        $subject       = "Your {$platformLabel} link on 1INME stopped working — reconnect in one click";
+        $subject       = "Your {$platformLabel} link on Sayzio stopped working — reconnect in one click";
 
         // Signed, no-login-required one-click unsubscribe link. Flips the
         // user's social_connection_broken_emails flag to false. No expiry

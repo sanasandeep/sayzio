@@ -1,8 +1,8 @@
 /*!
- * 1INME AI Companion embed bundle
+ * Sayzio AI Companion embed bundle
  * ---------------------------------------------------------------
  * Drop into any HTML page:
- *   <script src="https://YOUR-1INME-DOMAIN/embed/companion.js"
+ *   <script src="https://YOUR-Sayzio-DOMAIN/embed/companion.js"
  *           data-companion="cmp_xxxxxxxxxxxxxxxxxxxx"
  *           defer></script>
  *
@@ -30,7 +30,7 @@
 
     var publicId = script.getAttribute('data-companion') || '';
     if (!/^cmp_[a-z0-9]{20}$/.test(publicId)) {
-        console.warn('[1INME Companion] Missing or invalid data-companion attribute.');
+        console.warn('[Sayzio Companion] Missing or invalid data-companion attribute.');
         return;
     }
 
@@ -166,7 +166,7 @@
         +   '<textarea placeholder="' + escapeAttr(placeholder) + '" rows="1" aria-label="Message"></textarea>'
         +   '<button type="submit" style="background:' + accent + '">Send</button>'
         + '</form>'
-        + '<div class="imc-foot">Powered by 1INME AI Companion</div>';
+        + '<div class="imc-foot">Powered by Sayzio AI Companion</div>';
     root.appendChild(panel);
 
     var body  = panel.querySelector('.imc-body');

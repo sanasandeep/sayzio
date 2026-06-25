@@ -23,7 +23,7 @@ return [
     */
 
     'merchant' => [
-        'name'     => env('MERCHANT_LEGAL_NAME', '1INME Technologies Pvt. Ltd.'),
+        'name'     => env('MERCHANT_LEGAL_NAME', 'Sayzio Technologies Pvt. Ltd.'),
         'address'  => env('MERCHANT_ADDRESS', '221B Baker Street, Mumbai, MH 400001, India'),
         'country'  => env('MERCHANT_COUNTRY', 'IN'),
         'gst_state' => env('MERCHANT_GST_STATE', 'MH'),

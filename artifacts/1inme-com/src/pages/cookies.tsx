@@ -4,7 +4,7 @@ export default function Cookies() {
   return (
     <LegalPage
       metaTitle="Cookie Policy"
-      metaDescription="What cookies and similar technologies 1INME uses, why we use them, and how you can control them."
+      metaDescription="What cookies and similar technologies Sayzio uses, why we use them, and how you can control them."
       titleLead="Cookie"
       titleHighlight="Policy"
       sections={[
@@ -35,7 +35,7 @@ export default function Cookies() {
         {
           title: "Cookies on your published pages",
           body: [
-            "Pages you publish on 1INME set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers.",
+            "Pages you publish on Sayzio set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers.",
           ],
         },
         {

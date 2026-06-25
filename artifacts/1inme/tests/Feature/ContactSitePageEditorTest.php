@@ -91,7 +91,7 @@ class ContactSitePageEditorTest extends TestCase
     private function fullPayload(): array
     {
         return [
-            'title'            => 'Contact 1INME — Edited',
+            'title'            => 'Contact Sayzio — Edited',
             'meta_description' => 'Updated contact description.',
             'sections'         => [
                 ['id' => '', 'heading' => 'We love hearing from you', 'body' => 'Drop us a note.', 'visible' => '1'],
@@ -224,7 +224,7 @@ class ContactSitePageEditorTest extends TestCase
         $page  = $this->makeContactPage();
 
         $payload = $this->payload([
-            'address' => "  1INME HQ\n42 Example Street  ", // outer whitespace must be trimmed
+            'address' => "  Sayzio HQ\n42 Example Street  ", // outer whitespace must be trimmed
             'email'   => '  hello@example.com  ',
             'phone'   => '  +91 40 9876 5432  ',
             'hours'   => "Mon–Fri · 09:00 – 17:00",
@@ -264,7 +264,7 @@ class ContactSitePageEditorTest extends TestCase
         // Specific guarantees: trims wrapping whitespace on text fields
         // and on the map label, but preserves embedded newlines so
         // multi-line addresses render correctly on the public page.
-        $this->assertSame("1INME HQ\n42 Example Street", $stored['address']);
+        $this->assertSame("Sayzio HQ\n42 Example Street", $stored['address']);
         $this->assertSame('hello@example.com',           $stored['email']);
         $this->assertSame('+91 40 9876 5432',            $stored['phone']);
         $this->assertSame('Bengaluru office',            $stored['map']['label']);
@@ -696,7 +696,7 @@ class ContactSitePageEditorTest extends TestCase
         $this->makeContactPage();
 
         $payload = $this->payload([
-            'address' => "1INME HQ\n42 Example Street\nBengaluru 560001",
+            'address' => "Sayzio HQ\n42 Example Street\nBengaluru 560001",
             'email'   => 'hello@example.com',
             'phone'   => '+91 40 9876 5432',
             'hours'   => "Mon–Fri · 09:00 – 17:00",
@@ -724,7 +724,7 @@ class ContactSitePageEditorTest extends TestCase
         $publicResp->assertOk();
 
         // Every line of the multi-line address survives nl2br + e().
-        $publicResp->assertSee('1INME HQ', false);
+        $publicResp->assertSee('Sayzio HQ', false);
         $publicResp->assertSee('42 Example Street', false);
         $publicResp->assertSee('Bengaluru 560001', false);
 
@@ -878,7 +878,7 @@ class ContactSitePageEditorTest extends TestCase
         // image fallbacks must, so the page never renders a broken
         // <img src=""> or a half-empty submit button.
         $payload = [
-            'title'            => 'Contact 1INME',
+            'title'            => 'Contact Sayzio',
             'meta_description' => '',
             'sections'         => [
                 ['id' => '', 'heading' => 'We love hearing from you', 'body' => 'Drop us a note.', 'visible' => '1'],

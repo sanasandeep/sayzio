@@ -4,7 +4,7 @@ export default function Refunds() {
   return (
     <LegalPage
       metaTitle="Refunds Policy"
-      metaDescription="How refunds work for 1INME paid plans — eligibility, timing, exceptions and how to request one."
+      metaDescription="How refunds work for Sayzio paid plans — eligibility, timing, exceptions and how to request one."
       titleLead="Refunds"
       titleHighlight="Policy"
       sections={[

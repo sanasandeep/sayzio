@@ -1,4 +1,4 @@
-# Contributing to 1INME
+# Contributing to Sayzio
 
 ## Pre-flight: run migrations from scratch on PostgreSQL
 

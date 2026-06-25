@@ -18,7 +18,7 @@
     <p class="text-sm mt-1" style="color: var(--text-muted);">
         Toggle 18+ content on your profile. Visitors will see an age-verification screen before
         viewing your profile, and the directory will only surface your profile to viewers who have
-        opted in to adult content. <strong>1INME takes 0%</strong> &mdash; you'll receive 100% of
+        opted in to adult content. <strong>Sayzio takes 0%</strong> &mdash; you'll receive 100% of
         what your fans pay (minus your processor's fee).
     </p>
 

@@ -1,6 +1,6 @@
 # Overview
 
-"1INME" is a pnpm workspace monorepo for a link-management SaaS platform. It lets creators, businesses, and individuals create, manage, track, and brand links, biolinks (mini-websites), and QR codes — with deep customization, detailed analytics, and tracking.
+"Sayzio" is a pnpm workspace monorepo for a link-management SaaS platform. It lets creators, businesses, and individuals create, manage, track, and brand links, biolinks (mini-websites), and QR codes — with deep customization, detailed analytics, and tracking.
 
 Docs: exhaustive feature catalog in `artifacts/1inme/docs/features.md`; end-user guide in `docs/knowledge-base.md`; REST API reference in `docs/api.md`.
 
@@ -10,7 +10,7 @@ I prefer iterative development. I want to be asked before making major changes. 
 
 # System Architecture
 
-A pnpm workspace monorepo combining a PHP 8.4 Laravel app (1INME) and Node.js 24 / Express 5 API services. PostgreSQL is the primary database (AWS RDS), accessed via Drizzle ORM (Node) and Laravel Eloquent (PHP). TypeScript 5.9 across Node components, Zod for validation, Orval for API codegen from OpenAPI, esbuild for CJS bundling.
+A pnpm workspace monorepo combining a PHP 8.4 Laravel app (Sayzio) and Node.js 24 / Express 5 API services. PostgreSQL is the primary database (AWS RDS), accessed via Drizzle ORM (Node) and Laravel Eloquent (PHP). TypeScript 5.9 across Node components, Zod for validation, Orval for API codegen from OpenAPI, esbuild for CJS bundling.
 
 Artifacts (see registered artifacts list):
 - `artifacts/1inme` — Laravel app (the product)
@@ -20,7 +20,7 @@ Artifacts (see registered artifacts list):
 - `artifacts/api-server` — Express API service
 - `lib/*` — shared libraries (`db`, `api-spec`, `api-zod`, `api-client-react`)
 
-## 1INME Laravel App (`artifacts/1inme/`)
+## Sayzio Laravel App (`artifacts/1inme/`)
 
 ### Core
 - HMVC pattern with `Admin`, `User`, `Common`, `Api` modules.
@@ -63,7 +63,7 @@ Glassmorphism design, dark/light modes, purple palette, Space Grotesk type. 3-mo
 - **Admin Mail/SMTP**: `MailSettingsController` + `MailSettings` (encrypted password, runtime `config('mail.*')` override, connection verify + test email). Mobile parity at `/api/v1/admin/mail-settings`.
 - **Creator Payouts & 18+**: `/user/payouts` dashboard with 5 hosted-onboarding adapters (Stripe Connect, PayPal, Razorpay Route, CCBill, Segpay); 0% platform fee; `creator_payment_connections` per (user, provider); preview mode when keys absent. 18+ toggle at `/user/adult-content` requires three-checkbox consent + audit stamps; visitor age gate on `/@handle`; `/creators` hides 18+ unless `?show_adult=1`; admin moderation at `/admin/adult-moderation`. Mobile parity via `/api/v1/payouts` + `/api/v1/adult-content`.
 
-## 1INME Marketing Site (`artifacts/1inme-com`)
+## Sayzio Marketing Site (`artifacts/1inme-com`)
 Standalone React + Vite + Tailwind site, separate from Laravel. A **gateway**: no auth/checkout of its own — all login/signup/pricing CTAs route to the main app via `src/config.ts`; copy mirrors Laravel `SitePagesContent`. Ships legal pages, a changelog, official social links, and a blog that reads the live Laravel DB-driven blog at runtime (CORS-open `/blogs/feed.json` + `/blogs/feed/{slug}.json`). Contact form submits via `@workspace/api-client-react` to the Laravel admin inbox (rate-limited, honeypot, `mailto:` fallback).
 
 # External Dependencies

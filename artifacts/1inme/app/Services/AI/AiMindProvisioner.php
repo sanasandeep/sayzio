@@ -9,7 +9,7 @@ use App\Modules\User\Models\User;
 /**
  * Boot helpers for the AI Mind feature.
  *
- *   ensurePlatformDefault()  — ensures the global "1INME Default Mind"
+ *   ensurePlatformDefault()  — ensures the global "Sayzio Default Mind"
  *                              exists with the seed knowledge sources.
  *                              Idempotent — safe to call from a console
  *                              command, an admin button, or a migration.
@@ -22,7 +22,7 @@ use App\Modules\User\Models\User;
  */
 class AiMindProvisioner
 {
-    public const PLATFORM_NAME = '1INME Default Mind';
+    public const PLATFORM_NAME = 'Sayzio Default Mind';
 
     /**
      * Live public snapshots auto-attached to the platform default Mind so
@@ -45,7 +45,7 @@ class AiMindProvisioner
             $mind = AiMind::create([
                 'user_id'     => null,
                 'name'        => self::PLATFORM_NAME,
-                'description' => 'Built-in knowledge about 1INME — features, how-to, FAQs. Auto-attached to every account.',
+                'description' => 'Built-in knowledge about Sayzio — features, how-to, FAQs. Auto-attached to every account.',
                 'is_default'  => true,
             ]);
 
@@ -54,7 +54,7 @@ class AiMindProvisioner
             AiMindSource::create([
                 'mind_id' => $mind->id,
                 'type'    => AiMindSource::TYPE_TEXT,
-                'title'   => 'About 1INME',
+                'title'   => 'About Sayzio',
                 'body'    => self::aboutText(),
                 'status'  => AiMindSource::STATUS_QUEUED,
             ]);
@@ -94,7 +94,7 @@ class AiMindProvisioner
             $source = AiMindSource::create([
                 'mind_id'     => $mind->id,
                 'type'        => AiMindSource::TYPE_FEATURE,
-                'title'       => '1INME — ' . \App\Services\AI\AiMindFeatureAdapter::label($key),
+                'title'       => 'Sayzio — ' . \App\Services\AI\AiMindFeatureAdapter::label($key),
                 'feature_key' => $key,
                 'status'      => AiMindSource::STATUS_QUEUED,
             ]);
@@ -122,7 +122,7 @@ class AiMindProvisioner
     protected static function aboutText(): string
     {
         return <<<'TXT'
-1INME is a creator platform that lets people centralize their online presence into a single biolink page, run short links, and track audience growth.
+Sayzio is a creator platform that lets people centralize their online presence into a single biolink page, run short links, and track audience growth.
 
 Core features:
 - Biolinks: a customizable mobile-first profile that hosts your links, posts, payments, and forms in one place.
@@ -145,7 +145,7 @@ TXT;
             ['q' => 'How do I create a biolink?',
              'a' => 'Open the dashboard, click "Create Link" → "Biolink", and follow the wizard. You can pick a template, set an alias, and add blocks (links, posts, payments, forms).'],
             ['q' => 'How are AI credits different from wallet coins?',
-             'a' => 'Wallet coins are general-purpose 1INME currency. AI credits are spent only by AI features (Mind, Persona, Companion, Coach). Buy credits from "AI Credits" in the dashboard — wallet coins convert to credits at the admin-set rate.'],
+             'a' => 'Wallet coins are general-purpose Sayzio currency. AI credits are spent only by AI features (Mind, Persona, Companion, Coach). Buy credits from "AI Credits" in the dashboard — wallet coins convert to credits at the admin-set rate.'],
             ['q' => 'What does the Performance Coach do?',
              'a' => 'The Performance Coach scores each link daily on visit volume, dwell time, and CTR, and suggests fixes (rename, add a CTA, pause if dead). Snapshots build a 30-day trend you can revisit.'],
             ['q' => 'Can I use my own domain?',

@@ -3,7 +3,7 @@
     $checkedPlanIds = $checkedPlanIds ?? [];
     $featureBooleans = [
         'custom_domains' => 'Grants custom domains',
-        'remove_branding' => 'Removes 1INME branding',
+        'remove_branding' => 'Removes Sayzio branding',
         'custom_branding' => 'Custom branding',
         'priority_support' => 'Priority support',
         'api_access' => 'API access',

@@ -14,7 +14,7 @@
         <div class="text-center max-w-2xl mx-auto mb-10">
             <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-300 mb-3">{{ $eyebrow ?? 'Loved by creators' }}</div>
             <h2 id="testimonials-h" class="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                {{ $heading ?? 'Real stories from people using 1INME every day.' }}
+                {{ $heading ?? 'Real stories from people using Sayzio every day.' }}
             </h2>
             @if(!empty($subheading))
                 <p class="mt-3 text-gray-400">{{ $subheading }}</p>

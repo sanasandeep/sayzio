@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>AR Kit · {{ $cfg['display_name'] }} · 1INME</title>
+<title>AR Kit · {{ $cfg['display_name'] }} · Sayzio</title>
 <style>
     @page { size: A4; margin: 14mm; }
     * { box-sizing: border-box; }
@@ -69,7 +69,7 @@
 @endif
 
 <div class="head">
-    <div class="brand">1INME · AR Card kit</div>
+    <div class="brand">Sayzio · AR Card kit</div>
     <h1>{{ $cfg['display_name'] }}</h1>
     <div class="url">{{ $arUrl }}</div>
 </div>

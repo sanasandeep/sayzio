@@ -5,7 +5,7 @@ export default function Slide064Socialcommunitymockup() {
     <div className="w-screen h-screen overflow-hidden relative bg-[#0a0a14] text-slate-100 font-body">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,58,237,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.12),transparent_55%)]" />
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400"></span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
@@ -24,7 +24,7 @@ export default function Slide064Socialcommunitymockup() {
             <div className="rounded-lg border border-white/10 bg-white/[0.03] px-[1vw] py-[0.8vh] flex items-center justify-between"><span className="text-[1vw] text-slate-200">Instagram</span><span className="text-[0.9vw] text-fuchsia-200 font-mono">scheduled · Thu 9am</span></div>
             <div className="rounded-lg border border-white/10 bg-white/[0.03] px-[1vw] py-[0.8vh] flex items-center justify-between"><span className="text-[1vw] text-slate-200">TikTok</span><span className="text-[0.9vw] text-fuchsia-200 font-mono">scheduled · Thu 9am</span></div>
             <div className="rounded-lg border border-white/10 bg-white/[0.03] px-[1vw] py-[0.8vh] flex items-center justify-between"><span className="text-[1vw] text-slate-200">X / Twitter</span><span className="text-[0.9vw] text-fuchsia-200 font-mono">scheduled · Thu 9am</span></div>
-            <div className="rounded-lg border border-white/10 bg-white/[0.03] px-[1vw] py-[0.8vh] flex items-center justify-between"><span className="text-[1vw] text-slate-200">1INME feed</span><span className="text-[0.9vw] text-fuchsia-200 font-mono">scheduled · Thu 9am</span></div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] px-[1vw] py-[0.8vh] flex items-center justify-between"><span className="text-[1vw] text-slate-200">Sayzio feed</span><span className="text-[0.9vw] text-fuchsia-200 font-mono">scheduled · Thu 9am</span></div>
             </div>
             <div className="mt-auto pt-[1.5vh] text-[0.9vw] text-slate-500">Per-network previews, hashtag swaps, and best-time picks.</div>
           </div>

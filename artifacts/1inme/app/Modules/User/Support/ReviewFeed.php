@@ -14,7 +14,7 @@ class ReviewFeed
 {
     /** Friendly labels for known providers. */
     public const PROVIDER_LABELS = [
-        'native'     => '1INME',
+        'native'     => 'Sayzio',
         'google'     => 'Google',
         'trustpilot' => 'Trustpilot',
     ];

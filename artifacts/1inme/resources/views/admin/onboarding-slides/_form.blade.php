@@ -23,7 +23,7 @@
         <div>
             <label class="block text-sm font-medium text-white/70 mb-1">Supporting copy</label>
             <textarea name="body" rows="4" maxlength="600"
-                      placeholder="One short paragraph explaining how 1INME helps this audience."
+                      placeholder="One short paragraph explaining how Sayzio helps this audience."
                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-violet-500">{{ old('body', $slide->body ?? '') }}</textarea>
             @error('body')<p class="text-xs text-red-400 mt-1">{{ $message }}</p>@enderror
         </div>

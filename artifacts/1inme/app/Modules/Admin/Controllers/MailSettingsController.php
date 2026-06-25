@@ -130,10 +130,10 @@ class MailSettingsController extends Controller
 
         try {
             Mail::raw(
-                "This is a test email from 1INME.\n\nIf you received this, your SMTP / email settings are working.\n\nSent at " . now()->toDateTimeString() . '.',
+                "This is a test email from Sayzio.\n\nIf you received this, your SMTP / email settings are working.\n\nSent at " . now()->toDateTimeString() . '.',
                 function ($message) use ($data) {
                     $message->to($data['test_email'])
-                        ->subject('1INME — test email');
+                        ->subject('Sayzio — test email');
                 }
             );
         } catch (\Throwable $e) {

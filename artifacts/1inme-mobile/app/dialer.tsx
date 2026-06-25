@@ -744,7 +744,7 @@ export default function DialerScreen() {
                       ×{item.calls}
                     </Text>
                   )}
-                  {item.biolink && <MiniTag text="1INME" color="#ec4899" />}
+                  {item.biolink && <MiniTag text="Sayzio" color="#ec4899" />}
                   {item.isSpam && <MiniTag text="SPAM" color="#ef4444" />}
                   {item.isBlocked && <MiniTag text="BLOCKED" color="#9ca3af" />}
                 </View>
@@ -809,7 +809,7 @@ export default function DialerScreen() {
                     textTransform: "uppercase",
                   }}
                 >
-                  1INME contacts
+                  Sayzio contacts
                 </Text>
               </View>
             }

@@ -20,7 +20,7 @@ class SiteAssistantSettings
             'launcher_position' => 'bottom-right', // bottom-right|bottom-left
             'accent_color'      => '#7c3aed',
             'avatar_url'        => null,
-            'greeting'          => "Hi! I'm your 1INME assistant. Ask me anything about the platform or what you can do on this page.",
+            'greeting'          => "Hi! I'm your Sayzio assistant. Ask me anything about the platform or what you can do on this page.",
             'system_prompt'     => self::defaultSystemPrompt(),
             'model'             => '', // empty = fall back to feature-mapped chat model
             'mind_ids'          => [], // empty = use platform-default minds
@@ -132,15 +132,15 @@ class SiteAssistantSettings
     public static function defaultSystemPrompt(): string
     {
         return <<<'P'
-You are the 1INME Assistant, a helpful, concise guide that lives on every
-page of the 1INME web app. Visitors may be browsing marketing pages or
+You are the Sayzio Assistant, a helpful, concise guide that lives on every
+page of the Sayzio web app. Visitors may be browsing marketing pages or
 signed in to their dashboard. Always:
 
 - Use the "Page context" block to ground your answer in what the user
   is currently looking at, and suggest the most relevant next action.
 - When grounded knowledge is provided in the "Knowledge" block, prefer
   it over your prior knowledge. If the answer isn't in there and isn't
-  general 1INME knowledge, say so politely and offer to connect with
+  general Sayzio knowledge, say so politely and offer to connect with
   the support team.
 - Keep replies short (under ~120 words) and friendly. Use short
   paragraphs or compact bullet lists.

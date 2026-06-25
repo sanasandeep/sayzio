@@ -28,7 +28,7 @@ export const featuresCategories: FeatureCategory[] = [
     id: "ai-suite",
     name: "AI suite",
     intro:
-      "A set of AI products that plug into your 1INME — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.",
+      "A set of AI products that plug into your Sayzio — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.",
     items: [
       { title: "AI Chatbot", description: "Trained 24/7 chatbot on your Link in Bio that answers in your voice, captures leads and hands off to a human when needed." },
       { title: "AI Agent", description: "A multi-step agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own." },
@@ -107,7 +107,7 @@ export const featuresCategories: FeatureCategory[] = [
     id: "inbox",
     name: "Inbox & messaging",
     intro:
-      "Every conversation that reaches you through 1INME lands in one place so nothing slips through the cracks.",
+      "Every conversation that reaches you through Sayzio lands in one place so nothing slips through the cracks.",
     items: [
       { title: "Unified inbox", description: "A single inbox that pulls together every visitor message, form reply, and follow-up across all your links." },
       { title: "Direct messages from visitors", description: "Visitors can message you straight from your Link in Bio and you reply right inside the inbox." },
@@ -163,7 +163,7 @@ export const featuresCategories: FeatureCategory[] = [
     id: "vault",
     name: "Vault",
     intro:
-      "Store sensitive client information securely inside 1INME instead of scattering it across notes apps and chats.",
+      "Store sensitive client information securely inside Sayzio instead of scattering it across notes apps and chats.",
     items: [
       { title: "Encrypted credential storage", description: "Save logins, API keys, and secret notes encrypted at rest so only authorised members can decrypt them." },
       { title: "Audit logging on reveal", description: "Every time a credential is revealed it gets logged with the user and timestamp for full accountability." },
@@ -174,7 +174,7 @@ export const featuresCategories: FeatureCategory[] = [
   {
     id: "kanban",
     name: "Kanban task boards",
-    intro: "Manage work without leaving 1INME using flexible boards that fit how your team actually operates.",
+    intro: "Manage work without leaving Sayzio using flexible boards that fit how your team actually operates.",
     items: [
       { title: "Boards with columns", description: "Spin up boards with custom columns to track work through any stage you define." },
       { title: "Subtasks", description: "Break a card into subtasks and tick them off as the work progresses." },
@@ -192,7 +192,7 @@ export const featuresCategories: FeatureCategory[] = [
       { title: "Contacts address book", description: "A central directory of every person you talk to, with rich profile details." },
       { title: "Import contacts", description: "Bring contacts in from CSV files so you don't have to retype anything." },
       { title: "Export contacts", description: "Download your full contact list as CSV for backups or other tools." },
-      { title: "Built-in dialer", description: "Tap a contact to call them directly from inside 1INME without copy-pasting numbers." },
+      { title: "Built-in dialer", description: "Tap a contact to call them directly from inside Sayzio without copy-pasting numbers." },
       { title: "Google Contacts sync", description: "Two-way sync with your Google Contacts so changes flow between both sides automatically." },
     ],
   },
@@ -201,7 +201,7 @@ export const featuresCategories: FeatureCategory[] = [
     name: "Calendar sync",
     intro: "Keep your real calendars in the loop whenever someone books with you or RSVPs to your event link.",
     items: [
-      { title: "Google Calendar sync", description: "Connect a Google Calendar so 1INME events appear and update in your day-to-day schedule." },
+      { title: "Google Calendar sync", description: "Connect a Google Calendar so Sayzio events appear and update in your day-to-day schedule." },
       { title: "Microsoft / Outlook sync", description: "Sync with Microsoft 365 or Outlook calendars for full visibility on the Microsoft side." },
       { title: "CalDAV sync", description: "Use CalDAV to sync with Apple Calendar, Fastmail, and other standards-based calendars." },
       { title: "RSVPs for event links", description: "Create event links visitors can RSVP to, with their response captured against the event." },
@@ -233,7 +233,7 @@ export const featuresCategories: FeatureCategory[] = [
   {
     id: "referrals",
     name: "Referral program",
-    intro: "Reward the people who tell their network about 1INME with a built-in referral system.",
+    intro: "Reward the people who tell their network about Sayzio with a built-in referral system.",
     items: [
       { title: "Referral tracking", description: "Every signup that comes from your referral link is tracked back to you automatically." },
       { title: "Custom referral codes", description: "Pick a memorable referral code instead of a long URL so it's easy to share by voice or in a story." },
@@ -242,11 +242,11 @@ export const featuresCategories: FeatureCategory[] = [
   {
     id: "public-surfaces",
     name: "Public marketing surfaces",
-    intro: "Discoverability features that bring new visitors to creators on 1INME without extra work.",
+    intro: "Discoverability features that bring new visitors to creators on Sayzio without extra work.",
     items: [
       { title: "Discovery directory", description: "A public directory where creators with opted-in profiles can be found by category and interest." },
       { title: "Creators Feed page", description: "A site-wide feed of recent creator posts that surfaces fresh activity to new visitors." },
-      { title: "API documentation page", description: "Public API docs that show developers exactly how to build on top of the 1INME platform." },
+      { title: "API documentation page", description: "Public API docs that show developers exactly how to build on top of the Sayzio platform." },
     ],
   },
   {

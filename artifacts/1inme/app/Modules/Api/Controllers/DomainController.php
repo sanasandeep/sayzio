@@ -96,7 +96,7 @@ class DomainController extends Controller
         // want a competing account to swoop in mid-window.
         $existing = Domain::where('domain', strtolower($data['domain']))->first();
         if ($existing) {
-            return $this->fail('This domain is already claimed on 1INME.', 409, 'domain_taken');
+            return $this->fail('This domain is already claimed on Sayzio.', 409, 'domain_taken');
         }
 
         $d = new Domain([

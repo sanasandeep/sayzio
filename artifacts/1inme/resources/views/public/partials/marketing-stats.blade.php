@@ -15,7 +15,7 @@
             <h2 class="reveal rd-1 text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
                 Trusted at <span class="grad-text">scale.</span>
             </h2>
-            <p class="reveal rd-2 text-gray-400 max-w-xl mx-auto mt-3 text-sm sm:text-base">Real numbers from real creators, brands and teams using 1INME every day.</p>
+            <p class="reveal rd-2 text-gray-400 max-w-xl mx-auto mt-3 text-sm sm:text-base">Real numbers from real creators, brands and teams using Sayzio every day.</p>
         </div>
 
         <div class="reveal glass rounded-3xl p-6 sm:p-10 relative overflow-hidden border border-white/10">

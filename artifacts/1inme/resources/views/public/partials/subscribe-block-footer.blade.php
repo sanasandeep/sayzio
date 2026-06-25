@@ -20,7 +20,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div>
                 <div class="text-[11px] font-bold uppercase tracking-[.2em] text-violet-300 mb-1">Subscribe</div>
-                <h3 class="text-lg sm:text-xl font-bold text-white">Stay in the loop with 1INME.</h3>
+                <h3 class="text-lg sm:text-xl font-bold text-white">Stay in the loop with Sayzio.</h3>
                 <p class="mt-1 text-xs text-gray-400">Pick the channel that suits you — email, WhatsApp Channel, or DM.</p>
             </div>
             <a href="{{ route('site.subscriptions.manage') }}"

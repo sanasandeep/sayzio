@@ -13,7 +13,7 @@
             'shareDescription' => $shareDescription ?? null,
         ]);
     @endphp
-    <title>{{ $__seo['title'] }} — {{ config('app.name', '1INME') }}</title>
+    <title>{{ $__seo['title'] }} — {{ config('app.name', 'Sayzio') }}</title>
     <meta name="description" content="{{ $__seo['description'] }}">
     @if(($__seo['keywords'] ?? '') !== '')
         <meta name="keywords" content="{{ $__seo['keywords'] }}">

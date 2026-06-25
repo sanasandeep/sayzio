@@ -287,7 +287,7 @@ class CheckExpectedColumns extends Command
         $admins  = $this->admins();
         $url     = $this->dashboardUrl();
         $subject = 'Database schema drift detector cannot run';
-        $body    = "The 1INME schema drift detector could not run. It derives the expected database schema by "
+        $body    = "The Sayzio schema drift detector could not run. It derives the expected database schema by "
                  . "replaying the migration files, but that replay failed — so it cannot tell whether the live "
                  . "database has drifted. Edited-after-applied migration drift (a recorded migration later changed "
                  . "to add columns, which Laravel never re-applies) will go UNDETECTED until this is fixed. This is "
@@ -314,7 +314,7 @@ class CheckExpectedColumns extends Command
         $admins  = $this->admins();
         $url     = $this->dashboardUrl();
         $subject = 'Database schema drift detector is back online';
-        $body    = "Good news — the 1INME schema drift detector can run again and is back to actively checking the "
+        $body    = "Good news — the Sayzio schema drift detector can run again and is back to actively checking the "
                  . "live database for edited-after-applied migration drift. No further action needed.";
 
         $inApp  = $this->fanOutInApp($admins, 'expected_columns_detector_ok', $subject, $body, $url, []);

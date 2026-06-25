@@ -4,7 +4,7 @@
 @section('content')
 @php
     $press = [
-        ['outlet' => 'TechCrunch', 'date' => 'Mar 2026', 'headline' => '1INME wants to be the calm in the link-in-bio storm.', 'href' => '#'],
+        ['outlet' => 'TechCrunch', 'date' => 'Mar 2026', 'headline' => 'Sayzio wants to be the calm in the link-in-bio storm.', 'href' => '#'],
         ['outlet' => 'The Verge',  'date' => 'Feb 2026', 'headline' => 'Every creator’s second favourite app.',                'href' => '#'],
         ['outlet' => 'YourStory',  'date' => 'Jan 2026', 'headline' => 'How a Hyderabad team built a tool that scales.',       'href' => '#'],
         ['outlet' => 'Forbes',     'date' => 'Dec 2025', 'headline' => 'The next-gen Link in Bio is built for serious creators.',  'href' => '#'],
@@ -18,7 +18,7 @@
         ['name' => 'Maya Daly',     'role' => 'Storyteller, 24K followers', 'quote' => 'I used to juggle four tools. Now everything runs from one tab — and I can actually see what is working.', 'tint' => 'from-violet-500 to-fuchsia-500'],
         ['name' => 'Rajiv Khanna',  'role' => 'Indie musician',             'quote' => 'My fans land on a single beautiful page that shows the new EP, my tour and my Patreon. Click-throughs doubled.', 'tint' => 'from-cyan-500 to-violet-500'],
         ['name' => 'Sara Mendez',   'role' => 'Boutique owner',             'quote' => 'The QR code on every order box brings people back to a special drops page. It feels custom — but I built it in an afternoon.', 'tint' => 'from-pink-500 to-amber-500'],
-        ['name' => 'Olu Adesina',   'role' => 'Career coach',               'quote' => '1INME made my newsletter, course waitlist and bookings live in one place. Conversions are way up.', 'tint' => 'from-emerald-500 to-cyan-500'],
+        ['name' => 'Olu Adesina',   'role' => 'Career coach',               'quote' => 'Sayzio made my newsletter, course waitlist and bookings live in one place. Conversions are way up.', 'tint' => 'from-emerald-500 to-cyan-500'],
     ];
     $logos = ['TechCrunch', 'The Verge', 'YourStory', 'Forbes', 'Product Hunt', 'Indie Hackers', 'Wired', 'FastCompany'];
 @endphp
@@ -35,7 +35,7 @@
                 People are <span class="grad-text">talking</span>.
             </h1>
             <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                {{ $page->meta_description ?? 'Press, awards, customer love and the tiny moments that keep us shipping. A round-up of everything happening around 1INME.' }}
+                {{ $page->meta_description ?? 'Press, awards, customer love and the tiny moments that keep us shipping. A round-up of everything happening around Sayzio.' }}
             </p>
             <div class="mt-8 grid grid-cols-3 gap-6 max-w-md" data-anim="fade-up" data-stagger>
                 <div><div class="text-3xl font-bold"><span data-count="40" data-count-suffix="+"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-1">Press features</div></div>
@@ -75,7 +75,7 @@
         <div class="flex items-end justify-between flex-wrap gap-4 mb-8" data-anim="fade-up">
             <div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">In the press</h2>
-                <p class="mt-2 text-gray-400">Recent stories about 1INME and the people behind it.</p>
+                <p class="mt-2 text-gray-400">Recent stories about Sayzio and the people behind it.</p>
             </div>
             <a href="{{ route('site.contact') }}" class="text-sm font-semibold text-violet-300 hover:text-white">Press &amp; partnerships <i class="fas fa-arrow-right text-xs ml-1"></i></a>
         </div>
@@ -131,7 +131,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Customer love</h2>
-            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Stories from people who run their entire creator business on 1INME.</p>
+            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Stories from people who run their entire creator business on Sayzio.</p>
         </div>
         <div class="grid md:grid-cols-2 gap-5" data-anim="fade-up" data-stagger>
             @foreach($testimonials as $t)
@@ -166,7 +166,7 @@
 </section>
 
 @include('public.partials.subscribe-block', [
-    'heading' => 'Follow 1INME news as it happens.',
+    'heading' => 'Follow Sayzio news as it happens.',
     'subtext' => 'Press, partnerships, and product launches — pick email, WhatsApp Channel, or DM.',
     'source'  => 'buzz',
 ])

@@ -90,7 +90,7 @@
     </form>
 
     @if(!empty($config['show_branding']))
-        <div class="foot">Powered by <a href="{{ url('/') }}" target="_blank" rel="noopener">1INME</a></div>
+        <div class="foot">Powered by <a href="{{ url('/') }}" target="_blank" rel="noopener">Sayzio</a></div>
     @endif
 </div>
 

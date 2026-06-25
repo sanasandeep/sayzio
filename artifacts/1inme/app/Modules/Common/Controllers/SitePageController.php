@@ -27,7 +27,7 @@ class SitePageController extends Controller
                 ['slug' => 'features'],
                 [
                     'title' => 'Features',
-                    'meta_description' => 'A complete tour of every capability inside 1INME — all 10 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), plus QR codes, analytics, inboxes, teams, billing, and more.',
+                    'meta_description' => 'A complete tour of every capability inside Sayzio — all 10 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), plus QR codes, analytics, inboxes, teams, billing, and more.',
                     'sections' => SitePagesContent::featuresCategoriesDefault(),
                 ]
             );
@@ -241,8 +241,8 @@ class SitePageController extends Controller
         return view('public.demos', [
             'seoKey'           => 'demos',
             'cards'            => $cards,
-            'shareTitle'       => 'See what you can build with 1INME',
-            'shareDescription' => 'A live gallery of every kind of link 1INME can create — short links, Link in Bio pages, conversational pages, slides, AI chatbots, restaurant menus, file shares, events, contact cards and reviews pages.',
+            'shareTitle'       => 'See what you can build with Sayzio',
+            'shareDescription' => 'A live gallery of every kind of link Sayzio can create — short links, Link in Bio pages, conversational pages, slides, AI chatbots, restaurant menus, file shares, events, contact cards and reviews pages.',
         ]);
     }
 
@@ -258,8 +258,8 @@ class SitePageController extends Controller
             'competitors'      => $competitors,
             'total'            => ComparisonContent::totalFeatures(),
             'ourScore'         => ComparisonContent::scores()['ours'] ?? 0,
-            'shareTitle'       => 'Compare 1INME vs Linktree, Beacons, Bitly & more',
-            'shareDescription' => 'See how 1INME stacks up against the tools you already use across '
+            'shareTitle'       => 'Compare Sayzio vs Linktree, Beacons, Bitly & more',
+            'shareDescription' => 'See how Sayzio stacks up against the tools you already use across '
                 . ComparisonContent::totalFeatures()
                 . ' features — Link in Bio pages, short links, QR codes, analytics, monetisation and more.',
         ]);
@@ -284,7 +284,7 @@ class SitePageController extends Controller
     }
 
     /**
-     * Dedicated "1INME for X" use-case landing page. Mirrors the AI product
+     * Dedicated "Sayzio for X" use-case landing page. Mirrors the AI product
      * slug pattern: the route constrains $persona to a known slug, the
      * editable copy lives on the "for-{persona}" SitePage row, and the
      * hero chrome / feature anchors / FAQ come from SitePagesContent.
@@ -298,7 +298,7 @@ class SitePageController extends Controller
         $page = SitePage::firstOrCreate(
             ['slug' => $pageSlug],
             [
-                'title'            => $defaults['title'] ?? ('1INME for ' . ucfirst($persona)),
+                'title'            => $defaults['title'] ?? ('Sayzio for ' . ucfirst($persona)),
                 'meta_description' => $defaults['meta_description'] ?? null,
                 'sections'         => $defaults['sections'] ?? [],
                 'cta_label'        => $defaults['cta_label'] ?? null,
@@ -533,7 +533,7 @@ class SitePageController extends Controller
                 Mail::raw(
                     "New contact message from {$msg->name} <{$msg->email}>\n\nSubject: {$msg->subject}\n\n{$msg->message}",
                     function ($m) use ($recipient, $msg) {
-                        $m->to($recipient)->subject('[1INME Contact] ' . $msg->subject);
+                        $m->to($recipient)->subject('[Sayzio Contact] ' . $msg->subject);
                     }
                 );
             } catch (\Throwable $e) {

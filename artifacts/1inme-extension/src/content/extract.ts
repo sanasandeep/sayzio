@@ -1,5 +1,5 @@
 // Page-to-biolink extractor. Returned object is consumed by the
-// background script which calls the 1INME API to seed a draft biolink.
+// background script which calls the Sayzio API to seed a draft biolink.
 //
 // Detached IIFE so the bundled file can be injected via
 // browser.scripting.executeScript({ files: [...] }) and the last

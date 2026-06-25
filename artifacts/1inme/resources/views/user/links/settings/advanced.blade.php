@@ -148,7 +148,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">OG Site Name</label>
-                            <input type="text" name="og[site_name]" value="{{ $og['site_name'] ?? '' }}" placeholder="1INME" class="theme-input w-full">
+                            <input type="text" name="og[site_name]" value="{{ $og['site_name'] ?? '' }}" placeholder="Sayzio" class="theme-input w-full">
                         </div>
                     </div>
                     <div>
@@ -738,7 +738,7 @@
                         <input type="hidden" name="branding_hidden" value="0">
                         <input type="checkbox" name="branding_hidden" value="1" {{ ($bs['branding_hidden'] ?? false) ? 'checked' : '' }} class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                         <div>
-                            <span class="text-xs font-semibold" style="color: var(--text-primary);">Hide "Powered by 1INME"</span>
+                            <span class="text-xs font-semibold" style="color: var(--text-primary);">Hide "Powered by Sayzio"</span>
                             <p class="text-[10px]" style="color: var(--text-dimmed);">Remove the default branding footer</p>
                         </div>
                     </label>
@@ -759,7 +759,7 @@
                     <div><label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Logo URL</label><input type="url" name="custom_branding_logo" value="{{ $bs['custom_branding_logo'] ?? '' }}" placeholder="https://yourbrand.com/logo.png" class="theme-input w-full"></div>
                 </div>
                 @else
-                <p class="text-xs mt-2 mb-3" style="color: var(--text-dimmed);">Replace "Powered by 1INME" with your own brand name, logo, and URL.</p>
+                <p class="text-xs mt-2 mb-3" style="color: var(--text-dimmed);">Replace "Powered by Sayzio" with your own brand name, logo, and URL.</p>
                 <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg" style="background: linear-gradient(135deg, #fb923c, #f59e0b); color: #fff;">Upgrade Plan</a>
                 @endif
             </div>

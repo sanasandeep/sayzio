@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * Seeds (idempotently) one SitePage row per "1INME for X" use-case
+     * Seeds (idempotently) one SitePage row per "Sayzio for X" use-case
      * landing page, stored under the "for-{persona}" slug. Existing rows
      * are left untouched so admin edits are preserved.
      */

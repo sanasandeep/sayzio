@@ -32,7 +32,7 @@ class VoiceAssistantController extends Controller
 
     /**
      * Hardcoded list of normalised wake-phrase variants. We accept a
-     * fairly permissive set because Whisper renders "1INME" in many
+     * fairly permissive set because Whisper renders "Sayzio" in many
      * different ways depending on accent and audio quality.
      *
      * Each entry is already lowercased + alphanumeric/space only so it
@@ -100,7 +100,7 @@ class VoiceAssistantController extends Controller
 
     /**
      * Lightweight wake-phrase detector for the mobile app's foreground
-     * "Hey 1INME" listener. Runs Whisper without billing the user's
+     * "Hey Sayzio" listener. Runs Whisper without billing the user's
      * credit ledger so a continuously listening client doesn't drain
      * voice_stt credits — the user only pays when a real turn fires.
      *
@@ -222,7 +222,7 @@ class VoiceAssistantController extends Controller
             'tools'       => $grouped,
             'limitations' => [
                 'No phone calls or outbound dialing — voice only runs inside the app.',
-                'Wake word ("Hey 1INME") only listens while the app is open in the foreground — it can\'t wake the phone or run in the background.',
+                'Wake word ("Hey Sayzio") only listens while the app is open in the foreground — it can\'t wake the phone or run in the background.',
                 'Cannot edit invoices, tax info, or other legal/billing documents.',
                 'No raw SQL or database access — only the allow-listed tools above.',
                 'Cannot deploy code, change infrastructure, or reset other users\' passwords.',

@@ -8,7 +8,7 @@
         <div class="flex items-start justify-between mb-3">
             <div>
                 <h3 class="text-lg font-bold text-slate-900">Send a tip to {{ $creator->name }}</h3>
-                <p class="text-xs text-slate-500 mt-0.5">100% goes to the creator. 1INME takes 0%.</p>
+                <p class="text-xs text-slate-500 mt-0.5">100% goes to the creator. Sayzio takes 0%.</p>
             </div>
             <button id="cp-tip-close" class="text-slate-400 hover:text-slate-700"><i class="fas fa-times"></i></button>
         </div>

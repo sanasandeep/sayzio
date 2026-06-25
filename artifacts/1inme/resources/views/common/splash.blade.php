@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
-        $title = $splash['title'] ?? ($link->title ?: '1INME');
+        $title = $splash['title'] ?? ($link->title ?: 'Sayzio');
         $description = $splash['description'] ?? null;
         $ogImage = $splash['og_image'] ?? ($splash['logo'] ?? null);
         $favicon = $splash['favicon'] ?? null;
@@ -208,7 +208,7 @@
         </div>
 
         <a href="{{ url('/') }}" class="branding mt-6 hover:opacity-100" style="text-decoration: none;">
-            Powered by 1INME
+            Powered by Sayzio
         </a>
     </div>
 

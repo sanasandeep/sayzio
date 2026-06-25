@@ -32,7 +32,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $p['title'] }} - 1INME</title>
+    <title>{{ $p['title'] }} - Sayzio</title>
     @include('common.partials.default-icons')
     @if(isset($link) && $link->favicon)
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
@@ -94,7 +94,7 @@
             @endif
 
             <div class="text-xs text-white/30">
-                Powered by <a href="{{ url('/') }}" class="text-violet-400 hover:text-violet-300 font-medium">1INME</a>
+                Powered by <a href="{{ url('/') }}" class="text-violet-400 hover:text-violet-300 font-medium">Sayzio</a>
             </div>
         </div>
     </div>

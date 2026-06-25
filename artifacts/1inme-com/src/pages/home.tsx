@@ -36,7 +36,7 @@ export default function Home() {
   return (
     <PageLayout
       title="All-in-one Link Platform"
-      description="Whoever you are, 1INME is the all-in-one link, monetization & growth stack — free forever, no card required."
+      description="Whoever you are, Sayzio is the all-in-one link, monetization & growth stack — free forever, no card required."
     >
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
@@ -62,7 +62,7 @@ export default function Home() {
               </h1>
 
               <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-xl">
-                Whoever you are, 1INME is the all-in-one link, monetization &amp;
+                Whoever you are, Sayzio is the all-in-one link, monetization &amp;
                 growth stack: drag-and-drop Link in Bio pages, branded short links,
                 dynamic QR codes, NFC tags, built-in DMs, an AI Performance Coach
                 and a native mobile app — free forever, no card required.
@@ -98,7 +98,7 @@ export default function Home() {
               <div className="relative w-full max-w-[340px] mx-auto">
                 <img 
                   src={`${import.meta.env.BASE_URL}hero-mockup.png`} 
-                  alt="1INME Link in Bio Profile" 
+                  alt="Sayzio Link in Bio Profile" 
                   className="w-full h-auto drop-shadow-2xl rounded-[3rem]"
                 />
                 

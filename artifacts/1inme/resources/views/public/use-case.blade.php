@@ -1,5 +1,5 @@
 @extends('public.layouts.site')
-@section('title', $page->title ?? '1INME for you')
+@section('title', $page->title ?? 'Sayzio for you')
 
 @section('content')
 @php
@@ -179,7 +179,7 @@
 <section class="pb-24">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
-            <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">More ways to use 1INME</div>
+            <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">More ways to use Sayzio</div>
             <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Not quite you? <span class="grad-text">Find your fit.</span></h3>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -215,7 +215,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Ready to make it <span class="grad-text">yours</span>?</h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free 1INME, build your page in minutes, and share one link everywhere.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, build your page in minutes, and share one link everywhere.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ $ctaUrl }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $ctaLabel }}</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>

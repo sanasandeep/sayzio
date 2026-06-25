@@ -137,7 +137,7 @@ export default function AuthLanding() {
       })
       .catch((e: ApiError) => {
         // The Google account (or its email) already belongs to a different
-        // 1INME account — offer the web merge flow instead of a dead-end error.
+        // Sayzio account — offer the web merge flow instead of a dead-end error.
         if (e?.code === "identity_taken") {
           setMergeProvider("google");
           return;

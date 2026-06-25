@@ -135,7 +135,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $meta['accent'] }};">The rest of the AI suite</div>
-            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">More AI built into <span class="grad-text">1INME</span>.</h3>
+            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">More AI built into <span class="grad-text">Sayzio</span>.</h3>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             @foreach(SitePagesContent::aiProductSlugs() as $otherSlug)
@@ -163,7 +163,7 @@
     @include('public.partials.testimonials', [
         'testimonials' => $testimonials,
         'eyebrow' => 'What people say',
-        'heading' => 'Teams shipping faster with the 1INME AI suite.',
+        'heading' => 'Teams shipping faster with the Sayzio AI suite.',
     ])
 @endif
 
@@ -199,7 +199,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Ready to put <span class="grad-text">{{ $meta['eyebrow'] }}</span> to work?</h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free 1INME, turn on the AI suite, and let it answer, qualify and follow up while you build.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, turn on the AI suite, and let it answer, qualify and follow up while you build.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ $ctaUrl }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $ctaLabel }}</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>

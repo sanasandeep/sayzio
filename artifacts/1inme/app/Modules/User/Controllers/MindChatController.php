@@ -33,7 +33,7 @@ class MindChatController extends Controller
         $data = $request->validate([
             'question' => 'required|string|max:1500',
             // Optional extra mind ids to include alongside the focused mind.
-            // Useful for queries like "use my Mind + 1INME default".
+            // Useful for queries like "use my Mind + Sayzio default".
             'also'     => 'array',
             'also.*'   => 'integer',
         ]);

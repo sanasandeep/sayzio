@@ -287,7 +287,7 @@ export default function DialerProfileScreen() {
 
   const shareBio = useCallback(async () => {
     if (!bioUrl) {
-      Alert.alert("No Link in Bio", "No 1INME Link in Bio found for this number.");
+      Alert.alert("No Link in Bio", "No Sayzio Link in Bio found for this number.");
       return;
     }
     try {
@@ -538,7 +538,7 @@ export default function DialerProfileScreen() {
               {lookup?.is_spam && <Badge text="SPAM" color="#ef4444" />}
               {lookup?.is_blocked && <Badge text="BLOCKED" color="#9ca3af" />}
               {(lookup?.biolink || profile?.biolink) && (
-                <Badge text="1INME" color="#ec4899" />
+                <Badge text="Sayzio" color="#ec4899" />
               )}
             </View>
           </View>
@@ -630,7 +630,7 @@ export default function DialerProfileScreen() {
             ]}
           >
             <Text style={[styles.cardKicker, { color: "#ec4899" }]}>
-              1INME LINK IN BIO
+              Sayzio LINK IN BIO
             </Text>
             <Text style={[styles.cardTitle, { color: colors.foreground }]}>
               {bioName}

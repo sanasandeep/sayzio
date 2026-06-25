@@ -67,7 +67,7 @@ const INFO_PAGES: {
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/security-logins", label: "Recent logins", icon: "shield" },
-  { href: "/info/about", label: "About 1INME", icon: "info" },
+  { href: "/info/about", label: "About Sayzio", icon: "info" },
   { href: "/info/nfc", label: "How NFC works", icon: "wifi" },
   { href: "/info/help", label: "Help & support", icon: "life-buoy" },
   { href: "/info/privacy", label: "Privacy", icon: "shield" },
@@ -403,7 +403,7 @@ export default function Profile() {
             Signed in as
           </Text>
           <Text style={[styles.name, { color: colors.foreground }]}>
-            {user?.display_name || user?.email || user?.mobile || "1INME member"}
+            {user?.display_name || user?.email || user?.mobile || "Sayzio member"}
           </Text>
           {user?.role ? (
             <View
@@ -631,7 +631,7 @@ export default function Profile() {
                   <Text
                     style={[styles.listLabel, { color: colors.foreground }]}
                   >
-                    Wake on &ldquo;Hey 1INME&rdquo;
+                    Wake on &ldquo;Hey Sayzio&rdquo;
                   </Text>
                   <Text
                     style={[

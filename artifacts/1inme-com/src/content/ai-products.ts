@@ -11,7 +11,7 @@ export interface AiProduct {
 }
 
 const commonAiFaqs = [
-  { question: "Do I need to write any prompts or code?", answer: "No — it trains on your existing 1INME content automatically. You can refine its tone in plain language, no prompts or code required." },
+  { question: "Do I need to write any prompts or code?", answer: "No — it trains on your existing Sayzio content automatically. You can refine its tone in plain language, no prompts or code required." },
   { question: "What languages does it support?", answer: "Dozens of languages out of the box — it answers each visitor in the language they write in." },
   { question: "Can I hand off to a human?", answer: "Yes — at any point it can route the conversation to you, dropping the full transcript into your unified inbox." },
   { question: "How is my plan billed for usage?", answer: "Usage is metered against your plan's monthly AI allowance; overage is covered by your coin wallet so you're never cut off mid-conversation." },
@@ -74,7 +74,7 @@ export const aiProducts: AiProduct[] = [
     sections: [
       { heading: "One snippet, any site", body: "Paste a single line on WordPress, Shopify, Webflow or your own site and the assistant is live." },
       { heading: "Looks like part of your brand", body: "Match colors, position and copy so it feels native to your site, not bolted on." },
-      { heading: "Trained on your content", body: "It answers from your 1INME content and anything you add, so replies are accurate." },
+      { heading: "Trained on your content", body: "It answers from your Sayzio content and anything you add, so replies are accurate." },
       { heading: "Captures leads in context", body: "Knows what page a visitor is on and captures the right details at the right moment." },
       { heading: "Multi-language out of the box", body: "Replies in the visitor's language automatically, with no extra configuration." },
       { heading: "Privacy-first analytics", body: "See what visitors ask and where leads come from, without invasive tracking." },

@@ -1,6 +1,6 @@
 Hi {{ $creator->name }},
 
-Your week on 1INME ({{ $periodStart }} – {{ $periodEnd }}):
+Your week on Sayzio ({{ $periodStart }} – {{ $periodEnd }}):
 
   +{{ $newFollowers }} new followers
   +{{ $newSubscribers }} new subscribers

@@ -9,8 +9,8 @@ import { motion } from "framer-motion";
 export default function Services() {
   return (
     <PageLayout
-      title="Use cases — 1INME for everyone"
-      description="Whoever you are, 1INME is the all-in-one link, monetization and growth stack. See how creators, agencies, coaches, musicians and small businesses use it."
+      title="Use cases — Sayzio for everyone"
+      description="Whoever you are, Sayzio is the all-in-one link, monetization and growth stack. See how creators, agencies, coaches, musicians and small businesses use it."
     >
       <MarketingHero
         eyebrow="Use cases"

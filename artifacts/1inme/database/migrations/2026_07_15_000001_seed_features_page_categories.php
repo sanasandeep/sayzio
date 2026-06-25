@@ -27,7 +27,7 @@ return new class extends Migration
             DB::table('site_pages')->insert([
                 'slug' => 'features',
                 'title' => 'Features',
-                'meta_description' => 'A complete tour of every capability inside 1INME — biolinks, short links, QR codes, analytics, inboxes, teams, billing, and more.',
+                'meta_description' => 'A complete tour of every capability inside Sayzio — biolinks, short links, QR codes, analytics, inboxes, teams, billing, and more.',
                 'sections' => $payload,
                 'created_at' => $now,
                 'updated_at' => $now,

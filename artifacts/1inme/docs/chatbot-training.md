@@ -1,11 +1,11 @@
-# 1INME Chatbot Training Document
+# Sayzio Chatbot Training Document
 
-This is a single, self-contained, customer-facing reference to **1INME**, written
+This is a single, self-contained, customer-facing reference to **Sayzio**, written
 to train a support and sales chatbot. It explains every customer-facing feature
 in plain English — *what it is*, *what it does*, and *how to use it* — and then
 provides a large FAQ the chatbot can answer from directly.
 
-A reader needs no other file to understand what 1INME offers its customers.
+A reader needs no other file to understand what Sayzio offers its customers.
 Everything here is written from the user's point of view; it deliberately leaves
 out admin/back-office tools, the developer REST API, and internal technical
 detail. Plans, the coin wallet, AI credits, and add-ons are explained
@@ -16,7 +16,7 @@ conceptually (how they relate to features), not as a price list.
 ## Table of contents
 
 **Part 1 — Feature reference**
-1. [What 1INME is](#1-what-1inme-is)
+1. [What Sayzio is](#1-what-1inme-is)
 2. [Getting started: accounts & sign-in](#2-getting-started-accounts--sign-in)
 3. [Your profile & public handle](#3-your-profile--public-handle)
 4. [Plans, coins, AI credits & add-ons (concepts)](#4-plans-coins-ai-credits--add-ons-concepts)
@@ -55,16 +55,16 @@ conceptually (how they relate to features), not as a price list.
 
 # Part 1 — Feature reference
 
-## 1. What 1INME is
+## 1. What Sayzio is
 
-**What it is.** 1INME is an all-in-one link-management platform. From a single
+**What it is.** Sayzio is an all-in-one link-management platform. From a single
 account you can create short links, a "link in bio" mini-site, QR codes, digital
 contact cards, file-share links, event pages, resumes, restaurant menus, review
 pages, monetized pages, and more — then customize, brand, track how they perform,
 and even get paid through them.
 
 **Why people use it.** Instead of juggling a separate link shortener, bio-link
-tool, QR generator, form builder, email collector, and payment processor, 1INME
+tool, QR generator, form builder, email collector, and payment processor, Sayzio
 puts them all in one place with shared analytics under a single public handle
 (for example, `1in.me/@yourname`).
 
@@ -84,7 +84,7 @@ own.
 
 **Ways to sign in.**
 - **Password login** — email + password.
-- **One-time code (OTP / passwordless)** — choose "sign in with a code" and 1INME
+- **One-time code (OTP / passwordless)** — choose "sign in with a code" and Sayzio
   emails (or texts) you a **6-digit code**. Enter it to sign in without a
   password. Handy on a new device or when you've forgotten your password.
 - **Social sign-in** — "Continue with" buttons for supported providers (e.g.
@@ -96,7 +96,7 @@ Which methods appear depends on the platform's configuration. Email is always
 available; phone/WhatsApp login is an optional toggle.
 
 **Onboarding.** A guided first-run experience: pick a persona/goal, choose a
-template, and 1INME drops in a starter layout you can immediately edit. You can
+template, and Sayzio drops in a starter layout you can immediately edit. You can
 re-run or skip it anytime.
 
 ---
@@ -119,15 +119,15 @@ specific plan).
 
 ## 4. Plans, coins, AI credits & add-ons (concepts)
 
-1INME's pricing is built from a few simple pieces. The emphasis below is on *what
+Sayzio's pricing is built from a few simple pieces. The emphasis below is on *what
 they are and how they relate to features* — not specific prices.
 
-**Plans.** 1INME offers several subscription tiers. Higher tiers raise your
+**Plans.** Sayzio offers several subscription tiers. Higher tiers raise your
 **limits** (how many links, biolinks, projects, contacts, files, and how much
 storage you get) and unlock **premium features** (custom branding, custom
 CSS/JS, custom domains, certain link types, and more). Free accounts are capped;
 upgrading raises those caps. When you open **Plans** (in-app) or the public
-**Pricing** page, 1INME shows a **personalized recommendation**: it measures how
+**Pricing** page, Sayzio shows a **personalized recommendation**: it measures how
 close you are to your current limits and highlights a recommended plan, with a
 comparison matrix so you can decide. Plan changes apply immediately once payment
 succeeds.
@@ -138,11 +138,11 @@ example certain add-ons, or developer-API usage beyond your plan's monthly
 allowance. Your balance and a running transaction ledger are always visible in
 your **Wallet**.
 
-**AI credits.** A separate metered balance that powers 1INME's AI features (the
+**AI credits.** A separate metered balance that powers Sayzio's AI features (the
 AI biolink builder, Ask Coach, AI Personas/Minds, resume tailoring and cover
 letters, the card/brochure scanner, the voice assistant, and visitor chats with
 your AI Companion). Each AI action is billed automatically. Before an action
-runs, 1INME checks you can afford it — if your balance is too low you're prompted
+runs, Sayzio checks you can afford it — if your balance is too low you're prompted
 to top up rather than charged for something that can't finish. Many failed AI
 runs are automatically refunded, and there's a credit ledger so you can see where
 credits went.
@@ -159,7 +159,7 @@ top up optional extras and overage; **AI credits** specifically fuel AI features
 
 ## 5. Links: the basics
 
-**What a link is.** In 1INME a "link" is any shareable item you create — from a
+**What a link is.** In Sayzio a "link" is any shareable item you create — from a
 plain short URL to a full mini-site. Everything lives under **All Links**.
 
 **How to create a link.**
@@ -287,7 +287,7 @@ of **blocks**. It's split into two pages: **Blocks** and **Settings**.
 - **Commerce** — Product / Service, Catalog / Storefront, Coupon, Limited Offer
   (with countdown), Donation, Buy Me a Coffee, Ko-fi, Patreon.
 - **Contact & lead capture** — Email Collector / Phone Collector, Contact Form,
-  WhatsApp Chat / Button / Number, and Direct Message (to your 1INME inbox).
+  WhatsApp Chat / Button / Number, and Direct Message (to your Sayzio inbox).
 - **Social profiles & feeds** — Social Icons / Hub, platform feeds (YouTube,
   Instagram, TikTok, X), and RSS Feed.
 
@@ -314,7 +314,7 @@ Open the **Settings** page of the biolink editor to control the whole page:
   card).
 - **PWA (install as an app)** — enable a manifest so visitors can add your biolink
   to their home screen like an app.
-- **Branding** — custom favicon and toggling the "Powered by 1INME" badge
+- **Branding** — custom favicon and toggling the "Powered by Sayzio" badge
   (plan-gated).
 - **Custom CSS / JS** — inject your own code for advanced styling/behavior
   (plan-gated, Pro feature).
@@ -392,7 +392,7 @@ and conversions also flow to your own marketing tools.
 
 ## 13. Audience & engagement
 
-**Follow & subscribe.** Other 1INME users can **follow** you, so your updates
+**Follow & subscribe.** Other Sayzio users can **follow** you, so your updates
 appear in their feed. Visitors can **subscribe** to your email or WhatsApp list
 via subscribe blocks on your biolink — these become **Leads**.
 
@@ -450,7 +450,7 @@ ratings from Google and Trustpilot.
 
 ## 15. Referrals
 
-**What it is.** Invite friends to 1INME and both of you earn rewards. Found under
+**What it is.** Invite friends to Sayzio and both of you earn rewards. Found under
 **Referrals**.
 
 **How to use it.**
@@ -471,7 +471,7 @@ sales, tips, and paid DMs. The **Monetization** / **Earnings & Payouts** area is
 your hub, and it rolls up your earnings, subscribers, payments, and orders in one
 place.
 
-**1INME's fee is 0%.** 1INME doesn't take a platform cut — you keep 100% of what
+**Sayzio's fee is 0%.** Sayzio doesn't take a platform cut — you keep 100% of what
 fans pay, minus only the payment processor's own fee.
 
 **Payouts.**
@@ -518,7 +518,7 @@ unless a visitor opts to show adult content.
 
 ## 18. AI tools
 
-1INME includes several AI helpers, all metered with **AI credits**:
+Sayzio includes several AI helpers, all metered with **AI credits**:
 
 - **Ask Coach / Performance Coach** — an AI assistant that reviews your account
   (analytics, biolinks) and answers "how do I improve?" questions with actionable
@@ -606,8 +606,8 @@ resolution. Found under **Contacts** and **Dialer**.
 2. Open the **Dialer** for a number pad with **T9 search** (type digits to find
    names), **speed dial** favorites, and **recent/frequent** contacts, plus call
    logging with outcomes and notes.
-3. **Caller-ID lookup** can resolve a phone number to a 1INME profile, and
-   contacts whose verified phone matches a 1INME user get that user's biolink
+3. **Caller-ID lookup** can resolve a phone number to a Sayzio profile, and
+   contacts whose verified phone matches a Sayzio user get that user's biolink
    attached automatically.
 4. Calls and emails open your device's native dialer/mail (`tel:` / `mailto:`) —
    there's no in-app calling.
@@ -644,7 +644,7 @@ each, and PDFs are processed up to **4 pages** (longer PDFs are rejected so you
 can split them).
 
 **What it costs.** Scanning is an AI feature, so it uses **AI credits** from your
-coin wallet. 1INME checks you can afford it before running, so you're never
+coin wallet. Sayzio checks you can afford it before running, so you're never
 charged for a scan that can't finish; if the extraction fails after charging, the
 credits are refunded automatically.
 
@@ -672,7 +672,7 @@ editor).
 **Visitor experience.** Diners scan the table QR (or open the menu link), browse,
 and tap **Place Order** (entering their name, notes, and quantities).
 
-**Mobile.** The restaurant menu has a full native builder in the 1INME mobile app
+**Mobile.** The restaurant menu has a full native builder in the Sayzio mobile app
 too — no need to switch to the web.
 
 ---
@@ -703,7 +703,7 @@ used across links and posts. Found under **Files** / **Vault**.
 
 **How to use it.** Drag and drop to upload (or import from a URL); a progress bar
 shows your **used vs. limit** storage. Files you upload here can be reused anywhere
-in 1INME. Storage is quota-aware (with auto-optimization to reclaim space), files
+in Sayzio. Storage is quota-aware (with auto-optimization to reclaim space), files
 are served securely, and uploads are scanned so anything flagged is held until you
 confirm. Upgrade your plan for more quota.
 
@@ -729,14 +729,14 @@ subscribers, reviews, comments, security alerts, and more).
 - Open **Notifications** to see your activity feed; mark items read, dismiss them
   (dismissed items are restorable for 30 days), or mark all read.
 - Manage **notification preferences** per channel so you only get what you want.
-- **Digests** are periodic email summaries of your activity; 1INME won't send an
+- **Digests** are periodic email summaries of your activity; Sayzio won't send an
   empty digest, and you can send yourself a sample to preview the format.
 
 ---
 
 ## 29. Organizing your work
 
-For teams and agencies, 1INME scales beyond a single user:
+For teams and agencies, Sayzio scales beyond a single user:
 
 - **Workspaces** — separate environments for different brands/projects, each with
   its own branding and settings; you can belong to multiple workspaces.
@@ -761,7 +761,7 @@ For teams and agencies, 1INME scales beyond a single user:
 - **Active sessions/devices** — see every device signed in to your account and
   **revoke** any one (or all others) with a click.
 - **Recent logins** — review recent sign-ins with time, device, location, and IP.
-  If something looks wrong, tap **"This wasn't me"** to revoke it. 1INME emails
+  If something looks wrong, tap **"This wasn't me"** to revoke it. Sayzio emails
   you about logins from a new device, browser, or country.
 - **Two-factor authentication (2FA)** — turn on an extra challenge code at
   sign-in (owners can enforce it for a whole team).
@@ -776,7 +776,7 @@ For teams and agencies, 1INME scales beyond a single user:
   accounts, and the various embeds and pixels). Which integrations are available
   depends on your platform's configuration.
 - **Connected Accounts** — link your social and OAuth accounts.
-- **API keys** — generate developer API keys to use the 1INME REST API (usage is
+- **API keys** — generate developer API keys to use the Sayzio REST API (usage is
   metered against your plan's monthly allowance; overage can be paid from coins).
 - **Pixel** — manage marketing tracking pixels (see [Analytics](#12-analytics)).
 - **Calendar sync** — connect Google/Microsoft calendars to manage availability
@@ -786,7 +786,7 @@ For teams and agencies, 1INME scales beyond a single user:
 
 ## 32. Mobile app & browser extension
 
-- **1INME mobile app** — most creator features have native parity in the mobile
+- **Sayzio mobile app** — most creator features have native parity in the mobile
   app, including links, biolink editing, QR Studio, restaurant menus, reviews
   moderation, payouts, the 18+ toggle, Ask Coach, AI persona chat, and a
   floating-mic voice assistant. Sign in with email/OTP or social.
@@ -801,7 +801,7 @@ For teams and agencies, 1INME scales beyond a single user:
 ## Account & sign-in
 
 **How do I sign in without a password?**
-Choose the "sign in with a code" option. 1INME sends a 6-digit one-time code to
+Choose the "sign in with a code" option. Sayzio sends a 6-digit one-time code to
 your email (or phone, if enabled). Enter it to sign in — no password needed.
 
 **I forgot my password. What now?**
@@ -841,12 +841,12 @@ Optional extras you attach to your plan to expand specific limits or capabilitie
 beyond your base tier; they're billed alongside your subscription.
 
 **What happens if I run out of AI credits?**
-Before an AI action runs, 1INME checks you can afford it; if not, you're prompted
+Before an AI action runs, Sayzio checks you can afford it; if not, you're prompted
 to top up rather than charged for something that can't finish. Failed AI runs are
 typically refunded automatically.
 
 **Which plan should I choose?**
-Open **Plans** — 1INME measures how close you are to your limits and recommends a
+Open **Plans** — Sayzio measures how close you are to your limits and recommends a
 plan, with a comparison matrix so you can decide. Upgrade when you're near a cap
 or need a pro feature (custom domain, custom CSS/JS, custom branding, etc.).
 
@@ -935,7 +935,7 @@ coverage, quiet zone, and risky shape choices, and warns you before you create o
 that won't scan.
 
 **Can I generate many QR codes at once?**
-Yes — use **bulk CSV** export; 1INME builds all the codes and downloads them as a
+Yes — use **bulk CSV** export; Sayzio builds all the codes and downloads them as a
 ZIP.
 
 **Can I track QR scans?**
@@ -972,7 +972,7 @@ follower/subscriber cohorts.
 Add an **Email Subscribe** or **WhatsApp** block to your biolink; subscribers show
 up instantly under **Leads**, where you can segment, message, and export them.
 
-**Can I email my subscribers from 1INME?**
+**Can I email my subscribers from Sayzio?**
 Yes — use **Compose** in **Leads**. Configure your own SMTP/WhatsApp sending
 details in **Leads → Settings**, and optionally enable a welcome email.
 
@@ -992,7 +992,7 @@ second account doesn't count.
 
 ## Monetization
 
-**How much does 1INME take from my earnings?**
+**How much does Sayzio take from my earnings?**
 0%. You keep everything except the payment processor's own fee.
 
 **How do I get paid?**
@@ -1030,7 +1030,7 @@ live as the visitor fills it in.
 Yes — connect **Google Contacts** for two-way sync, then use the **Dialer** (T9
 search, speed dial, recents). Calls/emails use your device's native apps.
 
-**Can 1INME build my resume?**
+**Can Sayzio build my resume?**
 Yes — the **Resume / Portfolio** builder supports multiple versions plus AI
 **tailoring to a job**, **cover-letter** generation, import, and an **ATS
 readiness** check, and publishes as a shareable link with PDF download.
@@ -1073,7 +1073,7 @@ causes: the AI engine is turned off, or no AI provider key is configured. Once a
 admin fixes either, scanning works automatically — nothing to change on your side.
 
 **How much does a card scan cost?**
-A scan uses **AI credits** from your coin wallet. 1INME checks you can afford it
+A scan uses **AI credits** from your coin wallet. Sayzio checks you can afford it
 before running, so you're never charged for a scan that can't finish — and if the
 extraction fails after charging, the credits are refunded automatically.
 
@@ -1098,7 +1098,7 @@ Open **Security** to view active sessions and recent logins; revoke any device, 
 tap "This wasn't me" on a suspicious login.
 
 **Will I be warned about suspicious sign-ins?**
-Yes — 1INME emails you about logins from a new device, browser, or country.
+Yes — Sayzio emails you about logins from a new device, browser, or country.
 
 ## Teams & organization
 
@@ -1116,7 +1116,7 @@ settings.
 ## Notifications
 
 **Why didn't I get a digest email?**
-1INME won't send an empty digest. You can send yourself a sample to preview the
+Sayzio won't send an empty digest. You can send yourself a sample to preview the
 format, and manage which notifications you receive per channel under
 **Notifications**.
 
@@ -1127,6 +1127,6 @@ Yes — most features have native parity, including links, the biolink editor, Q
 Studio, restaurant menus, reviews moderation, and payouts. Sign in with email/OTP
 or social.
 
-**Does 1INME have an API?**
+**Does Sayzio have an API?**
 Yes — generate **API keys** in settings. API usage is metered against your plan;
 overage can be covered by coins.

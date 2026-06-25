@@ -20,7 +20,7 @@
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Earnings & Payouts</h1>
             <p class="text-sm mt-1" style="color: var(--text-muted);">
                 Connect a payout provider to receive subscriptions, tips, and per-post unlocks.
-                <strong>1INME takes 0% of your earnings</strong> &mdash; the fee shown next to each
+                <strong>Sayzio takes 0% of your earnings</strong> &mdash; the fee shown next to each
                 provider is theirs.
             </p>
         </div>

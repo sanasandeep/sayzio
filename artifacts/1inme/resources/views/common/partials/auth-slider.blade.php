@@ -2,7 +2,7 @@
     Shared auto-rotating "use case" slider for auth screens.
     Now full-bleed: each slide fills the container with a real photo
     background, an overlay, a brand logo (modal only), a category tag,
-    a headline and 3-4 bullet points showing how that audience uses 1INME.
+    a headline and 3-4 bullet points showing how that audience uses Sayzio.
 
     Props:
       - variant: 'page'  (used on user/auth/login.blade.php and register.blade.php)
@@ -115,7 +115,7 @@
     tabindex="0"
     role="region"
     aria-roledescription="carousel"
-    aria-label="See how creators, brands and teams use 1INME"
+    aria-label="See how creators, brands and teams use Sayzio"
     class="auth-slider relative w-full h-full focus:outline-none"
 >
     <div class="relative w-full h-full overflow-hidden {{ $rounding }} {{ $minHeight }}">

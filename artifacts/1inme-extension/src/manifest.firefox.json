@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "1INME — Shorten & Bio-Link",
-  "short_name": "1INME",
+  "name": "Sayzio — Shorten & Bio-Link",
+  "short_name": "Sayzio",
   "version": "0.1.0",
-  "description": "One-click shorten the current tab through 1INME and turn any page into a draft bio-link page.",
+  "description": "One-click shorten the current tab through Sayzio and turn any page into a draft bio-link page.",
   "action": {
-    "default_title": "1INME",
+    "default_title": "Sayzio",
     "default_popup": "src/popup/index.html",
     "default_icon": {
       "16": "icons/icon-16.png",

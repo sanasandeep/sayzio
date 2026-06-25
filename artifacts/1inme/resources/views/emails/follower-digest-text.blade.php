@@ -30,5 +30,5 @@ Here's what creators you follow have been up to since your last digest
 
 @endforeach
 @endif
-You're receiving the daily digest from 1INME. To switch to instant emails or
+You're receiving the daily digest from Sayzio. To switch to instant emails or
 turn this off, visit your profile notification settings.

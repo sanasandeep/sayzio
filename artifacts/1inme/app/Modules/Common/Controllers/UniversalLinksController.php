@@ -8,7 +8,7 @@ use Illuminate\Http\Response;
 /**
  * Serves the iOS "apple-app-site-association" and Android
  * "assetlinks.json" files used to claim https://<host>/* URLs for the
- * 1INME mobile app. When the app is installed, biolink/short URLs open
+ * Sayzio mobile app. When the app is installed, biolink/short URLs open
  * directly in the app; otherwise the OS falls back to the website
  * automatically. The bundle/app IDs are read from config/services.php
  * so they can be overridden per environment via env vars without code

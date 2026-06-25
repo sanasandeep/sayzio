@@ -4,7 +4,7 @@ export default function Terms() {
   return (
     <InfoPage
       title="Terms of Service"
-      intro="By creating a 1INME account or using this app you agree to the following terms. The full legal version lives at https://1inme.com/terms."
+      intro="By creating a Sayzio account or using this app you agree to the following terms. The full legal version lives at https://1inme.com/terms."
       sections={[
         {
           heading: "Your account",
@@ -12,7 +12,7 @@ export default function Terms() {
         },
         {
           heading: "Acceptable use",
-          body: "Don't use 1INME to harass others, distribute malware, infringe copyright, or facilitate illegal activity. We may suspend accounts that violate these rules.",
+          body: "Don't use Sayzio to harass others, distribute malware, infringe copyright, or facilitate illegal activity. We may suspend accounts that violate these rules.",
         },
         {
           heading: "Your content",

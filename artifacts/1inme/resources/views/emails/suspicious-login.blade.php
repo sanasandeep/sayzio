@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>New sign-in to your 1INME account</title>
+    <title>New sign-in to your Sayzio account</title>
 </head>
 <body style="margin:0; padding:0; font-family: Arial, Helvetica, sans-serif; background-color:#f8fafc;">
     <div style="max-width:560px; margin:0 auto; padding:32px 16px;">
@@ -16,7 +16,7 @@
             </h1>
 
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                Your 1INME account was just signed into from a {{ $reasonsLabel }} we haven't seen before. If this was you, no further action is needed.
+                Your Sayzio account was just signed into from a {{ $reasonsLabel }} we haven't seen before. If this was you, no further action is needed.
             </p>
 
             <table style="width:100%; border-collapse:collapse; margin:0 0 20px 0; font-size:13px; color:#334155;">

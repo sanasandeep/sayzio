@@ -389,7 +389,7 @@ class BannedNameController extends Controller
             return 'cooldown';
         }
 
-        $subject  = 'Please pick a new 1INME handle';
+        $subject  = 'Please pick a new Sayzio handle';
         $viewData = [
             'subject'    => $subject,
             'userName'   => $user->name ?: 'there',

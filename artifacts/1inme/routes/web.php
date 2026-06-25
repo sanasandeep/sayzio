@@ -8,7 +8,7 @@ use App\Modules\User\Controllers\ExtensionHandshakeController;
 use App\Modules\User\Controllers\UserFileController;
 
 // ---- Browser extension sign-in handshake ----
-// The 1INME browser extension opens this URL in a new tab. If signed
+// The Sayzio browser extension opens this URL in a new tab. If signed
 // in, the page embeds a fresh Sanctum token + user payload that the
 // extension's content script captures via browser.runtime.sendMessage.
 Route::get('/extension/handshake', [ExtensionHandshakeController::class, 'show'])
@@ -140,7 +140,7 @@ Route::post('/viewer/dm/threads/{conversation}/tip',  [\App\Modules\Common\Contr
 // ---- AI Companion public chat endpoint + embed bundle / iframe ----
 // Public, auth-free. Origin checks are enforced inside the controller
 // for the `embed` placement; biolink + inbox bypass that gate because
-// they always run from a 1INME-owned origin.
+// they always run from a Sayzio-owned origin.
 Route::post   ('/companion/{publicId}/session', [\App\Modules\Common\Controllers\PublicCompanionController::class, 'session'])
     ->where('publicId', 'cmp_[a-z0-9]{20}')
     ->name('public.companion.session');
@@ -239,7 +239,7 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
         ->where('competitor', \App\Modules\Common\Support\ComparisonContent::rivalKeysPattern())
         ->name('site.compare.show');
 
-    // Dedicated "1INME for X" use-case landing pages. Unknown personas fall
+    // Dedicated "Sayzio for X" use-case landing pages. Unknown personas fall
     // through the `where` constraint and 404. Persona list is the single
     // source of truth in SitePagesContent::useCaseSlugs().
     Route::get('/for/{persona}', [\App\Modules\Common\Controllers\SitePageController::class, 'useCase'])

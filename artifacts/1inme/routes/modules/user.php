@@ -934,7 +934,7 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         // AI Minds — labelled knowledge bases (text/docs/FAQs/links/
-        // 1INME features) every AI Persona / Coach can draw on. Note:
+        // Sayzio features) every AI Persona / Coach can draw on. Note:
         // distinct from the stateless `ai/mind` summary tool above.
         Route::prefix('minds')->name('minds.')->group(function () {
             Route::get ('/',                   [\App\Modules\User\Controllers\MindController::class, 'index'])->name('index');

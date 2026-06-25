@@ -20,9 +20,9 @@ return new class extends Migration
 
         // Seed dummy About content (story sections + founder/co-founders/team/milestones).
         $about = SitePage::firstOrNew(['slug' => 'about']);
-        $about->title = $about->title ?: 'About 1INME';
+        $about->title = $about->title ?: 'About Sayzio';
         $about->meta_description = $about->meta_description
-            ?: 'The 1INME story — who we are, why we built it, and the people behind the product.';
+            ?: 'The Sayzio story — who we are, why we built it, and the people behind the product.';
         $aboutSections = is_array($about->sections) ? $about->sections : [];
         $needsStory = empty($aboutSections);
         if (!$needsStory) {
@@ -42,7 +42,7 @@ return new class extends Migration
         $contact = SitePage::firstOrNew(['slug' => 'contact']);
         $contact->title = $contact->title ?: 'Contact us';
         $contact->meta_description = $contact->meta_description
-            ?: 'Get in touch with the 1INME team — sales, support, partnerships and press.';
+            ?: 'Get in touch with the Sayzio team — sales, support, partnerships and press.';
         $contactSections = is_array($contact->sections) ? $contact->sections : [];
         if (empty($contactSections)) {
             $contact->sections = SitePagesContent::contactSectionsDefault();

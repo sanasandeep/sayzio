@@ -1,12 +1,12 @@
 @extends('public.layouts.site')
 
-@section('title', $page->title ?? 'What you can do with 1INME')
+@section('title', $page->title ?? 'What you can do with Sayzio')
 
 @section('content')
 @php
-    $heroTitle    = $page->title ?? 'What you can do with 1INME';
-    $heroSubtitle = $page->meta_description ?? 'One link, endless setups. Pick the scenario that sounds like you and see how 1INME fits — then spin up your own in a couple of minutes.';
-    $bottomCtaLabel = $page->cta_label ?? 'Create your 1INME';
+    $heroTitle    = $page->title ?? 'What you can do with Sayzio';
+    $heroSubtitle = $page->meta_description ?? 'One link, endless setups. Pick the scenario that sounds like you and see how Sayzio fits — then spin up your own in a couple of minutes.';
+    $bottomCtaLabel = $page->cta_label ?? 'Create your Sayzio';
     $bottomCtaUrl   = $page->cta_url   ?? '/register';
     $images = [
         asset('images/marketing/services/creator.png'),
@@ -90,13 +90,13 @@
     </div>
 </section>
 
-{{-- 1INME FOR… — deep-dive persona pages --}}
+{{-- Sayzio FOR… — deep-dive persona pages --}}
 <section class="pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
-            <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-300 mb-3">1INME for…</div>
+            <div class="text-xs font-bold uppercase tracking-[.2em] text-violet-300 mb-3">Sayzio for…</div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Pick the page built for <span class="grad-text">how you work</span>.</h2>
-            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Tailored walk-throughs for the people who get the most out of 1INME — each with the exact features that matter to them.</p>
+            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Tailored walk-throughs for the people who get the most out of Sayzio — each with the exact features that matter to them.</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
             @foreach(\App\Modules\Common\Support\SitePagesContent::useCaseMeta() as $__svcSlug => $__svcMeta)
@@ -128,7 +128,7 @@
             @foreach($useCases as $i => $uc)
                 <article class="relative group bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden flex flex-col hover:border-violet-400/40 hover:-translate-y-1 transition-all duration-300">
                     <div class="img-frame rounded-none border-0 aspect-[16/10]">
-                        <img src="{{ $images[$i % count($images)] }}" alt="{{ $uc['title'] ?? '1INME use case' }}">
+                        <img src="{{ $images[$i % count($images)] }}" alt="{{ $uc['title'] ?? 'Sayzio use case' }}">
                     </div>
                     <div class="relative flex-1 flex flex-col p-6 sm:p-7">
                         <div class="absolute -top-7 left-6 w-12 h-12 rounded-xl bg-[#7c3aed] border border-white/15 flex items-center justify-center text-white text-lg shadow-2xl">
@@ -166,7 +166,7 @@
             <div class="relative">
                 <h2 class="text-2xl sm:text-3xl font-bold">Not sure which fits?</h2>
                 <p class="mt-3 text-gray-300 max-w-2xl mx-auto text-sm sm:text-base">
-                    Start free and switch your setup any time — most people end up using 1INME for two or three of these at once.
+                    Start free and switch your setup any time — most people end up using Sayzio for two or three of these at once.
                 </p>
                 <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ $bottomCtaUrl }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $bottomCtaLabel }}</a>
@@ -178,7 +178,7 @@
 </section>
 
 @include('public.partials.subscribe-block', [
-    'heading' => 'See what 1INME ships next.',
+    'heading' => 'See what Sayzio ships next.',
     'subtext' => 'Use cases, templates, and playbooks for your industry — straight to email, WhatsApp Channel, or DM.',
     'source'  => 'services',
 ])

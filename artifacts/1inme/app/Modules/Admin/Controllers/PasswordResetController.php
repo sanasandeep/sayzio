@@ -39,7 +39,7 @@ class PasswordResetController extends Controller
         try {
             Mail::send('emails.admin-password-reset', ['resetUrl' => $resetUrl, 'admin' => $admin], function ($message) use ($admin) {
                 $message->to($admin->email);
-                $message->subject('Reset Your Admin Password - 1INME');
+                $message->subject('Reset Your Admin Password - Sayzio');
             });
         } catch (\Exception $e) {
             \Log::warning('Admin password reset email failed: ' . $e->getMessage());

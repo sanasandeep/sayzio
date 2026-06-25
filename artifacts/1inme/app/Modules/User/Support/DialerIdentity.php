@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\URL;
  * Builds the canonical "Identity Profile" payload shared by the web Dialer
  * profile page and the mobile Dialer profile screen.
  *
- * It resolves a phone number (and/or a saved contact) to a 1INME user,
+ * It resolves a phone number (and/or a saved contact) to a Sayzio user,
  * auto-pulls the user's public socials / shared map locations / reachable
  * channels from their biolink, layers the owner's manual additions on top
  * (kept deliberately distinct), and produces a shareable Export-vCard URL.
@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\URL;
 class DialerIdentity
 {
     /**
-     * Resolve a contact + matched 1INME user + their default biolink from a
+     * Resolve a contact + matched Sayzio user + their default biolink from a
      * contact id and/or a phone number, scoped to the requesting owner.
      *
      * @return array{contact: ?Contact, matchedUser: ?User, bio: ?Link, number: string, needle: ?string}

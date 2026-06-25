@@ -181,7 +181,7 @@ export default function AccountMerge() {
             <Header
               colors={colors}
               title="Merge another account"
-              sub={`Pull everything from another 1INME account you own into ${user.email ?? "this account"}. We'll send a code to the other account to confirm it's yours. This can't be undone.`}
+              sub={`Pull everything from another Sayzio account you own into ${user.email ?? "this account"}. We'll send a code to the other account to confirm it's yours. This can't be undone.`}
             />
             <View style={{ height: 20 }} />
 

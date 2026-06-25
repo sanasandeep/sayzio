@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * AJAX-style auth used by the modal "Sign in with 1INME" entrypoint
+ * AJAX-style auth used by the modal "Sign in with Sayzio" entrypoint
  * in the public biolink branding strip. Wraps OtpService and stores
  * the verified visitor in a separate ViewerSession (NOT the dashboard
  * auth guard) so creators and viewers stay isolated.
@@ -165,8 +165,8 @@ class ViewerAuthController extends Controller
         ]);
         if ($creator->notify_new_follower) {
             try {
-                \Mail::raw("{$me->name} just followed you on 1INME.", function ($m) use ($creator) {
-                    $m->to($creator->email)->subject('New follower on 1INME');
+                \Mail::raw("{$me->name} just followed you on Sayzio.", function ($m) use ($creator) {
+                    $m->to($creator->email)->subject('New follower on Sayzio');
                 });
             } catch (\Throwable $e) {}
         }

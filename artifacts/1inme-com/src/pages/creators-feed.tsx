@@ -10,7 +10,7 @@ import { SIGNUP_URL, PRICING_URL } from "@/config";
 import { Rss, Pin, Users } from "lucide-react";
 
 const items = [
-  { icon: Rss, name: "Fresh from the community", description: "See what creators on 1INME are posting right now — product drops, behind-the-scenes notes, announcements and updates from people building their audience here. Scroll, discover and follow your favourites in one tap." },
+  { icon: Rss, name: "Fresh from the community", description: "See what creators on Sayzio are posting right now — product drops, behind-the-scenes notes, announcements and updates from people building their audience here. Scroll, discover and follow your favourites in one tap." },
   { icon: Pin, name: "How posts get here", description: "Any creator with a public Link in Bio can publish posts and have them surface in this feed. Pinned posts from staff or partners may appear at the top; everything else is ordered newest-first so you always see what just dropped." },
   { icon: Users, name: "Build your following", description: "Posting from your Link in Bio is the easiest way to keep your audience warm between launches. Visitors can follow you straight from the post and they'll see your next one in their feed." },
 ];
@@ -19,13 +19,13 @@ export default function CreatorsFeed() {
   return (
     <PageLayout
       title="Creators feed"
-      description="The latest posts from creators on 1INME — updates, drops, news and behind-the-scenes from people building in public."
+      description="The latest posts from creators on Sayzio — updates, drops, news and behind-the-scenes from people building in public."
     >
       <MarketingHero
         eyebrow="Creators feed"
         title="Fresh from the"
         highlight="community."
-        subtitle="The latest posts from creators on 1INME — updates, drops, news and behind-the-scenes from people building in public."
+        subtitle="The latest posts from creators on Sayzio — updates, drops, news and behind-the-scenes from people building in public."
         primary={{ label: "Start posting free", href: SIGNUP_URL }}
         secondary={{ label: "See pricing", href: PRICING_URL }}
       >

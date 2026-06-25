@@ -190,7 +190,7 @@ class SubmitContactTest extends TestCase
         $sym = $sent[0]->getOriginalMessage();
         $tos = array_map(fn($a) => $a->getAddress(), $sym->getTo());
         $this->assertContains('inbox@example.com', $tos);
-        $this->assertSame('[1INME Contact] Press request', $sym->getSubject());
+        $this->assertSame('[Sayzio Contact] Press request', $sym->getSubject());
         // Body is quoted-printable encoded for transport — decode
         // before substring-matching so soft line wraps don't hide the
         // visitor's content.

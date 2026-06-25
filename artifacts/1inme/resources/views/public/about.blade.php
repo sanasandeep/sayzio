@@ -26,7 +26,7 @@
     $heroBadgeLabel    = $or($hero['badge_label']       ?? '', 'About');
     $heroBadgeIcon     = $or($hero['badge_icon']        ?? '', 'fa-heart');
     $heroSideImage     = $or($hero['side_image']        ?? '', asset('images/marketing/about/hero.png'));
-    $heroSideImageAlt  = $or($hero['side_image_alt']    ?? '', 'The 1INME studio in Hyderabad');
+    $heroSideImageAlt  = $or($hero['side_image_alt']    ?? '', 'The Sayzio studio in Hyderabad');
     $heroLocTitle      = $or($hero['location_title']    ?? '', 'Hyderabad · India');
     $heroLocSubtitle   = $or($hero['location_subtitle'] ?? '', 'Remote-friendly');
     $heroLocIcon       = $or($hero['location_icon']     ?? '', 'fa-location-dot');
@@ -76,9 +76,9 @@
     $officeUrl   = $or($storyOffice['url'] ?? '', asset('images/marketing/about/office.png'));
     $officeAlt   = $or($storyOffice['alt'] ?? '', 'Our office');
     $valuesUrl   = $or($storyValues['url'] ?? '', asset('images/marketing/about/values.png'));
-    $valuesAlt   = $or($storyValues['alt'] ?? '', 'Working at 1INME');
+    $valuesAlt   = $or($storyValues['alt'] ?? '', 'Working at Sayzio');
     $teamBandUrl = $or($storyTeam['url']   ?? '', asset('images/marketing/about/team.png'));
-    $teamBandAlt = $or($storyTeam['alt']   ?? '', 'The 1INME team');
+    $teamBandAlt = $or($storyTeam['alt']   ?? '', 'The Sayzio team');
 
     // Lower section titles.
     $founderTitle           = $or($sectionTitles['founder']             ?? '', 'Meet the founder');
@@ -88,7 +88,7 @@
     // CTA: empty URL falls back to the named route.
     $ctaHeading    = $or($ctaCfg['heading']         ?? '', 'Want to build with us?');
     $ctaBody       = $or($ctaCfg['body']            ?? '', 'Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.');
-    $ctaPrimaryLbl = $or($ctaCfg['primary_label']   ?? '', 'Try 1INME free');
+    $ctaPrimaryLbl = $or($ctaCfg['primary_label']   ?? '', 'Try Sayzio free');
     $ctaPrimaryUrl = trim((string)($ctaCfg['primary_url']   ?? ''));
     if ($ctaPrimaryUrl === '') $ctaPrimaryUrl = route('register.page');
     $ctaSecondaryLbl = $or($ctaCfg['secondary_label'] ?? '', 'Say hello');
@@ -482,7 +482,7 @@
 @include('public.blogs.partials.latest-cta')
 
 @include('public.partials.subscribe-block', [
-    'heading' => 'Stay close to the 1INME story.',
+    'heading' => 'Stay close to the Sayzio story.',
     'subtext' => 'Pick the channel that fits — email, WhatsApp Channel, or DM. Updates from the team and what we are building next.',
     'source'  => 'about',
 ])

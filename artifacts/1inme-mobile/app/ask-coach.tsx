@@ -34,7 +34,7 @@ import {
  * /api/v1/ai/ask-coach. The web app renders the same data with
  * inline charts and a thread sidebar; on mobile we keep one
  * active thread visible and surface citations + actions inline so
- * the user can deep-link straight to the relevant 1INME page.
+ * the user can deep-link straight to the relevant Sayzio page.
  */
 export default function AskCoachScreen() {
   const colors = useColors();
@@ -192,7 +192,7 @@ export default function AskCoachScreen() {
           >
             {history.length === 0 ? (
               <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                Ask anything about your 1INME — &quot;What was my best link last
+                Ask anything about your Sayzio — &quot;What was my best link last
                 week?&quot;, &quot;How many sales last month?&quot;
               </Text>
             ) : (

@@ -13,7 +13,7 @@ class ReclassifyLinkClickChannelsCommandTest extends AnalyticsTestCase
         $link = $this->makeLink($user);
 
         // Simulate an "older" row that was classified before the classifier
-        // learned to recognize the 1INME native shell — it was filed as a
+        // learned to recognize the Sayzio native shell — it was filed as a
         // generic webview at the time.
         $stale = LinkClick::create([
             'link_id' => $link->id,

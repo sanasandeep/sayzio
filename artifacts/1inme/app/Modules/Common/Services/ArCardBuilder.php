@@ -86,7 +86,7 @@ class ArCardBuilder
 
         // Use built-in font (no TTF dependency for portability)
         $name = $this->sanitize($cfg['display_name']) ?: 'Your Name';
-        $headline = $this->sanitize($cfg['headline']) ?: '1INME · Link in Bio in AR';
+        $headline = $this->sanitize($cfg['headline']) ?: 'Sayzio · Link in Bio in AR';
         $subtitle = $this->sanitize($cfg['subtitle']);
 
         imagestring($img, 5, $textX, 100, substr($name, 0, 38), $white);
@@ -95,8 +95,8 @@ class ArCardBuilder
             imagestring($img, 3, $textX, 190, substr($subtitle, 0, 80), $faint);
         }
 
-        // 1INME wordmark bottom-right
-        imagestring($img, 3, $W - 130, $H - 50, '1INME · AR', $faint);
+        // Sayzio wordmark bottom-right
+        imagestring($img, 3, $W - 130, $H - 50, 'Sayzio · AR', $faint);
 
         // URL hint bottom-left
         $aliasHint = $this->sanitize('/' . $link->alias);
@@ -155,7 +155,7 @@ class ArCardBuilder
         $imgOffset = $idxOffset + $idxLenAligned;
 
         $gltf = [
-            'asset' => ['version' => '2.0', 'generator' => '1INME ArCardBuilder'],
+            'asset' => ['version' => '2.0', 'generator' => 'Sayzio ArCardBuilder'],
             'scene' => 0,
             'scenes' => [['nodes' => [0]]],
             'nodes' => [['mesh' => 0]],

@@ -268,7 +268,7 @@ class EmailVerificationReminderSettingsController extends Controller
                 ['user' => $recipient, 'verificationUrl' => $verificationUrl, 'unsubscribeUrl' => $unsubscribeUrl],
                 function ($message) use ($admin, $unsubscribeUrl) {
                     $message->to($admin->email);
-                    $message->subject('[Sample] Reminder: verify your 1INME email');
+                    $message->subject('[Sample] Reminder: verify your Sayzio email');
                     $message->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
                     $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
                 }

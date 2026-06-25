@@ -43,7 +43,7 @@ class TwoFactorController extends Controller
             $uri = $this->totp->provisioningUri(
                 $secret,
                 $user->email ?: ('user-' . $user->id),
-                config('app.name', '1INME')
+                config('app.name', 'Sayzio')
             );
             $qrSvg = $this->totp->qrSvg($uri);
         }

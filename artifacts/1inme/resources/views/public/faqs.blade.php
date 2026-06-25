@@ -50,7 +50,7 @@
         </div>
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">{{ $page->title }}</h1>
         <p class="mt-4 text-lg text-gray-400">
-            {{ $page->meta_description ?: 'Quick answers to the most common 1INME questions — search, filter or browse by topic.' }}
+            {{ $page->meta_description ?: 'Quick answers to the most common Sayzio questions — search, filter or browse by topic.' }}
         </p>
         <div class="mt-3 text-xs text-gray-500">{{ $__totalFaqs }} answers · last reviewed {{ now()->format('M Y') }}</div>
     </div>

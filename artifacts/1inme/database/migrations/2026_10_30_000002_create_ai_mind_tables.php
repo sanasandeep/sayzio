@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
  * AI Mind (knowledge bases).
  *
  *   ai_minds          — labelled knowledge base owned by a user. The
- *                       built-in 1INME default mind is owned by user_id
+ *                       built-in Sayzio default mind is owned by user_id
  *                       NULL and `is_default` true so it auto-attaches
  *                       to every account.
  *   ai_mind_sources   — polymorphic source (text / document / faq /
@@ -23,11 +23,11 @@ return new class extends Migration {
     {
         Schema::create('ai_minds', function (Blueprint $table) {
             $table->id();
-            // Null = platform-managed mind (the 1INME default).
+            // Null = platform-managed mind (the Sayzio default).
             $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name', 120);
             $table->text('description')->nullable();
-            // Built-in 1INME default mind that auto-attaches to every user.
+            // Built-in Sayzio default mind that auto-attaches to every user.
             $table->boolean('is_default')->default(false);
             // Admin abuse switch — a disabled mind cannot be queried or
             // ingested, but its contents are preserved.

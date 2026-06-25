@@ -101,7 +101,7 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">
                                         {{ $c->nameForDisplay() }}
-                                        @if($c->biolink_user_id)<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">1INME</span>@endif
+                                        @if($c->biolink_user_id)<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>@endif
                                     </div>
                                     <div class="text-xs truncate" style="color:var(--text-muted);">{{ $first?->value ?? '—' }}</div>
                                 </div>
@@ -123,7 +123,7 @@
                                 <div class="text-sm font-semibold truncate flex items-center gap-1.5" style="color:var(--text-primary);">
                                     {{ $r['name'] }}
                                     @if($r['calls'] > 1)<span class="text-[10px] px-1.5 rounded-full" style="background:rgba(124,58,237,.15);color:#a78bfa;">×{{ $r['calls'] }}</span>@endif
-                                    @if($r['biolink'])<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(236,72,153,.15);color:#f472b6;">1INME</span>@endif
+                                    @if($r['biolink'])<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(236,72,153,.15);color:#f472b6;">Sayzio</span>@endif
                                     @if($r['is_spam'])<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(239,68,68,.15);color:#ef4444;">SPAM</span>@endif
                                     @if($r['is_blocked'])<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(107,114,128,.2);color:#9ca3af;">BLOCKED</span>@endif
                                 </div>
@@ -188,7 +188,7 @@ async function fetchMatches(q) {
             <a href="${m.profile_url}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">${m.initials}</div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-xs font-semibold truncate" style="color:var(--text-primary);">${escapeHtml(m.name)}${m.biolink ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(236,72,153,.15);color:#f472b6\">1INME</span>' : ''}${m.is_spam ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(239,68,68,.15);color:#ef4444\">SPAM</span>' : ''}</div>
+                    <div class="text-xs font-semibold truncate" style="color:var(--text-primary);">${escapeHtml(m.name)}${m.biolink ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(236,72,153,.15);color:#f472b6\">Sayzio</span>' : ''}${m.is_spam ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(239,68,68,.15);color:#ef4444\">SPAM</span>' : ''}</div>
                     <div class="text-[11px] truncate" style="color:var(--text-muted);">${m.phone || ''}</div>
                 </div>
             </a>

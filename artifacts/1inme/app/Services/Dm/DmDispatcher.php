@@ -333,7 +333,7 @@ class DmDispatcher
         if ($recipient->email && $this->notifications->prefersChannel($recipient->id, 'dm.new', 'email')) {
             try {
                 Mail::raw("{$sender->name}: {$preview}", function ($m) use ($recipient, $sender) {
-                    $m->to($recipient->email)->subject('New 1INME DM from ' . $sender->name);
+                    $m->to($recipient->email)->subject('New Sayzio DM from ' . $sender->name);
                 });
             } catch (\Throwable $e) {
                 Log::warning('dm.email.failed', ['err' => $e->getMessage()]);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build the 1INME browser extension for one or more browser targets.
+ * Build the Sayzio browser extension for one or more browser targets.
  *
  *   node scripts/build.mjs chrome
  *   node scripts/build.mjs firefox
@@ -53,7 +53,7 @@ async function zipDir(srcDir, outZip) {
 }
 
 async function buildOne(browser) {
-  console.log(`\n▸ Building 1INME extension for ${browser}…`);
+  console.log(`\n▸ Building Sayzio extension for ${browser}…`);
   const outDir = join(root, "dist", browser);
   if (existsSync(outDir)) rmSync(outDir, { recursive: true, force: true });
 

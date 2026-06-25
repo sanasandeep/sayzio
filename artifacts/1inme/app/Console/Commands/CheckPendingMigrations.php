@@ -111,7 +111,7 @@ class CheckPendingMigrations extends Command
         $url     = $this->dashboardUrl();
         $subject = "Database schema out of date: {$count} pending migration(s)";
         $preview = implode(', ', array_slice($pending, 0, 5)) . ($count > 5 ? ', …' : '');
-        $body    = "1INME has {$count} pending database migration(s) that have not been applied. "
+        $body    = "Sayzio has {$count} pending database migration(s) that have not been applied. "
                  . "This usually means the deploy's `php artisan migrate --force` step failed, leaving the schema "
                  . "incomplete — workspace-backed and other pages may return 500 errors until it's fixed. "
                  . "Run `php artisan migrate --force` against production as soon as possible.\n\n"
@@ -137,7 +137,7 @@ class CheckPendingMigrations extends Command
         $admins  = $this->admins();
         $url     = $this->dashboardUrl();
         $subject = 'Database schema back in sync';
-        $body    = "Good news — all pending database migrations have been applied and the 1INME schema is back in sync"
+        $body    = "Good news — all pending database migrations have been applied and the Sayzio schema is back in sync"
                  . ($previousCount > 0 ? " (was {$previousCount} pending)." : '.')
                  . ' No further action needed.';
 

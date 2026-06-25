@@ -1,5 +1,5 @@
 @extends('public.layouts.site')
-@section('title', '1INME vs ' . ($competitor['name'] ?? ''))
+@section('title', 'Sayzio vs ' . ($competitor['name'] ?? ''))
 
 @section('content')
 @php
@@ -22,14 +22,14 @@
         <nav class="mb-6 text-xs text-gray-500" aria-label="Breadcrumb">
             <a href="{{ route('site.compare.index') }}" class="hover:text-white transition-colors">Compare</a>
             <span class="mx-2 text-white/20">/</span>
-            <span class="text-gray-300">1INME vs {{ $c['name'] }}</span>
+            <span class="text-gray-300">Sayzio vs {{ $c['name'] }}</span>
         </nav>
 
         {{-- VS chips --}}
         <div data-anim="fade-up" class="flex items-center justify-center gap-3 sm:gap-5 mb-7">
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white"
                   style="background: var(--c1, #7c3aed);">
-                <i class="fas fa-bolt"></i> 1INME
+                <i class="fas fa-bolt"></i> Sayzio
             </span>
             <span class="text-sm font-bold uppercase tracking-widest text-gray-500">vs</span>
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold text-gray-100 border border-white/15 bg-white/5">
@@ -48,14 +48,14 @@
 
         {{-- Score summary --}}
         <div data-anim="fade-up" class="mt-7 inline-flex flex-wrap items-center justify-center gap-2">
-            <span class="cmp-badge cmp-badge-ours"><i class="fas fa-bolt"></i> 1INME · {{ $c['our_score'] }}/{{ $c['total'] }}</span>
+            <span class="cmp-badge cmp-badge-ours"><i class="fas fa-bolt"></i> Sayzio · {{ $c['our_score'] }}/{{ $c['total'] }}</span>
             <span class="cmp-badge">{{ $c['name'] }} · {{ $c['rival_score'] }}/{{ $c['total'] }}</span>
             <span class="cmp-badge cmp-badge-ours"><i class="fas fa-trophy text-[10px]"></i> +{{ $c['wins'] }} feature lead</span>
         </div>
 
         <div data-anim="fade-up" class="mt-7 flex flex-wrap items-center justify-center gap-3">
             <a href="{{ url('/register') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
-                <i class="fas fa-rocket text-xs"></i> Switch to 1INME free
+                <i class="fas fa-rocket text-xs"></i> Switch to Sayzio free
             </a>
             <a href="#head-to-head" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
                 Jump to the table
@@ -78,17 +78,17 @@
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">An honest take</div>
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Where each tool wins</h2>
-            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">No tool is best at everything. Here's a straight read on when {{ $c['name'] }} is the right call — and where 1INME pulls ahead.</p>
+            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">No tool is best at everything. Here's a straight read on when {{ $c['name'] }} is the right call — and where Sayzio pulls ahead.</p>
         </div>
         <div class="grid md:grid-cols-2 gap-5">
-            {{-- Where 1INME wins --}}
+            {{-- Where Sayzio wins --}}
             <article class="glass rounded-3xl p-7" data-anim="fade-right">
                 <div class="flex items-center gap-3 mb-5">
                     <span class="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
                           style="background: var(--c1, #7c3aed);">
                         <i class="fas fa-bolt"></i>
                     </span>
-                    <h3 class="text-lg font-bold text-white">Where 1INME wins</h3>
+                    <h3 class="text-lg font-bold text-white">Where Sayzio wins</h3>
                 </div>
                 <ul class="space-y-3">
                     @foreach($weWin as $point)
@@ -135,9 +135,9 @@
                 <div class="grid sm:grid-cols-3 gap-5">
                     @php
                         $steps = [
-                            ['icon' => 'fa-user-plus', 'title' => 'Create your free 1INME', 'body' => 'Sign up with an email or phone number — no credit card, no trial clock.'],
+                            ['icon' => 'fa-user-plus', 'title' => 'Create your free Sayzio', 'body' => 'Sign up with an email or phone number — no credit card, no trial clock.'],
                             ['icon' => 'fa-arrows-rotate', 'title' => 'Rebuild or import your links', 'body' => 'Recreate your page with drag-and-drop blocks, or bulk-import your existing links.'],
-                            ['icon' => 'fa-share-nodes', 'title' => 'Point your link & go live', 'body' => 'Aim your custom domain or Link in Bio at 1INME — your audience never notices the move.'],
+                            ['icon' => 'fa-share-nodes', 'title' => 'Point your link & go live', 'body' => 'Aim your custom domain or Link in Bio at Sayzio — your audience never notices the move.'],
                         ];
                     @endphp
                     @foreach($steps as $i => $s)
@@ -153,7 +153,7 @@
                 </div>
                 <div class="mt-9 text-center">
                     <a href="{{ url('/register') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
-                        <i class="fas fa-rocket text-xs"></i> Start your free 1INME
+                        <i class="fas fa-rocket text-xs"></i> Start your free Sayzio
                     </a>
                 </div>
             </div>
@@ -167,7 +167,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">FAQ</div>
-            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">1INME vs {{ $c['name'] }} — common questions</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Sayzio vs {{ $c['name'] }} — common questions</h2>
         </div>
         <div class="space-y-3" data-anim="fade-up" data-stagger>
             @foreach($faqs as $faq)
@@ -192,7 +192,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">Keep comparing</div>
-            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">See how 1INME stacks up against <span class="grad-text">other tools</span>.</h3>
+            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">See how Sayzio stacks up against <span class="grad-text">other tools</span>.</h3>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($others as $o)
@@ -203,7 +203,7 @@
                             <i class="fas {{ $o['icon'] }}"></i>
                         </span>
                         <div>
-                            <div class="text-sm font-bold text-white">1INME vs {{ $o['name'] }}</div>
+                            <div class="text-sm font-bold text-white">Sayzio vs {{ $o['name'] }}</div>
                             <div class="text-xs text-gray-400 mt-0.5">+{{ $o['wins'] }} feature lead</div>
                         </div>
                     </div>

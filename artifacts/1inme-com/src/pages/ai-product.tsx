@@ -21,7 +21,7 @@ export default function AiProduct() {
   const others = aiProducts.filter((p) => p.slug !== product.slug);
 
   return (
-    <PageLayout title={`${product.title} — 1INME AI`} description={product.description}>
+    <PageLayout title={`${product.title} — Sayzio AI`} description={product.description}>
       <MarketingHero
         eyebrow={`AI Suite · ${product.eyebrow}`}
         title={product.tagline}

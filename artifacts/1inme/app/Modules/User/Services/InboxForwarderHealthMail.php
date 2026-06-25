@@ -73,7 +73,7 @@ class InboxForwarderHealthMail
                 ->first())->last_error;
 
         $isWebhook = $destination->type === 'webhook';
-        $subject   = "Heads up: your \"{$destination->label}\" forwarding rule on 1INME keeps failing";
+        $subject   = "Heads up: your \"{$destination->label}\" forwarding rule on Sayzio keeps failing";
 
         $viewData = [
             'subject'        => $subject,

@@ -88,7 +88,7 @@
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold">Add a source</h3>
             <div class="flex gap-1 text-xs">
-                @foreach(['text'=>'Text','faq'=>'FAQ','document'=>'Document','link'=>'Link','feature'=>'1INME data'] as $k=>$lbl)
+                @foreach(['text'=>'Text','faq'=>'FAQ','document'=>'Document','link'=>'Link','feature'=>'Sayzio data'] as $k=>$lbl)
                     <button type="button" @click="addType='{{ $k }}'" :class="addType==='{{ $k }}' ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'"
                         class="px-3 py-1.5 rounded-lg">{{ $lbl }}</button>
                 @endforeach
@@ -145,7 +145,7 @@
         {{-- FEATURE --}}
         <form method="POST" action="{{ route('user.minds.sources.store', $mind) }}" x-show="addType==='feature'" class="space-y-3">
             @csrf <input type="hidden" name="type" value="feature">
-            <p class="text-xs text-white/40">Snapshots live data from a 1INME feature whenever this Mind is asked a question.</p>
+            <p class="text-xs text-white/40">Snapshots live data from a Sayzio feature whenever this Mind is asked a question.</p>
             <select name="feature_key" required class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                 @foreach($features as $key=>$label)
                     <option value="{{ $key }}">{{ $label }}</option>

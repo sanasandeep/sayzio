@@ -195,7 +195,7 @@ class StarterRenewalReminderController extends Controller
                 ['user' => $previewUser, 'renewUrl' => $renewUrl, 'endsAt' => $endsAt],
                 function ($message) use ($admin) {
                     $message->to($admin->email);
-                    $message->subject('[Test] Keep your free 1INME Starter plan — renew for another year');
+                    $message->subject('[Test] Keep your free Sayzio Starter plan — renew for another year');
                 }
             );
         } catch (\Throwable $e) {

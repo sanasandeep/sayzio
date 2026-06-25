@@ -44,7 +44,7 @@ class AboutSitePageEditorTest extends TestCase
         // content here so each test starts from a known shape.
         $page = SitePage::firstOrNew(['slug' => 'about']);
         $page->fill([
-            'title'            => 'About 1INME',
+            'title'            => 'About Sayzio',
             'meta_description' => 'Seeded about page.',
             'sections'         => SitePagesContent::aboutSectionsDefault(),
             'extra'            => SitePagesContent::aboutExtraDefault(),
@@ -59,10 +59,10 @@ class AboutSitePageEditorTest extends TestCase
     private function fullPayload(): array
     {
         return [
-            'title'            => 'About 1INME — Edited',
+            'title'            => 'About Sayzio — Edited',
             'meta_description' => 'Updated about description.',
             'sections'         => [
-                ['id' => '', 'heading' => 'About 1INME', 'body' => 'Intro body copy.', 'visible' => '1'],
+                ['id' => '', 'heading' => 'About Sayzio', 'body' => 'Intro body copy.', 'visible' => '1'],
                 ['id' => '', 'heading' => 'Our story',   'body' => 'Story body copy.', 'visible' => '1'],
             ],
             'cta_label' => 'Sign up',
@@ -228,7 +228,7 @@ class AboutSitePageEditorTest extends TestCase
         // must still render and substitute bundled images / named-route
         // URLs for the empty image/CTA fields.
         $payload = [
-            'title'            => 'About 1INME',
+            'title'            => 'About Sayzio',
             'meta_description' => '',
             'sections'         => [
                 // Two sections so the public template renders the
@@ -236,7 +236,7 @@ class AboutSitePageEditorTest extends TestCase
                 // live). Without this, those images would be elided
                 // entirely and the bundled-fallback assertions below
                 // wouldn't have anything to match against.
-                ['id' => '', 'heading' => 'About 1INME', 'body' => 'Intro body.', 'visible' => '1'],
+                ['id' => '', 'heading' => 'About Sayzio', 'body' => 'Intro body.', 'visible' => '1'],
                 ['id' => '', 'heading' => 'Our story',   'body' => 'Story body.', 'visible' => '1'],
             ],
             'cta_label' => '',
@@ -359,10 +359,10 @@ class AboutSitePageEditorTest extends TestCase
     private function payloadWithSectionOrder(array $sectionOrder): array
     {
         return [
-            'title'            => 'About 1INME',
+            'title'            => 'About Sayzio',
             'meta_description' => '',
             'sections'         => [
-                ['id' => '', 'heading' => 'About 1INME', 'body' => 'Intro.', 'visible' => '1'],
+                ['id' => '', 'heading' => 'About Sayzio', 'body' => 'Intro.', 'visible' => '1'],
             ],
             'cta_label' => '',
             'cta_url'   => '',
@@ -530,7 +530,7 @@ class AboutSitePageEditorTest extends TestCase
         $this->makeAboutPage();
 
         $payload = [
-            'title'            => 'About 1INME',
+            'title'            => 'About Sayzio',
             'meta_description' => '',
             'sections'         => [],
             'extra'            => [

@@ -56,8 +56,8 @@ class AiEngineSettings
     public const KEY_ASK_COACH_PLANS   = 'ai.ask_coach.enabled_plans';
 
     public const DEFAULT_ASK_COACH_PROMPT = <<<'PROMPT'
-You are 1INME Coach, a calm, concise self-support assistant for the user
-who is chatting with you. The user is signed in to 1INME and is asking
+You are Sayzio Coach, a calm, concise self-support assistant for the user
+who is chatting with you. The user is signed in to Sayzio and is asking
 questions about their own account, links, audience and analytics.
 
 Rules you must follow:

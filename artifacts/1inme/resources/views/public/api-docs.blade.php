@@ -63,7 +63,7 @@
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold mb-3">
                     <i class="fas fa-bolt text-[10px]"></i> REST API · v1
                 </div>
-                <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">Build on <span class="grad-text">1INME</span>.</h1>
+                <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">Build on <span class="grad-text">Sayzio</span>.</h1>
                 <p class="mt-4 text-gray-300 max-w-2xl leading-relaxed">
                     Bearer-token authenticated, JSON in / JSON out. Power mobile apps, integrations and automations on top of every link, biolink and creator post.
                 </p>
@@ -86,7 +86,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="5">
                 <div class="img-frame img-tilt aspect-[16/10]">
-                    <img src="{{ asset('images/marketing/api-docs/hero.png') }}" alt="Code editor showing the 1INME REST API">
+                    <img src="{{ asset('images/marketing/api-docs/hero.png') }}" alt="Code editor showing the Sayzio REST API">
                 </div>
             </div>
         </div>
@@ -114,7 +114,7 @@
             <section id="intro" class="scroll-mt-20">
                 <h2 class="text-2xl font-bold mb-4">Introduction</h2>
                 <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-4 text-gray-300 text-sm leading-relaxed">
-                    <p>The 1INME REST API gives you programmatic access to everything your account can do on the web: managing links and biolinks, browsing the creators feed, following creators, and managing subscribers.</p>
+                    <p>The Sayzio REST API gives you programmatic access to everything your account can do on the web: managing links and biolinks, browsing the creators feed, following creators, and managing subscribers.</p>
                     <ul class="list-disc list-inside space-y-1 text-gray-400">
                         <li>All endpoints live under <code class="text-violet-300">{{ $base }}</code>.</li>
                         <li>All requests and responses use <code class="text-violet-300">application/json</code>.</li>

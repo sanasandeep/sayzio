@@ -17,7 +17,7 @@ export const competitors: Competitor[] = [
     badge: "Half the cost",
     headline: "A Link in Bio is the start, not the finish.",
     intro:
-      "Linktree nails the simple link-in-bio. But once you want analytics that act, your own audience list, short links, QR codes and AI — you're stitching on extra tools. 1INME puts the whole growth stack behind one link.",
+      "Linktree nails the simple link-in-bio. But once you want analytics that act, your own audience list, short links, QR codes and AI — you're stitching on extra tools. Sayzio puts the whole growth stack behind one link.",
     ourWins: [
       "Branded short links, dynamic QR codes and the AI Performance Coach are built in",
       "Live visitor map and click heatmaps on top of click counts",
@@ -36,7 +36,7 @@ export const competitors: Competitor[] = [
     badge: "More features",
     headline: "Short links are one block of the stack.",
     intro:
-      "Bitly is a great URL shortener. But a link in a bio needs more than a redirect — it needs a page, an audience, content blocks and analytics that tell you what to do next. 1INME does the short links and everything around them.",
+      "Bitly is a great URL shortener. But a link in a bio needs more than a redirect — it needs a page, an audience, content blocks and analytics that tell you what to do next. Sayzio does the short links and everything around them.",
     ourWins: [
       "A full drag-and-drop Link in Bio page, not just a redirect",
       "Embed video, music, products and forms right on the page",
@@ -55,7 +55,7 @@ export const competitors: Competitor[] = [
     badge: "Lower price",
     headline: "More inside, for less.",
     intro:
-      "Beacons is built for creators — and so is 1INME. The difference is how much is included: short links, QR studio, an AI coach, team workspaces and a native app, all on a free-forever base.",
+      "Beacons is built for creators — and so is Sayzio. The difference is how much is included: short links, QR studio, an AI coach, team workspaces and a native app, all on a free-forever base.",
     ourWins: [
       "Branded short links and a full QR code studio included",
       "AI Performance Coach that turns numbers into one-tap fixes",
@@ -74,7 +74,7 @@ export const competitors: Competitor[] = [
     badge: "Way more inside",
     headline: "A page is nice. A growth stack is better.",
     intro:
-      "Carrd builds beautiful one-page sites. But it stops at the page — no link analytics that act, no followers, no QR studio, no AI. 1INME gives you the page plus the tools to grow what it earns.",
+      "Carrd builds beautiful one-page sites. But it stops at the page — no link analytics that act, no followers, no QR studio, no AI. Sayzio gives you the page plus the tools to grow what it earns.",
     ourWins: [
       "Live analytics, heatmaps and the AI Performance Coach",
       "Branded short links and dynamic QR codes",
@@ -93,7 +93,7 @@ export const competitors: Competitor[] = [
     badge: "Bigger toolkit",
     headline: "Beyond the Instagram micro-landing.",
     intro:
-      "Taplink makes a tidy Instagram landing page. 1INME does that and adds short links, a QR studio, an AI coach, followers you own and a team-ready workspace — all under one login.",
+      "Taplink makes a tidy Instagram landing page. Sayzio does that and adds short links, a QR studio, an AI coach, followers you own and a team-ready workspace — all under one login.",
     ourWins: [
       "Short links, QR studio and UTM builder included",
       "AI Performance Coach and live visitor map",
@@ -112,7 +112,7 @@ export const competitors: Competitor[] = [
     badge: "Free forever plan",
     headline: "Sell and grow — without the monthly floor.",
     intro:
-      "Stan is a creator store with a subscription floor. 1INME lets you sell digital products and take tips too — but on a free-forever base, with short links, QR codes, analytics and an AI coach included.",
+      "Stan is a creator store with a subscription floor. Sayzio lets you sell digital products and take tips too — but on a free-forever base, with short links, QR codes, analytics and an AI coach included.",
     ourWins: [
       "Free forever plan with no credit card required",
       "Branded short links, QR studio and live analytics",
@@ -178,7 +178,7 @@ export const compareGroups: CompareGroup[] = [
 ];
 
 /**
- * Per-feature support matrix. `true` = supported. 1INME ("ours") supports
+ * Per-feature support matrix. `true` = supported. Sayzio ("ours") supports
  * everything; rivals support a subset. Keyed by the feature label.
  */
 export const featureSupport: Record<string, Record<string, boolean>> = {
@@ -220,7 +220,7 @@ export function getCompetitor(slug: string): Competitor | undefined {
 }
 
 export const migrationSteps = [
-  { title: "Create your free 1INME", body: "Sign up with an email or phone number — no credit card, no trial clock." },
+  { title: "Create your free Sayzio", body: "Sign up with an email or phone number — no credit card, no trial clock." },
   { title: "Rebuild or import your links", body: "Recreate your page with drag-and-drop blocks, or bulk-import your existing links." },
-  { title: "Point your link & go live", body: "Aim your custom domain or Link in Bio at 1INME — your audience never notices the move." },
+  { title: "Point your link & go live", body: "Aim your custom domain or Link in Bio at Sayzio — your audience never notices the move." },
 ];

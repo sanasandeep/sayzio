@@ -11,7 +11,7 @@ use Illuminate\Routing\Controller;
 
 /**
  * Bearer-token parity for the admin "Analytics Storage" panel so a platform
- * admin can watch analytics-history growth and bound it from the 1INME Mobile
+ * admin can watch analytics-history growth and bound it from the Sayzio Mobile
  * app. Mobile counterpart of
  * {@see \App\Modules\Admin\Controllers\StatsStorageController}; both surfaces
  * read the same {@see StatsStorageHealth} / {@see StatsRetentionPolicy}, so the

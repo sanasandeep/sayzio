@@ -17,7 +17,7 @@ export default function Gdpr() {
         {
           title: "Roles",
           body: [
-            "For your account information you are the data subject and we are the data controller. For the personal data of your visitors and contacts that you collect through 1INME (form submissions, leads, followers), you are the data controller and we act as your data processor.",
+            "For your account information you are the data subject and we are the data controller. For the personal data of your visitors and contacts that you collect through Sayzio (form submissions, leads, followers), you are the data controller and we act as your data processor.",
           ],
         },
         {
@@ -47,7 +47,7 @@ export default function Gdpr() {
         {
           title: "Data Processing Agreement",
           body: [
-            "If you process personal data of EU/EEA or UK residents through 1INME on behalf of your own users, you can request our standard Data Processing Agreement (DPA) — we'll countersign it and send it back.",
+            "If you process personal data of EU/EEA or UK residents through Sayzio on behalf of your own users, you can request our standard Data Processing Agreement (DPA) — we'll countersign it and send it back.",
           ],
         },
       ]}

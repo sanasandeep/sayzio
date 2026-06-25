@@ -57,7 +57,7 @@ export default function InsiderScreen() {
     if (!referralUrl) return;
     try {
       await Share.share({
-        message: `Join me on 1INME — ${referralUrl}`,
+        message: `Join me on Sayzio — ${referralUrl}`,
         url: Platform.OS === "ios" ? referralUrl : undefined,
       });
     } catch {
@@ -82,7 +82,7 @@ export default function InsiderScreen() {
         <EmptyState
           icon="user"
           title="Set a handle to start referring"
-          body="Pick a 1INME handle from the profile screen — your referral link uses it."
+          body="Pick a Sayzio handle from the profile screen — your referral link uses it."
         />
       ) : (
         <ScrollView contentContainerStyle={styles.body}>

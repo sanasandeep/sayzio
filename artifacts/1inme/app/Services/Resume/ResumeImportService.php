@@ -113,7 +113,7 @@ class ResumeImportService
     // ───────── Bio link import ─────────
 
     /**
-     * Build candidates from the signed-in user's own 1INME bio link
+     * Build candidates from the signed-in user's own Sayzio bio link
      * universe: profile fields, social account connections (with
      * follower counts), creator posts (mapped to portfolio projects),
      * and link-style biolink blocks.

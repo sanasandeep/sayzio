@@ -220,7 +220,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your link. <span class="grad-text">Your domain.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free 1INME, pick a branded domain, and add a memorable slug in under a minute — then connect your own domain whenever you’re ready.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, pick a branded domain, and add a memorable slug in under a minute — then connect your own domain whenever you’re ready.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Get started free</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>

@@ -100,7 +100,7 @@ export default function BackupCodesScreen() {
     if (!freshCodes) return;
     try {
       await Share.share({
-        message: `1INME backup codes — store somewhere safe.\n\n${freshCodes.join("\n")}`,
+        message: `Sayzio backup codes — store somewhere safe.\n\n${freshCodes.join("\n")}`,
       });
     } catch {
       // user dismissed; ignore

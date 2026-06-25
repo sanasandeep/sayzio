@@ -29,7 +29,7 @@ export function LinkTypesShowcase() {
       <div className="container mx-auto px-6 relative z-10">
         <motion.div className="text-center mb-16" {...reveal(0)}>
           <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4">
-            Everything you can create with 1INME
+            Everything you can create with Sayzio
           </span>
           <h2 className="text-3xl lg:text-5xl font-bold tracking-tight mb-4">
             <span className="grad-text">{LINK_TYPE_COUNT} ways to share</span> who you are

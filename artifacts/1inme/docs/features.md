@@ -1,7 +1,7 @@
-# 1INME Feature Catalog
+# Sayzio Feature Catalog
 
 This is the exhaustive, engineering-verified catalog of **every** feature in the
-1INME platform: each link type (grouped by the product categories shown in the
+Sayzio platform: each link type (grouped by the product categories shown in the
 "Create Link" picker), every major functional system, the admin/back-office
 surfaces, the AI engine, billing, and the cross-surface artifacts (web app,
 REST API, mobile app, marketing site, slide deck).
@@ -65,7 +65,7 @@ It complements two sibling docs and intentionally does **not** duplicate them:
 
 ## 1. Platform overview
 
-1INME is an all-in-one link-management SaaS. From one account a creator,
+Sayzio is an all-in-one link-management SaaS. From one account a creator,
 business, or individual can create short links, biolinks (mini-sites), QR codes,
 digital contact cards, file/event/resume/menu/review pages, and monetized pages —
 then customize, brand, track, and get paid through them, all under a single
@@ -276,7 +276,7 @@ defaults** (`BlockDefaults`): placeholder text/media + a seeded `_style` and a
 - **Commerce** — Product / Service, Catalog / Storefront, Coupon, Limited Offer
   (countdown), Donation, Buy Me a Coffee, Ko-fi, Patreon.
 - **Contact & lead capture** — Email Collector / Phone Collector, Contact Form,
-  WhatsApp Chat / Button / Number, Direct Message (to your 1INME inbox).
+  WhatsApp Chat / Button / Number, Direct Message (to your Sayzio inbox).
 - **Social profiles & feeds** — Social Icons / Hub, platform feeds (YouTube,
   Instagram, TikTok, X), RSS Feed.
 
@@ -291,7 +291,7 @@ version, and mobile keys.
 text color); Layout (max-width, padding, per-device spacing); Block theme (global
 theme + pre-designed templates; save looks as **themes**; schedule a theme for a
 date range); SEO (title/description/keywords); Open Graph; **PWA** (installable
-manifest); Branding (custom favicon + "Powered by 1INME" toggle, plan-gated);
+manifest); Branding (custom favicon + "Powered by Sayzio" toggle, plan-gated);
 Custom CSS/JS (plan-gated). SEO trio / favicon / OG image are canonical Link
 columns.
 
@@ -426,7 +426,7 @@ A personal CRM plus an in-app dialer with identity resolution.
 - **Dialer** — number pad with **T9 smart-search** (keypad-spelled names), speed
   dial, recents/frequent; call logging with outcomes/notes. `DialerData` is the
   single read/transform source for web + API.
-- **Identity resolution** — resolve a phone number to a 1INME biolink profile
+- **Identity resolution** — resolve a phone number to a Sayzio biolink profile
   (`/dialer/lookup`); contacts whose verified phone matches a user get their
   biolink auto-attached (with detach memory) via `linked_identifiers`.
 - **Import / management** — bulk CSV / VCF import (async for large files),
@@ -528,7 +528,7 @@ Self-referrals are not rewarded. *Web · REST · Mobile.*
 
 ## 6. Creator monetization & payouts
 
-**1INME's platform fee is 0%** — creators keep 100% minus the payment processor's
+**Sayzio's platform fee is 0%** — creators keep 100% minus the payment processor's
 own fee. The **Monetization / Earnings & Payouts** hub (`/user/payouts`) rolls up
 earnings, subscribers, payments, and orders.
 
@@ -811,6 +811,6 @@ A modular React presentation organized by a manifest
 
 ---
 
-*Verified against the merged 1INME codebase. For endpoint contracts see
+*Verified against the merged Sayzio codebase. For endpoint contracts see
 [`api.md`](./api.md); for the plain-language user guide see
 [`knowledge-base.md`](./knowledge-base.md).*

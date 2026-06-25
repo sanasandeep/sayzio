@@ -25,4 +25,4 @@ Where: {{ $ics->location }}
 Edit or cancel your RSVP any time:
 {{ $rsvp->manageUrl() }}
 
-— Sent automatically by 1INME
+— Sent automatically by Sayzio

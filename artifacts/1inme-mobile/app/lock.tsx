@@ -97,7 +97,7 @@ export default function LockScreen() {
           Locked
         </Text>
         <Text style={[styles.body, { color: colors.mutedForeground }]}>
-          Use {label} to unlock 1INME and pick up where you left off.
+          Use {label} to unlock Sayzio and pick up where you left off.
         </Text>
         {error ? (
           <Text style={[styles.error, { color: colors.destructive ?? "#dc2626" }]}>

@@ -82,7 +82,7 @@ export default function Contact() {
   return (
     <PageLayout
       title="Contact"
-      description="We love hearing from you. Reach the 1INME team — we reply within one business day."
+      description="We love hearing from you. Reach the Sayzio team — we reply within one business day."
     >
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-6">

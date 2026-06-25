@@ -4,14 +4,14 @@ export default function Terms() {
   return (
     <LegalPage
       metaTitle="Terms & Conditions"
-      metaDescription="The terms governing your use of 1INME — your account, what you can publish, billing, intellectual property and how we end the relationship."
+      metaDescription="The terms governing your use of Sayzio — your account, what you can publish, billing, intellectual property and how we end the relationship."
       titleLead="Terms &"
       titleHighlight="Conditions"
       sections={[
         {
           title: "1. Acceptance",
           body: [
-            "By creating an account or using 1INME you agree to these terms. If you are using the service on behalf of a company you confirm you have authority to bind that company. If you do not agree, please do not use the service.",
+            "By creating an account or using Sayzio you agree to these terms. If you are using the service on behalf of a company you confirm you have authority to bind that company. If you do not agree, please do not use the service.",
           ],
         },
         {
@@ -23,7 +23,7 @@ export default function Terms() {
         {
           title: "3. Acceptable use",
           body: [
-            "You must not use 1INME to host or distribute illegal content, run scams or phishing, send unsolicited bulk messages, infringe other people's intellectual property, or harass other users. We reserve the right to remove content and suspend accounts that break these rules.",
+            "You must not use Sayzio to host or distribute illegal content, run scams or phishing, send unsolicited bulk messages, infringe other people's intellectual property, or harass other users. We reserve the right to remove content and suspend accounts that break these rules.",
           ],
         },
         {
@@ -41,7 +41,7 @@ export default function Terms() {
         {
           title: "6. Service availability",
           body: [
-            "We work hard to keep 1INME fast and available, but we cannot guarantee 100% uptime. Planned maintenance is announced in advance where possible. The service is provided \"as is\" without implied warranties to the extent permitted by law.",
+            "We work hard to keep Sayzio fast and available, but we cannot guarantee 100% uptime. Planned maintenance is announced in advance where possible. The service is provided \"as is\" without implied warranties to the extent permitted by law.",
           ],
         },
         {

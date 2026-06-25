@@ -120,7 +120,7 @@
                                 <input type="checkbox" name="persona[use_default_mind]" value="1"
                                        @checked(old('persona.use_default_mind', $persona->use_default_mind))>
                                 <span>
-                                    <strong style="color:var(--text-primary)">Use 1INME's built-in knowledge</strong>
+                                    <strong style="color:var(--text-primary)">Use Sayzio's built-in knowledge</strong>
                                     @if($defaultMind)
                                         <span class="aic-hint" style="display:block;margin-top:2px">The shared "{{ $defaultMind->name }}" knowledge base.</span>
                                     @endif
@@ -205,7 +205,7 @@
                         <label class="aic-toggle">
                             <input type="checkbox" name="config[show_branding]" value="1"
                                    @checked(old('config.show_branding', $config['show_branding'] ?? true))>
-                            <span><strong style="color:var(--text-primary)">Show "Powered by 1INME"</strong></span>
+                            <span><strong style="color:var(--text-primary)">Show "Powered by Sayzio"</strong></span>
                         </label>
                     </div>
                 </div>

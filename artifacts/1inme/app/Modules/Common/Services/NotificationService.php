@@ -42,8 +42,8 @@ class NotificationService
     {
         return [
             'system_broadcast' => [
-                'label'          => 'Announcements from 1INME',
-                'description'    => 'Important updates, downtime notices and product news from the 1INME team.',
+                'label'          => 'Announcements from Sayzio',
+                'description'    => 'Important updates, downtime notices and product news from the Sayzio team.',
                 'default_in_app' => true,
                 'default_email'  => false,
                 'default_push'   => true,
@@ -149,7 +149,7 @@ class NotificationService
             ],
             'custom_domain_drift' => [
                 'label'          => 'Custom domain DNS drift',
-                'description'    => 'When a verified custom domain stops pointing at 1INME (so traffic may break and someone else could try to claim it).',
+                'description'    => 'When a verified custom domain stops pointing at Sayzio (so traffic may break and someone else could try to claim it).',
                 'default_in_app' => true,
                 'default_email'  => true,
                 'default_push'   => true,
@@ -368,7 +368,7 @@ class NotificationService
             'message'      => $body, // legacy field rendered by user_notifications view
             'target_url'   => $targetUrl,
             'broadcast_id' => $broadcast->id,
-            'sender'       => '1INME Team',
+            'sender'       => 'Sayzio Team',
         ];
 
         $delivered = 0;

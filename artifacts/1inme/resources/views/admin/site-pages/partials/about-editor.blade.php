@@ -35,7 +35,7 @@
         'story'       => ['label' => 'Story', 'desc' => 'Heading + body cards above the team band.'],
         'team_band'   => ['label' => 'Team photo band', 'desc' => 'Wide team image strip.'],
         'founder'     => ['label' => 'Founder', 'desc' => 'Featured founder card with photo and bio.'],
-        'eefind'      => ['label' => 'About EEFind (parent company)', 'desc' => 'Parent-company block — who builds 1INME.'],
+        'eefind'      => ['label' => 'About EEFind (parent company)', 'desc' => 'Parent-company block — who builds Sayzio.'],
         'milestones'  => ['label' => 'Milestones', 'desc' => 'Vertical timeline of dated milestones.'],
         'cta'         => ['label' => 'Bottom call to action', 'desc' => 'The "Want to build with us?" panel.'],
     ];
@@ -431,7 +431,7 @@
             <div class="grid sm:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Primary button label</label>
-                    <input type="text" name="extra[cta][primary_label]" value="{{ $aboutCta['primary_label'] }}" maxlength="120" placeholder="Try 1INME free" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <input type="text" name="extra[cta][primary_label]" value="{{ $aboutCta['primary_label'] }}" maxlength="120" placeholder="Try Sayzio free" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     @error('extra.cta.primary_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
                 <div>
@@ -513,7 +513,7 @@
     {{-- ========== ABOUT EEFIND (PARENT COMPANY) ========== --}}
     <div>
         <h3 class="text-sm font-semibold text-white">About EEFind (parent company)</h3>
-        <p class="text-xs text-white/50 mb-3">The parent-company block explaining that 1INME is built by EEFind Private Limited. Use the Section order control above to position or hide it.</p>
+        <p class="text-xs text-white/50 mb-3">The parent-company block explaining that Sayzio is built by EEFind Private Limited. Use the Section order control above to position or hide it.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
             <div class="grid sm:grid-cols-2 gap-3">
                 <div>

@@ -61,7 +61,7 @@
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving this because a forwarding rule on your 1INME inbox is failing.
+                You're receiving this because a forwarding rule on your Sayzio inbox is failing.
                 We send at most one of these per destination per day, and we'll stop as soon as deliveries start succeeding again.
             </p>
         </div>

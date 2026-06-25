@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 /**
  * Coverage for the wake-phrase matcher used by the mobile foreground
- * "Hey 1INME" listener. The matcher must:
+ * "Hey Sayzio" listener. The matcher must:
  *
  *   1. Accept the spelled-out and digit forms of the brand name and
  *      tolerate Whisper's punctuation, spacing, and casing variants.
@@ -39,12 +39,12 @@ class VoiceAssistantWakeCheckTest extends TestCase
     {
         $c = $this->controller();
         $cases = [
-            'Hey 1INME',
+            'Hey Sayzio',
             'hey 1inme!',
-            'Hey, 1INME.',
+            'Hey, Sayzio.',
             'Hey one in me',
             'Hey OneInMe',
-            'Okay 1INME, what time is it?',
+            'Okay Sayzio, what time is it?',
             'Hi 1inme',
         ];
         foreach ($cases as $t) {

@@ -107,7 +107,7 @@
 
             <div class="flex items-center justify-between pt-2">
                 <p class="text-xs" style="color: var(--text-faint);">
-                    Recipients who muted “Announcements from 1INME” in their notification preferences will be skipped.
+                    Recipients who muted “Announcements from Sayzio” in their notification preferences will be skipped.
                 </p>
                 <button type="submit"
                         class="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white">

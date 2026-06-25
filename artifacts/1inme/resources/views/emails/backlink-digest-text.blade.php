@@ -1,6 +1,6 @@
 Hi {{ $userName }},
 
-The 1INME backlink radar found {{ $totalBacklinks }} new mention{{ $totalBacklinks === 1 ? '' : 's' }} across {{ $propertyCount }} of your propert{{ $propertyCount === 1 ? 'y' : 'ies' }} in the last 7 days:
+The Sayzio backlink radar found {{ $totalBacklinks }} new mention{{ $totalBacklinks === 1 ? '' : 's' }} across {{ $propertyCount }} of your propert{{ $propertyCount === 1 ? 'y' : 'ies' }} in the last 7 days:
 
 @foreach($properties as $p)
 == {{ $p['property_label'] }}: {{ $p['property_value'] ?: $p['matched_url'] }} ==

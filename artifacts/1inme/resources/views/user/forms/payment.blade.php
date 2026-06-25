@@ -5,7 +5,7 @@
 <div class="max-w-3xl mx-auto" x-data="{ paidEnabled: {{ ($payment['enabled'] ?? false) ? 'true' : 'false' }}, payMode: '{{ ($payment['mode'] ?? 'fixed') === 'per_field' ? 'per_field' : 'fixed' }}' }">
     @include('user.partials.page-hero', [
         'title' => 'Payments',
-        'subtitle' => 'Charge customers to submit this form. Funds go straight to your connected payment gateway — 1INME takes 0%.',
+        'subtitle' => 'Charge customers to submit this form. Funds go straight to your connected payment gateway — Sayzio takes 0%.',
         'icon' => 'fa-credit-card',
         'back' => route('user.forms.show', $form),
     ])

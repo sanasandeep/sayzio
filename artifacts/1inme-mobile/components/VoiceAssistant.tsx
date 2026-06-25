@@ -908,7 +908,7 @@ function SessionView(props: {
           ]}
         >
           <Text style={[styles.bubbleLabel, { color: colors.mutedForeground }]}>
-            1INME Voice
+            Sayzio Voice
           </Text>
           <Text style={[styles.bubbleText, { color: colors.foreground }]}>
             {reply}
@@ -1037,7 +1037,7 @@ function HelpView(props: {
   return (
     <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 8 }}>
       <Text style={[styles.helpIntro, { color: colors.foreground }]}>
-        Here&apos;s what 1INME Voice can and can&apos;t do for you right now.
+        Here&apos;s what Sayzio Voice can and can&apos;t do for you right now.
       </Text>
 
       <View>

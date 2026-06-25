@@ -52,7 +52,7 @@
                         {{ mb_strtoupper(mb_substr($biolinkPreview['user']->name ?? '?', 0, 2)) }}
                     </div>
                     <div class="min-w-0">
-                        <div class="text-xs font-bold uppercase tracking-wider" style="color:#f472b6;">1INME Link in Bio</div>
+                        <div class="text-xs font-bold uppercase tracking-wider" style="color:#f472b6;">Sayzio Link in Bio</div>
                         <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">{{ $biolinkPreview['user']->name }}</div>
                         @if($biolinkPreview['url'])
                             <a href="{{ $biolinkPreview['url'] }}" target="_blank" class="text-xs truncate" style="color:#a78bfa;">{{ $biolinkPreview['url'] }}</a>
@@ -69,7 +69,7 @@
             @php($_smsPhone = $contact->phones->first(fn($p) => !empty($p->value_e164)) ?? $contact->phones->first())
             @if($biolinkPreview['url'] && $_smsPhone)
                 @php($_smsTo = $_smsPhone->value_e164 ?: $_smsPhone->value)
-                @php($_smsBody = ($contact->nameForDisplay() ? 'Hey ' . $contact->nameForDisplay() . ', ' : 'Hey, ') . "here's my 1INME page: " . $biolinkPreview['url'])
+                @php($_smsBody = ($contact->nameForDisplay() ? 'Hey ' . $contact->nameForDisplay() . ', ' : 'Hey, ') . "here's my Sayzio page: " . $biolinkPreview['url'])
                 <div class="mt-3 pt-3 flex flex-wrap items-center gap-2" style="border-top:1px dashed rgba(236,72,153,.20);">
                     <a href="sms:{{ $_smsTo }}?body={{ rawurlencode($_smsBody) }}"
                        class="px-3 py-1.5 rounded-lg text-xs font-semibold"
@@ -92,7 +92,7 @@
             <form method="POST" action="{{ route('user.contacts.biolink.attach', $contact) }}" class="mb-5">
                 @csrf
                 <button class="text-xs font-medium" style="color:#a78bfa;">
-                    <i class="fas fa-link mr-1"></i> Re-check for a 1INME Link in Bio
+                    <i class="fas fa-link mr-1"></i> Re-check for a Sayzio Link in Bio
                 </button>
             </form>
         @endif

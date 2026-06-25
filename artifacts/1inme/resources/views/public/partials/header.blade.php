@@ -11,7 +11,7 @@
     // Mega-menu link groups. [href, fa-icon, title, one-line description].
     // Plain `&` in titles/descriptions — echoed via {{ }} so Blade escapes them.
     $navProductCore = [
-        [route('site.features'),       'fa-bolt',         'Features',           'Everything 1INME can do'],
+        [route('site.features'),       'fa-bolt',         'Features',           'Everything Sayzio can do'],
         [route('site.how-it-works'),   'fa-play',         'How it works',       'Step-by-step setup'],
         [route('site.analytics'),      'fa-chart-line',   'Analytics',          'Live geo, coach & cohorts'],
         [route('site.audience'),       'fa-users',        'Audience',           'Followers, digest emails & directory'],
@@ -20,7 +20,7 @@
         [route('site.forms'),          'fa-list-check',   'Form Builder',       '21 field types & instant alerts'],
         [route('site.notifications'),  'fa-bell',         'Notifications',      'In-app, email & push, your way'],
         [route('site.workspace-team'), 'fa-people-group', 'Workspace & Team',   'Roles, permissions, audit logs'],
-        [route('site.api-docs'),       'fa-code',         'API',                'Build with 1INME'],
+        [route('site.api-docs'),       'fa-code',         'API',                'Build with Sayzio'],
     ];
     $navProductAi = [
         [route('site.ai-chatbot'),         'fa-comments',        'AI Chatbot',         '24/7 chat on your biolink'],
@@ -33,7 +33,7 @@
     ];
     $navSolutions = [
         [route('site.services'),                    'fa-bullseye',            'Use cases',              'For creators, brands, agencies & teams'],
-        [route('site.compare.index'),               'fa-scale-balanced',      'Compare 1INME',          'vs Linktree, Beacons, Bitly & more'],
+        [route('site.compare.index'),               'fa-scale-balanced',      'Compare Sayzio',          'vs Linktree, Beacons, Bitly & more'],
         [route('site.demos'),                       'fa-wand-magic-sparkles', 'See what you can build', 'Live demo of every link type'],
         [route('site.discovery'),                   'fa-compass',             'Discover creators',      'Browse the public directory'],
         [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping'],
@@ -50,7 +50,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
             {{-- Brand --}}
-            <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="1INME home">
+            <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="Sayzio home">
                 @include('common.partials.brand-logo', ['height' => 'h-9'])
             </a>
 
@@ -189,9 +189,9 @@
                                     @endforeach
                                 </div>
                             </div>
-                            {{-- 1INME for… --}}
+                            {{-- Sayzio for… --}}
                             <div>
-                                <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
+                                <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Sayzio for…</div>
                                 <div class="space-y-0.5">
                                     @foreach($navUseCases as $__ucSlug => $__ucMeta)
                                         <a href="{{ route('site.use-case', $__ucSlug) }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
@@ -305,7 +305,7 @@
                             <span class="text-sm text-gray-300">{{ $__title }}</span>
                         </a>
                     @endforeach
-                    <div class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">1INME for…</div>
+                    <div class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Sayzio for…</div>
                     @foreach($navUseCases as $__ucSlug => $__ucMeta)
                         <a href="{{ route('site.use-case', $__ucSlug) }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
                             <i class="fas {{ $__ucMeta['icon'] }} w-4 text-center text-pink-300 text-sm"></i>

@@ -82,7 +82,7 @@ export default function SubscribeScreen() {
           }}
         >
           <Text style={{ color: "#047857", fontWeight: "700", fontSize: 12 }}>
-            ✓ 100% to creator · 1INME takes 0%
+            ✓ 100% to creator · Sayzio takes 0%
           </Text>
         </View>
 

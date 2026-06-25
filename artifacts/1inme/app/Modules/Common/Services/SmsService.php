@@ -14,7 +14,7 @@ class SmsService
     public function __construct()
     {
         $this->authKey = config('services.msg91.auth_key', '');
-        $this->senderId = config('services.msg91.sender_id', '1INME');
+        $this->senderId = config('services.msg91.sender_id', 'Sayzio');
         $this->route = config('services.msg91.route', '4');
     }
 

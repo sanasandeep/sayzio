@@ -11,7 +11,7 @@ use App\Modules\User\Models\VcfData;
  * Builds a shareable vCard 3.0 document for a Dialer identity by reusing the
  * existing VcfData::toVcf() generator on a transient (unsaved) instance.
  *
- * It merges the saved contact, the matched 1INME user's biolink, the auto
+ * It merges the saved contact, the matched Sayzio user's biolink, the auto
  * pulled socials/locations, and the owner's manual additions into one card.
  */
 class DialerVcard
@@ -45,7 +45,7 @@ class DialerVcard
         // URLs — biolink page link.
         $urls = [];
         if ($bio) {
-            $urls[] = ['label' => '1INME', 'value' => url('/' . $bio->alias)];
+            $urls[] = ['label' => 'Sayzio', 'value' => url('/' . $bio->alias)];
         }
 
         // Social profiles — auto + manual.
@@ -80,7 +80,7 @@ class DialerVcard
             'urls'            => $urls,
             'addresses'       => $addresses,
             'social_profiles' => $socials,
-            'note'            => 'Saved from 1INME Dialer',
+            'note'            => 'Saved from Sayzio Dialer',
         ]);
 
         return $vcf->toVcf();

@@ -143,7 +143,7 @@
                 <div>
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">From name</label>
                     <input type="text" name="from_name" value="{{ old('from_name', $fromName) }}" autocomplete="off"
-                           placeholder="1INME"
+                           placeholder="Sayzio"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
                 </div>
             </div>

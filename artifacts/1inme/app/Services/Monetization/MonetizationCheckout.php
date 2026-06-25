@@ -639,7 +639,7 @@ class MonetizationCheckout
             ],
             'created_at' => now(),
         ]);
-        $this->emailCreatorBestEffort($buyer, 'Your 1INME order was refunded', 'Order #' . $order->id . ' has been refunded for ' . $this->formatMoney((int) $order->subtotal_cents, $order->currency) . '.');
+        $this->emailCreatorBestEffort($buyer, 'Your Sayzio order was refunded', 'Order #' . $order->id . ' has been refunded for ' . $this->formatMoney((int) $order->subtotal_cents, $order->currency) . '.');
     }
 
     protected function refundTip(int $id): bool
@@ -967,7 +967,7 @@ class MonetizationCheckout
             ],
             'created_at' => now(),
         ]);
-        $this->emailCreatorBestEffort($creator, 'New 1INME product sale', ($buyer?->name ?? 'A customer') . ' just bought from your page.');
+        $this->emailCreatorBestEffort($creator, 'New Sayzio product sale', ($buyer?->name ?? 'A customer') . ' just bought from your page.');
     }
 
     protected function formatMoney(int $cents, string $currency): string
@@ -1007,7 +1007,7 @@ class MonetizationCheckout
             ],
             'created_at' => now(),
         ]);
-        $this->emailCreatorBestEffort($creator, 'New 1INME subscriber', $fan->name . ' just joined ' . ($tier?->name ?? 'your page') . '.');
+        $this->emailCreatorBestEffort($creator, 'New Sayzio subscriber', $fan->name . ' just joined ' . ($tier?->name ?? 'your page') . '.');
     }
 
     protected function notifyCreatorOfTip(User $creator, User $fan, CreatorTip $tip): void
@@ -1026,7 +1026,7 @@ class MonetizationCheckout
             ],
             'created_at' => now(),
         ]);
-        $this->emailCreatorBestEffort($creator, 'New tip on 1INME', ($tip->anonymous ? 'Someone' : $fan->name) . ' tipped you ' . $amount . '.');
+        $this->emailCreatorBestEffort($creator, 'New tip on Sayzio', ($tip->anonymous ? 'Someone' : $fan->name) . ' tipped you ' . $amount . '.');
     }
 
     protected function notifyCreatorOfUnlock(User $creator, User $fan, int $postId, int $price, string $currency): void

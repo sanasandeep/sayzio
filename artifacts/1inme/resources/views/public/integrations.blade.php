@@ -163,7 +163,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Plug it in. <span class="grad-text">Forget about it.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free 1INME, connect every network you live on, and let auto-retry keep things running while you ship.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, connect every network you live on, and let auto-retry keep things running while you ship.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Connect now — free</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>

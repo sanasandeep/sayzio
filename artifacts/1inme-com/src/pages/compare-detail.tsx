@@ -21,11 +21,11 @@ export default function CompareDetail() {
 
   return (
     <PageLayout
-      title={`1INME vs ${competitor.name}`}
+      title={`Sayzio vs ${competitor.name}`}
       description={competitor.intro}
     >
       <MarketingHero
-        eyebrow={`1INME vs ${competitor.name}`}
+        eyebrow={`Sayzio vs ${competitor.name}`}
         title={competitor.headline}
         subtitle={competitor.intro}
         primary={{ label: "Get started free", href: SIGNUP_URL }}
@@ -39,7 +39,7 @@ export default function CompareDetail() {
               <div className="text-xs font-bold uppercase tracking-wider text-primary mb-1">
                 {competitor.badge}
               </div>
-              <h3 className="text-xl font-bold mb-5">Where 1INME wins</h3>
+              <h3 className="text-xl font-bold mb-5">Where Sayzio wins</h3>
               <CheckList items={competitor.ourWins} />
             </div>
             <div className="glass-card rounded-3xl p-8">
@@ -75,7 +75,7 @@ export default function CompareDetail() {
 
       <section className="py-12">
         <div className="container mx-auto px-6">
-          <SectionHeading eyebrow="More comparisons" title="See how 1INME stacks up elsewhere." />
+          <SectionHeading eyebrow="More comparisons" title="See how Sayzio stacks up elsewhere." />
           <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
             {others.map((c) => (
               <Link

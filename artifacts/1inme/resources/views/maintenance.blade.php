@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     @php $style = ($style ?? 'standard') === 'upgrade' ? 'upgrade' : 'standard'; @endphp
-    <title>@if($style === 'upgrade')1INME 2.0 is coming@else We&rsquo;ll be right back @endif &mdash; 1INME</title>
+    <title>@if($style === 'upgrade')Sayzio 2.0 is coming@else We&rsquo;ll be right back @endif &mdash; Sayzio</title>
     <style>
         :root { color-scheme: dark; }
         * { box-sizing: border-box; }
@@ -47,7 +47,7 @@
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
         .meta { margin-top: 24px; font-size: 11px; color: rgba(231,231,240,0.4); letter-spacing: 0.06em; text-transform: uppercase; }
 
-        /* ---- 1INME 2.0 "upgrade" variant ---- */
+        /* ---- Sayzio 2.0 "upgrade" variant ---- */
         .logo { font-size: 13px; font-weight: 800; letter-spacing: 0.2em; color: #a78bfa; text-transform: uppercase; margin-bottom: 16px; }
         .badge.upgrade {
             background: rgba(124,58,237,0.14);
@@ -75,16 +75,16 @@
 <body>
     @if($style === 'upgrade')
         {{--
-            "1INME 2.0" upgrade announcement. The headline + teaser copy below are
+            "Sayzio 2.0" upgrade announcement. The headline + teaser copy below are
             plain text and safe to edit. This task only adds the announcement; the
             actual AI "digital aging" feature is built separately.
         --}}
         <div class="card">
-            <div class="logo">1INME</div>
-            <span class="badge upgrade"><span class="dot"></span> 1INME 2.0 &middot; Coming soon</span>
+            <div class="logo">Sayzio</div>
+            <span class="badge upgrade"><span class="dot"></span> Sayzio 2.0 &middot; Coming soon</span>
             <h1 class="hero">Something new is taking shape.</h1>
             <p>
-                We&rsquo;re upgrading 1INME to <strong>2.0</strong>. We&rsquo;ve taken the
+                We&rsquo;re upgrading Sayzio to <strong>2.0</strong>. We&rsquo;ve taken the
                 site offline for a short while to put the finishing touches on it &mdash;
                 thanks for your patience.
             </p>
@@ -114,7 +114,7 @@
                 @if(!empty($message))
                     {{ $message }}
                 @else
-                    This part of 1INME is temporarily offline while we ship an improvement. Please check back in a few minutes.
+                    This part of Sayzio is temporarily offline while we ship an improvement. Please check back in a few minutes.
                 @endif
             </p>
             @if(!empty($eta))

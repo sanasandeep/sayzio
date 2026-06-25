@@ -31,7 +31,7 @@ return new class extends Migration {
         Schema::create('resume_views', function (Blueprint $table) {
             $table->id();
             $table->foreignId('resume_id')->constrained()->cascadeOnDelete();
-            // When the visitor was logged into a 1INME viewer-session
+            // When the visitor was logged into a Sayzio viewer-session
             // we capture both id and the (then-current) handle so the
             // log stays meaningful even if the user later renames.
             $table->unsignedBigInteger('viewer_user_id')->nullable();

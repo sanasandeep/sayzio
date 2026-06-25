@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Hash;
  * Seeds 10 hand-written "explainer" biolink pages into the super-admin
  * account (official1inme@gmail.com), one per marketing headline link type.
  * Together they act as a live demo gallery that walks visitors through
- * every kind of link 1INME can create.
+ * every kind of link Sayzio can create.
  *
  * Idempotent: each page is keyed on its stable alias. A page is only
  * (re)built when it does not yet exist, or when it still exactly matches
@@ -70,7 +70,7 @@ class LinkTypeExplainerSeeder extends Seeder
         return User::firstOrCreate(
             ['email' => $email],
             [
-                'name'     => $admin?->name ?: '1INME',
+                'name'     => $admin?->name ?: 'Sayzio',
                 'password' => Hash::make('password'),
             ]
         );

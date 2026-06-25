@@ -194,7 +194,7 @@
     @endif
 
     <p style="text-align:center; font-size: 11px; color:#94a3b8; margin-top: 28px;">
-        Powered by <a href="{{ url('/') }}" style="color:#94a3b8;">1INME</a>
+        Powered by <a href="{{ url('/') }}" style="color:#94a3b8;">Sayzio</a>
     </p>
 </main>
 </body>

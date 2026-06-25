@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  *                                "voice + rules" layer; Minds give it
  *                                knowledge.
  *   ai_persona_agent_minds     — many-to-many pivot: persona ↔
- *                                ai_minds. The built-in 1INME default
+ *                                ai_minds. The built-in Sayzio default
  *                                Mind is opted-in via the
  *                                `use_default_mind` flag, *not* via
  *                                this pivot, so admins can re-seed /

@@ -7,13 +7,13 @@
     $shareBtnSettings = $link->settings['biolink']['share_button'] ?? [];
     $menuBarSettings = $link->settings['biolink']['menu_bar'] ?? [];
     $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
-    $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title ?? '1INME Link in Bio';
+    $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title ?? 'Sayzio Link in Bio';
     $pageDesc = $link->seo_description ?? $metaSettings['seo_description'] ?? '';
     $pageImage = $link->seo_image ?? $ogSettings['image_url'] ?? '';
     $ogTitle = $ogSettings['title'] ?? $pageTitle;
     $ogDesc = $ogSettings['description'] ?? $pageDesc;
     $ogType = $ogSettings['type'] ?? 'website';
-    $ogSiteName = $ogSettings['site_name'] ?? '1INME';
+    $ogSiteName = $ogSettings['site_name'] ?? 'Sayzio';
     $twCard = $twSettings['card'] ?? 'summary_large_image';
     $twSite = $twSettings['site'] ?? '';
     $twTitle = $twSettings['title'] ?? $ogTitle;
@@ -1124,10 +1124,10 @@
                     Sign in to follow {{ $__creator->name }}
                 </button>
                 <span style="color: {{ $fontColor }}33;">|</span>
-                <span style="color: {{ $fontColor }}55;">Powered by 1INME</span>
+                <span style="color: {{ $fontColor }}55;">Powered by Sayzio</span>
             </div>
             @else
-            <p class="text-center text-xs mt-3" style="color: {{ $fontColor }}33; grid-column: 1 / -1;">Powered by 1INME</p>
+            <p class="text-center text-xs mt-3" style="color: {{ $fontColor }}33; grid-column: 1 / -1;">Powered by Sayzio</p>
             @endif
 
             @if(!$__ccIsOwner && \App\Modules\Common\Support\CookieConsentConfig::shouldRender('biolink'))
@@ -2099,7 +2099,7 @@
                   }
                 }, 1500);
             })()">
-        Open in 1INME app
+        Open in Sayzio app
     </button>
     <script>
         (function(){

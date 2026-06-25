@@ -47,39 +47,39 @@ class MarketingSeo
                 'group' => 'Core',
                 'url' => '/',
                 'title' => 'One Link for Everything — Link in Bio, Short Links & QR Codes',
-                'description' => '1INME is the all-in-one link platform: build a drag-and-drop Link in Bio page, shorten and brand links, generate dynamic QR codes, and grow with live analytics.',
-                'keywords' => 'link in bio, biolink, link management, short links, url shortener, qr code generator, link analytics, 1inme',
+                'description' => 'Sayzio is the all-in-one link platform: build a drag-and-drop Link in Bio page, shorten and brand links, generate dynamic QR codes, and grow with live analytics.',
+                'keywords' => 'link in bio, biolink, link management, short links, url shortener, qr code generator, link analytics, sayzio',
             ],
             'pricing' => [
                 'label' => 'Pricing',
                 'group' => 'Core',
                 'url' => '/pricing',
                 'title' => 'Pricing Plans — Free, Pro & Business Link-in-Bio',
-                'description' => 'Compare 1INME plans and pick the right one for you. Start free, then upgrade for custom branding, advanced analytics, more links and team workspaces.',
-                'keywords' => 'pricing, link in bio pricing, biolink plans, free plan, pro plan, subscription, 1inme pricing',
+                'description' => 'Compare Sayzio plans and pick the right one for you. Start free, then upgrade for custom branding, advanced analytics, more links and team workspaces.',
+                'keywords' => 'pricing, link in bio pricing, biolink plans, free plan, pro plan, subscription, sayzio pricing',
             ],
             'premium-features' => [
                 'label' => 'Premium features',
                 'group' => 'Core',
                 'url' => '/premium-features',
-                'title' => 'Premium Features — Unlock the Full 1INME Toolkit',
-                'description' => 'See every premium 1INME feature and which plan unlocks it — custom branding, advanced analytics, AI tools, custom CSS/JS, team roles and more.',
-                'keywords' => 'premium features, plan comparison, custom branding, advanced analytics, feature matrix, 1inme features',
+                'title' => 'Premium Features — Unlock the Full Sayzio Toolkit',
+                'description' => 'See every premium Sayzio feature and which plan unlocks it — custom branding, advanced analytics, AI tools, custom CSS/JS, team roles and more.',
+                'keywords' => 'premium features, plan comparison, custom branding, advanced analytics, feature matrix, sayzio features',
             ],
             'creators' => [
                 'label' => 'Creators directory',
                 'group' => 'Discover',
                 'url' => '/creators',
-                'title' => 'Discover Creators — Browse 1INME Profiles',
-                'description' => 'Explore and follow creators on 1INME. Browse public Link in Bio profiles, find new people to follow and discover what they share.',
-                'keywords' => 'creators directory, discover creators, find creators, public profiles, follow creators, 1inme creators',
+                'title' => 'Discover Creators — Browse Sayzio Profiles',
+                'description' => 'Explore and follow creators on Sayzio. Browse public Link in Bio profiles, find new people to follow and discover what they share.',
+                'keywords' => 'creators directory, discover creators, find creators, public profiles, follow creators, sayzio creators',
             ],
             'analytics' => [
                 'label' => 'Analytics',
                 'group' => 'Capabilities',
                 'url' => '/analytics',
                 'title' => 'Link Analytics & Insights — Track Every Click',
-                'description' => 'Understand your audience with 1INME analytics: real-time clicks, geographic heatmaps, devices, referrers and conversion tracking for every link and Link in Bio.',
+                'description' => 'Understand your audience with Sayzio analytics: real-time clicks, geographic heatmaps, devices, referrers and conversion tracking for every link and Link in Bio.',
                 'keywords' => 'link analytics, click tracking, geographic heatmap, audience insights, conversion tracking, utm analytics',
             ],
             'audience' => [
@@ -87,39 +87,39 @@ class MarketingSeo
                 'group' => 'Capabilities',
                 'url' => '/audience',
                 'title' => 'Audience & Followers — Grow Your Community',
-                'description' => 'Turn visitors into followers and subscribers with 1INME. Build an audience, capture email and WhatsApp subscribers, and bring people back with updates.',
+                'description' => 'Turn visitors into followers and subscribers with Sayzio. Build an audience, capture email and WhatsApp subscribers, and bring people back with updates.',
                 'keywords' => 'followers, audience growth, subscribers, email capture, whatsapp subscribers, community, creator audience',
             ],
             'integrations' => [
                 'label' => 'Integrations',
                 'group' => 'Capabilities',
                 'url' => '/integrations',
-                'title' => 'Integrations — Connect 1INME to Your Stack',
-                'description' => 'Embed and connect everything to your 1INME page: Spotify, YouTube, Instagram, TikTok, Calendly, Typeform, tracking pixels and dozens more integrations.',
-                'keywords' => 'integrations, embeds, spotify, youtube, instagram, tiktok, calendly, tracking pixels, 1inme integrations',
+                'title' => 'Integrations — Connect Sayzio to Your Stack',
+                'description' => 'Embed and connect everything to your Sayzio page: Spotify, YouTube, Instagram, TikTok, Calendly, Typeform, tracking pixels and dozens more integrations.',
+                'keywords' => 'integrations, embeds, spotify, youtube, instagram, tiktok, calendly, tracking pixels, sayzio integrations',
             ],
             'domains' => [
                 'label' => 'Domains & URL aliases',
                 'group' => 'Capabilities',
                 'url' => '/domains',
                 'title' => 'Custom Domains & URL Aliases — Brand Every Link',
-                'description' => 'Launch on a branded 1INME domain like 1in.me, bizs.club, getbio.one or Sayzio.app, connect your own custom domain with simple CNAME verification, and give links memorable slugs with multiple aliases.',
+                'description' => 'Launch on a branded Sayzio domain like 1in.me, bizs.club, getbio.one or Sayzio.app, connect your own custom domain with simple CNAME verification, and give links memorable slugs with multiple aliases.',
                 'keywords' => 'custom domain, branded domain, url alias, link slug, cname verification, vanity url, biolink domain, 1in.me, bizs.club, getbio.one, sayzio.app',
             ],
             'api-docs' => [
                 'label' => 'API documentation',
                 'group' => 'Capabilities',
                 'url' => '/docs/api',
-                'title' => 'API Documentation — Build on the 1INME REST API',
-                'description' => 'Developer documentation for the 1INME REST API: authenticate, manage links and biolinks, generate QR codes and read analytics programmatically.',
-                'keywords' => 'api documentation, rest api, developer api, link api, biolink api, qr code api, 1inme api',
+                'title' => 'API Documentation — Build on the Sayzio REST API',
+                'description' => 'Developer documentation for the Sayzio REST API: authenticate, manage links and biolinks, generate QR codes and read analytics programmatically.',
+                'keywords' => 'api documentation, rest api, developer api, link api, biolink api, qr code api, sayzio api',
             ],
             'resume-builder' => [
                 'label' => 'Résumé builder',
                 'group' => 'Capabilities',
                 'url' => '/resume-builder',
                 'title' => 'Résumé & Portfolio Builder — A Shareable CV Link',
-                'description' => 'Build a polished online résumé and portfolio with 1INME and share it from a single link or QR code. Export to PDF and keep it always up to date.',
+                'description' => 'Build a polished online résumé and portfolio with Sayzio and share it from a single link or QR code. Export to PDF and keep it always up to date.',
                 'keywords' => 'resume builder, online cv, portfolio builder, shareable resume, pdf resume, personal page',
             ],
             'forms' => [
@@ -127,24 +127,24 @@ class MarketingSeo
                 'group' => 'Capabilities',
                 'url' => '/forms',
                 'title' => 'Form Builder — Collect Leads & Responses from Your Page',
-                'description' => 'Build forms with 21 field types, full design customization, and instant email, SMS and webhook notifications — then embed them in any 1INME Link in Bio page.',
-                'keywords' => 'form builder, online forms, lead capture form, contact form, survey, webhook form, biolink form, 1inme forms',
+                'description' => 'Build forms with 21 field types, full design customization, and instant email, SMS and webhook notifications — then embed them in any Sayzio Link in Bio page.',
+                'keywords' => 'form builder, online forms, lead capture form, contact form, survey, webhook form, biolink form, sayzio forms',
             ],
             'notifications' => [
                 'label' => 'Notifications',
                 'group' => 'Capabilities',
                 'url' => '/notifications',
                 'title' => 'Notifications — In-App, Email & Push Alerts Your Way',
-                'description' => 'Stay on top of everything on 1INME with a unified notification feed plus in-app, email and mobile push alerts, and per-event preferences across 20+ event types.',
-                'keywords' => 'notifications, notification preferences, push notifications, email alerts, in-app notifications, notification feed, 1inme notifications',
+                'description' => 'Stay on top of everything on Sayzio with a unified notification feed plus in-app, email and mobile push alerts, and per-event preferences across 20+ event types.',
+                'keywords' => 'notifications, notification preferences, push notifications, email alerts, in-app notifications, notification feed, sayzio notifications',
             ],
             'compare-index' => [
                 'label' => 'Compare overview',
                 'group' => 'Compare',
                 'url' => '/compare',
-                'title' => 'Compare 1INME vs Linktree, Beacons, Bitly & More',
-                'description' => 'See how 1INME stacks up against the link-in-bio and short-link tools you already use across ' . ComparisonContent::totalFeatures() . ' features — Link in Bio pages, short links, QR codes, analytics, monetisation and more.',
-                'keywords' => 'link in bio comparison, linktree alternative, beacons alternative, bitly alternative, biolink comparison, 1inme vs',
+                'title' => 'Compare Sayzio vs Linktree, Beacons, Bitly & More',
+                'description' => 'See how Sayzio stacks up against the link-in-bio and short-link tools you already use across ' . ComparisonContent::totalFeatures() . ' features — Link in Bio pages, short links, QR codes, analytics, monetisation and more.',
+                'keywords' => 'link in bio comparison, linktree alternative, beacons alternative, bitly alternative, biolink comparison, sayzio vs',
             ],
         ];
 
@@ -155,12 +155,12 @@ class MarketingSeo
             }
             $name = (string) ($data['name'] ?? ucfirst($key));
             $pages['compare-' . $key] = [
-                'label' => '1INME vs ' . $name,
+                'label' => 'Sayzio vs ' . $name,
                 'group' => 'Compare',
                 'url' => '/compare/' . $key,
                 'title' => ComparisonContent::shareTitle($data),
                 'description' => ComparisonContent::shareDescription($data),
-                'keywords' => strtolower($name) . ' alternative, 1inme vs ' . strtolower($name) . ', ' . strtolower($name) . ' comparison, link in bio, biolink, switch from ' . strtolower($name),
+                'keywords' => strtolower($name) . ' alternative, sayzio vs ' . strtolower($name) . ', ' . strtolower($name) . ' comparison, link in bio, biolink, switch from ' . strtolower($name),
             ];
         }
 
@@ -176,30 +176,30 @@ class MarketingSeo
     public static function sitePageKeywordDefaults(): array
     {
         return [
-            'features' => 'features, biolink builder, short links, qr codes, analytics, forms, link management, 1inme features',
-            'how-it-works' => 'how it works, getting started, link in bio guide, setup, biolink tutorial, 1inme guide',
-            'about' => 'about 1inme, our story, company, link in bio platform, team, mission',
-            'contact' => 'contact, support, get in touch, help, customer service, 1inme contact',
-            'faqs' => 'faq, frequently asked questions, help, support, link in bio questions, 1inme faq',
-            'terms' => 'terms of service, terms and conditions, user agreement, legal, 1inme terms',
-            'refunds' => 'refund policy, refunds, billing, money back, cancellation, 1inme refunds',
-            'privacy' => 'privacy policy, data protection, personal data, gdpr, privacy, 1inme privacy',
-            'gdpr' => 'gdpr, data protection, eu privacy, data rights, compliance, 1inme gdpr',
-            'cookies' => 'cookie policy, cookies, tracking, consent, privacy, 1inme cookies',
-            'discovery' => 'discover, explore profiles, find creators, public biolinks, directory, 1inme discovery',
-            'creators-feed' => 'creators feed, creator posts, follow creators, social feed, updates, 1inme feed',
-            'workspace-team' => 'workspaces, team, collaboration, roles, permissions, agency, multi client, 1inme team',
-            'buzz' => 'social proof, buzz, live notifications, conversion, visitor activity, 1inme buzz',
-            'services' => 'use cases, link in bio for business, creators, agencies, portfolio, marketing, 1inme services',
-            'ai-chatbot' => 'ai chatbot, biolink chatbot, lead capture, automated chat, ai assistant, 1inme ai',
-            'ai-agent' => 'ai agent, automation, ai tasks, lead qualification, workflows, ai teammate, 1inme ai',
-            'ai-widget' => 'ai widget, website chatbot, embeddable ai, ai assistant, lead capture, 1inme ai',
-            'ai-voice-assistant' => 'ai voice assistant, ai receptionist, call answering, voice ai, missed call, 1inme ai',
-            'for-creators' => 'link in bio for creators, creator tools, monetise audience, biolink, influencer, 1inme for creators',
-            'for-agencies' => 'link in bio for agencies, agency tools, multi client, white label, workspaces, 1inme for agencies',
-            'for-coaches' => 'link in bio for coaches, coaching tools, booking, lead capture, biolink, 1inme for coaches',
-            'for-musicians' => 'link in bio for musicians, music smart link, spotify, streaming links, biolink, 1inme for musicians',
-            'for-small-business' => 'link in bio for small business, business page, booking, contact, biolink, 1inme for business',
+            'features' => 'features, biolink builder, short links, qr codes, analytics, forms, link management, sayzio features',
+            'how-it-works' => 'how it works, getting started, link in bio guide, setup, biolink tutorial, sayzio guide',
+            'about' => 'about sayzio, our story, company, link in bio platform, team, mission',
+            'contact' => 'contact, support, get in touch, help, customer service, sayzio contact',
+            'faqs' => 'faq, frequently asked questions, help, support, link in bio questions, sayzio faq',
+            'terms' => 'terms of service, terms and conditions, user agreement, legal, sayzio terms',
+            'refunds' => 'refund policy, refunds, billing, money back, cancellation, sayzio refunds',
+            'privacy' => 'privacy policy, data protection, personal data, gdpr, privacy, sayzio privacy',
+            'gdpr' => 'gdpr, data protection, eu privacy, data rights, compliance, sayzio gdpr',
+            'cookies' => 'cookie policy, cookies, tracking, consent, privacy, sayzio cookies',
+            'discovery' => 'discover, explore profiles, find creators, public biolinks, directory, sayzio discovery',
+            'creators-feed' => 'creators feed, creator posts, follow creators, social feed, updates, sayzio feed',
+            'workspace-team' => 'workspaces, team, collaboration, roles, permissions, agency, multi client, sayzio team',
+            'buzz' => 'social proof, buzz, live notifications, conversion, visitor activity, sayzio buzz',
+            'services' => 'use cases, link in bio for business, creators, agencies, portfolio, marketing, sayzio services',
+            'ai-chatbot' => 'ai chatbot, biolink chatbot, lead capture, automated chat, ai assistant, sayzio ai',
+            'ai-agent' => 'ai agent, automation, ai tasks, lead qualification, workflows, ai teammate, sayzio ai',
+            'ai-widget' => 'ai widget, website chatbot, embeddable ai, ai assistant, lead capture, sayzio ai',
+            'ai-voice-assistant' => 'ai voice assistant, ai receptionist, call answering, voice ai, missed call, sayzio ai',
+            'for-creators' => 'link in bio for creators, creator tools, monetise audience, biolink, influencer, sayzio for creators',
+            'for-agencies' => 'link in bio for agencies, agency tools, multi client, white label, workspaces, sayzio for agencies',
+            'for-coaches' => 'link in bio for coaches, coaching tools, booking, lead capture, biolink, sayzio for coaches',
+            'for-musicians' => 'link in bio for musicians, music smart link, spotify, streaming links, biolink, sayzio for musicians',
+            'for-small-business' => 'link in bio for small business, business page, booking, contact, biolink, sayzio for business',
         ];
     }
 
@@ -219,11 +219,11 @@ class MarketingSeo
             'ai-agent' => ['label' => 'AI agent', 'group' => 'AI suite'],
             'ai-widget' => ['label' => 'AI widget', 'group' => 'AI suite'],
             'ai-voice-assistant' => ['label' => 'AI voice assistant', 'group' => 'AI suite'],
-            'for-creators' => ['label' => '1INME for creators', 'group' => 'Use cases'],
-            'for-agencies' => ['label' => '1INME for agencies', 'group' => 'Use cases'],
-            'for-coaches' => ['label' => '1INME for coaches', 'group' => 'Use cases'],
-            'for-musicians' => ['label' => '1INME for musicians', 'group' => 'Use cases'],
-            'for-small-business' => ['label' => '1INME for small business', 'group' => 'Use cases'],
+            'for-creators' => ['label' => 'Sayzio for creators', 'group' => 'Use cases'],
+            'for-agencies' => ['label' => 'Sayzio for agencies', 'group' => 'Use cases'],
+            'for-coaches' => ['label' => 'Sayzio for coaches', 'group' => 'Use cases'],
+            'for-musicians' => ['label' => 'Sayzio for musicians', 'group' => 'Use cases'],
+            'for-small-business' => ['label' => 'Sayzio for small business', 'group' => 'Use cases'],
             'discovery' => ['label' => 'Discovery', 'group' => 'Discover'],
             'creators-feed' => ['label' => 'Creators feed', 'group' => 'Discover'],
             'about' => ['label' => 'About', 'group' => 'Company'],
@@ -305,7 +305,7 @@ class MarketingSeo
         $ov = self::overrides()[$key] ?? [];
         $ov = is_array($ov) ? $ov : [];
 
-        $appName = config('app.name', '1INME');
+        $appName = config('app.name', 'Sayzio');
 
         return [
             'title' => self::firstNonEmpty([$ov['title'] ?? null, $def['title'] ?? null]) ?? $appName,
@@ -321,7 +321,7 @@ class MarketingSeo
      */
     public static function resolveSitePage(SitePage $page): array
     {
-        $appName = config('app.name', '1INME');
+        $appName = config('app.name', 'Sayzio');
 
         $title = trim((string) $page->title) !== '' ? (string) $page->title : $appName;
         $description = (string) ($page->meta_description ?? '');
@@ -350,7 +350,7 @@ class MarketingSeo
      */
     public static function resolveForView(array $ctx): array
     {
-        $appName = config('app.name', '1INME');
+        $appName = config('app.name', 'Sayzio');
 
         $seoKey = $ctx['seoKey'] ?? null;
         if (is_string($seoKey) && $seoKey !== '') {

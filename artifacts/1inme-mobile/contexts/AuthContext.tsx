@@ -583,7 +583,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         message: "Biometrics are no longer available on this device.",
       };
     }
-    const res = await promptBiometric("Unlock 1INME");
+    const res = await promptBiometric("Unlock Sayzio");
     if (!res.ok) return res;
     setState((s) => ({
       ...s,

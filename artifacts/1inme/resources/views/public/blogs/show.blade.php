@@ -24,7 +24,7 @@
             'description'      => $post->meta_description ?: $post->excerpt,
             'image'            => $post->og_image ?: $post->cover_image,
             'datePublished'    => optional($post->published_at)->toIso8601String(),
-            'author'           => ['@type' => 'Person', 'name' => optional($post->author)->name ?: '1INME'],
+            'author'           => ['@type' => 'Person', 'name' => optional($post->author)->name ?: 'Sayzio'],
             'mainEntityOfPage' => route('site.blogs.show', $post->slug),
         ];
     @endphp

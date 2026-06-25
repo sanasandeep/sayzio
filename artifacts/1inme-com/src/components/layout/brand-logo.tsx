@@ -5,7 +5,7 @@ import { fetchBrandLogos, type BrandLogos } from "@/lib/branding";
 /**
  * Renders the admin-configured brand logo, swapping the light/dark variant
  * with the site theme. While the logo is loading — or if the feed is
- * unreachable / unset — it falls back to the "1INME" text wordmark so the
+ * unreachable / unset — it falls back to the "Sayzio" text wordmark so the
  * header/footer never render empty.
  */
 export function BrandLogo({
@@ -53,12 +53,12 @@ export function BrandLogo({
     return (
       <img
         src={src}
-        alt="1INME"
+        alt="Sayzio"
         style={{ height: imgHeight, width: "auto" }}
         className="block"
       />
     );
   }
 
-  return <span className={textClassName}>1INME</span>;
+  return <span className={textClassName}>Sayzio</span>;
 }

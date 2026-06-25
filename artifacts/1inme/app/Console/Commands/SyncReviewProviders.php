@@ -19,7 +19,7 @@ class SyncReviewProviders extends Command
 {
     protected $signature = 'reviews:sync {--provider= : Sync only this review_providers.id}';
 
-    protected $description = 'Sync 3rd-party reviews from connected providers into 1INME.';
+    protected $description = 'Sync 3rd-party reviews from connected providers into Sayzio.';
 
     public function handle(): int
     {

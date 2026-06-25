@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 /**
  * Bearer-token parity for the admin "Email / SMTP" settings page so a
  * super admin can check the effective outbound-mail transport, fire a live
- * test email and now fully edit the transport from the 1INME Mobile app
+ * test email and now fully edit the transport from the Sayzio Mobile app
  * while troubleshooting on the go.
  *
  * Editing (update) mirrors the web admin page exactly: it persists via the
@@ -123,10 +123,10 @@ class MailSettingsController extends Controller
 
         try {
             Mail::raw(
-                "This is a test email from 1INME.\n\nIf you received this, your SMTP / email settings are working.\n\nSent at " . now()->toDateTimeString() . '.',
+                "This is a test email from Sayzio.\n\nIf you received this, your SMTP / email settings are working.\n\nSent at " . now()->toDateTimeString() . '.',
                 function ($message) use ($data) {
                     $message->to($data['test_email'])
-                        ->subject('1INME — test email');
+                        ->subject('Sayzio — test email');
                 }
             );
         } catch (\Throwable $e) {

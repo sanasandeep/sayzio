@@ -94,7 +94,7 @@ async function shortenAndCopy(url: string, title?: string, openTabId?: number, a
       } catch { /* host permission may be missing on chrome:// pages */ }
     }
 
-    notify("Shortened with 1INME", shortUrl);
+    notify("Shortened with Sayzio", shortUrl);
     return { ok: true, shortUrl, linkId: result.link.id };
   } catch (e) {
     const msg = e instanceof ApiError ? e.message : (e as Error).message || "Shorten failed";
@@ -152,22 +152,22 @@ async function setupContextMenus() {
     await browser.contextMenus.removeAll();
     browser.contextMenus.create({
       id: "1inme-shorten-page",
-      title: "Shorten this page with 1INME",
+      title: "Shorten this page with Sayzio",
       contexts: ["page"],
     });
     browser.contextMenus.create({
       id: "1inme-shorten-link",
-      title: "Shorten link with 1INME",
+      title: "Shorten link with Sayzio",
       contexts: ["link"],
     });
     browser.contextMenus.create({
       id: "1inme-page-to-biolink",
-      title: "Turn page into 1INME bio-link",
+      title: "Turn page into Sayzio bio-link",
       contexts: ["page"],
     });
     browser.contextMenus.create({
       id: "1inme-save-contact",
-      title: "Save contact with 1INME",
+      title: "Save contact with Sayzio",
       contexts: ["page", "selection"],
     });
   } catch { /* context menus permission missing */ }
@@ -190,7 +190,7 @@ async function extractContactCandidate(tabId: number): Promise<{ ok: true; candi
 async function stashContactCandidateAndOpenPopup(tabId: number) {
   const result = await extractContactCandidate(tabId);
   if (!result.ok) {
-    notify("1INME — error", result.error);
+    notify("Sayzio — error", result.error);
     return;
   }
   await browser.storage.local.set({
@@ -202,10 +202,10 @@ async function stashContactCandidateAndOpenPopup(tabId: number) {
     if ((browser.action as any)?.openPopup) {
       await (browser.action as any).openPopup();
     } else {
-      notify("1INME", "Open the 1INME extension popup to review the contact.");
+      notify("Sayzio", "Open the Sayzio extension popup to review the contact.");
     }
   } catch {
-    notify("1INME", "Open the 1INME extension popup to review the contact.");
+    notify("Sayzio", "Open the Sayzio extension popup to review the contact.");
   }
 }
 
@@ -349,14 +349,14 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
   if (!tab?.id) return;
   if (info.menuItemId === "1inme-shorten-page") {
     const result = await shortenAndCopy(tab.url || "", tab.title, tab.id);
-    if (!result.ok) notify("1INME — error", result.error);
+    if (!result.ok) notify("Sayzio — error", result.error);
   } else if (info.menuItemId === "1inme-shorten-link") {
     const url = info.linkUrl || "";
     const result = await shortenAndCopy(url, undefined, tab.id);
-    if (!result.ok) notify("1INME — error", result.error);
+    if (!result.ok) notify("Sayzio — error", result.error);
   } else if (info.menuItemId === "1inme-page-to-biolink") {
     const result = await pageToBiolink(tab.id);
-    if (!result.ok) notify("1INME — error", result.error);
+    if (!result.ok) notify("Sayzio — error", result.error);
   } else if (info.menuItemId === "1inme-save-contact") {
     await stashContactCandidateAndOpenPopup(tab.id);
   }

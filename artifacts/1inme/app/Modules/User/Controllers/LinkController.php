@@ -622,7 +622,7 @@ class LinkController extends Controller
         $languageFilter = $sanitizeUaFilter($request->query('language'));
 
         // Optional channel filter — narrow analytics to clicks classified
-        // into a specific in-app webview / browser bucket (1INME app,
+        // into a specific in-app webview / browser bucket (Sayzio app,
         // Instagram, generic webview, regular browser, bot, …). Like the
         // other dimension filters this is intentionally NOT applied to its
         // own breakdown card so users always see the full split.

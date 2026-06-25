@@ -7,7 +7,7 @@ use App\Modules\Admin\Models\AppSetting;
 /**
  * Single source of truth for the login-method policy.
  *
- * By default 1INME accepts email as the only login / account-recovery
+ * By default Sayzio accepts email as the only login / account-recovery
  * identifier. An admin can switch on mobile login — which is WhatsApp-only
  * (codes delivered through the Meta WhatsApp Cloud API) — and restrict it
  * to an allow-list of international dialling codes.

@@ -43,7 +43,7 @@ export default function OAuthCallback() {
   // Drives the provider-specific guidance line on the failure screen.
   const [providerLabel, setProviderLabel] = useState<string | null>(null);
   // Set to the provider name when the social identity already belongs to a
-  // different 1INME account (`identity_taken`); drives the merge prompt.
+  // different Sayzio account (`identity_taken`); drives the merge prompt.
   const [mergeProvider, setMergeProvider] = useState<string | null>(null);
   const ran = useRef(false);
 
@@ -116,7 +116,7 @@ export default function OAuthCallback() {
           maybeOfferBiometricEnrollment(auth);
         })
         .catch((e: ApiError) => {
-          // Identity (or its email) already bound to another 1INME account —
+          // Identity (or its email) already bound to another Sayzio account —
           // offer the web merge flow instead of a dead-end error.
           if (e?.code === "identity_taken") {
             setMergeProvider(provider);

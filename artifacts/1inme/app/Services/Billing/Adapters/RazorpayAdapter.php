@@ -125,7 +125,7 @@ class RazorpayAdapter extends AbstractAdapter
                 'subscription_id' => $handoff['kind'] === 'subscription' ? $handoff['ref_id'] : null,
                 'amount_minor'    => $amountMinor,
                 'currency'        => $currency,
-                'merchant_name'   => (string) config('billing.merchant.name', '1INME'),
+                'merchant_name'   => (string) config('billing.merchant.name', 'Sayzio'),
                 'prefill'         => [
                     'name'    => (string) ($invoice->user?->name ?? ''),
                     'email'   => (string) ($invoice->user?->email ?? ''),

@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 /**
  * Bearer-token parity for the web admin "Cron Jobs" reference page so a
  * super admin can review which scheduled jobs the server must run — and the
- * single master crontab line that drives them — from the 1INME Mobile app.
+ * single master crontab line that drives them — from the Sayzio Mobile app.
  *
  * This is the mobile counterpart of
  * {@see \App\Modules\Admin\Controllers\CronJobsController}. Both surfaces share

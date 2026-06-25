@@ -25,7 +25,7 @@ const FEATURE_BLURBS: Record<string, string> = {
   "Ask Coach":
     "Ask Coach lets you chat with an AI advisor for tips on improving your account.",
   Voice:
-    "Voice lets you talk to 1INME hands-free to look things up and get around the app.",
+    "Voice lets you talk to Sayzio hands-free to look things up and get around the app.",
 };
 
 export function aiFeatureBlurb(feature?: string): string | null {
@@ -67,7 +67,7 @@ export function AiDisabledNotice({
 
   const message =
     variant === "plan"
-      ? `${label} is available on 1INME, but your current plan doesn’t unlock it yet. Manage your plan on the web app to switch it on.`
+      ? `${label} is available on Sayzio, but your current plan doesn’t unlock it yet. Manage your plan on the web app to switch it on.`
       : "The AI engine isn’t enabled on this account right now. AI is controlled by a master switch that only an administrator can turn on. Once it’s switched on, this feature will be ready to use here.";
 
   return (
@@ -121,7 +121,7 @@ export function AiDisabledNotice({
               What you’re missing
             </Text>
             <Text style={[styles.infoBody, { color: colors.mutedForeground }]}>
-              AI features on 1INME — like Minds, Personas, the Companion and
+              AI features on Sayzio — like Minds, Personas, the Companion and
               Coach — help you draft content, answer questions about your account
               and build pages faster. They run on your coin balance once an
               administrator enables the engine.

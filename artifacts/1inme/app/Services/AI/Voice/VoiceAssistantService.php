@@ -211,7 +211,7 @@ class VoiceAssistantService
 
     protected function systemPrompt(): string
     {
-        return "You are 1INME Voice, a calm, concise voice assistant inside the 1INME app. "
+        return "You are Sayzio Voice, a calm, concise voice assistant inside the Sayzio app. "
             . "The user is signed in and speaking to you. Keep replies short (under 60 words) "
             . "since they will be spoken aloud. When the user asks for an action, prefer "
             . "calling the matching tool over describing it. For destructive actions (delete, "
@@ -236,7 +236,7 @@ class VoiceAssistantService
             'wizard'      => "The user is on the biolink creation wizard. Use wizard_set_answer to fill answer fields, wizard_advance to move between steps, and wizard_generate (which confirms first) to build the page.",
             'create_link' => "The user is on the Create Link type picker. Use explain_link_type to describe a type and choose_link_type to pick one and continue.",
             'companion'   => "The user is on the AI Companion chat screen.",
-            'app'         => "The user is in the main 1INME app. You can use search_app to find their links.",
+            'app'         => "The user is in the main Sayzio app. You can use search_app to find their links.",
         ];
         $base = $hints[$name] ?? "The user is on the '{$name}' screen.";
 

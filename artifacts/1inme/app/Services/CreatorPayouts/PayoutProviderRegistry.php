@@ -6,7 +6,7 @@ use App\Modules\User\Models\CreatorPaymentConnection;
 use App\Modules\User\Models\User;
 
 /**
- * Static registry describing every payout provider 1INME supports for
+ * Static registry describing every payout provider Sayzio supports for
  * creator earnings. Each entry is a thin descriptor — the provider's
  * own onboarding flow and KYC are hosted; we only persist the resulting
  * connected-account id, status, and provider metadata.

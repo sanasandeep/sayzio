@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
  * Generated OG/Twitter share image for /@handle pages (Task #1211).
  * Renders a 1200×630 PNG with the creator avatar, name, handle, and
  * tagline so any time the profile is shared on social media the
- * preview shows the creator instead of a generic 1INME card.
+ * preview shows the creator instead of a generic Sayzio card.
  *
  * Cached for 1 hour because the underlying creator profile rarely
  * changes faster than that, and re-rendering on every crawler hit
@@ -79,7 +79,7 @@ class CreatorOgImageController extends Controller
         $name    = mb_substr($creator->name ?: '@' . $creator->handle, 0, 36);
         $hand    = '@' . $creator->handle;
         $tag     = mb_substr((string) ($creator->tagline ?: $creator->bio ?: ''), 0, 96);
-        $brand   = '1INME';
+        $brand   = 'Sayzio';
 
         // Right column text (built-in font 5; legible at 1200×630).
         $tx = 470;

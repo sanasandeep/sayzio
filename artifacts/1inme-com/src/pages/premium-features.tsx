@@ -11,10 +11,10 @@ import { Globe, Palette, Bot, BarChart3, Code2, Users } from "lucide-react";
 
 const items = [
   { icon: Globe, name: "Custom domains & SSL", description: "Bring your own domain or subdomain with a free SSL certificate provisioned automatically — your brand on every link." },
-  { icon: Palette, name: "Custom branding & CSS/JS", description: "Remove 1INME branding, add your favicon, and inject custom CSS and JavaScript to make every page unmistakably yours." },
+  { icon: Palette, name: "Custom branding & CSS/JS", description: "Remove Sayzio branding, add your favicon, and inject custom CSS and JavaScript to make every page unmistakably yours." },
   { icon: Bot, name: "The full AI Suite", description: "Unlock the AI Chatbot, AI Agent, AI Widget and AI Voice Assistant — they answer, qualify and book for you 24/7." },
   { icon: BarChart3, name: "Deeper analytics", description: "Longer retention, heatmaps, per-block CTR and exports — plus the AI Performance Coach surfacing one-click fixes." },
-  { icon: Code2, name: "Open API & webhooks", description: "Higher API allowances, webhooks for every event, and full mobile parity so you can build on top of 1INME." },
+  { icon: Code2, name: "Open API & webhooks", description: "Higher API allowances, webhooks for every event, and full mobile parity so you can build on top of Sayzio." },
   { icon: Users, name: "Teams & workspaces", description: "More seats, more workspaces, granular roles and a shared brand kit so your whole team ships on brand." },
 ];
 

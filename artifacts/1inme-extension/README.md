@@ -1,22 +1,22 @@
-# 1INME Browser Extension
+# Sayzio Browser Extension
 
-Cross-browser MV3 extension (Chrome, Firefox, Edge) for [1INME](https://1inme.com).
+Cross-browser MV3 extension (Chrome, Firefox, Edge) for [Sayzio](https://1inme.com).
 
 > **Related docs:** [REST API reference](../1inme/docs/api.md) · [Mobile app](../1inme-mobile/docs/mobile-app.md)
 
 Primary actions on any page you visit:
 
-1. **Shorten & copy** — turns the current tab's URL into a 1INME short link, copies it to your clipboard, and shows a toast with a deep link to analytics. When shortening you can attach **smart rules** (geo / device / language / time routing, plan-gated by `link_smart_rules`) and start an **A/B test** straight from the popup.
-2. **Turn into bio-link page** — scrapes the current page's title, description, OG image, and outbound/social links, creates a draft bio-link in your 1INME workspace pre-filled with header + link blocks, and opens the bio-link editor so you can refine and publish.
-3. **Save contact** — extracts the page author/business contact (vCard `.vcf`, hCard microformats, JSON-LD `Person`/`Organization`, or a heuristic email/phone scrape) and saves it to your 1INME address book in one click (`POST /api/v1/contacts`). Default tags and the active workspace for saves are configurable in **Settings**.
+1. **Shorten & copy** — turns the current tab's URL into a Sayzio short link, copies it to your clipboard, and shows a toast with a deep link to analytics. When shortening you can attach **smart rules** (geo / device / language / time routing, plan-gated by `link_smart_rules`) and start an **A/B test** straight from the popup.
+2. **Turn into bio-link page** — scrapes the current page's title, description, OG image, and outbound/social links, creates a draft bio-link in your Sayzio workspace pre-filled with header + link blocks, and opens the bio-link editor so you can refine and publish.
+3. **Save contact** — extracts the page author/business contact (vCard `.vcf`, hCard microformats, JSON-LD `Person`/`Organization`, or a heuristic email/phone scrape) and saves it to your Sayzio address book in one click (`POST /api/v1/contacts`). Default tags and the active workspace for saves are configurable in **Settings**.
 4. **Backlink radar** (opt-in) — quietly notices when a page you're browsing links **to you** (one of your short links, your bio-link username path, or any of your verified custom domains) and surfaces a "This page links to you" card in the popup with one-click **Save**, **Open**, and **Thank** actions. A **Backlinks** tab keeps a filterable history with CSV export.
 
 A **right-click context menu** mirrors these actions:
 
-- **Shorten this page with 1INME** (right-click anywhere on a page)
-- **Shorten link with 1INME** (right-click on any link)
-- **Turn page into 1INME bio-link** (right-click anywhere on a page)
-- **Save contact with 1INME** (right-click anywhere on a page)
+- **Shorten this page with Sayzio** (right-click anywhere on a page)
+- **Shorten link with Sayzio** (right-click on any link)
+- **Turn page into Sayzio bio-link** (right-click anywhere on a page)
+- **Save contact with Sayzio** (right-click anywhere on a page)
 
 ## Permissions
 
@@ -128,7 +128,7 @@ Temporary add-ons in Firefox are removed when the browser closes — sign the zi
 
 Two options from the popup:
 
-- **Sign in with 1INME** — opens `https://1inme.com/extension/handshake` in a new tab. After you're logged in there, the page exposes a freshly-minted Sanctum token in a JSON `<script>` tag; the extension's content script captures it via `browser.runtime.sendMessage` and stores it in `browser.storage.local`. The handshake tab then closes itself.
+- **Sign in with Sayzio** — opens `https://1inme.com/extension/handshake` in a new tab. After you're logged in there, the page exposes a freshly-minted Sanctum token in a JSON `<script>` tag; the extension's content script captures it via `browser.runtime.sendMessage` and stores it in `browser.storage.local`. The handshake tab then closes itself.
 - **Email + password** — calls `POST /api/v1/auth/login` directly from the popup.
 
 The bearer token is attached as `Authorization: Bearer …` to every API call. A 401 clears the stored token and re-prompts.
@@ -137,7 +137,7 @@ The bearer token is attached as `Authorization: Bearer …` to every API call. A
 
 ## Settings
 
-Open the gear icon in the popup header to override the API/web base URLs (default `https://1inme.com`). Useful when testing against a local 1INME workflow — point both URLs at your dev domain (e.g. `https://<repl-id>.replit.dev` and `https://<repl-id>.replit.dev/api/v1`). The Settings tab also surfaces contact-save preferences (default tags, one-click toggle, contact workspace) and the workspace tracking-pixels badge.
+Open the gear icon in the popup header to override the API/web base URLs (default `https://1inme.com`). Useful when testing against a local Sayzio workflow — point both URLs at your dev domain (e.g. `https://<repl-id>.replit.dev` and `https://<repl-id>.replit.dev/api/v1`). The Settings tab also surfaces contact-save preferences (default tags, one-click toggle, contact workspace) and the workspace tracking-pixels badge.
 
 ## Storage shape
 

@@ -104,7 +104,7 @@
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Default opening message</label>
                     <input type="text" name="whatsapp_message" value="{{ old('whatsapp_message', $whatsapp_message) }}"
-                           placeholder="Hi 1INME! I'd like to learn more."
+                           placeholder="Hi Sayzio! I'd like to learn more."
                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     <p class="mt-1 text-[11px] text-white/40">Pre-fills the WhatsApp chat. Optional.</p>
                     @error('whatsapp_message')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
@@ -161,12 +161,12 @@
             </div>
         </div>
 
-        {{-- Why 1INME comparison --}}
+        {{-- Why Sayzio comparison --}}
         <div class="glass rounded-2xl p-6 space-y-3">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-lg font-semibold text-white">Why 1INME comparison</h2>
-                    <p class="text-xs text-white/50">Rows in the comparison table on the landing page (just before pricing). Up to 12 rows. If the "1INME" column is left as <span class="font-mono">Yes</span> it renders as the green check pill; any other text is shown verbatim.</p>
+                    <h2 class="text-lg font-semibold text-white">Why Sayzio comparison</h2>
+                    <p class="text-xs text-white/50">Rows in the comparison table on the landing page (just before pricing). Up to 12 rows. If the "Sayzio" column is left as <span class="font-mono">Yes</span> it renders as the green check pill; any other text is shown verbatim.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" @click="resetTo('why', whyDefaults)"
@@ -181,7 +181,7 @@
             </div>
             <div class="hidden sm:grid grid-cols-[2fr_1fr_1fr_auto] gap-2 px-1 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 <div>Feature</div>
-                <div>1INME</div>
+                <div>Sayzio</div>
                 <div>Competitor</div>
                 <div></div>
             </div>
@@ -204,7 +204,7 @@
                 <div class="rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950">
                     <div class="grid grid-cols-12 px-4 py-3 bg-white/[.04] text-[11px] font-bold uppercase tracking-wider text-gray-400">
                         <div class="col-span-6">Feature</div>
-                        <div class="col-span-3 text-center text-white">1INME</div>
+                        <div class="col-span-3 text-center text-white">Sayzio</div>
                         <div class="col-span-3 text-center">Typical Link in Bio tool</div>
                     </div>
                     <template x-for="(r,i) in why" :key="'wp'+i">

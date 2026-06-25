@@ -5,7 +5,7 @@ export default function Slide004Salesproblem() {
     <div className="w-screen h-screen overflow-hidden relative bg-[#0a0a14] text-slate-100 font-body">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,58,237,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.12),transparent_55%)]" />
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400"></span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
@@ -17,7 +17,7 @@ export default function Slide004Salesproblem() {
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">37%</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">Of features ever used</div></div>
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-[1.6vw]"><div className="font-display text-[2.8vw] font-bold text-violet-300">2.4h</div><div className="mt-[0.5vh] text-[1.05vw] text-slate-300">Daily context switching</div></div>
         </div>
-        <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Internal 1INME research, n = 1,200. Stacks vary by role.</p>
+        <p className="mt-[4vh] text-[1vw] text-slate-500 max-w-[60vw]">Internal Sayzio research, n = 1,200. Stacks vary by role.</p>
       </div>
       <div className="absolute bottom-[3vh] left-[5vw] right-[5vw] flex items-center justify-between text-[0.9vw] text-slate-500 z-10"><span>1inme.com</span><span>4 / 189</span></div>
     </div>

@@ -1060,7 +1060,7 @@ class PlansAndAddonsSeeder extends Seeder
             ],
             [
                 'name' => 'White-Label / Remove Branding', 'slug' => 'white-label',
-                'description' => 'Remove "powered by 1INME" badges across all public pages.',
+                'description' => 'Remove "powered by Sayzio" badges across all public pages.',
                 'type' => 'recurring', 'monthly_price' => 7.00, 'annual_price' => 70.00,
                 'features' => ['custom_branding' => true, 'remove_branding' => true],
                 'status' => 'active', 'sort_order' => 2, 'applies_to' => $proPlus,
@@ -1108,8 +1108,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'status' => 'active', 'sort_order' => 8, 'applies_to' => $paid,
             ],
             [
-                'name' => 'Removable 1INME Branding', 'slug' => 'remove-branding',
-                'description' => 'Hide the 1INME wordmark from your public biolink pages.',
+                'name' => 'Removable Sayzio Branding', 'slug' => 'remove-branding',
+                'description' => 'Hide the Sayzio wordmark from your public biolink pages.',
                 'type' => 'recurring', 'monthly_price' => 3.00, 'annual_price' => 30.00,
                 'features' => ['remove_branding' => true],
                 'status' => 'active', 'sort_order' => 9, 'applies_to' => $paid,

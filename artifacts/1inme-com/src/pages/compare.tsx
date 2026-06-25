@@ -11,19 +11,19 @@ import { motion } from "framer-motion";
 import { Check, X, ArrowRight } from "lucide-react";
 
 const columnKeys = ["ours", ...competitors.map((c) => c.slug)];
-const columnLabels = ["1INME", ...competitors.map((c) => c.name)];
+const columnLabels = ["Sayzio", ...competitors.map((c) => c.name)];
 
 export default function Compare() {
   return (
     <PageLayout
-      title="Compare 1INME"
-      description="See how 1INME stacks up against Linktree, Bitly, Beacons, Carrd, Taplink and Stan — the whole growth stack behind one link."
+      title="Compare Sayzio"
+      description="See how Sayzio stacks up against Linktree, Bitly, Beacons, Carrd, Taplink and Stan — the whole growth stack behind one link."
     >
       <MarketingHero
         eyebrow="Compare"
         title="The whole growth stack, in one"
         highlight="link."
-        subtitle="A Link in Bio is the start, not the finish. See how 1INME compares to the tools you already know — across every feature that matters."
+        subtitle="A Link in Bio is the start, not the finish. See how Sayzio compares to the tools you already know — across every feature that matters."
         primary={{ label: "Get started free", href: SIGNUP_URL }}
         secondary={{ label: "See pricing", href: PRICING_URL }}
       />
@@ -55,7 +55,7 @@ export default function Compare() {
                       {c.badge}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold mb-2">1INME vs {c.name}</h3>
+                  <h3 className="text-xl font-bold mb-2">Sayzio vs {c.name}</h3>
                   <p className="text-sm text-muted-foreground mb-4">{c.headline}</p>
                   <span className="text-sm font-semibold text-primary inline-flex items-center gap-1">
                     See comparison <ArrowRight className="w-4 h-4" />
@@ -72,7 +72,7 @@ export default function Compare() {
           <SectionHeading
             eyebrow="Feature matrix"
             title={`${totalFeatures} features, fully mapped.`}
-            subtitle="Everything 1INME includes out of the box, compared with the rest."
+            subtitle="Everything Sayzio includes out of the box, compared with the rest."
           />
           <div className="overflow-x-auto max-w-6xl mx-auto glass-card rounded-3xl p-2">
             <table className="w-full text-sm border-collapse">

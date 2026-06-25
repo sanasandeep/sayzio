@@ -105,7 +105,7 @@ class DialerIdentityProfileTest extends TestCase
         $creator = $this->makeUser('creator');
         $this->seedBiolink($creator);
 
-        // A saved contact owned by $owner, attached to the matched 1INME user.
+        // A saved contact owned by $owner, attached to the matched Sayzio user.
         $contact = Contact::create([
             'user_id'         => $owner->id,
             'display_name'    => 'Jane Creator',

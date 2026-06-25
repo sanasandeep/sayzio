@@ -5,7 +5,7 @@ export default function Slide027Productmobiletour() {
     <div className="w-screen h-screen overflow-hidden relative bg-[#0a0a14] text-slate-100 font-body">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,58,237,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.12),transparent_55%)]" />
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400"></span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
@@ -18,7 +18,7 @@ export default function Slide027Productmobiletour() {
           <div className="col-span-7 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-[1.6vw] flex flex-col">
             <div className="flex items-center gap-[0.5vw] pb-[1vh] border-b border-white/10">
               <span className="h-[0.9vw] w-[0.9vw] rounded-full bg-rose-400/70" /><span className="h-[0.9vw] w-[0.9vw] rounded-full bg-amber-300/70" /><span className="h-[0.9vw] w-[0.9vw] rounded-full bg-emerald-400/70" />
-              <span className="ml-[1vw] text-[0.9vw] text-slate-400 font-mono">1INME — iOS / Android</span>
+              <span className="ml-[1vw] text-[0.9vw] text-slate-400 font-mono">Sayzio — iOS / Android</span>
             </div>
             <div className="mt-[1.5vh] flex flex-col gap-[0.7vh]">
             <div className="rounded-lg border border-white/10 bg-white/[0.03] px-[1vw] py-[0.8vh] flex items-center justify-between"><span className="text-[1vw] text-slate-200">Home</span><span className="text-[0.9vw] text-fuchsia-200 font-mono">Today · CRM · Bio quick-edit</span></div>

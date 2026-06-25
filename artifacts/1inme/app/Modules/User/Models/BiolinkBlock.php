@@ -320,7 +320,7 @@ class BiolinkBlock extends Model
         'yandex_maps'      => ['label' => 'Yandex Map',          'icon' => 'fa-map',                        'category' => 'maps'],
 
         // ── Embeds & Integrations ─────────────────────────────────────
-        'form'             => ['label' => '1INME Form',          'icon' => 'fa-clipboard-list',             'category' => 'integrations'],
+        'form'             => ['label' => 'Sayzio Form',          'icon' => 'fa-clipboard-list',             'category' => 'integrations'],
         'typeform'         => ['label' => 'Typeform',            'icon' => 'fa-clipboard-list',             'category' => 'integrations'],
         'calendly'         => ['label' => 'Calendly',            'icon' => 'fa-calendar-check',             'category' => 'integrations'],
         'calendly_embed'   => ['label' => 'Booking (Inline)',    'icon' => 'fa-calendar-alt',               'category' => 'integrations'],

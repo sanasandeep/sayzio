@@ -52,7 +52,7 @@ class SiteContentController extends Controller
         $ee = $extra['eefind'] ?? SitePagesContent::aboutEefindDefault();
 
         return $this->ok([
-            'title'    => $page ? (string) $page->title : 'About 1INME',
+            'title'    => $page ? (string) $page->title : 'About Sayzio',
             'sections' => $cleanSections,
             'eefind'   => [
                 'eyebrow'     => (string) ($ee['eyebrow'] ?? ''),

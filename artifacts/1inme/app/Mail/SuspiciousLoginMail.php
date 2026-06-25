@@ -37,7 +37,7 @@ class SuspiciousLoginMail extends Mailable
         $when     = optional($this->event->created_at)->format('M j, Y g:i A T') ?: 'just now';
 
         return $this
-            ->subject("New sign-in to your 1INME account ({$location})")
+            ->subject("New sign-in to your Sayzio account ({$location})")
             ->view('emails.suspicious-login', [
                 'user'         => $this->user,
                 'event'        => $this->event,

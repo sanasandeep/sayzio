@@ -201,7 +201,7 @@ class PaypalAdapter extends AbstractAdapter
                 'items' => $ppItems,
             ]],
             'application_context' => [
-                'brand_name'          => (string) config('billing.merchant.name', '1INME'),
+                'brand_name'          => (string) config('billing.merchant.name', 'Sayzio'),
                 'shipping_preference' => 'NO_SHIPPING',
                 'user_action'         => 'PAY_NOW',
                 'return_url'          => url('/user/billing?paid=' . $invoice->number),
@@ -251,7 +251,7 @@ class PaypalAdapter extends AbstractAdapter
             'plan_id'   => $planId,
             'custom_id' => (string) $invoice->id,
             'application_context' => [
-                'brand_name'          => (string) config('billing.merchant.name', '1INME'),
+                'brand_name'          => (string) config('billing.merchant.name', 'Sayzio'),
                 'shipping_preference' => 'NO_SHIPPING',
                 'user_action'         => 'SUBSCRIBE_NOW',
                 'return_url'          => url('/user/billing?paid=' . $invoice->number),

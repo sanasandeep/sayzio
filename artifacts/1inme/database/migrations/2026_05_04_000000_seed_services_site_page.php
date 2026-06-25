@@ -45,10 +45,10 @@ return new class extends Migration
     private function seedAttributes(): array
     {
         return [
-            'title' => 'What you can do with 1INME',
-            'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use 1INME as their link-in-bio, portfolio, and audience hub.',
+            'title' => 'What you can do with Sayzio',
+            'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use Sayzio as their link-in-bio, portfolio, and audience hub.',
             'sections' => SitePagesSeeder::servicesDefaultSections(),
-            'cta_label' => 'Create your 1INME',
+            'cta_label' => 'Create your Sayzio',
             'cta_url' => '/register',
         ];
     }

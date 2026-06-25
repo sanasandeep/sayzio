@@ -71,7 +71,7 @@ const columns: FooterColumn[] = [
     ],
   },
   {
-    heading: "1INME for…",
+    heading: "Sayzio for…",
     links: [
       { href: "/for/creators", label: "Creators" },
       { href: "/for/agencies", label: "Agencies" },
@@ -119,7 +119,7 @@ export function Footer() {
       <div className="container mx-auto px-6 py-16">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-10 mb-16">
           <div className="col-span-2 lg:col-span-2">
-            <Link href="/" className="inline-flex items-center mb-4" aria-label="1INME home">
+            <Link href="/" className="inline-flex items-center mb-4" aria-label="Sayzio home">
               <BrandLogo imgHeight={32} textClassName="text-2xl font-bold text-primary" />
             </Link>
             <p className="text-muted-foreground mb-6 max-w-sm">
@@ -141,7 +141,7 @@ export function Footer() {
                   href={social.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`1INME on ${social.label}`}
+                  aria-label={`Sayzio on ${social.label}`}
                   title={`${social.label} · ${social.handle}`}
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -181,7 +181,7 @@ export function Footer() {
 
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} 1INME. All rights reserved.
+            © {new Date().getFullYear()} Sayzio. All rights reserved.
           </p>
           <div className="flex gap-4 text-sm text-muted-foreground">
             Built for creators, coaches, freelancers, agencies, and businesses.

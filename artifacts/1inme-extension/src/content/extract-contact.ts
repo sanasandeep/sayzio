@@ -1,6 +1,6 @@
 // Page-to-contact extractor. Returned object is consumed by the popup,
 // which previews it (with per-field provenance) and lets the creator
-// save it to their 1INME Contacts.
+// save it to their Sayzio Contacts.
 //
 // Priority order:
 //   1. vCard file linked on the page (<a href="*.vcf">) — fetched + parsed

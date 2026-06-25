@@ -23,7 +23,7 @@ return [
 
     'msg91' => [
         'auth_key' => env('MSG91_AUTH_KEY'),
-        'sender_id' => env('MSG91_SENDER_ID', '1INME'),
+        'sender_id' => env('MSG91_SENDER_ID', 'Sayzio'),
         'route' => env('MSG91_ROUTE', '4'),
     ],
 

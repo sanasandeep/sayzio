@@ -75,7 +75,7 @@ class DevStartupProbe
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="2">
-<title>Starting 1INME…</title>
+<title>Starting Sayzio…</title>
 <style>
   html,body{height:100%;margin:0}
   body{display:grid;place-items:center;background:#0b0b14;color:#e9e7ff;
@@ -92,7 +92,7 @@ class DevStartupProbe
 <body>
   <div class="box">
     <div class="dot"></div>
-    <strong>Starting 1INME…</strong>
+    <strong>Starting Sayzio…</strong>
     <p>Warming up the dev server — this page refreshes automatically.</p>
   </div>
 </body>

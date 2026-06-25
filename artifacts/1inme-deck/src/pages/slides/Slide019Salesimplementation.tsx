@@ -5,7 +5,7 @@ export default function Slide019Salesimplementation() {
     <div className="w-screen h-screen overflow-hidden relative bg-[#0a0a14] text-slate-100 font-body">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,58,237,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.12),transparent_55%)]" />
       <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw] z-10">
-        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" />
+        <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="Sayzio" className="h-[2.4vw] w-auto" />
         <span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-400"></span>
       </div>
       <div className="relative h-full w-full px-[7vw] pt-[11vh] pb-[8vh] flex flex-col">
@@ -14,7 +14,7 @@ export default function Slide019Salesimplementation() {
         <div className="mt-[4vh] flex-1 ">
           <ul className="space-y-[1.6vh]">            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Week 1 — Setup</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">Workspace created, brand kit applied, two integrations live.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Week 2 — Migrate</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">Imports finished, redirects in place, team trained.</div></div></li>
-            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Week 3 — Launch</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">First campaign on 1INME with shareable analytics.</div></div></li>
+            <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Week 3 — Launch</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">First campaign on Sayzio with shareable analytics.</div></div></li>
             <li className="flex gap-[1vw]"><span className="font-display text-[1.4vw] text-fuchsia-300 leading-none">&rarr;</span><div><div className="font-display text-[1.4vw] font-semibold">Week 4 — Review</div><div className="mt-[0.4vh] text-[1.05vw] text-slate-300 leading-snug">ROI snapshot delivered to the buying committee.</div></div></li></ul>
           
         </div>

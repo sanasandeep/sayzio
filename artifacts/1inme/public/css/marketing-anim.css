@@ -1,5 +1,5 @@
 /* =====================================================================
-   1INME · Marketing animation utility CSS
+   Sayzio · Marketing animation utility CSS
    Loaded by public.layouts.site and home.blade.php.
    Pair with /js/marketing-anim.js (IntersectionObserver).
    ===================================================================== */
@@ -367,7 +367,7 @@ html.light-mode .mkt-theme-toggle:hover { background: rgba(15,23,42,0.08); color
    ===================================================================== */
 .cmp-wrap { position: relative; }
 
-/* Highlighted 1INME column on desktop matrix (absolute overlay band) */
+/* Highlighted Sayzio column on desktop matrix (absolute overlay band) */
 .cmp-ours-band {
     position: absolute;
     top: 0; bottom: 0;
@@ -619,7 +619,7 @@ html.light-mode .cmp-cell { border-top-color: rgba(15,23,42,.06); }
 html.light-mode .cmp-cell.cmp-head { background: rgba(15,23,42,.04); color: #475569; }
 html.light-mode .cmp-cell.cmp-group-head { background: rgba(15,23,42,.04); color: #475569; }
 
-/* 1INME column band over the grid (column index 2 of cmp-matrix) */
+/* Sayzio column band over the grid (column index 2 of cmp-matrix) */
 .cmp-ours-band-grid {
     grid-column: 2 / span 1;
     grid-row: 1 / -1;
@@ -633,7 +633,7 @@ html.light-mode .cmp-cell.cmp-group-head { background: rgba(15,23,42,.04); color
 }
 
 /* =====================================================================
-   Why 1INME v2: animated card grid + SVG highlights + rotating chip
+   Why Sayzio v2: animated card grid + SVG highlights + rotating chip
    ===================================================================== */
 .why2-section { position: relative; }
 .why2-bg-orb {
@@ -792,7 +792,7 @@ html.light-mode .why2-row-ours .why2-row-label { color: #7c3aed; }
 html.light-mode .why2-row-value { color: #0f172a; }
 html.light-mode .why2-row-value-them { color: #475569; }
 
-/* 1INME tick (animated check draw) */
+/* Sayzio tick (animated check draw) */
 .why2-tick {
     flex: 0 0 28px;
     width: 28px; height: 28px; border-radius: 9999px;

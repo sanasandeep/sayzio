@@ -43,7 +43,7 @@ class CloudConnectionBrokenMail
 
         $providerLabel = CloudProviderApp::PROVIDER_LABELS[$connection->provider] ?? $connection->provider;
         $accountLabel  = $connection->account_label ?: ($connection->account_email ?: $providerLabel);
-        $subject       = "Your {$providerLabel} connection on 1INME stopped working — reconnect in one click";
+        $subject       = "Your {$providerLabel} connection on Sayzio stopped working — reconnect in one click";
 
         $viewData = [
             'subject'        => $subject,

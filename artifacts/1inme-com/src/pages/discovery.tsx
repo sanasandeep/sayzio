@@ -10,7 +10,7 @@ import { SIGNUP_URL, PRICING_URL } from "@/config";
 import { Search, Sparkles, ToggleRight } from "lucide-react";
 
 const items = [
-  { icon: Search, name: "Find your next favourite link", description: "Browse the latest public Link in Bio pages on 1INME. Search by name, handle or topic, tap any card to open the page, and follow the creators whose work you love so you never miss a new post or drop." },
+  { icon: Search, name: "Find your next favourite link", description: "Browse the latest public Link in Bio pages on Sayzio. Search by name, handle or topic, tap any card to open the page, and follow the creators whose work you love so you never miss a new post or drop." },
   { icon: Sparkles, name: "Curated, not crowded", description: "Only pages whose creators have opted in to be discoverable show up here. That keeps the directory genuine — the people listed actually want new visitors and are actively keeping their pages fresh." },
   { icon: ToggleRight, name: "Want to be listed?", description: "Toggle \"Show me in Discover\" from your profile settings and your public Link in Bio will appear here within a few minutes. You stay in control: turn it off any time and you disappear from the directory." },
 ];
@@ -19,13 +19,13 @@ export default function Discovery() {
   return (
     <PageLayout
       title="Discover Link in Bio pages"
-      description="Browse public 1INME Link in Bio pages — find creators, brands and businesses sharing their work."
+      description="Browse public Sayzio Link in Bio pages — find creators, brands and businesses sharing their work."
     >
       <MarketingHero
         eyebrow="Discover"
         title="Find creators worth"
         highlight="following."
-        subtitle="Browse public 1INME Link in Bio pages — find creators, brands and businesses sharing their work, and follow the ones you love."
+        subtitle="Browse public Sayzio Link in Bio pages — find creators, brands and businesses sharing their work, and follow the ones you love."
         primary={{ label: "Get listed free", href: SIGNUP_URL }}
         secondary={{ label: "See pricing", href: PRICING_URL }}
       >

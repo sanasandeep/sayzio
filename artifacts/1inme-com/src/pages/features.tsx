@@ -14,7 +14,7 @@ export default function Features() {
         eyebrow="Features"
         title="Everything you need,"
         highlight="all in one link."
-        subtitle="From a simple short link to a full AI chatbot — 1INME packs the entire toolkit into a single dashboard. Explore the categories below."
+        subtitle="From a simple short link to a full AI chatbot — Sayzio packs the entire toolkit into a single dashboard. Explore the categories below."
         primary={{ label: "Get started free", href: SIGNUP_URL }}
         secondary={{ label: "See pricing", href: PRICING_URL }}
       />

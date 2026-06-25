@@ -50,13 +50,13 @@
         <div class="grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-14 items-center">
             <div data-anim="fade-right">
                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
-                    <i class="fas fa-sparkles text-[10px]"></i> Everything 1INME can do
+                    <i class="fas fa-sparkles text-[10px]"></i> Everything Sayzio can do
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
                     Your link, <span class="grad-text">supercharged</span>.
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    {{ $page->meta_description ?? 'A complete tour of every capability inside 1INME — from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
+                    {{ $page->meta_description ?? 'A complete tour of every capability inside Sayzio — from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     <a href="{{ route('register.page') }}" class="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Start free</a>
@@ -70,7 +70,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[5/4]">
-                    <img src="{{ asset('images/marketing/features/hero.png') }}" alt="Phone showing a 1INME Link in Bio page">
+                    <img src="{{ asset('images/marketing/features/hero.png') }}" alt="Phone showing a Sayzio Link in Bio page">
                 </div>
                 <div class="absolute -top-4 -left-4 bg-[#11101c] border border-white/10 rounded-2xl p-3 flex items-center gap-2 shadow-2xl float-y">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
@@ -229,7 +229,7 @@
 @include('public.partials.testimonials', [
     'testimonials' => $__featuresTestimonials,
     'eyebrow' => 'What people say',
-    'heading' => 'Teams and creators ship faster with 1INME.',
+    'heading' => 'Teams and creators ship faster with Sayzio.',
 ])
 
 {{-- CTA --}}

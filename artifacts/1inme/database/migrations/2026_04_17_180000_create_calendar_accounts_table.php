@@ -25,7 +25,7 @@ return new class extends Migration {
             $table->string('last_sync_status', 32)->nullable(); // ok | error | running
             $table->text('last_sync_error')->nullable();
             $table->boolean('mirror_enabled')->default(true);   // pull events → create Event Invite links
-            $table->boolean('push_enabled')->default(true);     // allow pushing 1INME Event Invites here
+            $table->boolean('push_enabled')->default(true);     // allow pushing Sayzio Event Invites here
             $table->timestamps();
 
             $table->index(['user_id', 'provider']);

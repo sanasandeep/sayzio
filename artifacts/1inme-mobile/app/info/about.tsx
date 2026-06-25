@@ -9,7 +9,7 @@ import {
 import { fetchAboutContent } from "@/lib/api/siteContent";
 
 const INTRO =
-  "1INME is the modern way to gather every link, contact, and channel that represents you into a single tap-shareable profile — on the web and in your pocket.";
+  "Sayzio is the modern way to gather every link, contact, and channel that represents you into a single tap-shareable profile — on the web and in your pocket.";
 
 // Static fallback copy used until (and if) the backend content loads. These
 // sections are the mobile-specific About copy (shown when offline / the
@@ -18,11 +18,11 @@ const INTRO =
 const FALLBACK_SECTIONS: InfoSection[] = [
   {
     heading: "Built for creators and teams",
-    body: "Whether you're a solo creator sharing a link tree, a small business publishing a digital storefront, or an enterprise distributing employee profiles by NFC card, 1INME gives you one canonical link that works everywhere.",
+    body: "Whether you're a solo creator sharing a link tree, a small business publishing a digital storefront, or an enterprise distributing employee profiles by NFC card, Sayzio gives you one canonical link that works everywhere.",
   },
   {
     heading: "One account, every surface",
-    body: "Sign in once and your profile, links, contacts, and analytics stay in sync between the 1INME web dashboard and this mobile app.",
+    body: "Sign in once and your profile, links, contacts, and analytics stay in sync between the Sayzio web dashboard and this mobile app.",
   },
   {
     heading: "Made for sharing",
@@ -37,13 +37,13 @@ const FOUNDER: FounderBlock = {
   eyebrow: "Meet the founder",
   name: "Sandeep Sana",
   role: "Founder & CEO",
-  bio: "Guided by this belief, Sandeep Sana, Founder & CEO of 1INME, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of 1INME, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
+  bio: "Guided by this belief, Sandeep Sana, Founder & CEO of Sayzio, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of Sayzio, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
 };
 
 const FALLBACK_EEFIND: EefindBlock = {
   eyebrow: "Part of EEFind",
   heading: "Built by EEFind Private Limited",
-  body: '1INME is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy 1INME is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
+  body: 'Sayzio is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy Sayzio is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
   stats: [
     { value: "4,000+", label: "Products" },
     { value: "2,000+", label: "Merchants" },
@@ -76,7 +76,7 @@ export default function About() {
 
   return (
     <InfoPage
-      title="About 1INME"
+      title="About Sayzio"
       intro={INTRO}
       sections={sections}
       founder={FOUNDER}

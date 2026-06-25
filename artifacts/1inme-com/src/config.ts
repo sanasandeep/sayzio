@@ -27,7 +27,7 @@ export const PRICING_URL: string =
   import.meta.env.VITE_PRICING_URL ?? DEFAULT_PRICING_URL;
 
 /**
- * Official 1INME social media profiles, surfaced in the marketing footer.
+ * Official Sayzio social media profiles, surfaced in the marketing footer.
  * `icon` names the lucide-react component to render; "threads" has no lucide
  * icon, so the footer renders an inline brand SVG for it.
  */
@@ -71,8 +71,8 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     label: "LinkedIn",
-    handle: "/company/1INME",
-    url: "https://linkedin.com/company/1INME",
+    handle: "/company/1INMEOfficial",
+    url: "https://linkedin.com/company/1INMEOfficial",
     icon: "linkedin",
   },
 ];

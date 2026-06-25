@@ -3,7 +3,7 @@
     "id": "1e40ead1-0b6d-4687-aa0e-ae032ed5eeac",
     "position": 1,
     "filepath": "src/pages/subdecks/sales-investor/Cover.tsx",
-    "title": "1INME · Sales Presentation + Investor Pitch",
+    "title": "Sayzio · Sales Presentation + Investor Pitch",
     "description": "Sub-deck cover for Sales Presentation + Investor Pitch.",
     "speakerNotes": "Open the sub-deck. Frame it for this audience only — fewer slides, sharper focus.",
     "section": "intro"
@@ -48,17 +48,17 @@
     "id": "fc529157-343e-4ea9-9a78-b80980a9b366",
     "position": 6,
     "filepath": "src/pages/slides/Slide006Salespitch.tsx",
-    "title": "1INME — the everything platform.",
+    "title": "Sayzio — the everything platform.",
     "description": "Identity, links, AI, productivity, and analytics in one place.",
-    "speakerNotes": "Pivot to the 1INME answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
+    "speakerNotes": "Pivot to the Sayzio answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
     "section": "sales"
   },
   {
     "id": "d9fa2e71-9700-4e7c-8b7a-8d5e512ab830",
     "position": 7,
     "filepath": "src/pages/slides/Slide007Salesdifferentiators.tsx",
-    "title": "Why 1INME, not the next bundle.",
-    "description": "Why 1INME, not the next bundle.",
+    "title": "Why Sayzio, not the next bundle.",
+    "description": "Why Sayzio, not the next bundle.",
     "speakerNotes": "Pre-empt the 'why not just use a bundle?' objection. Native, beautiful, open, fair — these are the four things bundles structurally can't fake. Mention a competitor by name only if the buyer brings them up.",
     "section": "sales"
   },
@@ -66,8 +66,8 @@
     "id": "2b5ee240-a78f-4f83-bc83-8317c5751fae",
     "position": 8,
     "filepath": "src/pages/slides/Slide008Salesroi.tsx",
-    "title": "ROI of consolidating onto 1INME.",
-    "description": "ROI of consolidating onto 1INME.",
+    "title": "ROI of consolidating onto Sayzio.",
+    "description": "ROI of consolidating onto Sayzio.",
     "speakerNotes": "Make the ROI math obvious: about $1,400 saved annually, six hours back per week, conversion lift, single invoice. Anchor the buyer to a payback window measured in weeks, not quarters.",
     "section": "sales"
   },
@@ -76,7 +76,7 @@
     "position": 9,
     "filepath": "src/pages/slides/Slide009Salestimesaved.tsx",
     "title": "Where the hours come back.",
-    "description": "Time saved per week by switching to 1INME.",
+    "description": "Time saved per week by switching to Sayzio.",
     "speakerNotes": "Walk the time-savings table left to right. Bio maintenance, lead capture, cross-posting, reporting — call out the biggest win for the buyer's role first. Land the seven-hours-per-week footer total.",
     "section": "sales"
   },
@@ -129,8 +129,8 @@
     "id": "42c52499-9f70-4491-930b-9cb58dd6ef49",
     "position": 15,
     "filepath": "src/pages/slides/Slide015Salescompetitors.tsx",
-    "title": "How 1INME compares.",
-    "description": "How 1INME compares.",
+    "title": "How Sayzio compares.",
+    "description": "How Sayzio compares.",
     "speakerNotes": "Position relative to the specific tool the buyer mentioned in discovery. We're additive to most of these and replacing one or two — be honest about which is which.",
     "section": "sales"
   },
