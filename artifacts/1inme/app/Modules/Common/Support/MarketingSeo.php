@@ -122,6 +122,22 @@ class MarketingSeo
                 'description' => 'Build a polished online résumé and portfolio with 1INME and share it from a single link or QR code. Export to PDF and keep it always up to date.',
                 'keywords' => 'resume builder, online cv, portfolio builder, shareable resume, pdf resume, personal page',
             ],
+            'forms' => [
+                'label' => 'Form builder',
+                'group' => 'Capabilities',
+                'url' => '/forms',
+                'title' => 'Form Builder — Collect Leads & Responses from Your Page',
+                'description' => 'Build forms with 21 field types, full design customization, and instant email, SMS and webhook notifications — then embed them in any 1INME Link in Bio page.',
+                'keywords' => 'form builder, online forms, lead capture form, contact form, survey, webhook form, biolink form, 1inme forms',
+            ],
+            'notifications' => [
+                'label' => 'Notifications',
+                'group' => 'Capabilities',
+                'url' => '/notifications',
+                'title' => 'Notifications — In-App, Email & Push Alerts Your Way',
+                'description' => 'Stay on top of everything on 1INME with a unified notification feed plus in-app, email and mobile push alerts, and per-event preferences across 20+ event types.',
+                'keywords' => 'notifications, notification preferences, push notifications, email alerts, in-app notifications, notification feed, 1inme notifications',
+            ],
             'compare-index' => [
                 'label' => 'Compare overview',
                 'group' => 'Compare',

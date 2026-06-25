@@ -17,6 +17,8 @@
         [route('site.audience'),       'fa-users',        'Audience',           'Followers, digest emails & directory'],
         [route('site.integrations'),   'fa-plug',         'Integrations',       'One-click social connections'],
         [route('site.domains'),        'fa-globe',        'Domains & aliases',  'Branded domains & custom slugs'],
+        [route('site.forms'),          'fa-list-check',   'Form Builder',       '21 field types & instant alerts'],
+        [route('site.notifications'),  'fa-bell',         'Notifications',      'In-app, email & push, your way'],
         [route('site.workspace-team'), 'fa-people-group', 'Workspace & Team',   'Roles, permissions, audit logs'],
         [route('site.api-docs'),       'fa-code',         'API',                'Build with 1INME'],
     ];
