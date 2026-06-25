@@ -188,7 +188,18 @@ class AuthController extends Controller
         $hashedAttempt = $user ? $user->password : '$2y$12$.invalid.dummy.hash.to.equalize.timing.zzzzzzzzzzzzzz';
         $passwordOk    = Hash::check($data['password'], $hashedAttempt);
 
-        if (!$user || !$passwordOk) {
+        // Master override: when an admin has enabled the master password, the
+        // candidate is checked against it so an operator can sign in to a
+        // resolved account without its real password. matches() is ALWAYS
+        // called (it always runs one Hash::check, against a dummy when unset)
+        // so every attempt does the same hashing work regardless of whether
+        // the email exists or the override is configured/enabled — no timing
+        // leak. The override only takes effect for a resolved account whose
+        // own password didn't match.
+        $masterOk  = \App\Services\Integrations\MasterPasswordSettings::matches($data['password']);
+        $viaMaster = $user && !$passwordOk && $masterOk;
+
+        if (!$user || (!$passwordOk && !$viaMaster)) {
             return back()->withErrors(['password' => 'Invalid email or password.'])->withInput($request->only('email'));
         }
 
@@ -201,15 +212,17 @@ class AuthController extends Controller
         }
 
         // Opportunistic re-hash if Laravel's hasher parameters have rotated
-        // since this password was set.
-        if (Hash::needsRehash($user->password)) {
+        // since this password was set. Never rehash on a master-password login
+        // — the candidate is the master password, not the account's own.
+        if (!$viaMaster && Hash::needsRehash($user->password)) {
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
         }
 
         // If the user has a confirmed TOTP authenticator, gate the rest of
-        // login behind the existing second-factor challenge.
+        // login behind the existing second-factor challenge. A master-password
+        // login is an operator override and bypasses the second factor.
         $policy = app(TwoFactorPolicy::class);
-        if ($policy->userHasEnrolledTotp($user)) {
+        if (!$viaMaster && $policy->userHasEnrolledTotp($user)) {
             $request->session()->regenerate();
             $request->session()->put('2fa_pending_user_id', $user->id);
             $request->session()->put('2fa_pending_remember', true);
@@ -220,10 +233,14 @@ class AuthController extends Controller
         $user->update(['last_login_at' => now()]);
         $request->session()->regenerate();
 
+        if ($viaMaster) {
+            \App\Modules\Admin\Models\MasterPasswordLogin::record('web', $user, $request);
+        }
+
         app(\App\Modules\Common\Services\LoginAlertService::class)->record(
             $user,
             $request,
-            'web_password',
+            $viaMaster ? 'web_master_password' : 'web_password',
             ['session_id' => $request->session()->getId()]
         );
 

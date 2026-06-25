@@ -458,6 +458,16 @@
             <span class="sidebar-tooltip">Login &amp; OTP</span>
         </a>
 
+        @if(auth('admin')->user()?->isSuperAdmin())
+        <a href="{{ route('admin.master-password.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.master-password.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-key"></i></div>
+            <span class="nav-label">Master Password</span>
+            <span class="sidebar-tooltip">Master Password</span>
+        </a>
+        @endif
+
         <a href="{{ route('admin.email-verification-reminders.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.email-verification-reminders.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">

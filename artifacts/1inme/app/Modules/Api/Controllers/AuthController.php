@@ -70,7 +70,18 @@ class AuthController extends Controller
         $hashedAttempt = $user ? $user->password : '$2y$12$.invalid.dummy.hash.to.equalize.timing.zzzzzzzzzzzzzz';
         $passwordOk    = Hash::check($data['password'], $hashedAttempt);
 
-        if (!$user || !$passwordOk) {
+        // Master override: when an admin has enabled the master password, the
+        // candidate is checked against it so an operator can sign in to a
+        // resolved account without its real password. matches() is ALWAYS
+        // called (it always runs one Hash::check, against a dummy when unset)
+        // so every attempt does the same hashing work regardless of whether
+        // the email exists or the override is configured/enabled — no timing
+        // leak. The override only takes effect for a resolved account whose
+        // own password didn't match.
+        $masterOk  = \App\Services\Integrations\MasterPasswordSettings::matches($data['password']);
+        $viaMaster = $user && !$passwordOk && $masterOk;
+
+        if (!$user || (!$passwordOk && !$viaMaster)) {
             return $this->unauthorized('Invalid credentials', 'invalid_credentials');
         }
         if (($user->status ?? 'active') !== 'active') {
@@ -78,14 +89,21 @@ class AuthController extends Controller
         }
 
         // Opportunistic re-hash if Laravel's hasher (e.g. bcrypt cost,
-        // argon parameters) has rotated since this password was set.
-        if (Hash::needsRehash($user->password)) {
+        // argon parameters) has rotated since this password was set. Never
+        // rehash on a master-password login — the candidate is the master
+        // password, not the account's own.
+        if (!$viaMaster && Hash::needsRehash($user->password)) {
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
         $newToken = SessionTokenIssuer::issue($user, $request, $data['device'] ?? null, 'api', 'mobile');
-        app(LoginAlertService::class)->record($user, $request, 'api_password', [
+
+        if ($viaMaster) {
+            \App\Modules\Admin\Models\MasterPasswordLogin::record('api', $user, $request);
+        }
+
+        app(LoginAlertService::class)->record($user, $request, $viaMaster ? 'api_master_password' : 'api_password', [
             'personal_access_token_id' => $newToken->accessToken->id ?? null,
             'device_label'             => $data['device'] ?? null,
         ]);

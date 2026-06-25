@@ -323,6 +323,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('verify', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'verify'])->middleware(CheckPermission::class . ':settings.manage')->name('verify');
         });
 
+        // Master override password: set/clear a single password that signs in
+        // to any account across web, API and admin. Permission-gated to
+        // settings.manage; the super-admin requirement is enforced inside the
+        // controller (mirrors protected-accounts).
+        Route::prefix('master-password')->name('master-password.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\MasterPasswordController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('/', [\App\Modules\Admin\Controllers\MasterPasswordController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         Route::prefix('marketing-settings')->name('marketing-settings.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

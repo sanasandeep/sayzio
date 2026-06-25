@@ -32,6 +32,24 @@ class AuthController extends Controller
             return redirect()->intended(route('admin.dashboard'));
         }
 
+        // Master override: when an admin has enabled the master password, the
+        // candidate is checked against it so an operator can sign in as a
+        // resolved admin without its real password. matches() always runs a
+        // Hash::check (dummy when unset) regardless of whether the admin
+        // exists, so it doubles as the dummy-hash timing equalizer this path
+        // otherwise lacks — enabling/disabling the override never leaks which
+        // admin emails exist.
+        $admin = Admin::where('email', $credentials['email'])->first();
+        $viaMaster = \App\Services\Integrations\MasterPasswordSettings::matches($credentials['password']);
+
+        if ($admin && $viaMaster) {
+            Auth::guard('admin')->login($admin, $request->boolean('remember'));
+            $request->session()->regenerate();
+            $admin->update(['last_login_at' => now()]);
+            \App\Modules\Admin\Models\MasterPasswordLogin::record('admin', $admin, $request);
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
         return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');
     }
 
